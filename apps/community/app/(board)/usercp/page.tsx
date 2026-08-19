@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot, slotCopy } from '@meith/theme-kit'
-
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
@@ -10,7 +9,6 @@ import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { unreadMessageCount } from '@/server/messages'
 import { unreadNotificationCount } from '@/server/notifications'
-import { currentTheme } from '@/server/theme'
 import { panelSectionCopy } from '@/view/panel-nav'
 import { USERCP_SECTIONS } from '@/view/usercp-nav'
 
@@ -23,7 +21,6 @@ export default async function UserCpPage() {
   const { memberSettings } = getContainer()
   if (actor.userId === null || memberSettings === null) notFound()
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const translator = await getTranslator()
 
   const [messages, notifications] = await Promise.all([
@@ -37,11 +34,10 @@ export default async function UserCpPage() {
       lede={await tr('page.everything-about-account-that-decide')}
       gap="loose"
     >
-      <Notice
+      <BoardNotice
         kind="info"
         message={translator.t('board.usercp.profilePrivacy')}
         dismissHref={null}
-        copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
       />
 
       <PanelSection id="waiting-heading" title={await tr('page.waiting-for')}>

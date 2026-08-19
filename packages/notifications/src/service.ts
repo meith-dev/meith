@@ -31,18 +31,64 @@ export interface NotificationPreferenceView {
   readonly isDefault: boolean
 }
 
+/**
+ * Where a plugin gets to see a notification. `before` may rewrite it or return
+ * null to drop it; `created` is told what was stored and cannot change it.
+ */
+export interface NotificationAudit {
+  readonly before: (input: {
+    readonly userId: number
+    readonly kind: string
+    readonly subjectText: string
+    readonly href: string
+  }) => Promise<{
+    readonly userId: number
+    readonly kind: string
+    readonly subjectText: string
+    readonly href: string
+  } | null>
+  readonly created: (input: {
+    readonly notificationId: number
+    readonly userId: number
+  }) => Promise<void>
+}
+
+export const NO_NOTIFICATION_AUDIT: NotificationAudit = {
+  before: async (input) => input,
+  created: async () => {},
+}
+
+/**
+ * A notification suppressed by a plugin. It reports the same shape a coalesced
+ * one does, so nothing downstream has to learn a third outcome.
+ */
+const DROPPED: RaiseResult = {
+  notificationId: 0,
+  coalesced: true,
+  emailQueued: false,
+  pushQueued: false,
+}
+
+function subjectTextOf(data: NotificationData): string {
+  const subject = data.subject ?? data.subjectKey ?? ''
+  return typeof subject === 'string' ? subject : String(subject)
+}
+
 export class NotificationService {
   private readonly repository: NotificationRepository
   private readonly now: () => Date
   private readonly kinds: ReadonlyMap<string, RegisteredNotificationKind>
+  private readonly audit: NotificationAudit
 
   constructor(deps: {
     notifications: NotificationRepository
     now?: () => Date
     extraKinds?: readonly RegisteredNotificationKind[]
+    audit?: NotificationAudit
   }) {
     this.repository = deps.notifications
     this.now = deps.now ?? (() => new Date())
+    this.audit = deps.audit ?? NO_NOTIFICATION_AUDIT
 
     const kinds = new Map<string, RegisteredNotificationKind>(
       NOTIFICATION_KINDS.map((kind) => [kind.id, kind as RegisteredNotificationKind]),
@@ -71,18 +117,31 @@ export class NotificationService {
     const spec = this.kinds.get(input.kind)
     if (spec === undefined) throw new ValidationError(`Unknown notification kind: ${input.kind}`)
 
-    const wanted = await this.wanted(input.userId, input.kind)
-
-    return this.repository.raise({
+    const proposed = await this.audit.before({
       userId: input.userId,
       kind: input.kind,
+      subjectText: subjectTextOf(input.data),
+      href: input.href ?? '',
+    })
+    if (proposed === null) return DROPPED
+
+    const wanted = await this.wanted(proposed.userId, proposed.kind)
+
+    const result = await this.repository.raise({
+      userId: proposed.userId,
+      kind: proposed.kind,
       data: input.data,
-      href: input.href ?? null,
+      href: proposed.href === '' ? null : proposed.href,
       dedupeKey: input.dedupeKey ?? null,
       email: wanted.email,
       push: wanted.push,
       at: this.now(),
     })
+
+    if (!result.coalesced) {
+      await this.audit.created({ notificationId: result.notificationId, userId: proposed.userId })
+    }
+    return result
   }
 
   async raiseForAdministrators(input: {

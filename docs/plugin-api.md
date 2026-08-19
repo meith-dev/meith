@@ -56,11 +56,12 @@ you read in `community.plugins.ts` is what your board runs.
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
 | `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `navigation` | Board navigation entries the operator then owns — see [below](#asking-for-a-place-in-the-navigation). |
 | `notifications` | Notification kinds this plugin may send, each a line on the member's preferences screen. |
 | `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
 | `dependsOn` | Other plugin keys whose migrations must run first. |
-| `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — declared and typed, not yet dispatched by the host. See [the inventory](#what-is-wired-and-what-is-not). |
+| `onInstall` / `onEnable` / `onDisable` / `onUninstall` | Lifecycle callbacks — see [below](#the-lifecycle). |
 
 > [!NOTE]
 > Everything but the callbacks is **declarative**. A plugin does not call
@@ -117,15 +118,27 @@ Nothing a plugin does propagates to the page. That makes plugin failures
 survivable, **not invisible**: every failure is counted, logged with the
 plugin key and the hook, and reported by `host.health()`.
 
-Three limits are worth stating, because a guarantee with an unstated edge is
-worse than a smaller honest one:
+Two limits and one guarantee are worth stating plainly, because a promise
+with an unstated edge is worse than a smaller honest one:
 
-> [!WARNING]
-> **Auto-disable is per instance and in memory.** A plugin that has failed
-> five times is switched off for the rest of that process and does not
-> re-enable itself — but the counter resets whenever the platform recycles
-> the instance. Auto-disable protects a request path within one instance;
-> switching a plugin off across the board is an operator action.
+**Auto-disable is durable.** Every failure is counted in a `plugin_health`
+row, and the fifth switches the plugin off with the hook and the message
+that did it. The row is the answer, not this process's tally: it survives a
+restart, it is shared by every web instance and the worker, and each of them
+reconciles against it. A plugin that started failing at 2am is off when the
+platform recycles the instance at 3am, and off on the instance that never
+saw it fail.
+
+Nothing re-enables it on its own. An operator clears the record — **Clear
+failures and re-enable** on `/admin/plugins`, which deletes the row and
+takes effect on the next request across the board. Deliberately manual: a
+plugin that fails five times and is switched back on by a timer fails five
+more times, and the board has learned nothing.
+
+> [!NOTE]
+> A count that reaches the threshold is the *board's* count, not one
+> instance's, so a plugin failing twice on each of three instances is
+> switched off — which is the point of moving it out of memory.
 
 **Timing is measured, never enforced.** Each call is timed, and slow ones
 are logged and counted. There is no timeout, because JavaScript cannot abort
@@ -155,6 +168,150 @@ There are six: `header.notice`, `index.footer`, `postbit.badges`,
 [Plugin hooks](./plugin-hooks.md). The list is short on purpose, because
 every region is a commitment every theme has to render or deliberately
 drop.
+
+## Changing how content renders
+
+Seven filters reach the render pipeline, and they divide on **when** they
+run — which decides what a plugin can change and what it costs.
+
+| Filter | When it runs | What it shapes |
+|---|---|---|
+| `markdown.parse.text` | Write | The source handed to the parser |
+| `markdown.render.html` | Write | The HTML the renderer constructed |
+| `markdown.directives` | Write | The `:::name` and `:name[…]` vocabulary |
+| `smilies.list` | Write | The smilie set substituted at render |
+| `post.body.html` | Read | One post's body, in the thread it is read in |
+| `signature.html` | Read | A member's signature, wherever it appears |
+| `word-filter.patterns` | Read | The render-time word filter's rules |
+
+**Write** means the filter runs where a body becomes HTML — a new thread or
+reply, an edit, a private message, a saved signature, the composer's
+preview — and its output is what the board stores. That is why those four
+carry no viewer: a stored render is shared by everybody who reads the post,
+so a set of smilies or a rewrite that depended on who was looking would be
+whichever reader happened to write the row first.
+
+**Read** means the filter runs once per body per page view. Nothing is
+stored, so a change takes effect immediately and disappearing when the
+plugin is removed costs nothing.
+
+Two things follow that are worth knowing before you write one.
+
+**The source is never touched.** `markdown.parse.text` changes what the
+parser is handed; the `message` column still holds exactly what the member
+typed, which is what quoting, editing and the next re-render start from. A
+plugin cannot rewrite somebody's post.
+
+**Installing or removing a formatting plugin re-renders the board.** The
+board records a *rendering signature* — the keys and versions of the
+installed plugins that register any of the four write-time filters. When it
+changes, the content revision is bumped, and `posts.render_backfill` walks
+the board re-rendering every post through the new pipeline. That is what
+makes a formatting plugin apply to the ten years of posts that were there
+before it, and what makes removing one take its markup back out. On a large
+board the sweep takes a while and reports its backlog in `/admin/system`;
+nothing looks broken while it runs, because a row the sweep has not reached
+is rendered in memory when somebody reads it.
+
+> [!WARNING]
+> What `markdown.render.html`, `post.body.html` and `signature.html` return
+> is **trusted output**: it is inserted as markup and nothing escapes it
+> afterwards. `post.body.html` runs after the board's word filter, so a
+> plugin's own additions are not filtered either. This is the same trust an
+> operator extends by installing the plugin at all — but it is the one
+> place where a mistake becomes markup on every page.
+
+## The lifecycle
+
+Four callbacks, each with one moment it runs and its own answer to "what if it
+throws". All four are handed the same runtime context a task gets — resolved
+settings, a logger, and `grants`, `data`, `users` and `notify`.
+
+| Callback | When | If it throws |
+|---|---|---|
+| `onInstall` | The first `community upgrade` on a board that has never recorded this plugin, after its migrations | The upgrade stops |
+| `onEnable` | An operator switches the plugin on in the panel | The switch stands; counted as a plugin failure |
+| `onDisable` | An operator switches it off | The switch stands; counted as a plugin failure |
+| `onUninstall` | `community plugin:purge <key>`, before anything is dropped | Nothing is dropped |
+
+None of them runs inside the host's try/catch. That isolation exists to keep a
+page rendering, and none of these is on a page.
+
+**`onInstall` runs once per board, not once per deploy.** The board records a
+`plugin:<key>` version row; no row means it has never seen the plugin. It runs
+after that plugin's migrations, so its tables exist, and before the version row
+is written, so a throw leaves the board able to try again. A throw stops the
+upgrade — a plugin that could not finish installing is not one the board should
+start serving.
+
+**`onEnable` and `onDisable` run on the operator's switch only.** They do not
+run on the host's own switch after repeated failures: a plugin that has just
+failed five times is not one to hand more work to. They run *after* the switch
+is written, so the callback sees the state it is being told about, and the
+switch stands whatever they do — a callback that throws is the plugin's fault,
+so it is counted and shown in the plugin's health row rather than reported to
+the operator as their action having failed.
+
+**`onUninstall` needs `community plugin:purge`, and that is not a workaround.**
+Removing a plugin is `pnpm remove`, a line out of `community.plugins.ts` and a
+redeploy — and at the moment the board would call `onUninstall`, the function
+is no longer in the build. There is no point in time where the host holds both
+"this plugin is gone" and "this plugin's code". So the operator says when:
+
+```sh
+community plugin:purge dues          # says what it would do
+community plugin:purge dues --yes    # runs onUninstall, then drops the data
+```
+
+It runs `onUninstall` first and drops nothing if that throws, then takes away
+the plugin's `plugin_<key>_*` tables, its settings, its migration records, its
+navigation items, its version row and its health row. Then you remove the code.
+Purging a plugin that is not in the build is refused, with that explanation:
+there would be no `onUninstall` left to run.
+
+> [!TIP]
+> Write these if the shape of your plugin wants them, but keep `onInstall`
+> **idempotent anyway**. It runs once per board, and a board restored from a
+> backup taken before the install is a board that will run it again.
+
+## Asking for a place in the navigation
+
+A plugin with a member-facing page usually wants a link to it. `navigation`
+is how it asks:
+
+```ts
+navigation: [
+  { key: 'plans', label: 'Supporters', path: '' },
+  { key: 'manage', label: 'Your membership', path: 'manage', audience: 'members' },
+]
+```
+
+Each entry names one of the plugin's **own** `pages` by path, so a
+navigation item cannot point somewhere the plugin did not build. The host
+writes it into the board's navigation table under `plugin.<key>.<item>`, and
+from that moment **the operator owns it**: they rename it, reorder it, nest
+it under another item, restrict it to groups, or switch it off on
+`/admin/content/navigation`, exactly as they would a link they added
+themselves. Redeploying does not undo any of that — only the address is
+refreshed from the code, because that is the half the plugin knows better.
+
+The rest follows from it being a real row:
+
+- **`label` is a starting point, not a fixed string.** It is what the item
+  is called until somebody renames it. Give `labelKey` too and the board
+  translates it, until an operator types their own label — at which point
+  theirs wins in every language, which is what they asked for.
+- **`audience` is the default scope** (`all`, `guests`, `members`,
+  `staff`), and the operator can narrow it further to specific groups. It
+  is presentation, not permission: the page re-checks whoever arrives.
+- **The item disappears with the plugin.** Switch the plugin off and the
+  link stops rendering; take the plugin out of the build and the row goes
+  at the next `community upgrade`. An operator's ordering is not lost in
+  between.
+
+Appending to `view.header` instead would put a link where no operator could
+reach it — unnameable, unmovable, and impossible to switch off without
+switching off the plugin.
 
 ## Namespacing
 
@@ -595,13 +752,14 @@ system that does not run. It is derived rather than remembered:
 `scripts/hook-callsites.mjs` computes it by scanning the tree, so the
 generated reference's wired column cannot drift from the code.
 
-**32 of the 102 hooks are wired** — the shell filters, the view models of
-the reading surfaces, and the posting events. The generated reference's
-wired column is the authoritative list.
+**All 102 hooks are wired.** Every entry in the registry has a call site in
+the board, and the generated reference's wired column — computed from the
+tree, not maintained by hand — says so. If that column ever reads anything
+else, believe the column: it is derived and this sentence is not.
 
-A hook that is declared but not wired is not broken; it is a call site that
-has not been written yet. Registering a handler for one is legal, does
-nothing, and the reference marks it so you find out before you ship.
+A hook that is declared but not wired would not be broken, only unfinished:
+registering a handler for one is legal and does nothing. The reference marks
+which is which so you find out before you ship, rather than after.
 
 **`plugins/reference` must handle every wired hook**, enforced by its own
 test. That is the ratchet: wiring a new call site into the board fails the
@@ -611,15 +769,11 @@ plugin declares a route of every shape, a board page, a secret setting with
 an environment override and a select — and its tests drive each one, so
 none of those surfaces can silently rot either.
 
-**The lifecycle callbacks do not run yet.** `onInstall`, `onEnable`,
-`onDisable` and `onUninstall` are part of the declared shape and validated
-like everything else, but no host code dispatches them today. Write them if
-the shape of your plugin wants them — just do not put anything there that
-must run for the plugin to be correct.
-
 ### The descriptors execute
 
-Everything else runs today. Migrations are applied by `community upgrade` in
+Everything declared runs today, the four lifecycle callbacks included — see
+[the lifecycle](#the-lifecycle) for when each fires and what a throw costs.
+Migrations are applied by `community upgrade` in
 dependency order, one transaction each. Settings are stored at
 `plugin.<key>.<name>` and edited in the control panel, with environment
 overrides resolved as described above. Tasks are registered as
@@ -650,13 +804,15 @@ A few consequences, stated plainly:
   A schema change belongs to the deploy that shipped the code expecting
   it. The panel reports which migrations have and have not been applied,
   which is the part an operator cannot otherwise find out.
-- **Disabling is durable and immediate; uninstalling is not offered.** The
-  panel's switch writes a row that every instance reconciles against on its
-  next request, so it survives a redeploy — the plugin somebody switched
-  off at 2am is exactly the one that must stay off. Removing a plugin is
-  `pnpm remove`, a line out of `community.plugins.ts`, and a redeploy; a
-  button that dropped the rows while the code kept running would produce a
-  state neither installing nor removing does.
+- **Disabling is durable and immediate; uninstalling is a command, not a
+  button.** Both switches — the panel's and the host's own, after repeated
+  failures — write a row that every instance reconciles against on its next
+  request, so both survive a redeploy: the plugin somebody switched off at
+  2am is exactly the one that must stay off. Removing a plugin is still
+  `pnpm remove`, a line out of `community.plugins.ts`, and a redeploy, with
+  `community plugin:purge` before it when its data should go too. There is
+  no button, because a button that dropped the rows while the code kept
+  running would produce a state neither installing nor removing does.
 
 ## The generated reference is a gate
 

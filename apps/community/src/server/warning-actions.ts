@@ -13,6 +13,7 @@ import { formStateReporter } from './form-state-reporter'
 import { positiveInt, text } from './form-values'
 import { tr } from './i18n'
 import { warningNotifier } from './notifications'
+import { emitEvent } from './plugin-view'
 
 const toFormState = formStateReporter('warning-actions', 'unexpected error in warnings')
 
@@ -52,6 +53,17 @@ export async function issueWarningAction(_prev: FormState, form: FormData): Prom
       postId: evidence,
       mayWarn,
     })
+
+    await emitEvent(
+      'warning.issued',
+      {
+        warningId: outcome.warningId,
+        userId,
+        points: outcome.points,
+        expiresAt: null,
+      },
+      { moderatorId: actor.userId, reason: text(form, 'reason') || null },
+    )
   } catch (err) {
     return toFormState(err)
   }
@@ -86,6 +98,14 @@ export async function revokeWarningAction(_prev: FormState, form: FormData): Pro
       reason: text(form, 'reason'),
       mayWarn: authorizer.can(actor, 'user.warn'),
     })
+
+    if (standing !== null) {
+      await emitEvent(
+        'warning.revoked',
+        { warningId, userId },
+        { moderatorId: actor.userId, reason: text(form, 'reason') || null },
+      )
+    }
   } catch (err) {
     return toFormState(err)
   }

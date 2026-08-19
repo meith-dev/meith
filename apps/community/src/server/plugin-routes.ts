@@ -16,7 +16,7 @@ import {
 import { recordAdminAction, requireAdmin } from './admin'
 import { boardUrl } from './board-url'
 import { getActor } from './context'
-import { activeDefinitions, pluginHost, syncOperatorDisables } from './plugin-host'
+import { activeDefinitions, pluginHost, syncPluginEnablement } from './plugin-host'
 import { runtimeContextFor } from './plugin-pages'
 import { viewerRef } from './plugin-view'
 import { isSafeLocalPath } from './safe-path'
@@ -184,7 +184,7 @@ export async function dispatchPluginRoute(
     return fail(404, 'no_such_route', 'No such endpoint.')
   }
 
-  await syncOperatorDisables()
+  await syncPluginEnablement()
   if (!pluginHost.isEnabled(pluginKey)) {
     return fail(404, 'no_such_route', 'No such endpoint.')
   }

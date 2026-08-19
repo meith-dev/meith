@@ -1,0 +1,29 @@
+import type { HookName } from './hooks'
+import type { PluginDefinition } from './plugin'
+
+export const STORED_RENDER_HOOKS: readonly HookName[] = [
+  'markdown.parse.text',
+  'markdown.render.html',
+  'markdown.directives',
+  'smilies.list',
+]
+
+export function rendersStoredContent(plugin: PluginDefinition): boolean {
+  const hooks = Object.keys(plugin.hooks ?? {})
+  return STORED_RENDER_HOOKS.some((hook) => hooks.includes(hook))
+}
+
+export function renderingSignature(plugins: readonly PluginDefinition[]): number {
+  const parts = plugins
+    .filter(rendersStoredContent)
+    .map((plugin) => `${plugin.key}@${plugin.version}`)
+    .sort()
+
+  let hash = 2_166_136_261
+  for (const character of parts.join(',')) {
+    hash ^= character.codePointAt(0) ?? 0
+    hash = Math.imul(hash, 16_777_619)
+  }
+
+  return (hash >>> 1) + 1
+}

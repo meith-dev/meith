@@ -566,7 +566,7 @@ describe('activation', () => {
       /not yet activated/i,
     )
 
-    expect(await service.activateAccount(token)).toBe('activated')
+    expect((await service.activateAccount(token)).outcome).toBe('activated')
 
     const after = (await store.accounts.findById(account.id))!
     expect(after.state).toBe('active')
@@ -577,8 +577,8 @@ describe('activation', () => {
   it('refuses the same token twice', async () => {
     const { service, token } = await registerAwaiting()
 
-    expect(await service.activateAccount(token)).toBe('activated')
-    expect(await service.activateAccount(token)).toBe('invalid')
+    expect((await service.activateAccount(token)).outcome).toBe('activated')
+    expect((await service.activateAccount(token)).outcome).toBe('invalid')
   })
 
   it('never moves a banned account to active', async () => {
@@ -586,7 +586,7 @@ describe('activation', () => {
 
     await store.accounts.setState(account.id, 'banned')
 
-    expect(await service.activateAccount(token)).toBe('banned')
+    expect((await service.activateAccount(token)).outcome).toBe('banned')
     expect((await store.accounts.findById(account.id))!.state).toBe('banned')
     await expect(service.login('alice', 'correct horse battery', 'alice')).rejects.toThrow(
       /banned/i,
@@ -597,7 +597,7 @@ describe('activation', () => {
     const { service, token, account } = await registerAwaiting()
     await store.accounts.setState(account.id, 'active')
 
-    expect(await service.activateAccount(token)).toBe('already-active')
+    expect((await service.activateAccount(token)).outcome).toBe('already-active')
   })
 
   it('rejects an expired token', async () => {
@@ -605,13 +605,13 @@ describe('activation', () => {
     const { service, token } = await registerAwaiting('email', clock)
 
     clock.advance((VERIFICATION_TTL_HOURS * 60 + 1) * 60_000)
-    expect(await service.activateAccount(token)).toBe('invalid')
+    expect((await service.activateAccount(token)).outcome).toBe('invalid')
   })
 
   it('under "both", proves the address and leaves the account waiting', async () => {
     const { service, token, account } = await registerAwaiting('both')
 
-    expect(await service.activateAccount(token)).toBe('awaiting-approval')
+    expect((await service.activateAccount(token)).outcome).toBe('awaiting-approval')
 
     const after = (await store.accounts.findById(account.id))!
     expect(after.state).toBe('awaiting_activation')
@@ -623,8 +623,8 @@ describe('activation', () => {
 
   it('treats a token for a vanished account as invalid', async () => {
     const { service, token } = await registerAwaiting()
-    expect(await service.activateAccount('not-a-token')).toBe('invalid')
-    expect(await service.activateAccount(token)).toBe('activated')
+    expect((await service.activateAccount('not-a-token')).outcome).toBe('invalid')
+    expect((await service.activateAccount(token)).outcome).toBe('activated')
   })
 })
 
@@ -657,8 +657,8 @@ describe('resending a verification link', () => {
     expect(resent.token).toBeTypeOf('string')
     expect(resent.account?.username).toBe('Alice')
 
-    expect(await service.activateAccount(registered.verificationToken!)).toBe('invalid')
-    expect(await service.activateAccount(resent.token!)).toBe('activated')
+    expect((await service.activateAccount(registered.verificationToken!)).outcome).toBe('invalid')
+    expect((await service.activateAccount(resent.token!)).outcome).toBe('activated')
   })
 
   it('sends nothing for an account that is already active', async () => {

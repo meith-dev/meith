@@ -26,6 +26,7 @@ const HEALTHY: PluginHealth = {
   key: 'alpha',
   enabled: true,
   operatorDisabled: false,
+  durablyDisabled: false,
   disabledReason: null,
   calls: 3,
   failures: 0,
@@ -52,7 +53,7 @@ const host = {
 vi.mock('./plugin-host', async (importOriginal) => ({
   ...(await importOriginal<typeof PluginHostModule>()),
   pluginHost: host,
-  syncOperatorDisables: async () => {
+  syncPluginEnablement: async () => {
     const { operatorDisabledPlugins } = await import('@meith/plugin-kit')
     host.setOperatorDisabled(operatorDisabledPlugins(overrides.current))
   },
@@ -69,12 +70,15 @@ vi.mock('@meith/core', () => ({
   readPluginEnv: () => undefined,
 }))
 
+const durableHealth = { current: [] as Array<Record<string, unknown>> }
+
 vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   appliedPluginMigrations: async () => {
     if (applied.throws) throw new Error('no such table: plugin_migrations')
     return applied.current
   },
+  readPluginHealth: async () => durableHealth.current,
 }))
 
 const { hookListeners, pluginInventory, pluginRow } = await import('./plugin-admin')

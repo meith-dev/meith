@@ -10,7 +10,7 @@ import { PollService } from '@meith/polls'
 import type { ThreadCursor } from '@meith/threads'
 
 import { getContainer } from '../container'
-import { emitEvent, viewerRef } from '../plugin-view'
+import { emitEvent, filterView, viewerRef } from '../plugin-view'
 import { postEditor, resolvePostScope } from '../post-scope'
 import { resolveReplyTarget, submitReply } from '../reply-core'
 import { resolveThreadTarget, submitThread } from '../thread-core'
@@ -351,11 +351,17 @@ export const CONTENT_HANDLERS: ApiRoutes = [
       if (!scope.mayEdit) throw new ForbiddenError(msg('error.app.edit-post'))
 
       const userId = requireUserId(actor)
+      const revised = await filterView(
+        'post.edit.before',
+        { body: bodyText(body, 'message'), reason: bodyText(body, 'reason') },
+        { ...viewerRef(actor), postId, threadId, forumId: scope.target.forum.id },
+      )
+
       const editor = await postEditor(postWrites)
       const edited = await editor.edit(
         {
-          message: bodyText(body, 'message'),
-          reason: bodyText(body, 'reason'),
+          message: revised.body,
+          reason: revised.reason ?? '',
           capabilities: scope.capabilities,
         },
         userId,

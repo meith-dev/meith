@@ -2,11 +2,10 @@ import type { Metadata } from 'next'
 
 import { env } from '@meith/core'
 import { readUnsubscribeToken } from '@meith/subscriptions'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { getTranslator, tr } from '@/server/i18n'
-import { currentTheme } from '@/server/theme'
 import { followFormCopy } from '@/view/account-copy'
 import { unsubscribeNotice } from '@/view/subscriptions'
 
@@ -27,8 +26,6 @@ export default async function UnsubscribePage({
   const secret = env.AUTH_SECRET
   const claim = token === '' || secret === undefined ? null : readUnsubscribeToken(token, secret)
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
-
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-6 py-10">
@@ -36,12 +33,7 @@ export default async function UnsubscribePage({
 
         {done !== null ? (
           <>
-            <Notice
-              kind="info"
-              message={done}
-              dismissHref="/"
-              copy={slotCopy(await currentTheme(), 'Notice', translator)}
-            />
+            <BoardNotice kind="info" message={done} dismissHref="/" />
             <p className="text-sm text-muted-foreground">
               {translator.t('unsubscribePage.doneBefore')}{' '}
               <a

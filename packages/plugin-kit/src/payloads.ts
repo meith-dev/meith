@@ -148,15 +148,22 @@ export interface HookSignatures {
     value: string
     context: ViewerRef & { source: 'post' | 'signature' | 'pm' }
   }
-  'markdown.directives': { value: readonly string[]; context: ForumRef | Record<string, never> }
+  'markdown.directives': {
+    value: readonly { readonly name: string; readonly block: boolean }[]
+    context: ForumRef | Record<string, never>
+  }
   'post.body.html': { value: string; context: PostRef & ViewerRef }
   'signature.html': { value: string; context: ViewerRef & { authorId: number } }
   'smilies.list': {
-    value: readonly { readonly code: string; readonly imageUrl: string }[]
-    context: ViewerRef
+    value: readonly { readonly code: string; readonly src: string; readonly alt?: string }[]
+    context: Record<string, never>
   }
   'word-filter.patterns': {
-    value: readonly { readonly pattern: string; readonly replacement: string }[]
+    value: readonly {
+      readonly pattern: string
+      readonly replacement: string
+      readonly wholeWord: boolean
+    }[]
     context: Record<string, never>
   }
 

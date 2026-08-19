@@ -1,11 +1,11 @@
 import 'server-only'
 
 import { logger } from '@meith/core'
-import { drivers } from '@meith/drivers'
 import type { Translator } from '@meith/i18n'
 import { absoluteUrl, renderMail } from '@meith/mail'
 
 import { brandedFor } from './mail-brand'
+import { sendBoardMail } from './mail-send'
 
 const CONFIRM_PATH = '/usercp/email/confirm'
 const RESET_PATH = '/reset'
@@ -45,7 +45,7 @@ export async function sendEmailChangeConfirmation(input: {
   const fromName = brand.fromName ?? ''
 
   try {
-    await drivers().mail.send({
+    await sendBoardMail('usercp.email-change', {
       to: input.email,
       subject: mail.subject,
       text: mail.text,
@@ -107,7 +107,7 @@ export async function sendEmailChangeNotice(input: {
   const fromName = brand.fromName ?? ''
 
   try {
-    await drivers().mail.send({
+    await sendBoardMail('usercp.email-change', {
       to: input.previousEmail,
       subject: mail.subject,
       text: mail.text,

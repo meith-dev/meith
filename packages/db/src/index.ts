@@ -155,6 +155,7 @@ export {
   type NavigationDropTarget,
   type NavigationItemInput,
   type NavigationItemRow,
+  type PluginNavigationRow,
   PostgresNavigationRepository,
 } from './navigation-repo'
 export { PostgresNotificationRepository } from './notification-repo'
@@ -171,6 +172,17 @@ export {
   permissionsCarryPower,
   pluginGrants,
 } from './plugin-grants'
+export {
+  clearPluginHealth,
+  type PluginHealthRecord,
+  readPluginHealth,
+  recordPluginFailure,
+} from './plugin-health-repo'
+export {
+  type PluginPurgeResult,
+  pluginOwnedTables,
+  purgePlugin,
+} from './plugin-purge-repo'
 export { pluginUsers } from './plugin-users'
 export { PostgresPollRepository } from './poll-repo'
 export { PostgresPostRepository } from './post-repo'
@@ -191,6 +203,7 @@ export {
   PostgresRenderBackfill,
   type RenderBackfillRun,
 } from './render-backfill'
+export { syncRenderSignature } from './render-signature'
 export { PostgresReportRepository } from './report-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { resultRows } from './result-rows'

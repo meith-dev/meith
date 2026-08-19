@@ -175,10 +175,10 @@ function render({ hooks, signatures, regions, wired }) {
     'Handlers run in **(priority, plugin key)** order. Both halves are declared, so two',
     'plugins compose the same way on every request and on every instance.',
     '',
-    'Every handler is called inside the host’s try/catch and is timed. A plugin that',
-    'fails repeatedly is switched off for the rest of the process and says so in its',
-    'health row. See [`plugin-api.md`](./plugin-api.md) for the policy, the lifecycle and',
-    'the limits.',
+    'Every handler is called inside the host’s try/catch and is timed. Failures are',
+    'counted in the database, so a plugin that fails repeatedly is switched off across',
+    'the whole board and stays off until an operator clears the record. See',
+    '[`plugin-api.md`](./plugin-api.md) for the policy, the lifecycle and the limits.',
     '',
   )
 

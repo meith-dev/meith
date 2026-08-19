@@ -3,7 +3,11 @@
 import { useActionState } from 'react'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
-import { savePluginSettingsAction, setPluginEnabledAction } from '@/server/plugin-admin-actions'
+import {
+  clearPluginHealthAction,
+  savePluginSettingsAction,
+  setPluginEnabledAction,
+} from '@/server/plugin-admin-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
@@ -47,6 +51,23 @@ export function PluginEnableForm({
         {enabled
           ? fromCopy(copy, 'adminPanel.plugin.disable')
           : fromCopy(copy, 'adminPanel.plugin.enable')}
+      </button>
+    </form>
+  )
+}
+
+export function PluginHealthResetForm({ pluginKey, copy }: { pluginKey: string; copy: Copy }) {
+  const [state, action] = useActionState(clearPluginHealthAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <FormError message={state.error} />
+      <input type="hidden" name="key" value={pluginKey} />
+      <button
+        type="submit"
+        className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm"
+      >
+        {fromCopy(copy, 'adminPanel.plugin.clearFailures')}
       </button>
     </form>
   )

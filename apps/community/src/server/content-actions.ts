@@ -4,7 +4,13 @@ import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
-import { quoteBlock, renderMarkdown, SIGNATURE_FEATURES, vocabularyOptions } from '@meith/markdown'
+import {
+  authorRef,
+  quoteBlock,
+  renderThrough,
+  SIGNATURE_FEATURES,
+  vocabularyOptions,
+} from '@meith/markdown'
 import type { PostEditor } from '@meith/posts'
 
 import { postLink } from '../view/post-link'
@@ -16,7 +22,8 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
 import { getTranslator, tr } from './i18n'
-import { emitEvent } from './plugin-view'
+import { boardRendering } from './markdown-pipeline'
+import { emitEvent, filterView, viewerRef } from './plugin-view'
 import { postEditor, resolvePostScope } from './post-scope'
 import { resolveReplyTarget, submitReply } from './reply-core'
 import { resolveThreadTarget, submitThread } from './thread-core'
@@ -24,12 +31,22 @@ import { resolveThreadTarget, submitThread } from './thread-core'
 export type PreviewScope = 'post' | 'signature'
 
 async function previewHtml(message: string, scope: PreviewScope = 'post'): Promise<string> {
-  const [vocabulary, translator] = await Promise.all([activeVocabulary(), getTranslator()])
-  return renderMarkdown(message, {
-    ...vocabularyOptions(vocabulary),
-    ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
-    quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
-  }).html
+  const [vocabulary, translator, actor] = await Promise.all([
+    activeVocabulary(),
+    getTranslator(),
+    getActor(),
+  ])
+  const rendered = await renderThrough(
+    boardRendering,
+    message,
+    { source: scope, viewer: authorRef(actor.userId) },
+    {
+      ...vocabularyOptions(vocabulary),
+      ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
+      quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
+    },
+  )
+  return rendered.html
 }
 
 export async function renderPreviewAction(
@@ -223,9 +240,20 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
       throw new ForbiddenError(msg('error.app.must-logged-edit-post'))
     }
 
+    const revised = await filterView(
+      'post.edit.before',
+      { body: message, reason },
+      {
+        ...viewerRef(actor),
+        postId,
+        threadId,
+        forumId: scope.target.forum.id,
+      },
+    )
+
     const editor = await postEditor(postWrites)
     edited = await editor.edit(
-      { message, reason, capabilities: scope.capabilities },
+      { message: revised.body, reason: revised.reason ?? '', capabilities: scope.capabilities },
       actor.userId,
       scope.target,
     )
@@ -287,15 +315,24 @@ async function moveVisibility(form: FormData, to: 'deleted' | 'visible'): Promis
       throw new ForbiddenError(msg('error.app.must-logged-2'))
     }
 
+    const moderation = {
+      moderatorId: actor.userId,
+      reason: null,
+    }
+    const postRef = { postId, threadId, forumId: scope.target.forum.id }
+
     const editor = await postEditor(postWrites)
     if (to === 'deleted') {
       if (!scope.mayDelete) throw new ForbiddenError(msg('error.app.delete-post'))
+      await emitEvent('post.delete.before', postRef, moderation)
       moved = await editor.softDelete(actor.userId, scope.target, {
         bypassesLock: scope.bypassesLock,
       })
+      if (moved.changed) await emitEvent('post.deleted', postRef, moderation)
     } else {
       if (!scope.mayRestore) throw new ForbiddenError(msg('error.app.restore-post'))
       moved = await editor.restore(actor.userId, scope.target)
+      if (moved.changed) await emitEvent('post.restored', postRef, moderation)
     }
   } catch (err) {
     return toFormState(err, {})

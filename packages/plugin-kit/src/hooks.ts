@@ -74,7 +74,7 @@ export const HOOKS = {
     kind: 'filter',
     purpose:
       'The declarative directive list, so a plugin can add a `:::name` block or ' +
-      '`:name[…]` span without core changes.',
+      '`:name[…]` span without core changes. Board-wide: rendered bodies are stored and shared, so the set cannot depend on who is reading.',
   },
   'post.body.html': {
     kind: 'filter',
@@ -86,7 +86,9 @@ export const HOOKS = {
   },
   'smilies.list': {
     kind: 'filter',
-    purpose: 'The smilie set offered by the editor and substituted at render.',
+    purpose:
+      'The smilie set substituted at render. Board-wide, for the same reason ' +
+      'the directive list is.',
   },
   'word-filter.patterns': {
     kind: 'filter',
@@ -247,7 +249,9 @@ export const HOOKS = {
   },
   'view.redirect-notice': {
     kind: 'filter',
-    purpose: 'The interstitial shown after a mutation, before the meta refresh fires.',
+    purpose:
+      'The interstitial shown after a mutation, before the meta refresh fires. The target is re-checked against the board after the filter runs, so this ' +
+      'cannot send a member off-site.',
   },
 
   /* ---- Posting ---- */

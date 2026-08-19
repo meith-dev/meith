@@ -9,6 +9,7 @@ import { PollService } from '@meith/polls'
 
 import { getContainer } from './container'
 import { getActor } from './context'
+import { emitEvent, viewerRef } from './plugin-view'
 
 function id(form: FormData, name: string): number {
   const value = Number(form.get(name))
@@ -43,5 +44,6 @@ export async function votePollAction(form: FormData): Promise<void> {
     userId: actor.userId,
     mayVote: authorizer.can(actor, 'poll.vote', target),
   })
+  await emitEvent('poll.voted', { pollId, optionId }, viewerRef(actor))
   redirect(`/thread/${threadId}`)
 }

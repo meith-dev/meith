@@ -31,6 +31,9 @@ import {
   PostgresUserBulkRepository,
   PostgresWarningRepository,
   PostgresWebhookRepository,
+  readPluginHealth,
+  recordPluginFailure,
+  syncRenderSignature,
 } from '@meith/db'
 import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
 import { renderMail } from '@meith/mail'
@@ -41,13 +44,14 @@ import {
   type NotificationTranslatorResolver,
   type VapidDetails,
 } from '@meith/notifications'
-import type { PluginDefinition } from '@meith/plugin-kit'
+import { type PluginDefinition, PluginHost, renderingSignature } from '@meith/plugin-kit'
 import { resolvePushConfig, SettingsSnapshot } from '@meith/settings'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { resolveMailBrand, type ThemeTokenRegistry } from './mail-brand'
+import { pluginMarkdownPipeline, sendAudited } from './plugin-rendering'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
@@ -97,11 +101,61 @@ export function buildSchedulerBundle(deps: {
         })
 
   const contributed = pluginTasks({ db, plugins: deps.plugins ?? [] })
+  const plugins = deps.plugins ?? []
+  const renderHost = new PluginHost({
+    plugins,
+    health: {
+      failed: (failure) => {
+        void recordPluginFailure(db, {
+          pluginKey: failure.pluginKey,
+          threshold: failure.threshold,
+          reason: `${failure.threshold} failures, most recently in "${failure.hook}": ${failure.message}`,
+        }).catch((error: unknown) => {
+          logger({ module: 'scheduler' }).warn(
+            { err: String(error), plugin: failure.pluginKey },
+            'could not record plugin failure',
+          )
+        })
+      },
+    },
+  })
+  const backfill = new PostgresRenderBackfill(db, pluginMarkdownPipeline(renderHost))
+
+  /**
+   * Every task, announced. The host is told before and after each run — a
+   * plugin watching its own task, or the board's, gets the same two events
+   * whichever scheduled it.
+   */
+  const announced = (tasks: readonly TaskDefinition[]): TaskDefinition[] =>
+    tasks.map((task) => ({
+      ...task,
+      async run(context) {
+        await renderHost.emit('task.run.before', { taskId: task.id }, {})
+
+        const startedAt = Date.now()
+        try {
+          const result = await task.run(context)
+          await renderHost.emit(
+            'task.run.after',
+            { taskId: task.id, ok: true, durationMs: Date.now() - startedAt },
+            {},
+          )
+          return result
+        } catch (error) {
+          await renderHost.emit(
+            'task.run.after',
+            { taskId: task.id, ok: false, durationMs: Date.now() - startedAt },
+            {},
+          )
+          throw error
+        }
+      },
+    }))
 
   return {
     repository: new PostgresTaskRepository(db),
     onTaskFailure: taskFailureNotifier(notifications),
-    tasks: [
+    tasks: announced([
       ...builtinTasks(
         taskWorkers({
           queue: deps.queue,
@@ -191,7 +245,7 @@ export function buildSchedulerBundle(deps: {
                       })
 
                       const fromName = brand.fromName ?? ''
-                      await mail.send({
+                      await sendAudited(renderHost, mail, 'mass-mail', {
                         to: email,
                         subject: campaign.subject,
                         text: rendered.text,
@@ -203,7 +257,20 @@ export function buildSchedulerBundle(deps: {
                 }),
           }),
           recount: new PostgresCounterRecount(db),
-          renderBackfill: new PostgresRenderBackfill(db),
+          renderBackfill: {
+            run: async (batchSize) => {
+              renderHost.setDurablyDisabled(
+                (await readPluginHealth(db))
+                  .filter((row) => row.disabledAt !== null)
+                  .map((row) => ({
+                    key: row.pluginKey,
+                    reason: row.reason ?? 'repeated failures',
+                  })),
+              )
+              await syncRenderSignature(db, renderingSignature(plugins))
+              return backfill.run(batchSize)
+            },
+          },
           searchIndex: new PostgresSearchRepository(db),
           ...(env.DEMO_MODE ? {} : { webhooks: new PostgresWebhookRepository(db) }),
           statistics: {
@@ -224,7 +291,7 @@ export function buildSchedulerBundle(deps: {
         }),
       ),
       ...contributed,
-    ],
+    ]),
   }
 }
 

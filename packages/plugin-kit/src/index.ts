@@ -8,13 +8,21 @@ export {
   isHookName,
 } from './hooks'
 export {
+  type DurablyDisabledPlugin,
   emptyHost,
   type HostLogger,
   isFilter,
+  type PluginFailure,
   type PluginHealth,
+  type PluginHealthSink,
   PluginHost,
   type PluginHostOptions,
 } from './host'
+export {
+  type PluginNavigationPlacement,
+  pluginKeyOfNavigation,
+  pluginNavigationPlacements,
+} from './navigation'
 export type {
   DraftPayload,
   ForumRef,
@@ -44,6 +52,8 @@ export {
   type PluginDefinition,
   type PluginHooks,
   type PluginMigration,
+  type PluginNavigationAudience,
+  type PluginNavigationItem,
   type PluginNotificationKind,
   type PluginPageAccess,
   type PluginPageContext,
@@ -59,6 +69,7 @@ export {
   type PluginViewer,
   pluginAdminPath,
   pluginAdminRoutePath,
+  pluginNavigationKey,
   pluginNotificationKindId,
   pluginPagePath,
   pluginRoutePath,
@@ -79,6 +90,11 @@ export {
   REGION_NAMES,
   type RegionSpec,
 } from './regions'
+export {
+  renderingSignature,
+  rendersStoredContent,
+  STORED_RENDER_HOOKS,
+} from './rendering'
 export {
   type PluginData,
   type PluginGrantRow,

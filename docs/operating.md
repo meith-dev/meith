@@ -281,6 +281,7 @@ The commands:
 | `community user:2fa-clear` | Clear a member's second factor when they have lost their app *and* their recovery codes — `--user <id\|username>`. Ends every session on the account. The break-glass for a sole administrator locked out of their own board; see [signing in](./single-sign-on.md#when-the-app-and-the-codes-are-both-gone). |
 | `community forum:create` | Create a forum. |
 | `community profile-field:list` / `profile-field:add` / `profile-field:remove` | Manage custom profile fields. |
+| `community plugin:purge` | Run a plugin's `onUninstall` and remove its data, before you take its code out — see [removing one](#removing-one). Prints the plan; `--yes` does it. |
 | `community task:list` | What is scheduled, and how often each task runs. |
 | `community task:run` | Run the tick once, by hand — or one named task. |
 | `community search:reindex` | Rebuild the search index now rather than over the next few ticks. |
@@ -1110,9 +1111,10 @@ against the board's own data is a timed group membership, only in a group
 you have explicitly marked [grantable](#groups-a-plugin-may-grant).
 
 Failures are contained: a plugin that throws leaves the page intact, and
-the error is counted, logged, and — after repeated failures — the plugin
-is switched off for the rest of that process. The full contract is
-[the plugin API](./plugin-api.md).
+the error is counted, logged, and — after five failures — the plugin is
+switched off. That switch is durable: it is a row in the database, so it
+holds across a restart and across every instance, and only an operator
+clears it. The full contract is [the plugin API](./plugin-api.md).
 
 ### Administering one
 
@@ -1126,12 +1128,17 @@ migrations have actually been applied to *this* database.
 |---|---|---|
 | Disabled in `community.config.ts` | The entry in `community.plugins.ts` sets `enabled: false`. (A plugin missing from the list entirely is not shown at all.) | Edit the list, redeploy |
 | Switched off | Somebody pressed the button on this screen. | Press it again |
-| Failing | The server stopped calling it after repeated errors. | The error is on the plugin's own page |
+| Failing | The board stopped calling it after repeated errors, everywhere, and it stays stopped. | **Clear failures and re-enable**, once the error on the plugin's own page is understood |
 
-**The disable button is durable.** It takes effect on every instance, not
-just the server that handled the click, and it survives a redeploy. A
-disabled plugin's scheduled tasks stop too — the switch is checked each
-time one comes due. Reach for it when a plugin is misbehaving; you do not
+**Both ways off are durable.** The button and the board's own switch after
+repeated failures both write a row every instance reconciles against on its
+next request, so each takes effect everywhere and survives a redeploy — the
+failure count behind the second is the board's, not one server's, so a
+plugin failing a couple of times on each of three instances is still caught.
+**Clear failures and re-enable** deletes that row; nothing else does, and no
+timer brings a failing plugin back on its own. A disabled plugin's
+scheduled tasks stop too, either way — both are checked each time one comes
+due. Reach for it when a plugin is misbehaving; you do not
 need to deploy to stop one. Because it takes a live capability off the
 whole board, **disabling asks for your password again** when your panel
 sign-in has gone stale; enabling does not, because it is the undo.
@@ -1181,6 +1188,28 @@ by default.
 three install steps in reverse. There is no uninstall button. Stored
 settings stay behind on purpose: reinstalling should not lose your
 configuration.
+
+That leaves the plugin's own tables and rows on the board. If you are done
+with it for good, purge it **before** you take the code out:
+
+```sh
+community plugin:purge dues          # prints what it would remove
+community plugin:purge dues --yes    # removes it
+```
+
+It runs the plugin's own `onUninstall` — its chance to cancel a subscription
+or retire an external webhook — and then drops its `plugin_<key>_*` tables,
+its settings, its migration records, its navigation items and its health row.
+If `onUninstall` fails, nothing is dropped, so you can fix whatever it was
+complaining about and run it again.
+
+The order is not a suggestion. Purging needs the plugin's code to still be
+in the build, because `onUninstall` is part of that code; run it after the
+redeploy that removed the plugin and there is nothing left to call. The
+command refuses that case rather than half-doing it.
+
+A plugin you might reinstall does not need purging. Leaving its data alone is
+what makes reinstalling it a redeploy rather than a setup.
 
 Writing a plugin: [the plugin API](./plugin-api.md). Every hook:
 [plugin hooks](./plugin-hooks.md).
@@ -1254,6 +1283,25 @@ Two things follow for an operator:
   text: the words survive, the presentation does not. It is the one
   permanent loss in the conversion — see
   [MyBB parity](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
+
+### A formatting plugin re-renders the board
+
+A plugin that registers one of the write-time rendering filters —
+`markdown.parse.text`, `markdown.render.html`, `markdown.directives` or
+`smilies.list` — shapes what the board **stores** as a post's HTML, not just
+what it shows. So installing one, removing one, or upgrading one to a new
+version changes the board's rendering signature, and `posts.render_backfill`
+re-renders every post through the new pipeline.
+
+This is deliberate: it is what makes a syntax-highlighting plugin apply to
+the posts that were written before it, and what takes its markup back out
+when you remove it. It behaves exactly like the Markdown conversion above —
+`/admin/system` reports the backlog, unswept rows are rendered in memory
+when read, and it clears on its own. Expect it after any deploy that adds or
+removes a formatting plugin, and plan a large board's deploy accordingly.
+
+Filters that run at read time — `post.body.html`, `signature.html`,
+`word-filter.patterns` — store nothing and need no sweep.
 
 ### The silent edit window
 
@@ -1365,6 +1413,26 @@ gone — an item of your own pointing at `/search` is left alone, on the
 grounds that you asked for it. And a board with no database behind it
 (`DATA_SOURCE=fixture`, the demo and `pnpm dev`) renders the original six
 and says so rather than offering a screen that cannot save.
+
+### Items a plugin asked for
+
+A plugin with a member-facing page can ask for a menu item, and it appears
+here as an ordinary row marked as a built-in one. It is yours from that
+moment: rename it, move it, nest it, restrict it to groups, or switch it
+off, and your edits survive every redeploy — only the address is refreshed
+from the plugin, since that is the half the plugin knows better than you do.
+
+Two things happen without you:
+
+- **Switch the plugin off and the item stops rendering**, because the page
+  behind it has stopped answering. The row stays where you put it, so
+  switching the plugin back on restores the menu you had rather than a
+  default one.
+- **Take the plugin out of the build and the row goes**, at the next
+  `community upgrade`, which reports what it added and removed.
+
+An item left empty of a label shows the plugin's own name for it, in the
+reader's language, exactly as the board's own six do.
 
 The menu is cached board-wide under one tag and saving any row clears it,
 so a change is live on the next page load.

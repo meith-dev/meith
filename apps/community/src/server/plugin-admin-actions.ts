@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { CacheTags, isAppError, logger, readPluginEnv, ValidationError } from '@meith/core'
-import { getDb, PostgresSettingsRepository } from '@meith/db'
+import { CacheTags, env, isAppError, logger, readPluginEnv, ValidationError } from '@meith/core'
+import { clearPluginHealth, getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import {
   type PluginDefinition,
@@ -13,12 +13,20 @@ import {
   resolvePluginSettingDetails,
   serialisePluginSetting,
 } from '@meith/plugin-kit'
+import { runPluginLifecycle } from '@meith/runtime'
 
 import forumConfig from '../../community.config'
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
-import { syncOperatorDisables } from './plugin-host'
+import { syncPluginNavigation } from './navigation'
+import {
+  invalidatePluginHealth,
+  reconcilePluginHealth,
+  recordPluginFault,
+  syncPluginEnablement,
+} from './plugin-host'
+import { emitEvent } from './plugin-view'
 import { getSettingOverrides } from './settings'
 
 function requireDefinition(key: string): PluginDefinition {
@@ -53,7 +61,7 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
       await requireFreshAdmin()
     }
 
-    requireDefinition(key)
+    const definition = requireDefinition(key)
 
     const repository = new PostgresSettingsRepository(getDb())
     if (enabled) {
@@ -63,7 +71,15 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
     }
 
     await invalidateSettings()
-    await syncOperatorDisables()
+    await syncPluginEnablement()
+    await syncPluginNavigation()
+
+    /*
+     * After the switch is written, so the callback sees the state it is being
+     * told about, and never for the host's own failure switch: a plugin that
+     * has just failed five times is not one to hand more work to.
+     */
+    await announceSwitch(definition, enabled)
 
     await recordAdminAction({
       action: enabled ? 'plugin.enabled' : 'plugin.disabled',
@@ -74,6 +90,63 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
   } catch (err) {
     if (isAppError(err)) return { error: err.message }
     logger({ module: 'plugin-admin' }).error({ err }, 'failed to change plugin enablement')
+    return { error: await tr('notice.app.something-went-wrong-please-try') }
+  }
+}
+
+/**
+ * The switch has already been thrown by the time this runs, and it stays
+ * thrown: a callback that throws is the plugin's fault, so it is counted and
+ * reported like any other plugin failure rather than being reported as the
+ * operator's action having failed.
+ */
+async function announceSwitch(definition: PluginDefinition, enabled: boolean): Promise<void> {
+  if (enabled) {
+    await emitEvent('plugin.enabled', { pluginKey: definition.key }, {})
+  } else {
+    await emitEvent('plugin.disabled', { pluginKey: definition.key, reason: 'operator' }, {})
+  }
+
+  if (env.DATA_SOURCE !== 'postgres') return
+
+  try {
+    await runPluginLifecycle({
+      db: getDb(),
+      plugin: definition,
+      phase: enabled ? 'enable' : 'disable',
+    })
+  } catch (err) {
+    logger({ module: 'plugin-admin' }).error(
+      { err, plugin: definition.key },
+      `plugin ${enabled ? 'onEnable' : 'onDisable'} failed`,
+    )
+    await recordPluginFault(definition.key, enabled ? 'onEnable' : 'onDisable', err)
+  }
+}
+
+export async function clearPluginHealthAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+
+    const key = String(form.get('key') ?? '')
+    requireDefinition(key)
+
+    await clearPluginHealth(getDb(), key)
+    await invalidatePluginHealth()
+    await reconcilePluginHealth()
+
+    revalidatePath('/admin/plugins')
+    revalidatePath('/admin/plugins/[key]/[[...path]]', 'page')
+
+    await recordAdminAction({ action: 'plugin.health-cleared', detail: { plugin: key } })
+
+    return { notice: 'cleared' }
+  } catch (err) {
+    if (isAppError(err)) return { error: err.message }
+    logger({ module: 'plugin-admin' }).error({ err }, 'failed to clear plugin health')
     return { error: await tr('notice.app.something-went-wrong-please-try') }
   }
 }

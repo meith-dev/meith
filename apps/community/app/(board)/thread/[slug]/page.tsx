@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
+import { currentRequestId } from '@meith/core/logger'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
@@ -15,6 +16,7 @@ import { ThreadRatingForm } from '@/components/content/thread-rating'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
 import { ThreadSurgeryForm } from '@/components/moderation/thread-surgery-form'
 import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import { attachmentLimits, attachmentsForPosts, canAttach } from '@/server/attachments'
 import { avatarsFor } from '@/server/avatars'
@@ -25,6 +27,7 @@ import { identitiesFor } from '@/server/group-identity'
 import { getTranslator } from '@/server/i18n'
 import { moderatorTargetFor } from '@/server/modcp'
 import { cspNonce } from '@/server/nonce'
+import { pageMetadata } from '@/server/page-metadata'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
@@ -97,25 +100,35 @@ export async function generateMetadata({
     hasNext: false,
   })
 
-  const description = t.t('threadPage.discussion', { forum: forum.title })
+  const meta = await pageMetadata('/thread/[slug]', {
+    title: thread.title,
+    description: t.t('threadPage.discussion', { forum: forum.title }),
+    canonical: links.canonical,
+    imageUrl: null,
+  })
 
   return {
-    title: thread.title,
-    description,
+    title: meta.title,
+    ...(meta.description === null ? {} : { description: meta.description }),
     alternates: {
-      canonical: links.canonical,
+      canonical: meta.canonical,
       types: {
         'application/rss+xml': `/thread/${thread.id}-${thread.slug}/feed.xml`,
       },
     },
     openGraph: {
       type: 'article',
-      title: thread.title,
-      description,
-      url: links.canonical,
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+      url: meta.canonical,
       siteName: forum.title,
+      ...(meta.imageUrl === null ? {} : { images: [meta.imageUrl] }),
     },
-    twitter: { card: 'summary', title: thread.title, description },
+    twitter: {
+      card: 'summary',
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+    },
   }
 }
 
@@ -383,7 +396,6 @@ export default async function ThreadPage({
   const theme = await currentTheme()
   const ThreadView = requireSlot(theme, 'ThreadView')
   const Navigation = requireSlot(theme, 'Navigation')
-  const Notice = requireSlot(theme, 'Notice')
   const PostBit = requireSlot(theme, 'PostBit')
   const PostActions = requireSlot(theme, 'PostActions')
   const Pagination = requireSlot(theme, 'Pagination')
@@ -437,10 +449,19 @@ export default async function ThreadPage({
         { actions: post.actions, postId: post.id },
         pluginContext,
       )
+      const bodyHtml =
+        post.bodyHtml === ''
+          ? post.bodyHtml
+          : await filterView('post.body.html', post.bodyHtml, {
+              ...viewerRef(actor),
+              postId: post.id,
+              threadId: thread.id,
+              forumId: forum.id,
+            })
       return filterView(
         'view.post-bit',
         {
-          post,
+          post: { ...post, bodyHtml },
           select: selectionFor(
             'post',
             post.id,
@@ -611,9 +632,18 @@ export default async function ThreadPage({
     homeLabel: (await getSettings()).get('board.name'),
   })
 
+  const navigation = await filterView(
+    'view.navigation',
+    { items: trail },
+    {
+      ...viewerRef(actor),
+      requestId: currentRequestId() ?? null,
+    },
+  )
+
   return (
     <>
-      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
+      <Navigation {...navigation} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {jsonLd !== null && (
           <script
@@ -624,11 +654,10 @@ export default async function ThreadPage({
         )}
         {notice !== null && (
           <div className={`${BOARD_MEASURE} pt-6`}>
-            <Notice
+            <BoardNotice
               kind="info"
               message={notice}
               dismissHref={`/thread/${thread.id}-${thread.slug}`}
-              copy={slotCopy(theme, 'Notice', translator)}
             />
           </div>
         )}

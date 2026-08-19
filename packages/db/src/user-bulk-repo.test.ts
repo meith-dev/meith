@@ -236,7 +236,7 @@ describe('pruneChunk', () => {
     for (let id = 1; id <= 5; id += 1) await seed({ id, username: `u${id}` })
 
     const first = await repo.pruneChunk(CRITERIA, 2)
-    expect(first).toEqual({ pruned: 2, remaining: 3 })
+    expect(first).toEqual({ pruned: 2, prunedUserIds: [1, 2], remaining: 3 })
     expect(await deletedIds()).toEqual([1, 2])
   })
 

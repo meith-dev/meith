@@ -10,6 +10,7 @@ import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { replyFormCopy } from '@/view/content-copy'
 import { buildReplyView } from '@/view/post-form'
@@ -79,33 +80,38 @@ export default async function ReplyPage({
   const PostForm = requireSlot(theme, 'PostForm')
   const translator = await getTranslator()
 
+  const formModel = await filterView(
+    'view.post-form',
+    {
+      ...view,
+      regions: {
+        form: locked ? null : (
+          <>
+            <MultiQuoteSelection threadId={target.threadId} insertOnMount />
+            <ReplyForm
+              copy={replyFormCopy(await getTranslator())}
+              threadId={target.threadId}
+              seenLastPostId={target.lastPostId}
+              prefill={prefill}
+              canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
+              attachmentLimits={canAttach(actor, scope) ? attachmentLimits(scope) : null}
+              draft={
+                actor.userId === null || drafts === null
+                  ? null
+                  : await drafts.find(actor.userId, target.forum.id, target.threadId)
+              }
+            />
+          </>
+        ),
+        toolbar: null,
+      },
+    },
+    viewerRef(actor),
+  )
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
-      <PostForm
-        {...view}
-        copy={slotCopy(theme, 'PostForm', translator)}
-        regions={{
-          form: locked ? null : (
-            <>
-              <MultiQuoteSelection threadId={target.threadId} insertOnMount />
-              <ReplyForm
-                copy={replyFormCopy(await getTranslator())}
-                threadId={target.threadId}
-                seenLastPostId={target.lastPostId}
-                prefill={prefill}
-                canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
-                attachmentLimits={canAttach(actor, scope) ? attachmentLimits(scope) : null}
-                draft={
-                  actor.userId === null || drafts === null
-                    ? null
-                    : await drafts.find(actor.userId, target.forum.id, target.threadId)
-                }
-              />
-            </>
-          ),
-          toolbar: null,
-        }}
-      />
+      <PostForm {...formModel} copy={slotCopy(theme, 'PostForm', translator)} />
     </main>
   )
 }

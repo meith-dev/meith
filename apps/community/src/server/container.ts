@@ -106,6 +106,7 @@ import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
 import { FixturePostRepository } from './fixture-post-repo'
 import { FixtureThreadRepository } from './fixture-thread-repo'
 import { translatorForLocale } from './i18n-catalogs'
+import { boardRendering } from './markdown-pipeline'
 import { activeDefinitions } from './plugin-host'
 import { FIXTURE_DATA_VERSION, SEED_BOARD, SEED_GROUP } from './seed-board'
 
@@ -248,8 +249,8 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     actorSource: new ActorBuilder(db, { guestGroupId: 1 }),
     forums: cached(new PostgresForumRepository(db)),
     threads: new PostgresThreadRepository(db),
-    threadWrites: new PostgresThreadWriteRepository(db),
-    postWrites: new PostgresPostWriteRepository(db),
+    threadWrites: new PostgresThreadWriteRepository(db, boardRendering),
+    postWrites: new PostgresPostWriteRepository(db, boardRendering),
     moderationQueue: new PostgresModerationQueueRepository(db),
     reports: new PostgresReportRepository(db),
     threadTools: new PostgresThreadToolsRepository(db),

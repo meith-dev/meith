@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 
+import { currentRequestId } from '@meith/core/logger'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { FollowForm } from '@/components/account/subscription-forms'
 import { SectionPage } from '@/components/board/section-page'
 import { InlineModerationForm } from '@/components/moderation/inline-moderation-form'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { liveAnnouncements } from '@/server/announcements'
@@ -16,6 +18,7 @@ import { identitiesFor } from '@/server/group-identity'
 import { getTranslator } from '@/server/i18n'
 import { legacyDestination } from '@/server/legacy-redirect'
 import { moderatorTargetFor } from '@/server/modcp'
+import { pageMetadata } from '@/server/page-metadata'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
@@ -73,25 +76,35 @@ export async function generateMetadata({
     path: `/${forum.id}-${forum.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
   })
-  const description =
-    forum.description ?? translator.t('board.forum.description', { title: forum.title })
+  const meta = await pageMetadata('/[slug]', {
+    title: forum.title,
+    description:
+      forum.description ?? translator.t('board.forum.description', { title: forum.title }),
+    canonical,
+    imageUrl: null,
+  })
 
   return {
-    title: forum.title,
-    description,
+    title: meta.title,
+    ...(meta.description === null ? {} : { description: meta.description }),
     alternates: {
-      canonical,
+      canonical: meta.canonical,
       types: {
         'application/rss+xml': `/${forum.id}-${forum.slug}/feed.xml`,
       },
     },
     openGraph: {
       type: 'website',
-      title: forum.title,
-      description,
-      url: canonical,
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+      url: meta.canonical,
+      ...(meta.imageUrl === null ? {} : { images: [meta.imageUrl] }),
     },
-    twitter: { card: 'summary', title: forum.title, description },
+    twitter: {
+      card: 'summary',
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+    },
   }
 }
 
@@ -250,7 +263,6 @@ export default async function ForumPage({
   const Announcement = requireSlot(theme, 'Announcement')
   const ForumDisplay = requireSlot(theme, 'ForumDisplay')
   const Navigation = requireSlot(theme, 'Navigation')
-  const Notice = requireSlot(theme, 'Notice')
   const ThreadRow = requireSlot(theme, 'ThreadRow')
   const SubforumList = requireSlot(theme, 'SubforumList')
   const Pagination = requireSlot(theme, 'Pagination')
@@ -356,18 +368,22 @@ export default async function ForumPage({
     homeLabel: (await getSettings()).get('board.name'),
   })
 
+  const navigation = await filterView(
+    'view.navigation',
+    { items: trail },
+    {
+      ...viewerRef(actor),
+      requestId: currentRequestId() ?? null,
+    },
+  )
+
   return (
     <>
-      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
+      <Navigation {...navigation} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         {notice !== null && (
           <div className={`${BOARD_MEASURE} pt-6`}>
-            <Notice
-              kind="info"
-              message={notice}
-              dismissHref={`/${id}-${forum.slug}`}
-              copy={slotCopy(theme, 'Notice', translator)}
-            />
+            <BoardNotice kind="info" message={notice} dismissHref={`/${id}-${forum.slug}`} />
           </div>
         )}
         <ForumDisplay {...forumDisplayModel} copy={slotCopy(theme, 'ForumDisplay', translator)} />

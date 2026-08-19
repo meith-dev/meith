@@ -1,14 +1,12 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot, slotCopy } from '@meith/theme-kit'
-
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { reputationService, reputationSettings, viewerRaterLimits } from '@/server/reputation'
-import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { rateMemberFormCopy } from '@/view/account-copy'
 import { buildReputationView, reputationLabel, reputationNotice } from '@/view/reputation'
@@ -81,7 +79,6 @@ export default async function ReputationPage({
     t: await getTranslator(),
   })
 
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = reputationNotice(query, translator)
   const returnTo = `/member/${id}/reputation`
 
@@ -89,12 +86,7 @@ export default async function ReputationPage({
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
         {notice !== null && (
-          <Notice
-            kind={notice.kind}
-            message={notice.message}
-            dismissHref={returnTo}
-            copy={slotCopy(await currentTheme(), 'Notice', translator)}
-          />
+          <BoardNotice kind={notice.kind} message={notice.message} dismissHref={returnTo} />
         )}
 
         <div className="flex flex-col gap-1">

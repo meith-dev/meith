@@ -7,6 +7,8 @@ export {
   SHIPPED_TOKENS,
   type ThemeTokenRegistry,
 } from './mail-brand'
+export { PLUGIN_STATEMENT_TIMEOUT_MS, pluginRuntimeContext } from './plugin-context'
+export { type PluginLifecyclePhase, runPluginLifecycle } from './plugin-lifecycle'
 export { pluginTasks } from './plugin-tasks'
 export { buildSchedulerBundle, type SchedulerBundle } from './scheduler-bundle'
 export { defaultPromotionGuards, type TaskWorkerDeps, taskWorkers } from './task-workers'

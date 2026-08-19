@@ -142,6 +142,36 @@ const commands: Command[] = [
   },
 
   {
+    name: 'plugin:purge',
+    summary: 'Run a plugin’s onUninstall and remove its data. Do this before removing the code.',
+    usage: 'community plugin:purge <key> [--yes]',
+    async run(args: readonly string[]) {
+      const { assertEnv } = await import('@meith/core')
+      const env = assertEnv()
+
+      if (env.DATA_SOURCE !== 'postgres') {
+        console.error('Nothing to purge: DATA_SOURCE is "fixture". Set DATABASE_URL first.')
+        return 1
+      }
+
+      const key = args.find((arg) => !arg.startsWith('--'))
+      if (key === undefined) {
+        console.error('Usage: community plugin:purge <key> [--yes]')
+        return 1
+      }
+
+      const { purge } = await import('./plugins')
+      const { installedPluginDefinitions } = await import('../../community/community.plugins')
+      return purge({
+        key,
+        plugins: installedPluginDefinitions(),
+        confirmed: args.includes('--yes'),
+        log: (line) => console.log(line),
+      })
+    },
+  },
+
+  {
     name: 'settings:list',
     summary: 'Print the setting registry with default values.',
     async run() {

@@ -4,14 +4,28 @@ import { cache } from 'react'
 
 import type { Actor } from '@meith/authorization'
 import { ForbiddenError } from '@meith/core'
+import { currentRequestId } from '@meith/core/logger'
 import { msg } from '@meith/i18n'
 import { EMPTY_VOCABULARY } from '@meith/markdown'
-import { type MessageNotifierPort, type MessagePolicy, MessageService } from '@meith/messages'
+import {
+  type MessageAudit,
+  type MessageNotifierPort,
+  type MessagePolicy,
+  MessageService,
+} from '@meith/messages'
 
 import { getContainer } from './container'
 import { activeVocabulary } from './content-admin'
+import { boardRendering } from './markdown-pipeline'
 import { notificationService } from './notifications'
+import { emitEvent, filterView } from './plugin-view'
 import { relationService } from './relations'
+
+const PLUGIN_AUDIT: MessageAudit = {
+  before: (input) => filterView('pm.send.before', input, { requestId: currentRequestId() ?? null }),
+
+  sent: (input) => emitEvent('pm.sent', input, { requestId: currentRequestId() ?? null }),
+}
 
 export function messageService(): MessageService | null {
   const { messages } = getContainer()
@@ -22,6 +36,8 @@ export function messageService(): MessageService | null {
     policy: messagePolicy(),
     notifier: messageNotifier(),
     vocabulary: async () => (await activeVocabulary()) ?? EMPTY_VOCABULARY,
+    rendering: boardRendering,
+    audit: PLUGIN_AUDIT,
   })
 }
 

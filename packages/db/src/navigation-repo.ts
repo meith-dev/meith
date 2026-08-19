@@ -28,6 +28,13 @@ export interface NavigationItemRow {
   readonly visibleToGroups: readonly number[]
 }
 
+/** A navigation item a plugin declares, already namespaced by the host. */
+export interface PluginNavigationRow {
+  readonly key: string
+  readonly href: string
+  readonly audience: NavigationAudience
+}
+
 export interface NavigationItemInput {
   readonly parentId: number | null
   readonly label: string
@@ -84,6 +91,48 @@ export class PostgresNavigationRepository {
     ) as Array<Record<string, unknown>>
 
     return rows.map(toRow)
+  }
+
+  /**
+   * Bring the plugin-owned rows into line with what the installed plugins ask
+   * for. An item's row is created once and then belongs to the operator: its
+   * label, order, nesting, audience and visibility survive every redeploy,
+   * because only the address a plugin owns is refreshed here. A row whose
+   * plugin is gone goes with it.
+   */
+  async syncPluginItems(declared: readonly PluginNavigationRow[]): Promise<{
+    readonly added: readonly string[]
+    readonly removed: readonly string[]
+  }> {
+    const existing = (await this.list()).filter((row) => row.key?.startsWith('plugin.') === true)
+    const wanted = new Map(declared.map((item) => [item.key, item]))
+
+    const removed = existing.filter((row) => !wanted.has(row.key as string))
+    for (const row of removed) await this.delete(row.id)
+
+    const added: string[] = []
+
+    for (const item of declared) {
+      const current = existing.find((row) => row.key === item.key)
+
+      if (current === undefined) {
+        await this.db.execute(sql`
+          insert into navigation_items (key, parent_id, label, href, display_order, audience)
+          values (${item.key}, null, '', ${item.href},
+                  ${this.lastPlace(null)}, ${item.audience})
+        `)
+        added.push(item.key)
+        continue
+      }
+
+      if (current.href !== item.href) {
+        await this.db.execute(sql`
+          update navigation_items set href = ${item.href} where id = ${current.id}
+        `)
+      }
+    }
+
+    return { added, removed: removed.map((row) => row.key as string) }
   }
 
   async create(input: NavigationItemInput): Promise<number> {

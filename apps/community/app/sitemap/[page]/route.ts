@@ -2,6 +2,7 @@ import { noFeed, xmlResponse } from '@/server/feed-routes'
 import {
   absoluteTo,
   feedRepository,
+  filterSitemapEntries,
   isIndexable,
   origin,
   publicScope,
@@ -28,10 +29,13 @@ export async function GET(
     const forums = await repo.sitemapForums(scope)
     return xmlResponse(
       renderSitemap(
-        forums.map((forum) => ({
-          loc: absoluteTo(site, `/${forum.forumId}-${forum.slug}`),
-          ...(forum.lastPostAt === null ? {} : { lastmod: forum.lastPostAt }),
-        })),
+        await filterSitemapEntries(
+          forums.map((forum) => ({
+            loc: absoluteTo(site, `/${forum.forumId}-${forum.slug}`),
+            ...(forum.lastPostAt === null ? {} : { lastmod: forum.lastPostAt }),
+          })),
+          0,
+        ),
       ),
     )
   }
@@ -48,10 +52,13 @@ export async function GET(
 
   return xmlResponse(
     renderSitemap(
-      threads.map((thread) => ({
-        loc: absoluteTo(site, `/thread/${thread.threadId}-${thread.slug}`),
-        lastmod: thread.lastPostAt,
-      })),
+      await filterSitemapEntries(
+        threads.map((thread) => ({
+          loc: absoluteTo(site, `/thread/${thread.threadId}-${thread.slug}`),
+          lastmod: thread.lastPostAt,
+        })),
+        chunk,
+      ),
     ),
   )
 }

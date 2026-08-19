@@ -1,6 +1,13 @@
 import { sql } from 'drizzle-orm'
 
-import { BodyFormat, renderMarkdown, vocabularyOptions } from '@meith/markdown'
+import {
+  authorRef,
+  BodyFormat,
+  CORE_RENDERING,
+  type MarkdownPipeline,
+  renderThrough,
+  vocabularyOptions,
+} from '@meith/markdown'
 import type {
   PostEditRecord,
   PostEditTarget,
@@ -37,7 +44,10 @@ function scopedDetail(record: {
 }
 
 export class PostgresPostWriteRepository implements PostWriteRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly rendering: MarkdownPipeline = CORE_RENDERING,
+  ) {}
 
   async findEditTarget(threadId: number, postId: number): Promise<PostEditTarget | null> {
     const rows = resultRows(
@@ -99,7 +109,13 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
   }
 
   async applyEdit(record: PostEditRecord): Promise<void> {
-    const vocabulary = await readBoardVocabulary(this.db)
+    const vocabulary = await readBoardVocabulary(this.db, this.rendering)
+    const body = await renderThrough(
+      this.rendering,
+      record.message,
+      { source: 'post', viewer: authorRef(record.editedByUserId) },
+      vocabularyOptions(vocabulary),
+    )
 
     await this.db.transaction(async (tx) => {
       await tx.execute(sql`
@@ -111,7 +127,6 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
            ${record.editedAt})
       `)
 
-      const body = renderMarkdown(record.message, vocabularyOptions(vocabulary))
       const notice = record.silent
         ? sql``
         : sql`edited_at = ${record.editedAt},

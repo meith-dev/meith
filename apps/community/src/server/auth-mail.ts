@@ -2,12 +2,12 @@ import 'server-only'
 
 import { VERIFICATION_TTL_HOURS } from '@meith/accounts'
 import { logger } from '@meith/core'
-import { drivers } from '@meith/drivers'
 import type { Translator } from '@meith/i18n'
 import { absoluteUrl, type MailBody, renderMail } from '@meith/mail'
 
 import { AUTH_CONFIG } from './auth-config'
 import { brandedFor } from './mail-brand'
+import { sendBoardMail } from './mail-send'
 
 const VERIFY_PATH = '/verify'
 const RESET_PATH = '/reset/confirm'
@@ -21,6 +21,7 @@ async function send(input: {
   readonly token: string
   readonly t: Translator
   readonly failure: string
+  readonly template: string
 }): Promise<void> {
   const { brand, boardName } = await brandedFor(input.t, FALLBACK_KEY)
   const link = absoluteUrl(brand.boardUrl, `${input.path}?token=${encodeURIComponent(input.token)}`)
@@ -29,7 +30,7 @@ async function send(input: {
   const fromName = brand.fromName ?? ''
 
   try {
-    await drivers().mail.send({
+    await sendBoardMail(input.template, {
       to: input.email,
       subject: mail.subject,
       text: mail.text,
@@ -56,6 +57,7 @@ export async function sendVerificationEmail(input: {
     token: input.token,
     t,
     failure: 'could not send a verification e-mail',
+    template: 'auth.verify',
     body: (board, link) => ({
       title: t.t('authMail.verify.subject'),
       greeting: t.t('authMail.greeting', { username: input.username }),
@@ -85,6 +87,7 @@ export async function sendPasswordResetEmail(input: {
     token: input.token,
     t,
     failure: 'could not send a password reset e-mail',
+    template: 'auth.reset',
     body: (board, link) => ({
       title: t.t('authMail.reset.subject'),
       greeting: t.t('authMail.greeting', { username: input.username }),

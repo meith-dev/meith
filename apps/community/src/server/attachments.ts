@@ -19,6 +19,7 @@ import { imageProcessor } from '@meith/drivers/images'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
+import { emitEvent, filterView } from './plugin-view'
 
 export interface AttachmentScope {
   readonly forumId: number
@@ -94,7 +95,19 @@ export async function stageAttachments(
   const limited = await spendLimit({ scope: 'upload', actor, cost: files.length })
   if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
 
-  return service.stage(acceptFiles(files, attachmentLimits(scope), existing))
+  const accepted = acceptFiles(files, attachmentLimits(scope), existing)
+
+  for (const upload of accepted) {
+    const objections = await filterView('attachment.upload.validate', [], {
+      filename: upload.filename,
+      bytes: upload.bytes.length,
+      detectedMimeType: upload.type.contentType,
+      uploaderId: actor.userId,
+    })
+    if (objections.length > 0) throw new ValidationError(objections[0]!)
+  }
+
+  return service.stage(accepted)
 }
 
 export async function attachStaged(
@@ -107,8 +120,15 @@ export async function attachStaged(
   if (service === null) return []
 
   const created = await service.attach(staged, post)
+  const viewer = { userId: post.userId, isGuest: false }
 
   for (const record of created) {
+    await emitEvent(
+      'attachment.uploaded',
+      { attachmentId: record.id, postId: post.postId, bytes: record.sizeBytes },
+      viewer,
+    )
+
     if (record.status !== 'pending') continue
     await drivers().queue.enqueue(
       'attachments.process',

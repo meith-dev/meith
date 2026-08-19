@@ -3,14 +3,13 @@ import { notFound } from 'next/navigation'
 
 import { avatarUrl } from '@meith/avatars'
 import { AVATAR_BOX, AVATAR_MAX_BYTES } from '@meith/avatars/limits'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { AvatarForm } from '@/components/account/avatar-form'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { avatarFor, canUploadAvatar } from '@/server/avatars'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
-import { currentTheme } from '@/server/theme'
 import { avatarFormCopy } from '@/view/account-copy'
 import { userCpNotice } from '@/view/usercp'
 
@@ -29,18 +28,12 @@ export default async function AvatarPage({
   if (actor.userId === null || !canUploadAvatar(actor)) notFound()
 
   const avatar = await avatarFor(actor.userId)
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = userCpNotice(query, await getTranslator())
 
   return (
     <PanelPage title={await tr('page.avatar')} lede={await tr('page.shown-beside-every-post-make')}>
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/avatar"
-          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
-        />
+        <BoardNotice kind={notice.kind} message={notice.message} dismissHref="/usercp/avatar" />
       )}
 
       <AvatarForm

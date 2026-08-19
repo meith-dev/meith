@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { ValidationError } from '@meith/core'
+import { currentRequestId } from '@meith/core/logger'
 import { drivers } from '@meith/drivers'
 import { msg } from '@meith/i18n'
 
@@ -14,6 +15,7 @@ import { assertDemoAccountChangeable, assertDemoIdentityUnchanged } from './demo
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { getTranslator } from './i18n'
+import { emitEvent } from './plugin-view'
 import { clearMemberSecondFactor } from './two-factor'
 import { banService, requireUserAdmin, requireUserBulk, requireUserMerge } from './user-admin'
 import { sendEmailChangeNotice } from './usercp-mail'
@@ -159,6 +161,12 @@ export async function banMemberAction(_prev: FormState, form: FormData): Promise
       ...(expiresAt === undefined ? {} : { expiresAt }),
     })
 
+    await emitEvent(
+      'user.banned',
+      { userId: id, expiresAt: expiresAt?.toISOString() ?? null },
+      { moderatorId: context.session.userId, reason: trimmedText(form, 'reason') || null },
+    )
+
     refreshMemberScreens()
     await recordAdminAction({
       action: 'user.banned',
@@ -189,6 +197,12 @@ export async function saveSecondaryGroupsAction(
     }
 
     await requireUserAdmin().setSecondaryGroups(id, groupIds, context.session.userId)
+
+    await emitEvent(
+      'user.groups.changed',
+      { userId: id, primaryGroupId: 0, secondaryGroupIds: groupIds },
+      { requestId: currentRequestId() ?? null },
+    )
 
     refreshMemberScreens()
     await recordAdminAction({
@@ -231,6 +245,12 @@ export async function mergeStepAction(_prev: FormState, form: FormData): Promise
 
     await merge.finish(fromUserId, toUserId)
 
+    await emitEvent(
+      'user.merged',
+      { keptUserId: toUserId, mergedUserId: fromUserId },
+      { requestId: currentRequestId() ?? null },
+    )
+
     refreshMemberScreens()
     await recordAdminAction({
       action: 'user.merged',
@@ -266,6 +286,14 @@ export async function pruneMembersAction(_prev: FormState, form: FormData): Prom
       },
       PRUNE_CHUNK,
     )
+
+    for (const prunedUserId of chunk.prunedUserIds) {
+      await emitEvent(
+        'user.deleted',
+        { userId: prunedUserId, reason: 'pruned' },
+        { requestId: currentRequestId() ?? null },
+      )
+    }
 
     refreshMemberScreens()
     await recordAdminAction({
@@ -360,10 +388,16 @@ async function queueMassMailBatch(
 
 export async function liftBanAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
-    await requireAdmin()
+    const context = await requireAdmin()
     const id = userId(form)
 
     await banService().lift(id)
+
+    await emitEvent(
+      'user.unbanned',
+      { userId: id, expired: false },
+      { moderatorId: context.session.userId, reason: null },
+    )
 
     refreshMemberScreens()
     await recordAdminAction({ action: 'user.ban_lifted', detail: { userId: id } })

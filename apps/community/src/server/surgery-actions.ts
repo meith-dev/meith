@@ -11,6 +11,7 @@ import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { tr } from './i18n'
+import { emitEvent } from './plugin-view'
 
 function positiveInt(form: FormData, name: string): number | null {
   const value = form.get(name)
@@ -48,6 +49,12 @@ export async function splitThreadAction(_prev: FormState, form: FormData): Promi
       actorUserId: actor.userId,
       rights: await resolveRights(forumId),
     })
+
+    await emitEvent(
+      'thread.split',
+      { sourceThreadId: threadId, newThreadId: outcome.threadId, postCount: outcome.posts },
+      { moderatorId: actor.userId, reason: null },
+    )
   } catch (err) {
     return toFormState(err)
   }
@@ -83,6 +90,12 @@ export async function splitSelectedAction(_prev: FormState, form: FormData): Pro
       actorUserId: actor.userId,
       rights: await resolveRights(forumId),
     })
+
+    await emitEvent(
+      'thread.split',
+      { sourceThreadId: threadId, newThreadId: outcome.threadId, postCount: outcome.posts },
+      { moderatorId: actor.userId, reason: null },
+    )
   } catch (err) {
     return toFormState(err)
   }
@@ -120,6 +133,16 @@ export async function mergeThreadAction(_prev: FormState, form: FormData): Promi
       rights: await resolveRights(sourceForumId),
       targetRights: await resolveRights(targetForumId),
     })
+
+    await emitEvent(
+      'thread.merged',
+      {
+        keptThreadId: outcome.threadId,
+        mergedThreadId: sourceThreadId,
+        postCount: outcome.posts,
+      },
+      { moderatorId: actor.userId, reason: null },
+    )
   } catch (err) {
     return toFormState(err)
   }

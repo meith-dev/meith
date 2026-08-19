@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { currentRequestId } from '@meith/core/logger'
 import type { ForumListingRow } from '@meith/forums'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
@@ -64,17 +65,19 @@ export async function SectionPage({
     ...(homeLabel === undefined ? {} : { homeLabel }),
   })
 
+  const block =
+    section === null
+      ? null
+      : await filterView('view.category-block', { category: section.block.category }, pluginContext)
+
   const index = await filterView(
     'view.board-index',
     {
       markAllReadAction: null,
       regions: {
         categories:
-          section === null ? null : (
-            <CategoryBlock
-              category={section.block.category}
-              copy={slotCopy(theme, 'CategoryBlock', translator)}
-            >
+          block === null ? null : (
+            <CategoryBlock {...block} copy={slotCopy(theme, 'CategoryBlock', translator)}>
               {forums.map((row) => (
                 <ForumRow
                   key={row.forum.id}
@@ -91,9 +94,18 @@ export async function SectionPage({
     pluginContext,
   )
 
+  const navigation = await filterView(
+    'view.navigation',
+    { items: trail },
+    {
+      ...pluginContext,
+      requestId: currentRequestId() ?? null,
+    },
+  )
+
   return (
     <>
-      <Navigation items={trail} copy={slotCopy(theme, 'Navigation', translator)} />
+      <Navigation {...navigation} copy={slotCopy(theme, 'Navigation', translator)} />
       <main id="board-content" tabIndex={-1} className="flex-1">
         <BoardIndex {...index} copy={slotCopy(theme, 'BoardIndex', translator)} />
       </main>

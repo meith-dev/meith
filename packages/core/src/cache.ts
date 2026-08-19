@@ -8,6 +8,7 @@ export const CacheTags = {
   markdownVocabulary: () => 'markdown-vocabulary',
   prefixes: () => 'prefixes',
   wordFilters: () => 'word-filters',
+  pluginHealth: () => 'plugin-health',
   boardStats: () => 'board-stats',
   forum: (forumId: number) => `forum:${forumId}`,
   thread: (threadId: number) => `thread:${threadId}`,
@@ -24,6 +25,7 @@ export const GLOBAL_TAGS: readonly string[] = [
   CacheTags.markdownVocabulary(),
   CacheTags.prefixes(),
   CacheTags.wordFilters(),
+  CacheTags.pluginHealth(),
   CacheTags.boardStats(),
   CacheTags.groups(),
 ]

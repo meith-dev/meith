@@ -10,18 +10,40 @@ export interface HostLogger {
   readonly error: (message: string, detail: Record<string, unknown>) => void
 }
 
+export interface PluginFailure {
+  readonly pluginKey: string
+  readonly hook: string
+  readonly message: string
+  readonly threshold: number
+}
+
+/**
+ * Where a failure goes once the host has counted it. The host stays
+ * synchronous and fire-and-forgets; whoever supplies this owns the write.
+ */
+export interface PluginHealthSink {
+  readonly failed: (failure: PluginFailure) => void
+}
+
+export interface DurablyDisabledPlugin {
+  readonly key: string
+  readonly reason: string
+}
+
 export interface PluginHostOptions {
   readonly plugins: readonly PluginDefinition[]
   readonly logger?: HostLogger | undefined
   readonly failureThreshold?: number | undefined
   readonly slowCallMs?: number | undefined
   readonly now?: (() => number) | undefined
+  readonly health?: PluginHealthSink | undefined
 }
 
 export interface PluginHealth {
   readonly key: string
   readonly enabled: boolean
   readonly operatorDisabled: boolean
+  readonly durablyDisabled: boolean
   readonly disabledReason: string | null
   readonly calls: number
   readonly failures: number
@@ -41,6 +63,7 @@ interface Entry {
 interface Stats {
   enabled: boolean
   operatorDisabled: boolean
+  durablyDisabled: boolean
   disabledReason: string | null
   calls: number
   failures: number
@@ -62,17 +85,20 @@ export class PluginHost {
   readonly #failureThreshold: number
   readonly #slowCallMs: number
   readonly #now: () => number
+  readonly #health: PluginHealthSink
 
   constructor(options: PluginHostOptions) {
     this.#logger = options.logger ?? { warn: () => {}, error: () => {} }
     this.#failureThreshold = options.failureThreshold ?? 5
     this.#slowCallMs = options.slowCallMs ?? 50
     this.#now = options.now ?? (() => performance.now())
+    this.#health = options.health ?? { failed: () => {} }
 
     for (const plugin of options.plugins) {
       this.#stats.set(plugin.key, {
         enabled: true,
         operatorDisabled: false,
+        durablyDisabled: false,
         disabledReason: null,
         calls: 0,
         failures: 0,
@@ -182,6 +208,7 @@ export class PluginHost {
         key,
         enabled: stats.enabled && !stats.operatorDisabled,
         operatorDisabled: stats.operatorDisabled,
+        durablyDisabled: stats.durablyDisabled,
         disabledReason: stats.disabledReason,
         calls: stats.calls,
         failures: stats.failures,
@@ -204,6 +231,32 @@ export class PluginHost {
     const disabled = new Set(keys)
     for (const [key, stats] of this.#stats) {
       stats.operatorDisabled = disabled.has(key)
+    }
+  }
+
+  /**
+   * Reconcile against the durable record. The stored rows are the answer,
+   * not a hint: a plugin an operator has cleared comes back without a
+   * restart, and one another instance switched off is off here too.
+   */
+  setDurablyDisabled(rows: readonly DurablyDisabledPlugin[]): void {
+    const disabled = new Map(rows.map((row) => [row.key, row.reason]))
+
+    for (const [key, stats] of this.#stats) {
+      const reason = disabled.get(key)
+
+      if (reason !== undefined) {
+        stats.durablyDisabled = true
+        stats.enabled = false
+        stats.disabledReason = reason
+        continue
+      }
+
+      if (stats.durablyDisabled) {
+        stats.durablyDisabled = false
+        stats.enabled = true
+        stats.disabledReason = null
+      }
     }
   }
 
@@ -277,12 +330,10 @@ export class PluginHost {
     stats.lastError = { hook, message }
 
     this.#logger.error('plugin hook failed', { plugin: pluginKey, hook, message })
+    this.#health.failed({ pluginKey, hook, message, threshold: this.#failureThreshold })
 
     if (stats.failures >= this.#failureThreshold) {
-      this.disable(
-        pluginKey,
-        `${stats.failures} failures in this process, most recently in "${hook}"`,
-      )
+      this.disable(pluginKey, `${stats.failures} failures, most recently in "${hook}"`)
     }
   }
 }

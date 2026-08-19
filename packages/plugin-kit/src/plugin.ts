@@ -149,6 +149,28 @@ export interface PluginBoardPage {
   readonly render: (context: PluginPageContext) => ReactNode | Promise<ReactNode>
 }
 
+type TranslationArgs = Parameters<Translator['t']>[1]
+
+export type PluginNavigationAudience = 'all' | 'guests' | 'members' | 'staff'
+
+/**
+ * A board navigation entry a plugin asks for.
+ *
+ * It is a **request, not a placement**: the host writes it into the board's own
+ * navigation table, where an operator renames, reorders, nests, scopes or hides
+ * it like any other item. A plugin that appended to the header model instead
+ * would put a link where no operator could reach it.
+ */
+export interface PluginNavigationItem {
+  readonly key: string
+  readonly label: string
+  readonly labelKey?: string | undefined
+  readonly labelArgs?: TranslationArgs | undefined
+  /** A page path of this plugin's own — '' is its index page. */
+  readonly path: string
+  readonly audience?: PluginNavigationAudience | undefined
+}
+
 export interface PluginRuntimeContext {
   readonly settings: Readonly<Record<string, string | number | boolean>>
   readonly logger: {
@@ -193,6 +215,7 @@ export interface PluginDefinition {
   readonly routes?: readonly PluginRoute[] | undefined
   readonly pages?: readonly PluginBoardPage[] | undefined
   readonly notifications?: readonly PluginNotificationKind[] | undefined
+  readonly navigation?: readonly PluginNavigationItem[] | undefined
   readonly allowedRedirectHosts?: readonly string[] | undefined
 
   readonly onInstall?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
@@ -543,6 +566,49 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
 
   assertUnique(
     where,
+    'navigation item',
+    (plugin.navigation ?? []).map((item) => item.key),
+  )
+  for (const item of plugin.navigation ?? []) {
+    if (!TASK_ID_PATTERN.test(item.key)) {
+      throw new Error(
+        `${where}: navigation key "${item.key}" must be lower-case letters, digits and ` +
+          `hyphens. It becomes plugin.<plugin>.<key> in the board’s navigation, which is ` +
+          `how an operator’s edits survive a redeploy.`,
+      )
+    }
+    if (item.label.trim() === '') {
+      throw new Error(
+        `${where}: navigation item "${item.key}" needs a label — it is what the item is ` +
+          `called until an operator renames it.`,
+      )
+    }
+    if (item.path !== '' && !PAGE_PATH_PATTERN.test(item.path)) {
+      throw new Error(
+        `${where}: navigation item "${item.key}" points at "${item.path}", which is not ` +
+          `one of this plugin’s page paths. A navigation item links to a page the ` +
+          `plugin declares, not to anywhere on the board.`,
+      )
+    }
+    if (!(plugin.pages ?? []).some((page) => page.path === item.path)) {
+      throw new Error(
+        `${where}: navigation item "${item.key}" points at the page "${item.path}", ` +
+          `which this plugin does not declare.`,
+      )
+    }
+    if (
+      item.audience !== undefined &&
+      !['all', 'guests', 'members', 'staff'].includes(item.audience)
+    ) {
+      throw new Error(
+        `${where}: navigation item "${item.key}" audience must be all, guests, members ` +
+          `or staff.`,
+      )
+    }
+  }
+
+  assertUnique(
+    where,
     'notification kind',
     (plugin.notifications ?? []).map((kind) => kind.key),
   )
@@ -608,4 +674,8 @@ export function pluginAdminRoutePath(pluginKey: string, path: string): string {
 
 export function pluginPagePath(pluginKey: string, path: string): string {
   return `/plugins/${pluginKey}${path === '' ? '' : `/${path}`}`
+}
+
+export function pluginNavigationKey(pluginKey: string, itemKey: string): string {
+  return `plugin.${pluginKey}.${itemKey}`
 }

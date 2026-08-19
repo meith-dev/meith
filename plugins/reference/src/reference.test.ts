@@ -32,6 +32,7 @@ describe('every kind of extension point', () => {
     ['admin pages', () => (referencePlugin.adminPages ?? []).length],
     ['contributions', () => (referencePlugin.contributions ?? []).length],
     ['notification kinds', () => (referencePlugin.notifications ?? []).length],
+    ['navigation items', () => (referencePlugin.navigation ?? []).length],
   ])('declares at least one %s', (_kind, count) => {
     expect(count()).toBeGreaterThan(0)
   })
@@ -106,6 +107,57 @@ describe('driven through a real host', () => {
     expect(result.links.map((link) => link.label)).toEqual(['Contact', MARK])
   })
 
+  it('alters a post body and a signature the board has already rendered', async () => {
+    resetRecorder()
+    const board = host()
+
+    const body = await board.applyFilter('post.body.html', '<p>Hello</p>', {
+      ...viewer,
+      postId: 1,
+      threadId: 2,
+      forumId: 3,
+    })
+    const signature = await board.applyFilter('signature.html', '<p>Regards</p>', {
+      ...viewer,
+      authorId: 4,
+    })
+
+    expect(body).toBe(`<p>Hello</p><p data-plugin="${MARK}">${MARK}</p>`)
+    expect(signature).toBe(`<p>Regards</p><span data-plugin="${MARK}">${MARK}</span>`)
+  })
+
+  it('adds a smiley, a directive and a word-filter pattern to the board’s own', async () => {
+    resetRecorder()
+    const board = host()
+
+    const smilies = await board.applyFilter('smilies.list', [{ code: ':)', src: '/smile.png' }], {})
+    const directives = await board.applyFilter(
+      'markdown.directives',
+      [{ name: 'note', block: true }],
+      {},
+    )
+    const patterns = await board.applyFilter(
+      'word-filter.patterns',
+      [{ pattern: 'darn', replacement: 'd***', wholeWord: true }],
+      {},
+    )
+
+    expect(smilies.map((entry) => entry.code)).toEqual([':)', ':reference:'])
+    expect(directives.map((entry) => entry.name)).toEqual(['note', 'reference'])
+    expect(patterns.map((entry) => entry.pattern)).toEqual(['darn', 'unmentionable'])
+  })
+
+  it('rewrites the source before the parser sees it', async () => {
+    resetRecorder()
+
+    expect(
+      await host().applyFilter('markdown.parse.text', 'a [[reference]] b', {
+        ...viewer,
+        source: 'post',
+      }),
+    ).toBe(`a ${MARK} b`)
+  })
+
   it('records an event it is told about', async () => {
     resetRecorder()
     await host().emit(
@@ -158,6 +210,12 @@ describe('routes and pages', () => {
     expect(routes.some((route) => route.access === 'admin')).toBe(true)
     expect(routes.some((route) => route.rateLimit !== undefined)).toBe(true)
     expect((referencePlugin.pages ?? []).length).toBeGreaterThan(0)
+  })
+
+  it('asks for navigation that points at a page it declares', () => {
+    for (const item of referencePlugin.navigation ?? []) {
+      expect((referencePlugin.pages ?? []).some((page) => page.path === item.path)).toBe(true)
+    }
   })
 
   it('declares a secret setting with an environment override, and a select', () => {

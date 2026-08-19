@@ -303,12 +303,17 @@ export function dues(input: DuesConfigInput): PluginDefinition {
       },
     ],
 
-    hooks: {
-      'view.header': (value) => ({
-        ...value,
-        navigation: [...value.navigation, { label: config.label, href: '/plugins/dues' }],
-      }),
-    },
+    navigation: [
+      { key: 'plans', label: config.label, path: '' },
+      {
+        key: 'manage',
+        label: en['dues.definition.manage'].replace('{label}', config.label.toLowerCase()),
+        labelKey: 'dues.definition.manage',
+        labelArgs: { label: config.label.toLowerCase() },
+        path: 'manage',
+        audience: 'members',
+      },
+    ],
 
     allowedRedirectHosts: [
       'checkout.stripe.com',

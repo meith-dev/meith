@@ -248,6 +248,73 @@ describe('failure isolation and auto-disable', () => {
     )
     expect(host.health()[0]?.disabledReason).toBe('operator')
   })
+
+  it('reports every failure to the health sink, so a durable count can be kept', async () => {
+    const seen: { pluginKey: string; hook: string; threshold: number }[] = []
+    const host = new PluginHost({
+      plugins: [throwing('alpha')],
+      failureThreshold: 3,
+      health: {
+        failed: ({ pluginKey, hook, threshold }) => seen.push({ pluginKey, hook, threshold }),
+      },
+    })
+
+    await fire(host, 2)
+
+    expect(seen).toEqual([
+      { pluginKey: 'alpha', hook: 'post.created', threshold: 3 },
+      { pluginKey: 'alpha', hook: 'post.created', threshold: 3 },
+    ])
+  })
+})
+
+describe('the durable record', () => {
+  const filtering = (key: string) =>
+    makePlugin(key, { 'markdown.render.html': (value: string) => `${value}!` })
+
+  const render = (host: PluginHost) =>
+    host.applyFilter('markdown.render.html', 'x', { ...VIEWER, source: 'post' })
+
+  it('switches a plugin off that another instance disabled', async () => {
+    const host = new PluginHost({ plugins: [filtering('alpha')] })
+
+    host.setDurablyDisabled([{ key: 'alpha', reason: '5 failures elsewhere' }])
+
+    expect(await render(host)).toBe('x')
+    expect(host.health()[0]).toMatchObject({
+      enabled: false,
+      durablyDisabled: true,
+      disabledReason: '5 failures elsewhere',
+    })
+  })
+
+  it('brings one back when an operator clears the record, without a restart', async () => {
+    const host = new PluginHost({ plugins: [filtering('alpha')] })
+
+    host.setDurablyDisabled([{ key: 'alpha', reason: 'failures' }])
+    host.setDurablyDisabled([])
+
+    expect(await render(host)).toBe('x!')
+    expect(host.health()[0]).toMatchObject({ enabled: true, durablyDisabled: false })
+  })
+
+  it('leaves a plugin nobody disabled alone', async () => {
+    const host = new PluginHost({ plugins: [filtering('alpha'), filtering('bravo')] })
+
+    host.setDurablyDisabled([{ key: 'bravo', reason: 'failures' }])
+
+    expect(await render(host)).toBe('x!')
+  })
+
+  it('does not undo an operator switch it knows nothing about', async () => {
+    const host = new PluginHost({ plugins: [filtering('alpha')] })
+
+    host.setOperatorDisabled(['alpha'])
+    host.setDurablyDisabled([])
+
+    expect(await render(host)).toBe('x')
+    expect(host.health()[0]).toMatchObject({ enabled: false, operatorDisabled: true })
+  })
 })
 
 describe('timing', () => {

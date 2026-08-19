@@ -37,5 +37,6 @@ export async function GET(
       now: new Date(),
     }),
     'rss',
+    'thread',
   )
 }

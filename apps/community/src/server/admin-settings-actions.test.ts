@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsSnapshot } from '@meith/settings'
 
 const adminCalls: Array<{ action: string; detail: unknown }> = []
-const requireAdminMock = vi.fn(async () => ({ userId: 1 }))
+const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
 const revalidated: string[] = []
 vi.mock('next/cache', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
@@ -24,6 +24,13 @@ vi.mock('./admin', () => ({
 
 const snapshotRef = { current: SettingsSnapshot.fromOverrides(new Map()) }
 vi.mock('./settings', () => ({ getSettings: async () => snapshotRef.current }))
+
+const emitted: Array<{ name: string; value: unknown }> = []
+vi.mock('./plugin-view', () => ({
+  emitEvent: async (name: string, value: unknown) => {
+    emitted.push({ name, value })
+  },
+}))
 
 const invalidated: string[][] = []
 vi.mock('@meith/drivers', () => ({
@@ -64,12 +71,13 @@ function form(fields: Record<string, string>): FormData {
 
 beforeEach(() => {
   adminCalls.length = 0
+  emitted.length = 0
   invalidated.length = 0
   revalidated.length = 0
   written.length = 0
   deleted.length = 0
   requireAdminMock.mockClear()
-  requireAdminMock.mockResolvedValue({ userId: 1 })
+  requireAdminMock.mockResolvedValue({ session: { userId: 1 } })
   snapshotRef.current = SettingsSnapshot.fromOverrides(new Map())
 })
 

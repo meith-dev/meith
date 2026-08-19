@@ -2,8 +2,9 @@ import 'server-only'
 
 import { cache } from 'react'
 
+import { currentRequestId } from '@meith/core/logger'
 import type { ReportNotifierPort, WarningNotifierPort } from '@meith/moderation'
-import { NotificationService } from '@meith/notifications'
+import { type NotificationAudit, NotificationService } from '@meith/notifications'
 import {
   type PluginDefinition,
   type PluginNotificationKindSpec,
@@ -12,6 +13,7 @@ import {
 
 import forumConfig from '../../community.config'
 import { getContainer } from './container'
+import { emitEvent, filterView } from './plugin-view'
 
 const PLUGIN_KINDS: readonly PluginNotificationKindSpec[] = (forumConfig.plugins ?? []).flatMap(
   (entry) => {
@@ -22,11 +24,19 @@ const PLUGIN_KINDS: readonly PluginNotificationKindSpec[] = (forumConfig.plugins
   },
 )
 
+const PLUGIN_AUDIT: NotificationAudit = {
+  before: (input) =>
+    filterView('notification.create.before', input, { requestId: currentRequestId() ?? null }),
+
+  created: (input) =>
+    emitEvent('notification.created', input, { requestId: currentRequestId() ?? null }),
+}
+
 export function notificationService(): NotificationService | null {
   const { notifications } = getContainer()
   return notifications === null
     ? null
-    : new NotificationService({ notifications, extraKinds: PLUGIN_KINDS })
+    : new NotificationService({ notifications, extraKinds: PLUGIN_KINDS, audit: PLUGIN_AUDIT })
 }
 
 export function warningNotifier(): WarningNotifierPort | null {

@@ -29,6 +29,7 @@ export interface PrunePreview {
 
 export interface PruneChunkResult {
   readonly pruned: number
+  readonly prunedUserIds: readonly number[]
   readonly remaining: number
 }
 
@@ -132,14 +133,18 @@ export class PostgresUserBulkRepository {
           returning id
         `),
       ) as Array<{ id: number }>
-      return rows.length
+      return rows.map((row) => Number(row.id))
     })
 
     const remaining = resultRows(
       await this.db.execute(sql`select count(*)::int as n from users u where ${where}`),
     ) as Array<{ n: number }>
 
-    return { pruned, remaining: Number(remaining[0]?.n ?? 0) }
+    return {
+      pruned: pruned.length,
+      prunedUserIds: pruned,
+      remaining: Number(remaining[0]?.n ?? 0),
+    }
   }
 
   async createMassMail(input: {

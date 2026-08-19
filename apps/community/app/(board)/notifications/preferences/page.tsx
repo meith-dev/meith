@@ -1,17 +1,15 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { requireSlot, slotCopy } from '@meith/theme-kit'
-
 import { NotificationPreferencesForm } from '@/components/account/notification-forms'
 import { PushDeviceForm } from '@/components/account/push-device-form'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { audiencesForActor } from '@/server/notification-audience'
 import { notificationService } from '@/server/notifications'
 import { pushAvailability } from '@/server/push'
-import { currentTheme } from '@/server/theme'
 import { notificationFormsCopy } from '@/view/account-copy'
 import { buildPreferencesView, notificationNotice } from '@/view/notifications'
 
@@ -38,7 +36,6 @@ export default async function NotificationPreferencesPage({
 
   const push = await pushAvailability()
   const view = buildPreferencesView(rows, await getTranslator())
-  const Notice = requireSlot(await currentTheme(), 'Notice')
   const notice = notificationNotice(query, await getTranslator())
 
   return (
@@ -48,12 +45,7 @@ export default async function NotificationPreferencesPage({
       lede={await tr('page.which-board-s-notifications-also')}
     >
       {notice !== null && (
-        <Notice
-          kind="info"
-          message={notice}
-          dismissHref="/notifications/preferences"
-          copy={slotCopy(await currentTheme(), 'Notice', await getTranslator())}
-        />
+        <BoardNotice kind="info" message={notice} dismissHref="/notifications/preferences" />
       )}
 
       {push.enabled && (

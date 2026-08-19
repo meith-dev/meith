@@ -17,6 +17,7 @@ import {
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
+import { emitEvent } from './plugin-view'
 import { getSettings } from './settings'
 
 function submittedKeys(form: FormData): readonly SettingDefinition[] {
@@ -36,7 +37,7 @@ export async function saveAdminSettingsAction(
   form: FormData,
 ): Promise<FormState> {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
 
     const definitions = submittedKeys(form)
     if (definitions.length === 0) {
@@ -59,9 +60,13 @@ export async function saveAdminSettingsAction(
     )
 
     if (result.changed.length > 0) {
-      await drivers().cache.invalidateTags([CacheTags.settings(), ...result.invalidates])
+      const tags = [CacheTags.settings(), ...result.invalidates]
+      await drivers().cache.invalidateTags(tags)
+      for (const tag of tags) await emitEvent('cache.invalidated', { tag }, {})
 
       revalidatePath('/admin/settings')
+
+      await emitEvent('settings.saved', { keys: result.changed }, { adminId: admin.session.userId })
 
       await recordAdminAction({
         action: 'settings.changed',

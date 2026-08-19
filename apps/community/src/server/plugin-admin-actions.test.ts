@@ -41,9 +41,47 @@ vi.mock('./settings', () => ({
 }))
 
 const synced = { count: 0 }
+const faults: Array<{ plugin: string; surface: string }> = []
 vi.mock('./plugin-host', () => ({
-  syncOperatorDisables: async () => {
+  syncPluginEnablement: async () => {
     synced.count += 1
+  },
+  invalidatePluginHealth: async () => {},
+  reconcilePluginHealth: async () => {},
+  recordPluginFault: async (plugin: string, surface: string) => {
+    faults.push({ plugin, surface })
+  },
+}))
+
+const dataSource = { current: 'postgres' as 'postgres' | 'fixture' }
+vi.mock('@meith/core', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@meith/core')>()),
+  get env() {
+    return { DATA_SOURCE: dataSource.current }
+  },
+}))
+
+const lifecycle: string[] = []
+const lifecycleThrows = { current: false }
+vi.mock('@meith/runtime', () => ({
+  runPluginLifecycle: async (input: { plugin: { key: string }; phase: string }) => {
+    if (lifecycleThrows.current) throw new Error('the plugin threw')
+    lifecycle.push(`${input.plugin.key}:${input.phase}`)
+    return { ran: true }
+  },
+}))
+
+const navigationSyncs = { count: 0 }
+vi.mock('./navigation', () => ({
+  syncPluginNavigation: async () => {
+    navigationSyncs.count += 1
+  },
+}))
+
+const emitted: Array<{ name: string; value: unknown }> = []
+vi.mock('./plugin-view', () => ({
+  emitEvent: async (name: string, value: unknown) => {
+    emitted.push({ name, value })
   },
 }))
 
@@ -101,6 +139,12 @@ beforeEach(() => {
   written.length = 0
   deleted.length = 0
   synced.count = 0
+  navigationSyncs.count = 0
+  emitted.length = 0
+  lifecycle.length = 0
+  lifecycleThrows.current = false
+  faults.length = 0
+  dataSource.current = 'postgres'
   vi.unstubAllEnvs()
   requireAdminMock.mockClear()
   requireAdminMock.mockResolvedValue({ userId: 1 })
@@ -154,8 +198,39 @@ describe('the switch', () => {
     const state = await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '0' }))
 
     expect(state).toEqual({ notice: 'disabled' })
+    expect(emitted).toContainEqual({
+      name: 'plugin.disabled',
+      value: { pluginKey: 'alpha', reason: 'operator' },
+    })
+    expect(lifecycle).toEqual(['alpha:disable'])
     expect([...(written[0] ?? [])]).toEqual([['plugin.alpha._enabled', '0']])
     expect(adminCalls[0]).toEqual({ action: 'plugin.disabled', detail: { plugin: 'alpha' } })
+  })
+
+  it('runs onEnable when the operator puts a plugin back', async () => {
+    overrides.current = new Map([['plugin.alpha._enabled', '0']])
+
+    await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '1' }))
+
+    expect(lifecycle).toEqual(['alpha:enable'])
+  })
+
+  it('leaves the switch thrown when the callback fails, and counts it against the plugin', async () => {
+    lifecycleThrows.current = true
+
+    const state = await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '0' }))
+
+    expect(state).toEqual({ notice: 'disabled' })
+    expect([...(written[0] ?? [])]).toEqual([['plugin.alpha._enabled', '0']])
+    expect(faults).toEqual([{ plugin: 'alpha', surface: 'onDisable' }])
+  })
+
+  it('does not reach for the plugin on a board with no database', async () => {
+    dataSource.current = 'fixture'
+
+    await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '0' }))
+
+    expect(lifecycle).toEqual([])
   })
 
   it('deletes the row to enable, rather than storing "1"', async () => {

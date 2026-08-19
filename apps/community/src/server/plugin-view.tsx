@@ -11,7 +11,7 @@ import type {
   PluginRegionContext,
 } from '@meith/plugin-kit'
 
-import { pluginHost, syncOperatorDisables } from './plugin-host'
+import { pluginHost, syncPluginEnablement } from './plugin-host'
 
 export function viewerRef(actor: Actor): { userId: number | null; isGuest: boolean } {
   return { userId: actor.userId, isGuest: actor.userId === null }
@@ -22,7 +22,7 @@ export async function filterView<K extends HookName>(
   value: HookValue<K>,
   context: HookContext<K>,
 ): Promise<HookValue<K>> {
-  await syncOperatorDisables()
+  await syncPluginEnablement()
   return pluginHost.applyFilter(name, value, context)
 }
 
@@ -31,7 +31,7 @@ export async function emitEvent<K extends HookName>(
   value: HookValue<K>,
   context: HookContext<K>,
 ): Promise<void> {
-  await syncOperatorDisables()
+  await syncPluginEnablement()
   await pluginHost.emit(name, value, context)
 }
 
@@ -39,7 +39,7 @@ export async function pluginRegion(
   region: PluginRegion,
   context: Omit<PluginRegionContext, 'region'>,
 ): Promise<React.ReactNode> {
-  await syncOperatorDisables()
+  await syncPluginEnablement()
 
   const nodes = pluginHost.renderRegion(region, { ...context, region })
   if (nodes.length === 0) return null

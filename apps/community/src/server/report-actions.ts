@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
+import { currentRequestId } from '@meith/core/logger'
 import { msg } from '@meith/i18n'
 import { parseTargetKind, ReportService } from '@meith/moderation'
 
@@ -14,6 +15,7 @@ import { formStateReporter } from './form-state-reporter'
 import { positiveIntIn } from './form-values'
 import { tr } from './i18n'
 import { reportNotifier } from './notifications'
+import { emitEvent } from './plugin-view'
 import { resolveReportScope } from './report-scope'
 
 function field(form: FormData, name: string): string {
@@ -77,7 +79,18 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
       reporterUserId: actor.userId,
     })
 
-    void outcome
+    if (!outcome.duplicate) {
+      await emitEvent(
+        'report.created',
+        {
+          reportId: outcome.reportId,
+          target: kind === 'private_message' ? 'pm' : kind,
+          targetId,
+          reporterId: actor.userId,
+        },
+        { requestId: currentRequestId() ?? null },
+      )
+    }
   } catch (err) {
     return toFormState(err, values)
   }
@@ -138,6 +151,12 @@ export async function closeReportAction(_prev: FormState, form: FormData): Promi
       actorUserId: actor.userId,
       scope: await resolveReportScope(),
     })
+
+    await emitEvent(
+      'report.resolved',
+      { reportId, resolution: status === 'resolved' ? 'actioned' : 'rejected' },
+      { moderatorId: actor.userId, reason: note === '' ? null : note },
+    )
   } catch (err) {
     return toFormState(err, { note })
   }

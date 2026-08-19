@@ -12,6 +12,7 @@ import type { FormState } from './auth-form-state'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
+import { emitEvent, viewerRef } from './plugin-view'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
 import { isSafeLocalPath } from './safe-path'
 
@@ -42,6 +43,19 @@ async function requireReputation(): Promise<{
   return { service, userId: actor.userId }
 }
 
+async function announceReputation(
+  service: Awaited<ReturnType<typeof requireReputation>>['service'],
+  userId: number,
+  delta: number,
+): Promise<void> {
+  const summary = await service.summary(userId)
+  await emitEvent(
+    'reputation.changed',
+    { userId, delta, total: summary.total },
+    viewerRef(await getActor()),
+  )
+}
+
 export async function rateMemberAction(_prev: FormState, form: FormData): Promise<FormState> {
   const values = { comment: trimmedText(form, 'comment') }
   const userId = positiveInt(form, 'userId')
@@ -65,6 +79,8 @@ export async function rateMemberAction(_prev: FormState, form: FormData): Promis
       settings,
       limits,
     })
+
+    await announceReputation(service, userId, points)
   } catch (err) {
     return toFormState(err, values)
   }
@@ -82,7 +98,8 @@ export async function withdrawRatingAction(_prev: FormState, form: FormData): Pr
     const ratingId = positiveInt(form, 'ratingId')
     if (ratingId === null) throw new ValidationError(msg('error.app.such-rating'))
 
-    await service.withdraw(ratingId, raterId)
+    const withdrawn = await service.withdraw(ratingId, raterId)
+    if (withdrawn && userId !== null) await announceReputation(service, userId, 0)
   } catch (err) {
     return toFormState(err)
   }
@@ -103,6 +120,7 @@ export async function thankForPostAction(_prev: FormState, form: FormData): Prom
 
     if (held !== null && held.points > 0) {
       await service.withdraw(held.id, raterId)
+      await announceReputation(service, userId, -held.points)
     } else {
       const [settings, limits] = await Promise.all([reputationSettings(), viewerRaterLimits()])
       await service.give({
@@ -114,6 +132,7 @@ export async function thankForPostAction(_prev: FormState, form: FormData): Prom
         settings,
         limits,
       })
+      await announceReputation(service, userId, 1)
     }
   } catch (err) {
     return toFormState(err)

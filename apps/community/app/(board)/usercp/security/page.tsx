@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { PASSKEY_LIMIT, providerLabel } from '@meith/accounts'
-import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { ActiveSessions, type SessionView } from '@/components/account/active-sessions'
 import { PasskeyEnrol } from '@/components/account/passkey-enrol'
@@ -16,6 +15,7 @@ import {
 } from '@/components/account/sign-in-methods'
 import { TwoFactorPanel, TwoFactorSetup } from '@/components/account/two-factor-forms'
 import { EmailForm, PasswordForm } from '@/components/account/usercp-forms'
+import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { boardAuthConfig } from '@/server/auth-config'
 import { memberSecurityActivity } from '@/server/auth-events'
@@ -24,7 +24,6 @@ import { getActor } from '@/server/context'
 import { memberManagedSignIns, passkeysEnabled, signInProviders } from '@/server/federation'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
-import { currentTheme } from '@/server/theme'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
 import {
   activeSessionsCopy,
@@ -82,7 +81,6 @@ export default async function SecurityPage({
   if (settings === null) notFound()
 
   const notice = await pageNotice(query)
-  const Notice = requireSlot(await currentTheme(), 'Notice')
 
   const manageable = await memberManagedSignIns()
   const providers = await signInProviders()
@@ -167,12 +165,7 @@ export default async function SecurityPage({
       lede={await tr('page.changing-either-e-mail-address-password')}
     >
       {notice !== null && (
-        <Notice
-          kind={notice.kind}
-          message={notice.message}
-          dismissHref="/usercp/security"
-          copy={slotCopy(await currentTheme(), 'Notice', translator)}
-        />
+        <BoardNotice kind={notice.kind} message={notice.message} dismissHref="/usercp/security" />
       )}
 
       <PasswordForm

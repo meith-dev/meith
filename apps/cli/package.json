@@ -18,7 +18,9 @@
     "@meith/demo": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/forums": "workspace:*",
+    "@meith/plugin-kit": "workspace:*",
     "@meith/profile-fields": "workspace:*",
+    "@meith/runtime": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*"
   },

@@ -43,7 +43,9 @@ export {
 export { type NotificationView, renderNotification } from './render'
 export {
   MAX_STAFF_FANOUT,
+  NO_NOTIFICATION_AUDIT,
   NOTIFICATIONS_PAGE_SIZE,
+  type NotificationAudit,
   type NotificationPreferenceView,
   NotificationService,
 } from './service'

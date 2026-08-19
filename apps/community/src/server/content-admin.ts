@@ -15,9 +15,12 @@ import {
   type CompiledWordFilter,
   compileVocabulary,
   compileWordFilter,
+  NO_VOCABULARY_SOURCE,
 } from '@meith/markdown'
 
 import { getContainer } from './container'
+import { boardRendering } from './markdown-pipeline'
+import { filterView } from './plugin-view'
 
 export function contentAdminRepository(): PostgresContentAdminRepository | null {
   return getContainer().dataSource === 'postgres'
@@ -40,9 +43,9 @@ const loadFilters = unstable_cache(
 )
 
 export async function activeWordFilter(): Promise<CompiledWordFilter | undefined> {
-  if (getContainer().dataSource !== 'postgres') return undefined
+  const stored = getContainer().dataSource === 'postgres' ? await loadFilters() : []
+  const rules = await filterView('word-filter.patterns', stored, {})
 
-  const rules = await loadFilters()
   return rules.length === 0 ? undefined : compileWordFilter(rules)
 }
 
@@ -53,10 +56,13 @@ const loadVocabularySource = unstable_cache(
 )
 
 export async function activeVocabulary(): Promise<BoardVocabulary | undefined> {
-  if (getContainer().dataSource !== 'postgres') return undefined
+  const stored =
+    getContainer().dataSource === 'postgres' ? await loadVocabularySource() : NO_VOCABULARY_SOURCE
+  const source = await boardRendering.vocabulary(stored ?? NO_VOCABULARY_SOURCE)
 
-  const source = await loadVocabularySource()
-  if (source === null || source.revision === 0) return undefined
+  if (source.revision === 0 && source.smilies.length === 0 && source.directives.length === 0) {
+    return undefined
+  }
 
   return compileVocabulary(source)
 }
