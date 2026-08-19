@@ -12,7 +12,7 @@ const BUTTON =
 
 type Status = 'checking' | 'unsupported' | 'blocked' | 'off' | 'on' | 'working'
 
-function applicationServerKey(publicKey: string): Uint8Array {
+function applicationServerKey(publicKey: string): Uint8Array<ArrayBuffer> {
   const padded = publicKey.replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4))
 

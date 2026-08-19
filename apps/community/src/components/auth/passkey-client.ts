@@ -6,7 +6,7 @@ export interface PasskeyProblem {
   readonly message: string
 }
 
-function base64UrlToBytes(value: string): Uint8Array {
+function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   const padded = value.replace(/-/g, '+').replace(/_/g, '/')
   const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, '='))
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))
