@@ -4,15 +4,26 @@ This folder is the documentation for Meith. The same files are published at
 [meith.dev/docs](https://www.meith.dev/docs) — the site renders them at build
 time, so there is only one copy to edit.
 
-**New here?** Start with the [Quickstart](./quickstart.md): it takes you from a
-bare server to a board on your own domain in about twenty minutes.
+The set is organised by who is reading, because a board is run by more than
+one kind of person. **Setting one up** is a job for whichever volunteer has a
+free evening; **using one** — the committee's, the moderators' and the
+treasurer's guides — needs nothing but a browser; **running the server** and
+everything after it is for the technically minded.
+
+**New here?** Start with the [Quickstart](./quickstart.md): it takes you from
+a rented server to a board on your own domain in about twenty minutes. If
+somebody has already set the board up for you, start with
+[The committee's guide](./committee-guide.md) instead.
 
 ## Find your document
 
 | You want to | Read |
 |---|---|
 | Set up a board for the first time | [Quickstart](./quickstart.md) |
-| Run a board day to day | [Running a board](./operating.md) |
+| Run the club's board from a browser | [The committee's guide](./committee-guide.md) |
+| Approve posts, handle reports, tidy threads | [The moderator's guide](./moderation-guide.md) |
+| Take the subs online | [The treasurer's guide](./membership-guide.md) |
+| Run the server day to day | [Running a board](./operating.md) |
 | Move a board to a new version | [Upgrading a board](./upgrading.md) |
 | Add 2FA, SSO or passkeys | [Signing in](./single-sign-on.md) |
 | Run a board in another language | [Languages](./internationalisation.md) |
@@ -27,43 +38,51 @@ bare server to a board on your own domain in about twenty minutes.
 | Understand how it fits together | [Architecture](./architecture.md) |
 | Cut a release | [Releasing](./release.md) |
 
-## Running a board
+## Getting started
+
+From a rented server to a board of your own. There are two routes, and they
+end at the same board.
 
 | Document | What it covers |
 |---|---|
-| [`quickstart.md`](./quickstart.md) | **Start here.** From nothing to a live board on your own server, using Coolify. |
+| [`quickstart.md`](./quickstart.md) | **Start here.** The guided route: Coolify on your own server, a board on your own domain in about twenty minutes. |
+| [`self-hosting.md`](./self-hosting.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
+
+## Using your board
+
+For the people who run the community rather than the server. Everything in
+these three guides happens in a browser — no terminal, no code.
+
+| Document | What it covers |
+|---|---|
+| [`committee-guide.md`](./committee-guide.md) | Running the board day to day: forums and the committee room, the club's name and colours, announcements, members, and handing it all over. |
+| [`moderation-guide.md`](./moderation-guide.md) | The volunteer moderator's handbook: the approval queue, reports, tidying threads, warnings and bans. |
+| [`membership-guide.md`](./membership-guide.md) | Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger. |
+
+## Running the server
+
+For whoever minds the machine.
+
+| Document | What it covers |
+|---|---|
 | [`operating.md`](./operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
 | [`upgrading.md`](./upgrading.md) | Moving between versions: the upgrade command, how far you can jump, and the behaviour changes each upgrade brings. |
 | [`single-sign-on.md`](./single-sign-on.md) | Everything beyond a password: two-factor authentication, federated sign-in, passkeys, sessions, and the sign-in activity log. |
 | [`internationalisation.md`](./internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
-| [`performance.md`](./performance.md) | The p95 budgets for hot pages and what the last load run measured. *Generated — do not edit.* |
 | [`web-push.md`](./web-push.md) | Notifications that reach a member who does not have the board open, the privacy that costs, and the manifest that makes the board installable. |
+| [`performance.md`](./performance.md) | The p95 budgets for hot pages and what the last load run measured. *Generated — do not edit.* |
 | [`demo-mode.md`](./demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev, and how to run one yourself. |
 
-## Advanced deployment
+## Themes, plugins and the API
 
-| Document | What it covers |
-|---|---|
-| [`self-hosting.md`](./self-hosting.md) | The same board without Coolify: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should use the Quickstart instead. |
-
-## Themes
+For the member who codes: extending a board that is already running.
 
 | Document | What it covers |
 |---|---|
 | [`theme-api.md`](./theme-api.md) | The theme contract: how to write a theme, what a theme may do, and what the API freeze covers. |
 | [`theme-slots.md`](./theme-slots.md) | Every slot and every view model. *Generated — do not edit.* |
-
-## Plugins
-
-| Document | What it covers |
-|---|---|
 | [`plugin-api.md`](./plugin-api.md) | The plugin contract: what a plugin is, what it may and may not do, and how failures are contained. |
 | [`plugin-hooks.md`](./plugin-hooks.md) | Every hook and payload. *Generated — do not edit.* |
-
-## The API
-
-| Document | What it covers |
-|---|---|
 | [`rest-api.md`](./rest-api.md) | Every endpoint, scope and rate limit, and which of them answer without a token. *Generated — do not edit.* |
 
 The machine-readable form is `docs/openapi.json`, an OpenAPI 3 document with a
@@ -71,7 +90,7 @@ schema for every request and response. A board serves the same document live at
 `/api/v1/openapi.json`. It is generated too, from the same registry, and
 generators should be pointed at it rather than at the table above.
 
-## Migrating from MyBB
+## Moving from MyBB
 
 | Document | What it covers |
 |---|---|
@@ -80,7 +99,7 @@ generators should be pointed at it rather than at the table above.
 The importer itself, the legacy-URL redirects and the legacy password upgrade
 are covered in [Running a board](./operating.md).
 
-## Development
+## Working on Meith
 
 | Document | What it covers |
 |---|---|

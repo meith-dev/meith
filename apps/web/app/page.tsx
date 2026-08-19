@@ -164,7 +164,7 @@ export default async function LandingPage() {
           <header className="max-w-[46rem]">
             <p className="eyebrow">What you get</p>
             <h2 className="display mt-3 text-large leading-[1.15]">
-              Everything a community needs to feel at home.
+              Built for the people who actually run the place.
             </h2>
           </header>
 
@@ -228,9 +228,9 @@ export default async function LandingPage() {
             <p className="text-fg-muted text-pretty">{memberships.body}</p>
             <p className="text-fg text-pretty">{memberships.emphasis}</p>
             <p>
-              <a className="textlink text-micro" href={`${site.repository}/tree/main/plugins/dues`}>
+              <Link className="textlink text-micro" href={docHref('membership-guide')}>
                 {memberships.link}
-              </a>
+              </Link>
             </p>
           </div>
         </div>

@@ -17,38 +17,33 @@
   ],
   "sections": [
     {
+      "id": "getting-started",
+      "title": "Getting started",
+      "blurb": "From a rented server to a board of your own: the guided route with Coolify, and the by-hand route for people who already run a proxy."
+    },
+    {
+      "id": "using",
+      "title": "Using your board",
+      "blurb": "For the people who run the community rather than the server — the committee, the moderators and the treasurer. Everything here happens in a browser."
+    },
+    {
       "id": "running",
-      "title": "Running a board",
-      "blurb": "Setting a board up, and everything about running one day to day."
+      "title": "Running the server",
+      "blurb": "For whoever minds the machine: configuration, the CLI, upgrades, mail, backups, sign-in, and the rest of the operator's craft."
     },
     {
-      "id": "advanced",
-      "title": "Advanced deployment",
-      "blurb": "The same board without the panel: Docker Compose, a .env you write, and a reverse proxy you run."
-    },
-    {
-      "id": "themes",
-      "title": "Themes",
-      "blurb": "The frozen theme contract, and every slot a theme may fill."
-    },
-    {
-      "id": "plugins",
-      "title": "Plugins",
-      "blurb": "What a plugin may do, how its failures are contained, and every hook it can listen to."
-    },
-    {
-      "id": "api",
-      "title": "The API",
-      "blurb": "Every endpoint, scope and rate limit, generated from the route registry."
+      "id": "extending",
+      "title": "Themes, plugins and the API",
+      "blurb": "For the member who codes: the frozen theme contract, what a plugin may do, and every endpoint the board answers."
     },
     {
       "id": "migrating",
-      "title": "Migrating from MyBB",
+      "title": "Moving from MyBB",
       "blurb": "Where a Meith board deliberately behaves differently from MyBB, and why."
     },
     {
       "id": "development",
-      "title": "Development",
+      "title": "Working on Meith",
       "blurb": "Running Meith on your own machine, the workspace layout, and the conventions the codebase holds to."
     }
   ],
@@ -56,11 +51,47 @@
     {
       "slug": "quickstart",
       "file": "quickstart.md",
-      "section": "running",
+      "section": "getting-started",
       "title": "Quickstart",
-      "blurb": "From nothing to a board on your own domain, with Coolify, in about twenty minutes. The deploy pulls the released image rather than building anything.",
+      "blurb": "From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw.",
       "generated": false,
       "primary": true
+    },
+    {
+      "slug": "self-hosting",
+      "file": "self-hosting.md",
+      "section": "getting-started",
+      "title": "Deploying by hand",
+      "blurb": "The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "committee-guide",
+      "file": "committee-guide.md",
+      "section": "using",
+      "title": "The committee's guide",
+      "blurb": "Running the board from a browser: forums and the committee room, the club's name and colours, announcements, members — and handing it all over.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "moderation-guide",
+      "file": "moderation-guide.md",
+      "section": "using",
+      "title": "The moderator's guide",
+      "blurb": "For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "membership-guide",
+      "file": "membership-guide.md",
+      "section": "using",
+      "title": "The treasurer's guide",
+      "blurb": "Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal.",
+      "generated": false,
+      "primary": false
     },
     {
       "slug": "operating",
@@ -69,7 +100,7 @@
       "title": "Running a board",
       "blurb": "The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting.",
       "generated": false,
-      "primary": false
+      "primary": true
     },
     {
       "slug": "upgrading",
@@ -87,15 +118,6 @@
       "title": "Signing in",
       "blurb": "Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account.",
       "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "performance",
-      "file": "performance.md",
-      "section": "running",
-      "title": "Performance",
-      "blurb": "The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board.",
-      "generated": true,
       "primary": false
     },
     {
@@ -117,6 +139,15 @@
       "primary": false
     },
     {
+      "slug": "performance",
+      "file": "performance.md",
+      "section": "running",
+      "title": "Performance",
+      "blurb": "The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board.",
+      "generated": true,
+      "primary": false
+    },
+    {
       "slug": "demo-mode",
       "file": "demo-mode.md",
       "section": "running",
@@ -126,18 +157,9 @@
       "primary": false
     },
     {
-      "slug": "self-hosting",
-      "file": "self-hosting.md",
-      "section": "advanced",
-      "title": "Deploying by hand",
-      "blurb": "The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead.",
-      "generated": false,
-      "primary": true
-    },
-    {
       "slug": "theme-api",
       "file": "theme-api.md",
-      "section": "themes",
+      "section": "extending",
       "title": "The theme API",
       "blurb": "How to write a theme, what a theme may do, and what the API freeze covers.",
       "generated": false,
@@ -146,7 +168,7 @@
     {
       "slug": "theme-slots",
       "file": "theme-slots.md",
-      "section": "themes",
+      "section": "extending",
       "title": "Theme slots and view models",
       "blurb": "Every slot and every view model, generated from the slot registry.",
       "generated": true,
@@ -155,16 +177,16 @@
     {
       "slug": "plugin-api",
       "file": "plugin-api.md",
-      "section": "plugins",
+      "section": "extending",
       "title": "The plugin API",
       "blurb": "What a plugin is, what it may and may not do, and how a failure is contained.",
       "generated": false,
-      "primary": true
+      "primary": false
     },
     {
       "slug": "plugin-hooks",
       "file": "plugin-hooks.md",
-      "section": "plugins",
+      "section": "extending",
       "title": "Plugin hooks",
       "blurb": "Every hook and payload, generated from the hook registry.",
       "generated": true,
@@ -173,11 +195,11 @@
     {
       "slug": "rest-api",
       "file": "rest-api.md",
-      "section": "api",
+      "section": "extending",
       "title": "REST API v1",
       "blurb": "Every endpoint, scope and rate limit, generated from the route registry.",
       "generated": true,
-      "primary": true
+      "primary": false
     },
     {
       "slug": "mybb-parity",

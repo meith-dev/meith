@@ -1,22 +1,27 @@
 # Meith
 
-**Community software for people who want to build something together.**
+**A forum for clubs and communities, on a server of your own.**
 [meith.dev](https://meith.dev)
 
-The internet used to feel like a neighborhood; today it often feels like a
-fragmented crowd. Meith is a platform for bringing the neighborhood back.
+Meith is forum software for the people who actually run things: the
+committee posting the notices, the coaches whose fixtures must not scroll
+away, the treasurer chasing the subs, and the volunteers who inherit all
+of it at the next AGM. One place the whole club can reach — the fixtures,
+the minutes, the members-only forum, the subs — at a domain the club owns,
+on a machine the club rents, handed on with the rest of the paperwork.
 
-The name comes from the Irish concept of **meitheal**: a group of people
-coming together to help one another with a shared task. In a meitheal,
-expertise is shared freely, heavy lifting is distributed, and the community
-grows stronger through cooperation. Meith is the digital infrastructure for
-communities to do exactly that — whether they are filling a regional
-networking gap, building open-source software, or sharing a niche hobby.
+The name comes from the Irish concept of **meitheal**: neighbours coming
+together to help one another with a shared task. Expertise is shared
+freely, the heavy lifting is distributed, and the community grows stronger
+through cooperation. Meith is that idea as software — for a GAA club, a
+residents' association, a guild, or any group that would rather not be
+somebody else's product.
 
 ## Getting started
 
 Meith runs on **your own server**, with nothing between you and the board.
-There are two supported routes:
+Setting it up is one volunteer's evening; running it afterwards is a
+browser. There are two supported routes:
 
 **With Coolify — the guided route.** [Coolify](https://coolify.io) is a
 panel you install on your own machine, not a service you sign up to:
@@ -42,7 +47,11 @@ is the walkthrough: the `.env`, the proxy, and what you take on for it.
 Either way you get the same four containers — Postgres, a one-shot
 migration the others wait on, the web server, and the worker that runs the
 background tick. Put a certificate in front, open `/install`, and that is
-a board. Day two, on either route, is
+a board. From there the day-to-day belongs to the people running the
+community, not the server: [The committee's guide](./docs/committee-guide.md),
+[The moderator's guide](./docs/moderation-guide.md) and
+[The treasurer's guide](./docs/membership-guide.md) each need nothing but a
+browser. Day two for whoever minds the machine is
 [Running a board](./docs/operating.md).
 
 These are the only deployment routes this project supports, and that is a
@@ -54,26 +63,32 @@ workaround at any price.
 
 ## What you get
 
-- **A real permission model.** 45 permission fields — 26 resolved per
-  member per forum, 19 board-wide — not a three-tier guess. Search, feeds
-  and the API all answer to the same resolver, so there is no path that
-  reads around the rules.
-- **Themes that cannot break the board.** A frozen slot contract,
-  documented and generated from the registry, so a theme is replaceable
-  rather than a fork.
+- **A room for everyone, and one for the committee.** A real permission
+  model — 45 permission fields, 26 resolved per member per forum, 19
+  board-wide — so the juniors, the members and the committee each see
+  their own forums. Search, feeds and the API all answer to the same
+  resolver: there is no path that reads around the rules.
+- **The subs taken online.** Dues ships with the board: plans sold through
+  the club's own Stripe account as a subscription, a pass or a lifetime.
+  Paying opens the members-only forum by itself and lapsing closes it, with
+  a ledger for the treasurer at year end. No cut, and no per-member fee.
+- **The club's colours, safely.** The name, logo and colours change from
+  the admin panel; a theme fills a frozen, documented slot contract, so a
+  new look is replaceable rather than a fork — and can never take the
+  board down with it.
+- **Years of answers, still findable.** Postgres full-text search,
+  weighted so a thread's subject beats a passing mention, and paged on a
+  keyset so results never repeat or skip.
+- **Bots kept out without bothering people.** A honeypot, a fill-time
+  floor, sign-up questions only your members can answer, held first posts,
+  and hourly limits counted in the database. No hosted captcha, so no
+  third party meets your members before you do.
 - **Plugins with contained failures.** Hooks with typed payloads; a plugin
   that throws does not take a page down with it.
-- **Postgres full-text search**, weighted so a thread's subject beats a
-  passing mention, and paged on a keyset so results never repeat or skip.
-- **Spam controls that fail open.** A honeypot, a fill-time floor,
-  questions you write yourself, held first posts, and hourly limits counted
-  in the database so every instance shares one allowance. No hosted
-  captcha, so no third party meets your members before you do.
 - **A migration path from MyBB** — resumable, so a large board can be
   imported across several sessions, with members keeping their passwords.
-- **An operator CLI** for everything you should not need a browser for:
-  migrations, users, settings, scheduled tasks, the importer, search
-  reindexing.
+- **An operator CLI** for whoever minds the machine: migrations, users,
+  settings, scheduled tasks, the importer, search reindexing.
 
 ## Documentation
 
@@ -82,6 +97,10 @@ site at [meith.dev/docs](https://meith.dev/docs) renders those same files —
 it holds no copy of any of them — so a correction is one edit, in the
 repository, and both places have it.
 
+The set is organised by who is reading: getting a board set up, using one
+from a browser (the committee, the moderators, the treasurer), running the
+server, extending the board, and working on Meith itself.
+
 The table below is written from `apps/web/content/docs.manifest.json` by
 `pnpm site:docs`. Describe a document there; do not edit these rows.
 
@@ -89,25 +108,28 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 
 | Section | Document | What it answers |
 |---|---|---|
-| Running a board | [`quickstart.md`](./docs/quickstart.md) | From nothing to a board on your own domain, with Coolify, in about twenty minutes. The deploy pulls the released image rather than building anything. |
-| Running a board | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
-| Running a board | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
-| Running a board | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
-| Running a board | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
-| Running a board | [`internationalisation.md`](./docs/internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
-| Running a board | [`web-push.md`](./docs/web-push.md) | Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on. |
-| Running a board | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
-| Advanced deployment | [`self-hosting.md`](./docs/self-hosting.md) | The same board without a panel: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
-| Themes | [`theme-api.md`](./docs/theme-api.md) | How to write a theme, what a theme may do, and what the API freeze covers. |
-| Themes | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
-| Plugins | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
-| Plugins | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
-| The API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
-| Migrating from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |
-| Development | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
-| Development | [`architecture.md`](./docs/architecture.md) | How Meith fits together: the processes, the layers, the path a request takes, and the extension seams. |
-| Development | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
-| Development | [`release.md`](./docs/release.md) | How a version is cut, what each release publishes — the image, the branch, the npm packages — and the version policy behind the numbers. |
+| Getting started | [`quickstart.md`](./docs/quickstart.md) | From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw. |
+| Getting started | [`self-hosting.md`](./docs/self-hosting.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
+| Using your board | [`committee-guide.md`](./docs/committee-guide.md) | Running the board from a browser: forums and the committee room, the club's name and colours, announcements, members — and handing it all over. |
+| Using your board | [`moderation-guide.md`](./docs/moderation-guide.md) | For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives. |
+| Using your board | [`membership-guide.md`](./docs/membership-guide.md) | Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
+| Running the server | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
+| Running the server | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
+| Running the server | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
+| Running the server | [`internationalisation.md`](./docs/internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
+| Running the server | [`web-push.md`](./docs/web-push.md) | Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on. |
+| Running the server | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
+| Running the server | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
+| Themes, plugins and the API | [`theme-api.md`](./docs/theme-api.md) | How to write a theme, what a theme may do, and what the API freeze covers. |
+| Themes, plugins and the API | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
+| Themes, plugins and the API | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
+| Themes, plugins and the API | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
+| Themes, plugins and the API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
+| Moving from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |
+| Working on Meith | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
+| Working on Meith | [`architecture.md`](./docs/architecture.md) | How Meith fits together: the processes, the layers, the path a request takes, and the extension seams. |
+| Working on Meith | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |
+| Working on Meith | [`release.md`](./docs/release.md) | How a version is cut, what each release publishes — the image, the branch, the npm packages — and the version policy behind the numbers. |
 
 <!-- docs:table end -->
 

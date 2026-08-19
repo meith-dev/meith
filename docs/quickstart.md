@@ -1,23 +1,27 @@
 # Quickstart
 
-From nothing to a board people can reach, on your own domain, over HTTPS —
-in about twenty minutes. Nothing is built on your server: the deploy pulls
-the released image.
+You do not need to be a programmer to set up a Meith board. This page is
+written for whichever volunteer drew the short straw: if you can rent a
+server, point a domain at it and paste one command, it takes you from
+nothing to a board the whole club can reach — on your own domain, over
+HTTPS — in about twenty minutes. Nothing is built on your server: the
+deploy pulls the released image.
 
-This is the guided route: [Coolify](https://coolify.io) on your own server.
-It is the shortest path to a real board. If you would rather run the
-compose file and a reverse proxy yourself, take
-[Deploying by hand](./self-hosting.md) — same board, same image, more work.
-If you only want to read the code or write a theme,
+This is the guided route, and the one most boards should take:
+[Coolify](https://coolify.io) is a free panel you install on your server
+once, and everything after it is a browser. If whoever minds your machines
+would rather run the compose file and a reverse proxy themselves, take
+[Deploying by hand](./self-hosting.md) — same board, same image, more
+work. If you only want to read the code or write a theme,
 [Development](./development.md) runs it on your laptop in two commands.
 
 **You need:**
 
 | | |
 |---|---|
-| **A server** | Your own, anywhere. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
-| **A domain** | With an `A` record already pointing at the server's IP — the certificate step needs it resolving. |
-| **SSH** | Root, once, to install the panel. Everything after that is a browser. |
+| **A server** | Rented in the club's name, from any provider, for a few euro a month. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
+| **A domain** | With an `A` record already pointing at the server's IP — the certificate step needs it resolving. Your registrar's control panel does this. |
+| **SSH** | Root, once, to install the panel. The terminal appears in step 1 and never again. |
 
 ## 1. Install Coolify
 
@@ -325,9 +329,16 @@ covers the failures that are about the board rather than the deploy.
 
 ## Next
 
+The board is up, and your part may be done: the three guides at the top of
+this table need a browser and nothing else, so they can go straight to the
+people doing those jobs.
+
 | You want to | Read |
 |---|---|
-| Run this board day to day | [Running a board](./operating.md) |
+| Hand it to the committee | [The committee's guide](./committee-guide.md) |
+| Hand the queue to the moderators | [The moderator's guide](./moderation-guide.md) |
+| Take the subs online | [The treasurer's guide](./membership-guide.md) |
+| Run the server day to day | [Running a board](./operating.md) |
 | Take it from one version to the next | [Upgrading a board](./upgrading.md) |
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |
 | Change how it looks | [The theme API](./theme-api.md) |
