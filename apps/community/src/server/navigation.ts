@@ -59,13 +59,28 @@ async function pluginRowIsLive(key: string | null): Promise<boolean> {
     : false
 }
 
+function pluginNavigationDrifted(items: readonly NavigationItemRow[]): boolean {
+  const declared = pluginNavigationPlacements(activeDefinitions())
+  const stored = new Map(
+    items
+      .filter((item) => item.key?.startsWith('plugin.') === true)
+      .map((item) => [item.key as string, item.href] as const),
+  )
+  if (declared.length !== stored.size) return true
+  return declared.some((item) => stored.get(item.key) !== item.href)
+}
+
 export async function boardNavigation(
   actor: Actor,
   viewer: ViewerModel,
 ): Promise<readonly LinkModel[]> {
   const { authorizer } = getContainer()
 
-  const items = await navigationItems()
+  let items = await navigationItems()
+  if (pluginNavigationDrifted(items)) {
+    await syncPluginNavigation()
+    items = await navigationItems()
+  }
   const live = await Promise.all(items.map((item) => pluginRowIsLive(item.key)))
   const shown = items.filter((_, index) => live[index] === true)
 
