@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface SearchEntry {
   readonly href: string
@@ -108,94 +109,97 @@ export function DocsSearch() {
         <kbd className="kbd hidden sm:inline">⌘K</kbd>
       </button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-canvas/80 px-4 pt-[12vh] backdrop-blur-sm"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setOpen(false)
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Search the documentation"
-            className="flex max-h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-border bg-raised shadow-[var(--lift-lg)]"
-          >
-            <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-              <span aria-hidden className="font-mono text-accent">
-                ⌕
-              </span>
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'ArrowDown') {
-                    event.preventDefault()
-                    setActive((index) => Math.min(index + 1, results.length - 1))
-                  } else if (event.key === 'ArrowUp') {
-                    event.preventDefault()
-                    setActive((index) => Math.max(index - 1, 0))
-                  } else if (event.key === 'Enter') {
-                    event.preventDefault()
-                    go(results[active])
-                  }
-                }}
-                placeholder="Search the documentation…"
+      {open
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-50 flex items-start justify-center bg-canvas/80 px-4 pt-[12vh] backdrop-blur-sm"
+              role="presentation"
+              onClick={(event) => {
+                if (event.target === event.currentTarget) setOpen(false)
+              }}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
                 aria-label="Search the documentation"
-                className="w-full bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
-              />
-              <kbd className="kbd">esc</kbd>
-            </div>
+                className="flex max-h-[70vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-border bg-raised shadow-[var(--lift-lg)]"
+              >
+                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                  <span aria-hidden className="font-mono text-accent">
+                    ⌕
+                  </span>
+                  <input
+                    ref={inputRef}
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ArrowDown') {
+                        event.preventDefault()
+                        setActive((index) => Math.min(index + 1, results.length - 1))
+                      } else if (event.key === 'ArrowUp') {
+                        event.preventDefault()
+                        setActive((index) => Math.max(index - 1, 0))
+                      } else if (event.key === 'Enter') {
+                        event.preventDefault()
+                        go(results[active])
+                      }
+                    }}
+                    placeholder="Search the documentation…"
+                    aria-label="Search the documentation"
+                    className="w-full bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
+                  />
+                  <kbd className="kbd">esc</kbd>
+                </div>
 
-            <div className="overflow-y-auto">
-              {failed ? (
-                <p className="px-4 py-6 text-micro text-fg-subtle">
-                  The search index could not be loaded. Every document is listed on the{' '}
-                  <a className="textlink" href="/docs">
-                    documentation index
-                  </a>
-                  .
-                </p>
-              ) : query.trim() === '' ? (
-                <p className="px-4 py-6 text-micro text-fg-subtle">
-                  Type to search every published document. Results are sections, not pages.
-                </p>
-              ) : results.length === 0 ? (
-                <p className="px-4 py-6 text-micro text-fg-subtle">
-                  Nothing matches “{query}”. {entries ? '' : 'The index is still loading.'}
-                </p>
-              ) : (
-                <ul>
-                  {results.map((entry, index) => (
-                    <li key={entry.href}>
-                      <button
-                        type="button"
-                        onMouseEnter={() => setActive(index)}
-                        onClick={() => go(entry)}
-                        className={`flex w-full flex-col gap-1 border-b border-border px-4 py-3 text-left transition-colors ${
-                          index === active ? 'bg-surface' : ''
-                        }`}
-                      >
-                        <span className="flex items-baseline gap-2">
-                          <span className="text-base text-fg">{entry.heading}</span>
-                          <span className="font-mono text-micro tracking-[0.08em] text-fg-subtle uppercase">
-                            {entry.document}
-                          </span>
-                        </span>
-                        <span className="line-clamp-2 text-micro text-fg-muted">
-                          {entry.snippet}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <div className="overflow-y-auto">
+                  {failed ? (
+                    <p className="px-4 py-6 text-micro text-fg-subtle">
+                      The search index could not be loaded. Every document is listed on the{' '}
+                      <a className="textlink" href="/docs">
+                        documentation index
+                      </a>
+                      .
+                    </p>
+                  ) : query.trim() === '' ? (
+                    <p className="px-4 py-6 text-micro text-fg-subtle">
+                      Type to search every published document. Results are sections, not pages.
+                    </p>
+                  ) : results.length === 0 ? (
+                    <p className="px-4 py-6 text-micro text-fg-subtle">
+                      Nothing matches “{query}”. {entries ? '' : 'The index is still loading.'}
+                    </p>
+                  ) : (
+                    <ul>
+                      {results.map((entry, index) => (
+                        <li key={entry.href}>
+                          <button
+                            type="button"
+                            onMouseEnter={() => setActive(index)}
+                            onClick={() => go(entry)}
+                            className={`flex w-full flex-col gap-1 border-b border-border px-4 py-3 text-left transition-colors ${
+                              index === active ? 'bg-surface' : ''
+                            }`}
+                          >
+                            <span className="flex items-baseline gap-2">
+                              <span className="text-base text-fg">{entry.heading}</span>
+                              <span className="font-mono text-micro tracking-[0.08em] text-fg-subtle uppercase">
+                                {entry.document}
+                              </span>
+                            </span>
+                            <span className="line-clamp-2 text-micro text-fg-muted">
+                              {entry.snippet}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   )
 }
