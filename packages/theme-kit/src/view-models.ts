@@ -552,6 +552,23 @@ export interface UserPanelModel {
    */
   readonly notificationsHref?: string
   readonly messagesHref?: string
+  readonly regions?: {
+    /**
+     * The notifications menu the app supplies — a single control that opens the
+     * reader's notifications, private messages and, for staff, the moderation
+     * queue in tabs, marks them seen and links each one through (0.16).
+     *
+     * It is app-rendered rather than modelled field by field because it is an
+     * interactive island carrying Server Actions — the same reason logging out
+     * arrives as `children` and the quick-reply island as a region. A theme
+     * places it where the two unread counts used to sit; the island renders its
+     * own no-JavaScript fallback, so a theme that renders this needs no separate
+     * badge markup. Absent for a guest and on a board with neither service, and
+     * a theme that ignores it falls back to `unreadNotifications` and
+     * `unreadMessages`, which is what makes the field additive.
+     */
+    readonly notifications?: ReactNode
+  }
   /**
    * Account controls the app supplies — today, the log-out form.
    *

@@ -320,6 +320,12 @@ not an API version.
 > beside them: spread onto an anchor it writes the `target` and the `rel` that
 > has to accompany it. A theme that ignores both fields still compiles, and
 > renders the top level as an ordinary row of links.
+> [`UserPanelModel`](./theme-slots.md#userpanel) also gained
+> `regions.notifications`, the app-rendered notifications menu — one control
+> that opens notifications, private messages and, for staff, the moderation
+> queue in tabs. A theme places it where the two unread counts used to sit; a
+> theme that ignores it falls back to `unreadNotifications` and
+> `unreadMessages`, which is what keeps the field additive.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even
