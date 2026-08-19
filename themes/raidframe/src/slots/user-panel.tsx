@@ -30,6 +30,7 @@ export function UserPanel({
   unreadMessages,
   notificationsHref,
   messagesHref,
+  regions,
   children,
   copy,
 }: UserPanelModel & { copy: SlotCopy }) {
@@ -58,21 +59,25 @@ export function UserPanel({
         }}
       />
 
-      {unreadNotifications.value > 0 && (
-        <a
-          href={notificationsHref}
-          className={`${COUNT} border-primary/60 bg-primary/15 text-primary hover:border-primary`}
-        >
-          {unreadNotifications.label} {c('new')}
-        </a>
-      )}
-      {unreadMessages.value > 0 && (
-        <a
-          href={messagesHref}
-          className={`${COUNT} border-forum-unread/60 bg-forum-unread/15 text-forum-unread hover:border-forum-unread`}
-        >
-          {unreadMessages.label} {c('pm')}
-        </a>
+      {regions?.notifications ?? (
+        <>
+          {unreadNotifications.value > 0 && (
+            <a
+              href={notificationsHref}
+              className={`${COUNT} border-primary/60 bg-primary/15 text-primary hover:border-primary`}
+            >
+              {unreadNotifications.label} {c('new')}
+            </a>
+          )}
+          {unreadMessages.value > 0 && (
+            <a
+              href={messagesHref}
+              className={`${COUNT} border-forum-unread/60 bg-forum-unread/15 text-forum-unread hover:border-forum-unread`}
+            >
+              {unreadMessages.label} {c('pm')}
+            </a>
+          )}
+        </>
       )}
 
       <div data-account="menu" className="flex min-w-0 items-center">

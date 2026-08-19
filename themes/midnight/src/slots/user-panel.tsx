@@ -8,6 +8,7 @@ export function UserPanel({
   unreadMessages,
   notificationsHref,
   messagesHref,
+  regions,
   children,
   copy,
 }: UserPanelModel & { copy: SlotCopy }) {
@@ -19,16 +20,21 @@ export function UserPanel({
         {viewer.isGuest ? c('guest') : (viewer.username ?? c('signedIn'))}
       </span>
 
-      {unreadNotifications.value > 0 && (
-        <a href={notificationsHref} className="text-accent hover:underline">
-          [{unreadNotifications.label} {c('new')}]
-          <span className="sr-only"> {c('notificationsSrOnly')}</span>
-        </a>
-      )}
-      {unreadMessages.value > 0 && (
-        <a href={messagesHref} className="text-accent hover:underline">
-          [{unreadMessages.label} {c('pm')}]<span className="sr-only"> {c('messagesSrOnly')}</span>
-        </a>
+      {regions?.notifications ?? (
+        <>
+          {unreadNotifications.value > 0 && (
+            <a href={notificationsHref} className="text-accent hover:underline">
+              [{unreadNotifications.label} {c('new')}]
+              <span className="sr-only"> {c('notificationsSrOnly')}</span>
+            </a>
+          )}
+          {unreadMessages.value > 0 && (
+            <a href={messagesHref} className="text-accent hover:underline">
+              [{unreadMessages.label} {c('pm')}]
+              <span className="sr-only"> {c('messagesSrOnly')}</span>
+            </a>
+          )}
+        </>
       )}
 
       {links.map((link) => (

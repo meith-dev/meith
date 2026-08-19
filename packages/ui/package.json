@@ -15,6 +15,8 @@
     ".": "./src/index.ts",
     "./button": "./src/button.tsx",
     "./menu": "./src/menu.tsx",
+    "./popover": "./src/popover.tsx",
+    "./tabs": "./src/tabs.tsx",
     "./utils": "./src/utils.ts",
     "./variants": "./src/variants.ts"
   },

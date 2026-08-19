@@ -725,6 +725,33 @@ reputation — one place to write to rather than an e-mail template each.
 panel on every page for a signed-in member, which is why its index is
 partial over unread rows.
 
+### The header carries one menu, not two counts
+
+**MyBB:** the header shows separate figures — a private-message count and,
+with a plugin, whatever else wants a number — each a link to its own page.
+
+**Meith:** the header carries a single notifications control. It shows one
+badge, the member's total unread across notifications and private
+messages, and opens a menu with a tab for each: **Notifications**,
+**Messages**, and — for a member who may reach the moderation panel — a
+**Mod** tab of the staff-only notifications. Each tab lists its most
+recent entries, links every one through to the thing it is about, and
+marks entries seen without leaving the page; the tab also links to the
+full page behind it. With scripting off the control falls back to the
+same unread-count links the header carried before, so nothing the menu
+adds is load-bearing.
+
+**Why.** Two counts that each open a different page make a member choose
+before they have seen anything; one badge answers "is there anything for
+me" and one menu shows what, sorted by the kind of thing it is. Splitting
+the staff notifications into their own tab keeps a moderator's queue
+signals out of the run of ordinary ones.
+
+**Cost.** To fill its tabs the menu reads the first page of the
+notifications list and of the inbox, on top of the two unread counts the
+header already had — two short reads added to a signed-in page, and only
+for a member who is signed in.
+
 ### On-site delivery cannot be switched off; e-mail can
 
 **MyBB:** every notification channel is opt-out.

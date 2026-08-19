@@ -3,6 +3,7 @@ import { currentRequestId } from '@meith/core/logger'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { NotificationMenu } from '@/components/shell/notification-menu'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { avatarsFor } from '@/server/avatars'
 import { currentLogo } from '@/server/branding'
@@ -11,6 +12,7 @@ import { getTranslator } from '@/server/i18n'
 import { legalFooterLinks } from '@/server/legal'
 import { unreadMessageCount } from '@/server/messages'
 import { boardNavigation } from '@/server/navigation'
+import { buildNotificationMenuModel } from '@/server/notification-menu'
 import { unreadNotificationCount } from '@/server/notifications'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { touchCurrentLocation } from '@/server/presence'
@@ -20,6 +22,7 @@ import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { buildForumJumpModel } from '@/view/forum-jump'
+import { notificationMenuCopy } from '@/view/notification-menu'
 import {
   buildFooterModel,
   buildHeaderModel,
@@ -77,6 +80,8 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
 
   const unreadMessages = await unreadMessageCount(actor.userId)
 
+  const notificationMenu = viewer.isGuest ? null : await buildNotificationMenuModel(actor)
+
   await touchActivity(actor.userId)
 
   await touchCurrentLocation()
@@ -120,7 +125,22 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
       copy={slotCopy(theme, 'Shell', translator)}
     >
       <Header {...headerModel} copy={slotCopy(theme, 'Header', translator)}>
-        <UserPanel {...userPanelModel} copy={slotCopy(theme, 'UserPanel', translator)}>
+        <UserPanel
+          {...userPanelModel}
+          {...(notificationMenu === null
+            ? {}
+            : {
+                regions: {
+                  notifications: (
+                    <NotificationMenu
+                      model={notificationMenu}
+                      copy={notificationMenuCopy(translator)}
+                    />
+                  ),
+                },
+              })}
+          copy={slotCopy(theme, 'UserPanel', translator)}
+        >
           {viewer.isGuest ? null : <LogoutForm label={translator.t('nav.logOut')} />}
         </UserPanel>
       </Header>

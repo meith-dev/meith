@@ -82,6 +82,7 @@ export function UserPanel({
   unreadMessages,
   notificationsHref,
   messagesHref,
+  regions,
   children,
   copy,
 }: UserPanelModel & { copy: SlotCopy }) {
@@ -110,18 +111,22 @@ export function UserPanel({
         }}
       />
 
-      {unreadNotifications.value > 0 && (
-        <IconButton href={notificationsHref ?? null} title={c('notifications')}>
-          <BellIcon />
-          <CountBadge value={unreadNotifications} label={c('unreadNotifications')} />
-        </IconButton>
-      )}
+      {regions?.notifications ?? (
+        <>
+          {unreadNotifications.value > 0 && (
+            <IconButton href={notificationsHref ?? null} title={c('notifications')}>
+              <BellIcon />
+              <CountBadge value={unreadNotifications} label={c('unreadNotifications')} />
+            </IconButton>
+          )}
 
-      {unreadMessages.value > 0 && (
-        <IconButton href={messagesHref ?? null} title={c('messages')}>
-          <MessageIcon />
-          <CountBadge value={unreadMessages} label={c('unreadMessages')} />
-        </IconButton>
+          {unreadMessages.value > 0 && (
+            <IconButton href={messagesHref ?? null} title={c('messages')}>
+              <MessageIcon />
+              <CountBadge value={unreadMessages} label={c('unreadMessages')} />
+            </IconButton>
+          )}
+        </>
       )}
 
       <div data-account="menu" className="flex min-w-0 items-center">

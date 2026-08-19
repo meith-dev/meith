@@ -15,6 +15,7 @@ export function UserPanel({
   unreadMessages,
   notificationsHref,
   messagesHref,
+  regions,
   children,
   copy,
 }: UserPanelModel & { copy: SlotCopy }) {
@@ -51,23 +52,27 @@ export function UserPanel({
       />
 
       <div className="flex min-w-0 items-center gap-2">
-        {unreadNotifications.value > 0 && (
-          <a href={notificationsHref} className={COUNT_LINK}>
-            <Badge tone="solid">
-              {unreadNotifications.label}
-              <span className="sr-only"> {c('unreadNotifications')}</span>
-              <span aria-hidden="true"> {c('new')}</span>
-            </Badge>
-          </a>
-        )}
-        {unreadMessages.value > 0 && (
-          <a href={messagesHref} className={COUNT_LINK}>
-            <Badge tone="outline">
-              {unreadMessages.label}
-              <span className="sr-only"> {c('unreadMessages')}</span>
-              <span aria-hidden="true"> {c('unread')}</span>
-            </Badge>
-          </a>
+        {regions?.notifications ?? (
+          <>
+            {unreadNotifications.value > 0 && (
+              <a href={notificationsHref} className={COUNT_LINK}>
+                <Badge tone="solid">
+                  {unreadNotifications.label}
+                  <span className="sr-only"> {c('unreadNotifications')}</span>
+                  <span aria-hidden="true"> {c('new')}</span>
+                </Badge>
+              </a>
+            )}
+            {unreadMessages.value > 0 && (
+              <a href={messagesHref} className={COUNT_LINK}>
+                <Badge tone="outline">
+                  {unreadMessages.label}
+                  <span className="sr-only"> {c('unreadMessages')}</span>
+                  <span aria-hidden="true"> {c('unread')}</span>
+                </Badge>
+              </a>
+            )}
+          </>
         )}
 
         <span data-account="menu" className="flex min-w-0 items-center">
