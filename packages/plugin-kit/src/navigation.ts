@@ -9,6 +9,8 @@ export interface PluginNavigationPlacement {
   readonly key: string
   readonly href: string
   readonly audience: PluginNavigationAudience
+  /** The namespaced key of the sibling item this one sits under by default. */
+  readonly parentKey: string | null
   readonly label: string
   readonly labelKey: string | null
   readonly labelArgs: Record<string, string | number> | null
@@ -22,6 +24,7 @@ export function pluginNavigationPlacements(
       key: pluginNavigationKey(plugin.key, item.key),
       href: pluginPagePath(plugin.key, item.path),
       audience: item.audience ?? ('all' as const),
+      parentKey: item.under === undefined ? null : pluginNavigationKey(plugin.key, item.under),
       label: item.label,
       labelKey: item.labelKey ?? null,
       labelArgs: (item.labelArgs ?? null) as Record<string, string | number> | null,

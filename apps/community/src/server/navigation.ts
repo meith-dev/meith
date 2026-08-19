@@ -87,6 +87,7 @@ export async function syncPluginNavigation(): Promise<void> {
         key: item.key,
         href: item.href,
         audience: item.audience,
+        parentKey: item.parentKey,
       })),
     )
     await drivers().cache.invalidateTags([CacheTags.navigation()])

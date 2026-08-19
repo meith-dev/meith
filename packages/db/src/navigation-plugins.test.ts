@@ -9,11 +9,17 @@ let harness: TestDb
 let db: Database
 let repository: PostgresNavigationRepository
 
-const PLANS = { key: 'plugin.dues.plans', href: '/plugins/dues', audience: 'all' } as const
+const PLANS = {
+  key: 'plugin.dues.plans',
+  href: '/plugins/dues',
+  audience: 'all',
+  parentKey: null,
+} as const
 const MANAGE = {
   key: 'plugin.dues.manage',
   href: '/plugins/dues/manage',
   audience: 'members',
+  parentKey: PLANS.key,
 } as const
 
 beforeAll(async () => {
@@ -88,6 +94,39 @@ describe('syncPluginItems', () => {
     await repository.syncPluginItems([{ ...PLANS, href: '/plugins/dues/plans' }])
 
     expect(await pluginRows()).toMatchObject([{ href: '/plugins/dues/plans' }])
+  })
+
+  it('creates a child under its declared parent, whichever is declared first', async () => {
+    await repository.syncPluginItems([MANAGE, PLANS])
+
+    const rows = await pluginRows()
+    const plans = rows.find((row) => row.key === PLANS.key)
+    const manage = rows.find((row) => row.key === MANAGE.key)
+
+    expect(plans?.parentId).toBeNull()
+    expect(manage?.parentId).toBe(plans?.id)
+  })
+
+  it('lands at the top level when the declared parent is not a top-level row', async () => {
+    await repository.syncPluginItems([PLANS])
+    const [plans] = await pluginRows()
+    const shelter = await repository.create({
+      parentId: null,
+      label: 'More',
+      href: '/more',
+      audience: 'all',
+      newTab: false,
+      enabled: true,
+      visibleToGroups: [],
+    })
+    await repository.arrange(plans!.id, { parentId: shelter, afterId: null })
+
+    await repository.syncPluginItems([PLANS, MANAGE])
+
+    const manage = (await pluginRows()).find((row) => row.key === MANAGE.key)
+    expect(manage?.parentId).toBeNull()
+
+    await repository.delete(shelter)
   })
 
   it('removes a row whose plugin is no longer installed', async () => {

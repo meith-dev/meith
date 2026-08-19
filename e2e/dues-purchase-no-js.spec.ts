@@ -81,7 +81,7 @@ test('a guest sees the shop window but cannot buy', async ({ page }) => {
   expect(shades.card).not.toBe(shades.page)
 
   await page.goto('/')
-  await expect(page.getByRole('banner').getByRole('link', { name: 'Membership' })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Membership' })).toHaveCount(0)
 })
 
 test('a member buys a 90-day pass and belongs before the receipt page reloads', async ({
@@ -89,6 +89,13 @@ test('a member buys a 90-day pass and belongs before the receipt page reloads', 
   request,
 }) => {
   await signUp(page, 'buyer')
+
+  await page.goto('/')
+  const banner = page.getByRole('banner')
+  const membershipLink = banner.getByRole('link', { name: 'Membership', exact: true })
+  await expect(membershipLink).toBeVisible()
+  await membershipLink.hover()
+  await expect(banner.getByRole('link', { name: 'Your membership' })).toBeVisible()
 
   await page.goto('/plugins/dues')
   await page

@@ -252,12 +252,22 @@ function seedSql(staffHash: string): string {
     ]),
   ]
 
+  const pluginNavigation = [
+    'insert into navigation_items (key, parent_id, label, href, display_order, audience)' +
+      " values ('plugin.dues.plans', null, '', '/plugins/dues', 60, 'members');",
+    'insert into navigation_items (key, parent_id, label, href, display_order, audience)' +
+      " values ('plugin.dues.manage'," +
+      " (select id from navigation_items where key = 'plugin.dues.plans')," +
+      " '', '/plugins/dues/manage', 0, 'members');",
+  ]
+
   return [
     insert('users', users),
     insert('user_group_memberships', memberships),
     insert('settings', settings),
     ...styledGroup,
     ...supporters,
+    ...pluginNavigation,
     ...staff,
     insert('forums', forums),
     insert('threads', threads),
