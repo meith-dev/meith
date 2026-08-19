@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.6",
-    "@electric-sql/pglite": "^0.5.4"
+    "@electric-sql/pglite": "^0.5.5"
   },
   "scripts": {
     "generate": "drizzle-kit generate",
