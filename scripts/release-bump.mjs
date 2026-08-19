@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -83,8 +84,10 @@ for (const { file, pattern } of REWRITES) {
   await writeFile(path, rewritten)
 }
 
+execFileSync('pnpm', ['api:docs'], { cwd: ROOT, stdio: 'inherit' })
+
 console.log(
   `✓ release bump: ${current} → ${version} in the root manifest, ${manifests} workspace manifests, ` +
     `${SOURCE_CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
-    'and the compose pin. Run release-check, then commit.',
+    'the compose pin, and the generated OpenAPI document. Run release-check, then commit.',
 )

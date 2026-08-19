@@ -52,6 +52,15 @@ them names a different version, it runs in `pnpm verify` and CI, and the
 release workflow runs it with `--tag` so a tag that disagrees with its tree
 is refused before anything is built.
 
+One more file carries the version, and it is generated rather than
+checked: `docs/openapi.json` stamps the release version as its
+`info.version`. It is not a `release-check` constant — a stale value is
+caught by `pnpm api:docs:check` instead — so `pnpm release:bump`
+regenerates it (via `pnpm api:docs`) in the same run that moves the
+version, and the release commit carries the fresh document. Before that,
+a bump left the schema at the previous version and CI failed at
+`api:docs:check` on the release commit.
+
 The image additionally carries the version as `MEITH_VERSION` (an
 environment variable and OCI labels, stamped by the workflow). A local
 `docker build` leaves it at `0.0.0-dev`, and the entrypoint prints it at
@@ -101,10 +110,12 @@ broken promise, which is why the workflow drafts rather than publishes.
 2. **Run the "Cut a release" workflow** — Actions → *Cut a release* → the
    version, `major.minor.patch` with no leading `v`. It bumps every place
    the version is written (`pnpm release:bump` — the manifests, the source
-   constants, the plugin manifests, the compose pin), proves coherence
-   with `release-check --tag`, commits `chore(release): vX.Y.Z` to `main`,
-   pushes the tag, and thereby starts the Release workflow. A version that
-   would not move the tree forward is refused before anything is written.
+   constants, the plugin manifests, the compose pin) and regenerates the
+   one document that stamps the version, `docs/openapi.json`, proves
+   coherence with `release-check --tag`, commits `chore(release): vX.Y.Z`
+   to `main`, pushes the tag, and thereby starts the Release workflow. A
+   version that would not move the tree forward is refused before anything
+   is written.
 
    The same thing by hand, when the Actions tab is not an option:
 
