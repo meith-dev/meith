@@ -1280,6 +1280,8 @@
   "board.notificationMenu.heading": "Notifications",
   "board.notificationMenu.markAllSeen": "Mark all as seen",
   "board.notificationMenu.markSeen": "Mark as seen",
+  "board.notificationMenu.mod.pending": "Awaiting approval",
+  "board.notificationMenu.mod.report": "Report",
   "board.notificationMenu.new": "New",
   "board.notificationMenu.noSubject": "(no subject)",
   "board.notificationMenu.tab.messages": "Messages",

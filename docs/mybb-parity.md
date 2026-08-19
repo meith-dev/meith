@@ -731,26 +731,30 @@ partial over unread rows.
 with a plugin, whatever else wants a number — each a link to its own page.
 
 **Meith:** the header carries a single notifications control. It shows one
-badge, the member's total unread across notifications and private
-messages, and opens a menu with a tab for each: **Notifications**,
-**Messages**, and — for a member who may reach the moderation panel — a
-**Mod** tab of the staff-only notifications. Each tab lists its most
-recent entries, links every one through to the thing it is about, and
-marks entries seen without leaving the page; the tab also links to the
-full page behind it. With scripting off the control falls back to the
-same unread-count links the header carried before, so nothing the menu
+badge, the member's total unread across notifications, private messages
+and — for a moderator — the moderation work waiting on them, and opens a
+menu with a tab for each: **Notifications**, **Messages**, and — for a
+member who may reach the moderation panel — a **Mod** tab of the approval
+queue and the open reports. Each tab lists its most recent entries, links
+every one through to the thing it is about, and (for notifications and
+messages) marks entries seen without leaving the page; the tab also links
+to the full page behind it. With scripting off the control falls back to
+the same unread-count links the header carried before, so nothing the menu
 adds is load-bearing.
 
 **Why.** Two counts that each open a different page make a member choose
 before they have seen anything; one badge answers "is there anything for
-me" and one menu shows what, sorted by the kind of thing it is. Splitting
-the staff notifications into their own tab keeps a moderator's queue
-signals out of the run of ordinary ones.
+me" and one menu shows what, sorted by the kind of thing it is. The **Mod**
+tab carries a moderator's actual outstanding work — the same approval-queue
+and open-report figures the moderation panel shows — rather than the run of
+their own notifications, so it counts what needs a decision.
 
 **Cost.** To fill its tabs the menu reads the first page of the
 notifications list and of the inbox, on top of the two unread counts the
-header already had — two short reads added to a signed-in page, and only
-for a member who is signed in.
+header already had; for a moderator it also reads the first page of the
+approval queue and of the open reports, alongside the counts the moderation
+panel already computes — a few short reads added to a signed-in page, and
+only for a member who is signed in.
 
 ### On-site delivery cannot be switched off; e-mail can
 

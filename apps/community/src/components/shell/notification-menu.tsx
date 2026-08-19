@@ -103,11 +103,22 @@ function Row({
   const body = (
     <>
       <span className="flex items-baseline justify-between gap-2">
-        <span className={cn('truncate text-sm', row.isUnread && 'font-semibold text-foreground')}>
-          {row.isUnread && (
-            <span className="mr-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-forum-unread">
-              {fromCopy(copy, 'board.notificationMenu.new')}
+        <span
+          className={cn(
+            'truncate text-sm',
+            (row.isUnread || row.tag !== null) && 'font-semibold text-foreground',
+          )}
+        >
+          {row.tag !== null ? (
+            <span className="mr-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+              {row.tag}
             </span>
+          ) : (
+            row.isUnread && (
+              <span className="mr-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-forum-unread">
+                {fromCopy(copy, 'board.notificationMenu.new')}
+              </span>
+            )
           )}
           {row.subject}
         </span>
@@ -134,7 +145,7 @@ function Row({
         </a>
       )}
 
-      {row.isUnread && (
+      {row.isUnread && row.seenId !== null && (
         <SeenForm
           action={kind === 'messages' ? markMessagesSeenAction : markNotificationSeenAction}
           hidden={[
@@ -151,7 +162,7 @@ function Row({
 }
 
 function Panel({ tab, copy }: { tab: NotificationMenuTab; copy: Copy }) {
-  const unreadRows = tab.rows.filter((row) => row.isUnread)
+  const unreadRows = tab.rows.filter((row) => row.isUnread && row.seenId !== null)
 
   return (
     <Tabs.Panel
@@ -183,7 +194,9 @@ function Panel({ tab, copy }: { tab: NotificationMenuTab; copy: Copy }) {
             }
             hidden={
               tab.kind === 'messages'
-                ? unreadRows.map((row) => ({ name: 'copyId', value: row.seenId }))
+                ? unreadRows.flatMap((row) =>
+                    row.seenId === null ? [] : [{ name: 'copyId', value: row.seenId }],
+                  )
                 : []
             }
             label={fromCopy(copy, 'board.notificationMenu.markAllSeen')}
