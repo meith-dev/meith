@@ -6,6 +6,7 @@ import {
   pluginData,
   pluginGrants,
   pluginUsers,
+  readPluginHealth,
 } from '@meith/db'
 import { NotificationService } from '@meith/notifications'
 import {
@@ -48,6 +49,13 @@ export function pluginTasks(options: {
         async run() {
           const overrides = await new PostgresSettingsRepository(options.db).loadAll()
           if (overrides.get(pluginEnabledKey(plugin.key)) === '0') return {}
+
+          const health = (await readPluginHealth(options.db)).find(
+            (row) => row.pluginKey === plugin.key,
+          )
+          if (health?.disabledAt != null) {
+            return { detail: { skipped: 'disabled after repeated failures' } }
+          }
 
           const log = logger({ component: 'plugin-task', plugin: plugin.key })
 

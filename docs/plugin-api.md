@@ -117,15 +117,27 @@ Nothing a plugin does propagates to the page. That makes plugin failures
 survivable, **not invisible**: every failure is counted, logged with the
 plugin key and the hook, and reported by `host.health()`.
 
-Three limits are worth stating, because a guarantee with an unstated edge is
-worse than a smaller honest one:
+Two limits and one guarantee are worth stating plainly, because a promise
+with an unstated edge is worse than a smaller honest one:
 
-> [!WARNING]
-> **Auto-disable is per instance and in memory.** A plugin that has failed
-> five times is switched off for the rest of that process and does not
-> re-enable itself — but the counter resets whenever the platform recycles
-> the instance. Auto-disable protects a request path within one instance;
-> switching a plugin off across the board is an operator action.
+**Auto-disable is durable.** Every failure is counted in a `plugin_health`
+row, and the fifth switches the plugin off with the hook and the message
+that did it. The row is the answer, not this process's tally: it survives a
+restart, it is shared by every web instance and the worker, and each of them
+reconciles against it. A plugin that started failing at 2am is off when the
+platform recycles the instance at 3am, and off on the instance that never
+saw it fail.
+
+Nothing re-enables it on its own. An operator clears the record — **Clear
+failures and re-enable** on `/admin/plugins`, which deletes the row and
+takes effect on the next request across the board. Deliberately manual: a
+plugin that fails five times and is switched back on by a timer fails five
+more times, and the board has learned nothing.
+
+> [!NOTE]
+> A count that reaches the threshold is the *board's* count, not one
+> instance's, so a plugin failing twice on each of three instances is
+> switched off — which is the point of moving it out of memory.
 
 **Timing is measured, never enforced.** Each call is timed, and slow ones
 are logged and counted. There is no timeout, because JavaScript cannot abort
@@ -702,10 +714,11 @@ A few consequences, stated plainly:
   A schema change belongs to the deploy that shipped the code expecting
   it. The panel reports which migrations have and have not been applied,
   which is the part an operator cannot otherwise find out.
-- **Disabling is durable and immediate; uninstalling is not offered.** The
-  panel's switch writes a row that every instance reconciles against on its
-  next request, so it survives a redeploy — the plugin somebody switched
-  off at 2am is exactly the one that must stay off. Removing a plugin is
+- **Disabling is durable and immediate; uninstalling is not offered.** Both
+  switches — the panel's and the host's own, after repeated failures —
+  write a row that every instance reconciles against on its next request,
+  so both survive a redeploy: the plugin somebody switched off at 2am is
+  exactly the one that must stay off. Removing a plugin is
   `pnpm remove`, a line out of `community.plugins.ts`, and a redeploy; a
   button that dropped the rows while the code kept running would produce a
   state neither installing nor removing does.

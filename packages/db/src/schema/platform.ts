@@ -152,6 +152,14 @@ export const cacheVersions = pgTable('cache_versions', {
   bumpedAt: timestamp('bumped_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const pluginHealth = pgTable('plugin_health', {
+  pluginKey: text('plugin_key').primaryKey(),
+  failures: integer('failures').notNull().default(0),
+  disabledAt: timestamp('disabled_at', { withTimezone: true }),
+  reason: text('reason'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const adminLog = pgTable(
   'admin_log',
   {

@@ -16,7 +16,7 @@ const host = new PluginHost({ plugins: [ALPHA] })
 const operator = { disabled: [] as string[], syncs: 0 }
 vi.mock('./plugin-host', () => ({
   pluginHost: host,
-  syncOperatorDisables: async () => {
+  syncPluginEnablement: async () => {
     operator.syncs += 1
     host.setOperatorDisabled(operator.disabled)
   },

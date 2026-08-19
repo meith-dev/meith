@@ -42,7 +42,7 @@ vi.mock('./settings', () => ({
 
 const synced = { count: 0 }
 vi.mock('./plugin-host', () => ({
-  syncOperatorDisables: async () => {
+  syncPluginEnablement: async () => {
     synced.count += 1
   },
 }))

@@ -31,6 +31,8 @@ import {
   PostgresUserBulkRepository,
   PostgresWarningRepository,
   PostgresWebhookRepository,
+  readPluginHealth,
+  recordPluginFailure,
   syncRenderSignature,
 } from '@meith/db'
 import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
@@ -100,8 +102,24 @@ export function buildSchedulerBundle(deps: {
 
   const contributed = pluginTasks({ db, plugins: deps.plugins ?? [] })
   const plugins = deps.plugins ?? []
-  const rendering = pluginMarkdownPipeline(new PluginHost({ plugins }))
-  const backfill = new PostgresRenderBackfill(db, rendering)
+  const renderHost = new PluginHost({
+    plugins,
+    health: {
+      failed: (failure) => {
+        void recordPluginFailure(db, {
+          pluginKey: failure.pluginKey,
+          threshold: failure.threshold,
+          reason: `${failure.threshold} failures, most recently in "${failure.hook}": ${failure.message}`,
+        }).catch((error: unknown) => {
+          logger({ module: 'scheduler' }).warn(
+            { err: String(error), plugin: failure.pluginKey },
+            'could not record plugin failure',
+          )
+        })
+      },
+    },
+  })
+  const backfill = new PostgresRenderBackfill(db, pluginMarkdownPipeline(renderHost))
 
   return {
     repository: new PostgresTaskRepository(db),
@@ -210,6 +228,14 @@ export function buildSchedulerBundle(deps: {
           recount: new PostgresCounterRecount(db),
           renderBackfill: {
             run: async (batchSize) => {
+              renderHost.setDurablyDisabled(
+                (await readPluginHealth(db))
+                  .filter((row) => row.disabledAt !== null)
+                  .map((row) => ({
+                    key: row.pluginKey,
+                    reason: row.reason ?? 'repeated failures',
+                  })),
+              )
               await syncRenderSignature(db, renderingSignature(plugins))
               return backfill.run(batchSize)
             },

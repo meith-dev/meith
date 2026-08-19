@@ -9,7 +9,10 @@ vi.mock('@meith/core', () => ({
   readPluginEnv: () => undefined,
 }))
 
+const health = { current: [] as Array<{ pluginKey: string; disabledAt: Date | null }> }
+
 vi.mock('@meith/db', () => ({
+  readPluginHealth: async () => health.current,
   PostgresSettingsRepository: class {
     async loadAll() {
       return stored.current
@@ -170,6 +173,35 @@ describe('running one', () => {
     stored.current = new Map([[pluginEnabledKey('alpha'), '0']])
     expect(await pluginTasks({ db, plugins: [plugin] })[0]?.run(CONTEXT)).toEqual({})
     expect(runs).toBe(0)
+  })
+
+  it('skips the task while the plugin is disabled after repeated failures', async () => {
+    let runs = 0
+    const plugin = definePlugin({
+      key: 'alpha',
+      name: 'Alpha',
+      version: '1.0.0',
+      tasks: [
+        {
+          id: 'sweep',
+          intervalSeconds: 300,
+          run: () => {
+            runs += 1
+          },
+        },
+      ],
+    })
+
+    stored.current = new Map()
+    health.current = [{ pluginKey: 'alpha', disabledAt: new Date() }]
+    try {
+      expect(await pluginTasks({ db, plugins: [plugin] })[0]?.run(CONTEXT)).toEqual({
+        detail: { skipped: 'disabled after repeated failures' },
+      })
+      expect(runs).toBe(0)
+    } finally {
+      health.current = []
+    }
   })
 
   it('runs again once the operator re-enables the plugin', async () => {

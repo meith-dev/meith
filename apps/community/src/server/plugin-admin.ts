@@ -1,7 +1,12 @@
 import 'server-only'
 
 import { env, logger, readPluginEnv } from '@meith/core'
-import { appliedPluginMigrations, getDb } from '@meith/db'
+import {
+  appliedPluginMigrations,
+  getDb,
+  type PluginHealthRecord,
+  readPluginHealth,
+} from '@meith/db'
 import type { Translator } from '@meith/i18n'
 import {
   type PluginDefinition,
@@ -16,7 +21,7 @@ import {
 } from '@meith/plugin-kit'
 
 import forumConfig from '../../community.config'
-import { configuredPlugins, pluginHost, syncOperatorDisables } from './plugin-host'
+import { configuredPlugins, pluginHost, syncPluginEnablement } from './plugin-host'
 import { getSettingOverrides } from './settings'
 
 export type PluginSettingKind = PluginSettingType
@@ -37,6 +42,12 @@ export interface PluginSettingRow {
   readonly options: readonly { readonly value: string; readonly label: string }[]
   readonly envName: string | null
   readonly problem: string | null
+}
+
+export interface PluginDurableHealthRow {
+  readonly failures: number
+  readonly disabledAt: string | null
+  readonly reason: string | null
 }
 
 export interface PluginMigrationRow {
@@ -69,6 +80,8 @@ export interface PluginRow {
   readonly running: boolean
 
   readonly health: PluginHealth | null
+  /** The record every instance reconciles against, not this process's tally. */
+  readonly durableHealth: PluginDurableHealthRow | null
   readonly hooks: readonly string[]
   readonly regions: readonly string[]
   readonly settings: readonly PluginSettingRow[]
@@ -100,6 +113,17 @@ function definitionsByKey(): ReadonlyMap<string, PluginDefinition | undefined> {
   )
 }
 
+async function durableHealthByPlugin(): Promise<ReadonlyMap<string, PluginHealthRecord>> {
+  if (env.DATA_SOURCE !== 'postgres') return new Map()
+
+  try {
+    return new Map((await readPluginHealth(getDb())).map((row) => [row.pluginKey, row]))
+  } catch (error) {
+    logger().warn({ err: String(error) }, 'could not read plugin health')
+    return new Map()
+  }
+}
+
 async function appliedByPlugin(
   keys: readonly string[],
 ): Promise<ReadonlyMap<string, readonly string[]> | null> {
@@ -122,13 +146,14 @@ async function appliedByPlugin(
 export async function pluginInventory(t?: Translator): Promise<PluginInventory> {
   const definitions = definitionsByKey()
   const overrides = await getSettingOverrides()
-  await syncOperatorDisables()
+  await syncPluginEnablement()
   const health = new Map(pluginHost.health().map((entry) => [entry.key, entry]))
 
   const withMigrations = [...definitions]
     .filter(([, definition]) => (definition?.migrations ?? []).length > 0)
     .map(([key]) => key)
   const applied = await appliedByPlugin(withMigrations)
+  const durable = await durableHealthByPlugin()
 
   const plugins = configuredPlugins().map((entry): PluginRow => {
     const definition = definitions.get(entry.key)
@@ -164,6 +189,7 @@ export async function pluginInventory(t?: Translator): Promise<PluginInventory> 
       running: configuredEnabled && operatorEnabled && (entryHealth?.enabled ?? false),
 
       health: entryHealth,
+      durableHealth: toDurableHealth(durable.get(entry.key)),
       hooks: Object.keys(definition?.hooks ?? {}).sort(),
       regions: [...new Set((definition?.contributions ?? []).map((c) => c.region))].sort(),
 
@@ -219,6 +245,16 @@ export async function pluginInventory(t?: Translator): Promise<PluginInventory> 
   })
 
   return { plugins, migrationsKnown: withMigrations.length === 0 || applied !== null }
+}
+
+function toDurableHealth(record: PluginHealthRecord | undefined): PluginDurableHealthRow | null {
+  if (record === undefined) return null
+
+  return {
+    failures: record.failures,
+    disabledAt: record.disabledAt === null ? null : record.disabledAt.toISOString(),
+    reason: record.reason,
+  }
 }
 
 export async function pluginRow(key: string, t?: Translator): Promise<PluginRow | null> {

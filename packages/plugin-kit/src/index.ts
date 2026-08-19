@@ -8,10 +8,13 @@ export {
   isHookName,
 } from './hooks'
 export {
+  type DurablyDisabledPlugin,
   emptyHost,
   type HostLogger,
   isFilter,
+  type PluginFailure,
   type PluginHealth,
+  type PluginHealthSink,
   PluginHost,
   type PluginHostOptions,
 } from './host'

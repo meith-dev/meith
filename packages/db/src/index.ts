@@ -171,6 +171,12 @@ export {
   permissionsCarryPower,
   pluginGrants,
 } from './plugin-grants'
+export {
+  clearPluginHealth,
+  type PluginHealthRecord,
+  readPluginHealth,
+  recordPluginFailure,
+} from './plugin-health-repo'
 export { pluginUsers } from './plugin-users'
 export { PostgresPollRepository } from './poll-repo'
 export { PostgresPostRepository } from './post-repo'

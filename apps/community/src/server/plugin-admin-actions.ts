@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { CacheTags, isAppError, logger, readPluginEnv, ValidationError } from '@meith/core'
-import { getDb, PostgresSettingsRepository } from '@meith/db'
+import { clearPluginHealth, getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import {
   type PluginDefinition,
@@ -18,7 +18,7 @@ import forumConfig from '../../community.config'
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
-import { syncOperatorDisables } from './plugin-host'
+import { invalidatePluginHealth, reconcilePluginHealth, syncPluginEnablement } from './plugin-host'
 import { getSettingOverrides } from './settings'
 
 function requireDefinition(key: string): PluginDefinition {
@@ -63,7 +63,7 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
     }
 
     await invalidateSettings()
-    await syncOperatorDisables()
+    await syncPluginEnablement()
 
     await recordAdminAction({
       action: enabled ? 'plugin.enabled' : 'plugin.disabled',
@@ -74,6 +74,33 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
   } catch (err) {
     if (isAppError(err)) return { error: err.message }
     logger({ module: 'plugin-admin' }).error({ err }, 'failed to change plugin enablement')
+    return { error: await tr('notice.app.something-went-wrong-please-try') }
+  }
+}
+
+export async function clearPluginHealthAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+
+    const key = String(form.get('key') ?? '')
+    requireDefinition(key)
+
+    await clearPluginHealth(getDb(), key)
+    await invalidatePluginHealth()
+    await reconcilePluginHealth()
+
+    revalidatePath('/admin/plugins')
+    revalidatePath('/admin/plugins/[key]/[[...path]]', 'page')
+
+    await recordAdminAction({ action: 'plugin.health-cleared', detail: { plugin: key } })
+
+    return { notice: 'cleared' }
+  } catch (err) {
+    if (isAppError(err)) return { error: err.message }
+    logger({ module: 'plugin-admin' }).error({ err }, 'failed to clear plugin health')
     return { error: await tr('notice.app.something-went-wrong-please-try') }
   }
 }

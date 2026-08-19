@@ -733,6 +733,9 @@ importers:
       '@meith/mail':
         specifier: workspace:*
         version: link:../mail
+      '@meith/markdown':
+        specifier: workspace:*
+        version: link:../markdown
       '@meith/moderation':
         specifier: workspace:*
         version: link:../moderation

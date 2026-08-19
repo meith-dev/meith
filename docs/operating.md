@@ -1110,9 +1110,10 @@ against the board's own data is a timed group membership, only in a group
 you have explicitly marked [grantable](#groups-a-plugin-may-grant).
 
 Failures are contained: a plugin that throws leaves the page intact, and
-the error is counted, logged, and — after repeated failures — the plugin
-is switched off for the rest of that process. The full contract is
-[the plugin API](./plugin-api.md).
+the error is counted, logged, and — after five failures — the plugin is
+switched off. That switch is durable: it is a row in the database, so it
+holds across a restart and across every instance, and only an operator
+clears it. The full contract is [the plugin API](./plugin-api.md).
 
 ### Administering one
 
@@ -1126,12 +1127,17 @@ migrations have actually been applied to *this* database.
 |---|---|---|
 | Disabled in `community.config.ts` | The entry in `community.plugins.ts` sets `enabled: false`. (A plugin missing from the list entirely is not shown at all.) | Edit the list, redeploy |
 | Switched off | Somebody pressed the button on this screen. | Press it again |
-| Failing | The server stopped calling it after repeated errors. | The error is on the plugin's own page |
+| Failing | The board stopped calling it after repeated errors, everywhere, and it stays stopped. | **Clear failures and re-enable**, once the error on the plugin's own page is understood |
 
-**The disable button is durable.** It takes effect on every instance, not
-just the server that handled the click, and it survives a redeploy. A
-disabled plugin's scheduled tasks stop too — the switch is checked each
-time one comes due. Reach for it when a plugin is misbehaving; you do not
+**Both ways off are durable.** The button and the board's own switch after
+repeated failures both write a row every instance reconciles against on its
+next request, so each takes effect everywhere and survives a redeploy — the
+failure count behind the second is the board's, not one server's, so a
+plugin failing a couple of times on each of three instances is still caught.
+**Clear failures and re-enable** deletes that row; nothing else does, and no
+timer brings a failing plugin back on its own. A disabled plugin's
+scheduled tasks stop too, either way — both are checked each time one comes
+due. Reach for it when a plugin is misbehaving; you do not
 need to deploy to stop one. Because it takes a live capability off the
 whole board, **disabling asks for your password again** when your panel
 sign-in has gone stale; enabling does not, because it is the undo.

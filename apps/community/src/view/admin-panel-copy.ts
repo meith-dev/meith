@@ -98,6 +98,7 @@ export function pluginFormsCopy(t: Translator = untranslated()): Readonly<Record
         'adminPanel.plugin.empty',
         'adminPanel.plugin.advanced',
         'adminPanel.plugin.save',
+        'adminPanel.plugin.clearFailures',
       ],
       t,
     ),

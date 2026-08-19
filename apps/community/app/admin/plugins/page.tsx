@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { cn } from '@meith/ui'
 
-import { PluginEnableForm } from '@/components/admin/plugin-forms'
+import { PluginEnableForm, PluginHealthResetForm } from '@/components/admin/plugin-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
@@ -72,6 +72,14 @@ export default async function AdminPluginsPage() {
                     </span>
                   ) : null}
 
+                  {plugin.durableHealth !== null && plugin.durableHealth.failures > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {t.t('adminPlugins.recordedFailures', {
+                        count: plugin.durableHealth.failures,
+                      })}
+                    </span>
+                  )}
+
                   {pending > 0 && migrationsKnown && (
                     <span className="text-xs text-destructive">
                       {t.t('adminPlugins.pendingMigrations', { count: pending })}
@@ -100,6 +108,9 @@ export default async function AdminPluginsPage() {
                   >
                     {t.t('adminPlugins.details')}
                   </a>
+                  {plugin.durableHealth?.disabledAt != null && (
+                    <PluginHealthResetForm pluginKey={plugin.key} copy={copy} />
+                  )}
                   {plugin.configuredEnabled && plugin.hasDefinition && (
                     <PluginEnableForm
                       pluginKey={plugin.key}

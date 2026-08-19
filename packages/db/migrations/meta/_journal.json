@@ -344,6 +344,13 @@
       "when": 1787075556205,
       "tag": "0048_web_push",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1787122304769,
+      "tag": "0049_plugin_health",
+      "breakpoints": true
     }
   ]
 }
