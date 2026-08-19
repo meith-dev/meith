@@ -72,7 +72,9 @@ export function docHref(slug: string, anchor?: string): string {
  * if the running section is ever renamed.
  */
 export function quickstartHref(): string {
-  const running = findSection('running')
-  const quickstart = running ? documentsInSection(running.id).find((doc) => doc.primary) : undefined
+  const gettingStarted = findSection('getting-started')
+  const quickstart = gettingStarted
+    ? documentsInSection(gettingStarted.id).find((doc) => doc.primary)
+    : undefined
   return quickstart ? docHref(quickstart.slug) : '/docs'
 }
