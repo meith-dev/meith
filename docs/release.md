@@ -42,8 +42,7 @@ The version is also written in places npm never reads:
 - The `version` each first-party plugin declares to `definePlugin`
   (`plugins/dues`, `plugins/reference`) — what `/admin/plugins` shows, and
   the only one of these an operator ever sees.
-- The exact image tag the Coolify compose file pins — and the same pin in
-  the [service template](#the-coolify-service-catalogue-entry) beside it.
+- The exact image tag the Coolify compose file pins.
 
 Nothing fails at runtime if these drift, but the drift is visible: the
 plugin version once sat at `0.1.0` through two releases, so a board that
@@ -212,26 +211,7 @@ and why holding back from a release is simply not moving it yet. The
 same variable serves the operator who wants a stronger pin than a tag: a
 digest, immune even to a re-pushed tag.
 
-### The Coolify service catalogue entry
-
-`docker/coolify-service-template.yml` is the submission source for a
-one-click **Meith** entry in Coolify's service catalogue —
-`templates/compose/meith.yaml` in
-[coollabsio/coolify](https://github.com/coollabsio/coolify), plus a logo,
-via an ordinary pull request there. It is the Coolify compose file without
-the Git source, and that subtraction is the point: Coolify copies a
-service template *into* the resource when the resource is created, so no
-branch exists to move under it afterwards — Restart and Redeploy re-create
-the version the resource holds, and an upgrade is editing `MEITH_IMAGE`
-and redeploying, no pinning step required of the operator.
-
-`release:bump` moves its pin and `release:check` holds it to the release
-version, the same as the compose file — the two may never disagree, and a
-test asserts they do not. Coolify's own copy trails behind until the
-catalogue entry is updated, which is a pull request worth making on a
-minor release rather than every patch: whatever version the template
-holds deploys exactly, and the admin panel tells a freshly created board
-that a newer release exists.
+## The first release
 
 One-time steps around `v0.1.0`, in order:
 

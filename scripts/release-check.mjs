@@ -83,19 +83,19 @@ for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS]) {
   }
 }
 
-const COMPOSE_PINS = ['docker/compose.coolify.yml', 'docker/coolify-service-template.yml']
+const compose = await readFile(join(ROOT, 'docker/compose.coolify.yml'), 'utf8')
+const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
 
-for (const file of COMPOSE_PINS) {
-  const compose = await readFile(join(ROOT, file), 'utf8')
-  const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
-
-  if (pins.length === 0) {
-    problems.push(`${file} no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag`)
-  }
-  for (const pin of pins) {
-    if (pin[1] !== version) {
-      problems.push(`${file} pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`)
-    }
+if (pins.length === 0) {
+  problems.push(
+    'docker/compose.coolify.yml no longer defaults MEITH_IMAGE to a ghcr.io/meith-dev/meith tag',
+  )
+}
+for (const pin of pins) {
+  if (pin[1] !== version) {
+    problems.push(
+      `docker/compose.coolify.yml pins ghcr.io/meith-dev/meith:${pin[1]}; the release is ${version}`,
+    )
   }
 }
 
@@ -119,6 +119,6 @@ if (problems.length > 0) {
 console.log(
   `✓ release coherence: ${version} in the root manifest, ${byName.size} workspace manifests, ` +
     `${CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
-    `and ${COMPOSE_PINS.length} compose pins; ` +
+    'and the compose pin; ' +
     `${published.length} packages publish to npm and the set is closed`,
 )
