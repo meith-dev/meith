@@ -75,7 +75,16 @@ describe('ModerationQueue.decide', () => {
       actorUserId: 7,
     })
 
-    expect(outcome).toEqual({ decision: 'approve', applied: 2, refused: 0, missing: 0 })
+    expect(outcome).toEqual({
+      decision: 'approve',
+      applied: 2,
+      refused: 0,
+      missing: 0,
+      decided: [
+        { kind: 'thread', id: 10 },
+        { kind: 'post', id: 20 },
+      ],
+    })
     expect(repo.applied[0]).toMatchObject({
       decision: 'approve',
       threadIds: [10],

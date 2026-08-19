@@ -29,6 +29,7 @@ import { REFINE_FIELDS } from '@/view/search-controls'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
+import { filterView, viewerRef } from './plugin-view'
 import { requireSearch, requireSearchEnabled, searchMinWordLength, searchScopeFor } from './search'
 import { getSettings } from './settings'
 
@@ -98,11 +99,13 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
     ...(authors.ids.length === 0 ? {} : { authorUserIds: authors.ids, authorNames: authors.names }),
   }
 
+  const terms = await filterView('search.query.before', parsed.terms, viewerRef(input.actor))
+
   const stored = await store.create({
     token: newToken(),
     userId: input.actor.userId,
     sessionKey: input.sessionKey,
-    terms: parsed.terms,
+    terms,
     filters: { ...filters },
     floodSeconds,
   })
@@ -172,7 +175,37 @@ export async function openSearch(input: {
     await store.recordHitCount(search.id, summary.total)
   }
 
-  return { search, results, summary, filters, effective, refine }
+  return {
+    search,
+    results: await filterHits(results, search.terms, input.actor),
+    summary,
+    filters,
+    effective,
+    refine,
+  }
+}
+
+/**
+ * A plugin may reorder or drop; a row it invents has no hit behind it and is
+ * dropped, because the hits arrived permission-filtered in SQL.
+ */
+async function filterHits(
+  results: SearchResults,
+  terms: string,
+  actor: Actor,
+): Promise<SearchResults> {
+  const ordered = await filterView(
+    'search.results',
+    results.hits.map((hit) => ({ postId: hit.postId, threadId: hit.threadId, rank: hit.rank })),
+    { ...viewerRef(actor), terms },
+  )
+
+  const byPostId = new Map(results.hits.map((hit) => [hit.postId, hit]))
+  const hits = ordered
+    .map((row) => byPostId.get(row.postId))
+    .filter((hit): hit is (typeof results.hits)[number] => hit !== undefined)
+
+  return { ...results, hits }
 }
 
 function facetFilters(filters: SearchFilterSet, refine: SearchRefinement): SearchFilterSet {

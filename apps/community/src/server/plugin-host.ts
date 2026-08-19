@@ -72,7 +72,10 @@ async function persistFailure(
       threshold,
       reason: `${threshold} failures, most recently in "${hook}": ${message}`,
     })
-    if (record.disabledAt !== null) await invalidatePluginHealth()
+    if (record.disabledAt !== null) {
+      await invalidatePluginHealth()
+      await pluginHost.emit('plugin.disabled', { pluginKey, reason: 'failures' }, {})
+    }
   } catch (error) {
     logger().warn({ err: String(error), plugin: pluginKey }, 'could not record plugin failure')
   }

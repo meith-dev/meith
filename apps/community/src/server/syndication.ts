@@ -3,8 +3,11 @@ import 'server-only'
 import { env, PUBLIC_CONTENT } from '@meith/core'
 import { type FeedScope, getDb, PostgresFeedRepository } from '@meith/db'
 
+import type { SitemapUrl } from '@/view/feed'
+
 import { boardUrl } from './board-url'
 import { getContainer } from './container'
+import { filterView } from './plugin-view'
 import { getSettings } from './settings'
 
 export const FEED_LIMIT = 30
@@ -45,4 +48,30 @@ export async function isIndexable(): Promise<boolean> {
   } catch {
     return true
   }
+}
+
+/**
+ * One chunk of the sitemap, after the plugins have had it. Everything here is
+ * public by definition — the sitemap is what the board offers a crawler.
+ */
+export async function filterSitemapEntries(
+  urls: readonly SitemapUrl[],
+  chunk: number,
+): Promise<readonly SitemapUrl[]> {
+  const filtered = await filterView(
+    'sitemap.entries',
+    urls.map((url) => ({
+      href: url.loc,
+      lastModified: url.lastmod?.toISOString() ?? null,
+    })),
+    { chunk },
+  )
+
+  return filtered.map((row) => {
+    const lastmod = row.lastModified === null ? undefined : new Date(row.lastModified)
+    return {
+      loc: row.href,
+      ...(lastmod === undefined || Number.isNaN(lastmod.getTime()) ? {} : { lastmod }),
+    }
+  })
 }

@@ -47,6 +47,40 @@ export interface Draft {
   readonly replyToId: number | null
 }
 
+/**
+ * Where a plugin sees a private message. `before` may rewrite it or return null
+ * to drop it; `sent` is told what was stored.
+ */
+export interface MessageAudit {
+  readonly before: (input: {
+    readonly senderId: number
+    readonly recipientIds: readonly number[]
+    readonly subject: string
+    readonly body: string
+  }) => Promise<{
+    readonly senderId: number
+    readonly recipientIds: readonly number[]
+    readonly subject: string
+    readonly body: string
+  } | null>
+  readonly sent: (input: {
+    readonly messageId: number
+    readonly recipientIds: readonly number[]
+  }) => Promise<void>
+}
+
+export const NO_MESSAGE_AUDIT: MessageAudit = {
+  before: async (input) => input,
+  sent: async () => {},
+}
+
+/**
+ * What `send` answers when a plugin suppressed the message. The sender is not
+ * told, which is the point: a spam filter that announces itself is a spam
+ * filter somebody tunes against.
+ */
+export const SUPPRESSED = 0
+
 export class MessageService {
   private readonly repository: MessageRepository
   private readonly policy: MessagePolicy
@@ -54,6 +88,7 @@ export class MessageService {
   private readonly now: () => Date
   private readonly vocabulary: () => Promise<BoardVocabulary>
   private readonly rendering: MarkdownPipeline
+  private readonly audit: MessageAudit
 
   constructor(deps: {
     messages: MessageRepository
@@ -62,6 +97,7 @@ export class MessageService {
     now?: () => Date
     vocabulary?: () => Promise<BoardVocabulary>
     rendering?: MarkdownPipeline
+    audit?: MessageAudit
   }) {
     this.repository = deps.messages
     this.policy = deps.policy
@@ -69,6 +105,7 @@ export class MessageService {
     this.now = deps.now ?? (() => new Date())
     this.vocabulary = deps.vocabulary ?? (async () => EMPTY_VOCABULARY)
     this.rendering = deps.rendering ?? CORE_RENDERING
+    this.audit = deps.audit ?? NO_MESSAGE_AUDIT
   }
 
   async list(input: {
@@ -152,13 +189,30 @@ export class MessageService {
       throw new ValidationError(msg('error.messages.body-length', { max: BODY_MAX }))
     }
 
-    const recipients = await this.resolveRecipients(input)
-    await this.assertRoomFor(input.authorUserId, recipients)
+    const resolved = await this.resolveRecipients(input)
+    await this.assertRoomFor(input.authorUserId, resolved)
+
+    const proposed = await this.audit.before({
+      senderId: input.authorUserId,
+      recipientIds: resolved.map((recipient) => recipient.userId as number),
+      subject,
+      body: message,
+    })
+    if (proposed === null) return SUPPRESSED
+
+    /*
+     * Only the recipients the board already resolved survive: a plugin may
+     * take one off the list, and cannot put one on it, because the addressees
+     * are the sender's choice and the board's check, not a plugin's.
+     */
+    const kept = new Set(proposed.recipientIds)
+    const recipients = resolved.filter((recipient) => kept.has(recipient.userId as number))
+    if (recipients.length === 0) return SUPPRESSED
 
     const vocabulary = await this.vocabulary()
     const rendered = await renderThrough(
       this.rendering,
-      message,
+      proposed.body,
       { source: 'pm', viewer: authorRef(input.authorUserId) },
       vocabularyOptions(vocabulary),
     )
@@ -167,8 +221,8 @@ export class MessageService {
     const messageId = await this.repository.send({
       authorUserId: input.authorUserId,
       authorUsername: input.authorUsername,
-      subject,
-      message,
+      subject: proposed.subject,
+      message: proposed.body,
       messageHtml: rendered.html,
       renderVersion: rendered.version,
       vocabVersion: vocabulary.revision,
@@ -178,13 +232,18 @@ export class MessageService {
       at,
     })
 
+    await this.audit.sent({
+      messageId,
+      recipientIds: recipients.map((recipient) => recipient.userId as number),
+    })
+
     for (const recipient of recipients) {
       await this.notify(() =>
         this.notifier?.messageReceived({
           userId: recipient.userId as number,
           messageId,
           fromUsername: input.authorUsername,
-          subject,
+          subject: proposed.subject,
         }),
       )
     }

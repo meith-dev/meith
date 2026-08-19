@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 
 import { env, ForbiddenError } from '@meith/core'
+import { currentRequestId } from '@meith/core/logger'
 import { msg } from '@meith/i18n'
 import {
   parseSubscriptionTarget,
@@ -16,6 +17,7 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt, text } from './form-values'
 import { tr } from './i18n'
+import { emitEvent } from './plugin-view'
 import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('subscription-actions', 'unexpected error in subscriptions')
@@ -63,6 +65,12 @@ export async function subscribeAction(_prev: FormState, form: FormData): Promise
       mode: text(form, 'mode'),
       mayView: await mayView(target, targetId),
     })
+
+    await emitEvent(
+      'subscription.changed',
+      { userId: actor.userId, target, targetId, subscribed: true },
+      { requestId: currentRequestId() ?? null },
+    )
   } catch (err) {
     return toFormState(err)
   }
@@ -91,6 +99,12 @@ export async function unsubscribeAction(_prev: FormState, form: FormData): Promi
       target,
       targetId,
     })
+
+    await emitEvent(
+      'subscription.changed',
+      { userId: actor.userId, target, targetId, subscribed: false },
+      { requestId: currentRequestId() ?? null },
+    )
   } catch (err) {
     return toFormState(err)
   }

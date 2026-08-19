@@ -56,6 +56,7 @@ you read in `community.plugins.ts` is what your board runs.
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
 | `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `navigation` | Board navigation entries the operator then owns — see [below](#asking-for-a-place-in-the-navigation). |
 | `notifications` | Notification kinds this plugin may send, each a line on the member's preferences screen. |
 | `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
 | `contributions` | Markup in named UI regions. |
@@ -219,6 +220,45 @@ is rendered in memory when somebody reads it.
 > plugin's own additions are not filtered either. This is the same trust an
 > operator extends by installing the plugin at all — but it is the one
 > place where a mistake becomes markup on every page.
+
+## Asking for a place in the navigation
+
+A plugin with a member-facing page usually wants a link to it. `navigation`
+is how it asks:
+
+```ts
+navigation: [
+  { key: 'plans', label: 'Supporters', path: '' },
+  { key: 'manage', label: 'Your membership', path: 'manage', audience: 'members' },
+]
+```
+
+Each entry names one of the plugin's **own** `pages` by path, so a
+navigation item cannot point somewhere the plugin did not build. The host
+writes it into the board's navigation table under `plugin.<key>.<item>`, and
+from that moment **the operator owns it**: they rename it, reorder it, nest
+it under another item, restrict it to groups, or switch it off on
+`/admin/content/navigation`, exactly as they would a link they added
+themselves. Redeploying does not undo any of that — only the address is
+refreshed from the code, because that is the half the plugin knows better.
+
+The rest follows from it being a real row:
+
+- **`label` is a starting point, not a fixed string.** It is what the item
+  is called until somebody renames it. Give `labelKey` too and the board
+  translates it, until an operator types their own label — at which point
+  theirs wins in every language, which is what they asked for.
+- **`audience` is the default scope** (`all`, `guests`, `members`,
+  `staff`), and the operator can narrow it further to specific groups. It
+  is presentation, not permission: the page re-checks whoever arrives.
+- **The item disappears with the plugin.** Switch the plugin off and the
+  link stops rendering; take the plugin out of the build and the row goes
+  at the next `community upgrade`. An operator's ordering is not lost in
+  between.
+
+Appending to `view.header` instead would put a link where no operator could
+reach it — unnameable, unmovable, and impossible to switch off without
+switching off the plugin.
 
 ## Namespacing
 
@@ -659,13 +699,14 @@ system that does not run. It is derived rather than remembered:
 `scripts/hook-callsites.mjs` computes it by scanning the tree, so the
 generated reference's wired column cannot drift from the code.
 
-**32 of the 102 hooks are wired** — the shell filters, the view models of
-the reading surfaces, and the posting events. The generated reference's
-wired column is the authoritative list.
+**All 102 hooks are wired.** Every entry in the registry has a call site in
+the board, and the generated reference's wired column — computed from the
+tree, not maintained by hand — says so. If that column ever reads anything
+else, believe the column: it is derived and this sentence is not.
 
-A hook that is declared but not wired is not broken; it is a call site that
-has not been written yet. Registering a handler for one is legal, does
-nothing, and the reference marks it so you find out before you ship.
+A hook that is declared but not wired would not be broken, only unfinished:
+registering a handler for one is legal and does nothing. The reference marks
+which is which so you find out before you ship, rather than after.
 
 **`plugins/reference` must handle every wired hook**, enforced by its own
 test. That is the ratchet: wiring a new call site into the board fails the

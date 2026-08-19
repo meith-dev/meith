@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { pluginKeyOfNavigation } from '@meith/plugin-kit'
+
 import {
   type AudienceChoice,
   type GroupChoice,
@@ -12,7 +14,11 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { groupAdminRepository } from '@/server/group-admin'
 import { getTranslator, tr } from '@/server/i18n'
-import { navigationRepository } from '@/server/navigation'
+import {
+  navigationRepository,
+  pluginNavigationNames,
+  syncPluginNavigation,
+} from '@/server/navigation'
 import { navigationAdminCopy } from '@/view/admin-navigation-copy'
 import {
   builtInNavigation,
@@ -40,7 +46,10 @@ export default async function AdminNavigationPage() {
     )
   }
 
+  await syncPluginNavigation()
+
   const groupRepository = groupAdminRepository()
+  const names = pluginNavigationNames()
   const [items, groupRows] = await Promise.all([
     repository.list(),
     groupRepository === null ? Promise.resolve([]) : groupRepository.list(),
@@ -65,8 +74,8 @@ export default async function AdminNavigationPage() {
     id: row.id,
     parentId: row.parentId,
     depth: row.depth,
-    name: navigationLabel(row, translator),
-    builtIn: builtInNavigation(row.key) !== null,
+    name: navigationLabel(row, translator, names),
+    builtIn: builtInNavigation(row.key) !== null || pluginKeyOfNavigation(row.key) !== null,
     label: row.label,
     href: row.href,
     audience: row.audience,

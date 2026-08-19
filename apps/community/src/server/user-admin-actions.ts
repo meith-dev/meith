@@ -388,7 +388,7 @@ async function queueMassMailBatch(
 
 export async function liftBanAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
-    await requireAdmin()
+    const context = await requireAdmin()
     const id = userId(form)
 
     await banService().lift(id)
@@ -396,7 +396,7 @@ export async function liftBanAction(_prev: FormState, form: FormData): Promise<F
     await emitEvent(
       'user.unbanned',
       { userId: id, expired: false },
-      { moderatorId: (await requireAdmin()).session.userId, reason: null },
+      { moderatorId: context.session.userId, reason: null },
     )
 
     refreshMemberScreens()

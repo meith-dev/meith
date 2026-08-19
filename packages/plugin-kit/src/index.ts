@@ -18,6 +18,11 @@ export {
   PluginHost,
   type PluginHostOptions,
 } from './host'
+export {
+  type PluginNavigationPlacement,
+  pluginKeyOfNavigation,
+  pluginNavigationPlacements,
+} from './navigation'
 export type {
   DraftPayload,
   ForumRef,
@@ -47,6 +52,8 @@ export {
   type PluginDefinition,
   type PluginHooks,
   type PluginMigration,
+  type PluginNavigationAudience,
+  type PluginNavigationItem,
   type PluginNotificationKind,
   type PluginPageAccess,
   type PluginPageContext,
@@ -62,6 +69,7 @@ export {
   type PluginViewer,
   pluginAdminPath,
   pluginAdminRoutePath,
+  pluginNavigationKey,
   pluginNotificationKindId,
   pluginPagePath,
   pluginRoutePath,

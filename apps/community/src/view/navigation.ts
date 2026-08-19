@@ -67,14 +67,36 @@ export function defaultNavigationItems(): readonly NavigationItemRow[] {
   }))
 }
 
+/**
+ * What a plugin called an item, for the rows the board holds on its behalf.
+ * Keyed by the same `plugin.<plugin>.<item>` the row carries.
+ */
+export interface NavigationName {
+  readonly label: string
+  readonly labelKey: string | null
+  readonly labelArgs?: Parameters<Translator['t']>[1] | null
+}
+
+export interface NavigationNames {
+  readonly [key: string]: NavigationName
+}
+
 export function navigationLabel(
   item: Pick<NavigationItemRow, 'key' | 'label'>,
   t: Translator = untranslated(),
+  names: NavigationNames = {},
 ): string {
   if (item.label.trim() !== '') return item.label
 
   const builtIn = builtInNavigation(item.key)
-  return builtIn === null ? '' : t.t(builtIn.messageKey)
+  if (builtIn !== null) return t.t(builtIn.messageKey)
+
+  const named = item.key === null ? undefined : names[item.key]
+  if (named === undefined) return ''
+  if (named.labelKey === null || !t.has(named.labelKey)) return named.label
+  return named.labelArgs === null || named.labelArgs === undefined
+    ? t.t(named.labelKey)
+    : t.t(named.labelKey, named.labelArgs)
 }
 
 function inOrder(rows: readonly NavigationItemRow[]): readonly NavigationItemRow[] {
@@ -110,6 +132,7 @@ export interface NavigationOptions {
   readonly searchEnabled?: boolean
   readonly t?: Translator
   readonly admits?: (item: NavigationItemRow) => boolean
+  readonly names?: NavigationNames
 }
 
 export function buildNavigation(
@@ -119,16 +142,17 @@ export function buildNavigation(
 ): readonly LinkModel[] {
   const t = options.t ?? untranslated()
   const admits = options.admits ?? (() => true)
+  const names = options.names ?? {}
 
   const shown = (item: NavigationItemRow): boolean =>
     item.enabled &&
     !(item.key === SEARCH_KEY && options.searchEnabled === false) &&
     audienceAdmits(item.audience, viewer) &&
     admits(item) &&
-    navigationLabel(item, t) !== ''
+    navigationLabel(item, t, names) !== ''
 
   const linkOf = (item: NavigationItemRow, submenu: readonly LinkModel[]): LinkModel => ({
-    label: navigationLabel(item, t),
+    label: navigationLabel(item, t, names),
     href: item.href,
     ...(item.newTab ? { newTab: true } : {}),
     ...(submenu.length === 0 ? {} : { submenu }),

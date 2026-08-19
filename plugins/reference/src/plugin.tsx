@@ -228,6 +228,16 @@ export const referencePlugin = definePlugin({
     },
   ],
 
+  navigation: [
+    {
+      key: 'reference',
+      label: en['reference.nav.label'],
+      labelKey: 'reference.nav.label',
+      path: '',
+      audience: 'members',
+    },
+  ],
+
   allowedRedirectHosts: ['example.com'],
 
   contributions: REGION_NAMES.map(contribution),
@@ -399,6 +409,214 @@ export const referencePlugin = definePlugin({
     },
     'post.edited': (value) => {
       record('post.edited', value)
+    },
+
+    'view.navigation': (value) => {
+      record('view.navigation', value)
+      return value
+    },
+    'view.notice': (value) => {
+      record('view.notice', value)
+      return value
+    },
+    'view.category-block': (value) => {
+      record('view.category-block', value)
+      return value
+    },
+    'view.post-form': (value) => {
+      record('view.post-form', value)
+      return value
+    },
+    'view.redirect-notice': (value) => {
+      record('view.redirect-notice', value)
+      return value
+    },
+    'thread.create.before': (value) => {
+      record('thread.create.before', value)
+      return value
+    },
+    'post.create.before': (value) => {
+      record('post.create.before', value)
+      return value
+    },
+    'post.edit.before': (value) => {
+      record('post.edit.before', value)
+      return value
+    },
+    'notification.create.before': (value) => {
+      record('notification.create.before', value)
+      return value
+    },
+    'mail.send.before': (value) => {
+      record('mail.send.before', value)
+      return value
+    },
+    'pm.send.before': (value) => {
+      record('pm.send.before', value)
+      return value
+    },
+    'search.query.before': (value) => {
+      record('search.query.before', value)
+      return value
+    },
+    'search.results': (value) => {
+      record('search.results', value)
+      return value
+    },
+    'feed.items': (value) => {
+      record('feed.items', value)
+      return value
+    },
+    'sitemap.entries': (value) => {
+      record('sitemap.entries', value)
+      return value
+    },
+    'metadata.page': (value) => {
+      record('metadata.page', value)
+      return value
+    },
+    'admin.navigation': (value) => {
+      record('admin.navigation', value)
+      return value
+    },
+    'thread.create.validate': (value) => {
+      record('thread.create.validate', value)
+      return value
+    },
+    'post.create.validate': (value) => {
+      record('post.create.validate', value)
+      return value
+    },
+    'attachment.upload.validate': (value) => {
+      record('attachment.upload.validate', value)
+      return value
+    },
+    'user.register.validate': (value) => {
+      record('user.register.validate', value)
+      return value
+    },
+    'post.delete.before': (value) => {
+      record('post.delete.before', value)
+    },
+    'post.deleted': (value) => {
+      record('post.deleted', value)
+    },
+    'post.restored': (value) => {
+      record('post.restored', value)
+    },
+    'thread.moved': (value) => {
+      record('thread.moved', value)
+    },
+    'thread.merged': (value) => {
+      record('thread.merged', value)
+    },
+    'thread.split': (value) => {
+      record('thread.split', value)
+    },
+    'thread.locked': (value) => {
+      record('thread.locked', value)
+    },
+    'thread.stickied': (value) => {
+      record('thread.stickied', value)
+    },
+    'attachment.uploaded': (value) => {
+      record('attachment.uploaded', value)
+    },
+    'attachment.deleted': (value) => {
+      record('attachment.deleted', value)
+    },
+    'poll.created': (value) => {
+      record('poll.created', value)
+    },
+    'poll.voted': (value) => {
+      record('poll.voted', value)
+    },
+    'rating.recorded': (value) => {
+      record('rating.recorded', value)
+    },
+    'report.created': (value) => {
+      record('report.created', value)
+    },
+    'report.resolved': (value) => {
+      record('report.resolved', value)
+    },
+    'approval.queued': (value) => {
+      record('approval.queued', value)
+    },
+    'approval.decided': (value) => {
+      record('approval.decided', value)
+    },
+    'warning.issued': (value) => {
+      record('warning.issued', value)
+    },
+    'warning.revoked': (value) => {
+      record('warning.revoked', value)
+    },
+    'moderation.logged': (value) => {
+      record('moderation.logged', value)
+    },
+    'user.registered': (value) => {
+      record('user.registered', value)
+    },
+    'user.activated': (value) => {
+      record('user.activated', value)
+    },
+    'user.login.attempted': (value) => {
+      record('user.login.attempted', value)
+    },
+    'user.logged-in': (value) => {
+      record('user.logged-in', value)
+    },
+    'user.logged-out': (value) => {
+      record('user.logged-out', value)
+    },
+    'user.banned': (value) => {
+      record('user.banned', value)
+    },
+    'user.unbanned': (value) => {
+      record('user.unbanned', value)
+    },
+    'user.groups.changed': (value) => {
+      record('user.groups.changed', value)
+    },
+    'user.profile.updated': (value) => {
+      record('user.profile.updated', value)
+    },
+    'user.merged': (value) => {
+      record('user.merged', value)
+    },
+    'user.deleted': (value) => {
+      record('user.deleted', value)
+    },
+    'notification.created': (value) => {
+      record('notification.created', value)
+    },
+    'mail.sent': (value) => {
+      record('mail.sent', value)
+    },
+    'pm.sent': (value) => {
+      record('pm.sent', value)
+    },
+    'subscription.changed': (value) => {
+      record('subscription.changed', value)
+    },
+    'reputation.changed': (value) => {
+      record('reputation.changed', value)
+    },
+    'settings.saved': (value) => {
+      record('settings.saved', value)
+    },
+    'task.run.before': (value) => {
+      record('task.run.before', value)
+    },
+    'task.run.after': (value) => {
+      record('task.run.after', value)
+    },
+    'cache.invalidated': (value) => {
+      record('cache.invalidated', value)
+    },
+    'plugin.enabled': (value) => {
+      record('plugin.enabled', value)
     },
 
     'plugin.disabled': {

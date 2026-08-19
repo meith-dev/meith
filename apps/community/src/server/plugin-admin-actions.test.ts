@@ -45,6 +45,22 @@ vi.mock('./plugin-host', () => ({
   syncPluginEnablement: async () => {
     synced.count += 1
   },
+  invalidatePluginHealth: async () => {},
+  reconcilePluginHealth: async () => {},
+}))
+
+const navigationSyncs = { count: 0 }
+vi.mock('./navigation', () => ({
+  syncPluginNavigation: async () => {
+    navigationSyncs.count += 1
+  },
+}))
+
+const emitted: Array<{ name: string; value: unknown }> = []
+vi.mock('./plugin-view', () => ({
+  emitEvent: async (name: string, value: unknown) => {
+    emitted.push({ name, value })
+  },
 }))
 
 const invalidated: string[][] = []
@@ -101,6 +117,8 @@ beforeEach(() => {
   written.length = 0
   deleted.length = 0
   synced.count = 0
+  navigationSyncs.count = 0
+  emitted.length = 0
   vi.unstubAllEnvs()
   requireAdminMock.mockClear()
   requireAdminMock.mockResolvedValue({ userId: 1 })
@@ -154,6 +172,10 @@ describe('the switch', () => {
     const state = await setPluginEnabledAction({}, form({ key: 'alpha', enabled: '0' }))
 
     expect(state).toEqual({ notice: 'disabled' })
+    expect(emitted).toContainEqual({
+      name: 'plugin.disabled',
+      value: { pluginKey: 'alpha', reason: 'operator' },
+    })
     expect([...(written[0] ?? [])]).toEqual([['plugin.alpha._enabled', '0']])
     expect(adminCalls[0]).toEqual({ action: 'plugin.disabled', detail: { plugin: 'alpha' } })
   })

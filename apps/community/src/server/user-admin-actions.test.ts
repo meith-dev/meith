@@ -109,7 +109,7 @@ const prunes: Array<{ criteria: Record<string, unknown>; limit: number }> = []
 const campaigns: Array<Record<string, unknown>> = []
 const claims: Array<{ massMailId: number; limit: number }> = []
 const enqueued: Array<{ kind: string; payload: Record<string, unknown>; dedupeKey?: string }> = []
-const pruneResult = { current: { pruned: 2, remaining: 0 } }
+const pruneResult = { current: { pruned: 2, prunedUserIds: [1, 2], remaining: 0 } }
 const claimResult = {
   current: {
     recipients: [{ userId: 1, email: 'a@example.test', username: 'ann' }],
@@ -206,7 +206,7 @@ beforeEach(() => {
   campaigns.length = 0
   claims.length = 0
   enqueued.length = 0
-  pruneResult.current = { pruned: 2, remaining: 0 }
+  pruneResult.current = { pruned: 2, prunedUserIds: [1, 2], remaining: 0 }
   claimResult.current = {
     recipients: [{ userId: 1, email: 'a@example.test', username: 'ann' }],
     finished: true,
@@ -499,7 +499,7 @@ describe('pruneMembersAction', () => {
   })
 
   it('reports more to do while accounts remain', async () => {
-    pruneResult.current = { pruned: 500, remaining: 120 }
+    pruneResult.current = { pruned: 500, prunedUserIds: [1], remaining: 120 }
     const state = await pruneMembersAction({}, form({ before: '2025-01-01' }))
 
     expect(state.notice).toBe('more')

@@ -155,6 +155,7 @@ export {
   type NavigationDropTarget,
   type NavigationItemInput,
   type NavigationItemRow,
+  type PluginNavigationRow,
   PostgresNavigationRepository,
 } from './navigation-repo'
 export { PostgresNotificationRepository } from './notification-repo'

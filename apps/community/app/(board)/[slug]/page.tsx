@@ -18,6 +18,7 @@ import { identitiesFor } from '@/server/group-identity'
 import { getTranslator } from '@/server/i18n'
 import { legacyDestination } from '@/server/legacy-redirect'
 import { moderatorTargetFor } from '@/server/modcp'
+import { pageMetadata } from '@/server/page-metadata'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
@@ -75,25 +76,35 @@ export async function generateMetadata({
     path: `/${forum.id}-${forum.slug}`,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
   })
-  const description =
-    forum.description ?? translator.t('board.forum.description', { title: forum.title })
+  const meta = await pageMetadata('/[slug]', {
+    title: forum.title,
+    description:
+      forum.description ?? translator.t('board.forum.description', { title: forum.title }),
+    canonical,
+    imageUrl: null,
+  })
 
   return {
-    title: forum.title,
-    description,
+    title: meta.title,
+    ...(meta.description === null ? {} : { description: meta.description }),
     alternates: {
-      canonical,
+      canonical: meta.canonical,
       types: {
         'application/rss+xml': `/${forum.id}-${forum.slug}/feed.xml`,
       },
     },
     openGraph: {
       type: 'website',
-      title: forum.title,
-      description,
-      url: canonical,
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+      url: meta.canonical,
+      ...(meta.imageUrl === null ? {} : { images: [meta.imageUrl] }),
     },
-    twitter: { card: 'summary', title: forum.title, description },
+    twitter: {
+      card: 'summary',
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+    },
   }
 }
 

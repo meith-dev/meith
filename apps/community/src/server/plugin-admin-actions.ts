@@ -18,7 +18,9 @@ import forumConfig from '../../community.config'
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
+import { syncPluginNavigation } from './navigation'
 import { invalidatePluginHealth, reconcilePluginHealth, syncPluginEnablement } from './plugin-host'
+import { emitEvent } from './plugin-view'
 import { getSettingOverrides } from './settings'
 
 function requireDefinition(key: string): PluginDefinition {
@@ -64,6 +66,13 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
 
     await invalidateSettings()
     await syncPluginEnablement()
+    await syncPluginNavigation()
+
+    if (enabled) {
+      await emitEvent('plugin.enabled', { pluginKey: key }, {})
+    } else {
+      await emitEvent('plugin.disabled', { pluginKey: key, reason: 'operator' }, {})
+    }
 
     await recordAdminAction({
       action: enabled ? 'plugin.enabled' : 'plugin.disabled',

@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**102 hooks** — 57 filters, 45 events — and 6 UI regions. **39 are wired**: something in the board fires
+**102 hooks** — 57 filters, 45 events — and 6 UI regions. **102 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -59,7 +59,7 @@ the whole board and stays off until an operator clears the record. See
 |---|---|---|---|---|
 | `view.header` | filter | yes | `HeaderModel` | `ViewerRef & RequestRef` |
 | `view.user-panel` | filter | yes | `UserPanelModel` | `ViewerRef & RequestRef` |
-| `view.navigation` | filter | — | `NavigationModel` | `ViewerRef & RequestRef` |
+| `view.navigation` | filter | yes | `NavigationModel` | `ViewerRef & RequestRef` |
 | `view.footer` | filter | yes | `FooterModel` | `ViewerRef & RequestRef` |
 | `view.forum-jump` | filter | yes | `ForumJumpModel` | `ViewerRef & RequestRef` |
 | `view.announcement` | filter | yes | `AnnouncementModel` | `ViewerRef` |
@@ -84,13 +84,13 @@ the whole board and stays off until an operator clears the record. See
 | `view.panel-section` | filter | yes | `PanelSectionModel` | `ViewerRef` |
 | `view.error-notice` | filter | yes | `ErrorNoticeModel` | `ViewerRef & RequestRef` |
 | `view.shell` | filter | yes | `ShellModel` | `ViewerRef & RequestRef` |
-| `view.notice` | filter | — | `NoticeModel` | `ViewerRef` |
-| `view.category-block` | filter | — | `CategoryBlockModel` | `ViewerRef` |
+| `view.notice` | filter | yes | `NoticeModel` | `ViewerRef` |
+| `view.category-block` | filter | yes | `CategoryBlockModel` | `ViewerRef` |
 | `view.subforum-list` | filter | yes | `SubforumListModel` | `ViewerRef & ForumRef` |
 | `view.forum-display` | filter | yes | `ForumDisplayModel` | `ViewerRef & ForumRef` |
 | `view.thread-view` | filter | yes | `ThreadViewModel` | `ViewerRef & ThreadRef` |
-| `view.post-form` | filter | — | `PostFormModel` | `ViewerRef` |
-| `view.redirect-notice` | filter | — | `RedirectNoticeModel` | `ViewerRef` |
+| `view.post-form` | filter | yes | `PostFormModel` | `ViewerRef` |
+| `view.redirect-notice` | filter | yes | `RedirectNoticeModel` | `ViewerRef` |
 
 - **`view.header`** — The header model, before the theme renders it.
 - **`view.user-panel`** — The user panel model: greeting, counts, account links.
@@ -125,34 +125,34 @@ the whole board and stays off until an operator clears the record. See
 - **`view.forum-display`** — A forum page’s model, including its rendered regions.
 - **`view.thread-view`** — A thread page’s model, including its rendered post list.
 - **`view.post-form`** — The composer page’s model. The form itself is app-rendered and arrives as a region.
-- **`view.redirect-notice`** — The interstitial shown after a mutation, before the meta refresh fires.
+- **`view.redirect-notice`** — The interstitial shown after a mutation, before the meta refresh fires. The target is re-checked against the board after the filter runs, so this cannot send a member off-site.
 
 ## Posting
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `thread.create.validate` | filter | — | `ValidationMessages` | `{ draft: DraftPayload }` |
-| `thread.create.before` | filter | — | `DraftPayload` | `ViewerRef` |
+| `thread.create.validate` | filter | yes | `ValidationMessages` | `{ draft: DraftPayload }` |
+| `thread.create.before` | filter | yes | `DraftPayload` | `ViewerRef` |
 | `thread.created` | event | yes | `ThreadRef & { authorId: number; subject: string }` | `ViewerRef` |
-| `post.create.validate` | filter | — | `ValidationMessages` | `{ draft: DraftPayload; threadId: number }` |
-| `post.create.before` | filter | — | `DraftPayload` | `ViewerRef & { threadId: number }` |
+| `post.create.validate` | filter | yes | `ValidationMessages` | `{ draft: DraftPayload; threadId: number }` |
+| `post.create.before` | filter | yes | `DraftPayload` | `ViewerRef & { threadId: number }` |
 | `post.created` | event | yes | `PostRef & { authorId: number }` | `ViewerRef` |
-| `post.edit.before` | filter | — | `{ readonly body: string; readonly reason: string \| null }` | `PostRef & ViewerRef` |
+| `post.edit.before` | filter | yes | `{ readonly body: string; readonly reason: string \| null }` | `PostRef & ViewerRef` |
 | `post.edited` | event | yes | `PostRef & { editorId: number; revision: number }` | `ViewerRef` |
-| `post.delete.before` | event | — | `PostRef` | `ModerationRef` |
-| `post.deleted` | event | — | `PostRef` | `ModerationRef` |
-| `post.restored` | event | — | `PostRef` | `ModerationRef` |
-| `thread.moved` | event | — | `{ readonly threadId: number; readonly fromForumId: number; readonly toForumId: number }` | `ModerationRef` |
-| `thread.merged` | event | — | `{ readonly keptThreadId: number; readonly mergedThreadId: number; readonly postCount: number }` | `ModerationRef` |
-| `thread.split` | event | — | `{ readonly sourceThreadId: number; readonly newThreadId: number; readonly postCount: number }` | `ModerationRef` |
-| `thread.locked` | event | — | `ThreadRef & { isLocked: boolean }` | `ModerationRef` |
-| `thread.stickied` | event | — | `ThreadRef & { isSticky: boolean }` | `ModerationRef` |
-| `attachment.upload.validate` | filter | — | `ValidationMessages` | `{ readonly filename: string; readonly bytes: number; readonly detectedMimeType: string; readonly uploaderId: number }` |
-| `attachment.uploaded` | event | — | `{ readonly attachmentId: number; readonly postId: number \| null; readonly bytes: number }` | `ViewerRef` |
-| `attachment.deleted` | event | — | `{ readonly attachmentId: number }` | `ViewerRef` |
-| `poll.created` | event | — | `ThreadRef & { pollId: number; optionCount: number }` | `ViewerRef` |
-| `poll.voted` | event | — | `{ readonly pollId: number; readonly optionId: number }` | `ViewerRef` |
-| `rating.recorded` | event | — | `{ readonly threadId: number; readonly rating: number; readonly average: number }` | `ViewerRef` |
+| `post.delete.before` | event | yes | `PostRef` | `ModerationRef` |
+| `post.deleted` | event | yes | `PostRef` | `ModerationRef` |
+| `post.restored` | event | yes | `PostRef` | `ModerationRef` |
+| `thread.moved` | event | yes | `{ readonly threadId: number; readonly fromForumId: number; readonly toForumId: number }` | `ModerationRef` |
+| `thread.merged` | event | yes | `{ readonly keptThreadId: number; readonly mergedThreadId: number; readonly postCount: number }` | `ModerationRef` |
+| `thread.split` | event | yes | `{ readonly sourceThreadId: number; readonly newThreadId: number; readonly postCount: number }` | `ModerationRef` |
+| `thread.locked` | event | yes | `ThreadRef & { isLocked: boolean }` | `ModerationRef` |
+| `thread.stickied` | event | yes | `ThreadRef & { isSticky: boolean }` | `ModerationRef` |
+| `attachment.upload.validate` | filter | yes | `ValidationMessages` | `{ readonly filename: string; readonly bytes: number; readonly detectedMimeType: string; readonly uploaderId: number }` |
+| `attachment.uploaded` | event | yes | `{ readonly attachmentId: number; readonly postId: number \| null; readonly bytes: number }` | `ViewerRef` |
+| `attachment.deleted` | event | yes | `{ readonly attachmentId: number }` | `ViewerRef` |
+| `poll.created` | event | yes | `ThreadRef & { pollId: number; optionCount: number }` | `ViewerRef` |
+| `poll.voted` | event | yes | `{ readonly pollId: number; readonly optionId: number }` | `ViewerRef` |
+| `rating.recorded` | event | yes | `{ readonly threadId: number; readonly rating: number; readonly average: number }` | `ViewerRef` |
 
 - **`thread.create.validate`** — Validation messages for a new thread. Returning a non-empty list refuses the post.
 - **`thread.create.before`** — The thread draft, before it is written. Subject, body, prefix, options.
@@ -181,13 +181,13 @@ the whole board and stays off until an operator clears the record. See
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `report.created` | event | — | `{ readonly reportId: number; readonly target: 'post' \| 'thread' \| 'user' \| 'pm'; readonly targetId: number; readonly reporterId: number }` | `RequestRef` |
-| `report.resolved` | event | — | `{ readonly reportId: number; readonly resolution: 'actioned' \| 'rejected' }` | `ModerationRef` |
-| `approval.queued` | event | — | `{ readonly kind: 'thread' \| 'post' \| 'attachment'; readonly id: number }` | `ViewerRef` |
-| `approval.decided` | event | — | `{ readonly kind: 'thread' \| 'post' \| 'attachment'; readonly id: number; readonly approved: boolean }` | `ModerationRef` |
-| `warning.issued` | event | — | `{ readonly warningId: number; readonly userId: number; readonly points: number; readonly expiresAt: string \| null }` | `ModerationRef` |
-| `warning.revoked` | event | — | `{ readonly warningId: number; readonly userId: number }` | `ModerationRef` |
-| `moderation.logged` | event | — | `{ readonly action: string; readonly targetId: number \| null }` | `ModerationRef` |
+| `report.created` | event | yes | `{ readonly reportId: number; readonly target: 'post' \| 'thread' \| 'user' \| 'pm'; readonly targetId: number; readonly reporterId: number }` | `RequestRef` |
+| `report.resolved` | event | yes | `{ readonly reportId: number; readonly resolution: 'actioned' \| 'rejected' }` | `ModerationRef` |
+| `approval.queued` | event | yes | `{ readonly kind: 'thread' \| 'post' \| 'attachment'; readonly id: number }` | `ViewerRef` |
+| `approval.decided` | event | yes | `{ readonly kind: 'thread' \| 'post' \| 'attachment'; readonly id: number; readonly approved: boolean }` | `ModerationRef` |
+| `warning.issued` | event | yes | `{ readonly warningId: number; readonly userId: number; readonly points: number; readonly expiresAt: string \| null }` | `ModerationRef` |
+| `warning.revoked` | event | yes | `{ readonly warningId: number; readonly userId: number }` | `ModerationRef` |
+| `moderation.logged` | event | yes | `{ readonly action: string; readonly targetId: number \| null }` | `ModerationRef` |
 
 - **`report.created`** — Something was reported. The hook a notifier or a webhook wants.
 - **`report.resolved`** — A report was closed, with the resolution.
@@ -201,18 +201,18 @@ the whole board and stays off until an operator clears the record. See
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `user.register.validate` | filter | — | `ValidationMessages` | `{ readonly username: string; readonly email: string; readonly ipPrefix: string \| null }` |
-| `user.registered` | event | — | `UserRef & { username: string; requiresActivation: boolean }` | `RequestRef` |
-| `user.activated` | event | — | `UserRef` | `RequestRef` |
-| `user.login.attempted` | event | — | `{ readonly username: string; readonly outcome: 'ok' \| 'bad-credentials' \| 'locked-out' \| 'banned'; readonly ipPrefix: string \| null }` | `RequestRef` |
-| `user.logged-in` | event | — | `UserRef` | `RequestRef` |
-| `user.logged-out` | event | — | `UserRef & { reason: 'requested' \| 'revoked' }` | `RequestRef` |
-| `user.banned` | event | — | `UserRef & { expiresAt: string \| null }` | `ModerationRef` |
-| `user.unbanned` | event | — | `UserRef & { expired: boolean }` | `ModerationRef` |
-| `user.groups.changed` | event | — | `UserRef & { primaryGroupId: number; secondaryGroupIds: readonly number[] }` | `RequestRef` |
-| `user.profile.updated` | event | — | `UserRef & { fields: readonly string[] }` | `RequestRef` |
-| `user.merged` | event | — | `{ readonly keptUserId: number; readonly mergedUserId: number }` | `RequestRef` |
-| `user.deleted` | event | — | `UserRef & { reason: 'pruned' \| 'deleted' }` | `RequestRef` |
+| `user.register.validate` | filter | yes | `ValidationMessages` | `{ readonly username: string; readonly email: string; readonly ipPrefix: string \| null }` |
+| `user.registered` | event | yes | `UserRef & { username: string; requiresActivation: boolean }` | `RequestRef` |
+| `user.activated` | event | yes | `UserRef` | `RequestRef` |
+| `user.login.attempted` | event | yes | `{ readonly username: string; readonly outcome: 'ok' \| 'bad-credentials' \| 'locked-out' \| 'banned'; readonly ipPrefix: string \| null }` | `RequestRef` |
+| `user.logged-in` | event | yes | `UserRef` | `RequestRef` |
+| `user.logged-out` | event | yes | `UserRef & { reason: 'requested' \| 'revoked' }` | `RequestRef` |
+| `user.banned` | event | yes | `UserRef & { expiresAt: string \| null }` | `ModerationRef` |
+| `user.unbanned` | event | yes | `UserRef & { expired: boolean }` | `ModerationRef` |
+| `user.groups.changed` | event | yes | `UserRef & { primaryGroupId: number; secondaryGroupIds: readonly number[] }` | `RequestRef` |
+| `user.profile.updated` | event | yes | `UserRef & { fields: readonly string[] }` | `RequestRef` |
+| `user.merged` | event | yes | `{ readonly keptUserId: number; readonly mergedUserId: number }` | `RequestRef` |
+| `user.deleted` | event | yes | `UserRef & { reason: 'pruned' \| 'deleted' }` | `RequestRef` |
 
 - **`user.register.validate`** — Validation messages for a registration. Where a custom question or an external blocklist belongs.
 - **`user.registered`** — An account was created, before or after activation depending on the mode.
@@ -231,14 +231,14 @@ the whole board and stays off until an operator clears the record. See
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `notification.create.before` | filter | — | `{ readonly userId: number; readonly kind: string; readonly subjectText: string; readonly href: string } \| null` | `RequestRef` |
-| `notification.created` | event | — | `{ readonly notificationId: number; readonly userId: number }` | `RequestRef` |
-| `mail.send.before` | filter | — | `{ readonly to: string; readonly subject: string; readonly textBody: string; readonly htmlBody: string \| null } \| null` | `{ readonly template: string }` |
-| `mail.sent` | event | — | `{ readonly to: string; readonly template: string }` | `RequestRef` |
-| `pm.send.before` | filter | — | `{ readonly senderId: number; readonly recipientIds: readonly number[]; readonly subject: string; readonly body: string } \| null` | `RequestRef` |
-| `pm.sent` | event | — | `{ readonly messageId: number; readonly recipientIds: readonly number[] }` | `RequestRef` |
-| `subscription.changed` | event | — | `{ readonly userId: number; readonly target: 'thread' \| 'forum'; readonly targetId: number; readonly subscribed: boolean }` | `RequestRef` |
-| `reputation.changed` | event | — | `{ readonly userId: number; readonly delta: number; readonly total: number }` | `ViewerRef` |
+| `notification.create.before` | filter | yes | `{ readonly userId: number; readonly kind: string; readonly subjectText: string; readonly href: string } \| null` | `RequestRef` |
+| `notification.created` | event | yes | `{ readonly notificationId: number; readonly userId: number }` | `RequestRef` |
+| `mail.send.before` | filter | yes | `{ readonly to: string; readonly subject: string; readonly textBody: string; readonly htmlBody: string \| null } \| null` | `{ readonly template: string }` |
+| `mail.sent` | event | yes | `{ readonly to: string; readonly template: string }` | `RequestRef` |
+| `pm.send.before` | filter | yes | `{ readonly senderId: number; readonly recipientIds: readonly number[]; readonly subject: string; readonly body: string } \| null` | `RequestRef` |
+| `pm.sent` | event | yes | `{ readonly messageId: number; readonly recipientIds: readonly number[] }` | `RequestRef` |
+| `subscription.changed` | event | yes | `{ readonly userId: number; readonly target: 'thread' \| 'forum'; readonly targetId: number; readonly subscribed: boolean }` | `RequestRef` |
+| `reputation.changed` | event | yes | `{ readonly userId: number; readonly delta: number; readonly total: number }` | `ViewerRef` |
 
 - **`notification.create.before`** — A notification about to be created. Returning `null` suppresses it.
 - **`notification.created`** — A notification was stored.
@@ -253,11 +253,11 @@ the whole board and stays off until an operator clears the record. See
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `search.query.before` | filter | — | `string` | `ViewerRef` |
-| `search.results` | filter | — | `readonly { readonly postId: number; readonly threadId: number; readonly rank: number }[]` | `ViewerRef & { terms: string }` |
-| `feed.items` | filter | — | `readonly { readonly title: string; readonly href: string; readonly publishedAt: string; readonly summary: string }[]` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
-| `sitemap.entries` | filter | — | `readonly { readonly href: string; readonly lastModified: string \| null }[]` | `{ readonly chunk: number }` |
-| `metadata.page` | filter | — | `{ readonly title: string; readonly description: string \| null; readonly canonical: string; readonly imageUrl: string \| null }` | `{ readonly route: string }` |
+| `search.query.before` | filter | yes | `string` | `ViewerRef` |
+| `search.results` | filter | yes | `readonly { readonly postId: number; readonly threadId: number; readonly rank: number }[]` | `ViewerRef & { terms: string }` |
+| `feed.items` | filter | yes | `readonly { readonly title: string; readonly href: string; readonly publishedAt: string; readonly summary: string }[]` | `{ readonly feed: 'board' \| 'forum' \| 'thread' }` |
+| `sitemap.entries` | filter | yes | `readonly { readonly href: string; readonly lastModified: string \| null }[]` | `{ readonly chunk: number }` |
+| `metadata.page` | filter | yes | `{ readonly title: string; readonly description: string \| null; readonly canonical: string; readonly imageUrl: string \| null }` | `{ readonly route: string }` |
 
 - **`search.query.before`** — The parsed search terms, before the query runs. The scope is not filterable.
 - **`search.results`** — A page of results, already permission-filtered in SQL. A plugin may reorder or drop; adding a row here would add one the viewer may not see.
@@ -269,13 +269,13 @@ the whole board and stays off until an operator clears the record. See
 
 | Hook | Kind | Wired | Value | Context |
 |---|---|---|---|---|
-| `admin.navigation` | filter | — | `readonly { readonly label: string; readonly href: string }[]` | `ViewerRef` |
-| `settings.saved` | event | — | `{ readonly keys: readonly string[] }` | `{ readonly adminId: number }` |
-| `task.run.before` | event | — | `{ readonly taskId: string }` | `Record<string, never>` |
-| `task.run.after` | event | — | `{ readonly taskId: string; readonly ok: boolean; readonly durationMs: number }` | `Record<string, never>` |
-| `cache.invalidated` | event | — | `{ readonly tag: string }` | `Record<string, never>` |
-| `plugin.enabled` | event | — | `{ readonly pluginKey: string }` | `Record<string, never>` |
-| `plugin.disabled` | event | — | `{ readonly pluginKey: string; readonly reason: 'operator' \| 'failures' }` | `Record<string, never>` |
+| `admin.navigation` | filter | yes | `readonly { readonly label: string; readonly href: string }[]` | `ViewerRef` |
+| `settings.saved` | event | yes | `{ readonly keys: readonly string[] }` | `{ readonly adminId: number }` |
+| `task.run.before` | event | yes | `{ readonly taskId: string }` | `Record<string, never>` |
+| `task.run.after` | event | yes | `{ readonly taskId: string; readonly ok: boolean; readonly durationMs: number }` | `Record<string, never>` |
+| `cache.invalidated` | event | yes | `{ readonly tag: string }` | `Record<string, never>` |
+| `plugin.enabled` | event | yes | `{ readonly pluginKey: string }` | `Record<string, never>` |
+| `plugin.disabled` | event | yes | `{ readonly pluginKey: string; readonly reason: 'operator' \| 'failures' }` | `Record<string, never>` |
 
 - **`admin.navigation`** — The admin panel’s section links, so a plugin page can be reached.
 - **`settings.saved`** — Board settings changed. Carries the keys, never the values.

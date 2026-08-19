@@ -1,10 +1,11 @@
 import 'server-only'
 
-import { type FeedChannel, renderAtom, renderRss } from '@/view/feed'
+import { type FeedChannel, type FeedEntry, renderAtom, renderRss } from '@/view/feed'
 
 import { boardOffline } from './board-offline'
 import { activeWordFilter } from './content-admin'
 import { feedFor } from './feed-builder'
+import { filterView } from './plugin-view'
 import { getSettings } from './settings'
 import { FEED_LIMIT, feedRepository, origin, publicScope } from './syndication'
 
@@ -12,8 +13,53 @@ const CACHE = 'public, max-age=300, stale-while-revalidate=3600'
 
 export type FeedFormat = 'rss' | 'atom'
 
-export function feedResponse(channel: FeedChannel, format: FeedFormat): Response {
-  const body = format === 'atom' ? renderAtom(channel) : renderRss(channel)
+export type FeedScope = 'board' | 'forum' | 'thread'
+
+/**
+ * A plugin may reorder, drop, or add. An entry it adds keeps the board's own
+ * fields where one matches by href, and is otherwise taken as given — a feed
+ * is rendered as a guest, so everything in it is already public.
+ */
+async function filterEntries(
+  entries: readonly FeedEntry[],
+  feed: FeedScope,
+): Promise<readonly FeedEntry[]> {
+  const filtered = await filterView(
+    'feed.items',
+    entries.map((entry) => ({
+      title: entry.title,
+      href: entry.href,
+      publishedAt: entry.published.toISOString(),
+      summary: entry.summary,
+    })),
+    { feed },
+  )
+
+  const byHref = new Map(entries.map((entry) => [entry.href, entry]))
+  return filtered.map((row) => {
+    const original = byHref.get(row.href)
+    const published = new Date(row.publishedAt)
+    return {
+      id: original?.id ?? row.href,
+      title: row.title,
+      href: row.href,
+      author: original?.author ?? '',
+      published: Number.isNaN(published.getTime())
+        ? (original?.published ?? new Date())
+        : published,
+      updated: original?.updated ?? published,
+      summary: row.summary,
+    }
+  })
+}
+
+export async function feedResponse(
+  channel: FeedChannel,
+  format: FeedFormat,
+  feed: FeedScope,
+): Promise<Response> {
+  const withEntries = { ...channel, entries: await filterEntries(channel.entries, feed) }
+  const body = format === 'atom' ? renderAtom(withEntries) : renderRss(withEntries)
   return new Response(body, {
     headers: {
       'content-type':
@@ -64,6 +110,7 @@ export async function boardFeed(format: FeedFormat, selfPath: string): Promise<R
       now: new Date(),
     }),
     format,
+    'board',
   )
 }
 

@@ -3,6 +3,7 @@
   "reference.admin.status.title": "Reference plugin",
   "reference.definition.description": "Exercises every documented extension point. Installed in CI, not on a board.",
   "reference.definition.name": "Reference plugin",
+  "reference.nav.label": "Reference",
   "reference.notification.poked.body": "The reference plugin exercised the notification seam.",
   "reference.notification.poked.description": "Exists to exercise the notification seam end to end.",
   "reference.notification.poked.subject": "You were poked",

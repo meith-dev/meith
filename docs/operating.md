@@ -1391,6 +1391,26 @@ grounds that you asked for it. And a board with no database behind it
 (`DATA_SOURCE=fixture`, the demo and `pnpm dev`) renders the original six
 and says so rather than offering a screen that cannot save.
 
+### Items a plugin asked for
+
+A plugin with a member-facing page can ask for a menu item, and it appears
+here as an ordinary row marked as a built-in one. It is yours from that
+moment: rename it, move it, nest it, restrict it to groups, or switch it
+off, and your edits survive every redeploy — only the address is refreshed
+from the plugin, since that is the half the plugin knows better than you do.
+
+Two things happen without you:
+
+- **Switch the plugin off and the item stops rendering**, because the page
+  behind it has stopped answering. The row stays where you put it, so
+  switching the plugin back on restores the menu you had rather than a
+  default one.
+- **Take the plugin out of the build and the row goes**, at the next
+  `community upgrade`, which reports what it added and removed.
+
+An item left empty of a label shows the plugin's own name for it, in the
+reader's language, exactly as the board's own six do.
+
 The menu is cached board-wide under one tag and saving any row clears it,
 so a change is live on the next page load.
 

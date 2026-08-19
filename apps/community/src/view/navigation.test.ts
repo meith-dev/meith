@@ -57,6 +57,42 @@ describe('navigationLabel', () => {
     expect(navigationLabel({ key: 'home', label: 'Front page' }, english)).toBe('Front page')
   })
 
+  it('uses the plugin’s own name for a row the board holds for it', () => {
+    expect(
+      navigationLabel({ key: 'plugin.dues.plans', label: '' }, english, {
+        'plugin.dues.plans': { label: 'Supporters', labelKey: null },
+      }),
+    ).toBe('Supporters')
+  })
+
+  it('still prefers what an administrator typed over the plugin’s name', () => {
+    expect(
+      navigationLabel({ key: 'plugin.dues.plans', label: 'Join us' }, english, {
+        'plugin.dues.plans': { label: 'Supporters', labelKey: null },
+      }),
+    ).toBe('Join us')
+  })
+
+  it('translates a plugin item whose message the board knows', () => {
+    expect(
+      navigationLabel({ key: 'plugin.dues.plans', label: '' }, english, {
+        'plugin.dues.plans': { label: 'fallback', labelKey: 'nav.home' },
+      }),
+    ).toBe('Home')
+  })
+
+  it('falls back to the plugin’s text when its message is not translated here', () => {
+    expect(
+      navigationLabel({ key: 'plugin.dues.plans', label: '' }, english, {
+        'plugin.dues.plans': { label: 'Supporters', labelKey: 'dues.nothing.here' },
+      }),
+    ).toBe('Supporters')
+  })
+
+  it('shows nothing for a plugin row whose plugin is no longer in the build', () => {
+    expect(navigationLabel({ key: 'plugin.gone.item', label: '' }, english)).toBe('')
+  })
+
   it('has nothing to show for a custom item with no label', () => {
     expect(navigationLabel({ key: null, label: '' }, english)).toBe('')
   })

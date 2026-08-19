@@ -1,8 +1,11 @@
 export {
   type Draft,
   MESSAGES_PAGE_SIZE,
+  type MessageAudit,
   MessageService,
+  NO_MESSAGE_AUDIT,
   type SendInput,
+  SUPPRESSED,
   splitNames,
 } from './service'
 export {

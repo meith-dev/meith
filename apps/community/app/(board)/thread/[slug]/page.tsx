@@ -27,6 +27,7 @@ import { identitiesFor } from '@/server/group-identity'
 import { getTranslator } from '@/server/i18n'
 import { moderatorTargetFor } from '@/server/modcp'
 import { cspNonce } from '@/server/nonce'
+import { pageMetadata } from '@/server/page-metadata'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
@@ -99,25 +100,35 @@ export async function generateMetadata({
     hasNext: false,
   })
 
-  const description = t.t('threadPage.discussion', { forum: forum.title })
+  const meta = await pageMetadata('/thread/[slug]', {
+    title: thread.title,
+    description: t.t('threadPage.discussion', { forum: forum.title }),
+    canonical: links.canonical,
+    imageUrl: null,
+  })
 
   return {
-    title: thread.title,
-    description,
+    title: meta.title,
+    ...(meta.description === null ? {} : { description: meta.description }),
     alternates: {
-      canonical: links.canonical,
+      canonical: meta.canonical,
       types: {
         'application/rss+xml': `/thread/${thread.id}-${thread.slug}/feed.xml`,
       },
     },
     openGraph: {
       type: 'article',
-      title: thread.title,
-      description,
-      url: links.canonical,
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+      url: meta.canonical,
       siteName: forum.title,
+      ...(meta.imageUrl === null ? {} : { images: [meta.imageUrl] }),
     },
-    twitter: { card: 'summary', title: thread.title, description },
+    twitter: {
+      card: 'summary',
+      title: meta.title,
+      ...(meta.description === null ? {} : { description: meta.description }),
+    },
   }
 }
 

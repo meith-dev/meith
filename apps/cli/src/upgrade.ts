@@ -2,11 +2,12 @@ import {
   appliedPluginMigrations,
   applyPluginMigration,
   getDb,
+  PostgresNavigationRepository,
   readVersion,
   recordVersion,
   runMigrations,
 } from '@meith/db'
-import type { PluginDefinition } from '@meith/plugin-kit'
+import { type PluginDefinition, pluginNavigationPlacements } from '@meith/plugin-kit'
 import { type PluginUpgrade, planUpgrade, upgradeNotice } from '@meith/upgrade'
 
 export const CODE_VERSION = '0.9.0'
@@ -61,6 +62,7 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
     if (pending.length === 0) continue
     options.log(`  ${stepNumber++}. ${plugin.key}: ${pending.join(', ')}`)
   }
+  options.log(`  ${stepNumber++}. reconcile plugin navigation`)
   options.log(`  ${stepNumber}. record version ${CODE_VERSION}`)
 
   if (options.dryRun) {
@@ -79,6 +81,20 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
       if (ran) options.log(`${plugin.key}: applied ${migration.id}.`)
     }
     await recordVersion(db, `plugin:${plugin.key}`, plugin.version)
+  }
+
+  const navigation = await new PostgresNavigationRepository(db).syncPluginItems(
+    pluginNavigationPlacements(options.plugins).map((item) => ({
+      key: item.key,
+      href: item.href,
+      audience: item.audience,
+    })),
+  )
+  if (navigation.added.length > 0) {
+    options.log(`Navigation: added ${navigation.added.join(', ')}.`)
+  }
+  if (navigation.removed.length > 0) {
+    options.log(`Navigation: removed ${navigation.removed.join(', ')}.`)
   }
 
   await recordVersion(db, 'core', CODE_VERSION)

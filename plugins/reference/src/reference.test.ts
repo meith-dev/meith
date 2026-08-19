@@ -32,6 +32,7 @@ describe('every kind of extension point', () => {
     ['admin pages', () => (referencePlugin.adminPages ?? []).length],
     ['contributions', () => (referencePlugin.contributions ?? []).length],
     ['notification kinds', () => (referencePlugin.notifications ?? []).length],
+    ['navigation items', () => (referencePlugin.navigation ?? []).length],
   ])('declares at least one %s', (_kind, count) => {
     expect(count()).toBeGreaterThan(0)
   })
@@ -209,6 +210,12 @@ describe('routes and pages', () => {
     expect(routes.some((route) => route.access === 'admin')).toBe(true)
     expect(routes.some((route) => route.rateLimit !== undefined)).toBe(true)
     expect((referencePlugin.pages ?? []).length).toBeGreaterThan(0)
+  })
+
+  it('asks for navigation that points at a page it declares', () => {
+    for (const item of referencePlugin.navigation ?? []) {
+      expect((referencePlugin.pages ?? []).some((page) => page.path === item.path)).toBe(true)
+    }
   })
 
   it('declares a secret setting with an environment override, and a select', () => {

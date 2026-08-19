@@ -51,7 +51,7 @@ import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/t
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { resolveMailBrand, type ThemeTokenRegistry } from './mail-brand'
-import { pluginMarkdownPipeline } from './plugin-rendering'
+import { pluginMarkdownPipeline, sendAudited } from './plugin-rendering'
 import { pluginTasks } from './plugin-tasks'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
@@ -121,10 +121,41 @@ export function buildSchedulerBundle(deps: {
   })
   const backfill = new PostgresRenderBackfill(db, pluginMarkdownPipeline(renderHost))
 
+  /**
+   * Every task, announced. The host is told before and after each run — a
+   * plugin watching its own task, or the board's, gets the same two events
+   * whichever scheduled it.
+   */
+  const announced = (tasks: readonly TaskDefinition[]): TaskDefinition[] =>
+    tasks.map((task) => ({
+      ...task,
+      async run(context) {
+        await renderHost.emit('task.run.before', { taskId: task.id }, {})
+
+        const startedAt = Date.now()
+        try {
+          const result = await task.run(context)
+          await renderHost.emit(
+            'task.run.after',
+            { taskId: task.id, ok: true, durationMs: Date.now() - startedAt },
+            {},
+          )
+          return result
+        } catch (error) {
+          await renderHost.emit(
+            'task.run.after',
+            { taskId: task.id, ok: false, durationMs: Date.now() - startedAt },
+            {},
+          )
+          throw error
+        }
+      },
+    }))
+
   return {
     repository: new PostgresTaskRepository(db),
     onTaskFailure: taskFailureNotifier(notifications),
-    tasks: [
+    tasks: announced([
       ...builtinTasks(
         taskWorkers({
           queue: deps.queue,
@@ -214,7 +245,7 @@ export function buildSchedulerBundle(deps: {
                       })
 
                       const fromName = brand.fromName ?? ''
-                      await mail.send({
+                      await sendAudited(renderHost, mail, 'mass-mail', {
                         to: email,
                         subject: campaign.subject,
                         text: rendered.text,
@@ -260,7 +291,7 @@ export function buildSchedulerBundle(deps: {
         }),
       ),
       ...contributed,
-    ],
+    ]),
   }
 }
 
