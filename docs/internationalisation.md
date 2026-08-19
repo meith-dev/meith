@@ -267,6 +267,16 @@ A handful of the counts are noise rather than copy: `view/feed.ts` and
 prose to the counter, and `view/setting-groups.ts` holds the group labels the
 catalog mirrors. They sit in the baseline at a fixed number and stay there.
 
+The four largest entries in `packages/api/` are the same kind of thing. The
+route registry, the schema components, the OpenAPI builder and the reference
+renderer between them hold the text of one document — the OpenAPI 3 spec at
+`/api/v1/openapi.json` and the `docs/rest-api.md` generated from it. That
+document describes the board to a person writing a client against it, in the
+same language the rest of `docs/` is written in, and it is never rendered to a
+member in any language. Translating it would mean translating the
+documentation, which is a different decision from translating the board. They
+sit in the baseline for the same reason `view/feed.ts` does.
+
 Extracting a file is the same four steps every time: give each string a key in
 `en.json`, replace the literal with `t.t(key)` — or `msg(key, args)` where an
 error is thrown, or `await tr(key)` in a page or action — take a `Translator`

@@ -36,10 +36,12 @@ async function refusal(response: { json: () => Promise<unknown> }): Promise<stri
   return `${error.code}|${error.message}`
 }
 
-test('the API refuses every request that carries no usable token', async ({ request }) => {
+test('an endpoint that needs a token refuses every request without a usable one', async ({
+  request,
+}) => {
   const unnamed = await Promise.all([
     request.get('/api/v1/me'),
-    request.get('/api/v1/forums'),
+    request.get('/api/v1/subscriptions'),
     request.get('/api/v1/me', { headers: { authorization: 'nonsense' } }),
     request.get('/api/v1/me', { headers: { authorization: 'Bearer ' } }),
   ])
@@ -57,6 +59,44 @@ test('the API refuses every request that carries no usable token', async ({ requ
   })
   expect(wrong.status()).toBe(401)
   expect(await refusal(wrong)).toBe('unauthenticated|That token is not valid.')
+})
+
+test('a stranger with no token reads the public board and cannot write to it', async ({
+  request,
+}) => {
+  const forums = await request.get('/api/v1/forums')
+  expect(forums.status()).toBe(200)
+  expect(JSON.stringify(await forums.json())).toContain('General Discussion')
+
+  const thread = await request.get('/api/v1/threads/4')
+  expect(thread.status()).toBe(200)
+  expect(JSON.stringify(await thread.json())).toContain('Version 0.1 is live')
+
+  const posts = await request.get('/api/v1/threads/4/posts')
+  expect(posts.status()).toBe(200)
+  expect(JSON.stringify(await posts.json())).toContain('Welcome to the **new forum**')
+
+  expect(
+    forums.headers()['x-ratelimit-limit'],
+    'an unauthenticated caller is metered too, and told so',
+  ).toBeDefined()
+
+  const write = await request.post('/api/v1/threads/4/posts', { data: { message: 'no' } })
+  expect(write.status(), 'nothing writable answers a stranger').toBe(401)
+
+  const own = await request.get('/api/v1/me')
+  expect(own.status(), 'there is no owner to describe without a token').toBe(401)
+})
+
+test('a token still narrows what its owner may reach, even where a stranger may read', async ({
+  page,
+  request,
+}) => {
+  const token = await issueToken(page, `e2e narrow ${Date.now().toString(36)}`, ['threads:read'])
+  const api = bearer(request, token)
+
+  expect((await request.get('/api/v1/forums')).status(), 'the stranger may').toBe(200)
+  expect((await api.get('/forums')).status(), 'this token may not').toBe(403)
 })
 
 test('a token reaches what its scopes allow and nothing else', async ({ page, request }) => {

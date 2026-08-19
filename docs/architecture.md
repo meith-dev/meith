@@ -381,11 +381,27 @@ state, redirect outside the `try`.
 
 **The REST API is the same stack, not a sibling.** One catch-all route
 (`/api/v1/[...path]`) dispatches through `ROUTES` — a data table in
-`@meith/api` of method, path, scope and rate-limit cost — in a fixed order:
-match, token, scope, rate limit, then the same actor resolution and
-`Authorizer` as the pages, then a handler that calls the same domain command
-the web form calls. [`rest-api.md`](./rest-api.md) is generated from that
-table, and CI fails when they disagree.
+`@meith/api` of method, path, scope, rate-limit cost and the request and
+response schemas — in a fixed order: match, token, scope, rate limit, the same
+actor resolution as the pages, board offline, then a handler that asks the
+same `Authorizer` and calls the same domain command the web form calls. The
+handlers live in `src/server/api/`, keyed by method and path, so the route
+file holds the protocol and nothing about any endpoint.
+
+A route that is not marked `authenticated` answers without a token, resolving
+as the guest `Actor` a logged-out browser gets. Nothing else about the request
+changes: the same `Authorizer`, the same content scope, the same SQL. That is
+why a private forum stays private to an anonymous caller without a second rule
+saying so, and why every write stays behind a token — a guest cannot post
+through a page either. Anonymous callers have no token to meter, so their
+budget is held per address prefix in the same `rate_limits` table the
+anti-flood limits use.
+
+`docs/openapi.json` is generated from that table — schemas, scopes,
+rate-limit costs and all — and a board serves the same document at
+`/api/v1/openapi.json`. [`rest-api.md`](./rest-api.md) is generated in turn
+from the OpenAPI document, so the prose reference cannot describe a surface
+the spec does not. CI fails when any of the three disagree.
 
 ## Background work
 

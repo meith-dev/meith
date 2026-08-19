@@ -5,18 +5,9 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import { quoteBlock, renderMarkdown, SIGNATURE_FEATURES, vocabularyOptions } from '@meith/markdown'
-import { restrictsPosting } from '@meith/moderation'
-import { PostEditor, type PostWriteRepository } from '@meith/posts'
-import { type AuthorRestriction, ThreadComposer } from '@meith/threads'
+import type { PostEditor } from '@meith/posts'
 
 import { postLink } from '../view/post-link'
-import {
-  dailyLimitMessage,
-  holdsNewMember,
-  limitMessage,
-  spendDailyLimit,
-  spendLimit,
-} from './antispam'
 import { attachStaged, stageAttachments, submittedFiles } from './attachments'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
@@ -25,11 +16,10 @@ import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, positiveIntIn } from './form-values'
 import { getTranslator, tr } from './i18n'
-import { emitEvent, viewerRef } from './plugin-view'
-import { notifyPostAudience } from './post-notifications'
-import { resolvePostScope } from './post-scope'
+import { emitEvent } from './plugin-view'
+import { postEditor, resolvePostScope } from './post-scope'
 import { resolveReplyTarget, submitReply } from './reply-core'
-import { getSettings } from './settings'
+import { resolveThreadTarget, submitThread } from './thread-core'
 
 export type PreviewScope = 'post' | 'signature'
 
@@ -108,125 +98,41 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
   }
 
   const actor = await getActor()
-  const { authorizer, threadWrites, drafts } = getContainer()
+  const { drafts } = getContainer()
 
-  if (threadWrites === null) {
-    return {
-      error: await tr('notice.app.board-running-in-memory-sample-data-6'),
-      values,
-    }
-  }
-
-  const settings = await getSettings()
-  let created: Awaited<ReturnType<ThreadComposer['create']>>
-  let forum: Awaited<ReturnType<NonNullable<typeof threadWrites>['postingRules']>>
-  let author: Awaited<ReturnType<typeof authorProfile>>
-  let staged: Awaited<ReturnType<typeof stageAttachments>>
+  let created: Awaited<ReturnType<typeof submitThread>>
+  let resolved: Awaited<ReturnType<typeof resolveThreadTarget>>
   try {
-    forum = await threadWrites.postingRules(forumId)
-    if (!forum) throw new ValidationError(msg('error.app.forum-exist'))
-
-    const matrix = await authorizer.forumMatrix(actor, forumId)
-    const target = { forumId, forum: matrix }
-    if (!authorizer.can(actor, 'thread.view', target)) {
-      throw new ValidationError(msg('error.app.forum-exist'))
-    }
-    authorizer.require(actor, 'thread.post', target)
-
-    if (actor.userId === null) {
-      throw new ForbiddenError(msg('error.app.must-logged-post'))
-    }
+    resolved = await resolveThreadTarget(actor, forumId)
+    const userId = actor.userId!
 
     if (field(form, 'intent') === 'save_draft') {
       if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
-      await drafts.save(actor.userId, { forumId, threadId: null, title, message, prefixId })
+      await drafts.save(userId, { forumId, threadId: null, title, message, prefixId })
       return { notice: 'saved', values }
     }
 
-    const limited = await spendLimit({ scope: 'post', actor, settings })
-    if (limited !== null && !limited.allowed) {
-      return { error: limitMessage(limited), values }
-    }
+    const staged = await stageAttachments(actor, resolved.scope, await submittedFiles(form))
 
-    const daily = await spendDailyLimit({ scope: 'post_day', actor })
-    if (daily !== null && !daily.allowed) {
-      return { error: dailyLimitMessage('post_day', daily), values }
-    }
-
-    const composer = new ThreadComposer({
-      threads: threadWrites,
-      config: {
-        floodSeconds: settings.get('posting.flood_seconds'),
-        maxLength: settings.get('posting.max_length'),
-      },
+    created = await submitThread(actor, resolved, {
+      title,
+      message,
+      prefixId,
+      subscribe,
+      poll:
+        pollQuestion === '' && pollOptions.every((option) => option.trim() === '')
+          ? undefined
+          : { question: pollQuestion, options: pollOptions },
     })
 
-    staged = await stageAttachments(
-      actor,
-      { ...target, allowsAttachments: forum.allowAttachments },
-      await submittedFiles(form),
-    )
-
-    author = await authorProfile(actor.userId)
-
-    created = await composer.create(
-      {
-        title,
-        message,
-        prefixId,
-        subscribe,
-        heldAsNewMember: await holdsNewMember({
-          actor,
-          postCount: author.postCount,
-          settings,
-        }),
-        requiresApproval: matrix.requiresThreadApproval === true,
-        poll:
-          pollQuestion === '' && pollOptions.every((option) => option.trim() === '')
-            ? undefined
-            : { question: pollQuestion, options: pollOptions, closesAt: null },
-        mayPostPoll: authorizer.can(actor, 'poll.post', target),
-        bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', target),
-        bypassesFlood: authorizer.can(actor, 'flood.bypass'),
-        restriction: await authorRestriction(actor.userId),
-      },
-      { userId: actor.userId, username: author.username },
-      forum,
-    )
-
-    await attachStaged(staged, {
-      postId: created.postId,
-      forumId,
-      userId: actor.userId,
-    })
-    await drafts?.remove(actor.userId, forumId, null)
+    await attachStaged(staged, { postId: created.postId, forumId, userId })
+    await drafts?.remove(userId, forumId, null)
   } catch (err) {
     return toFormState(err, values)
   }
 
-  await emitEvent(
-    'thread.created',
-    {
-      threadId: created.threadId,
-      forumId,
-      authorId: actor.userId,
-      subject: values.title,
-    },
-    viewerRef(actor),
-  )
-
-  await notifyPostAudience({
-    postId: created.postId,
-    threadId: created.threadId,
-    threadSlug: created.slug,
-    threadTitle: title,
-    message,
-    authorUsername: author.username,
-    visibility: created.visibility,
-  })
-
   if (created.visibility === 'unapproved') {
-    redirect(`/${forum.id}-${forum.slug}?posted=moderated`)
+    redirect(`/${resolved.forum.id}-${resolved.forum.slug}?posted=moderated`)
   }
   redirect(`/thread/${created.threadId}-${created.slug}`)
 }
@@ -280,25 +186,6 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
 function replyAnchor(created: { postId: number; raced: boolean }): string {
   const link = postLink('', created.postId)
   return created.raced ? `${link}&replied=race` : link
-}
-
-async function authorProfile(
-  userId: number,
-): Promise<{ readonly username: string; readonly postCount: number }> {
-  const profile = await getContainer().memberProfiles.findPublicById(userId)
-  if (!profile) throw new ForbiddenError(msg('error.app.account-longer-post'))
-  return { username: profile.username, postCount: profile.postCount }
-}
-
-async function postEditor(posts: PostWriteRepository): Promise<PostEditor> {
-  const settings = await getSettings()
-  return new PostEditor({
-    posts,
-    config: {
-      maxLength: settings.get('posting.max_length'),
-      editGraceSeconds: settings.get('posting.edit_grace_seconds'),
-    },
-  })
 }
 
 export async function editPostAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -417,11 +304,4 @@ async function moveVisibility(form: FormData, to: 'deleted' | 'visible'): Promis
   const thread = `/thread/${moved.threadId}-${moved.threadSlug}`
   if (!moved.changed) redirect(`${thread}?unchanged=post`)
   redirect(to === 'deleted' ? `${thread}?removed=post` : postLink(thread, moved.postId))
-}
-
-async function authorRestriction(userId: number): Promise<AuthorRestriction> {
-  const { warnings } = getContainer()
-  if (warnings === null) return { suspended: false, moderated: false }
-  const standing = await warnings.readRestriction(userId)
-  return restrictsPosting(standing, new Date())
 }

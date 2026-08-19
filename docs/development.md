@@ -357,13 +357,14 @@ repository that nothing else reads:
 
 ## The generated documents
 
-Four documents are written from the code they describe and must not be
+Five documents are written from the code they describe and must not be
 edited by hand:
 
 ```sh
 pnpm theme:docs      # docs/theme-slots.md,  from the slot registry
 pnpm plugin:docs     # docs/plugin-hooks.md, from the hook registry
-pnpm api:docs        # docs/rest-api.md,     from the route registry
+pnpm api:docs        # docs/openapi.json,    from the route registry
+                     # docs/rest-api.md,     from that OpenAPI document
 pnpm perf:docs       # docs/performance.md,  from the last load run
 ```
 

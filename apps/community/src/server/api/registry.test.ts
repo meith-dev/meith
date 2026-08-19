@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { ROUTES } from '@meith/api'
+import { ROUTES, routeKey } from '@meith/api'
 
-import { DECLARED_ROUTES, IMPLEMENTED_ROUTES } from '../../app/api/v1/[...path]/route'
+import { DECLARED_ROUTES, handlerFor, IMPLEMENTED_ROUTES } from './registry'
 
 describe('the API surface', () => {
   it('declares every route the registry does', () => {
-    expect([...DECLARED_ROUTES].sort()).toEqual(
-      ROUTES.map((route) => `${route.method} ${route.path}`).sort(),
-    )
+    expect([...DECLARED_ROUTES].sort()).toEqual(ROUTES.map(routeKey).sort())
   })
 
   it('implements nothing that is not declared', () => {
@@ -24,5 +22,15 @@ describe('the API surface', () => {
   it('reports the unimplemented remainder', () => {
     const pending = DECLARED_ROUTES.filter((route) => !IMPLEMENTED_ROUTES.includes(route))
     expect(pending).toEqual([])
+  })
+
+  it('hands back a handler for every declared route', () => {
+    for (const route of ROUTES) {
+      expect(handlerFor(routeKey(route))).not.toBeNull()
+    }
+  })
+
+  it('hands back nothing for a route nobody declared', () => {
+    expect(handlerFor('GET /nothing-here')).toBeNull()
   })
 })

@@ -1,4 +1,16 @@
 export {
+  jsonSchema,
+  OPENAPI_VERSION,
+  type OpenApiDocument,
+  openApiDocument,
+  openApiPath,
+  operation,
+  operationId,
+} from './openapi'
+export {
+  ANONYMOUS_WINDOW,
+  type AnonymousRateLimitStore,
+  consumeAnonymousRateLimit,
   consumeRateLimit,
   DEFAULT_WINDOW,
   type RateLimitOutcome,
@@ -7,15 +19,29 @@ export {
   rateLimitHeaders,
   windowStart,
 } from './rate-limit'
+export { renderReference } from './reference'
 export {
   idParam,
   type Method,
   matchRoute,
+  type ParamSpec,
+  type ResponseSpec,
   ROUTES,
   type RouteKey,
   type RouteSpec,
   routeKey,
 } from './routes'
+export {
+  type ArraySchema,
+  COMPONENT_NAMES,
+  COMPONENTS,
+  type ComponentName,
+  type ObjectSchema,
+  type RefSchema,
+  type ScalarSchema,
+  type ScalarType,
+  type Schema,
+} from './schema'
 export {
   type ApiTokenRecord,
   type ApiTokenRepository,

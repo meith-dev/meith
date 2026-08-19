@@ -8,9 +8,16 @@ const SECRET_BYTES = 32
 export const SCOPES = [
   'forums:read',
   'threads:read',
+  'threads:write',
   'posts:read',
   'posts:write',
   'members:read',
+  'messages:read',
+  'messages:write',
+  'polls:write',
+  'reputation:write',
+  'subscriptions:read',
+  'subscriptions:write',
   'search:read',
 ] as const
 

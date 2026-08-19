@@ -139,11 +139,11 @@ describeIfPg('against real Postgres', () => {
       expect(token!.revokedAt).toBeNull()
     })
 
-    it('drops a scope the board no longer declares instead of refusing the token', async () => {
+    it('drops a scope the board does not declare instead of refusing the token', async () => {
       await harness.db.execute(sql`
         insert into api_tokens (user_id, name, lookup, secret_hash, scopes, created_at)
         values (1, 'issued before a scope was retired', 'deadbeef', 'x',
-                '["forums:read", "threads:write", "admin:read"]'::jsonb,
+                '["forums:read", "admin:read", "admin:write"]'::jsonb,
                 now() - interval '1 hour')
       `)
 
