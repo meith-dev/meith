@@ -288,8 +288,10 @@ navigation: [
 
 Each entry names one of the plugin's **own** `pages` by path, so a
 navigation item cannot point somewhere the plugin did not build. The host
-writes it into the board's navigation table under `plugin.<key>.<item>`, and
-from that moment **the operator owns it**: they rename it, reorder it, nest
+writes it into the board's navigation table under `plugin.<key>.<item>` the
+first time the board's menu is built after the plugin appears — no admin
+visit required — and from that moment **the operator owns it**: they rename
+it, reorder it, nest
 it under another item, restrict it to groups, or switch it off on
 `/admin/content/navigation`, exactly as they would a link they added
 themselves. Redeploying does not undo any of that — only the address is
