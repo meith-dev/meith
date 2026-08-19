@@ -185,25 +185,31 @@ already pushed, or a tag already made is skipped rather than refused.
 
 | Route | What it tracks | How an upgrade arrives |
 |---|---|---|
-| [Quickstart](./quickstart.md) (Coolify) | The `release` branch; the compose pin on the exact version | Every release moves the pin, so an upgrade is a **Redeploy** after the branch moves — or automatic, with the webhook on. Never from a push to `main`, and never from a restart. |
+| [Quickstart](./quickstart.md) (Coolify) | The `release` branch; the compose pin on the exact version, held per resource by `MEITH_IMAGE` | Every release moves the pin, so an upgrade is a **Redeploy** after the branch moves — or automatic, with the webhook on. Never from a push to `main`. Coolify's **Restart** re-runs the deployment from the branch head, so unpinned it upgrades too — the Quickstart has the operator pin `MEITH_IMAGE` so it cannot. |
 | [By hand](./self-hosting.md) (Compose) | A release tag in a clone | `git fetch --tags && git checkout vX.Y.Z`, rebuild. Building from source is the point of that route; the published image is the alternative for small machines. |
 | meith.dev and demo.meith.dev | `main` | The project's own resources, deliberately ahead of any release: the demo shows what is coming, and both redeploy on push. Nobody self-hosting should copy this arrangement. |
 
 ### Deploys are deterministic, and that is load-bearing
 
-The compose file names an exact, immutable version, so every path that
-creates a container — the first deploy, a redeploy, a server reboot, a
-crash restart, an environment edit — produces the same board. No deploy
-path resolves "the newest anything": a version change always has a commit
-on the `release` branch behind it, which is what makes "what is this board
+The compose file names an exact, immutable version. No deploy path
+resolves "the newest anything": a version change always has a commit on
+the `release` branch behind it, which is what makes "what is this board
 running, and since when" answerable from git history. It also keeps a bad
 release contained — a board that has not deployed the new pin is not
-running it, and holding back is simply not redeploying yet.
+running it.
 
-An operator who wants a stronger pin than a tag — a digest, immune even to
-a re-pushed tag — or who needs to hold a version while the branch moves
-on, can set `MEITH_IMAGE` in the resource's environment; it overrides the
-file's default.
+The determinism is per *commit*, though, not by itself per resource:
+Coolify re-reads the compose file from the branch head on every deploy
+action, and on a compose resource that includes the panel's **Restart**
+button, which re-runs the deployment rather than restarting containers.
+A crash or a reboot re-creates the running version; a button in the
+panel deploys whatever release the branch has moved to. What makes a
+*resource* deterministic is `MEITH_IMAGE` in its environment: it
+overrides the file's default, so Restart and Redeploy re-create exactly
+that version — which is why the Quickstart tells the operator to set it,
+and why holding back from a release is simply not moving it yet. The
+same variable serves the operator who wants a stronger pin than a tag: a
+digest, immune even to a re-pushed tag.
 
 ## The first release
 
