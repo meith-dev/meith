@@ -1,4 +1,4 @@
-import { licenceHref, site } from './site'
+import { licenceHref } from './site'
 
 export interface Loss {
   readonly complaint: string
@@ -31,8 +31,6 @@ export interface Segment {
   }
   readonly closing: { readonly heading: string; readonly body: string }
 }
-
-const duesHref = `${site.repository}/tree/main/plugins/dues`
 
 export const origin = {
   heading: 'Coming from somewhere else?',
@@ -102,7 +100,7 @@ export const segments: readonly [Segment, ...Segment[]] = [
         'forum by itself, and the money is between your club and Stripe — no cut, and no ' +
         'per-member fee at any point.',
       links: [
-        { label: 'Read what Dues does', href: duesHref },
+        { label: "The treasurer's guide", doc: 'membership-guide' },
         { label: 'How plugins work', doc: 'plugin-api' },
       ],
     },
@@ -173,7 +171,7 @@ export const segments: readonly [Segment, ...Segment[]] = [
         "way, because none of it sits inside anybody's personal account — it is a domain the " +
         'association pays for and a database it holds, handed over with a password.',
       links: [
-        { label: 'The operator handbook', doc: 'operating' },
+        { label: "The committee's guide", doc: 'committee-guide' },
         { label: 'Read the licence', href: licenceHref },
       ],
     },
@@ -315,7 +313,7 @@ export const segments: readonly [Segment, ...Segment[]] = [
         'sends notices to it. None of which is really a feature — it is the absence of a ' +
         'landlord.',
       links: [
-        { label: 'The operator handbook', doc: 'operating' },
+        { label: "The committee's guide", doc: 'committee-guide' },
         { label: 'Read the licence', href: licenceHref },
       ],
     },
