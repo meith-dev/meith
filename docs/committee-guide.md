@@ -137,6 +137,28 @@ every board starts and where most stay. The logo's alt text, for screen
 readers, is **Logo alt text** under the board settings; left empty it
 becomes the board's name.
 
+### The tab icon, home-screen icon and shared links
+
+There is nothing to upload here. The browser-tab icon (favicon), the icon
+a phone saves when someone adds the board to their home screen, and the
+picture that appears when a board link is pasted into a chat or posted to
+a social network are all **drawn from what you have already set** — the
+board name, the default theme's colours, and the logo when there is one.
+
+- The **tab icon** is a small square with the board's initials in the
+  theme's primary colour. It follows the reader's light or dark mode.
+- The **home-screen icon** — the board installs as a progressive web app
+  — centres the light logo, or the initials when no logo is set, on the
+  theme background.
+- The **link preview** (Open Graph and X/Twitter card) shows the logo,
+  the board name and its description on the theme background.
+
+Change the name, upload a logo, or set a new default theme and all three
+follow at once; there is no separate step and no cache to clear. A logo
+is drawn into these pictures only when it is a PNG or JPEG within the
+upload limit — an SVG or WebP logo still shows in the header, and the
+generated icons and preview fall back to the board's initials and name.
+
 ### Colours, fonts and themes
 
 The same **Admin → Themes** screen holds, per theme:

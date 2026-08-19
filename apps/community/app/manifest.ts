@@ -33,8 +33,11 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     background_color: browserThemeColor.light,
     theme_color: browserThemeColor.light,
     icons: [
-      { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-      { src: '/apple-icon.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
+      { src: '/icon', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+      { src: '/brand/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/brand/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/brand/icon-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/apple-icon', sizes: '180x180', type: 'image/png', purpose: 'any' },
     ],
   }
 }
