@@ -369,6 +369,7 @@ jobs:
           docker compose -f compose.coolify.yml config >/dev/null
           docker compose -f compose.dev.yml config >/dev/null
           docker compose -f compose.site.coolify.yml config >/dev/null
+          docker compose -f coolify-service-template.yml config >/dev/null
 
       # docs/self-hosting.md tells an operator to write a `.env` and run one
       # command. This job is that, verbatim, because three separate bugs got

@@ -121,10 +121,26 @@ appears to work and corrupts something a week later.
 button, pressed after a release. The compose file pins the exact version
 (`ghcr.io/meith-dev/meith:0.6.0`), and every release moves that pin on
 the `release` branch — so a redeploy deploys whatever release the branch
-holds, and nothing else ever changes the board: a restart, a crash or a
-reboot re-creates the version already pinned, never something newer.
-Enable the webhook and releases deploy themselves; leave it off and
-upgrades wait for the button. Take the backup first either way.
+holds, exactly.
+
+Know what else presses that button. Coolify re-reads the compose file
+from the branch head on every deploy of the resource, and on a compose
+resource the panel's **Restart** button is a deploy — it re-runs the
+deployment rather than restarting the containers. If a release has
+landed since you last deployed, Restart upgrades you to it, migrations
+and all. Only restarts below the panel — a crash, a host reboot — are
+guaranteed to re-create the version already running.
+
+That is why the [Quickstart](./quickstart.md#3-set-your-domain-and-deploy)
+has you pin the version on the resource: `MEITH_IMAGE` in the resource's
+environment, set to the exact image, wins over whatever the branch
+holds, so Restart and Redeploy re-create that version and nothing else.
+The upgrade is then three deliberate acts: take the backup, move
+`MEITH_IMAGE` to the new version, press Redeploy.
+
+Without the pin, enable the webhook and releases deploy themselves;
+leave it off and upgrades wait for a button — either button. Take the
+backup first in any case.
 
 The one ceremony you may skip is for a **patch**: the
 [release policy](./release.md#the-version-policy) is that a patch never

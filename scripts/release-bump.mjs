@@ -64,12 +64,18 @@ const PLUGIN_MANIFESTS = [
   },
 ]
 
-const COMPOSE_PIN = {
-  file: 'docker/compose.coolify.yml',
-  pattern: /(\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:)[^}]+(\})/g,
-}
+const COMPOSE_PINS = [
+  {
+    file: 'docker/compose.coolify.yml',
+    pattern: /(\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:)[^}]+(\})/g,
+  },
+  {
+    file: 'docker/coolify-service-template.yml',
+    pattern: /(\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:)[^}]+(\})/g,
+  },
+]
 
-const REWRITES = [...SOURCE_CONSTANTS, ...PLUGIN_MANIFESTS, COMPOSE_PIN]
+const REWRITES = [...SOURCE_CONSTANTS, ...PLUGIN_MANIFESTS, ...COMPOSE_PINS]
 
 for (const { file, pattern } of REWRITES) {
   const path = join(ROOT, file)
@@ -89,5 +95,5 @@ execFileSync('pnpm', ['api:docs'], { cwd: ROOT, stdio: 'inherit' })
 console.log(
   `✓ release bump: ${current} → ${version} in the root manifest, ${manifests} workspace manifests, ` +
     `${SOURCE_CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
-    'the compose pin, and the generated OpenAPI document. Run release-check, then commit.',
+    `${COMPOSE_PINS.length} compose pins, and the generated OpenAPI document. Run release-check, then commit.`,
 )

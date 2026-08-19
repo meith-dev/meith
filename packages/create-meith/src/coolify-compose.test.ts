@@ -2,12 +2,16 @@ import { readFile } from 'node:fs/promises'
 
 import { describe, expect, it } from 'vitest'
 
-const compose = await readFile(
-  new URL('../../../docker/compose.coolify.yml', import.meta.url),
-  'utf8',
-)
+const FILES = [
+  ['compose.coolify.yml', await read('compose.coolify.yml')],
+  ['coolify-service-template.yml', await read('coolify-service-template.yml')],
+] as const
 
-function service(name: string): string {
+function read(name: string): Promise<string> {
+  return readFile(new URL(`../../../docker/${name}`, import.meta.url), 'utf8')
+}
+
+function serviceOf(compose: string, name: string): string {
   const start = compose.indexOf(`\n  ${name}:\n`)
   if (start === -1) throw new Error(`no ${name} service in the compose file`)
   const rest = compose.slice(start + 1)
@@ -17,7 +21,9 @@ function service(name: string): string {
 
 const SERVICES = ['postgres', 'migrate', 'web', 'worker']
 
-describe('the Coolify compose file', () => {
+describe.each(FILES)('%s', (_name, compose) => {
+  const service = (name: string) => serviceOf(compose, name)
+
   it('runs the whole board, not just the part that answers requests', () => {
     for (const name of SERVICES) {
       expect(() => service(name)).not.toThrow()
@@ -66,5 +72,27 @@ describe('the Coolify compose file', () => {
   it('generates the database password from an alphabet a URL can carry', () => {
     expect(compose).toMatch(/DATABASE_URL[=:] ?postgres:\/\/community:\$SERVICE_PASSWORD_POSTGRES@/)
     expect(compose).not.toMatch(/postgres:\/\/community:\$SERVICE_BASE64/)
+  })
+})
+
+describe('the service template', () => {
+  const template = FILES[1][1]
+
+  it('carries the metadata Coolify reads a catalogue entry from', () => {
+    for (const key of ['documentation', 'slogan', 'tags', 'logo', 'port']) {
+      expect(template).toMatch(new RegExp(`^# ${key}: .+`, 'm'))
+    }
+  })
+
+  it('pins the same version as the compose file, so a release moves both or neither', () => {
+    const pin = (source: string) =>
+      [...source.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)].map(
+        (match) => match[1],
+      )
+    const composePins = pin(FILES[0][1])
+    const templatePins = pin(template)
+    expect(composePins.length).toBeGreaterThan(0)
+    expect(templatePins.length).toBeGreaterThan(0)
+    expect(new Set([...composePins, ...templatePins]).size).toBe(1)
   })
 })

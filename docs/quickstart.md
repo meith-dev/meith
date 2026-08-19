@@ -108,6 +108,26 @@ route exists:
 - **The certificate is issued and renewed** by Coolify's proxy.
 - **Nothing is published on the host**, so the proxy is the only way in.
 
+### Pin the version, so nothing upgrades this board without you
+
+One more minute here saves a surprise later. The compose file names the
+exact version to deploy, and each release moves that pin on the
+`release` branch — but Coolify re-reads the file from the branch every
+time it deploys the resource, and on this kind of resource the
+**Restart** button is a deploy too. Left unpinned, pressing Restart
+after a release has come out is an unplanned upgrade, database
+migrations included.
+
+So pin it to the resource: open the resource's **Environment Variables**
+and add `MEITH_IMAGE`, set to the exact image that just deployed —
+`ghcr.io/meith-dev/meith:` and the version, which the deploy log's first
+lines print (e.g. `ghcr.io/meith-dev/meith:0.11.0`). That value wins
+over the compose file, so from now on every button re-creates the
+version you pinned and nothing else. Upgrading becomes a deliberate act
+— back up, move `MEITH_IMAGE` to the new version, press Redeploy — and
+[Upgrading a board](./upgrading.md#upgrading-each-deployment-route) is
+the page for it.
+
 ## 4. Run the installer
 
 Open `https://your-domain/install`.
@@ -323,6 +343,7 @@ can fix and retry:
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
 | Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
 | Nothing happens on a schedule | The `worker` container is not running. Every background task is on that loop, and when it stops **nothing errors** — see `/admin/system`. |
+| The board is on a newer version than you deployed | **Restart** and **Redeploy** both re-run the deployment from the `release` branch, which a release has moved since. Pin `MEITH_IMAGE` on the resource — [step 3](#pin-the-version-so-nothing-upgrades-this-board-without-you) — and neither button can do it again. |
 
 [Running a board § Troubleshooting](./operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.
