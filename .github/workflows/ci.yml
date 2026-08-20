@@ -136,6 +136,11 @@ jobs:
       - name: Types (site)
         run: pnpm typecheck:site
 
+      - name: Redis for the cache driver contract
+        run: |
+          command -v redis-server >/dev/null 2>&1 \
+            || (sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server)
+
       - name: Unit and integration tests
         run: pnpm test
 
@@ -664,6 +669,11 @@ jobs:
       # thing this suite found was a write path that PGlite accepted and every
       # real Postgres rejected. Without this variable the file skips, so a
       # developer's `pnpm test` still needs no service.
+      - name: Redis for the cache driver contract
+        run: |
+          command -v redis-server >/dev/null 2>&1 \
+            || (sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server)
+
       - name: Postgres-backed tests
         run: pnpm test
         env:

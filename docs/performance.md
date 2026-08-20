@@ -14,6 +14,12 @@ The p95 budgets for the pages a board’s traffic actually goes to, what the
 last recorded run measured against a full-scale board one read at a time,
 and what a board full of members reading at once measured on the same data.
 
+Every number here is measured on a **single-instance** board — one web
+process with the per-process cache, no Redis. That is the stock topology
+and the honest baseline. A board [scaled out](./scaling.md) answers from a
+shared cache instead of an in-process map, so its numbers differ; measure
+your own rather than reading these across.
+
 ## The board these numbers came from
 
 | | |

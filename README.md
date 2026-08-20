@@ -120,6 +120,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 | Running the server | [`web-push.md`](./docs/web-push.md) | Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on. |
 | Running the server | [`performance.md`](./docs/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
 | Running the server | [`demo-mode.md`](./docs/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
+| Scaling out | [`scaling.md`](./docs/scaling.md) | Running more than one web container: the Redis cache that keeps them coherent, what already scales, and the step-by-step migration from a single-instance board. |
 | Themes, plugins and the API | [`theme-api.md`](./docs/theme-api.md) | How to write a theme, what a theme may do, and what the API freeze covers. |
 | Themes, plugins and the API | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
 | Themes, plugins and the API | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |

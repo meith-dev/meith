@@ -32,6 +32,11 @@
       "blurb": "For whoever minds the machine: configuration, the CLI, upgrades, mail, backups, sign-in, and the rest of the operator's craft."
     },
     {
+      "id": "scaling",
+      "title": "Scaling out",
+      "blurb": "For the board that has outgrown one web container: the shared Redis cache, what already scales, and the migration from a single-instance deployment."
+    },
+    {
       "id": "extending",
       "title": "Themes, plugins and the API",
       "blurb": "For the member who codes: the frozen theme contract, what a plugin may do, and every endpoint the board answers."
@@ -155,6 +160,15 @@
       "blurb": "The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself.",
       "generated": false,
       "primary": false
+    },
+    {
+      "slug": "scaling",
+      "file": "scaling.md",
+      "section": "scaling",
+      "title": "Scaling out",
+      "blurb": "Running more than one web container: the Redis cache that keeps them coherent, what already scales, and the step-by-step migration from a single-instance board.",
+      "generated": false,
+      "primary": true
     },
     {
       "slug": "theme-api",

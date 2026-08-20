@@ -1,10 +1,10 @@
 import 'server-only'
 
-import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
 
-import { CacheTags, env } from '@meith/core'
+import { CacheTags, cachedGlobal, env } from '@meith/core'
 import { getDb, PostgresThemeRepository, type ThemeRuntimeState } from '@meith/db'
+import { drivers } from '@meith/drivers'
 import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 
 import forumConfig from '../../community.config'
@@ -64,12 +64,19 @@ function composeBoard(rows: readonly ThemeRuntimeState[]): BoardThemeStyle {
   }
 }
 
-const loadPostgresBoardStyle = unstable_cache(
-  async (): Promise<BoardThemeStyle> =>
-    composeBoard(await new PostgresThemeRepository(getDb()).listRuntime()),
-  ['board-theme-style'],
-  { tags: registered.map((theme) => CacheTags.theme(theme.key)) },
-)
+const TTL_SECONDS = 60
+
+function loadPostgresBoardStyle(): Promise<BoardThemeStyle> {
+  return cachedGlobal(
+    drivers().cache,
+    {
+      key: ['board-theme-style'],
+      tags: registered.map((theme) => CacheTags.theme(theme.key)),
+      revalidate: TTL_SECONDS,
+    },
+    async () => composeBoard(await new PostgresThemeRepository(getDb()).listRuntime()),
+  )
+}
 
 export const getBoardThemeStyle = cache(async (): Promise<BoardThemeStyle> => {
   if (env.DATA_SOURCE === 'fixture') return shippedStyle()

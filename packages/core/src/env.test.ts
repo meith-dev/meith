@@ -6,7 +6,8 @@ const base = {
   NODE_ENV: 'production',
   AUTH_SECRET: 'a'.repeat(32),
   TICK_SECRET: 'b'.repeat(32),
-  QUEUE_DRIVER: 'redis',
+  DATABASE_URL: 'postgres://u:p@localhost:5432/forum',
+  CACHE_DRIVER: 'redis',
   REDIS_URL: 'redis://localhost:6379',
 } satisfies NodeJS.ProcessEnv
 
@@ -73,8 +74,16 @@ describe('cross-field rules', () => {
     )
   })
 
-  it('rejects a redis driver with no REDIS_URL', () => {
+  it('rejects a redis cache with no REDIS_URL', () => {
     expect(() => parseEnv({ ...base, REDIS_URL: undefined })).toThrow(/REDIS_URL/)
+  })
+
+  it('rejects a REDIS_URL that is not a redis connection string', () => {
+    expect(() => parseEnv({ ...base, REDIS_URL: 'http://localhost:6379' })).toThrow(/REDIS_URL/)
+  })
+
+  it('no longer admits the redis queue it never implemented', () => {
+    expect(() => parseEnv({ ...base, QUEUE_DRIVER: 'redis' })).toThrow(/QUEUE_DRIVER/)
   })
 
   it('rejects a low-entropy secret', () => {
@@ -84,9 +93,7 @@ describe('cross-field rules', () => {
 
 describe('production rules', () => {
   it('refuses to boot a production server with a memory queue', () => {
-    expect(() => parseEnv({ ...base, QUEUE_DRIVER: 'memory', REDIS_URL: undefined })).toThrow(
-      /QUEUE_DRIVER/,
-    )
+    expect(() => parseEnv({ ...base, QUEUE_DRIVER: 'memory' })).toThrow(/QUEUE_DRIVER/)
   })
 
   it('refuses to boot a Vercel deployment writing uploads to local disk', () => {

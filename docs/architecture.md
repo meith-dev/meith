@@ -255,7 +255,7 @@ Implementations of the four core ports:
 | Port | Implementations | Selected by |
 |---|---|---|
 | Queue | `PostgresQueue` (a `jobs` table, `FOR UPDATE SKIP LOCKED`), `MemoryQueue` | `QUEUE_DRIVER` |
-| Cache | `NextCacheDriver` (backed by an in-process `MemoryCache`) | — (always) |
+| Cache | `NextCacheDriver` (backed by an in-process `MemoryCache`), `RedisCacheDriver` (one shared store, for [more than one web container](./scaling.md)) | `CACHE_DRIVER` |
 | Files | `LocalFileStore`, `S3FileStore` | `FILESTORE_DRIVER` |
 | Mail | `ConfiguredMailDriver` → SMTP, HTTP or log | `MAIL_DRIVER`, or the settings table |
 
@@ -267,7 +267,9 @@ supplies the queue default (`postgres` implies the Postgres queue, `fixture`
 implies memory) and decides which repository set the composition roots build.
 
 Every implementation of a port runs the same contract suite from
-`@meith/testkit`, under its own name.
+`@meith/testkit`, under its own name — the Redis cache against a real
+`redis-server` the suite spawns itself, including the cross-instance
+invalidation that [scaling out](./scaling.md) depends on.
 
 **The image codecs** are the one thing here no environment variable selects.
 Attachments and avatars are re-encoded through WebAssembly (`@jsquash/png`,

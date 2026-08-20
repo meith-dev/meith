@@ -1,15 +1,14 @@
 import { msg } from '@meith/i18n'
 import 'server-only'
 
-import { unstable_cache } from 'next/cache'
-
-import { CacheTags, ForbiddenError } from '@meith/core'
+import { CacheTags, cachedGlobal, ForbiddenError } from '@meith/core'
 import {
   getDb,
   PostgresAttachmentAdminRepository,
   PostgresContentAdminRepository,
   readVocabularySource,
 } from '@meith/db'
+import { drivers } from '@meith/drivers'
 import {
   type BoardVocabulary,
   type CompiledWordFilter,
@@ -36,11 +35,19 @@ export function requireContentAdmin(): PostgresContentAdminRepository {
   return repository
 }
 
-const loadFilters = unstable_cache(
-  async () => new PostgresContentAdminRepository(getDb()).activeWordFilters(),
-  ['word-filters'],
-  { tags: [CacheTags.wordFilters()] },
-)
+const TTL_SECONDS = 60
+
+function loadFilters(): ReturnType<PostgresContentAdminRepository['activeWordFilters']> {
+  return cachedGlobal(
+    drivers().cache,
+    {
+      key: ['word-filters'],
+      tags: [CacheTags.wordFilters()],
+      revalidate: TTL_SECONDS,
+    },
+    () => new PostgresContentAdminRepository(getDb()).activeWordFilters(),
+  )
+}
 
 export async function activeWordFilter(): Promise<CompiledWordFilter | undefined> {
   const stored = getContainer().dataSource === 'postgres' ? await loadFilters() : []
@@ -49,11 +56,17 @@ export async function activeWordFilter(): Promise<CompiledWordFilter | undefined
   return rules.length === 0 ? undefined : compileWordFilter(rules)
 }
 
-const loadVocabularySource = unstable_cache(
-  async () => readVocabularySource(getDb()),
-  ['markdown-vocabulary-rows'],
-  { tags: [CacheTags.markdownVocabulary()] },
-)
+function loadVocabularySource(): ReturnType<typeof readVocabularySource> {
+  return cachedGlobal(
+    drivers().cache,
+    {
+      key: ['markdown-vocabulary-rows'],
+      tags: [CacheTags.markdownVocabulary()],
+      revalidate: TTL_SECONDS,
+    },
+    () => readVocabularySource(getDb()),
+  )
+}
 
 export async function activeVocabulary(): Promise<BoardVocabulary | undefined> {
   const stored =

@@ -12,6 +12,12 @@ const databaseUrl = z
 
 const secret = z.string().min(32, 'must be at least 32 characters of high-entropy random data')
 
+const redisUrl = z
+  .string()
+  .refine((value) => value.startsWith('redis://') || value.startsWith('rediss://'), {
+    message: 'must be a redis:// or rediss:// connection string',
+  })
+
 const flag = z
   .enum(['0', '1', 'true', 'false'], { message: 'must be one of 0, 1, true or false' })
   .default('0')
@@ -37,12 +43,12 @@ const envSchema = z
 
     APP_URL: z.string().url().optional(),
 
-    QUEUE_DRIVER: z.enum(['memory', 'postgres', 'redis']),
+    QUEUE_DRIVER: z.enum(['memory', 'postgres']),
     CACHE_DRIVER: z.enum(['memory', 'next', 'redis']),
     FILESTORE_DRIVER: z.enum(['local', 's3']).default('local'),
     MAIL_DRIVER: z.enum(['log', 'http', 'smtp']).default('log'),
 
-    REDIS_URL: z.string().url().optional(),
+    REDIS_URL: redisUrl.optional(),
 
     UPLOADS_DIR: nonEmpty.default('.uploads'),
 
@@ -102,11 +108,11 @@ const envSchema = z
       })
     }
 
-    if ((value.QUEUE_DRIVER === 'redis' || value.CACHE_DRIVER === 'redis') && !value.REDIS_URL) {
+    if (value.CACHE_DRIVER === 'redis' && !value.REDIS_URL) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['REDIS_URL'],
-        message: 'is required when QUEUE_DRIVER=redis or CACHE_DRIVER=redis',
+        message: 'is required when CACHE_DRIVER=redis',
       })
     }
 
@@ -166,7 +172,7 @@ const envSchema = z
           path: ['QUEUE_DRIVER'],
           message:
             "cannot be 'memory' in production — queued jobs would be lost on " +
-            "every cold start. Use 'postgres' or 'redis'.",
+            "every cold start. Use 'postgres'.",
         })
       }
 

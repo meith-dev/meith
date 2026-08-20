@@ -24,6 +24,7 @@ somebody has already set the board up for you, start with
 | Approve posts, handle reports, tidy threads | [The moderator's guide](./moderation-guide.md) |
 | Take the subs online | [The treasurer's guide](./membership-guide.md) |
 | Run the server day to day | [Running a board](./operating.md) |
+| Run more than one web container | [Scaling out](./scaling.md) |
 | Move a board to a new version | [Upgrading a board](./upgrading.md) |
 | Add 2FA, SSO or passkeys | [Signing in](./single-sign-on.md) |
 | Run a board in another language | [Languages](./internationalisation.md) |
@@ -72,6 +73,14 @@ For whoever minds the machine.
 | [`web-push.md`](./web-push.md) | Notifications that reach a member who does not have the board open, the privacy that costs, and the manifest that makes the board installable. |
 | [`performance.md`](./performance.md) | The p95 budgets for hot pages and what the last load run measured. *Generated — do not edit.* |
 | [`demo-mode.md`](./demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev, and how to run one yourself. |
+
+## Scaling out
+
+For the board that has outgrown one web container.
+
+| Document | What it covers |
+|---|---|
+| [`scaling.md`](./scaling.md) | What already scales, the shared Redis cache that keeps several web containers coherent, and the step-by-step migration from a single-instance deployment. |
 
 ## Themes, plugins and the API
 
