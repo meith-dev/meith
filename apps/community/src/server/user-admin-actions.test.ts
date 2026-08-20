@@ -4,10 +4,14 @@ const adminCalls: Array<{ action: string; detail: unknown }> = []
 const requireAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
 const requireFreshAdminMock = vi.fn(async () => ({ session: { userId: 1 } }))
 const revalidated: string[] = []
+let refreshes = 0
 vi.mock('next/cache', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
   return {
     ...actual,
+    refresh: () => {
+      refreshes += 1
+    },
     revalidatePath: (path: string) => {
       revalidated.push(path)
     },
@@ -194,6 +198,7 @@ beforeEach(() => {
   held.email = 'ann@example.test'
   invalidated.length = 0
   revalidated.length = 0
+  refreshes = 0
   accounts.length = 0
   states.length = 0
   bans.length = 0
@@ -336,13 +341,15 @@ describe('banMemberAction', () => {
     expect(bans[0]?.expiresAt).toBeUndefined()
   })
 
-  it('turns a length in days into an expiry', async () => {
+  it('turns a length in days into an expiry and refreshes the open member screen', async () => {
     await banMemberAction({}, form({ userId: '7', days: '3' }))
 
     const expiresAt = bans[0]?.expiresAt as Date
     const days = (expiresAt.getTime() - Date.now()) / 86_400_000
     expect(days).toBeGreaterThan(2.9)
     expect(days).toBeLessThan(3.1)
+    expect(revalidated).toEqual(['/admin/users', '/admin/users/[id]'])
+    expect(refreshes).toBe(1)
   })
 
   it('refuses a length that is not a positive whole number of days', async () => {

@@ -1575,7 +1575,9 @@ An account's **state** — active, or awaiting activation — and a **ban**
 are two different things in two different places. The state is a column
 on the account; a ban is a record with a reason, an expiry, and the group
 the member held before it. Banning through `/admin/users/[id]` writes the
-record; it does not flip the state column.
+record; it does not flip the state column. The open member screen refreshes
+as part of the write, so the ban details and lift control replace the ban
+form without a browser reload; lifting it restores the form the same way.
 
 Because of that, the state form on the member's screen is not shown while
 a ban is in force — and the server refuses the change too, by looking for
