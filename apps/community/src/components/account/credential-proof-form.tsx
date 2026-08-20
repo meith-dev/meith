@@ -10,11 +10,21 @@ import { proveCredentialAction } from '@/server/credential-proof-actions'
 
 import { FormError } from '../auth/form-controls'
 
+export interface CredentialProofCopy {
+  readonly codeConsumed: string
+  readonly codeLabel: string
+  readonly codeSubmit: string
+  readonly passwordLabel: string
+  readonly passwordSubmit: string
+}
+
 export function CredentialProofForm({
+  copy,
   hasPassword,
   hasSecondFactor,
   next,
 }: {
+  readonly copy: CredentialProofCopy
   readonly hasPassword: boolean
   readonly hasSecondFactor: boolean
   readonly next: string
@@ -32,12 +42,12 @@ export function CredentialProofForm({
           <input type="hidden" name="method" value="password" />
           <input type="hidden" name="next" value={next} />
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Current password</span>
+            <span className="font-medium">{copy.passwordLabel}</span>
             <Input name="password" type="password" autoComplete="current-password" required />
           </label>
           <div>
             <Button type="submit" variant="primary">
-              Verify password
+              {copy.passwordSubmit}
             </Button>
           </div>
         </form>
@@ -50,13 +60,13 @@ export function CredentialProofForm({
           <input type="hidden" name="method" value="code" />
           <input type="hidden" name="next" value={next} />
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Authenticator or recovery code</span>
+            <span className="font-medium">{copy.codeLabel}</span>
             <Input name="code" inputMode="numeric" autoComplete="one-time-code" required />
           </label>
-          <p className="text-sm text-muted-foreground">A recovery code is consumed when used.</p>
+          <p className="text-sm text-muted-foreground">{copy.codeConsumed}</p>
           <div>
             <Button type="submit" variant="primary">
-              Verify code
+              {copy.codeSubmit}
             </Button>
           </div>
         </form>

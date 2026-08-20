@@ -8,7 +8,17 @@ import { passkeyMessage, proveWithPasskey } from '@/components/auth/passkey-clie
 
 import type { Copy } from '../shell/copy-record'
 
-export function PasskeyProofButton({ next, copy }: { readonly next: string; readonly copy: Copy }) {
+export function PasskeyProofButton({
+  next,
+  copy,
+  waitingLabel,
+  verifyLabel,
+}: {
+  readonly next: string
+  readonly copy: Copy
+  readonly waitingLabel: string
+  readonly verifyLabel: string
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,7 +39,7 @@ export function PasskeyProofButton({ next, copy }: { readonly next: string; read
             })
         }}
       >
-        {busy ? 'Waiting for passkey' : 'Verify with a passkey'}
+        {busy ? waitingLabel : verifyLabel}
       </Button>
       {error === null ? null : <p className="text-sm text-destructive">{error}</p>}
     </div>
