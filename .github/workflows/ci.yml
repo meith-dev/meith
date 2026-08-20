@@ -726,7 +726,9 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends postgresql-client-18
-          pg_dump --version
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version | grep -q ' 18\.' \
+            || { echo "::error::postgresql-client-18 did not install version 18"; exit 1; }
 
       - name: Seed a board with content and an upload
         run: |
