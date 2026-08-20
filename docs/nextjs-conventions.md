@@ -280,6 +280,12 @@ list means adding a spec there.
   page re-renders server-side and shows the same message.
 - Echo the user's input back in `FormState.values` so a failed submit does
   not blank the form — **except the password**.
+- `FormError` (and the install wizard's error summary) is a JS-on
+  enhancement: `useFocusOnFail`, in `form-controls.tsx`, moves focus to the
+  error region when a pending submit settles into a failure, so a keyboard
+  or screen-reader user lands on what went wrong instead of hunting for it.
+  With JS off the same message renders in place, unfocused, from the
+  server round-trip.
 
 > [!IMPORTANT]
 > **Islands enhance; they never enable.** If removing a client component
