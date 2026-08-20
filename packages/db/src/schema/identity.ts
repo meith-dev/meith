@@ -202,6 +202,7 @@ export const sessions = pgTable(
     userAgent: text('user_agent'),
 
     supersededBySessionId: integer('superseded_by_session_id'),
+    credentialProvedAt: timestamp('credential_proved_at', { withTimezone: true }),
 
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

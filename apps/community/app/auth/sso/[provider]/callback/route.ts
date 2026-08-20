@@ -5,7 +5,12 @@ import { isAppError, logger, RateLimitedError } from '@meith/core'
 import { refused, spendRegisterLimit } from '@/server/antispam'
 import { recordAuthEvent } from '@/server/auth-events'
 import { sendVerificationEmail } from '@/server/auth-mail'
+import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import {
+  currentCredentialProof,
+  markCurrentSessionCredentialProved,
+} from '@/server/credential-proof'
 import {
   callbackUrl,
   federationProvider,
@@ -55,7 +60,7 @@ export async function GET(
   const handshake = decodeHandshake(await readHandshakeCookie())
   await clearHandshakeCookie()
 
-  const home = handshake?.mode === 'link' ? '/usercp/security' : '/login'
+  const home = handshake?.mode === 'sign-in' ? '/login' : '/usercp/security'
 
   if (handshake === null || handshake.provider !== requested) {
     return to(withReason(home, 'expired'))
@@ -87,10 +92,44 @@ export async function GET(
 
     const federation = await federationService()
 
+    if (handshake.mode === 'credential-proof') {
+      const actor = await getActor()
+      if (
+        actor.userId === null ||
+        handshake.userId !== actor.userId ||
+        handshake.sessionId === undefined
+      ) {
+        return to(withReason(home, 'expired'))
+      }
+      const identities = await getContainer().accountStore.identities.listForUser(actor.userId)
+      const identity = identities.find(
+        (candidate) => candidate.provider === provider.id && candidate.subject === profile.subject,
+      )
+      const sessionId = await import('@/server/session-actions').then((module) =>
+        module.currentSessionId(),
+      )
+      if (identity === undefined || sessionId !== handshake.sessionId) {
+        return to(withReason(home, 'mismatch'))
+      }
+      if (!(await markCurrentSessionCredentialProved(actor.userId))) {
+        return to(withReason(home, 'expired'))
+      }
+      return to('/usercp/security?verified=1')
+    }
+
     if (handshake.mode === 'link') {
       const actor = await getActor()
       if (actor.userId === null) return to('/login?next=%2Fusercp%2Fsecurity')
       if (!(await memberManagedSignIns())) return to(withReason(home, 'off'))
+      const proof = await currentCredentialProof(actor.userId)
+      if (
+        proof === null ||
+        handshake.userId !== actor.userId ||
+        handshake.sessionId !== proof.session.id ||
+        handshake.provedAt !== proof.provedAt.getTime()
+      ) {
+        return to('/usercp/security/verify?next=%2Fusercp%2Fsecurity')
+      }
 
       await federation.linkToViewer({ userId: actor.userId, provider, profile })
       await recordAuthEvent({ userId: actor.userId, kind: 'identity_linked' })

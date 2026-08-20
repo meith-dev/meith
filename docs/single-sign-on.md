@@ -387,6 +387,10 @@ password-reset flow to their confirmed address.
 
 ### Linking and unlinking
 
+Adding a passkey or linking another SSO identity requires recent proof of a credential the member already controls. The proof is bound to the current session and remains valid for 10 minutes; another session, including one restored from a remember token, cannot reuse it.
+
+A member can prove a current password, an enrolled passkey, an authenticator or recovery code, or an already-linked SSO identity. Recovery-code proof consumes that code. Passkey registration and SSO linking check the same session-bound proof both when the flow starts and immediately before the new credential is persisted.
+
 A member manages their own links at **/usercp/security**: every linked
 provider, when it was linked, when it was last used, and a button to unlink
 it. A provider that is switched on and not yet linked appears as a

@@ -2,7 +2,7 @@ import { decodeBase64UrlText, encodeBase64Url, isProviderKind } from '@meith/acc
 
 import { isSafeLocalPath } from './safe-path'
 
-export type HandshakeMode = 'sign-in' | 'link'
+export type HandshakeMode = 'sign-in' | 'link' | 'credential-proof'
 
 export interface Handshake {
   readonly provider: string
@@ -12,6 +12,9 @@ export interface Handshake {
   readonly codeVerifier: string
   readonly next: string
   readonly authorizationUrl: string
+  readonly userId?: number
+  readonly sessionId?: number
+  readonly provedAt?: number
 }
 
 export function isProviderAddress(value: string): boolean {
@@ -49,7 +52,7 @@ export function decodeHandshake(raw: string | undefined): Handshake | null {
   const authorizationUrl = text(candidate.authorizationUrl)
 
   if (provider === null || !isProviderKind(provider)) return null
-  if (mode !== 'sign-in' && mode !== 'link') return null
+  if (mode !== 'sign-in' && mode !== 'link' && mode !== 'credential-proof') return null
   if (state === null || nonce === null || codeVerifier === null) return null
   if (authorizationUrl === null || !isProviderAddress(authorizationUrl)) return null
 
@@ -61,7 +64,14 @@ export function decodeHandshake(raw: string | undefined): Handshake | null {
     codeVerifier,
     authorizationUrl,
     next: next !== null && isSafeLocalPath(next) ? next : '/',
+    ...(integer(candidate.userId) === null ? {} : { userId: integer(candidate.userId)! }),
+    ...(integer(candidate.sessionId) === null ? {} : { sessionId: integer(candidate.sessionId)! }),
+    ...(integer(candidate.provedAt) === null ? {} : { provedAt: integer(candidate.provedAt)! }),
   }
+}
+
+function integer(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) ? value : null
 }
 
 function text(value: unknown): string | null {

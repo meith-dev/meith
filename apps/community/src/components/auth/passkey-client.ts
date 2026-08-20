@@ -35,7 +35,7 @@ async function readProblem(response: Response, copy: Copy): Promise<string> {
   }
 }
 
-type Purpose = 'register' | 'authenticate' | 'second-factor'
+type Purpose = 'register' | 'authenticate' | 'second-factor' | 'credential-proof'
 
 async function options(purpose: Purpose, copy: Copy): Promise<Record<string, unknown>> {
   const response = await fetch(`/auth/passkey/options?for=${purpose}`, {
@@ -112,6 +112,10 @@ export async function signInWithPasskey(next: string | undefined, copy: Copy): P
  */
 export async function confirmWithPasskey(next: string | undefined, copy: Copy): Promise<string> {
   return assertPasskey('second-factor', next, copy)
+}
+
+export async function proveWithPasskey(next: string | undefined, copy: Copy): Promise<string> {
+  return assertPasskey('credential-proof', next, copy)
 }
 
 async function assertPasskey(

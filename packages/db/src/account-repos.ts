@@ -201,6 +201,23 @@ export class PostgresSessionRepository implements SessionRepository {
     return toSessionRecord(row)
   }
 
+  async markCredentialProved(sessionId: number, userId: number, at: Date): Promise<boolean> {
+    const rows = await this.db
+      .update(sessions)
+      .set({ credentialProvedAt: at })
+      .where(
+        and(
+          eq(sessions.id, sessionId),
+          eq(sessions.userId, userId),
+          isNull(sessions.revokedAt),
+          isNull(sessions.supersededBySessionId),
+          gt(sessions.expiresAt, at),
+        ),
+      )
+      .returning({ id: sessions.id })
+    return rows.length > 0
+  }
+
   async listActiveForUser(userId: number, now: Date): Promise<readonly ActiveSessionRecord[]> {
     return this.db
       .select({
@@ -295,6 +312,7 @@ const SESSION_COLUMNS = {
   expiresAt: sessions.expiresAt,
   revokedAt: sessions.revokedAt,
   supersededBySessionId: sessions.supersededBySessionId,
+  credentialProvedAt: sessions.credentialProvedAt,
   lastSeenAt: sessions.lastSeenAt,
 } as const
 
@@ -304,6 +322,7 @@ function toSessionRecord(row: {
   expiresAt: Date
   revokedAt: Date | null
   supersededBySessionId: number | null
+  credentialProvedAt: Date | null
   lastSeenAt: Date
 }): SessionRecord {
   return {
@@ -312,6 +331,7 @@ function toSessionRecord(row: {
     expiresAt: row.expiresAt,
     revokedAt: row.revokedAt,
     supersededBySessionId: row.supersededBySessionId,
+    credentialProvedAt: row.credentialProvedAt,
     lastSeenAt: row.lastSeenAt,
   }
 }

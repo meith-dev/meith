@@ -146,6 +146,7 @@ class MemorySessions implements SessionRepository {
       expiresAt: input.expiresAt,
       revokedAt: null,
       supersededBySessionId: null,
+      credentialProvedAt: null,
       lastSeenAt: new Date(),
     }
     this.byId.set(record.id, record)
@@ -161,6 +162,22 @@ class MemorySessions implements SessionRepository {
   async findByTokenHash(tokenHash: string): Promise<SessionRecord | null> {
     const id = this.byHash.get(tokenHash)
     return id === undefined ? null : (this.byId.get(id) ?? null)
+  }
+
+  async markCredentialProved(sessionId: number, userId: number, at: Date): Promise<boolean> {
+    const current = this.byId.get(sessionId)
+    if (
+      current === undefined ||
+      current.userId !== userId ||
+      current.revokedAt !== null ||
+      current.supersededBySessionId !== null ||
+      current.expiresAt.getTime() <= at.getTime()
+    ) {
+      return false
+    }
+
+    this.byId.set(sessionId, { ...current, credentialProvedAt: at })
+    return true
   }
 
   async listActiveForUser(userId: number, now: Date): Promise<readonly ActiveSessionRecord[]> {

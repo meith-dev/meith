@@ -4,6 +4,7 @@ import { newHandshake } from '@meith/accounts'
 import { logger } from '@meith/core'
 
 import { getActor } from '@/server/context'
+import { currentCredentialProof } from '@/server/credential-proof'
 import { callbackUrl, federationProvider, memberManagedSignIns } from '@/server/federation'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
@@ -35,7 +36,9 @@ export async function POST(
     return crossOriginRefusal()
   }
 
-  const mode: HandshakeMode = form.get('mode') === 'link' ? 'link' : 'sign-in'
+  const requestedMode = form.get('mode')
+  const mode: HandshakeMode =
+    requestedMode === 'link' || requestedMode === 'credential-proof' ? requestedMode : 'sign-in'
   const nextValue = form.get('next')
   const next = typeof nextValue === 'string' && isSafeLocalPath(nextValue) ? nextValue : '/'
 
@@ -46,10 +49,27 @@ export async function POST(
     return to(mode === 'link' ? '/usercp/security?sso=off' : '/login?sso=off')
   }
 
-  if (mode === 'link') {
+  let binding: { userId: number; sessionId: number; provedAt?: number } | undefined
+  if (mode !== 'sign-in') {
     const actor = await getActor()
     if (actor.userId === null) return to('/login?next=%2Fusercp%2Fsecurity')
     if (!(await memberManagedSignIns())) return to('/usercp/security?sso=off')
+
+    if (mode === 'link') {
+      const proof = await currentCredentialProof(actor.userId)
+      if (proof === null) return to('/usercp/security/verify?next=%2Fusercp%2Fsecurity')
+      binding = {
+        userId: actor.userId,
+        sessionId: proof.session.id,
+        provedAt: proof.provedAt.getTime(),
+      }
+    } else {
+      const token = await import('@/server/session-actions').then((module) =>
+        module.currentSessionId(),
+      )
+      if (token === null) return to('/login?next=%2Fusercp%2Fsecurity')
+      binding = { userId: actor.userId, sessionId: token }
+    }
   }
 
   const handshake = newHandshake()
@@ -71,7 +91,14 @@ export async function POST(
   }
 
   await setHandshakeCookie(
-    encodeHandshake({ provider: provider.id, mode, next, authorizationUrl, ...handshake }),
+    encodeHandshake({
+      provider: provider.id,
+      mode,
+      next,
+      authorizationUrl,
+      ...handshake,
+      ...binding,
+    }),
   )
 
   return to(`/auth/sso/${provider.id}/go`)
