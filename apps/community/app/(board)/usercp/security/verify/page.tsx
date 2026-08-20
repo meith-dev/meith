@@ -14,7 +14,7 @@ import { passkeyEnrolCopy } from '@/view/auth-copy'
 
 export async function generateMetadata(): Promise<Metadata> {
   const tr = await getTranslator()
-  return { title: tr('credentialProof.title') }
+  return { title: tr.t('credentialProof.title') }
 }
 
 export default async function VerifySecurityPage({
@@ -39,14 +39,14 @@ export default async function VerifySecurityPage({
   ])
 
   return (
-    <PanelPage title={tr('credentialProof.title')} lede={tr('credentialProof.lede')}>
+    <PanelPage title={tr.t('credentialProof.title')} lede={tr.t('credentialProof.lede')}>
       <CredentialProofForm
         copy={{
-          codeConsumed: tr('credentialProof.codeConsumed'),
-          codeLabel: tr('credentialProof.codeLabel'),
-          codeSubmit: tr('credentialProof.codeSubmit'),
-          passwordLabel: tr('credentialProof.passwordLabel'),
-          passwordSubmit: tr('credentialProof.passwordSubmit'),
+          codeConsumed: tr.t('credentialProof.codeConsumed'),
+          codeLabel: tr.t('credentialProof.codeLabel'),
+          codeSubmit: tr.t('credentialProof.codeSubmit'),
+          passwordLabel: tr.t('credentialProof.passwordLabel'),
+          passwordSubmit: tr.t('credentialProof.passwordSubmit'),
         }}
         hasPassword={account?.passwordHash !== null && account !== null}
         hasSecondFactor={factor.enrolled}
@@ -57,15 +57,15 @@ export default async function VerifySecurityPage({
         <PasskeyProofButton
           next={next}
           copy={passkeyEnrolCopy(1, tr)}
-          waitingLabel={tr('credentialProof.passkeyWaiting')}
-          verifyLabel={tr('credentialProof.passkeySubmit')}
+          waitingLabel={tr.t('credentialProof.passkeyWaiting')}
+          verifyLabel={tr.t('credentialProof.passkeySubmit')}
         />
       ) : null}
 
       {identities.length > 0 ? (
         <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
           <h2 className="text-lg font-semibold tracking-tight">
-            {tr('credentialProof.linkedTitle')}
+            {tr.t('credentialProof.linkedTitle')}
           </h2>
           <div className="flex flex-wrap gap-2">
             {identities.map((identity) => {
@@ -79,7 +79,7 @@ export default async function VerifySecurityPage({
                     type="submit"
                     className="inline-flex h-9 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
                   >
-                    {tr('credentialProof.ssoSubmit', { provider: provider.label })}
+                    {tr.t('credentialProof.ssoSubmit', { provider: provider.label })}
                   </button>
                 </form>
               )
