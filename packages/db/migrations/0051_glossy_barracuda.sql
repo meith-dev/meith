@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "credential_proved_at" timestamp with time zone;
