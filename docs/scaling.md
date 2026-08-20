@@ -58,6 +58,15 @@ same way a request that cannot reach Postgres fails. Run Redis with
 accessory. It needs no persistence configured — a restarted Redis is a
 cold cache, and a cold cache is a slow minute, not an outage.
 
+"Redis" here means the protocol, not the company. The board speaks the
+wire protocol and nothing more, so [Valkey](https://valkey.io) — the
+Linux Foundation's open-source, BSD-licensed fork — is a drop-in
+replacement: point `REDIS_URL` at a Valkey server and nothing else
+changes, including the driver name in the variable. The same goes for any
+other compatible server your host already offers. If the licence politics
+matter to your deployment, run Valkey; the board cannot tell the
+difference, and this page reads the same either way.
+
 There is no Redis queue. `QUEUE_DRIVER` accepts `postgres` and `memory`,
 and the Postgres queue is already safe under any number of workers — a
 second queue technology would add an operational dependency without
@@ -110,8 +119,9 @@ touches the database, and every step is reversible.
 
 **1. Run a Redis server.** On Coolify, add a Redis database resource to
 the project and note the internal URL it gives you. On the by-hand stack,
-`docker compose --profile redis up -d` starts the one already defined.
-Anywhere else, any Redis 7 works.
+`docker compose --profile redis up -d` starts the one already defined —
+swap its image for `valkey/valkey:8-alpine` if you prefer the open-source
+fork. Anywhere else, any Redis 7 or Valkey works.
 
 **2. Point the board at it.** Set on the **web and worker** services both:
 
