@@ -20,9 +20,9 @@ somebody has already set the board up for you, start with
 | You want to | Read |
 |---|---|
 | Set up a board for the first time | [Quickstart](./quickstart.md) |
-| Run the club's board from a browser | [The committee's guide](./committee-guide.md) |
+| Run the community's board from a browser | [The committee's guide](./committee-guide.md) |
 | Approve posts, handle reports, tidy threads | [The moderator's guide](./moderation-guide.md) |
-| Take the subs online | [The treasurer's guide](./membership-guide.md) |
+| Take memberships online | [The treasurer's guide](./membership-guide.md) |
 | Run the server day to day | [Running a board](./operating.md) |
 | Run more than one web container | [Scaling out](./scaling.md) |
 | Move a board to a new version | [Upgrading a board](./upgrading.md) |
@@ -57,9 +57,9 @@ these three guides happens in a browser — no terminal, no code.
 
 | Document | What it covers |
 |---|---|
-| [`committee-guide.md`](./committee-guide.md) | Running the board day to day: forums and the committee room, the club's name and colours, announcements, members, and handing it all over. |
+| [`committee-guide.md`](./committee-guide.md) | Running the board day to day: forums and the organisers' room, the community's name and colours, announcements, members, and handing it all over. |
 | [`moderation-guide.md`](./moderation-guide.md) | The volunteer moderator's handbook: the approval queue, reports, tidying threads, warnings and bans. |
-| [`membership-guide.md`](./membership-guide.md) | Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger. |
+| [`membership-guide.md`](./membership-guide.md) | Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger. |
 
 ## Running the server
 

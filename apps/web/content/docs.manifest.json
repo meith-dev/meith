@@ -76,7 +76,7 @@
       "file": "committee-guide.md",
       "section": "using",
       "title": "The committee's guide",
-      "blurb": "Running the board from a browser: forums and the committee room, the club's name and colours, announcements, members — and handing it all over.",
+      "blurb": "Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over.",
       "generated": false,
       "primary": true
     },
@@ -94,7 +94,7 @@
       "file": "membership-guide.md",
       "section": "using",
       "title": "The treasurer's guide",
-      "blurb": "Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal.",
+      "blurb": "Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal.",
       "generated": false,
       "primary": false
     },

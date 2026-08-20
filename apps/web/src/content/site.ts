@@ -6,11 +6,11 @@ export const site = {
   url: 'https://www.meith.dev',
   demo: 'https://demo.meith.dev',
   repository: 'https://github.com/meith-dev/meith',
-  tagline: 'A forum for clubs and communities, on a server of your own.',
+  tagline: 'A forum for your community, on a server of your own.',
   description:
-    'Meith is a free, open-source forum for clubs and communities that run themselves: ' +
-    'notices that stay put, a private committee room, search that reaches back years, and ' +
-    'the subs taken online. No ads, no algorithm, and no per-member pricing.',
+    'Meith is a free, open-source forum for communities that run themselves: announcements ' +
+    'that stay put, a private room for the organisers, search that reaches back years, and ' +
+    'memberships taken online. No ads, no algorithm, and no per-member pricing.',
 } as const
 
 export const licence = {
@@ -60,11 +60,14 @@ export const shots = {
 
 export const hero = {
   badge: 'Free and open source · Your own server · No per-member pricing',
-  headline: { before: 'Somewhere the whole club can reach.', emphasis: 'Somewhere the club owns.' },
+  headline: {
+    before: 'Somewhere your whole community can reach.',
+    emphasis: 'Somewhere nobody else owns.',
+  },
   lede:
-    'The fixtures, the notices, the minutes and the subs, in one place — run from a browser ' +
-    'by the same volunteers who run everything else. Threads stay put, search reaches back ' +
-    'years, and no algorithm decides who sees what.',
+    'The announcements, the decisions, the rules and the answers worth keeping, in one place ' +
+    '— run from a browser by the same people who hold the community together. Threads stay ' +
+    'put, search reaches back years, and no algorithm decides who sees what.',
   primary: 'See a live board',
   secondary: 'Set one up',
   caption: 'A real board, photographed. Every picture on this page is one.',
@@ -80,12 +83,12 @@ export const finding = {
   eyebrow: 'Search, and no feed',
   heading: 'Find the answer somebody wrote years ago.',
   lede:
-    'Committees change and coaches move on, but the answers stay. Search covers the whole ' +
+    'Moderators move on and founders step back, but the answers stay. Search covers the whole ' +
     'archive, and puts the thread that settles your question ahead of a passing mention of it.',
   ranking: {
     heading: 'Nothing is ranked for you.',
     body:
-      'No feed, no ranking, no “see more”. A notice sits where the secretary put it, and ' +
+      'No feed, no ranking, no “see more”. An announcement sits where you put it, and ' +
       'everybody in that forum sees it.',
   },
   evidence(facts: Facts): string {
@@ -130,7 +133,7 @@ function themePair(key: string, title: string): { light: Shot; dark: Shot } {
 
 export const themes = {
   eyebrow: 'Themes',
-  heading: 'It can wear the club colours.',
+  heading: 'It can wear your colours.',
   lede:
     'Five looks ship with the board, each in light and dark. A theme changes how the board ' +
     'looks and nothing else — so a new coat of paint can never cost you the board.',
@@ -196,7 +199,7 @@ export const alongside = {
       title: 'Leave in the chat',
       items: [
         "who's about tonight",
-        "today's lifts",
+        "tonight's plan",
         'the banter',
         '“on my way”',
         'the photo from Saturday',
@@ -205,13 +208,13 @@ export const alongside = {
     {
       title: 'Put on the board',
       items: [
-        'fixtures & results',
+        'announcements',
         'decisions and minutes',
         'how we do things',
-        'registration & fees',
-        'recruitment',
+        'events & sign-ups',
+        'the good answers',
         'the archive',
-        'what a new member needs in six months',
+        'what a newcomer needs in six months',
       ],
     },
   ],
@@ -229,10 +232,10 @@ export interface Capability {
 export const capabilities: readonly Capability[] = [
   {
     id: 'permissions',
-    title: 'A room for everyone, and one for the committee',
+    title: 'A room for everyone, and one for the organisers',
     body:
-      'The juniors, the members and the committee each see their own forums — and search, ' +
-      'feeds and the API keep the secret too.',
+      'Newcomers, members and the people running the place each see their own forums — and ' +
+      'search, feeds and the API keep the secret too.',
     doc: 'operating',
     anchor: 'permissions',
     link: 'How permissions work',
@@ -241,7 +244,7 @@ export const capabilities: readonly Capability[] = [
     id: 'themes',
     title: 'It wears your colours',
     body:
-      'The name, the crest and the colours are settings in the admin panel, not code — a new ' +
+      'The name, the logo and the colours are settings in the admin panel, not code — a new ' +
       'look never risks a working board.',
     doc: 'committee-guide',
     anchor: null,
@@ -249,7 +252,7 @@ export const capabilities: readonly Capability[] = [
   },
   {
     id: 'plugins',
-    title: 'Add what the club is missing',
+    title: 'Add what your community is missing',
     body:
       'Plugins stay in their lane. One that misbehaves fails on its own, and the board ' +
       'carries on without it.',
@@ -261,7 +264,7 @@ export const capabilities: readonly Capability[] = [
     id: 'search',
     title: 'Years of answers, still findable',
     body:
-      'The archive stays quick however deep it gets, so the answer from three committees ago ' +
+      'The archive stays quick however deep it gets, so the answer from three admins ago ' +
       'keeps earning its keep.',
     doc: 'performance',
     anchor: null,
@@ -281,8 +284,8 @@ export const capabilities: readonly Capability[] = [
     id: 'chores',
     title: 'Handed over, not started over',
     body:
-      'Nothing lives in anybody’s personal account. When the secretary stands down, the ' +
-      'roles move on and the board stays the club’s.',
+      'Nothing lives in anybody’s personal account. When the person who set it up moves on, ' +
+      'the roles move on too — and the board stays the community’s.',
     doc: 'committee-guide',
     anchor: null,
     link: 'Running it day to day',
@@ -321,10 +324,10 @@ export const openSource = {
   eyebrow: 'Open source',
   heading: 'Yours to run, and yours to keep.',
   body:
-    'Free software under the GNU Lesser General Public License v3, on a machine the club rents, ' +
-    'at a domain the club owns. No company in the middle, nobody who can price it later or ' +
-    'switch it off — and when the committee changes, it is handed on with the rest of the ' +
-    'paperwork.',
+    'Free software under the GNU Lesser General Public License v3, on a machine your community ' +
+    'rents, at a domain it owns. No company in the middle, nobody who can price it later or ' +
+    'switch it off — and when the people running it change, the board is handed over whole, ' +
+    'not rebuilt from scratch.',
   emphasis:
     'The bill follows the machine, never the membership: two hundred members cost what twenty do.',
   links: [
@@ -336,11 +339,11 @@ export const openSource = {
 
 export const memberships = {
   eyebrow: 'Memberships',
-  heading: 'Take the subs online, and stop chasing them.',
+  heading: 'Take memberships online, and stop chasing them.',
   body:
-    'Dues comes with the board: the plans you set, sold through Stripe as a subscription, a ' +
-    'pass or a lifetime. Paying opens the members-only forum by itself, lapsing closes it by ' +
-    'itself — and the spreadsheet retires.',
+    'Dues comes with the board: the plans you set, sold through your own Stripe account as a ' +
+    'subscription, a pass or a lifetime. Paying opens the members-only forum by itself, ' +
+    'lapsing closes it by itself — and the spreadsheet retires.',
   emphasis: 'The money is between you and Stripe. No cut, and no per-member fee.',
   link: 'The treasurer’s guide',
 } as const
@@ -349,8 +352,8 @@ export const extensible = {
   eyebrow: 'For the member who codes',
   heading: 'And the rest is yours to add.',
   lede:
-    'Somebody technical in the club gets a corner too: plugins with typed hooks, themes that ' +
-    'fill documented slots, and an API for anything an administrator can do by hand.',
+    'Somebody technical in the community gets a corner too: plugins with typed hooks, themes ' +
+    'that fill documented slots, and an API for anything an administrator can do by hand.',
   counts(facts: Facts): readonly { readonly label: string; readonly value: string }[] {
     return [
       { label: 'Theme slots', value: String(facts.theme.slots) },
@@ -377,11 +380,11 @@ export const chooser = {
 export const closing = {
   heading: 'Give your community somewhere to keep things.',
   body:
-    'Set up by one volunteer in an evening, run by the committee from a browser. Have a look ' +
-    'at a real board first.',
+    'Set up by one person in an evening, run from a browser by the people who run everything ' +
+    'else. Have a look at a real board first.',
   action: 'Set one up',
   requirements: [
-    { label: 'A server', value: 'Rented by the club, from a few euro a month' },
+    { label: 'A server', value: 'Rented by the community, from a few euro a month' },
     { label: 'A domain', value: 'Pointed at it' },
     { label: 'A volunteer', value: 'With a free evening, once' },
   ],

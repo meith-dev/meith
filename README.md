@@ -1,21 +1,22 @@
 # Meith
 
-**A forum for clubs and communities, on a server of your own.**
+**A forum for your community, on a server of your own.**
 [meith.dev](https://meith.dev)
 
-Meith is forum software for the people who actually run things: the
-committee posting the notices, the coaches whose fixtures must not scroll
-away, the treasurer chasing the subs, and the volunteers who inherit all
-of it at the next AGM. One place the whole club can reach — the fixtures,
-the minutes, the members-only forum, the subs — at a domain the club owns,
-on a machine the club rents, handed on with the rest of the paperwork.
+Meith is forum software for the people who actually run communities: the
+admin answering the same question for the fortieth time, the moderator
+keeping things civil, the committee posting the notices, the treasurer
+chasing the dues, and whoever inherits all of it next. One place the whole
+community can reach — the announcements, the decisions, the members-only
+forum, the years of answers — at a domain the community owns, on a machine
+it rents, handed over whole when the people change.
 
 The name comes from the Irish concept of **meitheal**: neighbours coming
 together to help one another with a shared task. Expertise is shared
 freely, the heavy lifting is distributed, and the community grows stronger
 through cooperation. Meith is that idea as software — for a GAA club, a
-residents' association, a guild, or any group that would rather not be
-somebody else's product.
+residents' association, a guild, a group that outgrew its chat, or any
+community that would rather not be somebody else's product.
 
 ## Getting started
 
@@ -63,19 +64,20 @@ workaround at any price.
 
 ## What you get
 
-- **A room for everyone, and one for the committee.** A real permission
+- **A room for everyone, and one for the organisers.** A real permission
   model — 45 permission fields, 26 resolved per member per forum, 19
-  board-wide — so the juniors, the members and the committee each see
-  their own forums. Search, feeds and the API all answer to the same
+  board-wide — so newcomers, members and the people running the place each
+  see their own forums. Search, feeds and the API all answer to the same
   resolver: there is no path that reads around the rules.
-- **The subs taken online.** Dues ships with the board: plans sold through
-  the club's own Stripe account as a subscription, a pass or a lifetime.
-  Paying opens the members-only forum by itself and lapsing closes it, with
-  a ledger for the treasurer at year end. No cut, and no per-member fee.
-- **The club's colours, safely.** The name, logo and colours change from
-  the admin panel; a theme fills a frozen, documented slot contract, so a
-  new look is replaceable rather than a fork — and can never take the
-  board down with it.
+- **Memberships taken online.** Dues ships with the board: plans sold
+  through your community's own Stripe account as a subscription, a pass or
+  a lifetime. Paying opens the members-only forum by itself and lapsing
+  closes it, with a ledger for whoever minds the money at year end. No
+  cut, and no per-member fee.
+- **Your colours, safely.** The name, logo and colours change from the
+  admin panel; a theme fills a frozen, documented slot contract, so a new
+  look is replaceable rather than a fork — and can never take the board
+  down with it.
 - **Years of answers, still findable.** Postgres full-text search,
   weighted so a thread's subject beats a passing mention, and paged on a
   keyset so results never repeat or skip.
@@ -110,9 +112,9 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 |---|---|---|
 | Getting started | [`quickstart.md`](./docs/quickstart.md) | From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw. |
 | Getting started | [`self-hosting.md`](./docs/self-hosting.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
-| Using your board | [`committee-guide.md`](./docs/committee-guide.md) | Running the board from a browser: forums and the committee room, the club's name and colours, announcements, members — and handing it all over. |
+| Using your board | [`committee-guide.md`](./docs/committee-guide.md) | Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over. |
 | Using your board | [`moderation-guide.md`](./docs/moderation-guide.md) | For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives. |
-| Using your board | [`membership-guide.md`](./docs/membership-guide.md) | Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
+| Using your board | [`membership-guide.md`](./docs/membership-guide.md) | Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
 | Running the server | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
 | Running the server | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
 | Running the server | [`disaster-recovery.md`](./docs/disaster-recovery.md) | The runbook for the day the server is gone: what recovery consumes, the order of operations from provisioning to DNS, and the rehearsal that turns it from a hope into a plan. |
