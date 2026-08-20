@@ -95,6 +95,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+RUN apk add --no-cache postgresql18-client
+
 # Non-root: the server needs no write access to its own code, and a container
 # escape should not land on uid 0.
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001

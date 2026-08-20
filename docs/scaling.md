@@ -162,7 +162,7 @@ either way; nothing is migrated in a way that needs migrating back.
 
 Each web process opens up to `DATABASE_POOL_MAX` connections (default 3),
 and the count multiplies with instances: three replicas and a worker at
-the default is twelve. A self-hosted Postgres 16 shrugs at that. On a
+the default is twelve. A self-hosted Postgres 18 shrugs at that. On a
 managed database with a connection cap, either lower `DATABASE_POOL_MAX`
 or put a transaction-mode pooler in front —
 [connection pooling](./operating.md#connection-pooling) explains the
