@@ -4,7 +4,7 @@
 [Coolify](https://coolify.io) and is the route most boards should take:
 same image, same four containers, same environment contract — and it
 issues the certificate and generates the secrets for you. This page is for
-whoever minds a community's machines, not for the committee; it assumes a
+whoever minds a community's machines, not for the organisers; it assumes a
 terminal, a text editor and no fear of either.
 
 This page is the same board without the panel: the compose file, a `.env`

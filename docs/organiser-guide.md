@@ -180,11 +180,12 @@ Most controls here are freely reversible. **Reset** and **Import** are
 the exceptions — each replaces every stored override in one press — so
 both ask for your password again.
 
-If your club has a crest and two colours, the shipped **clubhouse**
-theme is built for exactly that: set the club colour and the trim
-colour on the theme screen and everything else stays neutral. With no
-logo uploaded it draws a crest from the board's name. See
-[Running a board § A board in a club's colours](./operating.md#a-board-in-a-clubs-colours).
+If your community has a crest and two colours — a sports club, say —
+the shipped **clubhouse** theme is built for exactly that: set the main
+colour and the trim colour on the theme screen and everything else
+stays neutral. With no logo uploaded it draws a crest from the board's
+name. See
+[Running a board § A board in its own colours](./operating.md#a-board-in-its-own-colours).
 
 > [!NOTE]
 > *Configuring* a theme is yours; *installing* a new one is not. A theme
