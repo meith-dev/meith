@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 
 import { Alert, AlertDescription, AlertTitle, Input, Field as UiField } from '@meith/ui'
@@ -30,11 +31,25 @@ export function SubmitButton({
   )
 }
 
+export function useFocusOnFail<T extends HTMLElement>(failed: boolean) {
+  const { pending } = useFormStatus()
+  const ref = useRef<T>(null)
+  const wasPending = useRef(pending)
+
+  useEffect(() => {
+    if (wasPending.current && !pending && failed) ref.current?.focus()
+    wasPending.current = pending
+  }, [pending, failed])
+
+  return ref
+}
+
 export function FormError({ message }: { message?: string | undefined }) {
   const copy = useCopy()
+  const ref = useFocusOnFail<HTMLDivElement>(message !== undefined && message !== '')
   if (!message) return null
   return (
-    <Alert tone="error">
+    <Alert tone="error" ref={ref} tabIndex={-1}>
       <AlertDescription>
         <AlertTitle>{fromCopy(copy, 'form.notSaved')}</AlertTitle> {message}
       </AlertDescription>

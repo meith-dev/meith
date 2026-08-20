@@ -19,7 +19,7 @@ import {
 } from '@meith/ui'
 import { Button } from '@meith/ui/button'
 
-import { Field } from '@/components/auth/form-controls'
+import { Field, useFocusOnFail } from '@/components/auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '@/components/shell/copy'
 
 type FieldControl = Parameters<React.ComponentProps<typeof UiFieldGroup>['children']>[0]
@@ -301,11 +301,13 @@ function Outcome({ state, copy }: { state: InstallFormState; copy: Copy }) {
   const fieldErrors = Object.entries(state.errors ?? {}).filter(([name]) => name !== 'form')
   const formError = state.errors?.form
   const failed = state.failedStep
+  const hasError = formError !== undefined || failed !== undefined || fieldErrors.length > 0
+  const ref = useFocusOnFail<HTMLDivElement>(hasError)
 
-  if (formError === undefined && failed === undefined && fieldErrors.length === 0) return null
+  if (!hasError) return null
 
   return (
-    <Alert tone="error" className="flex-col items-stretch gap-2">
+    <Alert tone="error" ref={ref} tabIndex={-1} className="flex-col items-stretch gap-2">
       <AlertDescription>
         {failed !== undefined ? (
           <>

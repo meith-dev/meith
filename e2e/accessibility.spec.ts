@@ -45,3 +45,14 @@ test('a tab row scrolls sideways only, and gives a focus ring room to draw', asy
   expect(ring.reach).toBeGreaterThan(0)
   expect(ring.headroom).toBeGreaterThanOrEqual(ring.reach)
 })
+
+test('a failed login submit moves focus to the error alert', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByLabel('Username or email').fill('e2e-nobody-with-this-name')
+  await page.getByLabel('Password').fill('the-wrong-password')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+
+  const alert = page.getByRole('alert').filter({ hasText: 'Not saved' })
+  await expect(alert).toBeVisible()
+  await expect(alert).toBeFocused()
+})
