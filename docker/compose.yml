@@ -20,8 +20,15 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     environment:
       POSTGRES_USER: community
       # Generate this with `openssl rand -hex 32`, not base64. It is substituted
@@ -79,6 +86,13 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     ports:
       - '${PORT:-3000}:3000'
     environment:
@@ -133,6 +147,13 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     environment:
       COMMUNITY_ROLE: worker
       DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
@@ -165,8 +186,15 @@ services:
 
   redis:
     profiles: ['redis']
-    image: valkey/valkey:8-alpine
+    image: valkey/valkey:8-alpine@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     healthcheck:
       test: ['CMD', 'valkey-cli', 'ping']
       interval: 10s
@@ -183,8 +211,15 @@ services:
   #   docker compose --profile curl-tick up -d
   tick:
     profiles: ['curl-tick']
-    image: alpine:3.20
+    image: alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
     restart: unless-stopped
+    mem_limit: 64m
+    cpus: 0.25
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     environment:
       TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
     command:
