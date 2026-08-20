@@ -1,30 +1,6 @@
-const DOMAIN = [
-  'accounts',
-  'antispam',
-  'groups',
-  'authorization',
-  'forums',
-  'threads',
-  'posts',
-  'profile-fields',
-  'messages',
-  'relations',
-  'reputation',
-  'signatures',
-  'admin',
-  'mail',
-  'markdown',
-  'moderation',
-  'notifications',
-  'settings',
-  'subscriptions',
-  'events',
-  'tasks',
-  'api',
-  'install',
-  'upgrade',
-  'import',
-].join('|')
+const { domainPackages } = require('./scripts/domain-packages.cjs')
+
+const DOMAIN = domainPackages().join('|')
 
 module.exports = {
   forbidden: [

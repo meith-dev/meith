@@ -111,10 +111,16 @@ The load-bearing rules, each a named `error` in
 The same config also enforces `no-circular` (import cycles are an error
 anywhere) and `no-deprecated-core`.
 
-`runtime`, `db`, `drivers` — and `demo`, whose seed and reset run SQL and
-migrations by nature — sit deliberately outside the protected domain list.
-The question that decides which side of the line a package is on: does this
-module *choose an implementation*?
+The domain list itself is derived, not maintained:
+[`scripts/domain-packages.cjs`](../scripts/domain-packages.cjs) reads
+`packages/` and subtracts the named infrastructure packages — `core`, `db`,
+`drivers`, `runtime`, `testkit`, `ui`, `plugin-kit`, `theme-kit`,
+`create-meith`, and `demo`, whose seed and reset run SQL and migrations by
+nature. Both dependency-cruiser and the textual guards
+(`scripts/guards.mjs`) read that one list, so a new domain package is under
+every rule from the moment its directory exists, rather than from the moment
+somebody remembers to add it to a list. The question that decides which side
+of the line a package is on: does this module *choose an implementation*?
 
 ### The floor: `@meith/core`
 
