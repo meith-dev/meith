@@ -10,16 +10,30 @@ export interface TestRedis {
   close(): Promise<void>
 }
 
+const SERVER_BINARIES = ['valkey-server', 'redis-server'] as const
+
+function serverBinary(): string | null {
+  for (const binary of SERVER_BINARIES) {
+    if (spawnSync(binary, ['--version'], { stdio: 'ignore' }).status === 0) return binary
+  }
+  return null
+}
+
 export function redisServerAvailable(): boolean {
-  return spawnSync('redis-server', ['--version'], { stdio: 'ignore' }).status === 0
+  return serverBinary() !== null
 }
 
 export async function startTestRedis(): Promise<TestRedis> {
+  const binary = serverBinary()
+  if (binary === null) {
+    throw new Error(`none of ${SERVER_BINARIES.join(', ')} is installed`)
+  }
+
   const dir = await mkdtemp(join(tmpdir(), 'meith-redis-'))
   const socketPath = join(dir, 'redis.sock')
 
   const server: ChildProcess = spawn(
-    'redis-server',
+    binary,
     ['--port', '0', '--unixsocket', socketPath, '--save', '', '--appendonly', 'no'],
     { stdio: 'ignore' },
   )
@@ -27,11 +41,11 @@ export async function startTestRedis(): Promise<TestRedis> {
   const deadline = Date.now() + 10_000
   while (!existsSync(socketPath)) {
     if (server.exitCode !== null) {
-      throw new Error(`redis-server exited with code ${server.exitCode} before listening`)
+      throw new Error(`${binary} exited with code ${server.exitCode} before listening`)
     }
     if (Date.now() > deadline) {
       server.kill('SIGKILL')
-      throw new Error('redis-server did not open its unix socket within 10s')
+      throw new Error(`${binary} did not open its unix socket within 10s`)
     }
     await sleep(25)
   }

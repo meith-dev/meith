@@ -53,7 +53,7 @@ written to the audit log — which is not the same as encrypted.
 | `REMOTE_IMAGES` | No | `0` (the default) confines images to this board and `data:` URLs; `1` lets a post embed an image from any `https:` host. See [remote images](#remote-images). |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See [where uploads go](#where-uploads-go). |
 | `CACHE_DRIVER` | No | `next`, `memory` or `redis`. `next` and `memory` cache per process, which is right for one web container. `redis` makes the cache one shared store so several web containers stay coherent — see [Scaling out](./scaling.md). |
-| `REDIS_URL` | With `CACHE_DRIVER=redis` | A `redis://` or `rediss://` URL. Redis holds cache entries only — losing it costs a warm cache, not data. The board only speaks the protocol, so [Valkey](https://valkey.io) works here unchanged — see [Scaling out](./scaling.md). |
+| `REDIS_URL` | With `CACHE_DRIVER=redis` | A `redis://` or `rediss://` URL to a [Valkey](https://valkey.io) or Redis server — the board speaks the protocol, and Valkey is what the compose profile ships. The store holds cache entries only: losing it costs a warm cache, not data. See [Scaling out](./scaling.md). |
 | `DIRECT_DATABASE_URL` | No | A direct (non-pooler) connection string for migrations, when `DATABASE_URL` points at a transaction pooler. See [connection pooling](#connection-pooling). |
 | `MIGRATIONS_DIR` | No | The folder holding the migration SQL and its `meta/_journal.json`. Normally unset — the migrator looks beside `@meith/db` in a checkout and in `/app/migrations` in the image. |
 

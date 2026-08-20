@@ -8,9 +8,9 @@ the [Quickstart](./quickstart.md) was written for.
 
 This page is for the board that has outgrown it, and for the operator who
 wants more than one web container for resilience rather than load. The
-short version: **set `CACHE_DRIVER=redis`, point `REDIS_URL` at a Redis
-server, give uploads a store every instance can reach, and add web
-containers.** Everything else already works.
+short version: **set `CACHE_DRIVER=redis`, point `REDIS_URL` at a Valkey
+or Redis server, give uploads a store every instance can reach, and add
+web containers.** Everything else already works.
 
 ## What already scales
 
@@ -59,13 +59,13 @@ accessory. It needs no persistence configured — a restarted Redis is a
 cold cache, and a cold cache is a slow minute, not an outage.
 
 "Redis" here means the protocol, not the company. The board speaks the
-wire protocol and nothing more, so [Valkey](https://valkey.io) — the
-Linux Foundation's open-source, BSD-licensed fork — is a drop-in
-replacement: point `REDIS_URL` at a Valkey server and nothing else
-changes, including the driver name in the variable. The same goes for any
-other compatible server your host already offers. If the licence politics
-matter to your deployment, run Valkey; the board cannot tell the
-difference, and this page reads the same either way.
+wire protocol and nothing more, and the server this project ships and
+recommends is [Valkey](https://valkey.io) — the Linux Foundation's
+open-source, BSD-licensed fork — which is what the compose profile below
+runs. Plain Redis, or any other compatible server your host already
+offers, works identically: point `REDIS_URL` at it and nothing else
+changes, including the `redis` driver name in the variable, which names
+the protocol and stays put whichever server answers it.
 
 There is no Redis queue. `QUEUE_DRIVER` accepts `postgres` and `memory`,
 and the Postgres queue is already safe under any number of workers — a
@@ -83,7 +83,7 @@ REDIS_URL=redis://redis:6379
 ```
 
 The stock `docker/compose.yml` already forwards both, and ships a `redis`
-service behind a profile:
+service behind a profile — named for the protocol, running Valkey:
 
 ```bash
 docker compose --profile redis up -d --build
@@ -117,11 +117,12 @@ anything else that sets environment variables. The order matters only in
 that Redis should exist before the board is told to use it. Nothing here
 touches the database, and every step is reversible.
 
-**1. Run a Redis server.** On Coolify, add a Redis database resource to
-the project and note the internal URL it gives you. On the by-hand stack,
-`docker compose --profile redis up -d` starts the one already defined —
-swap its image for `valkey/valkey:8-alpine` if you prefer the open-source
-fork. Anywhere else, any Redis 7 or Valkey works.
+**1. Run a Valkey server.** On Coolify, add a Valkey database resource
+to the project (a Redis one works the same) and note the internal URL it
+gives you. On the by-hand stack, `docker compose --profile redis up -d`
+starts the Valkey service already defined — swap its image for
+`redis:7-alpine` if your organisation standardises on Redis proper.
+Anywhere else, any Valkey or Redis 7 works.
 
 **2. Point the board at it.** Set on the **web and worker** services both:
 
@@ -171,12 +172,13 @@ need.
 For the operator who wants to know what they are trusting: every global
 read the board caches goes through one cache driver, keyed and tagged in
 one registry (`CacheTags`, in `@meith/core`). With `CACHE_DRIVER=redis`
-the entries live in Redis under those keys, each tag holds the set of
-keys it covers, and invalidating a tag deletes the covered entries in
-Redis itself — so the next read on **any** instance misses, reloads from
+the entries live in the shared store under those keys, each tag holds the
+set of keys it covers, and invalidating a tag deletes the covered entries
+in the store itself — so the next read on **any** instance misses, reloads from
 Postgres, and re-fills the shared store. There is no per-instance copy to
 go stale and no broadcast to miss; coherence is a property of where the
 data lives rather than of a message arriving. The sixty-second TTLs
 remain as a backstop, and the contract suite in
 `packages/testkit/src/driver-contracts.test.ts` proves the cross-instance
-behaviour against a real Redis on every CI run.
+behaviour against a real protocol-speaking server on every CI run — it
+spawns `valkey-server` when the machine has one, `redis-server` otherwise.

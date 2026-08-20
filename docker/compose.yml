@@ -165,10 +165,10 @@ services:
 
   redis:
     profiles: ['redis']
-    image: redis:7-alpine
+    image: valkey/valkey:8-alpine
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD', 'valkey-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5

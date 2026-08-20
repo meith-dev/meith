@@ -84,7 +84,7 @@ if (redisServerAvailable()) {
     })
   })
 } else {
-  describe.skip('CacheDriver contract: RedisCacheDriver (redis-server not installed)', () => {
+  describe.skip('CacheDriver contract: RedisCacheDriver (no valkey-server or redis-server)', () => {
     it('skipped', () => undefined)
   })
 }
