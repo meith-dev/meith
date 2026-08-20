@@ -1,6 +1,6 @@
 {
   "name": "@meith/i18n",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "The message catalog and the locale-aware formatters: ICU messages, plural categories, locale negotiation, and the registry themes and plugins add their own catalogs to.",
   "license": "LGPL-3.0-or-later",
   "repository": {
