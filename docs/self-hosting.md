@@ -170,7 +170,12 @@ Each long-running container carries a memory and CPU ceiling sized for a
 small VPS — a gigabyte and two cores for `web`, a gigabyte and a core for
 `postgres`, 768 MB for `worker` — and rotates its own logs at three files
 of 10 MB each. The ceilings are limits, not reservations: a quiet board
-holds nothing back. A bigger machine raises them from the same `.env` the
+holds nothing back, and their sum deliberately exceeds the 2 GB minimum
+above. They are not there to fit inside the machine but to contain a
+failure within one container — a leak in `web` gets `web` killed and
+restarted, rather than inviting the host's OOM killer to pick its own
+victim, which can be `sshd` or Docker itself. A bigger machine raises
+them from the same `.env` the
 secrets live in — `WEB_MEM_LIMIT`, `WEB_CPUS`, `POSTGRES_MEM_LIMIT`,
 `POSTGRES_CPUS`, `WORKER_MEM_LIMIT`, `WORKER_CPUS`, plus `REDIS_MEM_LIMIT`
 and `REDIS_CPUS` for the scaling profile — never by editing the compose
