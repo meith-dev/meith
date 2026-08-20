@@ -128,6 +128,12 @@ version you pinned and nothing else. Upgrading becomes a deliberate act
 [Upgrading a board](./upgrading.md#upgrading-each-deployment-route) is
 the page for it.
 
+The same tab tunes the containers' resource ceilings, which default to a
+small VPS: `WEB_MEM_LIMIT`, `WEB_CPUS`, `POSTGRES_MEM_LIMIT`,
+`POSTGRES_CPUS`, `WORKER_MEM_LIMIT` and `WORKER_CPUS` override the
+compose file's defaults the same way `MEITH_IMAGE` does, so a larger
+server is a variable on the resource, never an edit to the file.
+
 ## 4. Run the installer
 
 Open `https://your-domain/install`.

@@ -7,7 +7,7 @@
 # ---------------------------------------------------------------------------
 # deps: install with the lockfile, cached independently of source changes.
 # ---------------------------------------------------------------------------
-FROM node:26-alpine AS deps
+FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
 WORKDIR /repo
 
 # Node no longer bundles Corepack — install it before enabling it.
@@ -73,7 +73,7 @@ RUN pnpm --filter @meith/cli build
 # ---------------------------------------------------------------------------
 # runtime: standalone output only.
 # ---------------------------------------------------------------------------
-FROM node:26-alpine AS runtime
+FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS runtime
 WORKDIR /app
 
 # Stamped by the release workflow (see docs/release.md); a local build leaves

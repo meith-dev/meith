@@ -24,8 +24,15 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     environment:
       POSTGRES_USER: community
       POSTGRES_PASSWORD: $SERVICE_PASSWORD_POSTGRES
@@ -71,6 +78,13 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     environment:
       - SERVICE_FQDN_WEB_3000
       - APP_URL=$SERVICE_URL_WEB
@@ -107,8 +121,15 @@ services:
   # A board normally runs `compose.coolify.yml`'s worker for this. A demo
   # cannot: see the note at the top of this file.
   ticker:
-    image: curlimages/curl:8.11.1
+    image: curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69
     restart: unless-stopped
+    mem_limit: 64m
+    cpus: 0.25
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     environment:
       - TICK_SECRET=$SERVICE_BASE64_64_TICK
     # `--max-time 300` because one tick an hour is the reset, and that one drops

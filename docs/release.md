@@ -211,6 +211,15 @@ and why holding back from a release is simply not moving it yet. The
 same variable serves the operator who wants a stronger pin than a tag: a
 digest, immune even to a re-pushed tag.
 
+The same reasoning runs through the rest of the pipeline. The base images
+— `node`, `postgres`, `valkey`, `alpine`, `curl` — are pinned by digest
+in the Dockerfiles and compose files, not by tag alone, and every action
+in the workflows is pinned to a full commit SHA with the version tag kept
+as a comment: the workflows hold publish rights, and a re-tagged action
+is code they would run. Dependabot moves all of these pins on the same
+weekly schedule as the npm dependencies, so the pinning costs review, not
+staleness.
+
 ## The first release
 
 One-time steps around `v0.1.0`, in order:
