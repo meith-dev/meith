@@ -23,6 +23,7 @@ test.describe('a reader in Tokyo', () => {
     await page.goto('/usercp/options')
     await page.getByLabel('Timezone').selectOption('America/New_York')
     await page.getByRole('button', { name: 'Save options' }).click()
+    await expect(page).toHaveURL(/\/usercp\/options\?saved=1$/)
 
     await page.goto('/')
     await expect(page.getByText('Times are shown in America/New York')).toBeVisible()
@@ -30,6 +31,7 @@ test.describe('a reader in Tokyo', () => {
     await page.goto('/usercp/options')
     await page.getByLabel('Timezone').selectOption('auto')
     await page.getByRole('button', { name: 'Save options' }).click()
+    await expect(page).toHaveURL(/\/usercp\/options\?saved=1$/)
 
     await page.goto('/')
     await expect(page.getByText('Times are shown in Asia/Tokyo')).toBeVisible()
