@@ -227,6 +227,20 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+Settings marked secret are write-only. `settings:list` and `settings:get`
+print `<set>` or `<unset>` in place of their value. Supply a secret on stdin
+or name an environment variable; never put it in the command arguments,
+where shell history and process listings can expose it:
+
+```sh
+printf %s "$GITHUB_CLIENT_SECRET" | community settings:set federation.github_client_secret
+community settings:set federation.github_client_secret --from-env GITHUB_CLIENT_SECRET
+```
+
+An empty stdin stream or an environment variable set to the empty string
+clears the stored secret. A missing environment variable is an error rather
+than an instruction to clear it.
+
 ### Closing registration
 
 **Allow new registrations** (`registration.enabled`, in the registration
@@ -1561,7 +1575,9 @@ An account's **state** — active, or awaiting activation — and a **ban**
 are two different things in two different places. The state is a column
 on the account; a ban is a record with a reason, an expiry, and the group
 the member held before it. Banning through `/admin/users/[id]` writes the
-record; it does not flip the state column.
+record; it does not flip the state column. The open member screen refreshes
+as part of the write, so the ban details and lift control replace the ban
+form without a browser reload; lifting it restores the form the same way.
 
 Because of that, the state form on the member's screen is not shown while
 a ban is in force — and the server refuses the change too, by looking for

@@ -149,40 +149,106 @@ export async function forumCreate(args: readonly string[]): Promise<number> {
   return 0
 }
 
+export function settingDisplayValue(definition: SettingDefinition, value: unknown): string {
+  if (definition.secret) {
+    return Object.is(value, definition.default) ? '<unset>' : '<set>'
+  }
+  return JSON.stringify(value)
+}
+
 export async function settingsGet(args: readonly string[]): Promise<number> {
   const { positional } = parseFlags(args)
   const key = positional[0]
   if (key === undefined) throw new ValidationError('Usage: community settings:get <key>')
 
-  const ctx = await createContext()
-  const snapshot = SettingsSnapshot.fromOverrides(await ctx.settings.loadAll())
-
   const definition = SETTING_DEFINITION_BY_KEY.get(key)
   if (!definition) throw new ValidationError(`Unknown setting "${key}".`)
 
+  const ctx = await createContext()
+  const snapshot = SettingsSnapshot.fromOverrides(await ctx.settings.loadAll())
   const value = snapshot.get(key as SettingKey)
   const isDefault = Object.is(value, definition.default)
-  console.log(`${key} = ${JSON.stringify(value)}${isDefault ? '  (default)' : ''}`)
+  console.log(`${key} = ${settingDisplayValue(definition, value)}${isDefault ? '  (default)' : ''}`)
   return 0
 }
 
+interface SecretInput {
+  readonly isTTY?: boolean
+  [Symbol.asyncIterator](): AsyncIterator<Buffer | string>
+}
+
+export async function readSecretSettingValue(
+  flags: Flags,
+  input: SecretInput,
+  environment: NodeJS.ProcessEnv,
+): Promise<string> {
+  const environmentName = flags.get('from-env')
+  if (environmentName !== undefined) {
+    if (environmentName.trim() === '' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(environmentName)) {
+      throw new ValidationError('--from-env needs a valid environment variable name.')
+    }
+    const value = environment[environmentName]
+    if (value === undefined) {
+      throw new ValidationError(`Environment variable ${environmentName} is not set.`)
+    }
+    return value
+  }
+
+  if (input.isTTY) {
+    throw new ValidationError('No secret supplied. Pipe it on stdin or use --from-env <name>.')
+  }
+
+  const chunks: Buffer[] = []
+  for await (const chunk of input) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks)
+    .toString('utf8')
+    .replace(/\r?\n$/, '')
+}
+
 export async function settingsSet(args: readonly string[]): Promise<number> {
-  const { positional } = parseFlags(args)
-  const [key, raw] = positional
-  if (key === undefined || raw === undefined) {
-    throw new ValidationError('Usage: community settings:set <key> <value>')
+  const { flags, positional } = parseFlags(args)
+  const [key, positionalValue, ...extra] = positional
+  if (key === undefined || extra.length > 0) {
+    throw new ValidationError(
+      'Usage: community settings:set <key> <value>\n' +
+        '       community settings:set <secret-key> --from-env <name>\n' +
+        '       printf %s "$SECRET" | community settings:set <secret-key>',
+    )
   }
 
   const definition = SETTING_DEFINITION_BY_KEY.get(key)
   if (!definition) throw new ValidationError(`Unknown setting "${key}".`)
 
+  let raw: string
+  if (definition.secret) {
+    if (positionalValue !== undefined) {
+      throw new ValidationError(
+        'Secret settings cannot be supplied as arguments. Pipe the value on stdin or use --from-env <name>.',
+      )
+    }
+    raw = await readSecretSettingValue(flags, process.stdin, process.env)
+  } else {
+    if (flags.has('from-env')) {
+      throw new ValidationError('--from-env is only available for secret settings.')
+    }
+    if (positionalValue === undefined) {
+      throw new ValidationError('Usage: community settings:set <key> <value>')
+    }
+    raw = positionalValue
+  }
+
   const ctx = await createContext()
   const snapshot = SettingsSnapshot.fromOverrides(await ctx.settings.loadAll())
-
-  const result = await saveSettings(ctx.settings, { [key]: coerce(raw, definition) }, snapshot)
+  const value = definition.secret ? raw : coerce(raw, definition)
+  const result = await saveSettings(ctx.settings, { [key]: value }, snapshot)
+  const displayed = definition.secret ? settingDisplayValue(definition, value) : raw
 
   console.log(
-    result.changed.length === 0 ? `${key} was already ${raw}. Nothing written.` : `${key} = ${raw}`,
+    result.changed.length === 0
+      ? `${key} was already ${displayed}. Nothing written.`
+      : `${key} = ${displayed}`,
   )
   return 0
 }

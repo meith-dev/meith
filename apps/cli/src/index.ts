@@ -6,6 +6,7 @@ import { type LoadedEnvFiles, loadEnvFiles } from '@meith/core/env-files'
 import { backupCommand, restoreCommand } from './backup'
 import {
   forumCreate,
+  settingDisplayValue,
   settingsGet,
   settingsSet,
   userClearSecondFactor,
@@ -202,7 +203,7 @@ const commands: Command[] = [
           group = d.group
           console.log(`\n[${group}]`)
         }
-        console.log(`  ${d.key.padEnd(width)}  ${JSON.stringify(d.default)}`)
+        console.log(`  ${d.key.padEnd(width)}  ${settingDisplayValue(d, d.default)}`)
       }
       console.log()
       return 0
@@ -250,7 +251,10 @@ const commands: Command[] = [
   {
     name: 'settings:set',
     summary: 'Set one setting, validated by the registry.',
-    usage: 'community settings:set <key> <value>',
+    usage:
+      'community settings:set <key> <value>\n' +
+      'community settings:set <secret-key> --from-env <name>\n' +
+      'printf %s "$SECRET" | community settings:set <secret-key>',
     run: settingsSet,
   },
 

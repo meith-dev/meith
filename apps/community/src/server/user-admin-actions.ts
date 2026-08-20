@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { refresh, revalidatePath } from 'next/cache'
 
 import { ValidationError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
@@ -37,6 +37,7 @@ const toFormState = formStateReporter('user-admin', 'user administration write f
 function refreshMemberScreens(): void {
   revalidatePath('/admin/users')
   revalidatePath('/admin/users/[id]', 'page')
+  refresh()
 }
 
 export async function saveMemberAccountAction(
