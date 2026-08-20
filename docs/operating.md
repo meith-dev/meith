@@ -227,6 +227,20 @@ community settings:get board.name
 community settings:set board.name "The Townland"
 ```
 
+Settings marked secret are write-only. `settings:list` and `settings:get`
+print `<set>` or `<unset>` in place of their value. Supply a secret on stdin
+or name an environment variable; never put it in the command arguments,
+where shell history and process listings can expose it:
+
+```sh
+printf %s "$GITHUB_CLIENT_SECRET" | community settings:set federation.github_client_secret
+community settings:set federation.github_client_secret --from-env GITHUB_CLIENT_SECRET
+```
+
+An empty stdin stream or an environment variable set to the empty string
+clears the stored secret. A missing environment variable is an error rather
+than an instruction to clear it.
+
 ### Closing registration
 
 **Allow new registrations** (`registration.enabled`, in the registration
