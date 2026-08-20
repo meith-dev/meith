@@ -193,7 +193,7 @@ Nothing in the database changes: it stores keys, not URLs.
    [rclone](https://rclone.org):
 
    ```sh
-   docker run --rm -v meith_uploads:/u:ro -v "$PWD/rclone.conf":/config/rclone/rclone.conf \
+   docker run --rm -v docker_uploads:/u:ro -v "$PWD/rclone.conf":/config/rclone/rclone.conf \
      rclone/rclone copy /u remote:your-bucket
    ```
 
@@ -2339,7 +2339,7 @@ container rather than on the host:
 
 ```sh
 docker compose exec -T postgres pg_dump -U community community | gzip > board-$(date +%F).sql.gz
-docker run --rm -v meith_uploads:/u -v "$PWD":/out alpine \
+docker run --rm -v docker_uploads:/u -v "$PWD":/out alpine \
   tar czf /out/uploads-$(date +%F).tar.gz -C /u .
 ```
 

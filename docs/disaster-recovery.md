@@ -85,7 +85,7 @@ comes up:
 
 ```sh
 docker compose up -d --no-start web
-docker run --rm -v meith_uploads:/u -v "$PWD":/backup alpine \
+docker run --rm -v docker_uploads:/u -v "$PWD":/backup alpine \
   tar xzf /backup/uploads-2026-08-20.tar.gz -C /u
 ```
 

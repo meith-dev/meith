@@ -130,18 +130,6 @@ export const forumModerators = pgTable(
   ],
 )
 
-export const forumPasswordGrants = pgTable(
-  'forum_password_grants',
-  {
-    sessionId: integer('session_id').notNull(),
-    forumId: integer('forum_id')
-      .notNull()
-      .references(() => forums.id, { onDelete: 'cascade' }),
-    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex('forum_password_grants_pkey').on(t.sessionId, t.forumId)],
-)
-
 export const forumsRead = pgTable(
   'forums_read',
   {

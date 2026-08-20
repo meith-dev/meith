@@ -1,0 +1,1 @@
+DROP TABLE "forum_password_grants" CASCADE;

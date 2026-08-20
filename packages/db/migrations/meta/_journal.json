@@ -351,6 +351,13 @@
       "when": 1787122304769,
       "tag": "0049_plugin_health",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1787229776853,
+      "tag": "0050_drop_forum_password_grants",
+      "breakpoints": true
     }
   ]
 }

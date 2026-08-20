@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
 
+import { domainPackages } from './domain-packages.cjs'
 import { GUARDS } from './guards.config.mjs'
 import { repoFiles } from './repo-files.mjs'
 
+const DOMAIN_PATH = new RegExp(`^packages/(${domainPackages().join('|')})/`)
+
 function isDomainPath(rel) {
-  return /^packages\/(accounts|groups|authorization|forums|threads|posts|markdown|moderation|settings|events|tasks)\//.test(
-    rel,
-  )
+  return DOMAIN_PATH.test(rel)
 }
 
 const files = await repoFiles()

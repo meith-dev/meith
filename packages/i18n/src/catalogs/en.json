@@ -1989,7 +1989,7 @@
   "installAction.unknownFailure": "Unknown failure.",
   "installPreflight.alreadyInstalled.detail": "The installer disabled itself when it finished, and it cannot be run again. Use /admin to configure the board, or the operator CLI if you have lost access.",
   "installPreflight.alreadyInstalled.title": "This board is already installed",
-  "installPreflight.authSecret.missingDetail": "Sessions and tokens are signed with it and there is no default, deliberately: a shipped default is a board anybody who has read the source can sign a session for.",
+  "installPreflight.authSecret.missingDetail": "It signs the unsubscribe links in outgoing mail — sessions do not depend on it, they are random tokens stored hashed in the database — and there is no default, deliberately: a shipped default is a link anybody who has read the source can forge.",
   "installPreflight.authSecret.missingTitle": "AUTH_SECRET is not set",
   "installPreflight.authSecret.setTitle": "AUTH_SECRET is set",
   "installPreflight.blocker.one": "That has to be fixed before this board can be installed. Fix it, redeploy if it was an environment variable, and reload this page.",
