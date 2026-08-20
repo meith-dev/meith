@@ -297,18 +297,16 @@ problem into a board nobody can join.
 
 ## 6. Set up backups
 
-Not optional, and not the panel's job alone. Two separate things live on
-that machine:
+Not optional, and not the panel's job. Coolify's per-resource schedule
+dumps the database and does **not** include the uploads volume — avatars
+and attachments — and finding that out during a restore is the worst
+possible time. The board's own `community backup` takes both in one
+bundle; schedule it as a command on the `web` resource and copy the
+bundle off the machine.
 
-- **The database.** Coolify schedules `pg_dump` per resource, with S3 as
-  a destination. Turn it on now.
-- **The uploads volume.** Avatars and attachments. Coolify's scheduled
-  backup does **not** include it, and finding that out during a restore
-  is the worst possible time.
-
-[Backup and restore](./operating.md#backup-and-restore) has the commands
-for both, and the order they go back in. A backup nobody has restored is
-a file, not a backup.
+[Backup and restore](./operating.md#backup-and-restore) has the command,
+the schedule, and the restore. A backup nobody has restored is a file,
+not a backup.
 
 ## If the install fails halfway
 

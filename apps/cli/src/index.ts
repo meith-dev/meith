@@ -3,6 +3,7 @@ import process from 'node:process'
 
 import { type LoadedEnvFiles, loadEnvFiles } from '@meith/core/env-files'
 
+import { backupCommand, restoreCommand } from './backup'
 import {
   forumCreate,
   settingsGet,
@@ -139,6 +140,22 @@ const commands: Command[] = [
         log: (line) => console.log(line),
       })
     },
+  },
+
+  {
+    name: 'backup',
+    summary: 'Dump the database and the uploads into one restorable bundle.',
+    usage: 'community backup [--out <path>] [--uploads include|skip]',
+    run: backupCommand,
+  },
+
+  {
+    name: 'restore',
+    summary: 'Restore a backup bundle into a new, empty database.',
+    usage:
+      'community restore <bundle.tar.gz> --database-url <postgres://…> ' +
+      '[--uploads-dir <dir>] [--skip-uploads]',
+    run: restoreCommand,
   },
 
   {

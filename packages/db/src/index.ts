@@ -147,7 +147,7 @@ export { PostgresMaintenanceRepository } from './maintenance-repo'
 export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresMemberSettingsRepository } from './member-settings-repo'
 export { PostgresMessageRepository } from './message-repo'
-export { runMigrations } from './migrate'
+export { migrationUrl, runMigrations } from './migrate'
 export { PostgresModCpRepository } from './modcp-repo'
 export { PostgresModerationQueueRepository } from './moderation-queue'
 export {

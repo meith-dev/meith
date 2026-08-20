@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
@@ -126,6 +127,29 @@ export class S3FileStore implements FileStore {
       if (isNotFound(error)) return undefined
       throw error
     }
+  }
+
+  async *listKeys(): AsyncGenerator<string> {
+    let continuationToken: string | undefined
+
+    do {
+      const response = (await this.sender.send(
+        new ListObjectsV2Command({
+          Bucket: this.config.bucket,
+          ...(continuationToken === undefined ? {} : { ContinuationToken: continuationToken }),
+        }),
+      )) as {
+        Contents?: readonly { Key?: string }[]
+        IsTruncated?: boolean
+        NextContinuationToken?: string
+      }
+
+      for (const object of response.Contents ?? []) {
+        if (object.Key !== undefined) yield object.Key
+      }
+
+      continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken !== undefined)
   }
 
   async delete(key: string): Promise<void> {

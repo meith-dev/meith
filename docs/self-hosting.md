@@ -359,8 +359,9 @@ covers the failures that are about the board rather than the deployment.
 Worth being plain about, because this is the route with no panel behind
 it:
 
-- **Backups are yours.** Nobody else is taking one — the database *and*
-  the uploads volume. See
+- **Backups are yours.** Nobody else is taking one. `community backup`
+  bundles the database *and* the uploads; the cron and the offsite copy
+  are still yours to build. See
   [backup and restore](./operating.md#backup-and-restore), and the
   [disaster-recovery runbook](./disaster-recovery.md) for the day they
   are all you have.

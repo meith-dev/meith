@@ -336,6 +336,8 @@ The commands:
 | `community env:check` | Is the environment valid? Opens no connection. |
 | `community migrate` | Apply core migrations. |
 | `community upgrade` | Core migrations, then each installed plugin's, then record the version. `--dry-run` prints the plan. |
+| `community backup` | The database and the uploads, together, in one restorable bundle — see [backup and restore](#backup-and-restore). |
+| `community restore` | Restore a bundle into a **new, empty** database, uploads included — see [restoring](#restoring). |
 | `community import` | Import a MyBB board — see [importing from MyBB](#importing-from-mybb). |
 | `community settings:list` / `settings:get` / `settings:set` | Read and write board settings. |
 | `community user:create` | Create an account — `--username`, `--email`, optional `--group`; password on stdin. Works with registration closed. |
@@ -2327,62 +2329,99 @@ the thing that is broken.
 > per-resource schedule dumps Postgres and does not touch the uploads
 > volume, so a restore from it gives you every post and a broken image in
 > each of them. Whatever takes the database, something has to take the
-> volume too.
+> volume too — which is why the board's own verb takes both.
 
 ### Taking one
 
 ```sh
-pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" > board.dump
+community backup
 ```
 
-From a container deployment, where `pg_dump` lives in the database
-container rather than on the host:
+One [operator CLI](#the-operator-cli) command, one file:
+`meith-backup-<timestamp>.tar.gz`, holding a
+`pg_dump --format=custom --no-owner --no-privileges` of the database, a
+tar of the uploads, and a manifest recording when the bundle was taken
+and by which version. The two things that must be consistent together are
+taken together — and the bundle is ordinary `tar` around an ordinary
+`pg_dump`, so [`community restore`](#restoring) is the easy way to open
+it, never the only one.
+
+The details the verb gets right on your behalf:
+
+- **The direct connection string.** A transaction pooler does not support
+  the session-level operations `pg_dump` needs, and the failure is
+  confusing: a dump that starts and then stops. The dump uses
+  `DIRECT_DATABASE_URL` whenever it is set — the same selection
+  [migrations make](#connection-pooling).
+- **Role-portable dumps.** `--no-owner` and `--no-privileges`, because
+  the role names on a managed platform are not the ones you will restore
+  into.
+- **The uploads ride along.** On local disk the whole uploads directory
+  goes into the bundle. On S3 the bundle records the bucket and pulls
+  nothing — the files are already off the machine, and the bucket has its
+  own backup story — unless you pass `--uploads include`, which downloads
+  every object so one file is the whole board. `--uploads skip` takes the
+  database alone, eyes open.
+- **The tools are in the image.** The runtime image carries the postgres
+  client tools (`pg_dump`, `pg_restore`, `psql`) precisely so this verb
+  works everywhere the CLI works, with no toolchain on the host.
+
+On a container deployment the bundle lands inside the container's
+filesystem, so mount a directory to receive it:
 
 ```sh
-docker compose exec -T postgres pg_dump -U community community | gzip > board-$(date +%F).sql.gz
-docker run --rm -v docker_uploads:/u -v "$PWD":/out alpine \
-  tar czf /out/uploads-$(date +%F).tar.gz -C /u .
+docker compose run --rm --no-deps -v "$PWD":/backup web \
+  node apps/cli/cli.cjs backup --out /backup/board-$(date +%F).tar.gz
 ```
 
-Check the volume's real name with `docker volume ls` first — Compose
-prefixes it with the project directory, and Coolify with the resource's
-UUID. Then put both in a cron and **copy them off the machine**: a backup
-on the server is a backup of the thing most likely to fail.
+Then put that in a cron and **copy the bundle off the machine** — a
+backup on the server is a backup of the thing most likely to fail:
 
-`--format=custom` restores selectively and compresses. `--no-owner` and
-`--no-privileges` because the role names on a managed platform are not
-the ones you will restore into.
+```sh
+17 4 * * * cd /home/you/meith/docker && docker compose run --rm --no-deps -v /var/backups/meith:/backup web node apps/cli/cli.cjs backup --out /backup/board-$(date +\%F).tar.gz && rclone move /var/backups/meith remote:meith-backups
+```
 
-> [!WARNING]
-> **Use the direct connection string for a dump, not the pooler.** A
-> transaction pooler does not support the session-level operations
-> `pg_dump` needs, and the failure is confusing: a dump that starts and
-> then stops.
+`rclone` is one offsite choice; `scp`, `restic` or an object-store sync
+serve the same sentence. On Coolify, a scheduled command on the `web`
+resource runs the same invocation, and the offsite copy is still yours to
+add — Coolify's own backup schedule is the database-only trap the warning
+above describes.
 
 ### Restoring
 
 ```sh
 createdb community_restored
-pg_restore --no-owner --no-privileges --dbname="$RESTORE_URL" board.dump
+community restore board.tar.gz --database-url "$RESTORE_URL"
 ```
 
-Restore into a **new database** first and point a staging deployment at
-it. A restore over a live database is how a bad backup becomes two lost
-boards.
+Restore goes into a **new database**: the command checks the target is
+empty and refuses otherwise, because a restore over a live database is
+how a bad backup becomes two lost boards. Then, in order, it restores the
+dump, applies any migrations the dump predates — on a bundle taken by the
+same version it reports nothing to do, and that silence is itself a check
+— counts the restored posts, and puts the uploads back: into
+`UPLOADS_DIR` (or `--uploads-dir`, which must be fresh for the same
+reason the database must) on local disk, or up to the configured bucket
+when the file driver is S3 and the bundle carries objects.
+`--skip-uploads` leaves files alone when the uploads never went anywhere,
+such as a database-only recovery.
 
-Then check three things, in order:
+Two checks remain that a command cannot make for you. Point a staging
+deployment at the restored database, then:
 
-1. `select count(*) from posts;` — is the content there?
-2. Sign in as an administrator — did the credentials survive?
-3. `community migrate` — it applies anything missing and reports what it
-   did; on a good restore it says there was nothing to do.
+1. Sign in as an administrator — did the credentials survive?
+2. Open a thread with attachments — did the uploads restore actually meet
+   the database restore?
 
 ### Rehearse it
 
-A backup nobody has restored is a file, not a backup. Restore one into a
-scratch database before you need to, and note how long it took: that
-number is your recovery time, and an incident is the wrong moment to
-learn it.
+A backup nobody has restored is a file, not a backup. CI restores one on
+every change — the `backup` job seeds a board, backs it up, restores into
+a fresh database, boots the result and reads a thread — but CI's board is
+not *your* board and CI's machine is not your machine. Restore one of
+yours into a scratch database before you need to (the two commands above
+are the whole rehearsal), and note how long it took: that number is your
+recovery time, and an incident is the wrong moment to learn it.
 
 ## Connection pooling
 
