@@ -117,6 +117,15 @@
       "primary": false
     },
     {
+      "slug": "disaster-recovery",
+      "file": "disaster-recovery.md",
+      "section": "running",
+      "title": "Disaster recovery",
+      "blurb": "The runbook for the day the server is gone: what recovery consumes, the order of operations from provisioning to DNS, and the rehearsal that turns it from a hope into a plan.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "single-sign-on",
       "file": "single-sign-on.md",
       "section": "running",

@@ -152,9 +152,69 @@ real disk mounted as a volume.
 DigitalOcean Spaces — which also switches the client to path-style
 addressing.
 
+**The bucket stays private.** The board never hands a visitor a bucket
+URL: every avatar, attachment and logo is fetched by the server and
+served through the board's own routes, behind the board's own permission
+checks. So there is no public-access setting to get right, no CORS to
+configure, and a leaked bucket listing is the only thing a public bucket
+would have added. Create the bucket closed and leave it closed.
+
+The endpoint and region are the only parts that vary by provider:
+
+| Provider | `S3_REGION` | `S3_ENDPOINT` |
+|---|---|---|
+| AWS S3 | the bucket's region | unset |
+| Cloudflare R2 | `auto` | `https://<account-id>.r2.cloudflarestorage.com` |
+| DigitalOcean Spaces | the Space's region, e.g. `ams3` | `https://ams3.digitaloceanspaces.com` (the region's endpoint, **not** the bucket's own hostname) |
+| MinIO | whatever your server declares, `us-east-1` by default | your MinIO URL |
+
+The credential should be scoped to this one bucket — the board needs to
+read, write and delete objects in it, and nothing else about your
+account.
+
 On local disk, the uploads directory is the second thing to back up; on an
 object store the bucket has its own backup story. See
-[backup and restore](#backup-and-restore).
+[backup and restore](#backup-and-restore) — and the
+[disaster-recovery runbook](./disaster-recovery.md), which is the page
+this choice makes shorter.
+
+### Moving a board from local disk to S3
+
+The store's keys are the same in both drivers — a file at
+`.uploads/avatars/7.webp` becomes the object `avatars/7.webp` — so the
+migration is a copy, a cutover, and a second copy to catch the gap.
+Nothing in the database changes: it stores keys, not URLs.
+
+1. **Create the bucket and credentials**, per the table above, and put
+   the four (or five) `S3_*` values where your deployment reads its
+   environment. Leave `FILESTORE_DRIVER` alone for now.
+2. **Copy the uploads into the bucket** while the board runs. Any
+   S3-capable copier works; from the compose host with
+   [rclone](https://rclone.org):
+
+   ```sh
+   docker run --rm -v meith_uploads:/u:ro -v "$PWD/rclone.conf":/config/rclone/rclone.conf \
+     rclone/rclone copy /u remote:your-bucket
+   ```
+
+   (Check the volume's real name with `docker volume ls` — Compose
+   prefixes it with the project directory, Coolify with the resource's
+   UUID.) `aws s3 sync` or MinIO's `mc mirror` do the same job.
+3. **Cut over**: set `FILESTORE_DRIVER=s3` and redeploy. Set it on the
+   **web and worker** both — the worker touches the store too.
+4. **Copy again.** Anything uploaded between step 2 and the redeploy
+   exists only on the volume; a second `copy` (it is incremental) closes
+   the window. Until it runs, those few files 404 — minutes-old avatars,
+   nothing older.
+5. **Verify before deleting anything**: open a page with avatars,
+   download an attachment, upload a new file and download that too. The
+   old volume then becomes your fallback — keep it until the first
+   [restore rehearsal](#rehearse-it) with the new arrangement has
+   succeeded.
+
+Moving the other way — S3 back to local — is the same copy in reverse,
+with `FILESTORE_DRIVER` returned to `local` and the files landed in the
+volume the compose file mounts.
 
 ### Settings from the command line
 
@@ -2243,6 +2303,10 @@ versions — is [Upgrading a board](./upgrading.md).
 > restoring is the only way back. This is not a precaution, it is the
 > recovery procedure — which is why it is worth rehearsing before you
 > need it.
+
+This section is the everyday half: what to take and how to put one piece
+back. The order of operations for the day the whole machine is gone is
+its own page — the [disaster-recovery runbook](./disaster-recovery.md).
 
 ### What to back up
 
