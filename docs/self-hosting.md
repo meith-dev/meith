@@ -170,10 +170,16 @@ Each long-running container carries a memory and CPU ceiling sized for a
 small VPS — a gigabyte and two cores for `web`, a gigabyte and a core for
 `postgres`, 768 MB for `worker` — and rotates its own logs at three files
 of 10 MB each. The ceilings are limits, not reservations: a quiet board
-holds nothing back, and a bigger machine raises them by editing the
-`mem_limit` and `cpus` lines. The log cap is what keeps a crash-looping
-container from writing the disk full: `restart: unless-stopped` restarts
-it forever, and every restart logs.
+holds nothing back. A bigger machine raises them from the same `.env` the
+secrets live in — `WEB_MEM_LIMIT`, `WEB_CPUS`, `POSTGRES_MEM_LIMIT`,
+`POSTGRES_CPUS`, `WORKER_MEM_LIMIT`, `WORKER_CPUS`, plus `REDIS_MEM_LIMIT`
+and `REDIS_CPUS` for the scaling profile — never by editing the compose
+file, so an upgrade's `git checkout` has nothing of yours to collide with.
+Anything the variables do not reach goes in a `compose.override.yml`
+beside the compose file: compose merges it automatically, and it is yours,
+untracked, upgrade after upgrade. The log cap is what keeps a
+crash-looping container from writing the disk full: `restart:
+unless-stopped` restarts it forever, and every restart logs.
 
 ## 5. Put a proxy in front
 

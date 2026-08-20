@@ -22,8 +22,8 @@ services:
   postgres:
     image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     restart: unless-stopped
-    mem_limit: 1g
-    cpus: 1
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    cpus: ${POSTGRES_CPUS:-1}
     logging:
       driver: json-file
       options:
@@ -86,8 +86,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
-    mem_limit: 1g
-    cpus: 2
+    mem_limit: ${WEB_MEM_LIMIT:-1g}
+    cpus: ${WEB_CPUS:-2}
     logging:
       driver: json-file
       options:
@@ -147,8 +147,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
-    mem_limit: 768m
-    cpus: 1
+    mem_limit: ${WORKER_MEM_LIMIT:-768m}
+    cpus: ${WORKER_CPUS:-1}
     logging:
       driver: json-file
       options:
@@ -188,8 +188,8 @@ services:
     profiles: ['redis']
     image: valkey/valkey:8-alpine@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.5
+    mem_limit: ${REDIS_MEM_LIMIT:-256m}
+    cpus: ${REDIS_CPUS:-0.5}
     logging:
       driver: json-file
       options:
