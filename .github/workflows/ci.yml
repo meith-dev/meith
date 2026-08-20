@@ -190,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -294,7 +294,7 @@ jobs:
       # runs and a loop that works.
       - name: The worker registered its tasks
         run: |
-          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:18-alpine \
             psql -h 127.0.0.1 -U postgres -d forum_test -tAc 'select count(*) from tasks' \
             | grep -qE '^[1-9]' \
             || { echo "::error::no tasks were registered"; docker logs forum-worker; exit 1; }
@@ -477,6 +477,13 @@ jobs:
           docker compose run --rm --no-deps web node apps/cli/cli.cjs --help | grep -qi 'usage' \
             || { echo "::error::the operator CLI is not in the image"; exit 1; }
 
+      - name: The image carries the postgres client tools backup needs
+        run: |
+          docker compose run --rm --no-deps web pg_dump --version | grep -q 'pg_dump (PostgreSQL) 18' \
+            || { echo "::error::pg_dump 18 is not in the image"; exit 1; }
+          docker compose run --rm --no-deps web pg_restore --version >/dev/null \
+            || { echo "::error::pg_restore is not in the image"; exit 1; }
+
       - name: Logs on failure
         if: failure()
         run: docker compose logs --no-color
@@ -612,7 +619,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: forum_test
@@ -680,3 +687,110 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_test
           DATA_SOURCE: postgres
+
+  backup:
+    name: Backup and restore round-trip
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forum_live
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATA_SOURCE: postgres
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_live
+      UPLOADS_DIR: /tmp/uploads-live
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Postgres 18 client tools
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version | grep -q ' 18\.' \
+            || { echo "::error::postgresql-client-18 did not install version 18"; exit 1; }
+
+      - name: Seed a board with content and an upload
+        run: |
+          pnpm --filter @meith/db migrate
+          pnpm community demo:seed
+          mkdir -p /tmp/uploads-live/avatars/ab
+          cp apps/community/public/placeholder-user.jpg /tmp/uploads-live/avatars/ab/attachment.jpg
+        env:
+          DEMO_MODE: '1'
+
+      - name: Take a backup
+        run: |
+          pnpm community backup --out /tmp/board-ci.tar.gz
+          tar tzf /tmp/board-ci.tar.gz | sort | tee /tmp/bundle-members.txt
+          for member in manifest.json db.dump uploads.tar.gz; do
+            grep -qx "$member" /tmp/bundle-members.txt \
+              || { echo "::error::the bundle is missing $member"; exit 1; }
+          done
+
+      - name: Restore into a fresh database and a fresh uploads directory
+        run: |
+          createdb -h localhost -U postgres forum_restored
+          pnpm community restore /tmp/board-ci.tar.gz \
+            --database-url postgres://postgres:postgres@localhost:5432/forum_restored \
+            --uploads-dir /tmp/uploads-restored | tee /tmp/restore.log
+          grep -q 'nothing to do' /tmp/restore.log \
+            || { echo "::error::the restore had migrations to apply on a dump this build just took"; exit 1; }
+
+      - name: The restore refuses a database that is not empty
+        run: |
+          if pnpm community restore /tmp/board-ci.tar.gz \
+            --database-url postgres://postgres:postgres@localhost:5432/forum_restored \
+            --uploads-dir /tmp/uploads-refused 2>/tmp/refused.log; then
+            echo "::error::a restore over a live database was accepted"; exit 1
+          fi
+          grep -qi 'empty database' /tmp/refused.log \
+            || { echo "::error::the refusal did not say why"; cat /tmp/refused.log; exit 1; }
+
+      - name: The seeded content survived the round trip
+        run: |
+          live=$(psql -h localhost -U postgres -d forum_live -tAc 'select count(*) from posts')
+          restored=$(psql -h localhost -U postgres -d forum_restored -tAc 'select count(*) from posts')
+          test "$restored" -gt 0 || { echo "::error::the restored board holds no posts"; exit 1; }
+          test "$live" = "$restored" \
+            || { echo "::error::post counts differ: $live live, $restored restored"; exit 1; }
+          cmp /tmp/uploads-live/avatars/ab/attachment.jpg /tmp/uploads-restored/avatars/ab/attachment.jpg \
+            || { echo "::error::the upload did not survive the round trip"; exit 1; }
+
+      - name: The restored board boots and serves a seeded thread
+        run: |
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/forum_restored \
+            UPLOADS_DIR=/tmp/uploads-restored pnpm dev >/tmp/dev.log 2>&1 &
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3000/api/health >/dev/null \
+            || { echo "::error::the restored board never became healthy"; tail -50 /tmp/dev.log; exit 1; }
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
+            || { echo "::error::the restored board did not render"; tail -50 /tmp/dev.log; exit 1; }
+          thread=$(psql -h localhost -U postgres -d forum_restored -tAc \
+            "select id || '-' || slug from threads where title like 'Start here%' limit 1")
+          test -n "$thread" || { echo "::error::the seeded start-here thread is gone"; exit 1; }
+          curl -fsS "http://127.0.0.1:3000/thread/$thread" | grep -qF 'Start here' \
+            || { echo "::error::the seeded thread did not render after the restore"; tail -50 /tmp/dev.log; exit 1; }

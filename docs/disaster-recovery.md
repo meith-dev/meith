@@ -17,8 +17,8 @@ machine is gone:
 
 | Artifact | Without it |
 |---|---|
-| The database dump | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
-| The uploads — a volume archive, or the S3 bucket | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./operating.md#where-uploads-go) skips this step entirely: the bucket never lived on the machine. |
+| The database dump — the `community backup` bundle carries it | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
+| The uploads — in the same bundle on local disk, or the S3 bucket | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./operating.md#where-uploads-go) skips this step entirely: the bucket never lived on the machine. |
 | The environment — your `.env`, or the secrets the panel generated | The board boots with new secrets, but `AUTH_SECRET` seals members' two-factor secrets: lose it and every enrolled authenticator app is stranded, and every unsubscribe link in already-sent mail dies. Sessions survive either way — they are random tokens stored hashed in the database. |
 
 The code is not on the list. It is in git, pinned by the release tag the
@@ -61,37 +61,45 @@ external scheduler presents it, if anything does. `AUTH_SECRET` is the
 expensive one; regenerating it means telling your members to re-enrol
 their authenticator apps, so exhaust the places a copy might be first.
 
-### 3. Restore the database
+### 3. Restore the board
 
 Bring up Postgres alone, restore into it, and keep the board down until
 the data is in:
 
 ```sh
 docker compose up -d postgres
-gunzip -c board-2026-08-20.sql.gz | docker compose exec -T postgres psql -U community community
+docker compose run --rm --no-deps -v "$PWD":/backup web \
+  node apps/cli/cli.cjs restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz \
+  --database-url postgres://community:$POSTGRES_PASSWORD@postgres:5432/community
 ```
 
-(For a `--format=custom` dump, `pg_restore --no-owner --no-privileges`
-into the same place —
-[Restoring](./operating.md#restoring) has the variants.) The compose
-stack's `migrate` service will run before anything serves; on a dump
-taken from the same version it reports nothing to do, and that silence is
-itself a check.
+The fresh Postgres container created an empty `community` database, which
+is exactly what [`community restore`](./operating.md#restoring) insists
+on. One command puts back the dump *and* the uploads — `docker compose
+run` mounts the same uploads volume the board serves from — and applies
+any migrations the bundle predates; on a bundle taken from the same
+version it reports nothing to do, and that silence is itself a check.
 
-### 4. Restore the uploads
-
-On local disk, unpack the archive into the named volume before the board
-comes up:
+Backups taken by hand instead — a bare dump beside an uploads archive —
+restore the way they were taken:
 
 ```sh
-docker compose up -d --no-start web
+gunzip -c board-2026-08-20.sql.gz | docker compose exec -T postgres psql -U community community
 docker run --rm -v docker_uploads:/u -v "$PWD":/backup alpine \
   tar xzf /backup/uploads-2026-08-20.tar.gz -C /u
 ```
 
 (`docker volume ls` for the real volume name — Compose prefixes it with
-the project directory.) On S3 there is nothing to restore: confirm the
-credential in `.env` still works and move on. This asymmetry is most of
+the project directory. A `--format=custom` dump goes through
+`pg_restore --no-owner --no-privileges` —
+[Restoring](./operating.md#restoring) has the variants.)
+
+### 4. The uploads, when they lived elsewhere
+
+On S3 there is nothing to restore: confirm the credential in `.env` still
+works and move on — unless the bucket is gone too, in which case a bundle
+taken with `--uploads include` holds every object, and restoring it with
+the S3 driver configured pushes them back up. This asymmetry is most of
 the argument for
 [moving uploads to object storage](./operating.md#moving-a-board-from-local-disk-to-s3)
 on a calm day.

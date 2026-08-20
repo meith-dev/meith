@@ -47,7 +47,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -115,7 +115,7 @@ jobs:
           state=$(docker inspect -f '{{.State.Health.Status}}' meith-worker)
           test "$state" = "healthy" \
             || { echo "::error::worker health is $state"; exit 1; }
-          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:18-alpine \
             psql -h 127.0.0.1 -U postgres -d forum_release -tAc 'select count(*) from tasks' \
             | grep -qE '^[1-9]' \
             || { echo "::error::no tasks were registered"; docker logs meith-worker; exit 1; }

@@ -32,7 +32,7 @@
 
 services:
   postgres:
-    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
     # A fixed name so `docker exec forum-pg psql …` works without looking it up,
     # and so the container is recognisable among a machine's other databases.
     container_name: forum-pg
@@ -47,7 +47,7 @@ services:
       # worse failure than a refused connection.
       - '55432:5432'
     volumes:
-      - forum-pgdata:/var/lib/postgresql/data
+      - forum-pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d community_test']
       interval: 10s
@@ -57,7 +57,7 @@ services:
 volumes:
   # **Named, and named explicitly.**
   #
-  # The postgres image declares `VOLUME /var/lib/postgresql/data`, so a container
+  # The postgres image declares `VOLUME /var/lib/postgresql`, so a container
   # started without this still gets a volume — an *anonymous* one. Data survives
   # a restart, and even `docker rm`, but the volume cannot be reattached to a new
   # container on purpose and `docker volume prune` deletes it without asking.

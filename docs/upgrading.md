@@ -161,6 +161,45 @@ first, and `web` and `worker` wait for it, so the new code never serves
 against the old schema. That covers **core migrations only** — plugin
 migrations still go through `community upgrade`.
 
+## When a release moves Postgres
+
+The compose files pin the database image, and a release can move that pin
+across a Postgres major version — as the move from `postgres:16-alpine`
+to `postgres:18-alpine` did. A Postgres major is not an ordinary
+redeploy: the data directory's on-disk format belongs to the major that
+wrote it, and the 18 image also keeps its cluster at a different path
+inside the volume than 16 did — so bringing the new image up on the old
+volume gets you a board that is *empty* rather than broken, which is
+worse, because it looks like data loss and is merely data ignored.
+
+The way across is the backup, which is the point of this page's first
+section. On Compose, from the checkout of the **new** release:
+
+```sh
+docker compose build web
+docker compose run --rm --no-deps -v "$PWD":/backup web \
+  node apps/cli/cli.cjs backup --out /backup/pre-18.tar.gz
+docker compose down
+docker volume rm docker_pgdata
+docker compose up -d postgres
+docker compose run --rm --no-deps -v "$PWD":/backup web \
+  node apps/cli/cli.cjs restore /backup/pre-18.tar.gz \
+  --database-url postgres://community:$POSTGRES_PASSWORD@postgres:5432/community \
+  --skip-uploads
+docker compose up -d --build
+```
+
+The new image's `pg_dump` reads the old server fine — clients dump any
+older server, which is why the backup comes from the *new* build against
+the *still-running* old database. `docker volume ls` names the real
+`pgdata` volume; `--skip-uploads` because the uploads volume never went
+anywhere and a restore refuses to write into a directory that is not
+empty. Keep the bundle until the board has served for a while — it is
+also the rollback.
+
+Under Coolify the same sequence runs from the resource's terminal, with
+the volume deleted in the panel between the backup and the restore.
+
 ## When the deploy and the migration are separate events
 
 Deploy some other way and the two come apart: the board runs the new code
@@ -432,6 +471,26 @@ confuse it with `privateMessageQuota`, which has always worked and caps
 what a member may *keep*, not what they may send in a day.
 
 ### Behaviour that changed shape
+
+#### Backup is a verb
+
+The [backup and restore](./operating.md#backup-and-restore) page used to
+be commands you copied; it is now `community backup` and
+`community restore` — one bundle carrying the database dump and the
+uploads together, restored only into a new, empty database, with the
+post-restore checks run for you. Nothing changes for a cron built on
+`pg_dump`; the verb is the same dump with the uploads problem solved
+beside it, and CI restores one on every change.
+
+#### The stack's Postgres is 18
+
+The compose files pin `postgres:18-alpine` where they pinned
+`postgres:16-alpine`, and the board image carries the matching client
+tools. A running board does **not** cross a Postgres major by
+redeploying — the old data directory would be silently ignored, not
+upgraded — so follow
+[when a release moves Postgres](#when-a-release-moves-postgres) the next
+time you take this release onto an existing board.
 
 #### Links into a post
 
