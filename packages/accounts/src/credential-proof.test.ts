@@ -9,7 +9,7 @@ function session(overrides: Partial<SessionRecord> = {}): SessionRecord {
   return {
     id: 1,
     userId: 7,
-    expiresAt: new Date(now.getTime() + 60_000),
+    expiresAt: new Date(now.getTime() + CREDENTIAL_PROOF_TTL_MS + 60_000),
     revokedAt: null,
     supersededBySessionId: null,
     credentialProvedAt: now,

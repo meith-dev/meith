@@ -77,6 +77,12 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
 
     await memberPage.getByLabel('What to call it').fill('Work laptop')
     await memberPage.getByRole('button', { name: 'Add a passkey' }).click()
+    await expect(memberPage).toHaveURL(/\/usercp\/security\/verify\?next=/)
+    await memberPage.getByLabel('Current password').fill(PASSWORD)
+    await memberPage.getByRole('button', { name: 'Verify password' }).click()
+    await expect(memberPage).toHaveURL(/\/usercp\/security\?verified=1$/)
+    await memberPage.getByLabel('What to call it').fill('Work laptop')
+    await memberPage.getByRole('button', { name: 'Add a passkey' }).click()
 
     await expect(memberPage).toHaveURL(/\/usercp\/security\?passkey=added$/, {
       timeout: 15_000,

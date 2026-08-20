@@ -4,7 +4,9 @@ import { packChallenge, unpackChallenge } from './passkey-challenge'
 
 describe('the challenge held between the two passkey requests', () => {
   it('comes back out of its own cookie', () => {
-    expect(unpackChallenge(packChallenge('register', 'abc'), 'register')).toBe('abc')
+    expect(unpackChallenge(packChallenge('register', 'abc'), 'register')).toEqual({
+      challenge: 'abc',
+    })
   })
 
   it('refuses a registration challenge presented as a sign-in', () => {
@@ -19,7 +21,18 @@ describe('the challenge held between the two passkey requests', () => {
     expect(unpackChallenge('register:', 'register')).toBeNull()
   })
 
-  it('keeps a challenge that contains the separator itself', () => {
-    expect(unpackChallenge('authenticate:a:b', 'authenticate')).toBe('a:b')
+  it('keeps challenge bindings and separator characters', () => {
+    const packed = packChallenge('credential-proof', 'a:b', {
+      userId: 7,
+      sessionId: 11,
+      provedAt: 1_787_241_600_000,
+    })
+
+    expect(unpackChallenge(packed, 'credential-proof')).toEqual({
+      challenge: 'a:b',
+      userId: 7,
+      sessionId: 11,
+      provedAt: 1_787_241_600_000,
+    })
   })
 })
