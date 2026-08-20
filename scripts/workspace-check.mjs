@@ -52,7 +52,7 @@ for (const [alias, targets] of Object.entries(base.compilerOptions?.paths ?? {})
   const target = targets[0]
   if (typeof target !== 'string') continue
 
-  const dir = target.split('/').slice(0, 2).join('/')
+  const dir = target.replace(/^\.\//, '').split('/').slice(0, 2).join('/')
   if (!directories.includes(dir)) {
     problems.push(
       `tsconfig.base.json maps ${alias} to ${target}, which is not a workspace directory`,
