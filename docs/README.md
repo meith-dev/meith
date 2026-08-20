@@ -26,6 +26,7 @@ somebody has already set the board up for you, start with
 | Run the server day to day | [Running a board](./operating.md) |
 | Run more than one web container | [Scaling out](./scaling.md) |
 | Move a board to a new version | [Upgrading a board](./upgrading.md) |
+| Recover a board whose server is gone | [Disaster recovery](./disaster-recovery.md) |
 | Add 2FA, SSO or passkeys | [Signing in](./single-sign-on.md) |
 | Run a board in another language | [Languages](./internationalisation.md) |
 | Push notifications to a phone | [Web push](./web-push.md) |
@@ -68,6 +69,7 @@ For whoever minds the machine.
 |---|---|
 | [`operating.md`](./operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
 | [`upgrading.md`](./upgrading.md) | Moving between versions: the upgrade command, how far you can jump, and the behaviour changes each upgrade brings. |
+| [`disaster-recovery.md`](./disaster-recovery.md) | The full-loss runbook: what recovery consumes, the order of operations from provisioning to DNS cutover, and the rehearsal that measures your recovery time. |
 | [`single-sign-on.md`](./single-sign-on.md) | Everything beyond a password: two-factor authentication, federated sign-in, passkeys, sessions, and the sign-in activity log. |
 | [`internationalisation.md`](./internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
 | [`web-push.md`](./web-push.md) | Notifications that reach a member who does not have the board open, the privacy that costs, and the manifest that makes the board installable. |

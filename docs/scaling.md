@@ -143,8 +143,10 @@ there is still only one instance to watch. If boot fails naming
 `FILESTORE_DRIVER=s3` and the `S3_*` variables, and copy the existing
 uploads across — the files under the uploads volume keep their keys, so a
 `rclone` or `aws s3 sync` of the volume's contents into the bucket is the
-whole job. Skip this step while every instance shares one machine and one
-volume.
+whole job;
+[moving a board from local disk to S3](./operating.md#moving-a-board-from-local-disk-to-s3)
+is the step-by-step. Skip this step while every instance shares one
+machine and one volume.
 
 **4. Add instances.** On Coolify, raise the web service's replica count.
 On Compose, the `--scale web=3` shape above. Watch the board for a

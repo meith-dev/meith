@@ -341,7 +341,9 @@ it:
 
 - **Backups are yours.** Nobody else is taking one — the database *and*
   the uploads volume. See
-  [backup and restore](./operating.md#backup-and-restore).
+  [backup and restore](./operating.md#backup-and-restore), and the
+  [disaster-recovery runbook](./disaster-recovery.md) for the day they
+  are all you have.
 - **Certificates are yours.** Caddy makes it a solved problem, but it is
   a problem you now own.
 - **Security updates are yours.** `unattended-upgrades` for the host; a
