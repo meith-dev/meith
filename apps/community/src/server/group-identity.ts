@@ -1,15 +1,15 @@
 import 'server-only'
 
-import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
 
-import { CacheTags } from '@meith/core'
+import { CacheTags, cachedGlobal } from '@meith/core'
 import {
   type GroupIdentity,
   getDb,
   type MemberStanding,
   PostgresGroupIdentityRepository,
 } from '@meith/db'
+import { drivers } from '@meith/drivers'
 
 import type { MemberIdentity } from '@/view/member-identity'
 
@@ -27,14 +27,22 @@ function repository(): PostgresGroupIdentityRepository | null {
     : null
 }
 
-const loadStyled = unstable_cache(
-  async (): Promise<readonly GroupIdentity[]> => {
-    const repo = repository()
-    return repo === null ? [] : repo.styled()
-  },
-  ['group-identity-styles'],
-  { tags: [CacheTags.groups()] },
-)
+const TTL_SECONDS = 60
+
+function loadStyled(): Promise<readonly GroupIdentity[]> {
+  return cachedGlobal(
+    drivers().cache,
+    {
+      key: ['group-identity-styles'],
+      tags: [CacheTags.groups()],
+      revalidate: TTL_SECONDS,
+    },
+    async () => {
+      const repo = repository()
+      return repo === null ? [] : repo.styled()
+    },
+  )
+}
 
 export const getGroupStyle = cache(async (): Promise<string> => {
   const groups = await loadStyled().catch(() => [])

@@ -17,6 +17,7 @@ import {
 } from '@meith/settings'
 
 import { NextCacheDriver } from './cache/next-cache'
+import { RedisCacheDriver } from './cache/redis-cache'
 import { LocalFileStore } from './files/local-file-store'
 import { S3FileStore } from './files/s3-file-store'
 import { ConfiguredMailDriver } from './mail'
@@ -31,8 +32,6 @@ function buildQueue(): QueueDriver {
       return new PostgresQueue()
     case 'memory':
       return new MemoryQueue()
-    case 'redis':
-      throw new ConfigurationError('QUEUE_DRIVER=redis is not implemented yet. Use "postgres".')
   }
 }
 
@@ -41,10 +40,12 @@ function buildCache(): CacheDriver {
     case 'next':
     case 'memory':
       return new NextCacheDriver()
-    case 'redis':
-      throw new ConfigurationError(
-        'CACHE_DRIVER=redis is not implemented yet. Use "next" or "memory".',
-      )
+    case 'redis': {
+      if (!env.REDIS_URL) {
+        throw new ConfigurationError('CACHE_DRIVER=redis requires REDIS_URL to be set.')
+      }
+      return new RedisCacheDriver({ url: env.REDIS_URL })
+    }
   }
 }
 

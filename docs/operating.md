@@ -52,6 +52,8 @@ written to the audit log — which is not the same as encrypted.
 | `TRUSTED_PROXY_HOPS` | No | How many proxies sit between the internet and the board. Defaults to `1`. Getting this wrong is a security problem, not a cosmetic one — see [visitor addresses and proxies](#visitor-addresses-and-proxies). |
 | `REMOTE_IMAGES` | No | `0` (the default) confines images to this board and `data:` URLs; `1` lets a post embed an image from any `https:` host. See [remote images](#remote-images). |
 | `FILESTORE_DRIVER` | No | `local` or `s3`. Defaults to `local`, which is right for a board with a disk. See [where uploads go](#where-uploads-go). |
+| `CACHE_DRIVER` | No | `next`, `memory` or `redis`. `next` and `memory` cache per process, which is right for one web container. `redis` makes the cache one shared store so several web containers stay coherent — see [Scaling out](./scaling.md). |
+| `REDIS_URL` | With `CACHE_DRIVER=redis` | A `redis://` or `rediss://` URL. Redis holds cache entries only — losing it costs a warm cache, not data. |
 | `DIRECT_DATABASE_URL` | No | A direct (non-pooler) connection string for migrations, when `DATABASE_URL` points at a transaction pooler. See [connection pooling](#connection-pooling). |
 | `MIGRATIONS_DIR` | No | The folder holding the migration SQL and its `meta/_journal.json`. Normally unset — the migrator looks beside `@meith/db` in a checkout and in `/app/migrations` in the image. |
 

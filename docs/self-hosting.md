@@ -160,6 +160,12 @@ waited for. The worker should log `worker started` **once**, and then not
 much; if that line repeats every few seconds, the container is
 crash-looping and the log above it says why.
 
+One `web` container is the topology this walkthrough sets up, and the
+right one to start with. When the board outgrows it, [Scaling
+out](./scaling.md) is the path — the compose file already carries the
+`redis` profile and the variables it needs, so scaling later means
+changing configuration, not redoing this guide.
+
 ## 5. Put a proxy in front
 
 Nothing in the compose file terminates TLS. Caddy, because it gets a

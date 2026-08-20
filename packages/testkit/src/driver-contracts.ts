@@ -68,6 +68,15 @@ export function cacheDriverContract(name: string, make: DriverFactory<CacheDrive
       await cache.set('k', 'v', { ttlSeconds: -1 })
       expect(await cache.get('k')).toBeUndefined()
     })
+
+    it('round-trips a Date as a Date, not a string', async () => {
+      const cache = await make()
+      const at = new Date('2026-01-02T03:04:05.678Z')
+      await cache.set('dated', { last: { at } })
+      const read = await cache.get<{ last: { at: Date } }>('dated')
+      expect(read?.last.at).toBeInstanceOf(Date)
+      expect(read?.last.at.getTime()).toBe(at.getTime())
+    })
   })
 }
 

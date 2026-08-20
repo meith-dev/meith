@@ -89,7 +89,8 @@ services:
       # Guards the tick endpoint, which is publicly routable.
       TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
       QUEUE_DRIVER: postgres
-      CACHE_DRIVER: next
+      CACHE_DRIVER: ${CACHE_DRIVER:-next}
+      REDIS_URL: ${REDIS_URL:-}
       FILESTORE_DRIVER: local
       APP_URL: ${APP_URL:-http://localhost:3000}
       # Mail, forwarded rather than hard-coded so it can be configured in `.env`
@@ -139,7 +140,8 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
       TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
       QUEUE_DRIVER: postgres
-      CACHE_DRIVER: memory
+      CACHE_DRIVER: ${CACHE_DRIVER:-memory}
+      REDIS_URL: ${REDIS_URL:-}
       FILESTORE_DRIVER: local
       APP_URL: ${APP_URL:-http://localhost:3000}
       # The worker is what actually sends queued mail, so it needs the same
@@ -160,6 +162,16 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+
+  redis:
+    profiles: ['redis']
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # The pre-worker approach, kept for the operator who prefers it: a tiny
   # sidecar curling the tick endpoint once a minute, so the only container
