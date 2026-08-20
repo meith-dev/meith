@@ -29,6 +29,15 @@ const nextConfig = {
         },
       }),
 
+  async redirects() {
+    return [
+      // The committee's guide became the organiser's guide when the docs
+      // stopped assuming every community is a club. The old URL had been
+      // published for several releases, so it keeps working.
+      { source: '/docs/committee-guide', destination: '/docs/organiser-guide', permanent: true },
+    ]
+  },
+
   async headers() {
     return [
       {

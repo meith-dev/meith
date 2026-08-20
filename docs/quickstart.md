@@ -356,9 +356,9 @@ people doing those jobs.
 
 | You want to | Read |
 |---|---|
-| Hand it to the committee | [The committee's guide](./committee-guide.md) |
+| Hand it to whoever runs the community | [The organiser's guide](./organiser-guide.md) |
 | Hand the queue to the moderators | [The moderator's guide](./moderation-guide.md) |
-| Take the subs online | [The treasurer's guide](./membership-guide.md) |
+| Take memberships online | [The memberships guide](./membership-guide.md) |
 | Run the server day to day | [Running a board](./operating.md) |
 | Take it from one version to the next | [Upgrading a board](./upgrading.md) |
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |

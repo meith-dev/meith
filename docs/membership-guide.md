@@ -1,13 +1,13 @@
-# The treasurer's guide
+# The memberships guide
 
-For the person who looks after a club's money — the treasurer — on
-running paid membership with **Dues**, the membership plugin that ships
-with the board
+For whoever looks after the community's money — the treasurer, where
+there is one — on running paid membership with **Dues**, the membership
+plugin that ships with the board
 ([plugins/dues](https://github.com/meith-dev/meith/tree/main/plugins/dues)).
 Everything here happens in a browser. The few steps that genuinely need a
 terminal belong to whoever runs the server — the operator — and are marked
 as theirs. The rest of the board's day-to-day is
-[The committee's guide](./committee-guide.md).
+[The organiser's guide](./organiser-guide.md).
 
 ## What Dues is
 
@@ -18,7 +18,7 @@ membership lapses or is revoked, the board takes the group away again, on
 its own, at the boundary the payment bought. Nobody has to remember to
 remove anyone.
 
-The money goes to the club's own Stripe account, under the club's own
+The money goes to the community's own Stripe account, under its own
 keys. The board takes no cut and charges no per-member fee — the only fees
 are Stripe's own processing fees. Payment happens on Stripe's checkout
 page; no card number ever touches the board.
@@ -31,7 +31,7 @@ pretend Stripe, with a checkout a visitor can actually go through.
 
 | | |
 |---|---|
-| **A Stripe account** | The club's own, at [stripe.com](https://stripe.com). This is where the money lands and where refunds are issued. |
+| **A Stripe account** | The community's own, at [stripe.com](https://stripe.com). This is where the money lands and where refunds are issued. |
 | **An administrator account** | Every screen in this guide lives under **Admin → Plugins → Dues**, so you need administrator access on the board. |
 | **The operator's setup, done once** | Installing the plugin, running its migrations, wiring the Stripe keys and the webhook. See [the operator's part](#what-is-the-operators-job-not-yours) below. |
 
@@ -212,13 +212,13 @@ real work. A lost webhook is ordinary and heals itself.
 ## The ledger
 
 **Admin → Plugins → Dues → Ledger** is the board's own record of money
-moved, in the club's currency: charges positive, refunds and chargebacks
+moved, in the community's currency: charges positive, refunds and chargebacks
 negative, append-only — written as money moves and never edited. It shows
 a month-by-month table — the number of charges, the gross taken, the
 amount refunded — and the latest individual entries: what kind of movement
 (a charge, a refund, a chargeback), when, and how much.
 
-That monthly table is what you show the committee at year end. For the
+That monthly table is what you show whoever asks at year end. For the
 authoritative figures — Stripe's fees, payouts to the bank, exports — use
 the Stripe dashboard; the ledger is the board's copy, and the two should
 agree.

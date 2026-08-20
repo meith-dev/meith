@@ -3,7 +3,7 @@
 For the volunteers who approve first posts, handle reports, and keep
 threads tidy. Everything here is done in a browser. The board's
 settings, permissions and machinery belong to whoever administers it —
-that side is [The committee's guide](./committee-guide.md) and
+that side is [The organiser's guide](./organiser-guide.md) and
 [Running a board](./operating.md) — and this page says when to hand
 something over rather than pretending you can reach it.
 

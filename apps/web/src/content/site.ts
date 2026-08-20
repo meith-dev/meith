@@ -246,7 +246,7 @@ export const capabilities: readonly Capability[] = [
     body:
       'The name, the logo and the colours are settings in the admin panel, not code — a new ' +
       'look never risks a working board.',
-    doc: 'committee-guide',
+    doc: 'organiser-guide',
     anchor: null,
     link: 'What you can change yourself',
   },
@@ -286,7 +286,7 @@ export const capabilities: readonly Capability[] = [
     body:
       'Nothing lives in anybody’s personal account. When the person who set it up moves on, ' +
       'the roles move on too — and the board stays the community’s.',
-    doc: 'committee-guide',
+    doc: 'organiser-guide',
     anchor: null,
     link: 'Running it day to day',
   },
@@ -345,7 +345,7 @@ export const memberships = {
     'subscription, a pass or a lifetime. Paying opens the members-only forum by itself, ' +
     'lapsing closes it by itself — and the spreadsheet retires.',
   emphasis: 'The money is between you and Stripe. No cut, and no per-member fee.',
-  link: 'The treasurer’s guide',
+  link: 'The memberships guide',
 } as const
 
 export const extensible = {

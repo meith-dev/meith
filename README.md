@@ -49,9 +49,9 @@ Either way you get the same four containers — Postgres, a one-shot
 migration the others wait on, the web server, and the worker that runs the
 background tick. Put a certificate in front, open `/install`, and that is
 a board. From there the day-to-day belongs to the people running the
-community, not the server: [The committee's guide](./docs/committee-guide.md),
+community, not the server: [The organiser's guide](./docs/organiser-guide.md),
 [The moderator's guide](./docs/moderation-guide.md) and
-[The treasurer's guide](./docs/membership-guide.md) each need nothing but a
+[The memberships guide](./docs/membership-guide.md) each need nothing but a
 browser. Day two for whoever minds the machine is
 [Running a board](./docs/operating.md).
 
@@ -100,7 +100,8 @@ it holds no copy of any of them — so a correction is one edit, in the
 repository, and both places have it.
 
 The set is organised by who is reading: getting a board set up, using one
-from a browser (the committee, the moderators, the treasurer), running the
+from a browser (the organisers, the moderators, whoever minds the money),
+running the
 server, extending the board, and working on Meith itself.
 
 The table below is written from `apps/web/content/docs.manifest.json` by
@@ -112,7 +113,7 @@ The table below is written from `apps/web/content/docs.manifest.json` by
 |---|---|---|
 | Getting started | [`quickstart.md`](./docs/quickstart.md) | From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw. |
 | Getting started | [`self-hosting.md`](./docs/self-hosting.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
-| Using your board | [`committee-guide.md`](./docs/committee-guide.md) | Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over. |
+| Using your board | [`organiser-guide.md`](./docs/organiser-guide.md) | Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over. |
 | Using your board | [`moderation-guide.md`](./docs/moderation-guide.md) | For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives. |
 | Using your board | [`membership-guide.md`](./docs/membership-guide.md) | Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
 | Running the server | [`operating.md`](./docs/operating.md) | The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting. |
