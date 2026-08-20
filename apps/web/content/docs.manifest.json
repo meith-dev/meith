@@ -72,11 +72,11 @@
       "primary": false
     },
     {
-      "slug": "committee-guide",
-      "file": "committee-guide.md",
+      "slug": "organiser-guide",
+      "file": "organiser-guide.md",
       "section": "using",
-      "title": "The committee's guide",
-      "blurb": "Running the board from a browser: forums and the committee room, the club's name and colours, announcements, members — and handing it all over.",
+      "title": "The organiser's guide",
+      "blurb": "Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over.",
       "generated": false,
       "primary": true
     },
@@ -93,8 +93,8 @@
       "slug": "membership-guide",
       "file": "membership-guide.md",
       "section": "using",
-      "title": "The treasurer's guide",
-      "blurb": "Taking the subs through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal.",
+      "title": "The memberships guide",
+      "blurb": "Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal.",
       "generated": false,
       "primary": false
     },

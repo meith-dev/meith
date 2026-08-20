@@ -3,7 +3,7 @@
 One web container, one worker, one Postgres. That is the topology every
 guide in this documentation sets up, and it is the right one for almost
 every board — a forum is mostly reads, the reads are cached, and a single
-modern container comfortably serves a community far larger than the club
+modern container comfortably serves a far larger community than the one
 the [Quickstart](./quickstart.md) was written for.
 
 This page is for the board that has outgrown it, and for the operator who

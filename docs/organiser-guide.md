@@ -1,15 +1,15 @@
-# The committee's guide
+# The organiser's guide
 
-For the people who run a community's board day to day: the club
-secretary, the committee, the person who "looks after the website".
+For the people who run a community's board day to day: the admin, the
+committee, the club secretary, the person who "looks after the website".
 Everything here happens in a browser, in the board's admin panel. Nothing
 here needs a terminal, and the one section that would is the
 [last one](#when-to-hand-it-to-somebody-technical) — it tells you what to
 hand to whoever set the board up.
 
 Two jobs have guides of their own: keeping threads civil is
-[The moderator's guide](./moderation-guide.md), and taking the subs is
-[The treasurer's guide](./membership-guide.md). The full operator
+[The moderator's guide](./moderation-guide.md), and taking the money is
+[The memberships guide](./membership-guide.md). The full operator
 handbook is [Running a board](./operating.md) — this guide covers the
 day-to-day subset and links there for the detail.
 
@@ -81,19 +81,23 @@ Three things to know before you drag:
 
 The detail is in [Running a board § The forum tree](./operating.md#the-forum-tree).
 
-### A private committee forum
+### A private forum for the organisers
 
-Most boards want one forum only the committee can read. The shape of it:
+Most boards want one forum only the people running the place can read —
+call it the committee room, the staff room or the back office. The
+shape of it:
 
-1. **Make a Committee group.** **Admin → Groups → Create group**. The
-   form asks which group to copy permissions from — copy **Registered**,
-   so committee members start as ordinary members plus whatever you add.
+1. **Make an Organisers group** — named whatever your community calls
+   its own: Committee, Staff, Officers. **Admin → Groups → Create
+   group**. The form asks which group to copy permissions from — copy
+   **Registered**, so its members start as ordinary members plus
+   whatever you add.
 2. **Put people in it.** On each person's screen under **Admin →
    Users**, tick the group under **Additional groups**. An additional
    group only ever adds rights; it takes nothing away.
 3. **Make the forum**, then open its **Permissions** screen. Permissions
    are set per group, per forum: for this forum, deny viewing to the
-   ordinary member groups (and Guests), and grant it to Committee.
+   ordinary member groups (and Guests), and grant it to your new group.
 
 Two things worth knowing before you touch the permissions screen:
 
@@ -110,10 +114,10 @@ recorded in the admin log.
 
 A related trick: a forum where members can post but only see their *own*
 threads — applications, welfare matters, anything written to the
-committee rather than to the room — is one permission, described in
+organisers rather than to the room — is one permission, described in
 [Running a board § A "your threads only" forum](./operating.md#a-your-threads-only-forum).
 
-## Making the board look like the club
+## Making the board look like yours
 
 Everything in this section changes on the running board, from the panel,
 with nothing redeployed.
@@ -176,11 +180,12 @@ Most controls here are freely reversible. **Reset** and **Import** are
 the exceptions — each replaces every stored override in one press — so
 both ask for your password again.
 
-If your club has a crest and two colours, the shipped **clubhouse**
-theme is built for exactly that: set the club colour and the trim
-colour on the theme screen and everything else stays neutral. With no
-logo uploaded it draws a crest from the board's name. See
-[Running a board § A board in a club's colours](./operating.md#a-board-in-a-clubs-colours).
+If your community has a crest and two colours — a sports club, say —
+the shipped **clubhouse** theme is built for exactly that: set the main
+colour and the trim colour on the theme screen and everything else
+stays neutral. With no logo uploaded it draws a crest from the board's
+name. See
+[Running a board § A board in its own colours](./operating.md#a-board-in-its-own-colours).
 
 > [!NOTE]
 > *Configuring* a theme is yours; *installing* a new one is not. A theme
@@ -200,7 +205,7 @@ Each one has a title, a Markdown message (rendered the same way a post
 is), a **From** date, an optional **Until** date (blank never expires),
 and a place: **the whole board**, or one forum — a forum's announcement
 is shown to whoever can see that forum, so an announcement on the
-committee forum reaches only the committee. Dates are entered in UTC,
+organisers' forum reaches only the organisers. Dates are entered in UTC,
 and the screen says so. The list shows each announcement's state at a
 glance: showing now, scheduled, expired, or switched off.
 
@@ -211,7 +216,7 @@ page. A new board starts with six items — Home, New posts, Unanswered,
 My posts, Search and Who's online — and they are ordinary rows: rename
 one, move it, hide it, or delete it, and add links of your own beside
 them. A link can point at a page on the board or at any web address —
-the club's main site, the fixtures list.
+the community's main site, the fixtures list, an events calendar.
 
 Each item can be shown to everyone, only signed-out visitors, only
 signed-in members, or only staff — and, more narrowly, only to members
@@ -294,16 +299,16 @@ automated under **Admin → Groups → Promotions**; the screen previews
 exactly who a rule would move before you enable it. See
 [Running a board § Promotions](./operating.md#promotions).
 
-### When somebody leaves the committee
+### When somebody steps back
 
 Accounts belong to people; roles are group memberships. That one
 sentence is most of a clean handover:
 
-- **Never share an account or a password.** Each committee member acts
+- **Never share an account or a password.** Each organiser acts
   from their own account, because the admin log records who did what,
   and a shared login makes that record worthless.
 - **When somebody leaves**, take the *roles* off their *account*: remove
-  them from the Committee group (and any staff group) on their member
+  them from the Organisers group (and any staff group) on their member
   screen, and remove any forum appointments on the forum screens. Their
   account, their posts and their name stay theirs — they have simply
   become an ordinary member again.

@@ -897,18 +897,19 @@ in one press and neither has an undo. The reversible controls on the same
 screen — enabling, disabling, moving the default, saving the palette — do
 not ask, because each is undone by the control beside it.
 
-### A board in a club's colours
+### A board in its own colours
 
-`clubhouse` is the theme shipped for a sports club — anything with a crest
-and two colours. It is the default board's shape dressed the way a club
-site is: a crest beside the board's name, a club-colour rule under the
-masthead, a colour bar on every panel heading, and a postbit built like a
-squad card.
+Every theme takes its colours from the token screen above. The worked
+example is `clubhouse`, the theme shipped for a sports club — anything
+with a crest and two colours — because it asks for exactly two. It is
+the default board's shape dressed the way a club site is: a crest beside
+the board's name, a colour rule under the masthead, a colour bar on
+every panel heading, and a postbit built like a squad card.
 
-It is painted entirely from tokens, so making it *your* club's is the
-theme screen and no deploy:
+It is painted entirely from tokens, so making it *yours* is the theme
+screen and no deploy:
 
-- **The club colour** is the brand group — `primary`, `primary-hover`,
+- **The first colour** is the brand group — `primary`, `primary-hover`,
   `primary-foreground`, `ring`. One press of a brand preset writes all
   four, or type your own.
 - **The second colour** — the trim on the jersey — is `secondary`, with
@@ -916,11 +917,11 @@ theme screen and no deploy:
 - Everything else stays neutral on purpose, so those two are the only
   hues on the page.
 - The screen takes a light and a dark value per token, and this theme
-  ships the same club colours in both — a club does not have a night kit.
+  ships the same colours in both — a club does not have a night kit.
   Change both unless you mean them to differ.
 
 With no logo uploaded, the masthead draws a crest from the board's name —
-the first letters of its first two words — so a club with a name and no
+the first letters of its first two words — so a board with a name and no
 artwork still gets a mark.
 
 Writing a theme: [the theme API](./theme-api.md). Every slot and view

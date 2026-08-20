@@ -3,7 +3,7 @@
 You do not need to be a programmer to set up a Meith board. This page is
 written for whichever volunteer drew the short straw: if you can rent a
 server, point a domain at it and paste one command, it takes you from
-nothing to a board the whole club can reach — on your own domain, over
+nothing to a board the whole community can reach — on your own domain, over
 HTTPS — in about twenty minutes. Nothing is built on your server: the
 deploy pulls the released image.
 
@@ -19,7 +19,7 @@ work. If you only want to read the code or write a theme,
 
 | | |
 |---|---|
-| **A server** | Rented in the club's name, from any provider, for a few euro a month. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
+| **A server** | Rented in the community's name, from any provider, for a few euro a month. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
 | **A domain** | With an `A` record already pointing at the server's IP — the certificate step needs it resolving. Your registrar's control panel does this. |
 | **SSH** | Root, once, to install the panel. The terminal appears in step 1 and never again. |
 
@@ -356,9 +356,9 @@ people doing those jobs.
 
 | You want to | Read |
 |---|---|
-| Hand it to the committee | [The committee's guide](./committee-guide.md) |
+| Hand it to whoever runs the community | [The organiser's guide](./organiser-guide.md) |
 | Hand the queue to the moderators | [The moderator's guide](./moderation-guide.md) |
-| Take the subs online | [The treasurer's guide](./membership-guide.md) |
+| Take memberships online | [The memberships guide](./membership-guide.md) |
 | Run the server day to day | [Running a board](./operating.md) |
 | Take it from one version to the next | [Upgrading a board](./upgrading.md) |
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |

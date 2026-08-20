@@ -3,7 +3,7 @@
 For the volunteers who approve first posts, handle reports, and keep
 threads tidy. Everything here is done in a browser. The board's
 settings, permissions and machinery belong to whoever administers it —
-that side is [The committee's guide](./committee-guide.md) and
+that side is [The organiser's guide](./organiser-guide.md) and
 [Running a board](./operating.md) — and this page says when to hand
 something over rather than pretending you can reach it.
 
@@ -18,7 +18,7 @@ Moderation happens in two places:
   reports, the log, and an overview of what is waiting for you.
 
 What you may do is not one switch. You are appointed to forums, one at a
-time, and each appointment carries exactly the rights the committee
+time, and each appointment carries exactly the rights the organisers
 ticked — approving content, deleting, restoring, locking, pinning,
 moving, merging and splitting are separate grants. The rules are the
 administrator's to set; they are described under
@@ -233,7 +233,7 @@ Other things that look like moderation and are not yours to press:
 - **Warning reasons and the points ladder** — the presets and thresholds
   you choose from are the board's, not yours to edit.
 
-When one of these is what the situation needs, say so to the committee
+When one of these is what the situation needs, say so to the organisers
 or the administrator with the thread or member in question — that is the
 system working, not a gap in your permissions.
 
