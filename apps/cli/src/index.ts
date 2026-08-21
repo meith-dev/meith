@@ -154,7 +154,7 @@ const commands: Command[] = [
     name: 'restore',
     summary: 'Restore a backup bundle into a new, empty database.',
     usage:
-      'community restore <bundle.tar.gz> --database-url <postgres://…> ' +
+      'RESTORE_DATABASE_URL=<postgres://…> community restore <bundle.tar.gz> ' +
       '[--uploads-dir <dir>] [--skip-uploads]',
     run: restoreCommand,
   },

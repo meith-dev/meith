@@ -752,20 +752,22 @@ jobs:
         run: |
           createdb -h localhost -U postgres forum_restored
           pnpm community restore /tmp/board-ci.tar.gz \
-            --database-url postgres://postgres:postgres@localhost:5432/forum_restored \
             --uploads-dir /tmp/uploads-restored | tee /tmp/restore.log
           grep -q 'nothing to do' /tmp/restore.log \
             || { echo "::error::the restore had migrations to apply on a dump this build just took"; exit 1; }
+        env:
+          RESTORE_DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_restored
 
       - name: The restore refuses a database that is not empty
         run: |
           if pnpm community restore /tmp/board-ci.tar.gz \
-            --database-url postgres://postgres:postgres@localhost:5432/forum_restored \
             --uploads-dir /tmp/uploads-refused 2>/tmp/refused.log; then
             echo "::error::a restore over a live database was accepted"; exit 1
           fi
           grep -qi 'empty database' /tmp/refused.log \
             || { echo "::error::the refusal did not say why"; cat /tmp/refused.log; exit 1; }
+        env:
+          RESTORE_DATABASE_URL: postgres://postgres:postgres@localhost:5432/forum_restored
 
       - name: The seeded content survived the round trip
         run: |
