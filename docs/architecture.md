@@ -89,6 +89,8 @@ Meith supports two data sources:
 
 The worker refuses to start in fixture mode because background work must be durable. Production Compose selects PostgreSQL for migration, web, and worker roles.
 
+`getDb()` and `createIsolatedDb()` patch postgres.js's internal per-OID serializer table so `Date` values bind through drizzle's timestamp columns as ISO strings. That reach goes through an internal `options.serializers` map postgres.js does not expose as a stable API, so a future patch release could rename or restructure it and silently break date binding across every repository. `packages/db/src/client.pg.test.ts` carries a round-trip test against a real Postgres server specifically to catch that.
+
 ## Background work
 
 `apps/worker` loads the runtime task bundle and calls the scheduler every 60 seconds. Tasks claim work through repositories so retries and overlapping ticks do not process the same item twice.
