@@ -35,7 +35,7 @@ export default async function ConfirmEmailPage({
           accounts: accountStore.accounts,
           sessions: accountStore.sessions,
           tokens: accountStore.tokens,
-        }).confirmEmailChange(token)
+        }).confirmEmailChange(token, actor.userId)
 
   if (outcome !== null) {
     await sendEmailChangeNotice({
@@ -44,7 +44,7 @@ export default async function ConfirmEmailPage({
       email: outcome.email,
       t: await getTranslator(),
     })
-    await recordAuthEvent({ userId: actor.userId, kind: 'email_changed' })
+    await recordAuthEvent({ userId: outcome.userId, kind: 'email_changed' })
   }
 
   redirect(outcome === null ? '/usercp/security?failed=1' : '/usercp/security?confirmed=1')

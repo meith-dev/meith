@@ -117,6 +117,7 @@ class MemorySessions {
 
 class MemoryTokens {
   readonly issued: Array<{ userId: number; purpose: string; payload: string | null }> = []
+  readonly revoked: Array<{ userId: number; purpose: CredentialPurpose }> = []
   redeemable: { userId: number; payload: string | null } | null = null
 
   async issue(input: {
@@ -132,12 +133,18 @@ class MemoryTokens {
       payload: input.payload ?? null,
     })
   }
+  async peek() {
+    return this.redeemable
+  }
   async consume() {
     const value = this.redeemable
     this.redeemable = null
     return value
   }
-  async revokeAllForUser() {}
+  async revokeAllForUser(userId: number, purpose: CredentialPurpose) {
+    this.revoked.push({ userId, purpose })
+    if (this.redeemable?.userId === userId) this.redeemable = null
+  }
 }
 
 let settings: MemorySettings
@@ -383,6 +390,7 @@ describe('changing the password', () => {
 
     expect(accounts.passwords).toHaveLength(1)
     expect(sessions.revoked).toEqual([7])
+    expect(tokens.revoked).toContainEqual({ userId: 7, purpose: 'email_change' })
   }, 20_000)
 
   it('refuses a password shorter than the board allows', async () => {
@@ -421,6 +429,13 @@ describe('changing the password', () => {
   })
 })
 
+function emailChangePayload(
+  email = 'new@example.test',
+  previousEmailLower = 'ivan@example.test',
+): string {
+  return JSON.stringify({ version: 1, email, previousEmailLower })
+}
+
 describe('changing the e-mail address', () => {
   it('writes nothing until the new address is confirmed', async () => {
     const pending = await service.requestEmailChange({
@@ -431,8 +446,9 @@ describe('changing the e-mail address', () => {
 
     expect(pending.email).toBe('new@example.test')
     expect(tokens.issued).toEqual([
-      { userId: 7, purpose: 'email_change', payload: 'new@example.test' },
+      { userId: 7, purpose: 'email_change', payload: emailChangePayload() },
     ])
+    expect(tokens.revoked).toEqual([{ userId: 7, purpose: 'email_change' }])
     expect(settings.row.email).toBe('ivan@example.test')
   }, 20_000)
 
@@ -491,9 +507,10 @@ describe('changing the e-mail address', () => {
   }, 20_000)
 
   it('adopts the address when the link is followed', async () => {
-    tokens.redeemable = { userId: 7, payload: 'new@example.test' }
+    tokens.redeemable = { userId: 7, payload: emailChangePayload() }
 
-    expect(await service.confirmEmailChange('a-token')).toEqual({
+    expect(await service.confirmEmailChange('a-token', 7)).toEqual({
+      userId: 7,
       email: 'new@example.test',
       previousEmail: 'ivan@example.test',
     })
@@ -501,26 +518,67 @@ describe('changing the e-mail address', () => {
   })
 
   it('names the address left behind, so it can be told the change went through', async () => {
-    tokens.redeemable = { userId: 7, payload: 'new@example.test' }
+    tokens.redeemable = { userId: 7, payload: emailChangePayload() }
 
-    const outcome = await service.confirmEmailChange('a-token')
+    const outcome = await service.confirmEmailChange('a-token', 7)
 
     expect(outcome?.previousEmail).toBe('ivan@example.test')
   })
 
   it('does nothing on a second click', async () => {
-    tokens.redeemable = { userId: 7, payload: 'new@example.test' }
+    tokens.redeemable = { userId: 7, payload: emailChangePayload() }
 
-    await service.confirmEmailChange('a-token')
-    expect(await service.confirmEmailChange('a-token')).toBeNull()
+    await service.confirmEmailChange('a-token', 7)
+    expect(await service.confirmEmailChange('a-token', 7)).toBeNull()
     expect(settings.adopted).toHaveLength(1)
   })
 
+  it('invalidates an earlier link when a newer change is requested', async () => {
+    tokens.redeemable = { userId: 7, payload: emailChangePayload('old@example.test') }
+
+    await service.requestEmailChange({
+      userId: 7,
+      currentPassword: PASSWORD,
+      newEmail: 'new@example.test',
+    })
+
+    expect(await service.confirmEmailChange('old-token', 7)).toBeNull()
+  }, 20_000)
+
+  it('refuses confirmation from a different signed-in account without spending the link', async () => {
+    tokens.redeemable = { userId: 7, payload: emailChangePayload() }
+
+    expect(await service.confirmEmailChange('a-token', 99)).toBeNull()
+    expect(await service.confirmEmailChange('a-token', 7)).not.toBeNull()
+  })
+
+  it('refuses a link after the account address has changed', async () => {
+    tokens.redeemable = { userId: 7, payload: emailChangePayload() }
+    accounts.account = {
+      ...(accounts.account as AccountRecord),
+      email: 'other@example.test',
+      emailLower: 'other@example.test',
+    }
+
+    expect(await service.confirmEmailChange('a-token', 7)).toBeNull()
+    expect(settings.adopted).toEqual([])
+  })
+
+  it.each(['new@example.test', '{"version":2}', '{not-json'])(
+    'refuses a legacy or malformed payload: %s',
+    async (payload) => {
+      tokens.redeemable = { userId: 7, payload }
+
+      expect(await service.confirmEmailChange('a-token', 7)).toBeNull()
+      expect(settings.adopted).toEqual([])
+    },
+  )
+
   it('reports failure when the address was taken in the meantime', async () => {
-    tokens.redeemable = { userId: 7, payload: 'new@example.test' }
+    tokens.redeemable = { userId: 7, payload: emailChangePayload() }
     settings.emailTaken = true
 
-    expect(await service.confirmEmailChange('a-token')).toBeNull()
+    expect(await service.confirmEmailChange('a-token', 7)).toBeNull()
   })
 })
 
