@@ -61,6 +61,7 @@ export interface SessionRecord {
   readonly expiresAt: Date
   readonly revokedAt: Date | null
   readonly supersededBySessionId: number | null
+  readonly credentialProvedAt: Date | null
   readonly lastSeenAt: Date
 }
 
@@ -88,6 +89,7 @@ export interface SessionRepository {
     userAgent?: string | null
   }): Promise<SessionRecord>
   findByTokenHash(tokenHash: string): Promise<SessionRecord | null>
+  markCredentialProved(sessionId: number, userId: number, at: Date): Promise<boolean>
   listActiveForUser(userId: number, now: Date): Promise<readonly ActiveSessionRecord[]>
   revoke(sessionId: number): Promise<void>
   revokeOwned(userId: number, sessionId: number, now: Date): Promise<boolean>

@@ -11,6 +11,10 @@ export {
 export { type BanInput, BanService, type BanServiceDeps } from './ban-service'
 export { foldIdentifier } from './case-fold'
 export {
+  CREDENTIAL_PROOF_TTL_MS,
+  hasFreshCredentialProof,
+} from './credential-proof'
+export {
   decodeBase64Url,
   decodeBase64UrlText,
   encodeBase64Url,

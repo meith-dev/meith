@@ -75,6 +75,10 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await expect(memberPage.getByRole('heading', { name: 'Passkeys' })).toBeVisible()
     await expect(memberPage.getByText('You have no passkeys yet.')).toBeVisible()
 
+    await memberPage.goto(`${BOARD}/usercp/security/verify?next=%2Fusercp%2Fsecurity`)
+    await memberPage.getByLabel('Current password').fill(PASSWORD)
+    await memberPage.getByRole('button', { name: 'Verify password' }).click()
+    await expect(memberPage).toHaveURL(/\/usercp\/security$/)
     await memberPage.getByLabel('What to call it').fill('Work laptop')
     await memberPage.getByRole('button', { name: 'Add a passkey' }).click()
 

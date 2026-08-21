@@ -61,7 +61,12 @@ export function PasskeyEnrol({ copy }: { readonly copy: Copy }) {
                 window.location.assign('/usercp/security?passkey=added')
               })
               .catch((problem: unknown) => {
-                setError(passkeyMessage(problem, copy))
+                const message = passkeyMessage(problem, copy)
+                if (message.includes('recent verification')) {
+                  window.location.assign('/usercp/security/verify?next=%2Fusercp%2Fsecurity')
+                  return
+                }
+                setError(message)
                 setBusy(false)
               })
           }}

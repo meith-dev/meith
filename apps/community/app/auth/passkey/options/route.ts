@@ -5,6 +5,7 @@ import { logger, statusForError, toPublicError } from '@meith/core'
 
 import { configuredIdentity, getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
+import { currentCredentialProof } from '@/server/credential-proof'
 import {
   memberManagedSignIns,
   passkeyRelyingPartyName,
@@ -40,7 +41,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const asked = request.nextUrl.searchParams.get('for')
   const purpose: PasskeyPurpose =
-    asked === 'register' || asked === 'second-factor' ? asked : 'authenticate'
+    asked === 'register' || asked === 'second-factor' || asked === 'credential-proof'
+      ? asked
+      : 'authenticate'
 
   const challenge = newChallenge()
 
@@ -71,6 +74,33 @@ export async function POST(request: NextRequest): Promise<Response> {
       return json(options)
     }
 
+    if (purpose === 'credential-proof') {
+      const actor = await getActor()
+      if (actor.userId === null) {
+        return problem(await tr('authRoute.passkey.signInBeforeAdding'), 403)
+      }
+      const token = await import('@/server/session-cookies').then((module) =>
+        module.readSessionToken(),
+      )
+      const located = token ? await (await configuredIdentity()).locateSession(token) : null
+      if (located === null || located.userId !== actor.userId) {
+        return problem(await tr('authRoute.passkey.signInExpired'), 403)
+      }
+      const heldPasskeys = await getContainer().accountStore.passkeys.listForUser(actor.userId)
+      if (heldPasskeys.length === 0) {
+        return problem(await tr('authRoute.passkey.noneForAccount'), 403)
+      }
+      const options = (await passkeyService()).assertionOptions({
+        challenge,
+        relyingParty: await relyingParty(),
+        allowCredentials: heldPasskeys.map((passkey) => passkey.credentialId),
+      })
+      await setPasskeyChallengeCookie(
+        packChallenge(purpose, challenge, { userId: actor.userId, sessionId: located.sessionId }),
+      )
+      return json(options)
+    }
+
     if (purpose === 'authenticate') {
       const options = (await passkeyService()).assertionOptions({
         challenge,
@@ -88,6 +118,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       return problem(await tr('authRoute.passkey.managedSignIns'), 403)
     }
 
+    const proof = await currentCredentialProof(actor.userId)
+    if (proof === null) {
+      return problem(await tr('authRoute.passkey.recentProofRequired'), 403)
+    }
+
     const options = await (await passkeyService()).registrationOptions({
       userId: actor.userId,
       challenge,
@@ -95,7 +130,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       boardName: await passkeyRelyingPartyName(),
     })
 
-    await setPasskeyChallengeCookie(packChallenge(purpose, challenge))
+    await setPasskeyChallengeCookie(
+      packChallenge(purpose, challenge, {
+        userId: actor.userId,
+        sessionId: proof.session.id,
+        provedAt: proof.provedAt.getTime(),
+      }),
+    )
     return json(options)
   } catch (err) {
     logger({ module: 'passkeys' }).warn({ err, purpose }, 'could not issue passkey options')

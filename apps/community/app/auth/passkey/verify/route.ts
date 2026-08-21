@@ -6,6 +6,10 @@ import { recordAuthEvent } from '@/server/auth-events'
 import { configuredIdentity, configuredSessions } from '@/server/container'
 import { getActor } from '@/server/context'
 import {
+  currentCredentialProof,
+  markCurrentSessionCredentialProved,
+} from '@/server/credential-proof'
+import {
   memberManagedSignIns,
   passkeyService,
   passkeysEnabled,
@@ -21,6 +25,7 @@ import {
   clearSecondFactorCookie,
   readPasskeyChallengeCookie,
   readSecondFactorToken,
+  readSessionToken,
   setRememberCookie,
   setSessionCookie,
 } from '@/server/session-cookies'
@@ -63,7 +68,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const asked = request.nextUrl.searchParams.get('for')
   const purpose: PasskeyPurpose =
-    asked === 'register' || asked === 'second-factor' ? asked : 'authenticate'
+    asked === 'register' || asked === 'second-factor' || asked === 'credential-proof'
+      ? asked
+      : 'authenticate'
 
   let body: Submission
   try {
@@ -72,10 +79,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     return problem(await tr('authRoute.passkey.responseUnreadable'), 400)
   }
 
-  const expectedChallenge = unpackChallenge(await readPasskeyChallengeCookie(), purpose)
+  const challengeState = unpackChallenge(await readPasskeyChallengeCookie(), purpose)
   await clearPasskeyChallengeCookie()
 
-  if (expectedChallenge === null) {
+  if (challengeState === null) {
     return problem(await tr('authRoute.passkey.attemptExpired'), 400)
   }
 
@@ -98,6 +105,16 @@ export async function POST(request: NextRequest): Promise<Response> {
         return problem(await tr('authRoute.passkey.managedSignIns'), 403)
       }
 
+      const proof = await currentCredentialProof(actor.userId)
+      if (
+        proof === null ||
+        challengeState.userId !== actor.userId ||
+        challengeState.sessionId !== proof.session.id ||
+        challengeState.provedAt !== proof.provedAt.getTime()
+      ) {
+        return problem(await tr('authRoute.passkey.recentProofRequired'), 403)
+      }
+
       const attestationObject = text(body.attestationObject)
       if (attestationObject === null) {
         return problem(await tr('authRoute.passkey.responseIncomplete'), 400)
@@ -106,7 +123,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       const passkey = await service.enrol({
         userId: actor.userId,
         label: text(body.label) ?? '',
-        expectedChallenge,
+        expectedChallenge: challengeState.challenge,
         relyingParty: party,
         response: {
           clientDataJSON,
@@ -129,6 +146,33 @@ export async function POST(request: NextRequest): Promise<Response> {
       return problem(await tr('authRoute.passkey.responseIncomplete'), 400)
     }
 
+    if (purpose === 'credential-proof') {
+      const actor = await getActor()
+      const token = await readSessionToken()
+      const located = token ? await (await configuredIdentity()).locateSession(token) : null
+      if (
+        actor.userId === null ||
+        located === null ||
+        located.userId !== actor.userId ||
+        challengeState.userId !== actor.userId ||
+        challengeState.sessionId !== located.sessionId
+      ) {
+        return problem(await tr('authRoute.passkey.signInExpired'), 403)
+      }
+
+      const proved = await service.proveOwnership({
+        userId: actor.userId,
+        credentialId,
+        expectedChallenge: challengeState.challenge,
+        relyingParty: party,
+        response: { clientDataJSON, authenticatorData, signature },
+      })
+      if (!proved || !(await markCurrentSessionCredentialProved(actor.userId))) {
+        return problem(await tr('authRoute.passkey.notForAccount'), 403)
+      }
+      return json({ ok: true, next: '/usercp/security?verified=1' })
+    }
+
     if (purpose === 'second-factor') {
       const held = await readSecondFactorToken()
       const identity = await configuredIdentity()
@@ -144,7 +188,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       const proved = await service.proveOwnership({
         userId: pending.userId,
         credentialId,
-        expectedChallenge,
+        expectedChallenge: challengeState.challenge,
         relyingParty: party,
         response: { clientDataJSON, authenticatorData, signature },
       })
@@ -180,7 +224,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const outcome = await service.authenticate({
       credentialId,
-      expectedChallenge,
+      expectedChallenge: challengeState.challenge,
       relyingParty: party,
       response: { clientDataJSON, authenticatorData, signature },
       context: { ipPrefix: await retainedIpPrefix() },
