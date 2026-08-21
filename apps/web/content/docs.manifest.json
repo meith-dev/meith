@@ -102,8 +102,8 @@
       "slug": "operating",
       "file": "operating.md",
       "section": "running",
-      "title": "Running a board",
-      "blurb": "The operator handbook: configuration, the CLI, permissions, themes, plugins, mail, spam controls, backups, and troubleshooting.",
+      "title": "Operations",
+      "blurb": "Routine checks, configuration, maintenance commands, backups, recovery, and troubleshooting for a running board.",
       "generated": false,
       "primary": true
     },

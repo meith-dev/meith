@@ -57,6 +57,9 @@ export default async function DocumentPage({ params }: PageProps) {
             </Link>
           ) : null}
           <h1 className="display mt-2 text-huge leading-[1.06]">{rendered.title ?? entry.title}</h1>
+          <p className="mt-4 max-w-[42rem] text-mid leading-relaxed text-fg-muted text-pretty">
+            {entry.blurb}
+          </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
             <a className="textlink" href={sourceUrl}>
