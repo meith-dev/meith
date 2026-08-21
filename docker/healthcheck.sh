@@ -10,27 +10,25 @@
 #
 # So the check follows the role, and each answer means something:
 #
-#  - **web**: the board answers on its own port. `/api/health` reports whether
-#    *this process* can serve a request and deliberately says nothing about the
-#    database — a probe that failed during a failover would have the orchestrator
-#    kill every replica and turn a blip into an outage. So a server that bound
-#    the port and cannot render is unhealthy; one whose database is briefly away
-#    is not. Database reachability is a separate signal, and the installer's
-#    preflight is where it is reported to a human.
-#  - **worker**: the scheduler process is alive. There is nothing to fetch, and
-#    "the process a container exists to run is running" is the honest question.
+#  - **web**: `/api/ready` reports whether *this board* can do its job — reach
+#    the database and keep the scheduler moving — not just whether this
+#    process bound the port. `/api/health` still exists for pure liveness; see
+#    docs/monitoring.md for why the container healthcheck uses the other one.
+#  - **worker**: the scheduler process is alive, and — `--ready`, running the
+#    bundled worker binary as a one-shot process instead of its loop — the
+#    same database-and-scheduler check `/api/ready` runs also passes.
 #  - **migrate**: healthy while it lasts. The container runs to completion and
 #    exits; its *exit code* is the verdict, and a health probe has no opinion.
 set -e
 
 case "${COMMUNITY_ROLE:-web}" in
   worker)
-    pgrep -f 'apps/worker/worker.cjs' >/dev/null
+    pgrep -f 'apps/worker/worker.cjs' >/dev/null && node apps/worker/worker.cjs --ready
     ;;
   migrate)
     exit 0
     ;;
   *)
-    node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+    node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
     ;;
 esac

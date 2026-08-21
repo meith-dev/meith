@@ -80,6 +80,12 @@ const envSchema = z
     DEMO_RESET_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
 
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+    METRICS_ENABLED: flag,
+    METRICS_TOKEN: secret.optional(),
+
+    OTEL_ENABLED: flag,
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.DATA_SOURCE === 'postgres' && !value.DATABASE_URL) {
@@ -143,6 +149,30 @@ const envSchema = z
           })
         }
       }
+    }
+
+    if (value.OTEL_ENABLED && !value.OTEL_EXPORTER_OTLP_ENDPOINT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OTEL_EXPORTER_OTLP_ENDPOINT'],
+        message: 'is required when OTEL_ENABLED is set',
+      })
+    }
+
+    if (
+      value.METRICS_ENABLED &&
+      !value.METRICS_TOKEN &&
+      value.NODE_ENV === 'production' &&
+      value.NEXT_PHASE !== 'phase-production-build'
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['METRICS_TOKEN'],
+        message:
+          'is required in production when METRICS_ENABLED is set — an unauthenticated ' +
+          '/api/metrics would otherwise expose task, queue and database counts to ' +
+          'anyone who can reach the board.',
+      })
     }
 
     if (value.MAIL_DRIVER === 'smtp') {

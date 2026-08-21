@@ -67,6 +67,15 @@ export {
   withRequestContext,
 } from './logger'
 export {
+  type Counter,
+  type Gauge,
+  type Histogram,
+  type MetricLabels,
+  type MetricsPort,
+  metrics,
+  PrometheusRegistry,
+} from './metrics'
+export {
   emptyPermissionSet,
   FORUM_PERMISSION_FIELDS,
   type ForumPermissionKey,
@@ -105,6 +114,7 @@ export {
   type ThreadAuthorFilter,
   unrestrictedAudience,
 } from './thread-audience'
+export { initTracing, resetTracingForTests, tracer, withSpan } from './tracing'
 export {
   CONTENT_VISIBILITY,
   type ContentScope,

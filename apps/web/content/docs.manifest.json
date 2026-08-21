@@ -117,6 +117,15 @@
       "primary": true
     },
     {
+      "slug": "monitoring",
+      "file": "monitoring.md",
+      "section": "running",
+      "title": "Monitoring & alerting",
+      "blurb": "Liveness versus readiness, the optional Prometheus metrics endpoint and what to alert on, distributed tracing, and shipping logs.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "upgrading",
       "file": "upgrading.md",
       "section": "running",

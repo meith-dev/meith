@@ -2,7 +2,7 @@ import { AttachmentService, type ImageProcessor } from '@meith/attachments'
 import { Authorizer } from '@meith/authorization'
 import { AvatarService } from '@meith/avatars'
 import type { FileStore, MailDriver, QueueDriver } from '@meith/core'
-import { env, logger } from '@meith/core'
+import { env, logger, metrics, withSpan } from '@meith/core'
 import {
   ActorBuilder,
   type Database,
@@ -121,6 +121,15 @@ export function buildSchedulerBundle(deps: {
   })
   const backfill = new PostgresRenderBackfill(db, pluginMarkdownPipeline(renderHost))
 
+  const taskRuns = metrics.counter(
+    'meith_task_runs_total',
+    'Scheduled task runs, labelled by task and outcome.',
+  )
+  const taskRunSeconds = metrics.histogram(
+    'meith_task_run_duration_seconds',
+    'Scheduled task run duration in seconds, labelled by task and outcome.',
+  )
+
   /**
    * Every task, announced. The host is told before and after each run — a
    * plugin watching its own task, or the board's, gets the same two events
@@ -134,19 +143,17 @@ export function buildSchedulerBundle(deps: {
 
         const startedAt = Date.now()
         try {
-          const result = await task.run(context)
-          await renderHost.emit(
-            'task.run.after',
-            { taskId: task.id, ok: true, durationMs: Date.now() - startedAt },
-            {},
-          )
+          const result = await withSpan('task.run', { 'task.id': task.id }, () => task.run(context))
+          const durationMs = Date.now() - startedAt
+          taskRuns.inc(1, { task: task.id, status: 'ok' })
+          taskRunSeconds.observe(durationMs / 1000, { task: task.id })
+          await renderHost.emit('task.run.after', { taskId: task.id, ok: true, durationMs }, {})
           return result
         } catch (error) {
-          await renderHost.emit(
-            'task.run.after',
-            { taskId: task.id, ok: false, durationMs: Date.now() - startedAt },
-            {},
-          )
+          const durationMs = Date.now() - startedAt
+          taskRuns.inc(1, { task: task.id, status: 'error' })
+          taskRunSeconds.observe(durationMs / 1000, { task: task.id })
+          await renderHost.emit('task.run.after', { taskId: task.id, ok: false, durationMs }, {})
           throw error
         }
       },

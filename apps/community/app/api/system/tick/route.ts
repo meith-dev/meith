@@ -1,35 +1,15 @@
-import { timingSafeEqual } from 'node:crypto'
-
 import { NextResponse } from 'next/server'
 
 import { env, logger, withRequestContext } from '@meith/core'
 import { tick } from '@meith/tasks'
 
 import { getContainer } from '@/server/container'
+import { bearerSecret, secretMatches } from '@/server/secret-auth'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 const SECRET_HEADER = 'x-tick-secret'
-
-function secretMatches(presented: string, expected: string): boolean {
-  const a = Buffer.from(presented, 'utf8')
-  const b = Buffer.from(expected, 'utf8')
-  if (a.length !== b.length) {
-    timingSafeEqual(b, b)
-    return false
-  }
-  return timingSafeEqual(a, b)
-}
-
-function presentedSecret(request: Request): string {
-  const authorization = request.headers.get('authorization')
-  if (authorization !== null && /^Bearer\s+/i.test(authorization)) {
-    return authorization.replace(/^Bearer\s+/i, '')
-  }
-
-  return request.headers.get(SECRET_HEADER) ?? ''
-}
 
 function authorised(request: Request): boolean {
   const expected = env.TICK_SECRET
@@ -48,7 +28,7 @@ function authorised(request: Request): boolean {
     )
   }
 
-  return secretMatches(presentedSecret(request), expected)
+  return secretMatches(bearerSecret(request, SECRET_HEADER), expected)
 }
 
 async function runTick(request: Request): Promise<NextResponse> {

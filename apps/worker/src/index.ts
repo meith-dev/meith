@@ -1,9 +1,10 @@
-import { assertEnv, logger } from '@meith/core'
+import { assertEnv, initTracing, logger } from '@meith/core'
 import { loadEnvFiles } from '@meith/core/env-files'
+import { getDb, PostgresSystemHealthRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { imageProcessor } from '@meith/drivers/images'
 import { buildSchedulerBundle } from '@meith/runtime'
-import { tick } from '@meith/tasks'
+import { assessScheduler, tick } from '@meith/tasks'
 
 const log = () => logger({ module: 'worker' })
 
@@ -21,6 +22,8 @@ async function main(): Promise<number> {
     log().error('DATA_SOURCE is "fixture" — the worker needs DATABASE_URL. Refusing to start.')
     return 1
   }
+
+  await initTracing('meith-worker')
 
   const bundle = buildSchedulerBundle({
     queue: drivers().queue,
@@ -83,6 +86,32 @@ async function main(): Promise<number> {
   return 0
 }
 
+async function checkReady(): Promise<number> {
+  loadEnvFiles()
+
+  const env = assertEnv()
+  if (env.DATA_SOURCE !== 'postgres') {
+    log().error('DATA_SOURCE is "fixture" — nothing durable to be ready against.')
+    return 1
+  }
+
+  try {
+    const repository = new PostgresSystemHealthRepository(getDb())
+    const tasks = await repository.taskHealth()
+    const health = assessScheduler(tasks, new Date())
+
+    if (health.schedulerStopped) {
+      log().warn({ stale: health.stale, failing: health.failing }, 'scheduler has stopped')
+      return 1
+    }
+
+    return 0
+  } catch (err) {
+    log().error({ err }, 'readiness check could not reach the database')
+    return 1
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
@@ -99,7 +128,9 @@ function sleep(ms: number): Promise<void> {
   })
 }
 
-main()
+const entrypoint = process.argv.includes('--ready') ? checkReady : main
+
+entrypoint()
   .then((code) => process.exit(code))
   .catch((err: unknown) => {
     log().error({ err }, 'worker crashed')

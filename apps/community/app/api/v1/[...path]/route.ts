@@ -13,7 +13,7 @@ import {
   routeKey,
 } from '@meith/api'
 import type { Actor } from '@meith/authorization'
-import { isAppError, statusForError, toPublicError } from '@meith/core'
+import { isAppError, metrics, statusForError, toPublicError, withSpan } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 
 import { JSON_MEDIA_TYPE } from '@/server/api/http'
@@ -100,11 +100,42 @@ function refused(limit: RateLimitOutcome): Response {
   })
 }
 
+const httpRequestSeconds = metrics.histogram(
+  'meith_http_request_duration_seconds',
+  'REST API v1 request duration in seconds, labelled by method, route and status.',
+)
+
 async function handle(request: NextRequest, method: Method): Promise<Response> {
+  const startedAt = Date.now()
   const url = new URL(request.url)
   const path = url.pathname.replace(/^\/api\/v1/, '')
-
   const matched = matchRoute(method, path)
+  const routeLabel = matched === null ? 'unmatched' : matched.route.path
+
+  const response = await withSpan(
+    'http.request',
+    { 'http.method': method, 'http.route': routeLabel },
+    async (span) => {
+      const result = await respondTo(request, url, matched)
+      span.setAttribute('http.status_code', result.status)
+      return result
+    },
+  )
+
+  httpRequestSeconds.observe((Date.now() - startedAt) / 1000, {
+    method,
+    route: routeLabel,
+    status: String(response.status),
+  })
+
+  return response
+}
+
+async function respondTo(
+  request: NextRequest,
+  url: URL,
+  matched: ReturnType<typeof matchRoute>,
+): Promise<Response> {
   if (matched === null) {
     return fail(404, 'no_such_route', 'No such endpoint. See /api/v1/openapi.json for the routes.')
   }
