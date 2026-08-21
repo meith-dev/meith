@@ -356,11 +356,11 @@ describe('login', () => {
     )
   })
 
-  it('a success clears the address-only counter too', async () => {
+  it('a success preserves counters marked to expire naturally', async () => {
     const { service } = makeService(store)
     const from = (account: string) => [
       { key: `login:${account}@203.0.113.1` },
-      { key: 'login@203.0.113.0/24', max: 2 },
+      { key: 'login@203.0.113.0/24', max: 2, clearOnSuccess: false },
     ]
 
     await expect(service.login('dave', 'wrong', from('dave'))).rejects.toThrow(/incorrect/i)
@@ -369,9 +369,9 @@ describe('login', () => {
     ).resolves.toBeTruthy()
 
     await expect(service.login('erin', 'wrong', from('erin'))).rejects.toThrow(/incorrect/i)
-    await expect(
-      service.login('alice', 'correct horse battery', from('alice')),
-    ).resolves.toBeTruthy()
+    await expect(service.login('alice', 'correct horse battery', from('alice'))).rejects.toThrow(
+      /too many/i,
+    )
   })
 
   it('a success clears every counter, the wide one included', async () => {

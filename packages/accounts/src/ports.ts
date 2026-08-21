@@ -341,6 +341,7 @@ export interface LoginAttemptRepository {
 export interface LoginBucket {
   readonly key: string
   readonly max?: number | undefined
+  readonly clearOnSuccess?: boolean | undefined
 }
 
 export interface AuthConfig {

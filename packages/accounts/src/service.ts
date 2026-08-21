@@ -385,6 +385,7 @@ export class IdentityService {
     await this.assertNotFiltered({ username: account.username, email: account.email })
 
     for (const counter of counters) {
+      if (counter.clearOnSuccess === false) continue
       await this.store.loginAttempts.record(counter.key, true, at)
       await this.store.loginAttempts.clear(counter.key)
     }

@@ -81,7 +81,11 @@ async function loginBuckets(
     return [{ key: `login:${account}@${address}` }, wide]
   }
 
-  return [{ key: `login:${account}@${address}` }, wide, { key: `login@${prefix}`, max: perAddress }]
+  return [
+    { key: `login:${account}@${address}` },
+    wide,
+    { key: `login@${prefix}`, max: perAddress, clearOnSuccess: false },
+  ]
 }
 
 export async function registerAction(_prev: FormState, form: FormData): Promise<FormState> {

@@ -8,6 +8,7 @@ import { ForbiddenError, logger, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
 import { adminAllowlist, adminService, recordAdminAction, resolveAdmin } from './admin'
+import { boardAuthConfig } from './auth-config'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -42,16 +43,42 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
     const account = await accountStore.accounts.findById(actor.userId)
     if (account === null) throw new ForbiddenError(msg('error.app.reach-control-panel'))
 
+    const config = await boardAuthConfig()
+    const attemptBucket = await adminReauthenticationBucket(actor.userId)
+    const attemptSince = new Date(Date.now() - config.lockoutMinutes * 60_000)
+    if (
+      config.maxLoginAttempts > 0 &&
+      (await accountStore.loginAttempts.countFailuresSince(attemptBucket, attemptSince)) >=
+        config.maxLoginAttempts
+    ) {
+      throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
+    }
+
+    const failAttempt = async (): Promise<void> => {
+      await accountStore.loginAttempts.record(attemptBucket, false, new Date())
+      await recordAdminAction({ action: 'admin.signin_failed' })
+    }
+
     const password = text(form, 'password')
-    if (password === '') throw new ValidationError(msg('error.app.enter-password'))
+    if (password === '') {
+      await failAttempt()
+      throw new ValidationError(msg('error.app.enter-password'))
+    }
 
     const ok = await verifyPassword(password, account.passwordHash)
     if (!ok) {
-      await recordAdminAction({ action: 'admin.signin_failed' })
+      await failAttempt()
       throw new ForbiddenError(msg('error.app.password-right'))
     }
 
-    await assertSecondFactorGiven({ userId: actor.userId, form })
+    try {
+      await assertSecondFactorGiven({ userId: actor.userId, form })
+    } catch (err) {
+      await failAttempt()
+      throw err
+    }
+
+    await accountStore.loginAttempts.clear(attemptBucket)
 
     const existing = await resolveAdmin()
     if ('context' in existing) {
@@ -81,6 +108,11 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
  * panel can rewrite the whole board, so re-proving only the thing most likely
  * to have leaked would be re-proving the wrong one.
  */
+async function adminReauthenticationBucket(userId: number): Promise<string> {
+  const prefix = await retainedIpPrefix()
+  return prefix === null ? `admin-reauth:${userId}` : `admin-reauth:${userId}@${prefix}`
+}
+
 async function assertSecondFactorGiven(input: {
   readonly userId: number
   readonly form: FormData
@@ -104,7 +136,6 @@ async function assertSecondFactorGiven(input: {
 
   const outcome = await service.verify({ userId: input.userId, code })
   if (outcome.status !== 'ok') {
-    await recordAdminAction({ action: 'admin.signin_failed' })
     if (outcome.status === 'replayed') {
       throw new ForbiddenError(msg('adminAction.codeReplayed'))
     }

@@ -96,10 +96,10 @@ opens the app directly on a phone. They type back the code the app shows —
 which proves the two agree — and the board hands over **ten recovery
 codes**.
 
-The recovery codes are shown once and stored only as hashes. Each one signs
-in exactly once, in place of a code, for the day a phone is lost. A member
-can replace the set at any time (which retires the old set), and the page
-shows how many are left.
+The recovery codes are independent 128-bit random values, shown once and
+stored only as hashes. Each one signs in exactly once, in place of a code,
+for the day a phone is lost. A member can replace the set at any time (which
+retires the old set), and the page shows how many are left.
 
 The confirmation posts back to `/usercp/security?factor=setup`, and that
 response is the only place the fresh codes exist. The page therefore stays on
@@ -173,7 +173,10 @@ closes it.
 The admin panel has always asked for the password again on the way in. With
 a second factor set up, it asks for the code too, in the same form —
 re-proving only the half most likely to have leaked would be re-proving the
-wrong one.
+wrong one. Password and second-factor failures share a dedicated counter for
+the administrator and retained address prefix. It uses the board's configured
+login threshold and fixed lockout window, and clears only after the complete
+proof succeeds.
 
 ## Where a member is signed in
 
