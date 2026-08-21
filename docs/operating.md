@@ -928,7 +928,7 @@ screen and no deploy:
 - **The first colour** is the brand group — `primary`, `primary-hover`,
   `primary-foreground`, `ring`. One press of a brand preset writes all
   four, or type your own.
-- **The second colour** — the trim on the jersey �� is `secondary`, with
+- **The second colour** — the trim on the jersey ��� is `secondary`, with
   `secondary-foreground` for text on it.
 - Everything else stays neutral on purpose, so those two are the only
   hues on the page.
@@ -1026,9 +1026,14 @@ That is deliberate, for two reasons:
   it — which is precisely what a thief does.
 - **"Keep me signed in" is already the renewing half.** The remember-me
   token rotates on every resume and mints a fresh session, so a member
-  who ticked the box is carried over the expiry without noticing — and a
-  *reused* remember token, the fingerprint of a stolen one, revokes the
-  whole family and every session with it.
+  who ticked the box is carried over the expiry without noticing. Resume
+  rechecks the account's current standing before rotating the token or minting
+  a session. A *reused* remember token, the fingerprint of a stolen one,
+  revokes every remember family and every session for that account.
+- **Containment retires persistent credentials too.** Password changes and
+  resets, logout, signing out everywhere else, bans, account closure, and
+  account merge revoke the affected remember tokens. A cookie copied before
+  one of those actions cannot silently create a new session afterward.
 
 The control panel's own session is the other way round — a 30-minute idle
 timeout under an 8-hour ceiling — because an unattended browser that is

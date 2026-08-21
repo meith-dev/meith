@@ -329,6 +329,14 @@ class MemoryRememberTokens implements RememberTokenRepository {
     }
   }
 
+  async revokeAllForUser(userId: number, _reason: string, now: Date): Promise<void> {
+    for (const [hash, t] of this.byHash) {
+      if (t.userId === userId && t.revokedAt === null) {
+        this.byHash.set(hash, { ...t, revokedAt: now })
+      }
+    }
+  }
+
   async findByTokenHash(tokenHash: string): Promise<{
     familyId: string
     userId: number

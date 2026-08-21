@@ -10,7 +10,7 @@ import type {
 } from '@meith/accounts'
 
 import type { Database } from './client'
-import { banFilters, bans, sessions, users } from './schema'
+import { banFilters, bans, rememberTokens, sessions, users } from './schema'
 
 const BAN_COLUMNS = {
   id: bans.id,
@@ -85,6 +85,11 @@ export class PostgresBanRepository implements BanRepository {
         .update(sessions)
         .set({ revokedAt: input.now })
         .where(and(eq(sessions.userId, input.userId), isNull(sessions.revokedAt)))
+
+      await tx
+        .update(rememberTokens)
+        .set({ revokedAt: input.now, revokedReason: 'account_banned' })
+        .where(and(eq(rememberTokens.userId, input.userId), isNull(rememberTokens.revokedAt)))
 
       return row as BanRecord
     })

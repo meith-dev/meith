@@ -153,6 +153,7 @@ export interface RememberTokenRepository {
     nextExpiresAt: Date
   }): Promise<RememberRotation>
   revokeFamily(familyId: string, reason: string, now: Date): Promise<void>
+  revokeAllForUser(userId: number, reason: string, now: Date): Promise<void>
   findByTokenHash(tokenHash: string): Promise<{
     familyId: string
     userId: number

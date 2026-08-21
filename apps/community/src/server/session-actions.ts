@@ -67,6 +67,7 @@ export async function revokeOtherSessionsAction(
     }
 
     const revoked = await accountStore.sessions.revokeAllForUserExcept(userId, keep)
+    await accountStore.remember.revokeAllForUser(userId, 'sign_out_everywhere', new Date())
 
     if (revoked > 0) await recordAuthEvent({ userId, kind: 'sessions_revoked' })
   } catch (err) {

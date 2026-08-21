@@ -148,6 +148,18 @@ export class PostgresUserBulkRepository {
         `)
       }
 
+      await tx.execute(sql`
+        update remember_tokens
+           set revoked_at = now(), revoked_reason = 'account_closure'
+         where user_id in (${idList}) and revoked_at is null
+      `)
+
+      await tx.execute(sql`
+        update sessions
+           set revoked_at = now()
+         where user_id in (${idList}) and revoked_at is null
+      `)
+
       const rows = resultRows(
         await tx.execute(sql`
           update users

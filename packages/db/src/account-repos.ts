@@ -537,6 +537,13 @@ export class PostgresRememberTokenRepository implements RememberTokenRepository 
       .where(and(eq(rememberTokens.familyId, familyId), isNull(rememberTokens.revokedAt)))
   }
 
+  async revokeAllForUser(userId: number, reason: string, now: Date): Promise<void> {
+    await this.db
+      .update(rememberTokens)
+      .set({ revokedAt: now, revokedReason: reason })
+      .where(and(eq(rememberTokens.userId, userId), isNull(rememberTokens.revokedAt)))
+  }
+
   async findByTokenHash(tokenHash: string): Promise<{
     familyId: string
     userId: number

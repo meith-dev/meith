@@ -1,9 +1,26 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { ForbiddenError } from '@meith/core'
 
 import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
 import { type AccountStore, REMEMBER_ROTATION_GRACE_SECONDS } from './ports'
 import { SessionService } from './session-service'
+
+async function addAccount(store: AccountStore, id: number) {
+  for (let current = 1; current <= id; current += 1) {
+    await store.accounts.create({
+      username: `member${current}`,
+      usernameLower: `member${current}`,
+      email: `member${current}@example.test`,
+      emailLower: `member${current}@example.test`,
+      passwordHash: 'hash',
+      passwordAlgo: 'argon2id',
+      state: 'active',
+      primaryGroupId: 2,
+    })
+  }
+}
 
 function makeService(store: AccountStore, clock?: () => Date) {
   return new SessionService({
@@ -31,6 +48,7 @@ describe('SessionService remember-me', () => {
   })
 
   it('startRemembered issues a usable remember token and a session', async () => {
+    await addAccount(store, 42)
     const svc = makeService(store)
     const login = await svc.startRemembered(42)
 
@@ -45,6 +63,7 @@ describe('SessionService remember-me', () => {
   })
 
   it('resume rotates the token: the presented one dies, a fresh one works', async () => {
+    await addAccount(store, 7)
     const svc = makeService(store)
     const first = await svc.startRemembered(7)
 
@@ -59,6 +78,7 @@ describe('SessionService remember-me', () => {
   })
 
   it('detects reuse of a spent token and burns the whole family + all sessions', async () => {
+    await addAccount(store, 99)
     const clock = movableClock()
     const svc = makeService(store, clock.now)
     const first = await svc.startRemembered(99)
@@ -83,6 +103,7 @@ describe('SessionService remember-me', () => {
   })
 
   it('honours the same token twice inside the grace window, signing nobody out', async () => {
+    await addAccount(store, 11)
     const clock = movableClock()
     const svc = makeService(store, clock.now)
     const first = await svc.startRemembered(11)
@@ -106,6 +127,7 @@ describe('SessionService remember-me', () => {
   })
 
   it('stops honouring a token the moment its family is burned', async () => {
+    await addAccount(store, 12)
     const clock = movableClock()
     const svc = makeService(store, clock.now)
     const first = await svc.startRemembered(12)
@@ -120,9 +142,40 @@ describe('SessionService remember-me', () => {
     expect((await svc.resume(first.rememberToken)).status).toBe('reuse')
   })
 
+  it('rechecks account standing before rotating or minting a session', async () => {
+    await addAccount(store, 42)
+    const allowed = vi.fn(async (_account: unknown) => undefined)
+    const issuing = makeService(store)
+    const first = await issuing.startRemembered(42)
+    const before = await store.remember.findByTokenHash(await hashToken(first.rememberToken))
+
+    const svc = new SessionService({
+      store,
+      rememberDays: 30,
+      sessionLifetimeDays: 7,
+      assertSignInAllowed: async (account) => {
+        allowed(account)
+        throw new ForbiddenError('banned')
+      },
+    })
+
+    expect((await svc.resume(first.rememberToken)).status).toBe('invalid')
+    expect(allowed).toHaveBeenCalledOnce()
+    expect(await store.remember.findByTokenHash(await hashToken(first.rememberToken))).toEqual(
+      before,
+    )
+  })
+
   it('returns invalid for an unknown token and never touches state', async () => {
-    const svc = makeService(store)
+    const allowed = vi.fn(async () => undefined)
+    const svc = new SessionService({
+      store,
+      rememberDays: 30,
+      sessionLifetimeDays: 7,
+      assertSignInAllowed: allowed,
+    })
     const outcome = await svc.resume('not-a-real-token')
     expect(outcome.status).toBe('invalid')
+    expect(allowed).not.toHaveBeenCalled()
   })
 })
