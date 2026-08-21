@@ -14,7 +14,7 @@ import { generateTotpSecret, matchTotp, otpauthUri } from './totp'
 
 export const RECOVERY_CODE_COUNT = 10
 
-export const RECOVERY_CODE_BYTES = 6
+export const RECOVERY_CODE_BYTES = 16
 
 export const WRONG_CODE = 'That code is not right. Check your authenticator app and try again.'
 
@@ -244,7 +244,7 @@ export function newRecoveryCode(): string {
   crypto.getRandomValues(bytes)
 
   const code = encodeBase32(bytes)
-  return `${code.slice(0, 5)}-${code.slice(5)}`
+  return code.match(/.{1,5}/g)?.join('-') ?? code
 }
 
 export function normaliseRecoveryCode(code: string): string {

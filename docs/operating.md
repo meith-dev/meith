@@ -928,7 +928,7 @@ screen and no deploy:
 - **The first colour** is the brand group — `primary`, `primary-hover`,
   `primary-foreground`, `ring`. One press of a brand preset writes all
   four, or type your own.
-- **The second colour** — the trim on the jersey ��� is `secondary`, with
+- **The second colour** — the trim on the jersey ���� is `secondary`, with
   `secondary-foreground` for text on it.
 - Everything else stays neutral on purpose, so those two are the only
   hues on the page.
@@ -2097,11 +2097,10 @@ or refused on a limit — a form that says "too many requests for that
 address" has confirmed the address has an account.
 
 The login limit shares the lockout window with the per-account counters
-(`security.lockout_minutes`) and, like them, is **cleared by a successful
-sign-in** from that address — a household behind one address is not
-locked out by one member's bad afternoon. That also means a caller who
-holds one valid account can clear their own counter, which is why the
-number is a backstop against volume rather than a wall.
+(`security.lockout_minutes`), but successful sign-in does not clear it.
+Failures leave the address-wide bucket only when the fixed window expires,
+so one valid account cannot reset the history of guesses against unrelated
+accounts.
 
 Set any of them to `0` to switch it off. The one to look at is the first,
 and only if your members share an address — a school, an office, a
@@ -2121,13 +2120,13 @@ account one:
 | Per account, everywhere | `security.max_account_login_attempts` | 50 | The same guess is spread over many addresses |
 | Per address, any account | `antispam.login_ip_attempts` | 100 | One address sprays single guesses across many accounts |
 
-All three are measured over `security.lockout_minutes` (default 15) and
-all three are cleared by a successful sign-in. The middle one is the
-uncomfortable one: it locks the **real owner** out too, which is the
-price of it working at all against a botnet. Keep it well above the
-per-address number — and remember that a genuinely locked-out member can
-still reset their password; the reset form is a separate door with limits
-of its own.
+All three are measured over `security.lockout_minutes` (default 15).
+Successful sign-in clears the two account-specific buckets; the shared
+address bucket expires with the window instead. The middle one is the
+uncomfortable one: it locks the **real owner** out too, which is the price
+of it working at all against a botnet. Keep it well above the per-address
+number — and remember that a genuinely locked-out member can still reset
+their password; the reset form is a separate door with limits of its own.
 
 ### Limits and the flood interval are different controls
 

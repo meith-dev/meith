@@ -416,6 +416,34 @@ describe('loginAction', () => {
     expect(jar.has(SESSION_COOKIE)).toBe(false)
   })
 
+  it('does not let a successful account clear the shared spray history', async () => {
+    await registerUser()
+    limiter.loginAddressAttempts = 3
+
+    for (const identifier of ['nobody', 'somebody']) {
+      const state = await loginAction(EMPTY_STATE, form({ identifier, password: 'guess' }))
+      expect(state.error).toMatch(/incorrect/i)
+    }
+
+    await redirectOf(
+      loginAction(EMPTY_STATE, form({ identifier: CREDS.username, password: CREDS.password })),
+    )
+    jar.clear()
+
+    const lastGuess = await loginAction(
+      EMPTY_STATE,
+      form({ identifier: 'anybody', password: 'guess' }),
+    )
+    expect(lastGuess.error).toMatch(/incorrect/i)
+
+    const blocked = await loginAction(
+      EMPTY_STATE,
+      form({ identifier: CREDS.username, password: CREDS.password }),
+    )
+    expect(blocked.error).toMatch(/too many/i)
+    expect(jar.has(SESSION_COOKIE)).toBe(false)
+  })
+
   it('leaves the spray bucket out when the board has turned it off', async () => {
     await registerUser()
     limiter.loginAddressAttempts = 0

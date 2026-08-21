@@ -213,7 +213,8 @@ describe('recovery codes', () => {
   it('are printed in a shape somebody can copy off a screen', () => {
     const code = newRecoveryCode()
 
-    expect(code).toMatch(/^[A-Z2-7]{5}-[A-Z2-7]{5}$/)
+    expect(code).toMatch(/^[A-Z2-7]{5}(?:-[A-Z2-7]{5}){4}-[A-Z2-7]$/)
+    expect(normaliseRecoveryCode(code)).toHaveLength(26)
     expect(normaliseRecoveryCode(' abc de-fghij ')).toBe('ABCDEFGHIJ')
   })
 })
