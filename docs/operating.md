@@ -2422,8 +2422,13 @@ above describes.
 
 ```sh
 createdb community_restored
-community restore board.tar.gz --database-url "$RESTORE_URL"
+RESTORE_DATABASE_URL="$RESTORE_URL" community restore board.tar.gz
 ```
+
+The restore URL is accepted only through `RESTORE_DATABASE_URL`. The CLI
+passes its fields to `pg_dump`, `pg_restore`, and `psql` through the child
+environment, never through observable process arguments; do not put database
+credentials in a command-line flag.
 
 Restore goes into a **new database**: the command checks the target is
 empty and refuses otherwise, because a restore over a live database is

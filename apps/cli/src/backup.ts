@@ -7,7 +7,7 @@ import { ConfigurationError, env, ValidationError } from '@meith/core'
 import { migrationUrl, runMigrations } from '@meith/db'
 import { S3FileStore } from '@meith/drivers'
 
-import { optional, parseFlags, required } from './args'
+import { optional, parseFlags } from './args'
 import { requirePostgres } from './context'
 import { CODE_VERSION } from './upgrade'
 
@@ -103,9 +103,105 @@ function missingToolError(command: string): ConfigurationError {
   )
 }
 
-async function run(command: string, args: readonly string[]): Promise<string> {
+const POSTGRES_PARAMETERS: Readonly<Record<string, string>> = {
+  application_name: 'PGAPPNAME',
+  channel_binding: 'PGCHANNELBINDING',
+  connect_timeout: 'PGCONNECT_TIMEOUT',
+  gssencmode: 'PGGSSENCMODE',
+  options: 'PGOPTIONS',
+  requirepeer: 'PGREQUIREPEER',
+  sslcert: 'PGSSLCERT',
+  sslcompression: 'PGSSLCOMPRESSION',
+  sslcrl: 'PGSSLCRL',
+  sslcrldir: 'PGSSLCRLDIR',
+  sslkey: 'PGSSLKEY',
+  sslmode: 'PGSSLMODE',
+  sslpassword: 'PGSSLPASSWORD',
+  sslrootcert: 'PGSSLROOTCERT',
+  target_session_attrs: 'PGTARGETSESSIONATTRS',
+}
+
+export function postgresClientEnvironment(
+  connectionString: string,
+  variable: string,
+): NodeJS.ProcessEnv {
+  let url: URL
+  try {
+    url = new URL(connectionString)
+  } catch {
+    throw new ValidationError(`${variable} must be a valid postgres:// connection string.`)
+  }
+
+  if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') {
+    throw new ValidationError(`${variable} must be a postgres:// connection string.`)
+  }
+  let database: string
+  let username: string
+  let password: string
+  try {
+    database = decodeURIComponent(url.pathname.replace(/^\//, ''))
+    username = decodeURIComponent(url.username)
+    password = decodeURIComponent(url.password)
+  } catch {
+    throw new ValidationError(`${variable} contains invalid percent-encoding.`)
+  }
+  if (url.hostname === '' || username === '' || database === '') {
+    throw new ValidationError(`${variable} must include a host, user, and database name.`)
+  }
+
+  const childEnv: NodeJS.ProcessEnv = { ...process.env }
+  for (const environmentVariable of [
+    'PGAPPNAME',
+    'PGCHANNELBINDING',
+    'PGCONNECT_TIMEOUT',
+    'PGDATABASE',
+    'PGGSSENCMODE',
+    'PGHOST',
+    'PGHOSTADDR',
+    'PGOPTIONS',
+    'PGPASSWORD',
+    'PGPORT',
+    'PGREQUIREPEER',
+    'PGSERVICE',
+    'PGSERVICEFILE',
+    'PGSSLCERT',
+    'PGSSLCOMPRESSION',
+    'PGSSLCRL',
+    'PGSSLCRLDIR',
+    'PGSSLKEY',
+    'PGSSLMODE',
+    'PGSSLPASSWORD',
+    'PGSSLROOTCERT',
+    'PGTARGETSESSIONATTRS',
+    'PGUSER',
+  ]) {
+    delete childEnv[environmentVariable]
+  }
+  Object.assign(childEnv, {
+    PGHOST: url.hostname.replace(/^\[|\]$/g, ''),
+    PGPORT: url.port || '5432',
+    PGUSER: username,
+    PGDATABASE: database,
+  })
+  if (password !== '') childEnv.PGPASSWORD = password
+
+  for (const [parameter, environmentVariable] of Object.entries(POSTGRES_PARAMETERS)) {
+    const value = url.searchParams.get(parameter)
+    if (value !== null) childEnv[environmentVariable] = value
+  }
+  return childEnv
+}
+
+async function run(
+  command: string,
+  args: readonly string[],
+  childEnv: NodeJS.ProcessEnv = process.env,
+): Promise<string> {
   return new Promise<string>((resolvePromise, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(command, args, {
+      env: childEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
     let stdout = ''
     let stderr = ''
     child.stdout.on('data', (chunk: Buffer) => {
@@ -191,14 +287,14 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
         ? 'Dumping the database…'
         : 'Dumping the database over DIRECT_DATABASE_URL…',
     )
-    await run('pg_dump', [
-      '--format=custom',
-      '--no-owner',
-      '--no-privileges',
-      '--file',
-      path.join(stage, 'db.dump'),
-      migrationUrl(env),
-    ])
+    const databaseVariable =
+      env.DIRECT_DATABASE_URL === undefined ? 'DATABASE_URL' : 'DIRECT_DATABASE_URL'
+    const databaseEnvironment = postgresClientEnvironment(migrationUrl(env), databaseVariable)
+    await run(
+      'pg_dump',
+      ['--format=custom', '--no-owner', '--no-privileges', '--file', path.join(stage, 'db.dump')],
+      databaseEnvironment,
+    )
 
     const uploads =
       mode === 'skip'
@@ -292,8 +388,26 @@ async function pushUploadsToS3(stage: string): Promise<void> {
 }
 
 const RESTORE_USAGE =
-  'Usage: community restore <bundle.tar.gz> --database-url <postgres://…> ' +
+  'Usage: RESTORE_DATABASE_URL=<postgres://…> community restore <bundle.tar.gz> ' +
   '[--uploads-dir <dir>] [--skip-uploads]'
+
+export function restoreDatabaseUrl(
+  args: readonly string[],
+  environment: NodeJS.ProcessEnv,
+): string {
+  const { flags } = parseFlags(args)
+  if (flags.has('database-url')) {
+    throw new ValidationError(
+      '--database-url is not supported because process arguments are observable. ' +
+        'Set RESTORE_DATABASE_URL in the environment instead.',
+    )
+  }
+  const target = environment.RESTORE_DATABASE_URL
+  if (target === undefined || target === '') {
+    throw new ValidationError(`RESTORE_DATABASE_URL is required.\n${RESTORE_USAGE}`)
+  }
+  return target
+}
 
 export async function restoreCommand(args: readonly string[]): Promise<number> {
   const { flags, positional } = parseFlags(args)
@@ -301,10 +415,8 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
   const bundle = positional[0]
   if (bundle === undefined) throw new ValidationError(RESTORE_USAGE)
 
-  const target = required(flags, 'database-url')
-  if (!target.startsWith('postgres://') && !target.startsWith('postgresql://')) {
-    throw new ValidationError('--database-url must be a postgres:// connection string.')
-  }
+  const target = restoreDatabaseUrl(args, process.env)
+  const databaseEnvironment = postgresClientEnvironment(target, 'RESTORE_DATABASE_URL')
 
   const readable = await stat(bundle).then(
     (info) => info.isFile(),
@@ -318,11 +430,11 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
     const manifest = parseManifest(await readFile(path.join(stage, 'manifest.json'), 'utf8'))
 
     const tables = (
-      await run('psql', [
-        target,
-        '-tAc',
-        "select count(*) from information_schema.tables where table_schema = 'public'",
-      ])
+      await run(
+        'psql',
+        ['-tAc', "select count(*) from information_schema.tables where table_schema = 'public'"],
+        databaseEnvironment,
+      )
     ).trim()
     if (tables !== '0') {
       throw new ValidationError(
@@ -333,12 +445,11 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
     }
 
     console.log(`Restoring the backup taken ${manifest.createdAt} (version ${manifest.version})…`)
-    await run('pg_restore', [
-      '--no-owner',
-      '--no-privileges',
-      `--dbname=${target}`,
-      path.join(stage, 'db.dump'),
-    ])
+    await run(
+      'pg_restore',
+      ['--no-owner', '--no-privileges', path.join(stage, 'db.dump')],
+      databaseEnvironment,
+    )
 
     const applied = await runMigrations({ url: target })
     console.log(
@@ -347,7 +458,9 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
         : `Migrations: applied ${applied} migration(s) the dump predates.`,
     )
 
-    const posts = (await run('psql', [target, '-tAc', 'select count(*) from posts'])).trim()
+    const posts = (
+      await run('psql', ['-tAc', 'select count(*) from posts'], databaseEnvironment)
+    ).trim()
     console.log(`The restored board holds ${posts} post(s).`)
 
     if (manifest.uploads === 'included' && flags.get('skip-uploads') !== 'true') {

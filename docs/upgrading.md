@@ -182,10 +182,9 @@ docker compose run --rm --no-deps -v "$PWD":/backup web \
 docker compose down
 docker volume rm docker_pgdata
 docker compose up -d postgres
-docker compose run --rm --no-deps -v "$PWD":/backup web \
-  node apps/cli/cli.cjs restore /backup/pre-18.tar.gz \
-  --database-url postgres://community:$POSTGRES_PASSWORD@postgres:5432/community \
-  --skip-uploads
+RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/community" \
+  docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD":/backup web \
+  node apps/cli/cli.cjs restore /backup/pre-18.tar.gz --skip-uploads
 docker compose up -d --build
 ```
 
