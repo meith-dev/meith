@@ -230,6 +230,7 @@ export class MemberSettingsService {
     const hash = await hashPassword(next)
     await this.accounts.updatePassword(account.id, hash, 'argon2id')
     await this.sessions.revokeAllForUser(account.id)
+    await this.tokens.revokeAllForUser(account.id, 'email_change')
   }
 
   async requestEmailChange(input: {
@@ -258,11 +259,12 @@ export class MemberSettingsService {
     const at = this.now()
     const expiresAt = new Date(at.getTime() + EMAIL_CHANGE_TTL_MINUTES * 60_000)
 
+    await this.tokens.revokeAllForUser(account.id, 'email_change')
     await this.tokens.issue({
       tokenHash: await hashToken(token),
       userId: account.id,
       purpose: 'email_change',
-      payload: email,
+      payload: JSON.stringify({ version: 1, email, previousEmailLower: account.emailLower }),
       expiresAt,
     })
 
@@ -271,21 +273,36 @@ export class MemberSettingsService {
 
   async confirmEmailChange(
     token: string,
-  ): Promise<{ email: string; previousEmail: string } | null> {
-    const consumed = await this.tokens.consume(await hashToken(token), 'email_change', this.now())
-    if (consumed === null || consumed.payload === null) return null
+    actorUserId: number,
+  ): Promise<{ userId: number; email: string; previousEmail: string } | null> {
+    const tokenHash = await hashToken(token)
+    const pending = await this.tokens.peek(tokenHash, 'email_change', this.now())
+    if (pending === null || pending.userId !== actorUserId) return null
 
-    const account = await this.accounts.findById(consumed.userId)
-    if (account === null) return null
+    const payload = parseEmailChangePayload(pending.payload)
+    if (payload === null) return null
 
-    const email = consumed.payload
+    const account = await this.accounts.findById(pending.userId)
+    if (account === null || account.emailLower !== payload.previousEmailLower) return null
+
+    const consumed = await this.tokens.consume(tokenHash, 'email_change', this.now())
+    if (
+      consumed === null ||
+      consumed.userId !== pending.userId ||
+      consumed.payload !== pending.payload
+    ) {
+      return null
+    }
+
     const adopted = await this.settings.adoptEmail({
-      userId: consumed.userId,
-      email,
-      emailLower: foldIdentifier(email),
+      userId: pending.userId,
+      email: payload.email,
+      emailLower: foldIdentifier(payload.email),
     })
 
-    return adopted ? { email, previousEmail: account.email } : null
+    return adopted
+      ? { userId: pending.userId, email: payload.email, previousEmail: account.email }
+      : null
   }
 
   private async requireVerified(userId: number, currentPassword: string) {
@@ -302,6 +319,31 @@ export class MemberSettingsService {
     void needsRehash
 
     return account
+  }
+}
+
+function parseEmailChangePayload(
+  payload: string | null,
+): { email: string; previousEmailLower: string } | null {
+  if (payload === null) return null
+
+  try {
+    const parsed: unknown = JSON.parse(payload)
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('version' in parsed) ||
+      parsed.version !== 1 ||
+      !('email' in parsed) ||
+      typeof parsed.email !== 'string' ||
+      !('previousEmailLower' in parsed) ||
+      typeof parsed.previousEmailLower !== 'string'
+    ) {
+      return null
+    }
+    return { email: parsed.email, previousEmailLower: parsed.previousEmailLower }
+  } catch {
+    return null
   }
 }
 

@@ -1699,9 +1699,12 @@ each member until they ask for it on the browser in front of them.
 ### Changing an address tells the old one
 
 An address change is confirmed by the **new** address: the board sends a
-link there and adopts the address only when the link is used. That proves
-the new address, and proves nothing to whoever held the old one — so the
-board writes to the old address as well, twice:
+link there and adopts the address only when the link is used. The link is
+bound to the signed-in member and the address held when it was issued. Only
+the newest request remains valid, each link is single-use, and changing or
+resetting the password invalidates every outstanding address-change link.
+That proves the new address, and proves nothing to whoever held the old one —
+so the board writes to the old address as well, twice:
 
 - **When the change is asked for**, naming the address the account would
   move to, and saying that nothing happens until that address confirms

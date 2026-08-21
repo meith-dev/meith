@@ -528,6 +528,25 @@ describe('password reset', () => {
     expect((await store.sessions.findByTokenHash(sessionHash))!.revokedAt).not.toBeNull()
   })
 
+  it('invalidates outstanding e-mail-change tokens when the password is reset', async () => {
+    const { service } = makeService(store)
+    const { token, userId } = await service.requestPasswordReset('alice@example.com')
+    const emailToken = 'pending-email-change'
+    await store.tokens.issue({
+      tokenHash: await hashToken(emailToken),
+      userId: userId!,
+      purpose: 'email_change',
+      payload: '{}',
+      expiresAt: new Date('2100-01-01T00:00:00Z'),
+    })
+
+    await service.redeemPasswordReset(token!, 'a brand new password')
+
+    expect(
+      await store.tokens.consume(await hashToken(emailToken), 'email_change', new Date()),
+    ).toBeNull()
+  })
+
   it('invalidates an older reset token when a newer one is issued', async () => {
     const { service } = makeService(store)
     const first = await service.requestPasswordReset('alice@example.com')

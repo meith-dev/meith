@@ -591,6 +591,7 @@ export class IdentityService {
     const encoded = await hashPassword(newPassword)
     await this.store.accounts.updatePassword(redeemed.userId, encoded, PASSWORD_ALGO)
     await this.store.sessions.revokeAllForUser(redeemed.userId)
+    await this.store.tokens.revokeAllForUser(redeemed.userId, 'email_change')
 
     return { userId: redeemed.userId }
   }
