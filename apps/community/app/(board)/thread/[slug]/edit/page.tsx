@@ -10,6 +10,7 @@ import { filterView, viewerRef } from '@/server/plugin-view'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
 import { editPostFormCopy } from '@/view/content-copy'
+import { buildEditorToolbarModel } from '@/view/editor-toolbar'
 import { buildEditView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
@@ -55,8 +56,17 @@ export default async function EditPostPage({
 
   const theme = await currentTheme()
   const PostForm = requireSlot(theme, 'PostForm')
+  const EditorToolbar = requireSlot(theme, 'EditorToolbar')
   const translator = await getTranslator()
   const formCopy = editPostFormCopy(translator)
+  const editable = !isDeleted && scope.mayEdit
+  const toolbarModel = !editable
+    ? null
+    : await filterView(
+        'view.editor-toolbar',
+        buildEditorToolbarModel({ t: translator }),
+        viewerRef(await getActor()),
+      )
 
   const formModel = await filterView(
     'view.post-form',
@@ -74,12 +84,16 @@ export default async function EditPostPage({
                 postId={post}
                 message={scope.target.post.message}
                 reason={null}
+                toolbar="external"
               />
             )}
             {scope.mayDelete && <DeletePostForm copy={formCopy} threadId={thread} postId={post} />}
           </>
         ),
-        toolbar: null,
+        toolbar:
+          toolbarModel === null ? null : (
+            <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
+          ),
       },
     },
     viewerRef(await getActor()),

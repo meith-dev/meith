@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import type { MemberSuggestion } from '@meith/accounts'
 import { ATTACHMENT_FIELD } from '@meith/attachments/types'
+import { applyEditorEdit, applyEditorTag, type EditorTag } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
 import {
@@ -14,123 +15,61 @@ import { type PreviewScope, renderPreviewAction } from '@/server/content-actions
 import { searchMentionCandidatesAction } from '@/server/mention-actions'
 
 import { type Copy, formatFromCopy, fromCopy, useCopy } from '../shell/copy'
-import {
-  type Edit,
-  fenceEdit,
-  type LineMarker,
-  linkEdit,
-  listContinuation,
-  pasteAsLink,
-  spoilerEdit,
-  togglePrefix,
-  toggleWrap,
-  type WrapSyntax,
-} from './markdown-syntax'
+import { attachmentFieldId, MESSAGE_TEXTAREA_ID } from './composer-ids'
+import { listContinuation, pasteAsLink } from './markdown-syntax'
 import { activeMentionToken, type MentionToken } from './mention-token'
 
 const MENTION_DEBOUNCE_MS = 150
 
-type Command =
-  | { readonly kind: 'wrap'; readonly syntax: WrapSyntax }
-  | { readonly kind: 'prefix'; readonly marker: LineMarker }
-  | { readonly kind: 'link' }
-  | { readonly kind: 'fence' }
-  | { readonly kind: 'spoiler'; readonly placeholder: string }
-
 interface Tool {
+  readonly tag: EditorTag
   readonly labelKey: string
   readonly glyph: string
   readonly shortcut?: string
-  readonly command: (copy: Copy) => Command
+  readonly placeholderKey?: string
 }
 
 const TOOLS: readonly Tool[] = [
   {
+    tag: 'bold',
     labelKey: 'composer.tool.bold',
     glyph: 'B',
     shortcut: 'b',
-    command: (copy) => ({
-      kind: 'wrap',
-      syntax: { marker: '*', length: 2, placeholder: fromCopy(copy, 'composer.placeholder.bold') },
-    }),
+    placeholderKey: 'composer.placeholder.bold',
   },
   {
+    tag: 'italic',
     labelKey: 'composer.tool.italic',
     glyph: 'I',
     shortcut: 'i',
-    command: (copy) => ({
-      kind: 'wrap',
-      syntax: {
-        marker: '*',
-        length: 1,
-        placeholder: fromCopy(copy, 'composer.placeholder.italic'),
-      },
-    }),
+    placeholderKey: 'composer.placeholder.italic',
   },
   {
+    tag: 'strikethrough',
     labelKey: 'composer.tool.strikethrough',
     glyph: 'S',
-    command: (copy) => ({
-      kind: 'wrap',
-      syntax: {
-        marker: '~',
-        length: 2,
-        placeholder: fromCopy(copy, 'composer.placeholder.struck'),
-      },
-    }),
+    placeholderKey: 'composer.placeholder.struck',
   },
+  { tag: 'link', labelKey: 'composer.tool.link', glyph: 'Link', shortcut: 'k' },
+  { tag: 'quote', labelKey: 'composer.tool.quote', glyph: '“”' },
+  { tag: 'code', labelKey: 'composer.tool.code', glyph: '</>' },
   {
-    labelKey: 'composer.tool.link',
-    glyph: 'Link',
-    shortcut: 'k',
-    command: () => ({ kind: 'link' }),
-  },
-  {
-    labelKey: 'composer.tool.quote',
-    glyph: '“”',
-    command: () => ({ kind: 'prefix', marker: '> ' }),
-  },
-  { labelKey: 'composer.tool.code', glyph: '</>', command: () => ({ kind: 'fence' }) },
-  {
+    tag: 'spoiler',
     labelKey: 'composer.tool.spoiler',
     glyph: 'Spoiler',
-    command: (copy) => ({
-      kind: 'spoiler',
-      placeholder: fromCopy(copy, 'composer.placeholder.spoiler'),
-    }),
+    placeholderKey: 'composer.placeholder.spoiler',
   },
-  {
-    labelKey: 'composer.tool.bulletedList',
-    glyph: '•',
-    command: () => ({ kind: 'prefix', marker: '- ' }),
-  },
-  {
-    labelKey: 'composer.tool.numberedList',
-    glyph: '1.',
-    command: () => ({ kind: 'prefix', marker: (index: number) => `${index + 1}. ` }),
-  },
-  {
-    labelKey: 'composer.tool.heading',
-    glyph: 'H',
-    command: () => ({ kind: 'prefix', marker: '## ' }),
-  },
+  { tag: 'bulletedList', labelKey: 'composer.tool.bulletedList', glyph: '•' },
+  { tag: 'numberedList', labelKey: 'composer.tool.numberedList', glyph: '1.' },
+  { tag: 'heading', labelKey: 'composer.tool.heading', glyph: 'H' },
 ]
 
-function apply(field: HTMLTextAreaElement, edit: Edit): void {
-  field.setRangeText(edit.text, edit.from, edit.to, 'end')
-  field.setSelectionRange(edit.selectionStart, edit.selectionEnd)
-  field.focus()
-  field.dispatchEvent(new Event('input', { bubbles: true }))
-}
-
-function run(field: HTMLTextAreaElement, command: Command): void {
-  const { value, selectionStart: start, selectionEnd: end } = field
-
-  if (command.kind === 'wrap') apply(field, toggleWrap(value, start, end, command.syntax))
-  else if (command.kind === 'prefix') apply(field, togglePrefix(value, start, end, command.marker))
-  else if (command.kind === 'link') apply(field, linkEdit(value, start, end))
-  else if (command.kind === 'fence') apply(field, fenceEdit(value, start, end))
-  else apply(field, spoilerEdit(value, start, end, command.placeholder))
+function runTool(field: HTMLTextAreaElement, tool: Tool, copy: Copy): void {
+  applyEditorTag(
+    field,
+    tool.tag,
+    tool.placeholderKey === undefined ? null : fromCopy(copy, tool.placeholderKey),
+  )
 }
 
 export interface MarkdownEditorProps {
@@ -145,10 +84,18 @@ export interface MarkdownEditorProps {
   readonly hint?: React.ReactNode
   readonly scope?: PreviewScope
   readonly attachTo?: AttachmentTarget | undefined
+  /**
+   * Whether the formatting buttons render inside this component (`'inline'`,
+   * the default — every composer outside the post/reply/edit pages) or are
+   * left to the page's `EditorToolbar` slot (`'external'`), which addresses
+   * this textarea by `id` from a different part of the tree. Either way the
+   * textarea works with none of them: the buttons are the enhancement.
+   */
+  readonly toolbar?: 'inline' | 'external' | undefined
 }
 
 export function MarkdownEditor({
-  id = 'post-message',
+  id = MESSAGE_TEXTAREA_ID,
   name = 'message',
   label,
   rows = 12,
@@ -159,6 +106,7 @@ export function MarkdownEditor({
   hint,
   scope = 'post',
   attachTo,
+  toolbar = 'inline',
 }: MarkdownEditorProps) {
   const field = useRef<HTMLTextAreaElement>(null)
   const attachmentInput = useRef<HTMLInputElement>(null)
@@ -251,7 +199,7 @@ export function MarkdownEditor({
   function applyMention(field: HTMLTextAreaElement, candidate: MemberSuggestion): void {
     if (mentionToken === null) return
     const inserted = `@${candidate.username} `
-    apply(field, {
+    applyEditorEdit(field, {
       from: mentionToken.start,
       to: mentionToken.start + 1 + mentionToken.query.length,
       text: inserted,
@@ -286,7 +234,7 @@ export function MarkdownEditor({
     ])
 
     const token = `[attachment=${result.attachment.id}]`
-    apply(element, {
+    applyEditorEdit(element, {
       from: start,
       to: end,
       text: token,
@@ -331,7 +279,7 @@ export function MarkdownEditor({
       const tool = TOOLS.find((candidate) => candidate.shortcut === event.key.toLowerCase())
       if (tool !== undefined) {
         event.preventDefault()
-        run(element, tool.command(copy))
+        runTool(element, tool, copy)
       }
       return
     }
@@ -342,7 +290,7 @@ export function MarkdownEditor({
     if (edit === null) return
 
     event.preventDefault()
-    apply(element, edit)
+    applyEditorEdit(element, edit)
   }
 
   function onPaste(event: React.ClipboardEvent<HTMLTextAreaElement>): void {
@@ -356,7 +304,7 @@ export function MarkdownEditor({
     if (edit === null) return
 
     event.preventDefault()
-    apply(element, edit)
+    applyEditorEdit(element, edit)
   }
 
   function onTabKey(event: React.KeyboardEvent<HTMLDivElement>): void {
@@ -418,7 +366,7 @@ export function MarkdownEditor({
         )}
       </div>
 
-      {enhanced && tab === 'write' && (
+      {toolbar === 'inline' && enhanced && tab === 'write' && (
         <div
           role="group"
           aria-label={fromCopy(copy, 'composer.formatting')}
@@ -431,7 +379,7 @@ export function MarkdownEditor({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
-                if (field.current !== null) run(field.current, tool.command(copy))
+                if (field.current !== null) runTool(field.current, tool, copy)
               }}
               title={
                 tool.shortcut === undefined
@@ -539,6 +487,7 @@ export function MarkdownEditor({
         <>
           <input
             ref={attachmentInput}
+            id={attachmentFieldId(id)}
             type="file"
             hidden
             aria-hidden="true"

@@ -29,6 +29,13 @@ export {
   rgbToHex,
   rgbToOklch,
 } from './colour'
+export {
+  applyEditorEdit,
+  applyEditorTag,
+  type Edit,
+  type EditorTag,
+  lineRange,
+} from './editor'
 export { linkTarget, type OffSiteAnchorProps } from './links'
 export {
   isSlotName,
@@ -66,6 +73,7 @@ export type {
   CountModel,
   DiscoveryRowModel,
   DiscoveryViewModel,
+  EditorToolbarButtonModel,
   EditorToolbarModel,
   ErrorNoticeModel,
   FooterModel,

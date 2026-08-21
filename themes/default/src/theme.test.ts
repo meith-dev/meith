@@ -10,8 +10,8 @@ describe('the default theme', () => {
     expect(report.missing).toEqual([])
   })
 
-  it('fills every slot except the two provisional islands', () => {
-    expect(resolveTheme(defaultTheme).missing).toEqual(['QuickReply', 'EditorToolbar'])
+  it('fills every slot, including the two editor islands', () => {
+    expect(resolveTheme(defaultTheme).missing).toEqual([])
   })
 
   it('fills nothing the registry does not name', () => {

@@ -1,6 +1,6 @@
 import { isSlotName, SLOT_NAMES, type SlotName } from './slots'
 
-export const THEME_API_VERSION = '0.16'
+export const THEME_API_VERSION = '0.17'
 
 export type Stability = 'stable' | 'provisional' | 'deprecated'
 
@@ -29,10 +29,10 @@ export const SLOT_STABILITY: Readonly<Record<SlotName, Stability>> = {
   ThreadView: 'stable',
   PostBit: 'stable',
   PostActions: 'stable',
-  QuickReply: 'provisional',
+  QuickReply: 'stable',
 
   PostForm: 'stable',
-  EditorToolbar: 'provisional',
+  EditorToolbar: 'stable',
 
   MemberProfile: 'stable',
 

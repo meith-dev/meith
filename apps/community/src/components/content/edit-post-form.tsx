@@ -14,12 +14,14 @@ export function EditPostForm({
   postId,
   message,
   reason,
+  toolbar = 'inline',
   copy,
 }: {
   threadId: number
   postId: number
   message: string
   reason: string | null
+  toolbar?: 'inline' | 'external'
   copy: Copy
 }) {
   const [state, action] = useActionState(editPostAction, EMPTY_STATE)
@@ -34,6 +36,7 @@ export function EditPostForm({
         required
         defaultValue={state.values?.message ?? message}
         preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
+        toolbar={toolbar}
       />
 
       <label className="flex flex-col gap-1 text-sm">

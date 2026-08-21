@@ -28,6 +28,7 @@ export function NewThreadForm({
   canPostPoll,
   attachmentLimits,
   draft,
+  toolbar = 'inline',
   copy,
 }: {
   forumId: number
@@ -37,6 +38,7 @@ export function NewThreadForm({
   canPostPoll: boolean
   attachmentLimits: UploadLimits | null
   draft: Draft | null
+  toolbar?: 'inline' | 'external'
   copy: Copy
 }) {
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
@@ -89,6 +91,7 @@ export function NewThreadForm({
         required
         defaultValue={state.values?.message ?? draft?.message}
         preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
+        toolbar={toolbar}
         {...(attachmentLimits !== null ? { attachTo: { kind: 'forum', forumId } } : {})}
       />
 

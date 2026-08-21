@@ -20,15 +20,11 @@ describe('the raidframe theme', () => {
     expect(resolveTheme(raidframeTheme).chain).toEqual(['raidframe', 'default'])
   })
 
-  it('fills every stable slot itself, leaving only the provisional ones inherited', () => {
+  it('fills every stable slot itself, so no page falls back to another theme’s markup', () => {
     const own = new Set(Object.keys(raidframeTheme.slots))
     const stable = SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'stable')
 
     expect(stable.filter((name) => !own.has(name))).toEqual([])
-    expect(SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'provisional')).not.toEqual([])
-    for (const name of SLOT_NAMES) {
-      if (SLOT_STABILITY[name] === 'provisional') expect(own.has(name)).toBe(false)
-    }
 
     const resolved = resolveTheme(raidframeTheme)
     expect(resolved.slots.PostBit).not.toBe(defaultTheme.slots.PostBit)

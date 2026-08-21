@@ -36,6 +36,7 @@
 
 import type { ReactNode } from 'react'
 
+import type { EditorTag } from './editor'
 import type { SlotName } from './slots'
 
 /* ------------------------------------------------------------------ *
@@ -931,23 +932,64 @@ export interface PostFormModel {
   }
 }
 
+/**
+ * The inline reply island at the foot of a thread.
+ *
+ * `children` carries the app's own reply form — the Server Action, its
+ * validation, quoting, drafts and attachments, unchanged by whichever theme
+ * is active — so `QuickReply` is what draws the boundary between the
+ * server-rendered `ThreadView` around it and the client form inside it. The
+ * plain fields stay alongside it rather than folding into `children`: a
+ * theme that wants a lighter affordance of its own — a one-line teaser that
+ * expands, say — can build one from `placeholder`, `submitLabel` and
+ * `fullReplyHref` without ever inspecting what `children` contains.
+ */
 export interface QuickReplyModel {
-  readonly action: string
   readonly threadId: number
   readonly placeholder: string
   readonly submitLabel: string
   /** Where the no-JS reply form lives, for when the island is not rendered. */
   readonly fullReplyHref: string
+  readonly children?: ReactNode
+}
+
+/** One control in an `EditorToolbar`. */
+export interface EditorToolbarButtonModel {
+  /** Which edit to run — `applyEditorTag(field, tag, placeholder)` from `@meith/theme-kit`. */
+  readonly tag: EditorTag
+  readonly label: string
+  /** `label`, plus the keyboard shortcut when this tag has one, already formatted. */
+  readonly title: string
+  /** `aria-keyshortcuts`, e.g. `"Control+b"`, or `null` for a tag with no shortcut. */
+  readonly keyShortcut: string | null
+  /**
+   * A themed icon's name, for a theme that draws one — see `PanelNavIcon` for
+   * the same idea. Always `null` today: nothing in the default palette names
+   * one yet, so every theme renders its own glyph from `tag` or `label`. The
+   * field stays in the contract for the theme that wants to key off it once
+   * one does.
+   */
+  readonly icon: string | null
+  /** Fills a wrap or spoiler tag when nothing is selected; `null` for a tag that does not need one. */
+  readonly placeholder: string | null
 }
 
 export interface EditorToolbarModel {
   /** The textarea's `id`; the island attaches to it rather than owning it. */
   readonly textareaId: string
-  readonly buttons: readonly {
-    readonly tag: string
-    readonly label: string
-    readonly icon: string | null
-  }[]
+  /** Accessible name for the toolbar's `role="group"`. */
+  readonly groupLabel: string
+  readonly buttons: readonly EditorToolbarButtonModel[]
+  /**
+   * The attachment picker, or `null` where this composer takes none.
+   *
+   * `inputId` names an app-rendered `<input type="file" hidden>` elsewhere on
+   * the page — the upload itself is a Server Action the app owns, so a theme
+   * never handles the file. A button that calls `.click()` on the element
+   * that id names opens the picker; like every other button here, that is an
+   * enhancement over a plain-textarea form, not what makes the form work.
+   */
+  readonly attachment: { readonly inputId: string; readonly label: string } | null
   readonly previewAction: string | null
 }
 

@@ -399,6 +399,7 @@ export default async function ThreadPage({
   const PostBit = requireSlot(theme, 'PostBit')
   const PostActions = requireSlot(theme, 'PostActions')
   const Pagination = requireSlot(theme, 'Pagination')
+  const QuickReply = requireSlot(theme, 'QuickReply')
   const translator = await getTranslator()
   const toolNotice = query.tool === undefined ? undefined : TOOL_NOTICE_KEYS[query.tool]
 
@@ -524,7 +525,7 @@ export default async function ThreadPage({
     forum: matrix,
     allowsAttachments: replyRules?.allowAttachments === true,
   }
-  const quickReply = !canReply ? null : (
+  const quickReplyForm = !canReply ? null : (
     <>
       <QuoteInPlace threadId={thread.id} />
       <MultiQuoteSelection threadId={thread.id} />
@@ -544,6 +545,24 @@ export default async function ThreadPage({
       />
     </>
   )
+  const quickReplyModel =
+    quickReplyForm === null
+      ? null
+      : await filterView(
+          'view.quick-reply',
+          {
+            threadId: thread.id,
+            placeholder: translator.t('composer.reply.quick'),
+            submitLabel: translator.t('composer.reply.submit'),
+            fullReplyHref: `/thread/${thread.id}-${thread.slug}/reply`,
+            children: quickReplyForm,
+          },
+          { ...viewerRef(actor), threadId: thread.id, forumId: forum.id },
+        )
+  const quickReply =
+    quickReplyModel === null ? null : (
+      <QuickReply {...quickReplyModel} copy={slotCopy(theme, 'QuickReply', translator)} />
+    )
 
   const anyTool =
     toolRights.lock ||

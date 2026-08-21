@@ -380,6 +380,17 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: ['/post/4102/edit', '/report/post/4102'],
   },
 
+  QuickReply: {
+    model: {
+      threadId: 91,
+      placeholder: 'Quick reply',
+      submitLabel: 'Post reply',
+      fullReplyHref: '/thread/91-bikeshedding/reply',
+      children: region('quick-reply-form'),
+    },
+    requires: [region('quick-reply-form')],
+  },
+
   PostForm: {
     model: {
       mode: 'reply',
@@ -390,6 +401,34 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       regions: { form: region('composer'), toolbar: region('toolbar') },
     },
     requires: [region('composer'), 'Your reply is empty.', '/thread/91-bikeshedding'],
+  },
+
+  EditorToolbar: {
+    model: {
+      textareaId: 'post-message',
+      groupLabel: 'Formatting',
+      buttons: [
+        {
+          tag: 'bold',
+          label: 'Bold',
+          title: 'Bold (Ctrl+B)',
+          keyShortcut: 'Control+b',
+          icon: null,
+          placeholder: 'bold text',
+        },
+        {
+          tag: 'link',
+          label: 'Link',
+          title: 'Link',
+          keyShortcut: null,
+          icon: null,
+          placeholder: null,
+        },
+      ],
+      attachment: { inputId: 'post-message-attachment', label: 'Insert attachment' },
+      previewAction: null,
+    },
+    requires: ['Formatting', 'Bold (Ctrl+B)', 'Insert attachment'],
   },
 
   MemberProfile: {

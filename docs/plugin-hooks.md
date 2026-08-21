@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**102 hooks** — 57 filters, 45 events — and 6 UI regions. **102 are wired**: something in the board fires
+**104 hooks** — 59 filters, 45 events — and 6 UI regions. **104 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -90,6 +90,8 @@ the whole board and stays off until an operator clears the record. See
 | `view.forum-display` | filter | yes | `ForumDisplayModel` | `ViewerRef & ForumRef` |
 | `view.thread-view` | filter | yes | `ThreadViewModel` | `ViewerRef & ThreadRef` |
 | `view.post-form` | filter | yes | `PostFormModel` | `ViewerRef` |
+| `view.quick-reply` | filter | yes | `QuickReplyModel` | `ViewerRef & ThreadRef` |
+| `view.editor-toolbar` | filter | yes | `EditorToolbarModel` | `ViewerRef` |
 | `view.redirect-notice` | filter | yes | `RedirectNoticeModel` | `ViewerRef` |
 
 - **`view.header`** — The header model, before the theme renders it.
@@ -125,6 +127,8 @@ the whole board and stays off until an operator clears the record. See
 - **`view.forum-display`** — A forum page’s model, including its rendered regions.
 - **`view.thread-view`** — A thread page’s model, including its rendered post list.
 - **`view.post-form`** — The composer page’s model. The form itself is app-rendered and arrives as a region.
+- **`view.quick-reply`** — The quick-reply island’s model, at the foot of a thread. The reply form itself is app-rendered and arrives as `children`.
+- **`view.editor-toolbar`** — The composer’s formatting-toolbar model — its buttons and the attachment picker.
 - **`view.redirect-notice`** — The interstitial shown after a mutation, before the meta refresh fires. The target is re-checked against the board after the filter runs, so this cannot send a member off-site.
 
 ## Posting

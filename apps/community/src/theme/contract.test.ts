@@ -11,6 +11,7 @@ import {
   SLOT_STABILITY,
   type SlotName,
   slotCopy,
+  slotKind,
   type ThemeDefinition,
 } from '@meith/theme-kit'
 
@@ -34,8 +35,15 @@ async function renderSlot(
   model: object,
 ): Promise<string> {
   const resolved = resolveTheme(definition)
-  const Slot = requireSlot(resolved, name) as (props: object) => ReactNode
-  const node = await Slot({ ...model, copy: slotCopy(resolved, name, t) })
+  const props = { ...model, copy: slotCopy(resolved, name, t) }
+
+  if (slotKind(name) === 'client') {
+    const Slot = requireSlot(resolved, name) as (props: object) => ReactNode
+    return renderToStaticMarkup(createElement(Slot, props))
+  }
+
+  const Slot = requireSlot(resolved, name) as (props: object) => ReactNode | Promise<ReactNode>
+  const node = await Slot(props)
   return renderToStaticMarkup(createElement(() => node as never))
 }
 
@@ -87,7 +95,7 @@ describe.each(themes)('theme "$key"', ({ definition }) => {
 
   it('emits no script from a server slot', async () => {
     for (const [name, fixture] of Object.entries(SLOT_FIXTURES)) {
-      if (SLOT_STABILITY[name as SlotName] === 'provisional') continue
+      if (slotKind(name as SlotName) === 'client') continue
       const html = await renderSlot(
         definition,
         name as SlotName,
