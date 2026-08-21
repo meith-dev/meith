@@ -11,6 +11,7 @@ export interface MarkdownAuthorRef {
 export interface MarkdownRenderContext {
   readonly source: MarkdownSourceKind
   readonly viewer: MarkdownAuthorRef
+  readonly postId?: number | null
 }
 
 export interface MarkdownPipeline {

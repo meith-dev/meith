@@ -2,12 +2,15 @@ import { msg } from '@meith/i18n'
 import 'server-only'
 
 import {
+  type AcceptedUpload,
   ATTACHMENT_FIELD,
   type AttachmentRecord,
   AttachmentService,
+  acceptFile,
   acceptFiles,
   attachmentType,
   type IncomingFile,
+  maxPerPostFor,
   type StagedUpload,
   type UploadLimits,
 } from '@meith/attachments'
@@ -19,6 +22,7 @@ import { imageProcessor } from '@meith/drivers/images'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
+import { positiveIntIn } from './form-values'
 import { emitEvent, filterView } from './plugin-view'
 
 export interface AttachmentScope {
@@ -66,6 +70,21 @@ export async function submittedFiles(form: FormData): Promise<readonly IncomingF
   }
 
   return files
+}
+
+export async function acceptSingleFile(
+  form: FormData,
+  limits: UploadLimits,
+): Promise<AcceptedUpload> {
+  const value = form.get(ATTACHMENT_FIELD)
+  if (!(value instanceof File) || value.size === 0) {
+    throw new ValidationError(msg('error.attachments.empty', { name: '' }))
+  }
+
+  return acceptFile(
+    { filename: value.name, bytes: new Uint8Array(await value.arrayBuffer()) },
+    limits,
+  )
 }
 
 export async function stageAttachments(
@@ -138,6 +157,33 @@ export async function attachStaged(
   }
 
   return created
+}
+
+export async function claimAttachments(
+  form: FormData,
+  post: { readonly postId: number; readonly forumId: number; readonly userId: number },
+  scope: AttachmentScope,
+  existing: number,
+): Promise<readonly AttachmentRecord[]> {
+  const service = attachmentService()
+  if (service === null) return []
+
+  const cap = Math.max(0, maxPerPostFor(attachmentLimits(scope)) - existing)
+  if (cap === 0) return []
+
+  const ids = form
+    .getAll('claimedAttachmentIds')
+    .map((value) => (typeof value === 'string' ? positiveIntIn(value) : null))
+    .filter((id): id is number => id !== null)
+    .slice(0, cap)
+
+  if (ids.length === 0) return []
+
+  return service.claim(ids, {
+    postId: post.postId,
+    forumId: post.forumId,
+    uploaderUserId: post.userId,
+  })
 }
 
 export async function attachmentsForPosts(

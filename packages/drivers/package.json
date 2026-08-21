@@ -18,7 +18,8 @@
     "@meith/settings": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "nodemailer": "^9.0.5",
-    "redis": "^6.2.1"
+    "redis": "^6.2.1",
+    "shiki": "^4.4.3"
   },
   "peerDependencies": {
     "next": "16.3.1"

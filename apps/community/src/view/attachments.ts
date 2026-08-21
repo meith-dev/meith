@@ -39,6 +39,7 @@ export function attachmentsByPost(
   const byPost = new Map<number, PostAttachmentModel[]>()
 
   for (const record of records) {
+    if (record.postId === null) continue
     const model = attachmentModel(record)
     if (model === null) continue
     const list = byPost.get(record.postId)

@@ -130,6 +130,22 @@ export function fenceEdit(value: string, start: number, end: number): Edit {
   }
 }
 
+export function spoilerEdit(value: string, start: number, end: number, placeholder: string): Edit {
+  const { from, to } = lineRange(value, start, end)
+  const body = value.slice(from, to)
+  const lead = from === 0 ? '' : '\n'
+  const content = body === '' ? placeholder : body
+  const caret = from + lead.length + ':::spoiler\n'.length
+
+  return {
+    from,
+    to,
+    text: `${lead}:::spoiler\n${content}\n:::`,
+    selectionStart: caret,
+    selectionEnd: caret + content.length,
+  }
+}
+
 export function listContinuation(value: string, caret: number): Edit | null {
   const { from } = lineRange(value, caret, caret)
   const line = value.slice(from, caret)

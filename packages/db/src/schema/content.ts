@@ -348,9 +348,7 @@ export const attachments = pgTable(
   'attachments',
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-    postId: integer('post_id')
-      .notNull()
-      .references(() => posts.id, { onDelete: 'cascade' }),
+    postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
     forumId: integer('forum_id')
       .notNull()
       .references(() => forums.id, { onDelete: 'cascade' }),
@@ -375,6 +373,7 @@ export const attachments = pgTable(
     index('attachments_post_idx').on(t.postId),
     index('attachments_uploader_idx').on(t.uploaderUserId),
     index('attachments_pending_idx').on(t.createdAt).where(sql`${t.status} = 'pending'`),
+    index('attachments_orphan_idx').on(t.createdAt).where(sql`${t.postId} is null`),
     uniqueIndex('attachments_storage_key_key')
       .on(t.storageKey)
       .where(sql`${t.storageKey} is not null`),

@@ -88,7 +88,7 @@ describe('nesting', () => {
   it('converts a quote inside a quote', () => {
     const out = bbcodeToMarkdown('[quote=A]outer [quote=B]inner[/quote][/quote]')
     expect(shown('[quote=A]outer [quote=B]inner[/quote][/quote]')).toContain(
-      '<blockquote class="md-quote"><p class="md-quote-attribution"><strong>',
+      '<blockquote class="md-quote"><p class="md-quote-attribution"><strong data-quote-author=',
     )
     expect(out).toContain('> > **[B](/member/by-name/B) wrote:**')
   })

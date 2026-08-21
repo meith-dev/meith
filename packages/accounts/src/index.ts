@@ -123,6 +123,7 @@ export type {
   LoginBucket,
   MemberProfileRecord,
   MemberProfileRepository,
+  MemberSuggestion,
   NewAccount,
   NewAuthEvent,
   NewPasskey,

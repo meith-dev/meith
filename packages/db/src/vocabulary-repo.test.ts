@@ -31,7 +31,7 @@ async function configure(): Promise<void> {
      on conflict (key) do update set version = 3
   `)
   await db.execute(sql`
-    insert into custom_directives (name, block, enabled) values ('spoiler', false, true)
+    insert into custom_directives (name, block, enabled) values ('aside', false, true)
   `)
   await db.execute(sql`
     insert into smilies (code, src, alt, enabled) values (':)', '/s/smile.png', 'smile', true)
@@ -49,7 +49,7 @@ describe('readVocabularySource', () => {
 
     const source = await readVocabularySource(db)
     expect(source?.revision).toBe(3)
-    expect(source?.directives).toEqual([{ name: 'spoiler', block: false }])
+    expect(source?.directives).toEqual([{ name: 'aside', block: false }])
     expect(source?.smilies).toEqual([{ code: ':)', src: '/s/smile.png', alt: 'smile' }])
   })
 
@@ -60,14 +60,14 @@ describe('readVocabularySource', () => {
     const cached = JSON.parse(JSON.stringify(source)) as NonNullable<typeof source>
     const vocabulary = compileVocabulary(cached)
 
-    expect(vocabulary.directives.inline.has('spoiler')).toBe(true)
+    expect(vocabulary.directives.inline.has('aside')).toBe(true)
     expect(vocabulary.rejected).toEqual([])
 
-    const rendered = renderMarkdown('Ends :spoiler[badly].', {
+    const rendered = renderMarkdown('Ends :aside[badly].', {
       directives: vocabulary.directives,
       ...(vocabulary.smilies === undefined ? {} : { smilies: vocabulary.smilies }),
     })
-    expect(rendered.html).toContain('md-directive-spoiler')
+    expect(rendered.html).toContain('md-directive-aside')
 
     expect(
       renderMarkdown('Ends :nosuch[badly].', { directives: vocabulary.directives }).html,

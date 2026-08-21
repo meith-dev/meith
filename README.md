@@ -73,6 +73,7 @@ The table below is generated from `apps/web/content/docs.manifest.json` by `pnpm
 | Getting started | [`self-hosting.md`](./docs/self-hosting.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
 | Using your board | [`organiser-guide.md`](./docs/organiser-guide.md) | Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over. |
 | Using your board | [`moderation-guide.md`](./docs/moderation-guide.md) | For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives. |
+| Using your board | [`formatting.md`](./docs/formatting.md) | The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline. |
 | Using your board | [`membership-guide.md`](./docs/membership-guide.md) | Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
 | Running the server | [`operating.md`](./docs/operating.md) | Routine checks, configuration, maintenance commands, backups, recovery, and troubleshooting for a running board. |
 | Running the server | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |

@@ -1,10 +1,18 @@
 import { sql } from 'drizzle-orm'
 
-import type { MemberProfileRecord, MemberProfileRepository } from '@meith/accounts'
+import type {
+  MemberProfileRecord,
+  MemberProfileRepository,
+  MemberSuggestion,
+} from '@meith/accounts'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { displayGroupIdSql } from './staff-groups'
+
+function likePrefix(prefix: string): string {
+  return `${prefix.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`
+}
 
 interface RawProfile {
   id: number
@@ -50,5 +58,25 @@ export class PostgresMemberProfileRepository implements MemberProfileRepository 
       website: row.website,
       bio: row.bio,
     }
+  }
+
+  async searchByUsernamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<readonly MemberSuggestion[]> {
+    if (prefix === '') return []
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id, username
+          from users
+         where state = 'active'
+           and username_lower like ${likePrefix(prefix.toLowerCase())}
+         order by username_lower
+         limit ${limit}
+      `),
+    ) as Array<{ id: number; username: string }>
+
+    return rows.map((row) => ({ id: Number(row.id), username: row.username }))
   }
 }

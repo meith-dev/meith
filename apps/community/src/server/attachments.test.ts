@@ -44,8 +44,14 @@ vi.mock('@meith/drivers/images', () => ({
   },
 }))
 
-const { attachmentLimits, canAttach, resolveDownload, stageAttachments, submittedFiles } =
-  await import('./attachments')
+const {
+  attachmentLimits,
+  canAttach,
+  claimAttachments,
+  resolveDownload,
+  stageAttachments,
+  submittedFiles,
+} = await import('./attachments')
 const { SEED_BOARD, SEED_GROUP, SEED_FORUM } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
 
@@ -118,6 +124,16 @@ class FakeAttachments {
   async rememberKey() {}
   async forgetKeys() {}
   async staleKeys() {
+    return []
+  }
+  async attachTo(id: number, postId: number) {
+    if (this.found === null || this.found.record.id !== id || this.found.record.postId !== null) {
+      return null
+    }
+    this.found = { ...this.found, record: { ...this.found.record, postId } }
+    return this.found.record
+  }
+  async deleteOrphans() {
     return []
   }
 }
@@ -253,6 +269,68 @@ describe('staging', () => {
     expect(staged).toHaveLength(1)
     expect(objects.size).toBe(1)
     expect(attachments.created).toEqual([])
+  })
+})
+
+describe('claimAttachments', () => {
+  function form(ids: readonly (number | string)[]): FormData {
+    const body = new FormData()
+    for (const id of ids) body.append('claimedAttachmentIds', String(id))
+    return body
+  }
+
+  beforeEach(() => {
+    attachments.found = {
+      record: record({ id: 5, postId: null, uploaderUserId: ADA }),
+      postVisibility: 'visible',
+      threadVisibility: 'visible',
+      threadAuthorUserId: null,
+    }
+  })
+
+  it('claims an orphan the same uploader staged, for the post it was staged for', async () => {
+    const actor = actorRef.current!
+    const claimed = await claimAttachments(
+      form([5]),
+      { postId: 9, forumId: PUBLIC_FORUM, userId: ADA },
+      await scope(actor),
+      0,
+    )
+    expect(claimed.map((r) => r.id)).toEqual([5])
+  })
+
+  it('claims nothing once the per-post limit is already spent by classic uploads', async () => {
+    const actor = actorRef.current!
+    const claimed = await claimAttachments(
+      form([5]),
+      { postId: 9, forumId: PUBLIC_FORUM, userId: ADA },
+      await scope(actor),
+      10,
+    )
+    expect(claimed).toEqual([])
+  })
+
+  it('ignores a malformed id rather than throwing', async () => {
+    const actor = actorRef.current!
+    const claimed = await claimAttachments(
+      form(['not-a-number']),
+      { postId: 9, forumId: PUBLIC_FORUM, userId: ADA },
+      await scope(actor),
+      0,
+    )
+    expect(claimed).toEqual([])
+  })
+
+  it('claims nothing when the board has no attachment store', async () => {
+    installTestContainer({ container: { attachments: null } })
+    const actor = actorRef.current!
+    const claimed = await claimAttachments(
+      form([5]),
+      { postId: 9, forumId: PUBLIC_FORUM, userId: ADA },
+      await scope(actor),
+      0,
+    )
+    expect(claimed).toEqual([])
   })
 })
 

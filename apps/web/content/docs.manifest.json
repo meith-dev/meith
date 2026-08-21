@@ -90,6 +90,15 @@
       "primary": false
     },
     {
+      "slug": "formatting",
+      "file": "formatting.md",
+      "section": "using",
+      "title": "Writing a post",
+      "blurb": "The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "membership-guide",
       "file": "membership-guide.md",
       "section": "using",

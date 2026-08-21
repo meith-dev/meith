@@ -570,6 +570,9 @@ importers:
       redis:
         specifier: ^6.2.1
         version: 6.2.1
+      shiki:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/nodemailer':
         specifier: ^8.0.1

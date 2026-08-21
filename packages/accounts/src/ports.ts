@@ -51,8 +51,14 @@ export interface MemberProfileRecord {
   readonly bio: string | null
 }
 
+export interface MemberSuggestion {
+  readonly id: number
+  readonly username: string
+}
+
 export interface MemberProfileRepository {
   findPublicById(id: number): Promise<MemberProfileRecord | null>
+  searchByUsernamePrefix(prefix: string, limit: number): Promise<readonly MemberSuggestion[]>
 }
 
 export interface SessionRecord {

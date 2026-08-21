@@ -91,11 +91,24 @@ describe('the board vocabulary cannot introduce markup', () => {
     const vocabulary = compileVocabulary({
       revision: 1,
       smilies: [],
-      directives: [{ name: 'spoiler', block: false }],
+      directives: [{ name: 'kbd', block: false }],
     })
 
-    const out = renderMarkdown(':spoiler[the ending]', vocabularyOptions(vocabulary)).html
-    expect(out).toContain('<span class="md-directive md-directive-spoiler">the ending</span>')
+    const out = renderMarkdown(':kbd[the ending]', vocabularyOptions(vocabulary)).html
+    expect(out).toContain('<span class="md-directive md-directive-kbd">the ending</span>')
+  })
+
+  it('refuses to let a board shadow the built-in spoiler directive with its own markup', () => {
+    const vocabulary = compileVocabulary({
+      revision: 1,
+      smilies: [],
+      directives: [{ name: 'spoiler', block: false }],
+    })
+    expect(vocabulary.rejected).toHaveLength(1)
+
+    const out = renderMarkdown(':::spoiler\nthe ending\n:::', vocabularyOptions(vocabulary)).html
+    expect(out).toContain('<details class="md-spoiler"><summary>Spoiler</summary>')
+    expect(out).not.toContain('md-directive-spoiler')
   })
 
   it('drops a smiley whose URL would not be allowed, instead of failing the page', () => {

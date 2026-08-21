@@ -2,9 +2,16 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
+import type { MemberSuggestion } from '@meith/accounts'
+import { ATTACHMENT_FIELD } from '@meith/attachments/types'
 import { cn } from '@meith/ui'
 
+import {
+  type AttachmentTarget,
+  uploadInlineAttachmentAction,
+} from '@/server/attachment-upload-actions'
 import { type PreviewScope, renderPreviewAction } from '@/server/content-actions'
+import { searchMentionCandidatesAction } from '@/server/mention-actions'
 
 import { type Copy, formatFromCopy, fromCopy, useCopy } from '../shell/copy'
 import {
@@ -14,16 +21,21 @@ import {
   linkEdit,
   listContinuation,
   pasteAsLink,
+  spoilerEdit,
   togglePrefix,
   toggleWrap,
   type WrapSyntax,
 } from './markdown-syntax'
+import { activeMentionToken, type MentionToken } from './mention-token'
+
+const MENTION_DEBOUNCE_MS = 150
 
 type Command =
   | { readonly kind: 'wrap'; readonly syntax: WrapSyntax }
   | { readonly kind: 'prefix'; readonly marker: LineMarker }
   | { readonly kind: 'link' }
   | { readonly kind: 'fence' }
+  | { readonly kind: 'spoiler'; readonly placeholder: string }
 
 interface Tool {
   readonly labelKey: string
@@ -80,6 +92,14 @@ const TOOLS: readonly Tool[] = [
   },
   { labelKey: 'composer.tool.code', glyph: '</>', command: () => ({ kind: 'fence' }) },
   {
+    labelKey: 'composer.tool.spoiler',
+    glyph: 'Spoiler',
+    command: (copy) => ({
+      kind: 'spoiler',
+      placeholder: fromCopy(copy, 'composer.placeholder.spoiler'),
+    }),
+  },
+  {
     labelKey: 'composer.tool.bulletedList',
     glyph: '•',
     command: () => ({ kind: 'prefix', marker: '- ' }),
@@ -109,7 +129,8 @@ function run(field: HTMLTextAreaElement, command: Command): void {
   if (command.kind === 'wrap') apply(field, toggleWrap(value, start, end, command.syntax))
   else if (command.kind === 'prefix') apply(field, togglePrefix(value, start, end, command.marker))
   else if (command.kind === 'link') apply(field, linkEdit(value, start, end))
-  else apply(field, fenceEdit(value, start, end))
+  else if (command.kind === 'fence') apply(field, fenceEdit(value, start, end))
+  else apply(field, spoilerEdit(value, start, end, command.placeholder))
 }
 
 export interface MarkdownEditorProps {
@@ -123,6 +144,7 @@ export interface MarkdownEditorProps {
   readonly preview?: string | undefined
   readonly hint?: React.ReactNode
   readonly scope?: PreviewScope
+  readonly attachTo?: AttachmentTarget | undefined
 }
 
 export function MarkdownEditor({
@@ -136,10 +158,18 @@ export function MarkdownEditor({
   preview,
   hint,
   scope = 'post',
+  attachTo,
 }: MarkdownEditorProps) {
   const field = useRef<HTMLTextAreaElement>(null)
+  const attachmentInput = useRef<HTMLInputElement>(null)
   const panelId = useId()
   const copy = useCopy()
+
+  const [claimedAttachments, setClaimedAttachments] = useState<
+    readonly { readonly id: number; readonly filename: string }[]
+  >([])
+  const [attachmentUpload, setAttachmentUpload] = useState<'idle' | 'uploading'>('idle')
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
 
   const [enhanced, setEnhanced] = useState(false)
   useEffect(() => setEnhanced(true), [])
@@ -147,6 +177,13 @@ export function MarkdownEditor({
   const [tab, setTab] = useState<'write' | 'preview'>(preview === undefined ? 'write' : 'preview')
   const [rendered, setRendered] = useState<string | null>(preview ?? null)
   const [previewState, setPreviewState] = useState<'idle' | 'loading' | 'failed'>('idle')
+
+  const mentions = scope === 'post'
+  const [mentionToken, setMentionToken] = useState<MentionToken | null>(null)
+  const [mentionMatches, setMentionMatches] = useState<readonly MemberSuggestion[]>([])
+  const [mentionActive, setMentionActive] = useState(0)
+  const latestMentionToken = useRef(mentionToken)
+  latestMentionToken.current = mentionToken
 
   const fit = useCallback(() => {
     const element = field.current
@@ -177,8 +214,112 @@ export function MarkdownEditor({
     }
   }
 
+  useEffect(() => {
+    if (mentionToken === null) {
+      setMentionMatches([])
+      return
+    }
+
+    const handle = setTimeout(() => {
+      void searchMentionCandidatesAction(mentionToken.query).then((matches) => {
+        if (latestMentionToken.current !== mentionToken) return
+        setMentionMatches(matches)
+        setMentionActive(0)
+      })
+    }, MENTION_DEBOUNCE_MS)
+
+    return () => clearTimeout(handle)
+  }, [mentionToken])
+
+  function syncMentionToken(element: HTMLTextAreaElement): void {
+    if (!mentions) return
+    const found =
+      element.selectionStart === element.selectionEnd
+        ? activeMentionToken(element.value, element.selectionStart)
+        : null
+
+    setMentionToken((current) =>
+      current !== null &&
+      found !== null &&
+      current.start === found.start &&
+      current.query === found.query
+        ? current
+        : found,
+    )
+  }
+
+  function applyMention(field: HTMLTextAreaElement, candidate: MemberSuggestion): void {
+    if (mentionToken === null) return
+    const inserted = `@${candidate.username} `
+    apply(field, {
+      from: mentionToken.start,
+      to: mentionToken.start + 1 + mentionToken.query.length,
+      text: inserted,
+      selectionStart: mentionToken.start + inserted.length,
+      selectionEnd: mentionToken.start + inserted.length,
+    })
+    setMentionToken(null)
+  }
+
+  async function insertAttachment(file: File): Promise<void> {
+    if (attachTo === undefined || field.current === null) return
+
+    const element = field.current
+    const { selectionStart: start, selectionEnd: end } = element
+    setAttachmentUpload('uploading')
+    setAttachmentError(null)
+
+    const body = new FormData()
+    body.set(ATTACHMENT_FIELD, file)
+    const result = await uploadInlineAttachmentAction(attachTo, body)
+
+    if (!result.ok) {
+      setAttachmentUpload('idle')
+      setAttachmentError(result.error)
+      return
+    }
+
+    setAttachmentUpload('idle')
+    setClaimedAttachments((current) => [
+      ...current,
+      { id: result.attachment.id, filename: result.attachment.filename },
+    ])
+
+    const token = `[attachment=${result.attachment.id}]`
+    apply(element, {
+      from: start,
+      to: end,
+      text: token,
+      selectionStart: start + token.length,
+      selectionEnd: start + token.length,
+    })
+  }
+
   function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     const element = event.currentTarget
+
+    if (mentionToken !== null && mentionMatches.length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setMentionActive((index) => (index + 1) % mentionMatches.length)
+        return
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setMentionActive((index) => (index - 1 + mentionMatches.length) % mentionMatches.length)
+        return
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setMentionToken(null)
+        return
+      }
+      if ((event.key === 'Enter' || event.key === 'Tab') && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault()
+        applyMention(element, mentionMatches[mentionActive]!)
+        return
+      }
+    }
 
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       element.form?.requestSubmit()
@@ -309,6 +450,20 @@ export function MarkdownEditor({
               <span aria-hidden="true">{tool.glyph}</span>
             </button>
           ))}
+
+          {attachTo !== undefined && (
+            <button
+              type="button"
+              disabled={attachmentUpload === 'uploading'}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => attachmentInput.current?.click()}
+              title={fromCopy(copy, 'composer.tool.attachment')}
+              aria-label={fromCopy(copy, 'composer.tool.attachment')}
+              className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+            >
+              <span aria-hidden="true">Attach</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -317,6 +472,7 @@ export function MarkdownEditor({
           ? { role: 'tabpanel', id: `${panelId}-write`, 'aria-labelledby': `${panelId}-write-tab` }
           : {})}
         hidden={!writing}
+        className="relative"
       >
         <textarea
           ref={field}
@@ -328,10 +484,89 @@ export function MarkdownEditor({
           {...(maxLength === undefined ? {} : { maxLength })}
           onKeyDown={onKeyDown}
           onPaste={onPaste}
-          onInput={fit}
+          onInput={(event) => {
+            fit()
+            syncMentionToken(event.currentTarget)
+          }}
+          onSelect={(event) => syncMentionToken(event.currentTarget)}
+          onBlur={() => setMentionToken(null)}
+          {...(enhanced && mentionToken !== null && mentionMatches.length > 0
+            ? {
+                role: 'combobox',
+                'aria-expanded': true,
+                'aria-controls': `${panelId}-mentions`,
+                'aria-activedescendant': `${panelId}-mention-${mentionActive}`,
+                'aria-autocomplete': 'list' as const,
+              }
+            : {})}
           className="w-full rounded-md border border-input bg-card px-3 py-2 font-normal text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
+
+        {enhanced && mentionToken !== null && mentionMatches.length > 0 && (
+          <div
+            id={`${panelId}-mentions`}
+            role="listbox"
+            aria-label={fromCopy(copy, 'composer.mention.suggestions')}
+            className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-card py-1 text-sm shadow-lg"
+          >
+            {mentionMatches.map((candidate, index) => (
+              <button
+                key={candidate.id}
+                type="button"
+                id={`${panelId}-mention-${index}`}
+                role="option"
+                aria-selected={index === mentionActive}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  if (field.current !== null) applyMention(field.current, candidate)
+                }}
+                onMouseEnter={() => setMentionActive(index)}
+                className={cn(
+                  'block w-full px-3 py-1.5 text-start',
+                  index === mentionActive
+                    ? 'bg-muted text-foreground'
+                    : 'text-foreground hover:bg-muted',
+                )}
+              >
+                @{candidate.username}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {attachTo !== undefined && (
+        <>
+          <input
+            ref={attachmentInput}
+            type="file"
+            hidden
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (file !== undefined) void insertAttachment(file)
+            }}
+          />
+          {claimedAttachments.map((attachment) => (
+            <input
+              key={attachment.id}
+              type="hidden"
+              name="claimedAttachmentIds"
+              value={attachment.id}
+            />
+          ))}
+          {attachmentUpload === 'uploading' && (
+            <p className="text-xs text-muted-foreground">
+              {fromCopy(copy, 'composer.attachment.uploading')}
+            </p>
+          )}
+          {attachmentError !== null && (
+            <p className="text-xs text-destructive">{attachmentError}</p>
+          )}
+        </>
+      )}
 
       {enhanced && tab === 'preview' && (
         <div
@@ -379,6 +614,9 @@ function FormattingHelp({ scope }: { scope: PreviewScope }) {
     ['> quoted', 'composer.help.quote'],
     ['- item', 'composer.help.list'],
     ['## Heading', 'composer.help.heading'],
+    [':::spoiler', 'composer.help.spoiler'],
+    ['@name', 'composer.help.mention'],
+    ['[attachment=id]', 'composer.help.attachment'],
   ]
   const rows = scope === 'signature' ? inline : [...inline, ...blocks]
 

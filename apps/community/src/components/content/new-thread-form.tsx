@@ -89,6 +89,7 @@ export function NewThreadForm({
         required
         defaultValue={state.values?.message ?? draft?.message}
         preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
+        {...(attachmentLimits !== null ? { attachTo: { kind: 'forum', forumId } } : {})}
       />
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}

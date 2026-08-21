@@ -113,7 +113,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
     const body = await renderThrough(
       this.rendering,
       record.message,
-      { source: 'post', viewer: authorRef(record.editedByUserId) },
+      { source: 'post', viewer: authorRef(record.editedByUserId), postId: record.postId },
       vocabularyOptions(vocabulary),
     )
 

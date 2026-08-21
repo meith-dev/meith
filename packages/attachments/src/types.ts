@@ -76,7 +76,7 @@ export type AttachmentStatus = 'pending' | 'ready' | 'failed'
 
 export interface AttachmentRecord {
   readonly id: number
-  readonly postId: number
+  readonly postId: number | null
   readonly forumId: number
   readonly uploaderUserId: number | null
   readonly filename: string

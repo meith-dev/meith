@@ -17,7 +17,7 @@ export {
   sourceAsMarkdown,
   vocabularyOptions,
 } from './body'
-export { escapeAttribute, escapeHtml } from './escape'
+export { escapeAttribute, escapeHtml, unescapeHtml } from './escape'
 export { escapeMarkdownText, plainAuthorName } from './escape-source'
 export {
   type CompiledSmilies,
@@ -59,7 +59,12 @@ export {
 } from './pipeline'
 export { plainText, summarise } from './plain'
 export { type QuoteInput, quoteBlock } from './quote'
-export { type RenderContext, renderDocument, renderInline } from './render'
+export {
+  localizeQuoteAttribution,
+  type RenderContext,
+  renderDocument,
+  renderInline,
+} from './render'
 export { safeImageUrl, safeUrl, type UrlPolicy } from './url'
 export {
   type BoardVocabulary,

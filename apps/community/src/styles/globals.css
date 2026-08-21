@@ -725,6 +725,26 @@
   font-size: 0.9em;
 }
 
+/*
+ * Shiki (code-highlighting.ts) tags every token with both a light and a dark
+ * colour as CSS custom properties (`defaultColor: false`) and leaves picking
+ * one to the page. This is the same three-state switch as the rest of the
+ * theme — system preference by default, `.dark`/`.light` to override it.
+ */
+.md-code code span {
+  color: var(--shiki-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .md-code code span {
+    color: var(--shiki-dark);
+  }
+}
+
+.dark .md-code code span {
+  color: var(--shiki-dark);
+}
+
 .md-list {
   margin: 0.5em 0 0.5em 1.5em;
   list-style-position: outside;
@@ -760,6 +780,82 @@ ol.md-list {
 .md-image {
   max-width: 100%;
   height: auto;
+}
+
+/*
+ * An [attachment=id] placed inline (attachment-embed.ts). An image sits with
+ * the text around it, the way a post's own ![](…) image does; a non-image
+ * file is a plain link — the download route is what actually enforces who
+ * may have the bytes, so this is styling, not a second permission surface.
+ */
+.md-attachment-image img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  border-radius: var(--radius);
+}
+
+.md-attachment-file {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+
+.md-attachment-size {
+  color: var(--muted-foreground);
+  font-size: 0.85em;
+}
+
+/*
+ * A link unfurl card (embeds.ts) — a static figure, never an iframe, so it
+ * carries no third-party script and needs nothing from the CSP beyond the
+ * `img-src` widening its own thumbnail already required.
+ */
+.md-embed {
+  display: flex;
+  gap: 0.75em;
+  align-items: center;
+  margin-block: 0.5em 0.85em;
+  padding: 0.6em;
+  max-width: 28rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--muted);
+}
+
+.md-embed-thumb {
+  flex: none;
+  display: block;
+  width: 6rem;
+  height: 6rem;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.md-embed-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.md-embed figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+  font-size: 0.9em;
+}
+
+.md-embed-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-embed-author,
+.md-embed-provider {
+  color: var(--muted-foreground);
 }
 
 .md-rule {
@@ -807,12 +903,52 @@ ol.md-list {
 
 /*
  * A board's own directives (F71). The renderer gives each one a class and
- * nothing else — no colour, no box — because what a `spoiler` looks like is a
+ * nothing else — no colour, no box — because what a directive looks like is a
  * decision for the board that defined it, made in its theme's own stylesheet.
- * The only thing stated here is that a block one is a block.
+ * The only thing stated here is that a block one is a block. `spoiler` is not
+ * one of these: it is built in, rendered as `<details>` below, and styled here.
  */
 div.md-directive {
   margin-block: 0.85em;
+}
+
+/*
+ * The spoiler reveal works from `<details>`/`<summary>` alone, so it is
+ * already correct with no JS and no click handler. The styling only has to
+ * make the closed state read as "tap to reveal" rather than as a stray box.
+ */
+.md-spoiler {
+  margin-block: 0.85em;
+  padding: 0.6em 0.85em;
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.md-spoiler > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.md-spoiler > summary::-webkit-details-marker {
+  display: none;
+}
+
+.md-spoiler > summary::before {
+  content: "▸ ";
+}
+
+.md-spoiler[open] > summary::before {
+  content: "▾ ";
+}
+
+.md-spoiler[open] > summary {
+  margin-block-end: 0.5em;
+}
+
+.md-spoiler > :last-child {
+  margin-block-end: 0;
 }
 
 @media (pointer: coarse) {

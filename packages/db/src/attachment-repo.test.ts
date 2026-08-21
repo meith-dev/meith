@@ -300,6 +300,54 @@ describe('the orphan ledger', () => {
   })
 })
 
+describe('an orphan upload with no post yet', () => {
+  it('stores with a null post id', async () => {
+    const row = await pending({ postId: null, sourceKey: 'attachments/orphan/source' })
+    expect(row.postId).toBeNull()
+  })
+
+  it('goes with the uploader’s post, by cascade, once claimed', async () => {
+    const row = await pending({ postId: null, sourceKey: 'attachments/orphan/source' })
+    expect(await repo.attachTo(row.id, postId)).toMatchObject({ id: row.id, postId })
+    expect((await repo.findById(row.id))?.postId).toBe(postId)
+  })
+
+  it('refuses to claim a row that already belongs to a post', async () => {
+    const row = await pending({ sourceKey: 'attachments/claimed/source' })
+    expect(await repo.attachTo(row.id, otherPostId)).toBeNull()
+    expect((await repo.findById(row.id))?.postId).toBe(postId)
+  })
+
+  it('refuses to claim an id that does not exist', async () => {
+    expect(await repo.attachTo(999_999, postId)).toBeNull()
+  })
+
+  it('sweeps an orphan past its grace period, and returns it for the caller to discard its files', async () => {
+    const stale = await pending({
+      postId: null,
+      sourceKey: 'attachments/stale/source',
+      storageKey: null,
+    })
+    const fresh = await pending({ postId: null, sourceKey: 'attachments/fresh/source' })
+    await db.execute(
+      sql`update attachments set created_at = now() - interval '2 hours' where id = ${stale.id}`,
+    )
+
+    const swept = await repo.deleteOrphans(new Date(Date.now() - 60 * 60_000), 10)
+    expect(swept.map((r) => r.id)).toEqual([stale.id])
+    expect(await repo.findById(stale.id)).toBeNull()
+    expect(await repo.findById(fresh.id)).not.toBeNull()
+  })
+
+  it('leaves a claimed row alone, however old', async () => {
+    const row = await pending({ sourceKey: 'attachments/old-and-claimed/source' })
+    await db.execute(sql`update attachments set created_at = now() - interval '2 hours'`)
+
+    expect(await repo.deleteOrphans(new Date(), 10)).toEqual([])
+    expect(await repo.findById(row.id)).not.toBeNull()
+  })
+})
+
 describe('reading a row back', () => {
   it('reads an unknown status as failed, which serves nothing', async () => {
     const row = await pending()

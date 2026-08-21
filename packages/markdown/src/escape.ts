@@ -13,3 +13,15 @@ export function escapeHtml(value: string): string {
 export function escapeAttribute(value: string): string {
   return escapeHtml(value)
 }
+
+const HTML_UNESCAPES: Readonly<Record<string, string>> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+}
+
+export function unescapeHtml(value: string): string {
+  return value.replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => HTML_UNESCAPES[entity] ?? entity)
+}
