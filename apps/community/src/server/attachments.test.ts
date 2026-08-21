@@ -368,6 +368,27 @@ describe('resolving a download', () => {
     expect(await get()).toBeNull()
   })
 
+  it('does not use the unapproved permission for deleted content', async () => {
+    installTestContainer({
+      container: { attachments },
+      overrides: [
+        {
+          forumId: PUBLIC_FORUM,
+          groupId: SEED_GROUP.registered,
+          overrides: { canViewUnapproved: true, canViewDeleted: false },
+        },
+      ],
+    })
+    attachments.found = {
+      record: record(),
+      postVisibility: 'deleted',
+      threadVisibility: 'visible',
+      threadAuthorUserId: null,
+    }
+
+    expect(await get()).toBeNull()
+  })
+
   it('grants hidden content to somebody who handles the queue', async () => {
     attachments.found = {
       record: record(),

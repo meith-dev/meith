@@ -38,3 +38,9 @@ export interface QuotablePost {
   readonly authorUsername: string
   readonly message: string
 }
+
+export interface PostRatingTarget {
+  readonly id: number
+  readonly threadId: number
+  readonly authorUserId: number | null
+}

@@ -59,14 +59,14 @@ class FakeReputation implements ReputationRepository {
     maxPerDay: number
     at: Date
   }) {
-    if (this.atCap) return false
+    if (this.atCap) return 'daily-limit' as const
     this.given.push({
       userId: input.userId,
       givenByUserId: input.givenByUserId,
       points: input.points,
       postId: input.postId,
     })
-    return true
+    return 'written' as const
   }
   async withdraw(input: { ratingId: number; givenByUserId: number }) {
     const before = this.rows.length
@@ -153,6 +153,26 @@ function install(postCount = 20): void {
   installTestContainer({
     container: {
       reputation,
+      posts: {
+        findRatingTarget: async (postId: number) => ({
+          id: postId,
+          threadId: 20,
+          authorUserId: TARGET,
+        }),
+        locate: async () => ({ number: 1, page: 1, afterId: null }),
+        findVisibleById: async () => null,
+        listThread: async () => ({ rows: [], nextAfterId: null }),
+      },
+      threads: {
+        locate: async () => ({ forumId: 1, authorUserId: TARGET }),
+        findById: async () => ({ id: 20 }),
+        listForum: async () => ({ rows: [], nextCursor: null }),
+      },
+      forums: {
+        listAll: async () => [],
+        listListing: async () => [],
+        findById: async () => ({ id: 1, type: 'discussion' }),
+      },
       memberProfiles: {
         findPublicById: async (id: number) => ({
           id,

@@ -60,7 +60,7 @@ export class ReputationService {
       throw new ValidationError(msg('error.reputation.comment-length', { max: COMMENT_MAX }))
     }
 
-    const wrote = await this.repository.give({
+    const result = await this.repository.give({
       userId: input.userId,
       givenByUserId: input.givenByUserId,
       postId: input.postId ?? null,
@@ -70,7 +70,10 @@ export class ReputationService {
       at: this.now(),
     })
 
-    if (!wrote) {
+    if (result === 'invalid-post') {
+      throw new ValidationError(msg('error.app.such-post'))
+    }
+    if (result === 'daily-limit') {
       throw new ForbiddenError(msg('error.reputation.daily-limit', { max: input.limits.maxPerDay }))
     }
   }

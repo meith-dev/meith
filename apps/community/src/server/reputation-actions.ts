@@ -14,6 +14,7 @@ import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { emitEvent, viewerRef } from './plugin-view'
 import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
+import { requireRateablePost } from './reputation-target'
 import { isSafeLocalPath } from './safe-path'
 
 const toFormState = formStateReporter('reputation-actions', 'unexpected error rating somebody')
@@ -68,12 +69,14 @@ export async function rateMemberAction(_prev: FormState, form: FormData): Promis
     const points = parseRating(trimmedText(form, 'points'))
     if (points === null) throw new ValidationError(msg('error.app.rating'))
 
+    const postId = positiveInt(form, 'postId')
+    await requireRateablePost(await getActor(), userId, postId)
     const [settings, limits] = await Promise.all([reputationSettings(), viewerRaterLimits()])
 
     await service.give({
       userId,
       givenByUserId: raterId,
-      postId: positiveInt(form, 'postId'),
+      postId,
       points,
       comment: values.comment,
       settings,
@@ -115,6 +118,7 @@ export async function thankForPostAction(_prev: FormState, form: FormData): Prom
   try {
     const { service, userId: raterId } = await requireReputation()
     if (userId === null || postId === null) throw new ValidationError(msg('error.app.such-post'))
+    await requireRateablePost(await getActor(), userId, postId)
 
     const held = await service.existing({ givenByUserId: raterId, userId, postId })
 

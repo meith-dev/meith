@@ -262,6 +262,7 @@ export const CONTENT_HANDLERS: ApiRoutes = [
       }
 
       await new PollService(polls).vote({
+        threadId,
         pollId,
         optionId,
         userId: requireUserId(actor),

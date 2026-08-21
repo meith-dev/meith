@@ -44,6 +44,8 @@ export interface ReputationSummary {
   readonly negative: number
 }
 
+export type ReputationWriteResult = 'written' | 'daily-limit' | 'invalid-post'
+
 export interface ReputationRepository {
   give(input: {
     readonly userId: number
@@ -53,7 +55,7 @@ export interface ReputationRepository {
     readonly comment: string
     readonly maxPerDay: number
     readonly at: Date
-  }): Promise<boolean>
+  }): Promise<ReputationWriteResult>
 
   withdraw(input: { readonly ratingId: number; readonly givenByUserId: number }): Promise<boolean>
 

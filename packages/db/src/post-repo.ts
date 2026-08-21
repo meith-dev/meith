@@ -62,6 +62,15 @@ function toPost(row: {
 export class PostgresPostRepository implements PostRepository {
   constructor(private readonly db: Database) {}
 
+  async findRatingTarget(postId: number) {
+    const rows = await this.db
+      .select({ id: posts.id, threadId: posts.threadId, authorUserId: posts.authorUserId })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1)
+    return rows[0] ?? null
+  }
+
   async findQuotable(threadId: number, postId: number): Promise<QuotablePost | null> {
     const rows = await this.db
       .select({

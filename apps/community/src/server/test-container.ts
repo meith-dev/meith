@@ -37,6 +37,7 @@ export function installTestContainer(options: TestContainerOptions = {}): Record
       listForum: async () => ({ rows: [], nextCursor: null }),
     },
     posts: {
+      findRatingTarget: async () => null,
       findVisibleById: async () => null,
       listThread: async () => ({ rows: [], nextAfterId: null }),
     },

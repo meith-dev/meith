@@ -14,4 +14,10 @@ export {
   type PostWriteRepository,
 } from './edit'
 export type { PostRepository } from './ports'
-export type { PostListingRow, PostLocation, PostPage, QuotablePost } from './types'
+export type {
+  PostListingRow,
+  PostLocation,
+  PostPage,
+  PostRatingTarget,
+  QuotablePost,
+} from './types'

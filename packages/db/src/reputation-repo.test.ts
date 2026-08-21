@@ -137,6 +137,15 @@ describe('the uniqueness rules', () => {
     expect(await cachedTotal()).toBe(2)
   })
 
+  it('rejects a post that belongs to another member', async () => {
+    await seedPost(100)
+    await db.execute(sql`update posts set author_user_id = ${OTHER} where id = 100`)
+
+    expect(await give({ postId: 100 })).toBe('invalid-post')
+    expect(await repo.list({ userId: TARGET, limit: 10 })).toHaveLength(0)
+    expect(await cachedTotal()).toBe(0)
+  })
+
   it('updates a post rating rather than stacking', async () => {
     await seedPost(100)
     await give({ postId: 100, points: 1 })
@@ -171,27 +180,27 @@ describe('the uniqueness rules', () => {
 
 describe('the daily cap', () => {
   it('refuses a new rating once the cap is reached', async () => {
-    expect(await give({ userId: TARGET, maxPerDay: 1 })).toBe(true)
-    expect(await give({ userId: OTHER, maxPerDay: 1 })).toBe(false)
+    expect(await give({ userId: TARGET, maxPerDay: 1 })).toBe('written')
+    expect(await give({ userId: OTHER, maxPerDay: 1 })).toBe('daily-limit')
 
     expect(await repo.givenSince(RATER, new Date('2026-08-01T00:00:00Z'))).toBe(1)
   })
 
   it('does not charge an allowance for revising an existing rating', async () => {
-    expect(await give({ maxPerDay: 1, points: 1 })).toBe(true)
-    expect(await give({ maxPerDay: 1, points: -1 })).toBe(true)
+    expect(await give({ maxPerDay: 1, points: 1 })).toBe('written')
+    expect(await give({ maxPerDay: 1, points: -1 })).toBe('written')
     expect(await cachedTotal()).toBe(-1)
   })
 
   it('counts nothing against an uncapped rater', async () => {
     for (let i = 0; i < 5; i++) {
-      expect(await give({ userId: i % 2 === 0 ? TARGET : OTHER, maxPerDay: 0 })).toBe(true)
+      expect(await give({ userId: i % 2 === 0 ? TARGET : OTHER, maxPerDay: 0 })).toBe('written')
     }
   })
 
   it('counts only today', async () => {
     await give({ maxPerDay: 1, at: new Date('2026-07-31T12:00:00Z') })
-    expect(await give({ userId: OTHER, maxPerDay: 1, at: AT })).toBe(true)
+    expect(await give({ userId: OTHER, maxPerDay: 1, at: AT })).toBe('written')
   })
 })
 

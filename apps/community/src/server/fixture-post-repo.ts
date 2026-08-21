@@ -14,6 +14,13 @@ import { SEED_POST_ROWS } from './seed-board'
 export class FixturePostRepository implements PostRepository {
   constructor(private readonly rows: readonly PostListingRow[] = SEED_POST_ROWS) {}
 
+  async findRatingTarget(postId: number) {
+    const row = this.rows.find((entry) => entry.id === postId)
+    return row === undefined
+      ? null
+      : { id: row.id, threadId: row.threadId, authorUserId: row.authorUserId }
+  }
+
   async findVisibleById(threadId: number, postId: number): Promise<number | null> {
     return this.rows.some(
       (row) =>

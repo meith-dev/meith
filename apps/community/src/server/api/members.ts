@@ -7,6 +7,7 @@ import { parseRating } from '@meith/reputation'
 
 import { getContainer } from '../container'
 import { reputationService, reputationSettings, viewerRaterLimits } from '../reputation'
+import { requireRateablePost } from '../reputation-target'
 import {
   type ApiResult,
   type ApiRoutes,
@@ -88,12 +89,14 @@ export const MEMBER_HANDLERS: ApiRoutes = [
       const points = submitted === null ? null : parseRating(String(submitted))
       if (points === null) throw new ValidationError(msg('error.app.rating'))
 
+      const postId = bodyId(body, 'postId')
+      await requireRateablePost(actor, userId, postId)
       const [settings, limits] = await Promise.all([reputationSettings(), viewerRaterLimits(actor)])
 
       await service.give({
         userId,
         givenByUserId: raterId,
-        postId: bodyId(body, 'postId'),
+        postId,
         points,
         comment: bodyText(body, 'comment'),
         settings,

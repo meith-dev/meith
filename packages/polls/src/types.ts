@@ -23,6 +23,7 @@ export interface PollRepository {
   create(threadId: number, poll: NewPoll): Promise<void>
   find(threadId: number, voterUserId: number | null): Promise<Poll | null>
   vote(input: {
+    readonly threadId: number
     readonly pollId: number
     readonly optionId: number
     readonly userId: number

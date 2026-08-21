@@ -1,7 +1,12 @@
 import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
-import type { ReputationRepository, ReputationRow, ReputationSummary } from '@meith/reputation'
+import type {
+  ReputationRepository,
+  ReputationRow,
+  ReputationSummary,
+  ReputationWriteResult,
+} from '@meith/reputation'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -78,7 +83,7 @@ export class PostgresReputationRepository implements ReputationRepository {
     readonly comment: string
     readonly maxPerDay: number
     readonly at: Date
-  }): Promise<boolean> {
+  }): Promise<ReputationWriteResult> {
     return this.db.transaction(async (tx) => {
       if (input.maxPerDay > 0) {
         const startOfDay = new Date(
@@ -105,7 +110,7 @@ export class PostgresReputationRepository implements ReputationRepository {
           `),
         ) as Array<{ id: number }>
 
-        if (existing.length === 0 && already >= input.maxPerDay) return false
+        if (existing.length === 0 && already >= input.maxPerDay) return 'daily-limit'
       }
 
       if (input.postId === null) {
@@ -120,20 +125,27 @@ export class PostgresReputationRepository implements ReputationRepository {
                             updated_at = excluded.updated_at
         `)
       } else {
-        await tx.execute(sql`
-          insert into reputation
-                 (user_id, given_by_user_id, post_id, points, comment, created_at, updated_at)
-          values (${input.userId}, ${input.givenByUserId}, ${input.postId}, ${input.points},
-                  ${input.comment}, ${input.at}, ${input.at})
-              on conflict (given_by_user_id, post_id) where post_id is not null
-              do update set points = excluded.points,
-                            comment = excluded.comment,
-                            updated_at = excluded.updated_at
-        `)
+        const written = resultRows(
+          await tx.execute(sql`
+            insert into reputation
+                   (user_id, given_by_user_id, post_id, points, comment, created_at, updated_at)
+            select ${input.userId}, ${input.givenByUserId}, p.id, ${input.points},
+                   ${input.comment}, ${input.at}, ${input.at}
+              from posts p
+             where p.id = ${input.postId}
+               and p.author_user_id = ${input.userId}
+                on conflict (given_by_user_id, post_id) where post_id is not null
+                do update set points = excluded.points,
+                              comment = excluded.comment,
+                              updated_at = excluded.updated_at
+            returning id
+          `),
+        )
+        if (written.length === 0) return 'invalid-post'
       }
 
       await recountReputation(tx, [input.userId])
-      return true
+      return 'written'
     })
   }
 
