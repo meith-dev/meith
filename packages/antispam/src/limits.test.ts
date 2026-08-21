@@ -10,22 +10,20 @@ import {
 
 function countingStore(): RateLimitStore & { calls: number } {
   const counts = new Map<string, number>()
-  const store = {
+  const key = (scope: RateLimitScope, subject: string, windowStart: Date) =>
+    `${scope}|${subject}|${windowStart.toISOString()}`
+
+  const store: RateLimitStore & { calls: number } = {
     calls: 0,
-    async consume(input: {
-      scope: RateLimitScope
-      subject: string
-      windowStart: Date
-      cost: number
-    }) {
+    async spend(input, windowStart, cost) {
       store.calls += 1
-      const key = `${input.scope}|${input.subject}|${input.windowStart.toISOString()}`
-      const next = (counts.get(key) ?? 0) + input.cost
-      counts.set(key, next)
+      const id = key(input.scope, input.subject, windowStart)
+      const next = (counts.get(id) ?? 0) + cost
+      counts.set(id, next)
       return next
     },
-    async prune() {
-      return 0
+    async peek(input, windowStart) {
+      return counts.get(key(input.scope, input.subject, windowStart)) ?? 0
     },
   }
   return store
@@ -135,7 +133,7 @@ describe('consuming', () => {
     })
   })
 
-  it('starts again in the next window', async () => {
+  it('does not hand a maxed-out caller a fresh budget moments after the window rolls', async () => {
     const store = countingStore()
     let now = AT
     const limiter = new RateLimiter(store, () => now)
@@ -145,9 +143,22 @@ describe('consuming', () => {
     }
 
     now = new Date('2026-08-04T12:01:05Z')
+    const outcome = await limiter.consume({ scope: 'post', subject: 'u:1', rule: RULE })
+    expect(outcome.allowed).toBe(false)
+  })
+
+  it('lets the caller back in once the previous window has mostly decayed', async () => {
+    const store = countingStore()
+    let now = AT
+    const limiter = new RateLimiter(store, () => now)
+
+    for (let i = 0; i < 4; i += 1) {
+      await limiter.consume({ scope: 'post', subject: 'u:1', rule: RULE })
+    }
+
+    now = new Date('2026-08-04T12:01:45Z')
     expect(await limiter.consume({ scope: 'post', subject: 'u:1', rule: RULE })).toMatchObject({
       allowed: true,
-      used: 1,
     })
   })
 })

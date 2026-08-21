@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { isScope } from '@meith/api'
 
 import { PostgresApiTokenRepository } from './api-repo'
-import { createIsolatedDb } from './client'
+import { createIsolatedDb, schema } from './client'
 import { resultRows } from './result-rows'
 
 function migrationSql(): string {
@@ -154,6 +154,19 @@ describeIfPg('against real Postgres', () => {
 
       const listed = (await repo.listAll()).find((row) => row.lookup === 'deadbeef')
       expect(listed!.scopes).toEqual(['forums:read'])
+    })
+  })
+
+  describe('the date serialiser getDb() and createIsolatedDb() install', () => {
+    it('binds a Date into a timestamp column through drizzle and reads it back as a Date', async () => {
+      const runAt = new Date('2026-07-31T12:34:56.000Z')
+      const [row] = await harness.db
+        .insert(schema.jobs)
+        .values({ kind: 'client.pg.test', runAt })
+        .returning({ runAt: schema.jobs.runAt })
+
+      expect(row!.runAt).toBeInstanceOf(Date)
+      expect(row!.runAt.toISOString()).toBe(runAt.toISOString())
     })
   })
 })

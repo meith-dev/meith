@@ -3,7 +3,7 @@ import 'server-only'
 
 import type { BanRecord } from '@meith/accounts'
 import { BanService } from '@meith/accounts'
-import { ForbiddenError } from '@meith/core'
+import { ForbiddenError, optional } from '@meith/core'
 import {
   type AccountState,
   getDb,
@@ -85,16 +85,16 @@ export function parseUserFilter(
     state === 'active' || state === 'awaiting_activation' || state === 'banned' ? state : undefined
 
   return {
-    ...(one('username') === undefined ? {} : { username: one('username') }),
-    ...(one('email') === undefined ? {} : { email: one('email') }),
-    ...(one('ip') === undefined ? {} : { ipPrefix: one('ip') }),
-    ...(number('group') === undefined ? {} : { primaryGroupId: number('group') }),
-    ...(stateFilter === undefined ? {} : { state: stateFilter }),
-    ...(date('after') === undefined ? {} : { registeredAfter: date('after') }),
-    ...(date('before') === undefined ? {} : { registeredBefore: date('before') }),
-    ...(number('minPosts') === undefined ? {} : { minPostCount: number('minPosts') }),
-    ...(number('maxPosts') === undefined ? {} : { maxPostCount: number('maxPosts') }),
-    ...(one('deleted') === undefined ? {} : { includeDeleted: true }),
+    ...optional(one('username'), (username) => ({ username })),
+    ...optional(one('email'), (email) => ({ email })),
+    ...optional(one('ip'), (ipPrefix) => ({ ipPrefix })),
+    ...optional(number('group'), (primaryGroupId) => ({ primaryGroupId })),
+    ...optional(stateFilter, (state) => ({ state })),
+    ...optional(date('after'), (registeredAfter) => ({ registeredAfter })),
+    ...optional(date('before'), (registeredBefore) => ({ registeredBefore })),
+    ...optional(number('minPosts'), (minPostCount) => ({ minPostCount })),
+    ...optional(number('maxPosts'), (maxPostCount) => ({ maxPostCount })),
+    ...optional(one('deleted'), () => ({ includeDeleted: true })),
     offset: offsetOf(readPage(params), USER_PAGE),
     limit: USER_PAGE,
   }
@@ -159,7 +159,7 @@ export function parsePruneCriteria(
 
   return {
     registeredBefore,
-    ...(date('inactive') === undefined ? {} : { inactiveSince: date('inactive') }),
-    ...(one('awaiting') === undefined ? {} : { onlyAwaitingActivation: true }),
+    ...optional(date('inactive'), (inactiveSince) => ({ inactiveSince })),
+    ...optional(one('awaiting'), () => ({ onlyAwaitingActivation: true })),
   }
 }

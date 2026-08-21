@@ -1,31 +1,19 @@
-export interface RateLimitWindow {
-  readonly seconds: number
-  readonly budget: number
-}
+import {
+  type RateLimitBucketStore,
+  type RateLimitOutcome,
+  type RateLimitWindow,
+  spendRateLimit,
+} from '@meith/core'
+
+export type { RateLimitOutcome, RateLimitWindow } from '@meith/core'
 
 export const DEFAULT_WINDOW: RateLimitWindow = { seconds: 300, budget: 600 }
 
 export const ANONYMOUS_WINDOW: RateLimitWindow = { seconds: 300, budget: 120 }
 
-export interface RateLimitStore {
-  consume(tokenId: number, windowStart: Date, cost: number): Promise<number>
-}
+export type RateLimitStore = RateLimitBucketStore<number>
 
-export interface AnonymousRateLimitStore {
-  consume(subject: string, windowStart: Date, cost: number): Promise<number>
-}
-
-export interface RateLimitOutcome {
-  readonly allowed: boolean
-  readonly used: number
-  readonly budget: number
-  readonly resetSeconds: number
-}
-
-export function windowStart(now: Date, window: RateLimitWindow): Date {
-  const seconds = Math.floor(now.getTime() / 1000)
-  return new Date((seconds - (seconds % window.seconds)) * 1000)
-}
+export type AnonymousRateLimitStore = RateLimitBucketStore<string>
 
 export async function consumeRateLimit(
   store: RateLimitStore,
@@ -34,16 +22,7 @@ export async function consumeRateLimit(
   now: Date,
   window: RateLimitWindow = DEFAULT_WINDOW,
 ): Promise<RateLimitOutcome> {
-  const start = windowStart(now, window)
-  const used = await store.consume(tokenId, start, cost)
-  const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000)
-
-  return {
-    allowed: used <= window.budget,
-    used,
-    budget: window.budget,
-    resetSeconds: Math.max(1, window.seconds - elapsed),
-  }
+  return spendRateLimit(store, tokenId, cost, window, now)
 }
 
 export function rateLimitHeaders(outcome: RateLimitOutcome): Record<string, string> {
@@ -61,14 +40,5 @@ export async function consumeAnonymousRateLimit(
   now: Date,
   window: RateLimitWindow = ANONYMOUS_WINDOW,
 ): Promise<RateLimitOutcome> {
-  const start = windowStart(now, window)
-  const used = await store.consume(subject, start, cost)
-  const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000)
-
-  return {
-    allowed: used <= window.budget,
-    used,
-    budget: window.budget,
-    resetSeconds: Math.max(1, window.seconds - elapsed),
-  }
+  return spendRateLimit(store, subject, cost, window, now)
 }

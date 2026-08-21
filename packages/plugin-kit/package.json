@@ -20,6 +20,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@meith/core": "workspace:^",
     "@meith/theme-kit": "workspace:^"
   },
   "peerDependencies": {

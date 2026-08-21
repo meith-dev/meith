@@ -349,9 +349,17 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/antispam: {}
+  packages/antispam:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
 
-  packages/api: {}
+  packages/api:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/attachments:
     dependencies:
@@ -675,6 +683,9 @@ importers:
 
   packages/plugin-kit:
     dependencies:
+      '@meith/core':
+        specifier: workspace:^
+        version: link:../core
       '@meith/theme-kit':
         specifier: workspace:^
         version: link:../theme-kit

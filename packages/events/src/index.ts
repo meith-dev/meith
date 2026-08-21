@@ -7,7 +7,7 @@ export {
   type RelayTarget,
   relayOutbox,
 } from './outbox'
-export { EventRegistry, eventRegistry } from './registry'
+export { EventRegistry } from './registry'
 export type {
   DomainEvent,
   DomainEventMap,

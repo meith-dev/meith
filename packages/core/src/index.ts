@@ -66,6 +66,7 @@ export {
   truncateIp,
   withRequestContext,
 } from './logger'
+export { optional } from './optional'
 export {
   type Counter,
   type Gauge,
@@ -101,6 +102,15 @@ export type {
   QueueDriver,
   StoredFile,
 } from './ports'
+export type {
+  RateLimitBucketStore,
+  RateLimitOutcome,
+  RateLimitWindow,
+} from './rate-limit'
+export {
+  rateLimitWindowStart,
+  spendRateLimit,
+} from './rate-limit'
 export {
   ALL_THREAD_AUTHORS,
   audienceFilterIn,
