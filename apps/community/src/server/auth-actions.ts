@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 
-import { type AuthConfig, foldIdentifier, type LoginBucket } from '@meith/accounts'
+import { type AuthConfig, foldIdentifier, hashToken, type LoginBucket } from '@meith/accounts'
 import { env, logger } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 
@@ -35,6 +35,7 @@ import { isSafeLocalPath } from './safe-path'
 import {
   clearSecondFactorCookie,
   clearSessionCookies,
+  readRememberToken,
   readSecondFactorToken,
   readSessionToken,
   setRememberCookie,
@@ -371,8 +372,22 @@ export async function abandonSecondFactorAction(): Promise<void> {
 
 export async function logoutAction(): Promise<void> {
   const token = await readSessionToken()
+  const rememberToken = await readRememberToken()
+  const { accountStore, identity } = getContainer()
+  if (rememberToken) {
+    try {
+      const held = await accountStore.remember.findByTokenHash(await hashToken(rememberToken))
+      if (held !== null) {
+        await accountStore.remember.revokeFamily(held.familyId, 'logout', new Date())
+      }
+    } catch (err) {
+      logger({ module: 'auth-actions' }).warn(
+        { err },
+        ['logout remember-token revoke failed', 'clearing cookies anyway'].join('; '),
+      )
+    }
+  }
   if (token) {
-    const { identity } = getContainer()
     try {
       const resolved = await identity.resolveSession(token)
       await identity.logout(token)

@@ -47,6 +47,7 @@ async function requireOwnSettings(): Promise<{
       settings: memberSettings,
       accounts: accountStore.accounts,
       sessions: accountStore.sessions,
+      remember: accountStore.remember,
       tokens: accountStore.tokens,
     }),
     userId: actor.userId,

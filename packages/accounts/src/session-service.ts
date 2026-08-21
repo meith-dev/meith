@@ -1,11 +1,14 @@
+import { ForbiddenError } from '@meith/core'
+
 import { generateToken, hashToken } from './crypto/tokens'
-import type { AccountStore, Clock } from './ports'
+import type { AccountRecord, AccountStore, Clock } from './ports'
 import type { RequestContext } from './service'
 
 export interface SessionServiceDeps {
   readonly store: AccountStore
   readonly rememberDays: number
   readonly sessionLifetimeDays: number
+  readonly assertSignInAllowed?: (account: AccountRecord) => Promise<void>
   readonly clock?: Clock
 }
 
@@ -28,12 +31,14 @@ export class SessionService {
   private readonly store: AccountStore
   private readonly rememberDays: number
   private readonly sessionLifetimeDays: number
+  private readonly assertSignInAllowed: (account: AccountRecord) => Promise<void>
   private readonly now: Clock
 
   constructor(deps: SessionServiceDeps) {
     this.store = deps.store
     this.rememberDays = deps.rememberDays
     this.sessionLifetimeDays = deps.sessionLifetimeDays
+    this.assertSignInAllowed = deps.assertSignInAllowed ?? (async () => undefined)
     this.now = deps.clock ?? (() => new Date())
   }
 
@@ -67,9 +72,23 @@ export class SessionService {
 
   async resume(rememberToken: string, context: RequestContext = {}): Promise<ResumeOutcome> {
     const at = this.now()
+    const presentedHash = await hashToken(rememberToken)
+    const held = await this.store.remember.findByTokenHash(presentedHash)
+    if (held === null) return { status: 'invalid' }
+
+    const account = await this.store.accounts.findById(held.userId)
+    if (account === null) return { status: 'invalid' }
+
+    try {
+      await this.assertSignInAllowed(account)
+    } catch (error) {
+      if (error instanceof ForbiddenError) return { status: 'invalid' }
+      throw error
+    }
+
     const nextToken = generateToken()
     const rotation = await this.store.remember.rotate({
-      presentedHash: await hashToken(rememberToken),
+      presentedHash,
       nextHash: await hashToken(nextToken),
       now: at,
       nextExpiresAt: new Date(at.getTime() + this.rememberDays * DAY_MS),
@@ -78,7 +97,7 @@ export class SessionService {
     if (rotation.status === 'invalid') return { status: 'invalid' }
 
     if (rotation.status === 'reuse') {
-      await this.store.remember.revokeFamily(rotation.familyId, 'token_reuse', at)
+      await this.store.remember.revokeAllForUser(rotation.userId, 'token_reuse', at)
       await this.store.sessions.revokeAllForUser(rotation.userId)
       return { status: 'reuse', userId: rotation.userId }
     }

@@ -16,6 +16,7 @@ import type {
   AccountRepository,
   CredentialPurpose,
   CredentialTokenRepository,
+  RememberTokenRepository,
   SessionRepository,
 } from './ports'
 
@@ -115,6 +116,14 @@ class MemorySessions {
   }
 }
 
+class MemoryRemember {
+  readonly revoked: Array<{ userId: number; reason: string; at: Date }> = []
+
+  async revokeAllForUser(userId: number, reason: string, at: Date) {
+    this.revoked.push({ userId, reason, at })
+  }
+}
+
 class MemoryTokens {
   readonly issued: Array<{ userId: number; purpose: string; payload: string | null }> = []
   readonly revoked: Array<{ userId: number; purpose: CredentialPurpose }> = []
@@ -150,6 +159,7 @@ class MemoryTokens {
 let settings: MemorySettings
 let accounts: MemoryAccounts
 let sessions: MemorySessions
+let remember: MemoryRemember
 let tokens: MemoryTokens
 let service: MemberSettingsService
 
@@ -157,6 +167,7 @@ beforeEach(async () => {
   settings = new MemorySettings()
   accounts = new MemoryAccounts()
   sessions = new MemorySessions()
+  remember = new MemoryRemember()
   tokens = new MemoryTokens()
 
   accounts.account = {
@@ -176,6 +187,7 @@ beforeEach(async () => {
     settings,
     accounts,
     sessions: sessions as unknown as SessionRepository,
+    remember: remember as unknown as RememberTokenRepository,
     tokens: tokens as unknown as CredentialTokenRepository,
     now: () => NOW,
   })
@@ -390,6 +402,7 @@ describe('changing the password', () => {
 
     expect(accounts.passwords).toHaveLength(1)
     expect(sessions.revoked).toEqual([7])
+    expect(remember.revoked).toEqual([{ userId: 7, reason: 'password_change', at: NOW }])
     expect(tokens.revoked).toContainEqual({ userId: 7, purpose: 'email_change' })
   }, 20_000)
 

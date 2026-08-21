@@ -392,8 +392,10 @@ export async function configuredIdentity(): Promise<IdentityService> {
 }
 
 export async function configuredSessions(): Promise<SessionService> {
+  const identity = await configuredIdentity()
   return new SessionService({
     store: getContainer().accountStore,
     ...(await boardSessionConfig()),
+    assertSignInAllowed: (account) => identity.assertSignInAllowed(account),
   })
 }

@@ -4,7 +4,12 @@ import { msg, normaliseLocale } from '@meith/i18n'
 import { foldIdentifier } from './case-fold'
 import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
-import type { AccountRepository, CredentialTokenRepository, SessionRepository } from './ports'
+import type {
+  AccountRepository,
+  CredentialTokenRepository,
+  RememberTokenRepository,
+  SessionRepository,
+} from './ports'
 
 export const LOCATION_MAX = 100
 export const WEBSITE_MAX = 200
@@ -98,6 +103,7 @@ export class MemberSettingsService {
   private readonly settings: MemberSettingsRepository
   private readonly accounts: AccountRepository
   private readonly sessions: SessionRepository
+  private readonly remember: RememberTokenRepository
   private readonly tokens: CredentialTokenRepository
   private readonly now: () => Date
 
@@ -105,12 +111,14 @@ export class MemberSettingsService {
     settings: MemberSettingsRepository
     accounts: AccountRepository
     sessions: SessionRepository
+    remember: RememberTokenRepository
     tokens: CredentialTokenRepository
     now?: () => Date
   }) {
     this.settings = deps.settings
     this.accounts = deps.accounts
     this.sessions = deps.sessions
+    this.remember = deps.remember
     this.tokens = deps.tokens
     this.now = deps.now ?? (() => new Date())
   }
@@ -228,8 +236,10 @@ export class MemberSettingsService {
     }
 
     const hash = await hashPassword(next)
+    const at = this.now()
     await this.accounts.updatePassword(account.id, hash, 'argon2id')
     await this.sessions.revokeAllForUser(account.id)
+    await this.remember.revokeAllForUser(account.id, 'password_change', at)
     await this.tokens.revokeAllForUser(account.id, 'email_change')
   }
 

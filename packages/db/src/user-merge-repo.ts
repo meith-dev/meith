@@ -162,6 +162,18 @@ export class PostgresUserMergeRepository {
       await recalculateWarningPoints(tx, fromUserId)
 
       await tx.execute(sql`
+        update remember_tokens
+           set revoked_at = now(), revoked_reason = 'account_merge'
+         where user_id in (${fromUserId}, ${toUserId}) and revoked_at is null
+      `)
+
+      await tx.execute(sql`
+        update sessions
+           set revoked_at = now()
+         where user_id in (${fromUserId}, ${toUserId}) and revoked_at is null
+      `)
+
+      await tx.execute(sql`
         update users
            set deleted_at = now(), post_count = 0, thread_count = 0, reputation = 0,
                updated_at = now()

@@ -34,6 +34,7 @@ export default async function ConfirmEmailPage({
           settings: memberSettings,
           accounts: accountStore.accounts,
           sessions: accountStore.sessions,
+          remember: accountStore.remember,
           tokens: accountStore.tokens,
         }).confirmEmailChange(token, actor.userId)
 
