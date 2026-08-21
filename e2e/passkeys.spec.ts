@@ -78,7 +78,7 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await memberPage.goto(`${BOARD}/usercp/security/verify?next=%2Fusercp%2Fsecurity`)
     await memberPage.getByLabel('Current password').fill(PASSWORD)
     await memberPage.getByRole('button', { name: 'Verify password' }).click()
-    await expect(memberPage).toHaveURL(/\/usercp\/security\?verified=1$/)
+    await expect(memberPage).toHaveURL(/\/usercp\/security$/)
     await memberPage.getByLabel('What to call it').fill('Work laptop')
     await memberPage.getByRole('button', { name: 'Add a passkey' }).click()
 
