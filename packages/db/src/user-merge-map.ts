@@ -33,8 +33,6 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'announcements', column: 'author_user_id' },
   { table: 'board_stats', column: 'newest_user_id' },
   { table: 'user_group_memberships', column: 'granted_by_user_id' },
-  { table: 'user_identities', column: 'user_id' },
-  { table: 'passkeys', column: 'user_id' },
   { table: 'push_subscriptions', column: 'user_id' },
   { table: 'auth_events', column: 'user_id' },
   { table: 'warnings', column: 'issued_by_user_id' },
@@ -69,16 +67,22 @@ export const MERGE_DEDUPE: readonly DedupeColumn[] = [
   { table: 'user_group_memberships', column: 'user_id', keys: ['group_id'] },
 ]
 
-export const MERGE_DISCARD: readonly DiscardColumn[] = [
+export const ACCOUNT_CLOSURE_DISCARD: readonly DiscardColumn[] = [
   { table: 'admin_sessions', column: 'user_id' },
   { table: 'user_two_factor', column: 'user_id' },
   { table: 'recovery_codes', column: 'user_id' },
-  { table: 'searches', column: 'user_id' },
-  { table: 'post_drafts', column: 'user_id' },
   { table: 'api_tokens', column: 'user_id' },
   { table: 'credential_tokens', column: 'user_id' },
   { table: 'remember_tokens', column: 'user_id' },
   { table: 'sessions', column: 'user_id' },
+  { table: 'user_identities', column: 'user_id' },
+  { table: 'passkeys', column: 'user_id' },
+]
+
+export const MERGE_DISCARD: readonly DiscardColumn[] = [
+  ...ACCOUNT_CLOSURE_DISCARD,
+  { table: 'searches', column: 'user_id' },
+  { table: 'post_drafts', column: 'user_id' },
 ]
 
 export const MERGE_BESPOKE: readonly ReassignColumn[] = [

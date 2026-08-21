@@ -8,6 +8,7 @@ import { withPermissionVersionBump } from './permission-version'
 import { resultRows } from './result-rows'
 import { isStaffGroupSql } from './staff-groups'
 import { BANNED_PREDICATE } from './user-admin-repo'
+import { ACCOUNT_CLOSURE_DISCARD } from './user-merge-map'
 
 export interface PruneCriteria {
   readonly registeredBefore: Date
@@ -123,13 +124,35 @@ export class PostgresUserBulkRepository {
     const where = this.pruneWhere(criteria)
 
     const pruned = await withPermissionVersionBump(this.db, async (tx) => {
+      const candidates = resultRows(
+        await tx.execute(sql`
+          select u.id
+            from users u
+           where ${where}
+           order by u.id
+           limit ${limit}
+             for update
+        `),
+      ) as Array<{ id: number }>
+      const userIds = candidates.map((row) => Number(row.id))
+      if (userIds.length === 0) return []
+
+      const idList = sql.join(
+        userIds.map((id) => sql`${id}`),
+        sql`, `,
+      )
+      for (const entry of ACCOUNT_CLOSURE_DISCARD) {
+        await tx.execute(sql`
+          delete from ${sql.raw(entry.table)}
+           where ${sql.raw(entry.column)} in (${idList})
+        `)
+      }
+
       const rows = resultRows(
         await tx.execute(sql`
           update users
              set deleted_at = now(), updated_at = now()
-           where id in (
-             select u.id from users u where ${where} order by u.id limit ${limit}
-           )
+           where id in (${idList})
           returning id
         `),
       ) as Array<{ id: number }>

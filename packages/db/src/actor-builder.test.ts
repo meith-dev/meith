@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ActorBuilder } from './actor-builder'
@@ -151,10 +152,14 @@ describe('ActorBuilder.buildForUser — lifecycle state', () => {
     expect((await builder.buildForUser(adminWait))!.state).toBe('awaiting_activation')
   })
 
-  it('returns null for a deleted user (not a principal) and for a missing id', async () => {
+  it('returns null for a deleted state, tombstoned row, and missing id', async () => {
     const builder = new ActorBuilder(h.db, { guestGroupId: members })
     const deleted = await user('Ghost', members, 'deleted')
+    const tombstoned = await user('Closed', members)
+    await h.db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, tombstoned))
+
     expect(await builder.buildForUser(deleted)).toBeNull()
+    expect(await builder.buildForUser(tombstoned)).toBeNull()
     expect(await builder.buildForUser(999_999)).toBeNull()
   })
 })

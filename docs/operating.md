@@ -1618,12 +1618,24 @@ match every value in its field and lock the board's own members out.
 Close signups from the registration settings instead — see
 [Closing registration](#closing-registration).
 
+## Merging accounts
+
+Finishing an account merge closes the losing account and moves its content to
+the winner. Closure destroys the loser's active board and admin sessions,
+remember tokens, password-reset and verification tokens, API tokens, linked
+identities, passkeys, two-factor enrollment, and recovery codes in the same
+transaction. Authentication methods are never transferred to the winning
+account; the winner keeps only the credentials it already owned.
+
 ## Pruning dormant accounts
 
 `/admin/users/prune` closes accounts in batches: a registration date,
 optionally a "not seen since" date, optionally only accounts still
 awaiting activation. It **closes** rather than deletes — the row stays,
-with `deleted_at` set — so a wrong date is recoverable.
+with `deleted_at` set — so a wrong date is recoverable. In the same
+transaction it destroys every authentication method and active session owned
+by the account. A retained password, stale cookie, linked identity, passkey,
+second factor, recovery code, or API token cannot authenticate the tombstone.
 
 The screen previews before it acts, and the preview and the execution are
 built from the same predicate, so what you were shown is what gets

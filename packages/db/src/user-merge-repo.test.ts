@@ -215,6 +215,30 @@ describe('finish', () => {
     expect(rows).toEqual([{ id: 12, user_id: WINNER }])
   })
 
+  it('discards the loser’s identities and passkeys without changing the winner’s', async () => {
+    await seedPair()
+    await db.execute(sql`
+      insert into user_identities (user_id, provider, subject)
+      values (${LOSER}, 'oidc', 'loser'), (${WINNER}, 'oidc', 'winner')
+    `)
+    await db.execute(sql`
+      insert into passkeys (user_id, credential_id, public_key, label)
+      values (${LOSER}, 'loser-key', 'loser-public', 'Loser'),
+             (${WINNER}, 'winner-key', 'winner-public', 'Winner')
+    `)
+
+    await repo.finish(LOSER, WINNER)
+
+    const identities = resultRows(
+      await db.execute(sql`select user_id, subject from user_identities order by id`),
+    ) as Array<{ user_id: number; subject: string }>
+    const keys = resultRows(
+      await db.execute(sql`select user_id, credential_id from passkeys order by id`),
+    ) as Array<{ user_id: number; credential_id: string }>
+    expect(identities).toEqual([{ user_id: WINNER, subject: 'winner' }])
+    expect(keys).toEqual([{ user_id: WINNER, credential_id: 'winner-key' }])
+  })
+
   it('keeps the winner’s row when both hold one under a uniqueness rule', async () => {
     await seedPair()
     await db.execute(sql`
