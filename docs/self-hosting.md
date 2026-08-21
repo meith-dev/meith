@@ -92,7 +92,6 @@ cat > .env <<EOF
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 AUTH_SECRET=$(openssl rand -base64 32)
 TICK_SECRET=$(openssl rand -base64 32)
-PORT=127.0.0.1:3000
 APP_URL=https://board.example
 EOF
 chmod 600 .env
@@ -105,8 +104,8 @@ Edit the last line to your real domain — it is the only line you type.
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed — and hex, see the note below. The compose file has a well-known default, so set your own. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
 | `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick from outside](./operating.md#driving-the-tick-from-outside). Compose refuses to start without it too. |
-| `PORT` | **`127.0.0.1:3000`, not `3000`.** Binding all interfaces publishes the board on port 3000 alongside your HTTPS one — plaintext, no certificate — and Docker writes its own iptables rules, so `ufw` does not stop it. |
-| `APP_URL` | The board's public origin. The compose file otherwise defaults it to `http://localhost:3000`, and every link in every password-reset and confirmation e-mail is built from it — so a wrong or missing value here is mail pointing at a host you do not own. It must be your real origin, not a placeholder. |
+| `PORT` | Optional. The Compose default is `127.0.0.1:3000`, so the TLS proxy is the only route in. Setting this to `3000` deliberately binds every interface and publishes a plaintext route alongside HTTPS; Docker writes its own iptables rules, so `ufw` may not stop it. |
+| `APP_URL` | The board's public origin. The compose file otherwise defaults it to `http://localhost:3000`, which is suitable only for local access; every link in every password-reset and confirmation e-mail is built from it. It must be your real origin, not a placeholder. |
 
 > [!NOTE]
 > `hex` for the database password and `base64` for the two secrets, and

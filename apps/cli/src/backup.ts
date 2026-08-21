@@ -1,5 +1,16 @@
 import { spawn } from 'node:child_process'
-import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  open,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -93,6 +104,127 @@ export function formatBytes(size: number): string {
     unit = next
   }
   return unit === 'B' ? `${value} B` : `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`
+}
+
+export interface RestoreLimits {
+  readonly archiveBytes: number
+  readonly members: number
+  readonly memberBytes: number
+  readonly expandedBytes: number
+}
+
+const RESTORE_LIMIT_DEFAULTS: RestoreLimits = {
+  archiveBytes: 2 * 1024 * 1024 * 1024,
+  members: 100_000,
+  memberBytes: 1024 * 1024 * 1024,
+  expandedBytes: 8 * 1024 * 1024 * 1024,
+}
+
+function positiveInteger(value: string | undefined, variable: string, fallback: number): number {
+  if (value === undefined || value === '') return fallback
+  if (!/^\d+$/.test(value)) {
+    throw new ValidationError(`${variable} must be a positive integer number of bytes or members.`)
+  }
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new ValidationError(`${variable} must be a positive integer number of bytes or members.`)
+  }
+  return parsed
+}
+
+export function restoreLimits(environment: NodeJS.ProcessEnv): RestoreLimits {
+  return {
+    archiveBytes: positiveInteger(
+      environment.MEITH_RESTORE_MAX_ARCHIVE_BYTES,
+      'MEITH_RESTORE_MAX_ARCHIVE_BYTES',
+      RESTORE_LIMIT_DEFAULTS.archiveBytes,
+    ),
+    members: positiveInteger(
+      environment.MEITH_RESTORE_MAX_MEMBERS,
+      'MEITH_RESTORE_MAX_MEMBERS',
+      RESTORE_LIMIT_DEFAULTS.members,
+    ),
+    memberBytes: positiveInteger(
+      environment.MEITH_RESTORE_MAX_MEMBER_BYTES,
+      'MEITH_RESTORE_MAX_MEMBER_BYTES',
+      RESTORE_LIMIT_DEFAULTS.memberBytes,
+    ),
+    expandedBytes: positiveInteger(
+      environment.MEITH_RESTORE_MAX_EXPANDED_BYTES,
+      'MEITH_RESTORE_MAX_EXPANDED_BYTES',
+      RESTORE_LIMIT_DEFAULTS.expandedBytes,
+    ),
+  }
+}
+
+interface ArchiveMember {
+  readonly name: string
+  readonly type: string
+  readonly size: number
+}
+
+function normalizedArchiveName(name: string): string | undefined {
+  if (name === '' || name.includes('\\') || name.includes('\0')) return undefined
+  const withoutDirectoryMarker = name.endsWith('/') ? name.slice(0, -1) : name
+  if (withoutDirectoryMarker === '.') return '.'
+  const normalized = withoutDirectoryMarker.replace(/^\.\//, '')
+  if (normalized === '' || path.posix.isAbsolute(normalized)) return undefined
+  const parts = normalized.split('/')
+  if (parts.some((part) => part === '' || part === '.' || part === '..')) return undefined
+  return normalized
+}
+
+export function validateArchiveListing(
+  namesOutput: string,
+  verboseOutput: string,
+  limits: RestoreLimits,
+  allowedTypes: ReadonlySet<string>,
+): readonly ArchiveMember[] {
+  const names = namesOutput === '' ? [] : namesOutput.replace(/\n$/, '').split('\n')
+  const verbose = verboseOutput === '' ? [] : verboseOutput.replace(/\n$/, '').split('\n')
+  if (names.length !== verbose.length) {
+    throw new ValidationError('The archive has malformed member names.')
+  }
+  if (names.length > limits.members) {
+    throw new ValidationError(`The archive has more than ${limits.members} members.`)
+  }
+
+  const seen = new Set<string>()
+  let expandedBytes = 0
+  return names.map((rawName, index) => {
+    const name = normalizedArchiveName(rawName)
+    if (name === undefined || seen.has(name)) {
+      throw new ValidationError(`The archive contains an unsafe or duplicate member: ${rawName}`)
+    }
+    seen.add(name)
+
+    const fields = verbose[index]?.trim().split(/\s+/) ?? []
+    const type = fields[0]?.[0] ?? ''
+    const size = Number(fields[2])
+    if (!allowedTypes.has(type) || !Number.isSafeInteger(size) || size < 0) {
+      throw new ValidationError(`The archive contains an unsupported member: ${name}`)
+    }
+    if (size > limits.memberBytes) {
+      throw new ValidationError(`The archive member ${name} exceeds the per-member size limit.`)
+    }
+    expandedBytes += size
+    if (!Number.isSafeInteger(expandedBytes) || expandedBytes > limits.expandedBytes) {
+      throw new ValidationError('The archive exceeds the expanded-size limit.')
+    }
+    return { name, type, size }
+  })
+}
+
+async function inspectArchive(
+  archive: string,
+  limits: RestoreLimits,
+  allowedTypes: ReadonlySet<string>,
+): Promise<readonly ArchiveMember[]> {
+  const [names, verbose] = await Promise.all([
+    run('tar', ['tzf', archive]),
+    run('tar', ['tvzf', archive]),
+  ])
+  return validateArchiveListing(names, verbose, limits, allowedTypes)
 }
 
 function missingToolError(command: string): ConfigurationError {
@@ -227,6 +359,11 @@ async function run(
   })
 }
 
+export async function reserveBackupDestination(destination: string): Promise<void> {
+  const file = await open(destination, 'wx', 0o600)
+  await file.close()
+}
+
 async function stageLocalUploads(stage: string): Promise<'included' | 'skipped'> {
   const exists = await stat(env.UPLOADS_DIR).then(
     (info) => info.isDirectory(),
@@ -281,6 +418,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
   const out = path.resolve(optional(flags, 'out') ?? bundleName(now))
 
   const stage = await mkdtemp(path.join(tmpdir(), 'meith-backup-'))
+  let destinationCreated = false
   try {
     console.log(
       env.DIRECT_DATABASE_URL === undefined
@@ -315,7 +453,10 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
 
     const members = ['manifest.json', 'db.dump']
     if (uploads === 'included') members.push('uploads.tar.gz')
+    await reserveBackupDestination(out)
+    destinationCreated = true
     await run('tar', ['czf', out, '-C', stage, ...members])
+    await chmod(out, 0o600)
 
     const size = (await stat(out)).size
     console.log(
@@ -336,8 +477,10 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
       'Copy the bundle off this machine: a backup on the server is a backup of the ' +
         'thing most likely to fail.',
     )
+    destinationCreated = false
     return 0
   } finally {
+    if (destinationCreated) await rm(out, { force: true })
     await rm(stage, { recursive: true, force: true })
   }
 }
@@ -352,7 +495,21 @@ async function walk(dir: string): Promise<readonly string[]> {
   return files
 }
 
-async function extractUploads(stage: string, dir: string): Promise<void> {
+async function validateUploadsArchive(stage: string, limits: RestoreLimits): Promise<void> {
+  const members = await inspectArchive(
+    path.join(stage, 'uploads.tar.gz'),
+    limits,
+    new Set(['-', 'd']),
+  )
+  for (const member of members) {
+    if (member.name === '.' && member.type !== 'd') {
+      throw new ValidationError('The uploads archive root is not a directory.')
+    }
+  }
+}
+
+async function extractUploads(stage: string, dir: string, limits: RestoreLimits): Promise<void> {
+  await validateUploadsArchive(stage, limits)
   const existing = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') return undefined
     throw error
@@ -369,7 +526,8 @@ async function extractUploads(stage: string, dir: string): Promise<void> {
   console.log(`Restored the uploads into ${dir}.`)
 }
 
-async function pushUploadsToS3(stage: string): Promise<void> {
+async function pushUploadsToS3(stage: string, limits: RestoreLimits): Promise<void> {
+  await validateUploadsArchive(stage, limits)
   const dir = path.join(stage, 'uploads-extract')
   await mkdir(dir, { recursive: true })
   await run('tar', ['xzf', path.join(stage, 'uploads.tar.gz'), '-C', dir])
@@ -418,16 +576,38 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
   const target = restoreDatabaseUrl(args, process.env)
   const databaseEnvironment = postgresClientEnvironment(target, 'RESTORE_DATABASE_URL')
 
-  const readable = await stat(bundle).then(
-    (info) => info.isFile(),
-    () => false,
-  )
-  if (!readable) throw new ValidationError(`No such bundle: ${bundle}`)
+  const bundleInfo = await stat(bundle).catch(() => undefined)
+  if (bundleInfo === undefined || !bundleInfo.isFile()) {
+    throw new ValidationError(`No such bundle: ${bundle}`)
+  }
+
+  const limits = restoreLimits(process.env)
+  if (bundleInfo.size > limits.archiveBytes) {
+    throw new ValidationError('The backup bundle exceeds MEITH_RESTORE_MAX_ARCHIVE_BYTES.')
+  }
 
   const stage = await mkdtemp(path.join(tmpdir(), 'meith-restore-'))
   try {
-    await run('tar', ['xzf', path.resolve(bundle), '-C', stage])
+    const stagedBundle = path.join(stage, 'bundle.tar.gz')
+    await copyFile(path.resolve(bundle), stagedBundle)
+    const members = await inspectArchive(stagedBundle, limits, new Set(['-']))
+    const possibleMembers = new Set(['manifest.json', 'db.dump', 'uploads.tar.gz'])
+    if (members.some((member) => !possibleMembers.has(member.name))) {
+      throw new ValidationError('The backup bundle contains an unexpected member.')
+    }
+    await run('tar', ['xzf', stagedBundle, '-C', stage, 'manifest.json'])
     const manifest = parseManifest(await readFile(path.join(stage, 'manifest.json'), 'utf8'))
+    const expectedMembers = new Set(['manifest.json', 'db.dump'])
+    if (manifest.uploads === 'included') expectedMembers.add('uploads.tar.gz')
+    if (
+      members.length !== expectedMembers.size ||
+      members.some((member) => !expectedMembers.has(member.name))
+    ) {
+      throw new ValidationError('The backup bundle members do not match its manifest.')
+    }
+    const restoreMembers = ['db.dump']
+    if (manifest.uploads === 'included') restoreMembers.push('uploads.tar.gz')
+    await run('tar', ['xzf', stagedBundle, '-C', stage, ...restoreMembers])
 
     const tables = (
       await run(
@@ -472,9 +652,9 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
     if (manifest.uploads === 'included' && flags.get('skip-uploads') !== 'true') {
       const uploadsDir = optional(flags, 'uploads-dir')
       if (env.FILESTORE_DRIVER === 's3' && uploadsDir === undefined) {
-        await pushUploadsToS3(stage)
+        await pushUploadsToS3(stage, limits)
       } else {
-        await extractUploads(stage, uploadsDir ?? env.UPLOADS_DIR)
+        await extractUploads(stage, uploadsDir ?? env.UPLOADS_DIR, limits)
       }
     } else if (manifest.uploads === 'skipped') {
       console.log(

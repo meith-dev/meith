@@ -14,9 +14,8 @@
 # it stops *nothing fails*, it just quietly stops happening.
 #
 # Nothing here terminates TLS. Put a reverse proxy in front (Caddy, nginx,
-# Traefik) and bind the web port to localhost so the proxy is the only way in:
-#
-#   PORT=127.0.0.1:3000
+# Traefik). The default loopback binding makes the proxy the only way in;
+# override PORT only when another network boundary provides equivalent protection.
 
 services:
   postgres:
@@ -94,7 +93,7 @@ services:
         max-size: 10m
         max-file: '3'
     ports:
-      - '${PORT:-3000}:3000'
+      - '${PORT:-127.0.0.1:3000}:3000'
     environment:
       DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
       DATA_SOURCE: postgres
