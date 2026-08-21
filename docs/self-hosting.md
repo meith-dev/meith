@@ -131,6 +131,11 @@ other variable, including the `MAIL_*` set — optional, overriding the
 board's own mail settings when present, and worth setting here if you
 would rather this deployment were configured entirely from files.
 
+That includes `METRICS_ENABLED`/`METRICS_TOKEN` and `OTEL_ENABLED`/
+`OTEL_EXPORTER_OTLP_ENDPOINT` — off by default, and not needed for a working
+board. See [Monitoring & alerting](./monitoring.md) once you want a
+Prometheus scrape target or distributed tracing.
+
 ## 4. Start it
 
 ```sh

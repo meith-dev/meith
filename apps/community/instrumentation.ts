@@ -2,7 +2,7 @@ export async function register(): Promise<void> {
   // biome-ignore lint/style/noProcessEnv: build-time runtime token, not config; see above
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
-  const { assertRuntimeEnv } = await import('@meith/core')
+  const { assertRuntimeEnv, initTracing } = await import('@meith/core')
 
   const env = assertRuntimeEnv()
 
@@ -13,4 +13,6 @@ export async function register(): Promise<void> {
         'Set DATABASE_URL to use Postgres.',
     )
   }
+
+  await initTracing('meith-web')
 }

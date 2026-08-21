@@ -31,6 +31,7 @@ These guides use the browser interface; they do not require shell access.
 ## Operate a board
 
 - [Operations](./operating.md) — health checks, configuration, CLI commands, mail, backups, and troubleshooting.
+- [Monitoring & alerting](./monitoring.md) — liveness versus readiness, the optional metrics endpoint, tracing, and shipping logs.
 - [Upgrading](./upgrading.md) — move between released versions safely.
 - [Disaster recovery](./disaster-recovery.md) — restore a board when the original server is unavailable.
 - [Signing in](./single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.

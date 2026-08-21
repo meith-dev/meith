@@ -76,6 +76,7 @@ The table below is generated from `apps/web/content/docs.manifest.json` by `pnpm
 | Using your board | [`formatting.md`](./docs/formatting.md) | The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline. |
 | Using your board | [`membership-guide.md`](./docs/membership-guide.md) | Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
 | Running the server | [`operating.md`](./docs/operating.md) | Routine checks, configuration, maintenance commands, backups, recovery, and troubleshooting for a running board. |
+| Running the server | [`monitoring.md`](./docs/monitoring.md) | Liveness versus readiness, the optional Prometheus metrics endpoint and what to alert on, distributed tracing, and shipping logs. |
 | Running the server | [`upgrading.md`](./docs/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
 | Running the server | [`disaster-recovery.md`](./docs/disaster-recovery.md) | The runbook for the day the server is gone: what recovery consumes, the order of operations from provisioning to DNS, and the rehearsal that turns it from a hope into a plan. |
 | Running the server | [`single-sign-on.md`](./docs/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |

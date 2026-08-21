@@ -30,6 +30,8 @@ Confirm that PostgreSQL is healthy, migration exited with code 0, web is not pro
 
 Pages can still load while a stopped worker leaves mail and scheduled work stalled. Monitor both services.
 
+`/api/ready` answers the same question a script can act on: it fails once the database is unreachable or the scheduler has stopped entirely, and drives the `web` and `worker` container healthchecks (`docker compose ps`). See [Monitoring & alerting](./monitoring.md) for the optional metrics endpoint, what to alert on, and how to ship logs.
+
 ## Configuration
 
 Environment variables hold deployment drivers, credentials, and values needed before the database is available. Board settings hold values administrators can change at runtime. Environment values win where both sources are supported.

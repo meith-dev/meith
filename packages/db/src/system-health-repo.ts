@@ -115,4 +115,16 @@ export class PostgresSystemHealthRepository {
       deadLetteredJobs: Number(row.dead_lettered),
     }
   }
+
+  async activeConnections(): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select count(*)::int as active
+          from pg_stat_activity
+         where datname = current_database()
+      `),
+    ) as Array<Record<string, unknown>>
+
+    return Number(rows[0]?.active ?? 0)
+  }
 }

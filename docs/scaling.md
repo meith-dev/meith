@@ -42,6 +42,12 @@ than code:
   machines, switch to `FILESTORE_DRIVER=s3` — any S3-compatible bucket
   works, and [where uploads go](./operating.md#where-uploads-go) covers
   the variables.
+- **Metrics.** `/api/metrics` (see [Monitoring & alerting](./monitoring.md))
+  holds its counters and histograms in the process that answers the scrape,
+  not in Postgres — every web instance and the worker is a separate scrape
+  target with its own numbers. A Prometheus job with several targets sums
+  them at query time; there is no board-wide total to read from any one of
+  them.
 
 ## What Redis is, and is not, used for
 

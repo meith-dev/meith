@@ -197,3 +197,43 @@ describe('demo mode', () => {
     expect(() => parseEnv({ ...demo, DEMO_RESET_MINUTES: '1' })).toThrow(/DEMO_RESET_MINUTES/)
   })
 })
+
+describe('observability', () => {
+  it('leaves metrics and tracing off unless something turns them on', () => {
+    const env = parseEnv(base)
+    expect(env.METRICS_ENABLED).toBe(false)
+    expect(env.OTEL_ENABLED).toBe(false)
+  })
+
+  it('requires an OTLP endpoint once tracing is enabled', () => {
+    expect(() => parseEnv({ ...base, OTEL_ENABLED: '1' })).toThrow(/OTEL_EXPORTER_OTLP_ENDPOINT/)
+    expect(
+      parseEnv({
+        ...base,
+        OTEL_ENABLED: '1',
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://collector/v1/traces',
+      }).OTEL_ENABLED,
+    ).toBe(true)
+  })
+
+  it('requires a token for metrics in production, so the endpoint is not open to anyone', () => {
+    expect(() => parseEnv({ ...base, METRICS_ENABLED: '1' })).toThrow(/METRICS_TOKEN/)
+    expect(
+      parseEnv({ ...base, METRICS_ENABLED: '1', METRICS_TOKEN: 'c'.repeat(32) }).METRICS_ENABLED,
+    ).toBe(true)
+  })
+
+  it('does not demand a token outside production, where an unset one already warns at the route', () => {
+    expect(() => parseEnv({ NODE_ENV: 'development', METRICS_ENABLED: '1' })).not.toThrow()
+  })
+
+  it('does not apply the metrics-token rule during `next build`', () => {
+    expect(() =>
+      parseEnv({
+        NODE_ENV: 'production',
+        NEXT_PHASE: 'phase-production-build',
+        METRICS_ENABLED: '1',
+      }),
+    ).not.toThrow()
+  })
+})

@@ -17,7 +17,9 @@
     "./errors": "./src/errors.ts",
     "./env": "./src/env.ts",
     "./env-files": "./src/env-files.ts",
-    "./logger": "./src/logger.ts"
+    "./logger": "./src/logger.ts",
+    "./metrics": "./src/metrics.ts",
+    "./tracing": "./src/tracing.ts"
   },
   "files": [
     "src",
@@ -31,6 +33,11 @@
     "typecheck": "tsc -p ../../tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-trace-node": "^2.10.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
     "pino": "^10.3.1",
     "zod": "^4.4.3"
   }
