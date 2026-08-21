@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 
 import type { Actor, ActorSource, ActorState } from '@meith/authorization'
 import { combinePermissionSets } from '@meith/authorization'
@@ -53,7 +53,7 @@ export class ActorBuilder implements ActorSource {
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)
-      .where(eq(users.id, userId))
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
       .limit(1)
 
     const user = userRows[0]

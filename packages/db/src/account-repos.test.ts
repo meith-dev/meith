@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { AccountStore } from '@meith/accounts'
@@ -7,7 +8,14 @@ import { truncateIp } from '@meith/core'
 import { createPostgresAccountStore } from './account-repos'
 import { PostgresModCpRepository } from './modcp-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { credentialTokens, loginAttempts, rememberTokens, sessions, usergroups } from './schema'
+import {
+  credentialTokens,
+  loginAttempts,
+  rememberTokens,
+  sessions,
+  usergroups,
+  users,
+} from './schema'
 
 describe('Postgres account repositories', () => {
   let h: TestDb
@@ -54,6 +62,32 @@ describe('Postgres account repositories', () => {
     it('updates the password hash and algorithm', async () => {
       await store.accounts.updatePassword(userId, 'newhash', 'argon2id')
       expect((await store.accounts.findById(userId))?.passwordHash).toBe('newhash')
+    })
+
+    it('does not return or mutate a tombstoned account', async () => {
+      const account = await store.accounts.create({
+        username: 'Closed',
+        usernameLower: 'closed',
+        email: 'closed@example.test',
+        emailLower: 'closed@example.test',
+        passwordHash: 'oldhash',
+        passwordAlgo: 'argon2id',
+        state: 'active',
+        primaryGroupId: 2,
+      })
+      await h.db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, account.id))
+
+      await store.accounts.updatePassword(account.id, 'newhash', 'argon2id')
+      await store.accounts.setState(account.id, 'banned')
+
+      expect(await store.accounts.findById(account.id)).toBeNull()
+      expect(await store.accounts.findByUsernameLower('closed')).toBeNull()
+      expect(await store.accounts.findByEmailLower('closed@example.test')).toBeNull()
+      const [row] = await h.db
+        .select({ passwordHash: users.passwordHash, state: users.state })
+        .from(users)
+        .where(eq(users.id, account.id))
+      expect(row).toEqual({ passwordHash: 'oldhash', state: 'active' })
     })
   })
 

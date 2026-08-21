@@ -71,7 +71,11 @@ export class PostgresAccountRepository implements AccountRepository {
   constructor(private readonly db: Database) {}
 
   async findById(id: number): Promise<AccountRecord | null> {
-    const rows = await this.db.select(ACCOUNT_COLUMNS).from(users).where(eq(users.id, id)).limit(1)
+    const rows = await this.db
+      .select(ACCOUNT_COLUMNS)
+      .from(users)
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
+      .limit(1)
     return rows[0] ? toAccountRecord(rows[0]) : null
   }
 
@@ -79,7 +83,7 @@ export class PostgresAccountRepository implements AccountRepository {
     const rows = await this.db
       .select(ACCOUNT_COLUMNS)
       .from(users)
-      .where(eq(users.usernameLower, usernameLower))
+      .where(and(eq(users.usernameLower, usernameLower), isNull(users.deletedAt)))
       .limit(1)
     return rows[0] ? toAccountRecord(rows[0]) : null
   }
@@ -88,7 +92,7 @@ export class PostgresAccountRepository implements AccountRepository {
     const rows = await this.db
       .select(ACCOUNT_COLUMNS)
       .from(users)
-      .where(eq(users.emailLower, emailLower))
+      .where(and(eq(users.emailLower, emailLower), isNull(users.deletedAt)))
       .limit(1)
     return rows[0] ? toAccountRecord(rows[0]) : null
   }
@@ -112,18 +116,24 @@ export class PostgresAccountRepository implements AccountRepository {
   }
 
   async recordLastIpPrefix(userId: number, prefix: string): Promise<void> {
-    await this.db.update(users).set({ lastIpPrefix: prefix }).where(eq(users.id, userId))
+    await this.db
+      .update(users)
+      .set({ lastIpPrefix: prefix })
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
   }
 
   async updatePassword(userId: number, passwordHash: string, passwordAlgo: string): Promise<void> {
     await this.db
       .update(users)
       .set({ passwordHash, passwordAlgo, passwordChangedAt: new Date() })
-      .where(eq(users.id, userId))
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
   }
 
   async setState(userId: number, state: AccountState): Promise<void> {
-    await this.db.update(users).set({ state }).where(eq(users.id, userId))
+    await this.db
+      .update(users)
+      .set({ state })
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
   }
 
   async markEmailVerified(
@@ -134,7 +144,7 @@ export class PostgresAccountRepository implements AccountRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         with before as (
-          select id, state from users where id = ${userId} for update
+          select id, state from users where id = ${userId} and deleted_at is null for update
         )
         update users u
            set email_verified_at = coalesce(u.email_verified_at, ${at}),
@@ -160,7 +170,11 @@ export class PostgresAccountRepository implements AccountRepository {
       .update(users)
       .set({ lastActiveAt: now })
       .where(
-        and(eq(users.id, userId), or(isNull(users.lastActiveAt), lt(users.lastActiveAt, cutoff))),
+        and(
+          eq(users.id, userId),
+          isNull(users.deletedAt),
+          or(isNull(users.lastActiveAt), lt(users.lastActiveAt, cutoff)),
+        ),
       )
       .returning({ id: users.id })
     return rows.length > 0

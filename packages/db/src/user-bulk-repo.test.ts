@@ -5,6 +5,7 @@ import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { PostgresUserBulkRepository } from './user-bulk-repo'
+import { ACCOUNT_CLOSURE_DISCARD } from './user-merge-map'
 
 let harness: TestDb
 let db: Database
@@ -106,6 +107,11 @@ async function deletedIds(): Promise<number[]> {
     await db.execute(sql`select id from users where deleted_at is not null order by id`),
   ) as Array<{ id: number }>
   return rows.map((row) => Number(row.id))
+}
+
+async function count(query: ReturnType<typeof sql>): Promise<number> {
+  const rows = resultRows(await db.execute(query)) as Array<{ n: number }>
+  return Number(rows[0]?.n ?? 0)
 }
 
 describe('prunePreview', () => {
@@ -248,6 +254,59 @@ describe('pruneChunk', () => {
       await db.execute(sql`select count(*)::int as n from users where id = 1`),
     ) as Array<{ n: number }>
     expect(Number(rows[0]?.n)).toBe(1)
+  })
+
+  it('removes every authentication artifact while retaining the account row', async () => {
+    await seed({ id: 1, username: 'ghost' })
+    await db.execute(sql`
+      insert into sessions (user_id, token_hash, expires_at)
+      values (1, 'session', now() + interval '1 day')
+    `)
+    await db.execute(sql`
+      insert into remember_tokens (user_id, token_hash, family_id, expires_at)
+      values (1, 'remember', 'family', now() + interval '1 day')
+    `)
+    await db.execute(sql`
+      insert into credential_tokens (user_id, token_hash, purpose, expires_at)
+      values (1, 'credential', 'password_reset', now() + interval '1 day')
+    `)
+    await db.execute(sql`
+      insert into admin_sessions (user_id, token_hash, expires_at)
+      values (1, 'admin', now() + interval '1 day')
+    `)
+    await db.execute(sql`
+      insert into user_identities (user_id, provider, subject)
+      values (1, 'oidc', 'subject')
+    `)
+    await db.execute(sql`
+      insert into passkeys (user_id, credential_id, public_key, label)
+      values (1, 'passkey', 'public-key', 'Key')
+    `)
+    await db.execute(sql`
+      insert into user_two_factor (user_id, sealed_secret, confirmed_at)
+      values (1, 'sealed', now())
+    `)
+    await db.execute(sql`
+      insert into recovery_codes (user_id, code_hash) values (1, 'recovery')
+    `)
+    await db.execute(sql`
+      insert into api_tokens (user_id, name, lookup, secret_hash)
+      values (1, 'CLI', 'lookup', 'secret')
+    `)
+
+    await repo.pruneChunk(CRITERIA, 10)
+
+    expect(await deletedIds()).toEqual([1])
+    for (const entry of ACCOUNT_CLOSURE_DISCARD) {
+      expect(
+        await count(sql`
+          select count(*)::int as n
+            from ${sql.raw(entry.table)}
+           where ${sql.raw(entry.column)} = 1
+        `),
+        entry.table,
+      ).toBe(0)
+    }
   })
 
   it('applies the same exclusions the preview showed', async () => {
