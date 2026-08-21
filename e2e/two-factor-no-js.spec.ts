@@ -38,7 +38,7 @@ async function code(secret: string, offset = 0): Promise<string> {
 
 async function recoveryCodes(page: Page): Promise<readonly string[]> {
   const items = await page.locator('li').allInnerTexts()
-  return items.filter((text) => /^[A-Z2-7]{5}-[A-Z2-7]{5}$/.test(text.trim()))
+  return items.filter((text) => /^[A-Z2-7]{5}(?:-[A-Z2-7]{5}){4}-[A-Z2-7]$/.test(text.trim()))
 }
 
 test('a member turns on a code, and is asked for it next time they sign in', async ({
