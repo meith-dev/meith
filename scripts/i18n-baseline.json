@@ -111,7 +111,7 @@
   "packages/moderation/src/warnings.ts": 1,
   "packages/notifications/src/kinds.ts": 22,
   "packages/notifications/src/push.ts": 2,
-  "packages/plugin-kit/src/hooks.ts": 114,
+  "packages/plugin-kit/src/hooks.ts": 117,
   "packages/plugin-kit/src/plugin.ts": 1,
   "packages/plugin-kit/src/regions.ts": 12,
   "packages/plugin-kit/src/runtime.ts": 4,
