@@ -17,7 +17,6 @@ export {
   type RateLimitStore,
   type RateLimitWindow,
   rateLimitHeaders,
-  windowStart,
 } from './rate-limit'
 export { renderReference } from './reference'
 export {

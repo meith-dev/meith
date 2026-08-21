@@ -571,7 +571,10 @@ The host owns every decision a plugin must not:
   The count is per caller (signed-in user id, else the client address) and
   per instance, in process memory — abuse-pressure relief, not accounting.
   A board that scales out multiplies the budget by its instance count;
-  declare limits with that in mind.
+  declare limits with that in mind. Counting is sliding-window, weighing
+  the previous window's usage against how much of the current window has
+  elapsed, so a caller who spends a window's full budget cannot double it
+  by timing a second burst just after the window rolls over.
 
 One honest limit: route paths are exact matches — put ids in the query
 string, not the path.

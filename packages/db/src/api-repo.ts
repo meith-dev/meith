@@ -138,7 +138,7 @@ export class PostgresApiTokenRepository {
 export class PostgresRateLimitStore implements RateLimitStore {
   constructor(private readonly db: Database) {}
 
-  async consume(tokenId: number, windowStart: Date, cost: number): Promise<number> {
+  async spend(tokenId: number, windowStart: Date, cost: number): Promise<number> {
     const rows = (await this.db.execute(sql`
       insert into api_rate_limits (token_id, window_start, used)
       values (${tokenId}, ${windowStart}, ${cost})
@@ -148,6 +148,15 @@ export class PostgresRateLimitStore implements RateLimitStore {
     `)) as unknown as { used: number }[]
 
     return rows[0]?.used ?? cost
+  }
+
+  async peek(tokenId: number, windowStart: Date): Promise<number> {
+    const rows = (await this.db.execute(sql`
+      select used from api_rate_limits
+       where token_id = ${tokenId} and window_start = ${windowStart}
+    `)) as unknown as { used: number }[]
+
+    return rows[0]?.used ?? 0
   }
 
   async prune(before: Date, limit = 5000): Promise<number> {

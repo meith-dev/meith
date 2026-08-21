@@ -33,8 +33,7 @@ beforeEach(async () => {
 
 describe('the counter', () => {
   it('starts at the cost and increments from there', async () => {
-    const spend = () =>
-      store.consume({ scope: 'post', subject: 'u:1', windowStart: WINDOW, cost: 1 })
+    const spend = () => store.spend({ scope: 'post', subject: 'u:1' }, WINDOW, 1)
 
     expect(await spend()).toBe(1)
     expect(await spend()).toBe(2)
@@ -43,9 +42,7 @@ describe('the counter', () => {
 
   it('gives every concurrent caller a distinct total', async () => {
     const totals = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        store.consume({ scope: 'post', subject: 'u:1', windowStart: WINDOW, cost: 1 }),
-      ),
+      Array.from({ length: 10 }, () => store.spend({ scope: 'post', subject: 'u:1' }, WINDOW, 1)),
     )
 
     expect([...totals].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -69,7 +66,7 @@ describe('the counter', () => {
 
   it('keeps scopes, subjects and windows apart', async () => {
     const at = (scope: 'post' | 'search', subject: string, window: Date) =>
-      store.consume({ scope, subject, windowStart: window, cost: 1 })
+      store.spend({ scope, subject }, window, 1)
 
     await at('post', 'u:1', WINDOW)
     expect(await at('search', 'u:1', WINDOW)).toBe(1)
@@ -78,21 +75,25 @@ describe('the counter', () => {
   })
 
   it('honours a cost above one', async () => {
-    expect(
-      await store.consume({ scope: 'upload', subject: 'u:1', windowStart: WINDOW, cost: 5 }),
-    ).toBe(5)
+    expect(await store.spend({ scope: 'upload', subject: 'u:1' }, WINDOW, 5)).toBe(5)
+  })
+
+  it('peeks a spent bucket without mutating it', async () => {
+    await store.spend({ scope: 'post', subject: 'u:1' }, WINDOW, 5)
+
+    expect(await store.peek({ scope: 'post', subject: 'u:1' }, WINDOW)).toBe(5)
+    expect(await store.peek({ scope: 'post', subject: 'u:1' }, WINDOW)).toBe(5)
+  })
+
+  it('peeks an untouched bucket as zero', async () => {
+    expect(await store.peek({ scope: 'post', subject: 'u:1' }, WINDOW)).toBe(0)
   })
 })
 
 describe('pruning', () => {
   async function seed(windows: readonly string[]): Promise<void> {
     for (const window of windows) {
-      await store.consume({
-        scope: 'post',
-        subject: 'u:1',
-        windowStart: new Date(window),
-        cost: 1,
-      })
+      await store.spend({ scope: 'post', subject: 'u:1' }, new Date(window), 1)
     }
   }
 

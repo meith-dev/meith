@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { rateLimitWindowStart } from '@meith/core'
+
 import {
   ANONYMOUS_WINDOW,
   type ApiTokenRecord,
@@ -21,7 +23,6 @@ import {
   rateLimitHeaders,
   routeKey,
   SCOPES,
-  windowStart,
 } from './index'
 
 const NOW = new Date('2026-03-12T09:14:00.000Z')
@@ -239,10 +240,13 @@ describe('the route registry', () => {
 })
 
 describe('the rate limit', () => {
-  const storeReturning = (total: number) => ({ consume: async () => total })
+  const storeReturning = (total: number) => ({
+    spend: async () => total,
+    peek: async () => 0,
+  })
 
   it('aligns the window so every instance agrees on its start', () => {
-    const start = windowStart(new Date('2026-03-12T09:14:37.000Z'), DEFAULT_WINDOW)
+    const start = rateLimitWindowStart(new Date('2026-03-12T09:14:37.000Z'), DEFAULT_WINDOW)
     expect(start.toISOString()).toBe('2026-03-12T09:10:00.000Z')
   })
 
@@ -268,9 +272,10 @@ describe('the rate limit', () => {
   })
 
   it('charges the declared cost, not one per request', async () => {
-    const consume = vi.fn(async () => 10)
-    await consumeRateLimit({ consume }, 1, 10, NOW)
-    expect(consume).toHaveBeenCalledWith(1, windowStart(NOW, DEFAULT_WINDOW), 10)
+    const spend = vi.fn(async () => 10)
+    const peek = vi.fn(async () => 0)
+    await consumeRateLimit({ spend, peek }, 1, 10, NOW)
+    expect(spend).toHaveBeenCalledWith(1, rateLimitWindowStart(NOW, DEFAULT_WINDOW), 10)
   })
 
   it('reports the budget on every response', async () => {
@@ -282,6 +287,17 @@ describe('the rate limit', () => {
   it('never reports a negative remaining budget', async () => {
     const headers = rateLimitHeaders(await consumeRateLimit(storeReturning(900), 1, 1, NOW))
     expect(headers['x-ratelimit-remaining']).toBe('0')
+  })
+
+  it('weighs unspent usage from the previous window against a fresh one', async () => {
+    const boundary = rateLimitWindowStart(new Date('2026-03-12T09:15:00.000Z'), DEFAULT_WINDOW)
+    const store = {
+      spend: async () => 1,
+      peek: async () => DEFAULT_WINDOW.budget,
+    }
+
+    const outcome = await consumeRateLimit(store, 1, 1, new Date(boundary.getTime() + 1))
+    expect(outcome.allowed).toBe(false)
   })
 })
 
@@ -311,14 +327,19 @@ describe('reading without a token', () => {
   })
 
   it('charges the declared cost against the caller’s subject, not their token', async () => {
-    const consume = vi.fn(async () => 10)
-    await consumeAnonymousRateLimit({ consume }, '203.0.113.0', 10, NOW)
-    expect(consume).toHaveBeenCalledWith('203.0.113.0', windowStart(NOW, ANONYMOUS_WINDOW), 10)
+    const spend = vi.fn(async () => 10)
+    const peek = vi.fn(async () => 0)
+    await consumeAnonymousRateLimit({ spend, peek }, '203.0.113.0', 10, NOW)
+    expect(spend).toHaveBeenCalledWith(
+      '203.0.113.0',
+      rateLimitWindowStart(NOW, ANONYMOUS_WINDOW),
+      10,
+    )
   })
 
   it('refuses the anonymous caller who goes over', async () => {
     const outcome = await consumeAnonymousRateLimit(
-      { consume: async () => ANONYMOUS_WINDOW.budget + 1 },
+      { spend: async () => ANONYMOUS_WINDOW.budget + 1, peek: async () => 0 },
       '203.0.113.0',
       1,
       NOW,

@@ -30,17 +30,20 @@ vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresCaptchaQuestionRepository: class {},
   PostgresRateLimitBucketStore: class {
-    async consume(input: {
-      scope: string
-      subject: string
-      windowStart: Date
-      cost: number
-    }): Promise<number> {
+    async spend(
+      subject: { scope: string; subject: string },
+      windowStart: Date,
+      cost: number,
+    ): Promise<number> {
       if (state.storeThrows) throw new Error('no database')
-      const key = `${input.scope}|${input.subject}|${input.windowStart.toISOString()}`
-      const next = (state.counts.get(key) ?? 0) + input.cost
+      const key = `${subject.scope}|${subject.subject}|${windowStart.toISOString()}`
+      const next = (state.counts.get(key) ?? 0) + cost
       state.counts.set(key, next)
       return next
+    }
+    async peek(subject: { scope: string; subject: string }, windowStart: Date): Promise<number> {
+      const key = `${subject.scope}|${subject.subject}|${windowStart.toISOString()}`
+      return state.counts.get(key) ?? 0
     }
     async prune(): Promise<number> {
       return 0

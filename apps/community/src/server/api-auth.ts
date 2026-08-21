@@ -56,8 +56,11 @@ export function anonymousLimits(): AnonymousRateLimitStore | null {
   if (store === null) return null
 
   return {
-    async consume(subject, windowStart, cost) {
-      return store.consume({ scope: ANONYMOUS_SCOPE, subject, windowStart, cost })
+    async spend(subject, windowStart, cost) {
+      return store.spend({ scope: ANONYMOUS_SCOPE, subject }, windowStart, cost)
+    },
+    async peek(subject, windowStart) {
+      return store.peek({ scope: ANONYMOUS_SCOPE, subject }, windowStart)
     },
   }
 }

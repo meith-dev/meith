@@ -1,3 +1,5 @@
+import { type RateLimitBucketStore, spendRateLimit } from '@meith/core'
+
 export const RATE_LIMIT_SCOPES = ['post', 'search', 'message', 'report', 'upload'] as const
 export type ConfiguredRateLimitScope = (typeof RATE_LIMIT_SCOPES)[number]
 
@@ -22,16 +24,12 @@ export function isRateLimitScope(value: string): value is ConfiguredRateLimitSco
   return (RATE_LIMIT_SCOPES as readonly string[]).includes(value)
 }
 
-export interface RateLimitStore {
-  consume(input: {
-    readonly scope: RateLimitScope
-    readonly subject: string
-    readonly windowStart: Date
-    readonly cost: number
-  }): Promise<number>
-
-  prune(before: Date, limit?: number): Promise<number>
+export interface RateLimitSubject {
+  readonly scope: RateLimitScope
+  readonly subject: string
 }
+
+export type RateLimitStore = RateLimitBucketStore<RateLimitSubject>
 
 export interface RateLimitRule {
   readonly max: number
@@ -77,24 +75,18 @@ export class RateLimiter {
       return { allowed: true, used: 0, remaining: Number.POSITIVE_INFINITY }
     }
 
-    const now = this.now()
-    const windowStart = windowStartFor(now, windowSeconds)
-    const used = await this.store.consume({
-      scope: input.scope,
-      subject: input.subject,
-      windowStart,
-      cost: input.cost ?? 1,
-    })
+    const outcome = await spendRateLimit(
+      this.store,
+      { scope: input.scope, subject: input.subject },
+      input.cost ?? 1,
+      { seconds: windowSeconds, budget: max },
+      this.now(),
+    )
 
-    if (used <= max) {
-      return { allowed: true, used, remaining: max - used }
+    if (outcome.allowed) {
+      return { allowed: true, used: outcome.used, remaining: max - outcome.used }
     }
 
-    const resetAt = windowStart.getTime() + windowSeconds * 1000
-    return {
-      allowed: false,
-      used,
-      retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now.getTime()) / 1000)),
-    }
+    return { allowed: false, used: outcome.used, retryAfterSeconds: outcome.resetSeconds }
   }
 }
