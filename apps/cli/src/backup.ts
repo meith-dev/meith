@@ -447,7 +447,13 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
     console.log(`Restoring the backup taken ${manifest.createdAt} (version ${manifest.version})…`)
     await run(
       'pg_restore',
-      ['--no-owner', '--no-privileges', path.join(stage, 'db.dump')],
+      [
+        '--no-owner',
+        '--no-privileges',
+        '--dbname',
+        databaseEnvironment.PGDATABASE ?? '',
+        path.join(stage, 'db.dump'),
+      ],
       databaseEnvironment,
     )
 
