@@ -66,7 +66,6 @@ export {
   truncateIp,
   withRequestContext,
 } from './logger'
-export { optional } from './optional'
 export {
   type Counter,
   type Gauge,
@@ -76,6 +75,7 @@ export {
   metrics,
   PrometheusRegistry,
 } from './metrics'
+export { optional } from './optional'
 export {
   emptyPermissionSet,
   FORUM_PERMISSION_FIELDS,
