@@ -10,8 +10,6 @@ import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { displayGroupIdSql } from './staff-groups'
 
-// Escapes the wildcards `like` gives special meaning to, so a prefix containing
-// a literal `%` or `_` matches only that literal character, not "anything".
 function likePrefix(prefix: string): string {
   return `${prefix.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`
 }

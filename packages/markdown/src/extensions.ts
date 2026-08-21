@@ -23,9 +23,6 @@ export interface DirectiveRegistry {
 
 export const NO_DIRECTIVES: DirectiveRegistry = { block: new Set(), inline: new Set() }
 
-// A reserved name is a directive the renderer already gives meaning to (see render.ts). It is
-// always recognized during parsing, on every board, whether or not the vocabulary defines it —
-// and a board cannot redefine it, so its rendering can never be shadowed by admin configuration.
 export const RESERVED_DIRECTIVE_NAMES: ReadonlySet<string> = new Set(['spoiler'])
 
 export function createDirectiveRegistry(

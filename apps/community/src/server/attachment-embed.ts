@@ -26,11 +26,6 @@ function renderAttachment(record: AttachmentRecord): string {
   )
 }
 
-// Whether this viewer may place *this* attachment inline in *this* text — not
-// whether they may download it, which the attachment route re-checks on every
-// request regardless (see resolveDownload in attachments.ts). This check only
-// keeps a member from naming an id that was never theirs: their own pending
-// upload, or one already claimed by the very post being rendered.
 function mayInline(
   record: AttachmentRecord,
   context: { readonly viewerUserId: number | null; readonly postId: number | null },
@@ -39,13 +34,6 @@ function mayInline(
   return context.postId !== null && record.postId === context.postId
 }
 
-/**
- * Resolves packages/markdown's `[attachment=id]` placeholders into real
- * markup, run once at write time (see markdown-pipeline.ts) alongside
- * highlighting and embeds. An id nobody may place here — unrecognized, not
- * ready, not theirs — resolves to nothing: the placeholder disappears rather
- * than leaking whether the id exists.
- */
 export async function resolveInlineAttachments(
   html: string,
   context: { readonly viewerUserId: number | null; readonly postId: number | null },

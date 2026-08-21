@@ -17,6 +17,8 @@ test('typing @ opens mention suggestions, and picking one inserts the name', asy
   await page.goto('/200-general')
   await page.getByRole('link', { name: 'New thread' }).click()
 
+  await expect(page.getByRole('group', { name: 'Formatting' })).toBeVisible()
+
   const message = page.getByLabel('Message')
   await message.fill(`hi @${targetUsername.slice(0, 6)}`)
 

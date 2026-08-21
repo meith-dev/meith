@@ -2,9 +2,7 @@ import 'server-only'
 
 import { createHighlighter, type Highlighter } from 'shiki'
 
-import { escapeAttribute } from '@meith/markdown'
-
-import { unescapeHtml } from './html-entities'
+import { escapeAttribute, unescapeHtml } from '@meith/markdown'
 
 const LANGUAGES = [
   'bash',
@@ -78,18 +76,9 @@ function getHighlighter(): Promise<Highlighter> {
   return highlighter
 }
 
-// Matches exactly the shape packages/markdown/src/render.ts emits for a fenced code block —
-// the language, if present, comes from a class the renderer already validated and escaped.
 const CODE_BLOCK =
   /<pre class="md-code"><code(?: class="md-code-lang-([a-z0-9+#._-]+)")?>([\s\S]*?)\n<\/code><\/pre>/g
 
-/**
- * Server-side syntax highlighting for post HTML, run once at write time (see
- * markdown-pipeline.ts). It rewrites the plain, escaped `<pre><code>` blocks
- * packages/markdown emits into Shiki's dual light/dark-theme markup, and
- * leaves anything it does not recognize — an unfenced block, an unsupported
- * language — exactly as the renderer produced it.
- */
 export async function highlightCodeBlocks(html: string): Promise<string> {
   if (!html.includes('md-code')) return html
 

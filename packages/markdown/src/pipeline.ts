@@ -11,13 +11,6 @@ export interface MarkdownAuthorRef {
 export interface MarkdownRenderContext {
   readonly source: MarkdownSourceKind
   readonly viewer: MarkdownAuthorRef
-  /**
-   * The post this text belongs to, when it already has one — an edit, not a
-   * fresh post or a preview. An inline `[attachment=id]` renders as more than
-   * a placeholder only once something with database access resolves it (see
-   * apps/community's attachment-embed.ts), and that resolution needs to know
-   * which post an already-claimed attachment must belong to.
-   */
   readonly postId?: number | null
 }
 

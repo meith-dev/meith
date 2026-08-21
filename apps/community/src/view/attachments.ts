@@ -39,7 +39,6 @@ export function attachmentsByPost(
   const byPost = new Map<number, PostAttachmentModel[]>()
 
   for (const record of records) {
-    // An orphan (no post yet) has no gallery to join — see attachment-embed.ts.
     if (record.postId === null) continue
     const model = attachmentModel(record)
     if (model === null) continue

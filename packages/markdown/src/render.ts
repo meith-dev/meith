@@ -69,11 +69,6 @@ export function renderInline(nodes: readonly Inline[], context: RenderContext = 
         break
       }
       case 'attachment':
-        // A placeholder only: which attachment ids a viewer may actually see resolved is a
-        // permission question this package has no way to answer, so it names the id and leaves
-        // resolving it to the async post-processing step that does (see apps/community's
-        // attachment-embed.ts). An id nobody resolves — the board has no attachments package
-        // configured, say — just disappears; it was never guaranteed to render as anything.
         html += `<span class="md-attachment" data-attachment-id="${node.id}"></span>`
         break
     }
@@ -103,13 +98,6 @@ function renderAttribution(attribution: QuoteAttribution, context: RenderContext
 
 const QUOTE_ATTRIBUTION_STRONG = /<strong data-quote-author="([^"]*)">[\s\S]*?<\/strong>/g
 
-/**
- * Swaps a rendered post's quote-attribution text for a translated one without
- * re-parsing or re-rendering anything else — so a translator doesn't force a
- * cached post's stored HTML (see postBodyHtml in body.ts) to be recomputed,
- * which would also re-run the much more expensive async pipeline steps
- * (syntax highlighting, embeds, inline attachments) on every view.
- */
 export function localizeQuoteAttribution(
   html: string,
   quoteAttribution: (author: string) => string,

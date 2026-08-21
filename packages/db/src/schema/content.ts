@@ -348,10 +348,6 @@ export const attachments = pgTable(
   'attachments',
   {
     id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-    // Null between upload and being claimed by a post — a member can only place
-    // [attachment=id] for one they can already name, so the id has to exist
-    // before the post that names it does (see attachment-embed.ts). An orphan
-    // past its grace period is swept the same way an abandoned storage key is.
     postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
     forumId: integer('forum_id')
       .notNull()

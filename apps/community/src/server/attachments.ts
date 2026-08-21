@@ -159,13 +159,6 @@ export async function attachStaged(
   return created
 }
 
-/**
- * Claims the attachments a member inserted inline (uploadInlineAttachmentAction)
- * while composing, for the post they were composing it for. Capped at what the
- * forum's per-post limit still allows after `existing` classic attachments —
- * a member cannot inflate that cap by claiming ids past it, since claim() only
- * spends what claimAttachments actually asks it to.
- */
 export async function claimAttachments(
   form: FormData,
   post: { readonly postId: number; readonly forumId: number; readonly userId: number },

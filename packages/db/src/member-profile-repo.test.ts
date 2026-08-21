@@ -136,8 +136,6 @@ describe('searchByUsernamePrefix', () => {
   })
 
   it('treats a literal underscore in the prefix as a literal, not a "match any" wildcard', async () => {
-    // Unescaped, `_` in LIKE means "any single character" — "ad_" would then also
-    // match "adyx", which is exactly what escaping in likePrefix() prevents.
     expect(await repo.searchByUsernamePrefix('ad_', 10)).toEqual([{ id: 54, username: 'ad_x' }])
   })
 

@@ -1,9 +1,7 @@
 import 'server-only'
 
 import { env } from '@meith/core'
-import { escapeAttribute, escapeHtml, safeImageUrl, safeUrl } from '@meith/markdown'
-
-import { unescapeHtml } from './html-entities'
+import { escapeAttribute, escapeHtml, safeImageUrl, safeUrl, unescapeHtml } from '@meith/markdown'
 
 interface Provider {
   readonly name: string
@@ -11,11 +9,6 @@ interface Provider {
   readonly oembedUrl: (url: URL) => string
 }
 
-// Two providers, both with a stable, key-free, publicly documented oEmbed
-// endpoint. The fetch this module makes always goes to one of these two
-// hardcoded hosts — the member's own URL is only ever passed along as a
-// query value, never as a fetch target — so there is no SSRF surface here
-// to widen by adding a provider whose endpoint is not equally fixed.
 const PROVIDERS: readonly Provider[] = [
   {
     name: 'YouTube',
@@ -40,10 +33,6 @@ interface OEmbedResponse {
   readonly thumbnail_url?: unknown
 }
 
-// A paragraph whose entire content is one plain link — packages/markdown's own
-// rendering shape for a bare URL, or a `[label](url)` on its own line. A link
-// that shares a paragraph with other prose is left alone: unfurling it would
-// turn "see the trailer (https://…)" into a card the sentence never asked for.
 const LONE_LINK =
   /<p><a href="([^"]*)" rel="nofollow ugc noopener noreferrer"(?: title="[^"]*")?>[^<]*<\/a><\/p>/g
 
@@ -57,8 +46,6 @@ async function fetchOEmbed(provider: Provider, url: URL): Promise<OEmbedResponse
     if (!(response.headers.get('content-type') ?? '').includes('application/json')) return null
     return (await response.json()) as OEmbedResponse
   } catch {
-    // A slow, unreachable, or malformed provider response is never worth
-    // failing — or even delaying — the post over. The link stays a link.
     return null
   }
 }
@@ -88,14 +75,6 @@ function renderCard(provider: Provider, href: string, data: OEmbedResponse): str
   )
 }
 
-/**
- * Static-card link unfurling for a post's own-line YouTube/Vimeo links, run
- * once at write time (see markdown-pipeline.ts) alongside code highlighting.
- * Gated on the same REMOTE_IMAGES flag the CSP's `img-src` already uses,
- * since a card's thumbnail is exactly the kind of remote image that flag
- * exists to allow or refuse — a board that has not opted into remote images
- * gets no cards, only the plain links it already had.
- */
 export async function unfurlEmbeds(html: string): Promise<string> {
   if (!env.REMOTE_IMAGES || !html.includes('<a href=')) return html
 

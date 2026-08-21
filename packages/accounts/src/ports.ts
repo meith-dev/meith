@@ -58,7 +58,6 @@ export interface MemberSuggestion {
 
 export interface MemberProfileRepository {
   findPublicById(id: number): Promise<MemberProfileRecord | null>
-  /** Active members whose username starts with `prefix` (case-insensitive), for mention typeahead. */
   searchByUsernamePrefix(prefix: string, limit: number): Promise<readonly MemberSuggestion[]>
 }
 

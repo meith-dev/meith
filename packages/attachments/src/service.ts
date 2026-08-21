@@ -143,9 +143,7 @@ export interface AttachmentRepository {
   recordDownload(id: number): Promise<void>
   stalled(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
 
-  /** Claims an orphan (postId null) for a post. Null if it was not an unclaimed orphan. */
   attachTo(id: number, postId: number): Promise<AttachmentRecord | null>
-  /** Orphans (postId still null) older than `before`, deleted and returned so their files can go too. */
   deleteOrphans(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
 
   rememberKey(key: string): Promise<void>
@@ -218,7 +216,6 @@ export class AttachmentService {
     return created
   }
 
-  /** A single, standalone upload with no post yet — see docs/formatting.md's inline attachments. */
   async uploadOrphan(
     upload: AcceptedUpload,
     owner: { readonly forumId: number; readonly uploaderUserId: number },
@@ -248,12 +245,6 @@ export class AttachmentService {
     return record
   }
 
-  /**
-   * Claims previously uploaded orphans for a post, one at a time, skipping any
-   * id that is not actually an unclaimed orphan this same uploader created in
-   * this same forum — a member cannot claim someone else's pending upload by
-   * guessing its id, and cannot claim one already spent on an earlier post.
-   */
   async claim(
     ids: readonly number[],
     post: { readonly postId: number; readonly forumId: number; readonly uploaderUserId: number },

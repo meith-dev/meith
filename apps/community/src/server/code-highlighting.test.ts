@@ -40,8 +40,6 @@ describe('highlightCodeBlocks', () => {
 
   it('round-trips characters the renderer escaped, rather than highlighting entities', async () => {
     const out = await highlightCodeBlocks(fenced('ts', 'a < b && b > c'))
-    // A double-escape (e.g. `&amp;lt;`) would mean it highlighted the *entities*
-    // render.ts produced instead of the original source text.
     expect(out).not.toMatch(/&amp;(lt|gt|amp|#x3C|#x26);/)
     expect(out).toContain('<span')
   })

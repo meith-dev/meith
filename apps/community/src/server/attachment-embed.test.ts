@@ -93,7 +93,6 @@ describe('resolveInlineAttachments', () => {
   it('drops an id nobody may place here, rather than leaking that it exists', async () => {
     attachments.rows = [record({ id: 5, uploaderUserId: 99, postId: null })]
 
-    // Not the uploader, and not rendering the post (if any) this attachment belongs to.
     const out = await resolveInlineAttachments(`x${placeholder(5)}y`, {
       viewerUserId: 1,
       postId: null,

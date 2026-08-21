@@ -20,9 +20,6 @@ describe('inline attachment syntax', () => {
   })
 
   it('is never a permission decision at this layer — the id is all it carries', () => {
-    // Whether *this* viewer may actually see attachment 42 is answered later,
-    // by the post-processing step with database and viewer context. Nothing
-    // here should be mistaken for that check having already happened.
     expect(inline('[attachment=42]')).not.toContain('href')
   })
 
@@ -41,8 +38,6 @@ describe('inline attachment syntax', () => {
   })
 
   it('takes only its own brackets, leaving what follows as ordinary text', () => {
-    // [attachment=1] is not link syntax, so trailing (…) is not a destination —
-    // it is read as the literal characters that come after the placeholder.
     expect(inline('[attachment=1](not a destination)')).toBe(
       '<span class="md-attachment" data-attachment-id="1"></span>(not a destination)',
     )

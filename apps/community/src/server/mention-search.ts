@@ -12,11 +12,6 @@ export interface MentionSearchDeps {
   readonly relations: RelationService | null
 }
 
-/**
- * Candidates for the composer's mention typeahead — an enhancement only, so a
- * result here is never authoritative: rendering still re-checks that `@name`
- * resolves to a real, visible member (see packages/markdown's mention render).
- */
 export async function searchMentionCandidates(
   actor: Actor,
   rawQuery: string,
