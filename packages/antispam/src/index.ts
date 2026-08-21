@@ -31,6 +31,7 @@ export {
   type RateLimitRule,
   type RateLimitScope,
   type RateLimitStore,
+  type RateLimitSubject,
   subjectFor,
   windowStartFor,
 } from './limits'

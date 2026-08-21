@@ -33,6 +33,10 @@ export class EventRegistry {
     const handler = this.byId.get(handlerId)
 
     if (!handler) {
+      console.warn(
+        `no handler registered for dispatched event "${handlerId}"; job will be marked done ` +
+          'with no work performed',
+      )
       return
     }
 
@@ -43,5 +47,3 @@ export class EventRegistry {
     return [...this.byId.keys()]
   }
 }
-
-export const eventRegistry = new EventRegistry()

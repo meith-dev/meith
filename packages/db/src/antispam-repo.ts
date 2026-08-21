@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 
-import type { CaptchaQuestion, RateLimitScope, RateLimitStore } from '@meith/antispam'
+import type { CaptchaQuestion, RateLimitStore, RateLimitSubject } from '@meith/antispam'
 import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
@@ -10,23 +10,31 @@ import { resultRows } from './result-rows'
 export class PostgresRateLimitBucketStore implements RateLimitStore {
   constructor(private readonly db: Database) {}
 
-  async consume(input: {
-    readonly scope: RateLimitScope
-    readonly subject: string
-    readonly windowStart: Date
-    readonly cost: number
-  }): Promise<number> {
+  async spend(subject: RateLimitSubject, windowStart: Date, cost: number): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`
         insert into rate_limits (scope, subject, window_start, used)
-        values (${input.scope}, ${input.subject}, ${input.windowStart}, ${input.cost})
+        values (${subject.scope}, ${subject.subject}, ${windowStart}, ${cost})
         on conflict (scope, subject, window_start)
-          do update set used = rate_limits.used + ${input.cost}
+          do update set used = rate_limits.used + ${cost}
         returning used
       `),
     ) as Array<{ used: number }>
 
-    return Number(rows[0]?.used ?? input.cost)
+    return Number(rows[0]?.used ?? cost)
+  }
+
+  async peek(subject: RateLimitSubject, windowStart: Date): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select used from rate_limits
+         where scope = ${subject.scope}
+           and subject = ${subject.subject}
+           and window_start = ${windowStart}
+      `),
+    ) as Array<{ used: number }>
+
+    return Number(rows[0]?.used ?? 0)
   }
 
   async prune(before: Date, limit = 5000): Promise<number> {

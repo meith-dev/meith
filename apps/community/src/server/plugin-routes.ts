@@ -226,7 +226,7 @@ export async function dispatchPluginRoute(
   }
 
   if (route.rateLimit !== undefined) {
-    const verdict = routeLimiter.consume(
+    const verdict = await routeLimiter.consume(
       `${pluginKey}:${path}:${callerKey(request, actor.userId)}`,
       route.rateLimit.limit,
       route.rateLimit.windowSeconds,

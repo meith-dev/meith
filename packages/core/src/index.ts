@@ -66,6 +66,7 @@ export {
   truncateIp,
   withRequestContext,
 } from './logger'
+export { optional } from './optional'
 export {
   emptyPermissionSet,
   FORUM_PERMISSION_FIELDS,
@@ -92,6 +93,15 @@ export type {
   QueueDriver,
   StoredFile,
 } from './ports'
+export type {
+  RateLimitBucketStore,
+  RateLimitOutcome,
+  RateLimitWindow,
+} from './rate-limit'
+export {
+  rateLimitWindowStart,
+  spendRateLimit,
+} from './rate-limit'
 export {
   ALL_THREAD_AUTHORS,
   audienceFilterIn,
