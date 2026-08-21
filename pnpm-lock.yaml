@@ -217,9 +217,6 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
-      shiki:
-        specifier: ^4.4.3
-        version: 4.4.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.3.3
@@ -573,6 +570,9 @@ importers:
       redis:
         specifier: ^6.2.1
         version: 6.2.1
+      shiki:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/nodemailer':
         specifier: ^8.0.1
