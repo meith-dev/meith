@@ -137,6 +137,15 @@ describe('the uniqueness rules', () => {
     expect(await cachedTotal()).toBe(2)
   })
 
+  it('rejects a post that belongs to another member', async () => {
+    await seedPost(100)
+    await db.execute(sql`update posts set author_user_id = ${OTHER} where id = 100`)
+
+    expect(await give({ postId: 100 })).toBe('invalid-post')
+    expect(await repo.list({ userId: TARGET, limit: 10 })).toHaveLength(0)
+    expect(await cachedTotal()).toBe(0)
+  })
+
   it('updates a post rating rather than stacking', async () => {
     await seedPost(100)
     await give({ postId: 100, points: 1 })
