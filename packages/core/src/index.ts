@@ -66,6 +66,7 @@ export {
   truncateIp,
   withRequestContext,
 } from './logger'
+export { optional } from './optional'
 export {
   emptyPermissionSet,
   FORUM_PERMISSION_FIELDS,

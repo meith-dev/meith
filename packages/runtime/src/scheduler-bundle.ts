@@ -2,7 +2,7 @@ import { AttachmentService, type ImageProcessor } from '@meith/attachments'
 import { Authorizer } from '@meith/authorization'
 import { AvatarService } from '@meith/avatars'
 import type { FileStore, MailDriver, QueueDriver } from '@meith/core'
-import { env, logger } from '@meith/core'
+import { env, logger, optional } from '@meith/core'
 import {
   ActorBuilder,
   type Database,
@@ -75,8 +75,8 @@ export function buildSchedulerBundle(deps: {
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
   const themeDeps = {
-    ...(deps.themeKey === undefined ? {} : { themeKey: deps.themeKey }),
-    ...(deps.themeTokens === undefined ? {} : { themeTokens: deps.themeTokens }),
+    ...optional(deps.themeKey, (themeKey) => ({ themeKey })),
+    ...optional(deps.themeTokens, (themeTokens) => ({ themeTokens })),
   }
   const threadViews = new PostgresThreadViewBuffer(db)
   const notifications = new PostgresNotificationRepository(db)
@@ -171,32 +171,30 @@ export function buildSchedulerBundle(deps: {
           },
           timedGroups: { expire: (limit) => expireTimedGroupMemberships(db, limit) },
           outbox: new PostgresOutboxReader(db),
-          ...(attachmentService === undefined ? {} : { attachments: attachmentService }),
-          ...(avatarService === undefined ? {} : { avatars: avatarService }),
+          ...optional(attachmentService, (attachments) => ({ attachments })),
+          ...optional(avatarService, (avatars) => ({ avatars })),
           events: buildEventRegistry({
             counters: new PostgresContentCounterRepository(db),
-            ...(attachmentService === undefined
-              ? {}
-              : { attachments: { process: (id) => attachmentService.process(id) } }),
-            ...(avatarService === undefined
-              ? {}
-              : { avatars: { process: (id) => avatarService.process(id) } }),
+            ...optional(attachmentService, (attachments) => ({
+              attachments: { process: (id: number) => attachments.process(id) },
+            })),
+            ...optional(avatarService, (avatars) => ({
+              avatars: { process: (id: number) => avatars.process(id) },
+            })),
             notifications: {
-              ...(mail === undefined
-                ? {}
-                : {
-                    async deliverEmail(notificationId: number) {
-                      await deliverNotificationEmail({
-                        notifications,
-                        mail,
-                        brand: await resolveMailBrand({ db, ...themeDeps }),
-                        notificationId,
-                        ...(deps.translatorForLocale === undefined
-                          ? {}
-                          : { translatorForLocale: deps.translatorForLocale }),
-                      })
-                    },
-                  }),
+              ...optional(mail, (mail) => ({
+                async deliverEmail(notificationId: number) {
+                  await deliverNotificationEmail({
+                    notifications,
+                    mail,
+                    brand: await resolveMailBrand({ db, ...themeDeps }),
+                    notificationId,
+                    ...optional(deps.translatorForLocale, (translatorForLocale) => ({
+                      translatorForLocale,
+                    })),
+                  })
+                },
+              })),
               async deliverPush(notificationId: number) {
                 const vapid = await vapidDetails(db)
                 if (vapid === null) return
@@ -204,57 +202,51 @@ export function buildSchedulerBundle(deps: {
                   notifications,
                   vapid,
                   notificationId,
-                  ...(deps.translatorForLocale === undefined
-                    ? {}
-                    : { translatorForLocale: deps.translatorForLocale }),
+                  ...optional(deps.translatorForLocale, (translatorForLocale) => ({
+                    translatorForLocale,
+                  })),
                 })
               },
             },
-            ...(mail === undefined
-              ? {}
-              : {
-                  massMail: {
-                    async send({ massMailId, email }) {
-                      const campaign = await new PostgresUserBulkRepository(db).readMassMail(
-                        massMailId,
-                      )
-                      if (campaign === null) return
+            ...optional(mail, (mail) => ({
+              massMail: {
+                async send({ massMailId, email }) {
+                  const campaign = await new PostgresUserBulkRepository(db).readMassMail(massMailId)
+                  if (campaign === null) return
 
-                      const brand = await resolveMailBrand({ db, ...themeDeps })
-                      const t = await (
-                        deps.translatorForLocale ?? (() => sourceTranslator(EN_CATALOG))
-                      )('')
+                  const brand = await resolveMailBrand({ db, ...themeDeps })
+                  const t = await (
+                    deps.translatorForLocale ?? (() => sourceTranslator(EN_CATALOG))
+                  )('')
 
-                      const rendered = renderMail({
-                        brand,
-                        t,
-                        body: {
-                          title: campaign.subject,
-                          paragraphs: campaign.body.split(/\n{2,}/),
-                          footer: [
-                            {
-                              text: t.t('mail.footer.sentBy', {
-                                board:
-                                  brand.boardName === ''
-                                    ? t.t('mail.boardFallback')
-                                    : brand.boardName,
-                              }),
-                            },
-                          ],
+                  const rendered = renderMail({
+                    brand,
+                    t,
+                    body: {
+                      title: campaign.subject,
+                      paragraphs: campaign.body.split(/\n{2,}/),
+                      footer: [
+                        {
+                          text: t.t('mail.footer.sentBy', {
+                            board:
+                              brand.boardName === '' ? t.t('mail.boardFallback') : brand.boardName,
+                          }),
                         },
-                      })
-
-                      const fromName = brand.fromName ?? ''
-                      await sendAudited(renderHost, mail, 'mass-mail', {
-                        to: email,
-                        subject: campaign.subject,
-                        text: rendered.text,
-                        html: rendered.html,
-                        ...(fromName === '' ? {} : { fromName }),
-                      })
+                      ],
                     },
-                  },
-                }),
+                  })
+
+                  const fromName = brand.fromName ?? ''
+                  await sendAudited(renderHost, mail, 'mass-mail', {
+                    to: email,
+                    subject: campaign.subject,
+                    text: rendered.text,
+                    html: rendered.html,
+                    ...(fromName === '' ? {} : { fromName }),
+                  })
+                },
+              },
+            })),
           }),
           recount: new PostgresCounterRecount(db),
           renderBackfill: {

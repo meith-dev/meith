@@ -1,7 +1,7 @@
 import { type BanRepository, BanService } from '@meith/accounts'
 import type { AttachmentService } from '@meith/attachments'
 import type { AvatarService } from '@meith/avatars'
-import type { QueueDriver } from '@meith/core'
+import { optional, type QueueDriver } from '@meith/core'
 import { type EventRegistry, type OutboxReader, relayOutbox as runOutboxRelay } from '@meith/events'
 import { type PromotionGuards, PromotionService } from '@meith/groups'
 import { type WarningRepository, WarningService } from '@meith/moderation'
@@ -121,22 +121,18 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       return rendered
     },
 
-    ...(deps.searchIndex === undefined
-      ? {}
-      : {
-          async reindexSearch(batchSize: number) {
-            const { indexed } = await deps.searchIndex!.reindexChunk(0, batchSize)
-            return indexed
-          },
-        }),
+    ...optional(deps.searchIndex, (searchIndex) => ({
+      async reindexSearch(batchSize: number) {
+        const { indexed } = await searchIndex.reindexChunk(0, batchSize)
+        return indexed
+      },
+    })),
 
-    ...(deps.webhooks === undefined
-      ? {}
-      : {
-          async deliverWebhooks(batchSize: number) {
-            return deliverWebhooks(deps.webhooks!, batchSize)
-          },
-        }),
+    ...optional(deps.webhooks, (webhooks) => ({
+      async deliverWebhooks(batchSize: number) {
+        return deliverWebhooks(webhooks, batchSize)
+      },
+    })),
 
     async pruneSessions() {
       return deps.maintenance.pruneSessions(new Date())
@@ -155,16 +151,14 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
           },
         }),
 
-    ...(deps.authEvents === undefined
-      ? {}
-      : {
-          async pruneAuthEvents() {
-            const days = await deps.authEvents!.retentionDays()
-            if (days <= 0) return 0
+    ...optional(deps.authEvents, (authEvents) => ({
+      async pruneAuthEvents() {
+        const days = await authEvents.retentionDays()
+        if (days <= 0) return 0
 
-            return deps.authEvents!.pruneBefore(new Date(Date.now() - days * 86_400_000))
-          },
-        }),
+        return authEvents.pruneBefore(new Date(Date.now() - days * 86_400_000))
+      },
+    })),
 
     async applyPromotions(batchSize) {
       const result = await promotions.apply(batchSize)
@@ -175,13 +169,11 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       return bans.expireDue(batchSize)
     },
 
-    ...(deps.timedGroups === undefined
-      ? {}
-      : {
-          async expireGroupMemberships(batchSize: number) {
-            return deps.timedGroups!.expire(batchSize)
-          },
-        }),
+    ...optional(deps.timedGroups, (timedGroups) => ({
+      async expireGroupMemberships(batchSize: number) {
+        return timedGroups.expire(batchSize)
+      },
+    })),
 
     async expireWarnings(batchSize) {
       return new WarningService({ warnings: deps.warnings, bans: banPort(bans) }).expireDue(
@@ -189,51 +181,43 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       )
     },
 
-    ...(deps.subscriptions === undefined
-      ? {}
-      : {
-          async notifySubscribers(batchSize: number, signal: AbortSignal) {
-            const { notified } = await subscriptionNotifier(deps).runInstant(batchSize, signal)
-            return notified
-          },
+    ...optional(deps.subscriptions, () => ({
+      async notifySubscribers(batchSize: number, signal: AbortSignal) {
+        const { notified } = await subscriptionNotifier(deps).runInstant(batchSize, signal)
+        return notified
+      },
 
-          async sendDigests(batchSize: number, signal: AbortSignal) {
-            const notifier = subscriptionNotifier(deps)
-            const daily = await notifier.runDigest('daily', batchSize, signal)
-            if (signal.aborted) return daily.notified
+      async sendDigests(batchSize: number, signal: AbortSignal) {
+        const notifier = subscriptionNotifier(deps)
+        const daily = await notifier.runDigest('daily', batchSize, signal)
+        if (signal.aborted) return daily.notified
 
-            const weekly = await notifier.runDigest('weekly', batchSize, signal)
-            return daily.notified + weekly.notified
-          },
-        }),
+        const weekly = await notifier.runDigest('weekly', batchSize, signal)
+        return daily.notified + weekly.notified
+      },
+    })),
 
-    ...(deps.attachments === undefined
-      ? {}
-      : {
-          async sweepAttachments(batchSize: number) {
-            return deps.attachments!.sweep(batchSize)
-          },
-        }),
+    ...optional(deps.attachments, (attachments) => ({
+      async sweepAttachments(batchSize: number) {
+        return attachments.sweep(batchSize)
+      },
+    })),
 
-    ...(deps.avatars === undefined
-      ? {}
-      : {
-          async sweepAvatars(batchSize: number) {
-            return deps.avatars!.sweep(batchSize)
-          },
-        }),
+    ...optional(deps.avatars, (avatars) => ({
+      async sweepAvatars(batchSize: number) {
+        return avatars.sweep(batchSize)
+      },
+    })),
 
-    ...(deps.statistics === undefined
-      ? {}
-      : {
-          async rollUpStatistics() {
-            const now = new Date()
-            const { memberCount } = await deps.statistics!.stats.rollUp(now)
-            const online = await deps.statistics!.presence.concurrentCount(now)
-            const record = await deps.statistics!.presence.recordIfHigher(online, now)
-            return { memberCount, online, record }
-          },
-        }),
+    ...optional(deps.statistics, (statistics) => ({
+      async rollUpStatistics() {
+        const now = new Date()
+        const { memberCount } = await statistics.stats.rollUp(now)
+        const online = await statistics.presence.concurrentCount(now)
+        const record = await statistics.presence.recordIfHigher(online, now)
+        return { memberCount, online, record }
+      },
+    })),
   }
 }
 
