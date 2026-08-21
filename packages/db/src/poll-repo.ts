@@ -84,6 +84,7 @@ export class PostgresPollRepository implements PollRepository, ThreadRatingRepos
   }
 
   async vote(input: {
+    readonly threadId: number
     readonly pollId: number
     readonly optionId: number
     readonly userId: number
@@ -94,7 +95,8 @@ export class PostgresPollRepository implements PollRepository, ThreadRatingRepos
           insert into poll_votes (poll_id, user_id, option_id)
           select p.id, ${input.userId}, o.id
             from polls p join poll_options o on o.poll_id = p.id
-           where p.id = ${input.pollId} and o.id = ${input.optionId}
+           where p.id = ${input.pollId} and p.thread_id = ${input.threadId}
+             and o.id = ${input.optionId}
              and (p.closes_at is null or p.closes_at > now())
           on conflict (poll_id, user_id) do nothing
           returning poll_id, option_id

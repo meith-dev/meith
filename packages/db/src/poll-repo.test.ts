@@ -51,6 +51,7 @@ describe('polls', () => {
     expect(poll?.options).toHaveLength(2)
     expect(
       await polls.vote({
+        threadId: 900,
         pollId: poll!.id,
         optionId: poll!.options[1]!.id,
         userId: 901,
@@ -58,6 +59,7 @@ describe('polls', () => {
     ).toBe(true)
     expect(
       await polls.vote({
+        threadId: 900,
         pollId: poll!.id,
         optionId: poll!.options[0]!.id,
         userId: 901,
@@ -69,6 +71,29 @@ describe('polls', () => {
     expect(
       (await polls.find(900, null))?.options.map((option: PollOption) => option.votes),
     ).toEqual([0, 1])
+  })
+
+  it('rejects a poll from a different authorized thread', async () => {
+    await db.execute(sql`insert into threads (id, forum_id, author_username, title, slug)
+      values (901, 900, 'two', 'Other thread', 'other-thread')`)
+    await polls.create(900, {
+      question: 'Choose',
+      options: ['First', 'Second'],
+      closesAt: null,
+    })
+    const poll = await polls.find(900, null)
+
+    expect(
+      await polls.vote({
+        threadId: 901,
+        pollId: poll!.id,
+        optionId: poll!.options[0]!.id,
+        userId: 901,
+      }),
+    ).toBe(false)
+    expect(
+      (await polls.find(900, null))?.options.map((option: PollOption) => option.votes),
+    ).toEqual([0, 0])
   })
 })
 

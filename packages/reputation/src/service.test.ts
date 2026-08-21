@@ -38,14 +38,14 @@ class FakeRepository implements ReputationRepository {
     maxPerDay: number
     at: Date
   }) {
-    if (this.atCap) return false
+    if (this.atCap) return 'daily-limit' as const
     this.given.push({
       userId: input.userId,
       points: input.points,
       comment: input.comment,
       postId: input.postId,
     })
-    return true
+    return 'written' as const
   }
 
   async withdraw(input: { ratingId: number; givenByUserId: number }) {

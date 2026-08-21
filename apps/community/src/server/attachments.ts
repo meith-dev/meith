@@ -182,8 +182,12 @@ export async function resolveDownload(
     return null
   if (!authorizer.can(actor, 'attachment.download', scope)) return null
 
-  const hidden = found.postVisibility !== 'visible' || found.threadVisibility !== 'visible'
-  if (hidden && !authorizer.can(actor, 'content.viewUnapproved', scope)) return null
+  const deleted = found.postVisibility === 'deleted' || found.threadVisibility === 'deleted'
+  if (deleted && !authorizer.can(actor, 'content.viewDeleted', scope)) return null
+
+  const unapproved =
+    found.postVisibility === 'unapproved' || found.threadVisibility === 'unapproved'
+  if (unapproved && !authorizer.can(actor, 'content.viewUnapproved', scope)) return null
 
   const type = attachmentType(record.contentType)
   if (type === undefined) return null

@@ -39,6 +39,7 @@ export async function votePollAction(form: FormData): Promise<void> {
   if (!authorizer.can(actor, 'thread.view', target))
     throw new ValidationError(msg('error.app.poll-exist'))
   await new PollService(polls).vote({
+    threadId,
     pollId,
     optionId,
     userId: actor.userId,

@@ -544,6 +544,7 @@ async function seedPolls(
 
       for (const voter of option.voters) {
         await polls.vote({
+          threadId: entry.threadId,
           pollId: found.id,
           optionId,
           userId: requireUser(userIds, voter).id,

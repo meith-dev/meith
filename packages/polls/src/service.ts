@@ -39,6 +39,7 @@ export class PollService {
   }
 
   async vote(input: {
+    readonly threadId: number
     readonly pollId: number
     readonly optionId: number
     readonly userId: number

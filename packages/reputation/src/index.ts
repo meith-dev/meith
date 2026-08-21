@@ -9,4 +9,5 @@ export {
   type ReputationRow,
   type ReputationSettings,
   type ReputationSummary,
+  type ReputationWriteResult,
 } from './types'
