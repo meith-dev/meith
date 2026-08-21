@@ -23,6 +23,7 @@ export function ReplyForm({
   attachmentLimits,
   draft,
   collapsible = false,
+  toolbar = 'inline',
   copy,
 }: {
   threadId: number
@@ -32,6 +33,7 @@ export function ReplyForm({
   attachmentLimits: UploadLimits | null
   draft: Draft | null
   collapsible?: boolean
+  toolbar?: 'inline' | 'external'
   copy: Copy
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)
@@ -60,6 +62,7 @@ export function ReplyForm({
         required
         defaultValue={state.values?.message ?? draft?.message ?? prefill}
         preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
+        toolbar={toolbar}
         {...(attachmentLimits !== null ? { attachTo: { kind: 'thread', threadId } } : {})}
       />
 

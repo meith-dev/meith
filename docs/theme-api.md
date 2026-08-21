@@ -62,16 +62,15 @@ Three shipped themes are worth reading before you write one:
 ## What a theme renders
 
 Every page a member, moderator or administrator can open is rendered through
-slots. The registry declares 36: 34 stable, plus the two
-[provisional](#provisional-slots) editor islands. The stable ones fall into
-four groups:
+slots. The registry declares 36, all of them stable. They fall into four
+groups:
 
 | Group | Slots | What it is |
 |---|---|---|
 | The frame | `Shell`, `Header`, `UserPanel`, `Navigation`, `Footer`, `Notice`, `ForumJump`, `ErrorNotice`, `RedirectNotice` | Wraps every page, including the error pages |
-| Reading | `BoardIndex`, `CategoryBlock`, `ForumRow`, `ForumDisplay`, `ThreadRow`, `ThreadView`, `PostBit`, `PostActions`, `Pagination`, `SubforumList`, `Announcement`, `BoardStats`, `WhoIsOnline`, `LatestThreads`, `LatestPosts`, `MemberProfile` | The board itself |
+| Reading | `BoardIndex`, `CategoryBlock`, `ForumRow`, `ForumDisplay`, `ThreadRow`, `ThreadView`, `PostBit`, `PostActions`, `QuickReply`, `Pagination`, `SubforumList`, `Announcement`, `BoardStats`, `WhoIsOnline`, `LatestThreads`, `LatestPosts`, `MemberProfile` | The board itself |
 | Finding | `SearchForm`, `SearchResults`, `DiscoveryView` | Search, and the "new posts" listings |
-| Doing | `PostForm`, `AuthPage`, `PanelShell`, `PanelNav`, `PanelPage`, `PanelSection` | Writing, signing in, and all three control panels |
+| Doing | `PostForm`, `EditorToolbar`, `AuthPage`, `PanelShell`, `PanelNav`, `PanelPage`, `PanelSection` | Writing, signing in, and all three control panels |
 
 **The three control panels are one set of slots, not three.** The member,
 moderator and administrator panels share a shape — a rail of sections beside
@@ -253,7 +252,7 @@ anchors a post by `post.id` leaves every such link at the top of the page.
 
 | Covered | Not covered |
 |---|---|
-| The name and `kind` of every **stable** slot | The two **provisional** slots (`QuickReply`, `EditorToolbar`) |
+| The name and `kind` of every **stable** slot | A **provisional** slot's name and `kind` are stable, but nothing today is provisional — see below |
 | The fields of the model a stable slot is handed | Fields of a provisional slot's model |
 | `defineTheme`, `resolveTheme`, `requireSlot`, `slotCopy`, `hasSlot`, `assertComplete`, `assertThemeContract`, `checkThemeContract` | Anything not re-exported from `packages/theme-kit/src/index.ts` |
 | `SLOTS`, `SLOT_NAMES`, `SLOT_STABILITY`, `isSlotName`, `slotKind` | The markup, class names and token *values* of the shipped themes |
@@ -266,20 +265,23 @@ anchors a post by `post.id` leaves every such link at the top of the page.
 
 ### Provisional slots
 
-`QuickReply` and `EditorToolbar` are the editor islands, and the registry's
-only client slots. They are named in the registry so the slot list is not
-retrofitted onto finished pages later, and they are excluded from the freeze
-because no page has ever handed their models to a component — freezing a
-props contract that has never been rendered would be guessing with a version
-number attached.
+A slot is named in the registry as soon as it is designed, which can be
+before any page renders it. Naming it early keeps the slot list from being
+retrofitted onto a finished page later, but a props contract nobody has
+rendered yet is a guess — so a new slot ships `provisional` in
+`SLOT_STABILITY`, excluded from the freeze and from `assertThemeContract`,
+until a page actually hands its model to a component. Once that happens the
+slot is promoted to `stable` in the same change, per the shape that turned
+out to render rather than the one guessed at the outset.
 
-A theme is not required to fill them. `assertThemeContract` does not ask for
-them, and `resolveTheme(...).missing` reporting both is the normal state of
-a complete theme today.
+`QuickReply` and `EditorToolbar` — the registry's only client slots — carried
+this status the longest: named from early on, rendered by no page until
+`0.17`. Nothing is provisional today; every slot in the registry has been
+rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.16`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.17`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -326,6 +328,31 @@ not an API version.
 > queue in tabs. A theme places it where the two unread counts used to sit; a
 > theme that ignores it falls back to `unreadNotifications` and
 > `unreadMessages`, which is what keeps the field additive.
+>
+> `0.17` promotes [`QuickReply`](./theme-slots.md#quickreply) and
+> [`EditorToolbar`](./theme-slots.md#editortoolbar) from provisional to
+> stable: the thread page now renders the quick-reply island through
+> `QuickReply`, and the composer's formatting toolbar — bold, italic,
+> strikethrough, link, quote, code, spoiler, both list markers, heading, and
+> the attachment picker — renders through `EditorToolbar` on the new-thread,
+> reply and edit-post pages. Wiring them up found both models the wrong
+> shape, so both changed at the same time they froze — legitimate only
+> because neither had ever been rendered (see
+> [Provisional slots](#provisional-slots)):
+> [`QuickReplyModel`](./theme-slots.md#quickreply) traded its unused `action`
+> URL for `children`, the app's reply form (Server Action, drafts, quoting,
+> attachments, unchanged) — the same reversal
+> [`PostFormModel`](./theme-slots.md#postform) went through earlier.
+> [`EditorToolbarModel`](./theme-slots.md#editortoolbar) gained `groupLabel`
+> and `attachment`, the picker's button, and its `buttons` are now
+> [`EditorToolbarButtonModel`](./theme-slots.md#editortoolbarbuttonmodel) —
+> each one a `tag` naming a formatting command from the new `EditorTag`
+> export, plus a `title`, `keyShortcut` and `placeholder` a theme renders
+> without inventing any wording of its own. `applyEditorTag` and
+> `applyEditorEdit`, also new exports, are what a tag *does* to a textarea —
+> the other half of the boundary a client slot draws, since a theme's button
+> and the composer's own keyboard shortcut both have to run the same edit
+> without either one calling into the other's React tree.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

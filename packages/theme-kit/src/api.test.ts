@@ -43,9 +43,9 @@ describe('the slot contract', () => {
     expect(Object.keys(SLOT_STABILITY).sort()).toEqual([...SLOT_NAMES].sort())
   })
 
-  it('freezes everything except the two client islands', () => {
+  it('freezes every slot — none are provisional', () => {
     const provisional = SLOT_NAMES.filter((name) => SLOT_STABILITY[name] === 'provisional')
-    expect([...provisional].sort()).toEqual(['EditorToolbar', 'QuickReply'])
+    expect(provisional).toEqual([])
   })
 
   it('deprecates one field and no slot', () => {
@@ -55,9 +55,16 @@ describe('the slot contract', () => {
   })
 
   it('requires every non-provisional slot of a theme', () => {
-    expect(requiredSlots()).not.toContain('QuickReply')
-    expect(requiredSlots()).toContain('PostBit')
-    expect(requiredSlots().length).toBe(SLOT_NAMES.length - 2)
+    const stability = stabilityWith({ WhoIsOnline: 'provisional' })
+    expect(requiredSlots(stability)).not.toContain('WhoIsOnline')
+    expect(requiredSlots(stability)).toContain('PostBit')
+    expect(requiredSlots(stability).length).toBe(SLOT_NAMES.length - 1)
+  })
+
+  it('requires every slot today, since none are provisional', () => {
+    expect(requiredSlots()).toContain('QuickReply')
+    expect(requiredSlots()).toContain('EditorToolbar')
+    expect(requiredSlots().length).toBe(SLOT_NAMES.length)
   })
 
   it('still requires a deprecated slot', () => {
@@ -189,15 +196,20 @@ describe('measuring a theme against the contract', () => {
   })
 
   it('does not ask for the provisional slots', () => {
-    const report = checkThemeContract(themeFilling(requiredSlots()))
+    const stability = stabilityWith({ WhoIsOnline: 'provisional' })
+    const report = checkThemeContract(themeFilling(requiredSlots(stability)), stability)
     expect(report.satisfies).toBe(true)
     expect(report.provisionalInUse).toEqual([])
   })
 
   it('reports a provisional slot that is filled, without failing it', () => {
-    const report = checkThemeContract(themeFilling([...requiredSlots(), 'QuickReply']))
+    const stability = stabilityWith({ WhoIsOnline: 'provisional' })
+    const report = checkThemeContract(
+      themeFilling([...requiredSlots(stability), 'WhoIsOnline']),
+      stability,
+    )
     expect(report.satisfies).toBe(true)
-    expect(report.provisionalInUse).toEqual(['QuickReply'])
+    expect(report.provisionalInUse).toEqual(['WhoIsOnline'])
   })
 
   it('reports a deprecated slot in use with its schedule', () => {

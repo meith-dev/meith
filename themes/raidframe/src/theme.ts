@@ -40,6 +40,7 @@ import { BoardIndex } from './slots/board-index'
 import { BoardStats } from './slots/board-stats'
 import { CategoryBlock } from './slots/category-block'
 import { DiscoveryView } from './slots/discovery-view'
+import { EditorToolbar } from './slots/editor-toolbar'
 import { ErrorNotice } from './slots/error-notice'
 import { Footer } from './slots/footer'
 import { ForumDisplay } from './slots/forum-display'
@@ -58,6 +59,7 @@ import { PanelShell } from './slots/panel-shell'
 import { PostActions } from './slots/post-actions'
 import { PostBit } from './slots/post-bit'
 import { PostForm } from './slots/post-form'
+import { QuickReply } from './slots/quick-reply'
 import { RedirectNotice } from './slots/redirect-notice'
 import { SearchForm } from './slots/search-form'
 import { SearchResults } from './slots/search-results'
@@ -97,8 +99,10 @@ export const raidframeTheme = defineTheme({
     ThreadView,
     PostBit,
     PostActions,
+    QuickReply,
 
     PostForm,
+    EditorToolbar,
     MemberProfile,
     SearchForm,
     SearchResults,

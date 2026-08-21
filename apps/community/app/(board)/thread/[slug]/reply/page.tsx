@@ -13,6 +13,7 @@ import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { replyFormCopy } from '@/view/content-copy'
+import { buildEditorToolbarModel } from '@/view/editor-toolbar'
 import { buildReplyView } from '@/view/post-form'
 import { postLink } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
@@ -78,7 +79,16 @@ export default async function ReplyPage({
 
   const theme = await currentTheme()
   const PostForm = requireSlot(theme, 'PostForm')
+  const EditorToolbar = requireSlot(theme, 'EditorToolbar')
   const translator = await getTranslator()
+  const attachable = canAttach(actor, scope)
+  const toolbarModel = locked
+    ? null
+    : await filterView(
+        'view.editor-toolbar',
+        buildEditorToolbarModel({ attachments: attachable, t: translator }),
+        viewerRef(actor),
+      )
 
   const formModel = await filterView(
     'view.post-form',
@@ -94,16 +104,20 @@ export default async function ReplyPage({
               seenLastPostId={target.lastPostId}
               prefill={prefill}
               canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
-              attachmentLimits={canAttach(actor, scope) ? attachmentLimits(scope) : null}
+              attachmentLimits={attachable ? attachmentLimits(scope) : null}
               draft={
                 actor.userId === null || drafts === null
                   ? null
                   : await drafts.find(actor.userId, target.forum.id, target.threadId)
               }
+              toolbar="external"
             />
           </>
         ),
-        toolbar: null,
+        toolbar:
+          toolbarModel === null ? null : (
+            <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
+          ),
       },
     },
     viewerRef(actor),

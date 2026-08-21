@@ -12,6 +12,7 @@ import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { newThreadFormCopy } from '@/view/content-copy'
+import { buildEditorToolbarModel } from '@/view/editor-toolbar'
 import { buildNewThreadView } from '@/view/post-form'
 import { leadingId } from '@/view/slug-id'
 
@@ -55,33 +56,44 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
 
   const theme = await currentTheme()
   const PostForm = requireSlot(theme, 'PostForm')
+  const EditorToolbar = requireSlot(theme, 'EditorToolbar')
   const translator = await getTranslator()
+  const open = rules.isOpen && rules.allowThreads
+  const attachable = canAttach(actor, attachTarget)
+  const toolbarModel = !open
+    ? null
+    : await filterView(
+        'view.editor-toolbar',
+        buildEditorToolbarModel({ attachments: attachable, t: translator }),
+        viewerRef(actor),
+      )
 
   const formModel = await filterView(
     'view.post-form',
     {
       ...view,
       regions: {
-        form:
-          rules.isOpen && rules.allowThreads ? (
-            <NewThreadForm
-              copy={newThreadFormCopy(await getTranslator())}
-              forumId={id}
-              prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
-              requiresPrefix={rules.requiresPrefix}
-              canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
-              canPostPoll={authorizer.can(actor, 'poll.post', target)}
-              attachmentLimits={
-                canAttach(actor, attachTarget) ? attachmentLimits(attachTarget) : null
-              }
-              draft={
-                actor.userId === null || drafts === null
-                  ? null
-                  : await drafts.find(actor.userId, id, null)
-              }
-            />
-          ) : null,
-        toolbar: null,
+        form: open ? (
+          <NewThreadForm
+            copy={newThreadFormCopy(await getTranslator())}
+            forumId={id}
+            prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
+            requiresPrefix={rules.requiresPrefix}
+            canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
+            canPostPoll={authorizer.can(actor, 'poll.post', target)}
+            attachmentLimits={attachable ? attachmentLimits(attachTarget) : null}
+            draft={
+              actor.userId === null || drafts === null
+                ? null
+                : await drafts.find(actor.userId, id, null)
+            }
+            toolbar="external"
+          />
+        ) : null,
+        toolbar:
+          toolbarModel === null ? null : (
+            <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
+          ),
       },
     },
     viewerRef(actor),

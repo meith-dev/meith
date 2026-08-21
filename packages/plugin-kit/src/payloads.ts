@@ -45,6 +45,7 @@ import type {
   BoardStatsModel,
   CategoryBlockModel,
   DiscoveryViewModel,
+  EditorToolbarModel,
   ErrorNoticeModel,
   FooterModel,
   ForumDisplayModel,
@@ -64,6 +65,7 @@ import type {
   PostActionsSlotModel,
   PostBitSlotModel,
   PostFormModel,
+  QuickReplyModel,
   RedirectNoticeModel,
   SearchFormModel,
   SearchResultsModel,
@@ -200,7 +202,9 @@ export interface HookSignatures {
   'view.subforum-list': { value: SubforumListModel; context: ViewerRef & ForumRef }
   'view.forum-display': { value: ForumDisplayModel; context: ViewerRef & ForumRef }
   'view.thread-view': { value: ThreadViewModel; context: ViewerRef & ThreadRef }
+  'view.quick-reply': { value: QuickReplyModel; context: ViewerRef & ThreadRef }
   'view.post-form': { value: PostFormModel; context: ViewerRef }
+  'view.editor-toolbar': { value: EditorToolbarModel; context: ViewerRef }
   'view.redirect-notice': { value: RedirectNoticeModel; context: ViewerRef }
 
   /* ---- Posting ---- */

@@ -247,6 +247,16 @@ export const HOOKS = {
     kind: 'filter',
     purpose: 'The composer page’s model. The form itself is app-rendered and arrives as a region.',
   },
+  'view.quick-reply': {
+    kind: 'filter',
+    purpose:
+      'The quick-reply island’s model, at the foot of a thread. The reply form itself is ' +
+      'app-rendered and arrives as `children`.',
+  },
+  'view.editor-toolbar': {
+    kind: 'filter',
+    purpose: 'The composer’s formatting-toolbar model — its buttons and the attachment picker.',
+  },
   'view.redirect-notice': {
     kind: 'filter',
     purpose:

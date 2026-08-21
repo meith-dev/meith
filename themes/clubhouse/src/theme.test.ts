@@ -85,8 +85,11 @@ describe('the clubhouse theme', () => {
     expect(own).toContain(container)
   })
 
-  it('leaves the provisional islands alone', () => {
-    expect(resolveTheme(clubhouseTheme).missing).toEqual(['QuickReply', 'EditorToolbar'])
+  it('inherits the editor islands from the default theme rather than overriding them', () => {
+    const own = Object.keys(clubhouseTheme.slots)
+    expect(own).not.toContain('QuickReply')
+    expect(own).not.toContain('EditorToolbar')
+    expect(resolveTheme(clubhouseTheme).missing).toEqual([])
   })
 })
 

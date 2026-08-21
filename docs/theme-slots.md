@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.16.** 36 slots: 34 stable, 2 provisional, 0 deprecated.
+**theme-kit v0.17.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its
@@ -41,9 +41,9 @@ works and has a removal scheduled below.
 | [`ThreadView`](#threadview) | `server` | stable | `ThreadViewModel` |
 | [`PostBit`](#postbit) | `server` | stable | `PostBitSlotModel` |
 | [`PostActions`](#postactions) | `server` | stable | `PostActionsSlotModel` |
-| [`QuickReply`](#quickreply) | `client` | provisional | `QuickReplyModel` |
+| [`QuickReply`](#quickreply) | `client` | stable | `QuickReplyModel` |
 | [`PostForm`](#postform) | `server` | stable | `PostFormModel` |
-| [`EditorToolbar`](#editortoolbar) | `client` | provisional | `EditorToolbarModel` |
+| [`EditorToolbar`](#editortoolbar) | `client` | stable | `EditorToolbarModel` |
 | [`MemberProfile`](#memberprofile) | `server` | stable | `MemberProfileModel` |
 | [`SearchForm`](#searchform) | `server` | stable | `SearchFormModel` |
 | [`SearchResults`](#searchresults) | `server` | stable | `SearchResultsModel` |
@@ -367,7 +367,7 @@ Props: `PostActionsSlotModel`
 
 ### QuickReply
 
-`client` · provisional
+`client` · stable
 
 The inline reply island at the foot of a thread. Enhances the full reply page; it never becomes the only way to reply.
 
@@ -375,11 +375,11 @@ Props: `QuickReplyModel`
 
 | Field | Type | Notes |
 |---|---|---|
-| `action` | `string` |  |
 | `threadId` | `number` |  |
 | `placeholder` | `string` |  |
 | `submitLabel` | `string` |  |
 | `fullReplyHref` | `string` | Where the no-JS reply form lives, for when the island is not rendered. |
+| `children` | `ReactNode` | optional |
 
 ### PostForm
 
@@ -400,7 +400,7 @@ Props: `PostFormModel`
 
 ### EditorToolbar
 
-`client` · provisional
+`client` · stable
 
 Formatting toolbar, preview, attachment picker. Mounted beside the textarea; removing it must leave a working plain-textarea form.
 
@@ -409,7 +409,9 @@ Props: `EditorToolbarModel`
 | Field | Type | Notes |
 |---|---|---|
 | `textareaId` | `string` | The textarea's `id`; the island attaches to it rather than owning it. |
-| `buttons` | `readonly { readonly tag: string readonly label: string readonly icon: string \| null }[]` |  |
+| `groupLabel` | `string` | Accessible name for the toolbar's `role="group"`. |
+| `buttons` | `readonly EditorToolbarButtonModel[]` |  |
+| `attachment` | `{ readonly inputId: string; readonly label: string } \| null` | The attachment picker, or `null` where this composer takes none. `inputId` names an app-rendered `<input type="file" hidden>` elsewhere on the page — the upload itself is a Server Action the app owns, so a theme never handles the file. A button that calls `.click()` on the element that id names opens the picker; like every other button here, that is an enhancement over a plain-textarea form, not what makes the form work. |
 | `previewAction` | `string \| null` |  |
 
 ### MemberProfile
@@ -660,6 +662,19 @@ One row in a discovery listing.
 | `replyCount` | `CountModel` |  |
 | `lastPostAt` | `TimeModel` |  |
 | `lastPostUsername` | `string \| null` | `null` when the thread has no reply yet, so the last post is the first. |
+
+### EditorToolbarButtonModel
+
+One control in an `EditorToolbar`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `tag` | `EditorTag` | Which edit to run — `applyEditorTag(field, tag, placeholder)` from `@meith/theme-kit`. |
+| `label` | `string` |  |
+| `title` | `string` | `label`, plus the keyboard shortcut when this tag has one, already formatted. |
+| `keyShortcut` | `string \| null` | `aria-keyshortcuts`, e.g. `"Control+b"`, or `null` for a tag with no shortcut. |
+| `icon` | `string \| null` | A themed icon's name, for a theme that draws one — see `PanelNavIcon` for the same idea. Always `null` today: nothing in the default palette names one yet, so every theme renders its own glyph from `tag` or `label`. The field stays in the contract for the theme that wants to key off it once one does. |
+| `placeholder` | `string \| null` | Fills a wrap or spoiler tag when nothing is selected; `null` for a tag that does not need one. |
 
 ### ForumJumpOption
 
@@ -1037,5 +1052,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.16. Nothing can be: this is the first
+Nothing is deprecated in v0.17. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

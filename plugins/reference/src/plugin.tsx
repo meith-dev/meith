@@ -427,6 +427,14 @@ export const referencePlugin = definePlugin({
       record('view.post-form', value)
       return value
     },
+    'view.quick-reply': (value) => {
+      record('view.quick-reply', value)
+      return value
+    },
+    'view.editor-toolbar': (value) => {
+      record('view.editor-toolbar', value)
+      return value
+    },
     'view.redirect-notice': (value) => {
       record('view.redirect-notice', value)
       return value
