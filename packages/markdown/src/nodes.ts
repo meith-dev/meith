@@ -16,6 +16,7 @@ export type Inline =
   | { readonly kind: 'break' }
   | { readonly kind: 'directive'; readonly name: string; readonly children: readonly Inline[] }
   | { readonly kind: 'mention'; readonly name: string }
+  | { readonly kind: 'attachment'; readonly id: number }
 
 export interface TableCell {
   readonly inline: readonly Inline[]
@@ -63,6 +64,7 @@ export function textOf(nodes: readonly Inline[]): string {
     else if (node.kind === 'image') out += node.alt
     else if (node.kind === 'break') out += '\n'
     else if (node.kind === 'mention') out += `@${node.name}`
+    else if (node.kind === 'attachment') out += ''
     else out += textOf(node.children)
   }
   return out

@@ -388,9 +388,9 @@ export function NewDirectiveForm({ copy }: { copy: Copy }) {
         />
         <span className="text-xs text-muted-foreground">
           {copy['adminContent.directive.nameHintLead']}
-          <code>:::spoiler</code>
+          <code>:::note</code>
           {copy['adminContent.directive.nameHintMid']}
-          <code>:spoiler[…]</code>
+          <code>:note[…]</code>
           {copy['adminContent.directive.nameHintTail']}
         </span>
       </label>

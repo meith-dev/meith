@@ -26,6 +26,7 @@ These guides use the browser interface; they do not require shell access.
 - [Organiser guide](./organiser-guide.md) — board settings, forums, groups, members, and handover.
 - [Moderator guide](./moderation-guide.md) — approval, reports, thread maintenance, warnings, and bans.
 - [Memberships guide](./membership-guide.md) — Stripe plans, discounts, gifts, the membership desk, and the ledger.
+- [Writing a post](./formatting.md) — the composer's toolbar and its Markdown: highlighted code, spoilers, mentions, link previews, and inline attachments.
 
 ## Operate a board
 

@@ -11,6 +11,7 @@ export interface MarkdownFeatures {
   readonly emphasis: boolean
   readonly directives: boolean
   readonly mentions: boolean
+  readonly attachments: boolean
 }
 
 export const FULL_FEATURES: MarkdownFeatures = {
@@ -26,6 +27,7 @@ export const FULL_FEATURES: MarkdownFeatures = {
   emphasis: true,
   directives: true,
   mentions: true,
+  attachments: true,
 }
 
 export const SIGNATURE_FEATURES: MarkdownFeatures = {
@@ -41,4 +43,5 @@ export const SIGNATURE_FEATURES: MarkdownFeatures = {
   emphasis: true,
   directives: false,
   mentions: false,
+  attachments: false,
 }

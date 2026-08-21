@@ -1,5 +1,5 @@
 import { memberByNameHref, type QuoteAttribution, quoteAttribution } from './attribution'
-import { escapeAttribute, escapeHtml } from './escape'
+import { escapeAttribute, escapeHtml, unescapeHtml } from './escape'
 import { type CompiledSmilies, renderSmilies } from './extensions'
 import type { Alignment, Block, Inline, ListItem, MarkdownDocument } from './nodes'
 import { safeImageUrl, safeUrl } from './url'
@@ -8,6 +8,7 @@ export interface RenderContext {
   readonly smilies?: CompiledSmilies | undefined
   readonly headingOffset?: number
   readonly quoteAttribution?: ((author: string) => string) | undefined
+  readonly spoilerLabel?: string | undefined
 }
 
 const LANGUAGE = /^[a-z0-9][a-z0-9+#._-]{0,23}$/i
@@ -67,9 +68,22 @@ export function renderInline(nodes: readonly Inline[], context: RenderContext = 
         html += `<a class="md-mention" href="${escapeAttribute(href)}">@${escapeHtml(node.name)}</a>`
         break
       }
+      case 'attachment':
+        // A placeholder only: which attachment ids a viewer may actually see resolved is a
+        // permission question this package has no way to answer, so it names the id and leaves
+        // resolving it to the async post-processing step that does (see apps/community's
+        // attachment-embed.ts). An id nobody resolves — the board has no attachments package
+        // configured, say — just disappears; it was never guaranteed to render as anything.
+        html += `<span class="md-attachment" data-attachment-id="${node.id}"></span>`
+        break
     }
   }
   return html
+}
+
+function renderSpoiler(children: readonly Block[], context: RenderContext): string {
+  const label = escapeHtml(context.spoilerLabel ?? 'Spoiler')
+  return `<details class="md-spoiler"><summary>${label}</summary>${renderBlocks(children, context)}</details>\n`
 }
 
 function renderAttribution(attribution: QuoteAttribution, context: RenderContext): string {
@@ -84,7 +98,28 @@ function renderAttribution(attribution: QuoteAttribution, context: RenderContext
       : anchor(source, null, escapeHtml(attribution.sourceLabel), 'md-quote-source')
 
   const label = context.quoteAttribution?.(author) ?? `${author} wrote:`
-  return `<p class="md-quote-attribution"><strong>${label}</strong>${citation}</p>\n`
+  return `<p class="md-quote-attribution"><strong data-quote-author="${escapeAttribute(author)}">${label}</strong>${citation}</p>\n`
+}
+
+const QUOTE_ATTRIBUTION_STRONG = /<strong data-quote-author="([^"]*)">[\s\S]*?<\/strong>/g
+
+/**
+ * Swaps a rendered post's quote-attribution text for a translated one without
+ * re-parsing or re-rendering anything else — so a translator doesn't force a
+ * cached post's stored HTML (see postBodyHtml in body.ts) to be recomputed,
+ * which would also re-run the much more expensive async pipeline steps
+ * (syntax highlighting, embeds, inline attachments) on every view.
+ */
+export function localizeQuoteAttribution(
+  html: string,
+  quoteAttribution: (author: string) => string,
+): string {
+  if (!html.includes('data-quote-author')) return html
+  return html.replace(
+    QUOTE_ATTRIBUTION_STRONG,
+    (_whole, escapedAuthor: string) =>
+      `<strong>${quoteAttribution(unescapeHtml(escapedAuthor))}</strong>`,
+  )
 }
 
 function renderItem(item: ListItem, tight: boolean, context: RenderContext): string {
@@ -156,7 +191,10 @@ function renderBlocks(blocks: readonly Block[], context: RenderContext, tight = 
         break
       }
       case 'directive':
-        html += `<div class="md-directive md-directive-${escapeAttribute(block.name)}">${renderBlocks(block.children, context)}</div>\n`
+        html +=
+          block.name === 'spoiler'
+            ? renderSpoiler(block.children, context)
+            : `<div class="md-directive md-directive-${escapeAttribute(block.name)}">${renderBlocks(block.children, context)}</div>\n`
         break
     }
   }

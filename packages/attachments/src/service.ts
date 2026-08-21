@@ -106,7 +106,7 @@ export interface ImageProcessor {
 }
 
 export interface CreateAttachmentInput {
-  readonly postId: number
+  readonly postId: number | null
   readonly forumId: number
   readonly uploaderUserId: number
   readonly filename: string
@@ -142,6 +142,11 @@ export interface AttachmentRepository {
   markFailed(id: number, reason: string): Promise<void>
   recordDownload(id: number): Promise<void>
   stalled(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
+
+  /** Claims an orphan (postId null) for a post. Null if it was not an unclaimed orphan. */
+  attachTo(id: number, postId: number): Promise<AttachmentRecord | null>
+  /** Orphans (postId still null) older than `before`, deleted and returned so their files can go too. */
+  deleteOrphans(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
 
   rememberKey(key: string): Promise<void>
   forgetKeys(keys: readonly string[]): Promise<void>
@@ -211,6 +216,60 @@ export class AttachmentService {
     }
 
     return created
+  }
+
+  /** A single, standalone upload with no post yet — see docs/formatting.md's inline attachments. */
+  async uploadOrphan(
+    upload: AcceptedUpload,
+    owner: { readonly forumId: number; readonly uploaderUserId: number },
+  ): Promise<AttachmentRecord> {
+    const opaque = upload.type.handling === 'opaque'
+    const key = storageKeyFor(opaque ? 'file' : 'source', this.random)
+
+    await this.deps.attachments.rememberKey(key)
+    await this.deps.files.put(key, upload.bytes, {
+      contentType: upload.type.contentType,
+      visibility: 'private',
+    })
+
+    const record = await this.deps.attachments.create({
+      postId: null,
+      forumId: owner.forumId,
+      uploaderUserId: owner.uploaderUserId,
+      filename: upload.filename,
+      contentType: upload.type.contentType,
+      sizeBytes: upload.bytes.length,
+      sourceKey: opaque ? null : key,
+      storageKey: opaque ? key : null,
+      status: opaque ? 'ready' : 'pending',
+    })
+    await this.deps.attachments.forgetKeys([key])
+
+    return record
+  }
+
+  /**
+   * Claims previously uploaded orphans for a post, one at a time, skipping any
+   * id that is not actually an unclaimed orphan this same uploader created in
+   * this same forum — a member cannot claim someone else's pending upload by
+   * guessing its id, and cannot claim one already spent on an earlier post.
+   */
+  async claim(
+    ids: readonly number[],
+    post: { readonly postId: number; readonly forumId: number; readonly uploaderUserId: number },
+  ): Promise<readonly AttachmentRecord[]> {
+    const claimed: AttachmentRecord[] = []
+
+    for (const id of ids) {
+      const record = await this.deps.attachments.findById(id)
+      if (record === null || record.postId !== null) continue
+      if (record.forumId !== post.forumId || record.uploaderUserId !== post.uploaderUserId) continue
+
+      const attached = await this.deps.attachments.attachTo(id, post.postId)
+      if (attached !== null) claimed.push(attached)
+    }
+
+    return claimed
   }
 
   async process(attachmentId: number): Promise<'done' | 'skipped' | 'failed'> {
@@ -285,13 +344,19 @@ export class AttachmentService {
       if (record.sourceKey !== null) await this.discard(record.sourceKey)
     }
 
-    const keys = await this.deps.attachments.staleKeys(
-      new Date(now.getTime() - ORPHAN_GRACE_MINUTES * 60_000),
-      limit,
-    )
+    const orphanCutoff = new Date(now.getTime() - ORPHAN_GRACE_MINUTES * 60_000)
+
+    const staleOrphans = await this.deps.attachments.deleteOrphans(orphanCutoff, limit)
+    for (const record of staleOrphans) {
+      for (const key of [record.sourceKey, record.storageKey, record.thumbnailKey]) {
+        if (key !== null) await this.discard(key)
+      }
+    }
+
+    const keys = await this.deps.attachments.staleKeys(orphanCutoff, limit)
     for (const key of keys) await this.discard(key)
 
-    return { deleted: keys.length, failed: stalled.length }
+    return { deleted: keys.length + staleOrphans.length, failed: stalled.length }
   }
 
   private async discard(key: string): Promise<void> {

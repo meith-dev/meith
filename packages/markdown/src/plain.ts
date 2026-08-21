@@ -19,6 +19,8 @@ function fromInline(nodes: readonly Inline[]): string {
       case 'mention':
         out += `@${node.name}`
         break
+      case 'attachment':
+        break
       default:
         out += fromInline(node.children)
     }

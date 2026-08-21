@@ -184,14 +184,14 @@ describe('the markup vocabulary', () => {
     expect(await repo.vocabularyRevision()).toBe(3)
 
     const directiveId = await repo.createDirective({
-      name: 'spoiler',
+      name: 'aside',
       block: true,
       description: null,
     })
     expect(await repo.vocabularyRevision()).toBe(4)
 
     await repo.updateDirective(directiveId, {
-      name: 'spoiler',
+      name: 'aside',
       block: false,
       description: null,
       enabled: true,
@@ -208,9 +208,9 @@ describe('the markup vocabulary', () => {
   })
 
   it('refuses a duplicate directive name at the source', async () => {
-    await repo.createDirective({ name: 'spoiler', block: false, description: null })
+    await repo.createDirective({ name: 'aside', block: false, description: null })
     await expect(
-      repo.createDirective({ name: 'spoiler', block: true, description: null }),
+      repo.createDirective({ name: 'aside', block: true, description: null }),
     ).rejects.toThrow()
   })
 
@@ -254,13 +254,24 @@ describe('the compiled vocabulary the renderer reads', () => {
     await repo.createSmiley({ code: ':)', src: '/smile.png', alt: null })
     const off = await repo.createSmiley({ code: ':(', src: '/frown.png', alt: null })
     await repo.updateSmiley(off, { code: ':(', src: '/frown.png', alt: null, enabled: false })
-    await repo.createDirective({ name: 'spoiler', block: true, description: null })
+    await repo.createDirective({ name: 'aside', block: true, description: null })
 
     const vocabulary = await readBoardVocabulary(db)
 
     expect(vocabulary.revision).toBeGreaterThan(0)
     expect(vocabulary.smilies?.entries.map((entry) => entry.code)).toEqual([':)'])
-    expect(directiveNames(vocabulary.directives)).toEqual(['spoiler'])
+    expect(directiveNames(vocabulary.directives)).toEqual(['aside'])
+  })
+
+  it('drops a spoiler row rather than let it shadow the built-in directive', async () => {
+    await repo.createDirective({ name: 'spoiler', block: true, description: null })
+
+    const vocabulary = await readBoardVocabulary(db)
+
+    expect(directiveNames(vocabulary.directives)).toEqual([])
+    expect(vocabulary.rejected).toEqual([
+      { kind: 'directive', name: 'spoiler', reason: expect.stringContaining('built-in') },
+    ])
   })
 
   it('drops a row that will not compile rather than throwing on the render path', async () => {

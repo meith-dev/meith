@@ -16,7 +16,7 @@ import { toDate } from './row-values'
 
 interface RawAttachment {
   id: number
-  post_id: number
+  post_id: number | null
   forum_id: number
   uploader_user_id: number | null
   filename: string
@@ -42,7 +42,7 @@ const COLUMNS = sql`
 function toRecord(row: RawAttachment): AttachmentRecord {
   return {
     id: Number(row.id),
-    postId: Number(row.post_id),
+    postId: row.post_id === null ? null : Number(row.post_id),
     forumId: Number(row.forum_id),
     uploaderUserId: row.uploader_user_id === null ? null : Number(row.uploader_user_id),
     filename: row.filename,
@@ -176,6 +176,34 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     await this.db.execute(sql`
       update attachments set download_count = download_count + 1 where id = ${id}
     `)
+  }
+
+  async attachTo(id: number, postId: number): Promise<AttachmentRecord | null> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        update attachments
+           set post_id = ${postId}
+         where id = ${id} and post_id is null
+        returning ${COLUMNS}
+      `),
+    ) as RawAttachment[]
+    return rows[0] === undefined ? null : toRecord(rows[0])
+  }
+
+  async deleteOrphans(before: Date, limit: number): Promise<readonly AttachmentRecord[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        delete from attachments
+         where id in (
+           select id from attachments
+            where post_id is null and created_at < ${before}
+            order by created_at
+            limit ${limit}
+         )
+        returning ${COLUMNS}
+      `),
+    ) as RawAttachment[]
+    return rows.map(toRecord)
   }
 
   async stalled(before: Date, limit: number): Promise<readonly AttachmentRecord[]> {

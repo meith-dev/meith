@@ -74,6 +74,7 @@ export class PostgresRenderBackfill {
           {
             source: 'post',
             viewer: authorRef(row.author_user_id === null ? null : Number(row.author_user_id)),
+            postId: Number(row.id),
           },
           vocabularyOptions(vocabulary),
         )

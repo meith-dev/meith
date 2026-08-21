@@ -1,10 +1,10 @@
 import { bbcodeToMarkdown } from './bbcode'
 import { type ParseOptions, parse } from './blocks'
 import type { CompiledSmilies } from './extensions'
-import { type RenderContext, renderDocument } from './render'
+import { localizeQuoteAttribution, type RenderContext, renderDocument } from './render'
 import type { BoardVocabulary } from './vocabulary'
 
-export const RENDER_VERSION = 4
+export const RENDER_VERSION = 6
 
 export const BodyFormat = {
   LegacyBBCode: 0,
@@ -22,6 +22,7 @@ export interface MarkdownRenderOptions extends ParseOptions {
   readonly smilies?: CompiledSmilies | undefined
   readonly headingOffset?: number
   readonly quoteAttribution?: RenderContext['quoteAttribution']
+  readonly spoilerLabel?: RenderContext['spoilerLabel']
 }
 
 export function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): RenderedBody {
@@ -33,6 +34,7 @@ export function renderMarkdown(source: string, options: MarkdownRenderOptions = 
       ...(options.quoteAttribution === undefined
         ? {}
         : { quoteAttribution: options.quoteAttribution }),
+      ...(options.spoilerLabel === undefined ? {} : { spoilerLabel: options.spoilerLabel }),
     }),
     truncated: document.truncated,
     version: RENDER_VERSION,
@@ -65,10 +67,11 @@ export function postBodyHtml(
     post.messageHtml !== null &&
     post.renderVersion === RENDER_VERSION &&
     format === BodyFormat.Markdown &&
-    (post.vocabVersion ?? 0) === revision &&
-    options?.quoteAttribution === undefined
+    (post.vocabVersion ?? 0) === revision
   ) {
-    return post.messageHtml
+    return options?.quoteAttribution === undefined
+      ? post.messageHtml
+      : localizeQuoteAttribution(post.messageHtml, options.quoteAttribution)
   }
 
   return renderMarkdown(sourceAsMarkdown(post.message, format), {

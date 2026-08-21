@@ -10,13 +10,13 @@ describe('directives', () => {
       revision: 1,
       smilies: [],
       directives: [
-        { name: 'spoiler', block: true },
+        { name: 'aside', block: true },
         { name: 'kbd', block: false },
       ],
     })
 
-    const block = renderMarkdown(':::spoiler\nthe ending\n:::', vocabularyOptions(vocabulary)).html
-    expect(block).toContain('<div class="md-directive md-directive-spoiler">')
+    const block = renderMarkdown(':::aside\nthe ending\n:::', vocabularyOptions(vocabulary)).html
+    expect(block).toContain('<div class="md-directive md-directive-aside">')
 
     const span = renderMarkdown(':kbd[Ctrl]', vocabularyOptions(vocabulary)).html
     expect(span).toContain('<span class="md-directive md-directive-kbd">Ctrl</span>')
@@ -33,10 +33,15 @@ describe('directives', () => {
     expect(() => createDirectiveRegistry([{ name: 'a'.repeat(20), block: false }])).toThrow()
     expect(() =>
       createDirectiveRegistry([
-        { name: 'spoiler', block: false },
-        { name: 'spoiler', block: true },
+        { name: 'aside', block: false },
+        { name: 'aside', block: true },
       ]),
     ).toThrow()
+  })
+
+  it('refuses to let a board redefine a built-in name like spoiler', () => {
+    expect(() => createDirectiveRegistry([{ name: 'spoiler', block: true }])).toThrow(/built-in/)
+    expect(() => createDirectiveRegistry([{ name: 'spoiler', block: false }])).toThrow(/built-in/)
   })
 
   it('drops one bad row on the render path, and keeps the rest', () => {
@@ -44,15 +49,30 @@ describe('directives', () => {
       revision: 3,
       smilies: [],
       directives: [
-        { name: 'spoiler', block: true },
+        { name: 'aside', block: true },
         { name: '!!', block: false },
         { name: 'kbd', block: false },
       ],
     })
 
-    expect(directiveNames(vocabulary.directives)).toEqual(['kbd', 'spoiler'])
+    expect(directiveNames(vocabulary.directives)).toEqual(['aside', 'kbd'])
     expect(vocabulary.rejected).toHaveLength(1)
     expect(vocabulary.rejected[0]?.kind).toBe('directive')
+  })
+
+  it('rejects spoiler from the vocabulary too, alongside the other bad rows', () => {
+    const vocabulary = compileVocabulary({
+      revision: 4,
+      smilies: [],
+      directives: [
+        { name: 'spoiler', block: true },
+        { name: 'kbd', block: false },
+      ],
+    })
+
+    expect(directiveNames(vocabulary.directives)).toEqual(['kbd'])
+    expect(vocabulary.rejected).toHaveLength(1)
+    expect(vocabulary.rejected[0]).toMatchObject({ kind: 'directive', name: 'spoiler' })
   })
 })
 
@@ -89,7 +109,7 @@ describe('the empty vocabulary', () => {
     const vocabulary = compileVocabulary({
       revision: 2,
       smilies: [{ code: ':)', src: '/a.png' }],
-      directives: [{ name: 'spoiler', block: true }],
+      directives: [{ name: 'aside', block: true }],
     })
 
     const options = vocabularyOptions(vocabulary)

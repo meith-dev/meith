@@ -329,10 +329,24 @@ class FakeRepo implements AttachmentRepository {
         }
   }
   async listForPosts(postIds: readonly number[]) {
-    return this.rows.filter((row) => postIds.includes(row.postId))
+    return this.rows.filter((row) => row.postId !== null && postIds.includes(row.postId))
   }
   async countForPost(postId: number) {
     return this.rows.filter((row) => row.postId === postId).length
+  }
+  async attachTo(id: number, postId: number) {
+    const row = this.rows.find((r) => r.id === id)
+    if (row === undefined || row.postId !== null) return null
+    this.update(id, { postId })
+    return (await this.findById(id))!
+  }
+  async deleteOrphans(before: Date, limit: number) {
+    const stale = this.rows
+      .filter((row) => row.postId === null && row.createdAt < before)
+      .slice(0, limit)
+    const staleIds = new Set(stale.map((row) => row.id))
+    this.rows = this.rows.filter((row) => !staleIds.has(row.id))
+    return stale
   }
   async markReady(id: number, input: ReadyInput) {
     this.update(id, { ...input, status: 'ready', sourceKey: null })
@@ -515,6 +529,61 @@ describe('attaching', () => {
   })
 })
 
+describe('a standalone upload with no post yet', () => {
+  const OWNER = { forumId: 3, uploaderUserId: 11 }
+
+  it('creates a row with no post id, and forgets the key', async () => {
+    const [accepted] = acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS)
+    const row = await service.uploadOrphan(accepted!, OWNER)
+
+    expect(row).toMatchObject({ postId: null, forumId: 3, uploaderUserId: 11, status: 'pending' })
+    expect(repo.keys.size).toBe(0)
+  })
+
+  it('is claimed by the post it was uploaded for', async () => {
+    const [accepted] = acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS)
+    const row = await service.uploadOrphan(accepted!, OWNER)
+
+    const claimed = await service.claim([row.id], {
+      postId: 42,
+      forumId: 3,
+      uploaderUserId: 11,
+    })
+
+    expect(claimed.map((r) => r.id)).toEqual([row.id])
+    expect((await repo.findById(row.id))?.postId).toBe(42)
+  })
+
+  it('refuses to claim someone else’s pending upload', async () => {
+    const [accepted] = acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS)
+    const row = await service.uploadOrphan(accepted!, OWNER)
+
+    const claimed = await service.claim([row.id], {
+      postId: 42,
+      forumId: 3,
+      uploaderUserId: 999,
+    })
+
+    expect(claimed).toEqual([])
+    expect((await repo.findById(row.id))?.postId).toBeNull()
+  })
+
+  it('refuses to claim one already spent on an earlier post', async () => {
+    const [accepted] = acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS)
+    const row = await service.uploadOrphan(accepted!, OWNER)
+    await service.claim([row.id], { postId: 42, forumId: 3, uploaderUserId: 11 })
+
+    const claimed = await service.claim([row.id], { postId: 43, forumId: 3, uploaderUserId: 11 })
+    expect(claimed).toEqual([])
+    expect((await repo.findById(row.id))?.postId).toBe(42)
+  })
+
+  it('skips an id that does not exist, rather than throwing', async () => {
+    const claimed = await service.claim([999], { postId: 42, forumId: 3, uploaderUserId: 11 })
+    expect(claimed).toEqual([])
+  })
+})
+
 describe('processing', () => {
   async function pendingImage() {
     const staged = await service.stage(
@@ -654,5 +723,27 @@ describe('the sweep', () => {
     await service.attach(staged, POST)
 
     expect(await service.sweep()).toMatchObject({ failed: 0 })
+  })
+
+  it('deletes an orphan upload nobody claimed, and its file with it', async () => {
+    const [accepted] = acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS)
+    const row = await service.uploadOrphan(accepted!, { forumId: 3, uploaderUserId: 11 })
+    repo.rows = repo.rows.map((r) =>
+      r.id === row.id
+        ? { ...r, createdAt: new Date(NOW.getTime() - (ORPHAN_GRACE_MINUTES + 1) * 60_000) }
+        : r,
+    )
+
+    expect(await service.sweep()).toMatchObject({ deleted: 1 })
+    expect(await repo.findById(row.id)).toBeNull()
+    expect(files.objects.has(row.sourceKey!)).toBe(false)
+  })
+
+  it('leaves an orphan upload that is still inside its grace period alone', async () => {
+    const [accepted] = acceptFiles([{ filename: 'a.png', bytes: png() }], NO_LIMITS)
+    const row = await service.uploadOrphan(accepted!, { forumId: 3, uploaderUserId: 11 })
+
+    expect(await service.sweep()).toMatchObject({ deleted: 0 })
+    expect(await repo.findById(row.id)).not.toBeNull()
   })
 })

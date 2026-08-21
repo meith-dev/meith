@@ -1,5 +1,5 @@
 import { NodeBudget } from './budget'
-import { type DirectiveRegistry, NO_DIRECTIVES } from './extensions'
+import { type DirectiveRegistry, NO_DIRECTIVES, RESERVED_DIRECTIVE_NAMES } from './extensions'
 import { FULL_FEATURES, type MarkdownFeatures } from './features'
 import { type InlineContext, parseInline } from './inline'
 import { DEFAULT_LIMITS, type MarkdownLimits } from './limits'
@@ -46,6 +46,10 @@ function indentOf(line: string): number {
   return count
 }
 
+function isBlockDirective(name: string, directives: DirectiveRegistry): boolean {
+  return RESERVED_DIRECTIVE_NAMES.has(name) || directives.block.has(name)
+}
+
 interface Context {
   readonly features: MarkdownFeatures
   readonly limits: MarkdownLimits
@@ -63,7 +67,7 @@ function startsBlock(line: string, context: Context): boolean {
   if (features.lists && (BULLET.test(line) || ORDERED.test(line))) return true
   if (features.directives) {
     const directive = DIRECTIVE_OPEN.exec(line)
-    if (directive !== null && context.directives.block.has(directive[1]!)) return true
+    if (directive !== null && isBlockDirective(directive[1]!, context.directives)) return true
   }
   return false
 }
@@ -207,7 +211,7 @@ function parseBlocks(lines: readonly string[], context: Context, depth: number):
     }
 
     const directive = context.features.directives ? DIRECTIVE_OPEN.exec(line) : null
-    if (directive !== null && context.directives.block.has(directive[1]!)) {
+    if (directive !== null && isBlockDirective(directive[1]!, context.directives)) {
       if (depth >= context.limits.maxDepth) {
         blocks.push({ kind: 'paragraph', inline: [{ kind: 'text', value: line.trim() }] })
         index += 1

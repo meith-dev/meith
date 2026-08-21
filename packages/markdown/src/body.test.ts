@@ -32,6 +32,18 @@ describe('postBodyHtml', () => {
     )
   })
 
+  it('localizes a stored quote attribution without discarding the rest of the stored render', () => {
+    const stored = {
+      ...current,
+      messageHtml:
+        '<p class="md-quote-attribution"><strong data-quote-author="ada">ada wrote:</strong></p>',
+    }
+
+    expect(
+      postBodyHtml(stored, undefined, { quoteAttribution: (author) => `${author} said` }),
+    ).toBe('<p class="md-quote-attribution"><strong>ada said</strong></p>')
+  })
+
   it('ignores the stored render of a body still stored as BBCode', () => {
     const html = postBodyHtml({
       message: 'a [b]bold[/b] claim',

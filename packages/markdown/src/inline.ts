@@ -30,6 +30,8 @@ const MENTION_NAME = /^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u
 
 const MENTION_MAX = 64
 
+const ATTACHMENT = /^\[attachment=(\d{1,10})\]/
+
 type Delimiter = {
   readonly t: 'delim'
   readonly char: string
@@ -316,6 +318,16 @@ export function parseInline(source: string, context: InlineContext, allowLinks =
       buffer += character
       index += 1
       continue
+    }
+
+    if (character === '[' && context.features.attachments) {
+      const attachment = ATTACHMENT.exec(source.slice(index))
+      if (attachment !== null) {
+        flush()
+        if (!push({ kind: 'attachment', id: Number(attachment[1]) })) break
+        index += attachment[0].length
+        continue
+      }
     }
 
     if (character === '[' && allowLinks && context.features.links) {

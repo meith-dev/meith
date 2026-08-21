@@ -1,0 +1,2 @@
+ALTER TABLE "attachments" ALTER COLUMN "post_id" DROP NOT NULL;--> statement-breakpoint
+CREATE INDEX "attachments_orphan_idx" ON "attachments" USING btree ("created_at") WHERE "attachments"."post_id" is null;

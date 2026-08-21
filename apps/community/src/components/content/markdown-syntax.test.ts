@@ -8,6 +8,7 @@ import {
   linkEdit,
   listContinuation,
   pasteAsLink,
+  spoilerEdit,
   togglePrefix,
   toggleWrap,
 } from './markdown-syntax'
@@ -136,6 +137,20 @@ describe('fenced code', () => {
     const out = press('‹a < b›', (v, s, e) => fenceEdit(v, s, e))
     expect(out?.text).toBe('```\na < b\n```')
     expect(renderMarkdown(out?.text ?? '').html).toContain('a &lt; b')
+  })
+})
+
+describe('spoilers', () => {
+  it('wraps the selected lines in a spoiler directive, never indents them', () => {
+    const out = press('‹the ending›', (v, s, e) => spoilerEdit(v, s, e, 'hidden text'))
+    expect(out?.text).toBe(':::spoiler\nthe ending\n:::')
+    expect(renderMarkdown(out?.text ?? '').html).toContain('<details class="md-spoiler">')
+  })
+
+  it('inserts a placeholder and selects it when nothing is selected', () => {
+    const out = press('‹›', (v, s, e) => spoilerEdit(v, s, e, 'hidden text'))
+    expect(out?.text).toBe(':::spoiler\nhidden text\n:::')
+    expect(out?.selected).toBe('hidden text')
   })
 })
 

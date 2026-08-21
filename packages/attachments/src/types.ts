@@ -76,7 +76,8 @@ export type AttachmentStatus = 'pending' | 'ready' | 'failed'
 
 export interface AttachmentRecord {
   readonly id: number
-  readonly postId: number
+  /** Null until a post claims it — see uploadOrphan()/claim() in service.ts. */
+  readonly postId: number | null
   readonly forumId: number
   readonly uploaderUserId: number | null
   readonly filename: string

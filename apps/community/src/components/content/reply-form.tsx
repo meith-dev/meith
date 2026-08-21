@@ -60,6 +60,7 @@ export function ReplyForm({
         required
         defaultValue={state.values?.message ?? draft?.message ?? prefill}
         preview={state.notice === 'preview' ? (state.preview ?? '') : undefined}
+        {...(attachmentLimits !== null ? { attachTo: { kind: 'thread', threadId } } : {})}
       />
 
       {attachmentLimits !== null && <AttachmentField limits={attachmentLimits} />}

@@ -147,13 +147,20 @@ break, and there are no indented code blocks.
 **A directive is not MyBB's custom MyCode.** MyBB's takes a *replacement
 pattern* — a regular expression and the HTML to put in its place — so an
 administrator can produce any markup from a form. Meith's chooses a
-**name** and whether it is inline or block; members write `:::spoiler` …
-`:::` or `:spoiler[…]`, and the element is constructed by
+**name** and whether it is inline or block; members write `:::note` …
+`:::` or `:note[…]`, and the element is constructed by
 `@meith/markdown`. That is a real capability difference and a deliberate
 one: a field that chooses output markup is a second markup language
 administered through a web form, which is how boards with custom MyCode
 acquire a permanent XSS surface. Anything needing bespoke markup is a
 plugin, where the code is reviewed rather than typed into a text box.
+
+**`spoiler` is not a directive an administrator defines — it is built
+into the renderer**, on every board, and reveals with a native
+`<details>`/`<summary>` element that needs no JavaScript. MyBB's
+`[spoiler]` MyCode (never core, always a plugin) still falls into "left
+as the text it was" on import, same as any other custom MyCode; a member
+who wants a hidden section after the move writes `:::spoiler` … `:::`.
 
 **Cost.** An operator promising a like-for-like move should promise it
 about the *text*, not the colours. Members who knew BBCode have to learn

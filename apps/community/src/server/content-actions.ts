@@ -14,7 +14,7 @@ import {
 import type { PostEditor } from '@meith/posts'
 
 import { postLink } from '../view/post-link'
-import { attachStaged, stageAttachments, submittedFiles } from './attachments'
+import { attachStaged, claimAttachments, stageAttachments, submittedFiles } from './attachments'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { activeVocabulary } from './content-admin'
@@ -44,6 +44,7 @@ async function previewHtml(message: string, scope: PreviewScope = 'post'): Promi
       ...vocabularyOptions(vocabulary),
       ...(scope === 'signature' ? { features: SIGNATURE_FEATURES } : {}),
       quoteAttribution: (author) => translator.t('markdown.quote.attribution', { author }),
+      spoilerLabel: translator.t('markdown.spoiler.label'),
     },
   )
   return rendered.html
@@ -142,7 +143,13 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
           : { question: pollQuestion, options: pollOptions },
     })
 
-    await attachStaged(staged, { postId: created.postId, forumId, userId })
+    const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })
+    await claimAttachments(
+      form,
+      { postId: created.postId, forumId, userId },
+      resolved.scope,
+      attached.length,
+    )
     await drafts?.remove(userId, forumId, null)
   } catch (err) {
     return toFormState(err, values)
@@ -187,7 +194,13 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
 
     created = await submitReply(actor, resolved, { message, subscribe, seenLastPostId })
 
-    await attachStaged(staged, { postId: created.postId, forumId, userId })
+    const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })
+    await claimAttachments(
+      form,
+      { postId: created.postId, forumId, userId },
+      scope,
+      attached.length,
+    )
     await drafts?.remove(userId, forumId, threadId)
   } catch (err) {
     return toFormState(err, values)

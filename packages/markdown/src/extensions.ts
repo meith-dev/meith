@@ -23,6 +23,11 @@ export interface DirectiveRegistry {
 
 export const NO_DIRECTIVES: DirectiveRegistry = { block: new Set(), inline: new Set() }
 
+// A reserved name is a directive the renderer already gives meaning to (see render.ts). It is
+// always recognized during parsing, on every board, whether or not the vocabulary defines it —
+// and a board cannot redefine it, so its rendering can never be shadowed by admin configuration.
+export const RESERVED_DIRECTIVE_NAMES: ReadonlySet<string> = new Set(['spoiler'])
+
 export function createDirectiveRegistry(
   definitions: readonly DirectiveDefinition[] = [],
 ): DirectiveRegistry {
@@ -33,6 +38,9 @@ export function createDirectiveRegistry(
     const name = definition.name.toLowerCase()
     if (!/^[a-z][a-z0-9]{0,15}$/.test(name)) {
       throw new Error('A directive name is 1–16 letters or digits and starts with a letter.')
+    }
+    if (RESERVED_DIRECTIVE_NAMES.has(name)) {
+      throw new Error(`:${name} is a built-in directive and cannot be redefined.`)
     }
     if (block.has(name) || inline.has(name)) throw new Error(`Directive :${name} already exists.`)
     if (definition.block) block.add(name)

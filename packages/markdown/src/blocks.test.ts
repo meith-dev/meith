@@ -150,6 +150,39 @@ describe('limits', () => {
   })
 })
 
+describe('spoilers', () => {
+  it('reveals with a native details/summary, on every board, with no vocabulary at all', () => {
+    const out = html(':::spoiler\nthe ending\n:::')
+    expect(out).toBe(
+      '<details class="md-spoiler"><summary>Spoiler</summary><p>the ending</p>\n</details>',
+    )
+  })
+
+  it('nests inside a quote or a list item like any other block', () => {
+    expect(html('> :::spoiler\n> the ending\n> :::')).toContain('<details class="md-spoiler">')
+    expect(html('- :::spoiler\n  the ending\n  :::')).toContain('<details class="md-spoiler">')
+  })
+
+  it('lets a caller translate the summary text', () => {
+    const out = renderMarkdown(':::spoiler\nthe ending\n:::', { spoilerLabel: 'Révéler' }).html
+    expect(out).toContain('<summary>Révéler</summary>')
+  })
+
+  it('escapes a translated summary, since it still ends up in markup', () => {
+    const out = renderMarkdown(':::spoiler\nx\n:::', {
+      spoilerLabel: '<script>alert(1)</script>',
+    }).html
+    expect(out).not.toContain('<script>')
+    expect(out).toContain('&lt;script&gt;')
+  })
+
+  it('is off wherever directives are, such as a signature', () => {
+    const out = renderMarkdown(':::spoiler\nthe ending\n:::', { features: SIGNATURE_FEATURES }).html
+    expect(out).not.toContain('<details')
+    expect(out).toContain(':::spoiler')
+  })
+})
+
 describe('the feature switches', () => {
   const signature = (source: string): string =>
     renderMarkdown(source, { features: SIGNATURE_FEATURES }).html
