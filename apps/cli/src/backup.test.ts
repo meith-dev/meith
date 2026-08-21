@@ -5,8 +5,95 @@ import {
   contentTypeFor,
   formatBytes,
   parseManifest,
+  postgresClientEnvironment,
   resolveUploadsMode,
+  restoreDatabaseUrl,
 } from './backup'
+
+describe('postgresClientEnvironment', () => {
+  it('converts a connection URL into libpq environment variables', () => {
+    const childEnv = postgresClientEnvironment(
+      'postgresql://board%40admin:p%40ss%2Fword@db.example.com:6432/community%20board' +
+        '?sslmode=require&connect_timeout=8&application_name=meith%20backup',
+      'DATABASE_URL',
+    )
+
+    expect(childEnv).toMatchObject({
+      PGAPPNAME: 'meith backup',
+      PGCONNECT_TIMEOUT: '8',
+      PGDATABASE: 'community board',
+      PGHOST: 'db.example.com',
+      PGPASSWORD: 'p@ss/word',
+      PGPORT: '6432',
+      PGSSLMODE: 'require',
+      PGUSER: 'board@admin',
+    })
+  })
+
+  it('uses defaults without inheriting unrelated libpq credentials', () => {
+    const inheritedPassword = process.env.PGPASSWORD
+    process.env.PGPASSWORD = 'wrong-database-password'
+    try {
+      const childEnv = postgresClientEnvironment(
+        'postgres://community@[::1]/community',
+        'DATABASE_URL',
+      )
+
+      expect(childEnv.PGHOST).toBe('::1')
+      expect(childEnv.PGPORT).toBe('5432')
+      expect(childEnv.PGPASSWORD).toBeUndefined()
+    } finally {
+      if (inheritedPassword === undefined) delete process.env.PGPASSWORD
+      else process.env.PGPASSWORD = inheritedPassword
+    }
+  })
+
+  it('rejects unsafe or incomplete URLs without echoing their values', () => {
+    const secret = 'never-print-this'
+    for (const value of [
+      `mysql://user:${secret}@localhost/community`,
+      `postgres://${secret}@/community`,
+      `postgres://user:${secret}@localhost`,
+      `postgres://user:${secret}@localhost/bad%ZZ`,
+    ]) {
+      expect(() => postgresClientEnvironment(value, 'DATABASE_URL')).toThrow(/DATABASE_URL/)
+      try {
+        postgresClientEnvironment(value, 'DATABASE_URL')
+      } catch (error) {
+        expect(String(error)).not.toContain(secret)
+      }
+    }
+  })
+})
+
+describe('restoreDatabaseUrl', () => {
+  it('reads the target from the environment', () => {
+    const target = 'postgres://user:secret@localhost/restored'
+    expect(restoreDatabaseUrl(['board.tar.gz'], { RESTORE_DATABASE_URL: target })).toBe(target)
+  })
+
+  it('rejects a missing environment variable', () => {
+    expect(() => restoreDatabaseUrl(['board.tar.gz'], {})).toThrow(/RESTORE_DATABASE_URL/)
+  })
+
+  it('rejects the observable command-line flag without echoing its value', () => {
+    const secret = 'never-print-this'
+    expect(() =>
+      restoreDatabaseUrl(
+        ['board.tar.gz', '--database-url', `postgres://user:${secret}@db/board`],
+        {},
+      ),
+    ).toThrow(/not supported/)
+    try {
+      restoreDatabaseUrl(
+        ['board.tar.gz', '--database-url', `postgres://user:${secret}@db/board`],
+        {},
+      )
+    } catch (error) {
+      expect(String(error)).not.toContain(secret)
+    }
+  })
+})
 
 describe('resolveUploadsMode', () => {
   it('includes local uploads unless told otherwise', () => {

@@ -68,9 +68,9 @@ the data is in:
 
 ```sh
 docker compose up -d postgres
-docker compose run --rm --no-deps -v "$PWD":/backup web \
-  node apps/cli/cli.cjs restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz \
-  --database-url postgres://community:$POSTGRES_PASSWORD@postgres:5432/community
+RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/community" \
+  docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD":/backup web \
+  node apps/cli/cli.cjs restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz
 ```
 
 The fresh Postgres container created an empty `community` database, which

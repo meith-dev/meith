@@ -928,7 +928,7 @@ screen and no deploy:
 - **The first colour** is the brand group — `primary`, `primary-hover`,
   `primary-foreground`, `ring`. One press of a brand preset writes all
   four, or type your own.
-- **The second colour** — the trim on the jersey — is `secondary`, with
+- **The second colour** — the trim on the jersey �� is `secondary`, with
   `secondary-foreground` for text on it.
 - Everything else stays neutral on purpose, so those two are the only
   hues on the page.
@@ -1447,7 +1447,7 @@ Dates are entered in UTC, and the screen says so.
 
 `/admin/content/navigation` is the menu across the top of every board
 page. A new board starts with six items — Home, New posts, Unanswered, My
-posts, Search and Who's online — and those six are ordinary rows on this
+posts, Search and Who's online �� and those six are ordinary rows on this
 screen: rename one, move it, hide it, or delete it outright, and add
 links of your own beside them.
 
@@ -2422,8 +2422,14 @@ above describes.
 
 ```sh
 createdb community_restored
-community restore board.tar.gz --database-url "$RESTORE_URL"
+RESTORE_DATABASE_URL="$RESTORE_URL" community restore board.tar.gz
 ```
+
+The restore URL is accepted only through `RESTORE_DATABASE_URL`. The CLI
+passes database credentials to `pg_dump`, `pg_restore`, and `psql` through the
+child environment, never through observable process arguments; do not put
+database credentials in a command-line flag. `pg_restore` receives only the
+non-secret database name as its required target argument.
 
 Restore goes into a **new database**: the command checks the target is
 empty and refuses otherwise, because a restore over a live database is
