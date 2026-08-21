@@ -928,7 +928,7 @@ screen and no deploy:
 - **The first colour** is the brand group — `primary`, `primary-hover`,
   `primary-foreground`, `ring`. One press of a brand preset writes all
   four, or type your own.
-- **The second colour** — the trim on the jersey ���� is `secondary`, with
+- **The second colour** — the trim on the jersey ������ is `secondary`, with
   `secondary-foreground` for text on it.
 - Everything else stays neutral on purpose, so those two are the only
   hues on the page.
@@ -2400,6 +2400,10 @@ The details the verb gets right on your behalf:
 - **The tools are in the image.** The runtime image carries the postgres
   client tools (`pg_dump`, `pg_restore`, `psql`) precisely so this verb
   works everywhere the CLI works, with no toolchain on the host.
+- **The output starts private.** The CLI exclusively creates the destination
+  with mode `0600` before `tar` writes its first byte and refuses to overwrite
+  an existing path. Test the copied file with `stat`; storage and transfer
+  tooling can apply different permissions.
 
 On a container deployment the bundle lands inside the container's
 filesystem, so mount a directory to receive it:
@@ -2417,10 +2421,12 @@ backup on the server is a backup of the thing most likely to fail:
 ```
 
 `rclone` is one offsite choice; `scp`, `restic` or an object-store sync
-serve the same sentence. On Coolify, a scheduled command on the `web`
-resource runs the same invocation, and the offsite copy is still yours to
-add — Coolify's own backup schedule is the database-only trap the warning
-above describes.
+serve the same sentence. Store the offsite copy encrypted and with
+integrity protection: mode `0600` protects only against other users on the
+same filesystem, not a stolen disk, storage administrator or modified
+bundle. On Coolify, a scheduled command on the `web` resource runs the same
+invocation, and the offsite copy is still yours to add — Coolify's own
+backup schedule is the database-only trap the warning above describes.
 
 ### Restoring
 
@@ -2446,6 +2452,23 @@ reason the database must) on local disk, or up to the configured bucket
 when the file driver is S3 and the bundle carries objects.
 `--skip-uploads` leaves files alone when the uploads never went anywhere,
 such as a database-only recovery.
+
+Before touching the target database or uploads directory, restore copies the
+bundle into a private temporary directory and validates its structure. A
+format-1 bundle may contain only `manifest.json`, `db.dump`, and, when the
+manifest says so, `uploads.tar.gz`; duplicate, absolute, traversing, linked,
+device and other special members are refused. The nested uploads archive gets
+the same path and type checks. Existing valid format-1 bundles remain
+compatible.
+
+Restore also refuses oversized input before extraction. Defaults are a 2 GiB
+compressed bundle, 100,000 members, 1 GiB for one expanded member and 8 GiB
+expanded in each archive. Set byte counts or a member count with
+`MEITH_RESTORE_MAX_ARCHIVE_BYTES`, `MEITH_RESTORE_MAX_MEMBERS`,
+`MEITH_RESTORE_MAX_MEMBER_BYTES`, and `MEITH_RESTORE_MAX_EXPANDED_BYTES` when
+a known-good board needs higher or deliberately lower limits. These checks
+limit accidental or malicious resource consumption; they do not authenticate
+the backup, so use integrity-protected offsite storage.
 
 Two checks remain that a command cannot make for you. Point a staging
 deployment at the restored database, then:

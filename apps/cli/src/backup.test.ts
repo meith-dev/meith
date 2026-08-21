@@ -1,3 +1,7 @@
+import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -6,8 +10,11 @@ import {
   formatBytes,
   parseManifest,
   postgresClientEnvironment,
+  reserveBackupDestination,
   resolveUploadsMode,
   restoreDatabaseUrl,
+  restoreLimits,
+  validateArchiveListing,
 } from './backup'
 
 describe('postgresClientEnvironment', () => {
@@ -160,5 +167,106 @@ describe('formatBytes', () => {
     expect(formatBytes(512)).toBe('512 B')
     expect(formatBytes(2048)).toBe('2.0 KiB')
     expect(formatBytes(52428800)).toBe('50 MiB')
+  })
+})
+
+describe('reserveBackupDestination', () => {
+  it('creates a private file regardless of the process umask', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'meith-backup-test-'))
+    const destination = path.join(dir, 'board.tar.gz')
+    const previous = process.umask(0o022)
+    try {
+      await reserveBackupDestination(destination)
+      expect((await stat(destination)).mode & 0o777).toBe(0o600)
+      await expect(reserveBackupDestination(destination)).rejects.toMatchObject({ code: 'EEXIST' })
+    } finally {
+      process.umask(previous)
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('restoreLimits', () => {
+  it('uses defaults and accepts explicit positive limits', () => {
+    expect(restoreLimits({}).members).toBe(100_000)
+    expect(restoreLimits({ MEITH_RESTORE_MAX_MEMBERS: '12' }).members).toBe(12)
+  })
+
+  it('rejects invalid limits', () => {
+    expect(() => restoreLimits({ MEITH_RESTORE_MAX_MEMBERS: '0' })).toThrow(/positive integer/)
+    expect(() => restoreLimits({ MEITH_RESTORE_MAX_ARCHIVE_BYTES: '1.5' })).toThrow(
+      /positive integer/,
+    )
+  })
+})
+
+describe('validateArchiveListing', () => {
+  const limits = {
+    archiveBytes: 1_000,
+    members: 3,
+    memberBytes: 100,
+    expandedBytes: 150,
+  }
+  const files = new Set(['-'])
+
+  it('accepts a small regular-file bundle', () => {
+    expect(
+      validateArchiveListing(
+        'manifest.json\ndb.dump\n',
+        '-rw------- 0/0 20 2026-08-21 00:00 manifest.json\n' +
+          '-rw------- 0/0 80 2026-08-21 00:00 db.dump\n',
+        limits,
+        files,
+      ).map((member) => member.name),
+    ).toEqual(['manifest.json', 'db.dump'])
+  })
+
+  it.each([
+    ['../escape', '-rw------- 0/0 1 2026-08-21 00:00 ../escape\n'],
+    ['/absolute', '-rw------- 0/0 1 2026-08-21 00:00 /absolute\n'],
+    ['link', 'lrwxrwxrwx 0/0 0 2026-08-21 00:00 link -> target\n'],
+  ])('rejects unsafe member %s', (name, verbose) => {
+    expect(() => validateArchiveListing(`${name}\n`, verbose, limits, files)).toThrow(
+      /unsafe|unsupported/,
+    )
+  })
+
+  it('rejects duplicates and quota violations', () => {
+    expect(() =>
+      validateArchiveListing(
+        'same\nsame\n',
+        '-rw------- 0/0 1 2026-08-21 00:00 same\n'.repeat(2),
+        limits,
+        files,
+      ),
+    ).toThrow(/duplicate/)
+    expect(() =>
+      validateArchiveListing(
+        'large\n',
+        '-rw------- 0/0 101 2026-08-21 00:00 large\n',
+        limits,
+        files,
+      ),
+    ).toThrow(/per-member/)
+    expect(() =>
+      validateArchiveListing(
+        'one\ntwo\n',
+        '-rw------- 0/0 80 2026-08-21 00:00 one\n' + '-rw------- 0/0 80 2026-08-21 00:00 two\n',
+        limits,
+        files,
+      ),
+    ).toThrow(/expanded-size/)
+  })
+
+  it('accepts the legacy uploads root but rejects special entries', () => {
+    expect(
+      validateArchiveListing(
+        './\n./avatar.png\n',
+        'drwx------ 0/0 0 2026-08-21 00:00 ./\n' +
+          '-rw------- 0/0 20 2026-08-21 00:00 ./avatar.png\n',
+        limits,
+        new Set(['-', 'd']),
+      ).map((member) => member.name),
+    ).toEqual(['.', 'avatar.png'])
   })
 })
