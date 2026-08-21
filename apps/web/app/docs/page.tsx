@@ -7,8 +7,7 @@ import { docHref, documentsInSection, internalDocuments, sections } from '../../
 export const metadata: Metadata = {
   title: 'Documentation',
   description:
-    'Every document Meith publishes, organised by what you are trying to do: run a board, ' +
-    'write a theme or a plugin, call the API, or move a community off MyBB.',
+    'Install, administer, operate, extend, or contribute to Meith with task-focused guides and generated references.',
   alternates: { canonical: '/docs' },
 }
 
@@ -16,14 +15,10 @@ export default function DocsIndexPage() {
   return (
     <div className="max-w-[46rem]">
       <p className="eyebrow">Documentation</p>
-      <h1 className="display mt-3 text-huge leading-[1.05]">
-        Each document has one audience and one job.
-      </h1>
+      <h1 className="display mt-3 text-huge leading-[1.05]">What do you want to do?</h1>
       <p className="mt-5 text-mid leading-[1.45] text-fg-muted text-pretty">
-        Four of these are generated from the code they describe, and{' '}
-        <code className="font-mono text-[0.9em]">pnpm verify</code> fails when one of them is stale.
-        A reference read by somebody who cannot see the source is worse than no reference when it is
-        wrong.
+        Choose a task below. Start with the primary guide in that section, then use the shorter
+        references when you need a specific detail.
       </p>
 
       <div className="mt-14 flex flex-col gap-14">

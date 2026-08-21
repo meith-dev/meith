@@ -8,9 +8,7 @@ export const site = {
   repository: 'https://github.com/meith-dev/meith',
   tagline: 'A forum for your community, on a server of your own.',
   description:
-    'Meith is a free, open-source forum for communities that run themselves: announcements ' +
-    'that stay put, a private room for the organisers, search that reaches back years, and ' +
-    'memberships taken online. No ads, no algorithm, and no per-member pricing.',
+    'Open-source forum software for communities that want durable discussions, clear permissions, and control of their own server.',
 } as const
 
 export const licence = {
@@ -59,18 +57,17 @@ export const shots = {
 } as const satisfies Record<string, { readonly light: Shot; readonly dark: Shot }>
 
 export const hero = {
-  badge: 'Free and open source · Your own server · No per-member pricing',
+  badge: 'Open source · Self-hosted · No per-member pricing',
   headline: {
-    before: 'Somewhere your whole community can reach.',
-    emphasis: 'Somewhere nobody else owns.',
+    before: 'A forum your community can rely on.',
+    emphasis: 'On a server you control.',
   },
   lede:
-    'The announcements, the decisions, the rules and the answers worth keeping, in one place ' +
-    '— run from a browser by the same people who hold the community together. Threads stay ' +
-    'put, search reaches back years, and no algorithm decides who sees what.',
-  primary: 'See a live board',
-  secondary: 'Set one up',
-  caption: 'A real board, photographed. Every picture on this page is one.',
+    'Keep announcements, decisions, and useful answers in searchable threads. Run the board ' +
+    'from a browser, keep private forums private, and move it with you when operators change.',
+  primary: 'Explore the demo',
+  secondary: 'Install Meith',
+  caption: 'Screenshots from a working Meith board.',
 } as const
 
 export const devices = {
@@ -237,7 +234,7 @@ export const capabilities: readonly Capability[] = [
       'Newcomers, members and the people running the place each see their own forums — and ' +
       'search, feeds and the API keep the secret too.',
     doc: 'operating',
-    anchor: 'permissions',
+    anchor: null,
     link: 'How permissions work',
   },
   {
@@ -277,7 +274,7 @@ export const capabilities: readonly Capability[] = [
       'A trap only bots fall into, and sign-up questions only your members can answer. No ' +
       'puzzle grids at the door.',
     doc: 'operating',
-    anchor: 'spam',
+    anchor: null,
     link: 'How the spam controls work',
   },
   {
