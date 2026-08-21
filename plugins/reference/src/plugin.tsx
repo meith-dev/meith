@@ -49,7 +49,7 @@ export const referencePlugin = definePlugin({
   key: 'reference',
   name: en['reference.definition.name'],
   nameKey: 'reference.definition.name',
-  version: '0.13.0',
+  version: '0.14.0',
   description: en['reference.definition.description'],
   descriptionKey: 'reference.definition.description',
   apiVersion: '0',
