@@ -3,11 +3,11 @@ import type { LinkModel } from '@meith/theme-kit'
 
 import { untranslated } from './time'
 
-export type LegalSlug = 'terms' | 'privacy'
+export type LegalSlug = 'terms' | 'privacy' | 'rules'
 
 export interface LegalPage {
   readonly slug: LegalSlug
-  readonly settingKey: 'legal.terms' | 'legal.privacy'
+  readonly settingKey: 'legal.terms' | 'legal.privacy' | 'legal.rules'
   readonly titleKey: string
   readonly href: string
   readonly footerLabelKey: string
@@ -27,6 +27,13 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
     titleKey: 'legal.page.privacy.title',
     href: '/privacy',
     footerLabelKey: 'legal.page.privacy.footer',
+  },
+  {
+    slug: 'rules',
+    settingKey: 'legal.rules',
+    titleKey: 'legal.page.rules.title',
+    href: '/rules',
+    footerLabelKey: 'legal.page.rules.footer',
   },
 ]
 

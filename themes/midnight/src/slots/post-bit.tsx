@@ -54,78 +54,89 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
 
       <div className="grid grid-cols-1 sm:grid-cols-[11rem_1fr]">
         <div className="border-b border-border bg-secondary px-3 py-2 sm:border-b-0 sm:border-r">
-          <p className="flex items-center gap-2">
-            {select !== null && (
-              <label className="flex items-center">
-                <span className="sr-only">{select.label}</span>
-                <input
-                  type="checkbox"
-                  name={select.name}
-                  value={select.value}
-                  form={select.formId}
-                  className="size-3.5"
+          <div className="flex items-start gap-3 sm:flex-col sm:items-center sm:gap-2 sm:text-center">
+            {post.author.avatarUrl !== null && (
+              <img
+                src={post.author.avatarUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="size-12 shrink-0 border border-border object-cover sm:size-16"
+              />
+            )}
+
+            <div className="min-w-0 flex-1 sm:flex-none">
+              <p className="flex items-center gap-2 sm:justify-center">
+                {select !== null && (
+                  <label className="flex items-center">
+                    <span className="sr-only">{select.label}</span>
+                    <input
+                      type="checkbox"
+                      name={select.name}
+                      value={select.value}
+                      form={select.formId}
+                      className="size-3.5"
+                    />
+                  </label>
+                )}
+                <UserRef
+                  user={post.author}
+                  className={
+                    post.author.profileHref === null
+                      ? 'font-medium'
+                      : 'font-medium hover:text-primary'
+                  }
                 />
-              </label>
-            )}
-            <UserRef
-              user={post.author}
-              className={
-                post.author.profileHref === null ? 'font-medium' : 'font-medium hover:text-primary'
-              }
-            />
-          </p>
+              </p>
 
-          {regions.pluginBadges}
+              {regions.pluginBadges}
 
-          {post.author.badge != null && (
-            <p className="mt-1">
-              <GroupBadge badge={post.author.badge} />
-            </p>
-          )}
-          {post.author.title !== null && (
-            <p className="font-mono text-xs text-muted-foreground">{post.author.title}</p>
-          )}
-          {post.author.avatarUrl !== null && (
-            <img
-              src={post.author.avatarUrl}
-              alt=""
-              width={64}
-              height={64}
-              className="mt-2 size-16 border border-border object-cover"
-            />
-          )}
-          <dl className="mt-2 font-mono text-xs text-muted-foreground">
-            <div className="flex gap-1">
-              <dt>{c('posts')}</dt>
-              <dd className="text-foreground">{post.author.postCount.label}</dd>
-            </div>
-            {post.author.joinedAt !== null && (
-              <div className="flex gap-1">
-                <dt>{c('joined')}</dt>
-                <dd>
-                  <time dateTime={post.author.joinedAt.iso}>{post.author.joinedAt.label}</time>
-                </dd>
-              </div>
-            )}
-            {post.author.reputation != null && (
-              <div className="flex gap-1">
-                <dt>{c('rep')}</dt>
-                <dd className="text-foreground">{post.author.reputation.label}</dd>
-              </div>
-            )}
-            {post.author.isOnline && <div className="text-forum-unread">{c('online')}</div>}
-          </dl>
-
-          {post.author.fields.length > 0 && (
-            <dl className="mt-2 font-mono text-xs text-muted-foreground">
-              {post.author.fields.map((field) => (
-                <div key={field.label} className="flex gap-1">
-                  <dt>{field.label}</dt>
-                  <dd className="text-foreground">{field.value}</dd>
+              {post.author.badge != null && (
+                <p className="mt-1 flex sm:justify-center">
+                  <GroupBadge badge={post.author.badge} />
+                </p>
+              )}
+              {post.author.title !== null && (
+                <p className="truncate font-mono text-xs text-muted-foreground">
+                  {post.author.title}
+                </p>
+              )}
+              <dl className="mt-2 font-mono text-xs text-muted-foreground">
+                <div className="flex gap-1 sm:justify-center">
+                  <dt>{c('posts')}</dt>
+                  <dd className="text-foreground">{post.author.postCount.label}</dd>
                 </div>
-              ))}
-            </dl>
-          )}
+                {post.author.joinedAt !== null && (
+                  <div className="flex gap-1 sm:justify-center">
+                    <dt>{c('joined')}</dt>
+                    <dd>
+                      <time dateTime={post.author.joinedAt.iso}>{post.author.joinedAt.label}</time>
+                    </dd>
+                  </div>
+                )}
+                {post.author.reputation != null && (
+                  <div className="flex gap-1 sm:justify-center">
+                    <dt>{c('rep')}</dt>
+                    <dd className="text-foreground">{post.author.reputation.label}</dd>
+                  </div>
+                )}
+                {post.author.isOnline && (
+                  <div className="text-forum-unread sm:text-center">{c('online')}</div>
+                )}
+              </dl>
+
+              {post.author.fields.length > 0 && (
+                <dl className="mt-2 font-mono text-xs text-muted-foreground">
+                  {post.author.fields.map((field) => (
+                    <div key={field.label} className="flex gap-1 sm:justify-center">
+                      <dt>{field.label}</dt>
+                      <dd className="text-foreground">{field.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="min-w-0">

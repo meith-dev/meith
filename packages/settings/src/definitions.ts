@@ -1045,6 +1045,19 @@ export const SETTING_DEFINITIONS = [
     invalidates: ['settings', 'layout'],
     ui: { multiline: true },
   }),
+  define({
+    key: 'legal.rules',
+    group: 'legal',
+    label: 'Rules & FAQ',
+    description:
+      'Markdown, published at /rules and linked from the footer. Left empty by ' +
+      'default — a board explains itself in its own terms, not a template. Once ' +
+      'published, the first-post onboarding guidance links new members to it.',
+    schema: z.string().max(40_000),
+    default: '',
+    invalidates: ['settings', 'layout'],
+    ui: { multiline: true },
+  }),
 ] as const
 
 export type SettingKey = (typeof SETTING_DEFINITIONS)[number]['key']

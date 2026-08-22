@@ -6,10 +6,12 @@ import { quotePrefill } from '@meith/threads'
 
 import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
 import { ReplyForm } from '@/components/content/reply-form'
+import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { firstPostGuidance } from '@/server/onboarding'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { replyFormCopy } from '@/view/content-copy'
@@ -123,8 +125,11 @@ export default async function ReplyPage({
     viewerRef(actor),
   )
 
+  const guidance = locked ? null : await firstPostGuidance(actor).catch(() => null)
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
+      {guidance !== null && <OnboardingBanner {...guidance} />}
       <PostForm {...formModel} copy={slotCopy(theme, 'PostForm', translator)} />
     </main>
   )

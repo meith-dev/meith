@@ -4,6 +4,7 @@ import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { NotificationMenu } from '@/components/shell/notification-menu'
+import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
 import { avatarsFor } from '@/server/avatars'
 import { currentLogo } from '@/server/branding'
@@ -14,6 +15,7 @@ import { unreadMessageCount } from '@/server/messages'
 import { boardNavigation } from '@/server/navigation'
 import { buildNotificationMenuModel } from '@/server/notification-menu'
 import { unreadNotificationCount } from '@/server/notifications'
+import { onboardingBanner } from '@/server/onboarding'
 import { boardRegion, filterView, viewerRef } from '@/server/plugin-view'
 import { touchCurrentLocation } from '@/server/presence'
 import { registrationOpen } from '@/server/registration'
@@ -116,6 +118,8 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
   const built = await buildJumpModel(actor).catch(() => null)
   const jump = built === null ? null : await filterView('view.forum-jump', built, pluginContext)
 
+  const onboarding = await onboardingBanner(actor).catch(() => null)
+
   const translator = await getTranslator()
 
   return (
@@ -146,6 +150,8 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
       </Header>
 
       {await boardRegion('header.notice', actor)}
+
+      {onboarding !== null && <OnboardingBanner {...onboarding} />}
 
       {children}
 
