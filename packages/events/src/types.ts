@@ -7,6 +7,7 @@ export interface DomainEventMap {
   'thread.moved': { threadId: number; fromForumId: number; toForumId: number }
   'thread.deleted': { threadId: number; forumId: number }
   'thread.visibility_changed': { threadId: number; forumId: number; visible: boolean }
+  'thread.lock_changed': { threadId: number; forumId: number; locked: boolean }
 
   'post.created': { postId: number; threadId: number; forumId: number; authorId: number | null }
   'post.edited': { postId: number; threadId: number }

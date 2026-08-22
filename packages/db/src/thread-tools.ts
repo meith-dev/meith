@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
+import { emit } from '@meith/events'
 import { msg } from '@meith/i18n'
 import type { MoveDestination, ThreadToolsRepository, ThreadToolTarget } from '@meith/moderation'
 
@@ -114,6 +115,12 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         { threadId: input.threadId, forumId, forumIds: [forumId] },
         input.at,
       )
+      if (column === 'is_locked') {
+        await emit(tx, {
+          name: 'thread.lock_changed',
+          payload: { threadId: input.threadId, forumId, locked: value },
+        })
+      }
       return true
     })
   }
