@@ -27,7 +27,7 @@ beforeEach(async () => {
   await harness.db.execute(sql`
     truncate posts, threads, forums, legacy_ids restart identity cascade
   `)
-  await harness.db.execute(sql`delete from users where legacy_mybb_uid is not null`)
+  await harness.db.execute(sql`delete from users where legacy_id is not null`)
 })
 
 const user = (uid: number, name = `mybb${uid}`) => ({
@@ -94,12 +94,12 @@ describe('running it twice', () => {
     await seedTree()
     await sink.putPosts([post(4102, 91, 3, 1)])
 
-    const before = await rowsOf<unknown>(sql`select id, legacy_mybb_pid from posts order by id`)
+    const before = await rowsOf<unknown>(sql`select id, legacy_id from posts order by id`)
 
     await seedTree()
     const second = await sink.putPosts([post(4102, 91, 3, 1)])
 
-    const after = await rowsOf<unknown>(sql`select id, legacy_mybb_pid from posts order by id`)
+    const after = await rowsOf<unknown>(sql`select id, legacy_id from posts order by id`)
 
     expect(after).toEqual(before)
     expect(await count('posts')).toBe(1)
@@ -112,7 +112,7 @@ describe('running it twice', () => {
     await sink.putPosts([{ ...post(4102, 91, 3, 1), body: 'corrected on the old board' }])
 
     const rows = await rowsOf<{ message: string }>(
-      sql`select message from posts where legacy_mybb_pid = 4102`,
+      sql`select message from posts where legacy_id = 4102`,
     )
 
     expect(rows[0]!.message).toBe('corrected on the old board')
@@ -152,7 +152,7 @@ describe('rows whose parent is missing', () => {
     expect(second.inserted).toBe(1)
 
     const rows = await rowsOf<{ path: string; depth: number }>(
-      sql`select path, depth from forums where legacy_mybb_fid = 9`,
+      sql`select path, depth from forums where legacy_id = 9`,
     )
 
     expect(rows[0]!.depth).toBe(1)
@@ -168,7 +168,7 @@ describe('rows whose parent is missing', () => {
 
     expect(result.inserted).toBe(1)
     const rows = await rowsOf<{ author_user_id: number | null; author_username: string }>(
-      sql`select author_user_id, author_username from posts where legacy_mybb_pid = 4102`,
+      sql`select author_user_id, author_username from posts where legacy_id = 4102`,
     )
 
     expect(rows[0]).toEqual({ author_user_id: null, author_username: 'GhostMember' })
@@ -207,7 +207,7 @@ describe('users', () => {
 
     const rows = await rowsOf<{ key: string }>(sql`
       select g.key from users u join usergroups g on g.id = u.primary_group_id
-      where u.legacy_mybb_uid = 1
+      where u.legacy_id = 1
     `)
 
     expect(rows[0]!.key).toBe('registered')
@@ -217,7 +217,7 @@ describe('users', () => {
     await sink.putUsers([user(1)])
 
     const rows = await rowsOf<{ password_hash: string; password_algo: string }>(
-      sql`select password_hash, password_algo from users where legacy_mybb_uid = 1`,
+      sql`select password_hash, password_algo from users where legacy_id = 1`,
     )
 
     expect(rows[0]!.password_hash).toMatch(/^mybb\$/)
@@ -234,14 +234,14 @@ describe('the first post', () => {
       post(4000, 91, 3, 1, '2015-06-01T00:00:00Z'),
     ])
 
-    const rows = await rowsOf<{ legacy_mybb_pid: number; is_first_post: boolean }>(sql`
-      select legacy_mybb_pid, is_first_post from posts where thread_id is not null
-      order by legacy_mybb_pid
+    const rows = await rowsOf<{ legacy_id: number; is_first_post: boolean }>(sql`
+      select legacy_id, is_first_post from posts where thread_id is not null
+      order by legacy_id
     `)
 
     expect(rows).toEqual([
-      { legacy_mybb_pid: 4000, is_first_post: false },
-      { legacy_mybb_pid: 5000, is_first_post: true },
+      { legacy_id: 4000, is_first_post: false },
+      { legacy_id: 5000, is_first_post: true },
     ])
   })
 
@@ -250,11 +250,11 @@ describe('the first post', () => {
     await sink.putPosts([post(5000, 91, 3, 1, '2015-06-01T00:00:00Z')])
     await sink.putPosts([post(6000, 91, 3, 1, '2015-01-01T00:00:00Z')])
 
-    const rows = await rowsOf<{ legacy_mybb_pid: number }>(sql`
-      select legacy_mybb_pid from posts where is_first_post = true
+    const rows = await rowsOf<{ legacy_id: number }>(sql`
+      select legacy_id from posts where is_first_post = true
     `)
 
-    expect(rows).toEqual([{ legacy_mybb_pid: 6000 }])
+    expect(rows).toEqual([{ legacy_id: 6000 }])
   })
 
   it('stores the body unrendered', async () => {
@@ -262,7 +262,7 @@ describe('the first post', () => {
     await sink.putPosts([{ ...post(4102, 91, 3, 1), body: '[b]bold[/b]' }])
 
     const rows = await rowsOf<{ message: string; message_html: string | null }>(
-      sql`select message, message_html from posts where legacy_mybb_pid = 4102`,
+      sql`select message, message_html from posts where legacy_id = 4102`,
     )
 
     expect(rows[0]).toEqual({ message: '[b]bold[/b]', message_html: null })

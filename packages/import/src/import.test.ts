@@ -4,7 +4,6 @@ import {
   compareCounters,
   FixtureMybbSource,
   fromUnixSeconds,
-  type ImportSink,
   KINDS,
   type MybbPost,
   type MybbThread,
@@ -15,37 +14,8 @@ import {
   NO_PROGRESS,
   runImport,
   visibilityOf,
-  type WriteResult,
 } from './index'
-
-class MemorySink implements ImportSink {
-  readonly stored = new Map<string, Map<number, unknown>>()
-  readonly calls: string[] = []
-
-  putUsers = (rows: readonly { legacyId: number }[]) => this.#put('users', rows)
-  putForums = (rows: readonly { legacyId: number }[]) => this.#put('forums', rows)
-  putThreads = (rows: readonly { legacyId: number }[]) => this.#put('threads', rows)
-  putPosts = (rows: readonly { legacyId: number }[]) => this.#put('posts', rows)
-
-  count(kind: string): number {
-    return this.stored.get(kind)?.size ?? 0
-  }
-
-  async #put(kind: string, rows: readonly { legacyId: number }[]): Promise<WriteResult> {
-    this.calls.push(`${kind}:${rows.length}`)
-    const table = this.stored.get(kind) ?? new Map<number, unknown>()
-    this.stored.set(kind, table)
-
-    let inserted = 0
-    let updated = 0
-    for (const row of rows) {
-      if (table.has(row.legacyId)) updated += 1
-      else inserted += 1
-      table.set(row.legacyId, row)
-    }
-    return { inserted, updated, skipped: [] }
-  }
-}
+import { MemorySink } from './memory-sink.fixture'
 
 const user = (uid: number) => ({
   uid,

@@ -149,15 +149,41 @@ docker compose run --rm web community search:reindex
 
 Use it after an import or when diagnostics show posts without search data. It is safe to repeat.
 
-## Import a MyBB board
+## Import a legacy board
 
-Read [MyBB parity decisions](./mybb-parity.md) before planning the move. The importer is resumable:
+The importer moves a MyBB or phpBB board into Meith. Read [MyBB parity decisions](./mybb-parity.md) before planning a move from MyBB — it lists every deliberate behavioural difference. The importer is resumable: interrupt it, run the same command again, and it continues from its cursors.
 
 ```sh
 docker compose run --rm web community import --help
+IMPORT_SOURCE_PASSWORD=… community import --source mybb --host db.old --user reader --database mybb --uploads-dir /mnt/old-board/uploads
+IMPORT_SOURCE_PASSWORD=… community import --source phpbb --host db.old --user reader --database phpbb --prefix phpbb_ --uploads-dir /mnt/old-board
 ```
 
-Use the usage from the target release, back up the source, and rehearse against a non-production board. Run the importer again after interruption. Then reindex search and verify users, forums, threads, attachments, permissions, and legacy URLs.
+`--source` selects the source forum software (`mybb` is the default; `phpbb` targets phpBB 3.1 or later). The database password comes from `IMPORT_SOURCE_PASSWORD` (`MYBB_PASSWORD` is still accepted) rather than a flag, so it never appears in shell history or `ps`.
+
+`--uploads-dir` points the importer at the legacy board's files so attachments and avatars come across as files, not just rows: for MyBB point it at the board's `uploads/` directory, for phpBB at the installation root (so `files/` and `images/avatars/` resolve). Without it, every attachment row imports marked failed with the legacy path recorded, and avatars are skipped — re-run the same command with `--uploads-dir` later and the files are filled in.
+
+### What imports, per source
+
+| Entity | MyBB | phpBB |
+|---|---|---|
+| Members, with working legacy passwords | yes | yes (bcrypt, phpass and phpBB2 MD5 hashes) |
+| Forum tree | yes | yes |
+| Threads and posts | yes | yes (bbcode uid markers and stored smiley/link markup cleaned) |
+| Private messages | yes (each member's copy; drafts are not) | yes (one message with every recipient copy) |
+| Attachments | yes | yes (post attachments; PM attachments are not) |
+| Avatars | uploaded and gallery; remote URLs are not | uploaded and gallery; remote URLs are not |
+| Thread and forum subscriptions | yes | yes |
+| Polls, options and votes | yes (one vote per member — extra multiple-choice votes are skipped) | yes (same single-vote limit) |
+| Reputation, with recomputed totals | yes | phpBB has none |
+| Warnings, with recomputed points | yes, including expiry and revocation | minimal — phpBB stores no points, titles or expiry |
+| Bans | yes (member moved to the banned group; expired bans lift on the next `bans.expire` run) | user bans; e-mail and IP bans are not |
+| Buddy and ignore lists | yes | friends and foes |
+| Legacy URL redirects | showthread.php, forumdisplay.php, member.php and rewritten routes | viewtopic.php, viewforum.php, memberlist.php |
+
+Not imported from either source: group permission matrices, custom profile-field values, announcements, smilies and custom BBCode, thread ratings, moderator logs, and per-member IP history. Each import run handles one source; the run record (`import_runs`) keeps per-source cursors, so the same board cannot be half-MyBB and half-phpBB.
+
+Back up the source, rehearse against a non-production board, and run the importer with a read-only database account. After it finishes, run `community task:run counters.reconcile`, reindex search, and verify users, forums, threads, attachments, permissions, and legacy URLs.
 
 ## Plugins
 

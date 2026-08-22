@@ -90,7 +90,7 @@ The table below is generated from `apps/web/content/docs.manifest.json` by `pnpm
 | Themes, plugins and the API | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
 | Themes, plugins and the API | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
 | Themes, plugins and the API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
-| Moving from MyBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |
+| Moving from MyBB or phpBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. The import procedure itself, with per-source coverage, is in Operations. |
 | Working on Meith | [`development.md`](./docs/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
 | Working on Meith | [`architecture.md`](./docs/architecture.md) | How Meith fits together: the processes, the layers, the path a request takes, and the extension seams. |
 | Working on Meith | [`nextjs-conventions.md`](./docs/nextjs-conventions.md) | Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request. |

@@ -43,8 +43,8 @@
     },
     {
       "id": "migrating",
-      "title": "Moving from MyBB",
-      "blurb": "Where a Meith board deliberately behaves differently from MyBB, and why."
+      "title": "Moving from MyBB or phpBB",
+      "blurb": "What the importer carries across from MyBB or phpBB, and where a Meith board deliberately behaves differently from MyBB."
     },
     {
       "id": "development",
@@ -247,7 +247,7 @@
       "file": "mybb-parity.md",
       "section": "migrating",
       "title": "MyBB parity decisions",
-      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move.",
+      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. The import procedure itself, with per-source coverage, is in Operations.",
       "generated": false,
       "primary": true
     },

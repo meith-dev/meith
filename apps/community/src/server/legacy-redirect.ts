@@ -18,7 +18,13 @@ const LEGACY_KIND: Readonly<Record<Kind, 'thread' | 'forum' | 'post' | 'user'>> 
   user: 'user',
 }
 
-export type LegacyScript = 'showthread.php' | 'forumdisplay.php' | 'member.php'
+export type LegacyScript =
+  | 'showthread.php'
+  | 'forumdisplay.php'
+  | 'member.php'
+  | 'viewtopic.php'
+  | 'viewforum.php'
+  | 'memberlist.php'
 
 function searchStringOf(params: Record<string, string | string[] | undefined>): string {
   const search = new URLSearchParams()

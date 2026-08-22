@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto'
 
+import { bcrypt } from 'hash-wasm'
 import { describe, expect, it } from 'vitest'
 
-import { isLegacyHash, parseMybbHash, verifyMybbPassword } from './legacy'
+import { isLegacyHash, parseMybbHash, verifyMybbPassword, verifyPhpbbPassword } from './legacy'
 import { needsRehash, verifyPassword } from './password'
 
 const md5 = (value: string) => createHash('md5').update(value, 'utf8').digest('hex')
@@ -81,5 +82,52 @@ describe('the login path', () => {
 
   it('does not verify an unprefixed MD5', async () => {
     await expect(verifyPassword('imported-password', md5('imported-password'))).resolves.toBe(false)
+  })
+})
+
+describe('a phpBB hash', () => {
+  it('verifies a phpass $H$ hash', async () => {
+    const stored = 'phpbb$$H$9saltsaltoOYGA0TbwROeAx3OxiKY5/'
+    await expect(verifyPhpbbPassword('correct horse', stored)).resolves.toBe(true)
+    await expect(verifyPhpbbPassword('wrong', stored)).resolves.toBe(false)
+  })
+
+  it('verifies a phpass $P$ hash', async () => {
+    const stored = 'phpbb$$P$8abcdefghusp.z.A.CKRJwpA1riYkP.'
+    await expect(verifyPhpbbPassword('battery staple', stored)).resolves.toBe(true)
+    await expect(verifyPhpbbPassword('battery stapl', stored)).resolves.toBe(false)
+  })
+
+  it('verifies a bcrypt hash, whatever its two-letter marker', async () => {
+    const encoded = await bcrypt({
+      password: 'modern phpbb password',
+      salt: new Uint8Array(16).fill(7),
+      costFactor: 8,
+      outputType: 'encoded',
+    })
+    for (const marker of ['$2a$', '$2y$', '$2b$']) {
+      const stored = `phpbb$${marker}${encoded.slice(4)}`
+      await expect(verifyPhpbbPassword('modern phpbb password', stored)).resolves.toBe(true)
+      await expect(verifyPhpbbPassword('nope', stored)).resolves.toBe(false)
+    }
+  })
+
+  it('verifies a bare phpBB2 MD5', async () => {
+    const stored = 'phpbb$5fcfd41e547a12215b173ff47fdd3739'
+    await expect(verifyPhpbbPassword('trustno1', stored)).resolves.toBe(true)
+    await expect(verifyPhpbbPassword('trustno2', stored)).resolves.toBe(false)
+  })
+
+  it('refuses shapes it does not recognise rather than throwing', async () => {
+    await expect(verifyPhpbbPassword('anything', 'phpbb$')).resolves.toBe(false)
+    await expect(verifyPhpbbPassword('anything', 'phpbb$$H$1short')).resolves.toBe(false)
+    await expect(verifyPhpbbPassword('anything', 'mybb$salt$abc')).resolves.toBe(false)
+  })
+
+  it('signs an imported phpBB member in through the ordinary verifier', async () => {
+    const stored = 'phpbb$$H$9saltsaltoOYGA0TbwROeAx3OxiKY5/'
+    await expect(verifyPassword('correct horse', stored)).resolves.toBe(true)
+    expect(isLegacyHash(stored)).toBe(true)
+    expect(needsRehash(stored)).toBe(true)
   })
 })

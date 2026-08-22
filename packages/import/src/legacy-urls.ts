@@ -44,6 +44,26 @@ export function resolveLegacyUrl(pathname: string, search: string): LegacyTarget
       return { kind: 'user', legacyId: uid }
     }
 
+    case 'viewtopic.php': {
+      const tid = id(params.get('t'))
+      const pid = id(params.get('p'))
+
+      if (tid !== null) return { kind: 'thread', legacyId: tid, postId: pid, page: null }
+      if (pid !== null) return { kind: 'post', legacyId: pid }
+      return null
+    }
+
+    case 'viewforum.php': {
+      const fid = id(params.get('f'))
+      return fid === null ? null : { kind: 'forum', legacyId: fid, page: null }
+    }
+
+    case 'memberlist.php': {
+      if (params.get('mode') !== 'viewprofile') return null
+      const uid = id(params.get('u'))
+      return uid === null ? null : { kind: 'user', legacyId: uid }
+    }
+
     case 'index.php':
     case '':
       return { kind: 'home' }

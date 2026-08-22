@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm'
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 
-export type LegacyKind = 'user' | 'forum' | 'thread' | 'post'
+export type LegacyKind = 'user' | 'forum' | 'thread' | 'post' | 'poll' | 'pm' | 'attachment'
 
 export async function mapLegacyId(
   db: Database,
@@ -60,7 +60,12 @@ export interface ImportRunRow {
   readonly rowsRead: number
 }
 
-export async function currentImportRun(db: Database): Promise<ImportRunRow | null> {
+export type ImportSourceName = 'mybb' | 'phpbb'
+
+export async function currentImportRun(
+  db: Database,
+  source: ImportSourceName,
+): Promise<ImportRunRow | null> {
   const rows = resultRows<{
     id: number
     cursors: Record<string, number>
@@ -69,7 +74,7 @@ export async function currentImportRun(db: Database): Promise<ImportRunRow | nul
   }>(
     await db.execute(sql`
       select id, cursors, status, rows_read from import_runs
-      where status = 'running' and source = 'mybb'
+      where status = 'running' and source = ${source}
       limit 1
     `),
   )
@@ -80,9 +85,9 @@ export async function currentImportRun(db: Database): Promise<ImportRunRow | nul
     : { id: row.id, cursors: row.cursors, status: row.status, rowsRead: row.rows_read }
 }
 
-export async function startImportRun(db: Database): Promise<number> {
+export async function startImportRun(db: Database, source: ImportSourceName): Promise<number> {
   const rows = resultRows<{ id: number }>(
-    await db.execute(sql`insert into import_runs (source) values ('mybb') returning id`),
+    await db.execute(sql`insert into import_runs (source) values (${source}) returning id`),
   )
   return rows[0]!.id
 }

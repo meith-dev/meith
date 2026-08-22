@@ -24,8 +24,11 @@ export {
   isLegacyHash,
   type LegacyMybbHash,
   MYBB_PREFIX,
+  PHPBB_PREFIX,
   parseMybbHash,
+  verifyLegacyPassword,
   verifyMybbPassword,
+  verifyPhpbbPassword,
 } from './crypto/legacy'
 export {
   type Argon2Params,

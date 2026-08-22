@@ -125,6 +125,7 @@ export {
   currentImportRun,
   finishImportRun,
   type ImportRunRow,
+  type ImportSourceName,
   type LegacyKind,
   mapLegacyId,
   resolveLegacyId,
@@ -132,7 +133,12 @@ export {
   saveImportProgress,
   startImportRun,
 } from './import-repo'
-export { PostgresImportSink } from './import-sink'
+export {
+  type CopiedAttachment,
+  type CopiedAvatar,
+  type ImportFileCopier,
+  PostgresImportSink,
+} from './import-sink'
 export { PostgresInlineModerationRepository } from './inline-moderation'
 export {
   canConnect,

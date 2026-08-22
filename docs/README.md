@@ -49,9 +49,9 @@ These guides use the browser interface; they do not require shell access.
 - [REST API v1](./rest-api.md) — generated routes, scopes, request bodies, and responses.
 - `openapi.json` — machine-readable OpenAPI document generated alongside the REST reference.
 
-## Migrate from MyBB
+## Migrate from MyBB or phpBB
 
-Read [MyBB parity decisions](./mybb-parity.md) before planning a migration. It lists intentional product differences. The import procedure itself is in [Operations](./operating.md#import-a-mybb-board).
+The importer moves members, content, private messages, attachments, avatars, subscriptions, polls, reputation, warnings, bans and buddy lists from MyBB or phpBB, with working passwords and redirects from the old URLs. The procedure and the per-source coverage table are in [Operations](./operating.md#import-a-legacy-board). Moving from MyBB, read [MyBB parity decisions](./mybb-parity.md) first — it lists intentional product differences.
 
 ## Contribute
 

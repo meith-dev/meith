@@ -126,7 +126,7 @@ export const users = pgTable(
 
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
 
-    legacyMybbUid: integer('legacy_mybb_uid'),
+    legacyId: integer('legacy_id'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -134,9 +134,7 @@ export const users = pgTable(
   (t) => [
     uniqueIndex('users_username_lower_key').on(t.usernameLower),
     uniqueIndex('users_email_lower_key').on(t.emailLower),
-    uniqueIndex('users_legacy_mybb_uid_key')
-      .on(t.legacyMybbUid)
-      .where(sql`${t.legacyMybbUid} is not null`),
+    uniqueIndex('users_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
     index('users_primary_group_idx').on(t.primaryGroupId),
     index('users_active_created_idx').on(t.createdAt).where(sql`${t.state} = 'active'`),
     index('users_last_active_idx').on(t.lastActiveAt),
@@ -409,11 +407,14 @@ export const bans = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     liftedAt: timestamp('lifted_at', { withTimezone: true }),
 
+    legacyId: integer('legacy_id'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('bans_active_user_key').on(t.userId).where(sql`${t.liftedAt} is null`),
     index('bans_expires_idx').on(t.expiresAt).where(sql`${t.liftedAt} is null`),
+    uniqueIndex('bans_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
   ],
 )
 
@@ -516,8 +517,13 @@ export const warnings = pgTable(
       onDelete: 'set null',
     }),
     revokeReason: text('revoke_reason'),
+
+    legacyId: integer('legacy_id'),
   },
-  (t) => [index('warnings_user_idx').on(t.userId, t.createdAt, t.id)],
+  (t) => [
+    index('warnings_user_idx').on(t.userId, t.createdAt, t.id),
+    uniqueIndex('warnings_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
+  ],
 )
 
 export const notifications = pgTable(

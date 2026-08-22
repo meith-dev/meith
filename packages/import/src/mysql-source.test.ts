@@ -126,7 +126,7 @@ describe('the table prefix', () => {
     ["mybb_'", 'a single quote'],
     ['a'.repeat(33), 'longer than any real prefix'],
   ])('refuses %s — %s', (prefix) => {
-    expect(() => assertSafePrefix(prefix)).toThrow(/Unsafe MyBB table prefix/)
+    expect(() => assertSafePrefix(prefix)).toThrow(/Unsafe legacy table prefix/)
   })
 
   it('refuses at connect time, before a connection is opened', async () => {
@@ -138,7 +138,7 @@ describe('the table prefix', () => {
         database: 'mybb',
         tablePrefix: 'evil`',
       }),
-    ).rejects.toThrow(/Unsafe MyBB table prefix/)
+    ).rejects.toThrow(/Unsafe legacy table prefix/)
   })
 })
 
