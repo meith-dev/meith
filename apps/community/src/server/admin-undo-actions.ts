@@ -16,7 +16,8 @@ const toFormState = formStateReporter('admin-undo', 'admin undo failed')
 
 function positive(value: unknown): number {
   const parsed = Number(value)
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new ValidationError(msg('admin.undoInvalid'))
+  if (!Number.isSafeInteger(parsed) || parsed <= 0)
+    throw new ValidationError(msg('admin.undoInvalid'))
   return parsed
 }
 
@@ -43,23 +44,12 @@ export async function undoAdminAction(_prev: FormState, form: FormData): Promise
     } else if (claimed.operation === 'user.groups') {
       await requireUserAdmin().setSecondaryGroups(
         positive(snapshot.userId),
-        numbers(snapshot.groupIds),
+        numbers(snapshot.memberships),
         context.session.userId,
       )
-    } else if (claimed.operation === 'user.bulk_groups') {
-      const rows = snapshot.rows
-      if (!Array.isArray(rows)) throw new ValidationError(msg('admin.undoInvalid'))
-      for (const row of rows) {
-        if (typeof row !== 'object' || row === null) throw new ValidationError(msg('admin.undoInvalid'))
-        const item = row as Record<string, unknown>
-        await requireUserAdmin().setSecondaryGroups(
-          positive(item.userId),
-          numbers(item.groupIds),
-          context.session.userId,
-        )
-      }
     } else if (claimed.operation === 'user.ban' || claimed.operation === 'user.bulk_ban') {
-      const ids = claimed.operation === 'user.ban' ? [positive(snapshot.userId)] : numbers(snapshot.userIds)
+      const ids =
+        claimed.operation === 'user.ban' ? [positive(snapshot.userId)] : numbers(snapshot.userIds)
       for (const id of ids) await banService().lift(id)
     } else {
       throw new ValidationError(msg('admin.undoInvalid'))

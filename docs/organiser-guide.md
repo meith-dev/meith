@@ -278,6 +278,20 @@ An account stuck at "awaiting activation" — the member who never
 received their link — can be activated by hand: find them under
 **Admin → Users** and change the state on their screen.
 
+The user list also supports selecting up to 500 accounts on the current
+page. A selection can be banned with one shared staff reason, added to an
+additional group, or sent to the prune review screen. Pruning never closes
+accounts from the list itself: the review rechecks that each account has no
+content, ban or staff role, lists the eligible accounts, and asks for fresh
+admin authentication before closing them.
+
+Reversible user actions show an **Undo** control for ten minutes. The undo
+belongs to the administrator who performed the action, works once, and is
+recorded in the admin log. Actions that discard content or credentials —
+including pruning, merging accounts and clearing a second factor — stay
+confirmation-only because recreating the previous state would be misleading
+or unsafe.
+
 ### Roles are group memberships
 
 A member's rights come from the groups they are in. Every board starts

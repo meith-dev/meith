@@ -2,8 +2,8 @@
 
 import { useActionState } from 'react'
 
-import { EMPTY_STATE, type UndoState } from '@/server/auth-form-state'
 import { undoAdminAction } from '@/server/admin-undo-actions'
+import { EMPTY_STATE, type UndoState } from '@/server/auth-form-state'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
@@ -22,9 +22,7 @@ export function AdminUndo({ undo, copy }: { undo: UndoState | undefined; copy: C
         <form action={action} className="flex flex-wrap items-center gap-3">
           <input type="hidden" name="undoToken" value={undo.token} />
           <span className="text-sm text-muted-foreground">
-            {formatFromCopy(copy, 'admin.undoUntil', {
-              time: new Date(undo.expiresAt).toLocaleTimeString(),
-            })}
+            {formatFromCopy(copy, 'admin.undoUntil', { time: undo.expiresAt })}
           </span>
           <SubmitButton>{fromCopy(copy, 'admin.undo')}</SubmitButton>
         </form>

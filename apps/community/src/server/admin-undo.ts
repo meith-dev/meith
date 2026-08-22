@@ -24,7 +24,9 @@ export async function issueAdminUndo(input: {
   readonly operation: string
   readonly snapshot: Readonly<Record<string, unknown>>
   readonly now?: Date
-}): Promise<UndoState> {
+}): Promise<UndoState | undefined> {
+  if (getContainer().dataSource !== 'postgres') return undefined
+
   const now = input.now ?? new Date()
   const expiresAt = new Date(now.getTime() + ADMIN_UNDO_WINDOW_MS)
   const token = randomUUID()

@@ -10,6 +10,7 @@ import {
   liftBanAction,
   mergeStepAction,
   pruneMembersAction,
+  pruneSelectedMembersAction,
   saveMemberAccountAction,
   saveSecondaryGroupsAction,
   setMemberStateAction,
@@ -375,6 +376,29 @@ export function PruneForm({
       <input type="hidden" name="inactive" value={inactive} />
       {awaiting && <input type="hidden" name="awaiting" value="1" />}
 
+      <div>
+        <SubmitButton>{fromCopy(copy, 'adminUser.pruneClose')}</SubmitButton>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {fromCopy(copy, 'adminUser.prunePasswordNote')}
+      </p>
+    </form>
+  )
+}
+
+export function SelectedPruneForm({ selection, copy }: { selection: string; copy: Copy }) {
+  const [state, action] = useActionState(pruneSelectedMembersAction, EMPTY_STATE)
+  const pruned = state.values?.pruned ?? '0'
+
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <FormError message={state.error} />
+      {state.notice === 'finished' && (
+        <Saved when>
+          {formatFromCopy(copy, 'adminUser.pruneFinished', { count: Number(pruned) })}
+        </Saved>
+      )}
+      <input type="hidden" name="selection" value={selection} />
       <div>
         <SubmitButton>{fromCopy(copy, 'adminUser.pruneClose')}</SubmitButton>
       </div>

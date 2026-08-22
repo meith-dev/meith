@@ -1,7 +1,5 @@
 import { sql } from 'drizzle-orm'
 
-import { ValidationError } from '@meith/core'
-
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate, toNullableDate } from './row-values'
@@ -62,7 +60,7 @@ export class PostgresAdminUndoRepository {
   }): Promise<void> {
     const encoded = JSON.stringify(input.snapshot)
     if (Buffer.byteLength(encoded, 'utf8') > ADMIN_UNDO_MAX_SNAPSHOT_BYTES) {
-      throw new ValidationError('The undo snapshot is too large.')
+      throw new RangeError('admin_undo_snapshot_limit')
     }
 
     await this.db.execute(sql`
