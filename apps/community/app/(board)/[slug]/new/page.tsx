@@ -5,10 +5,12 @@ import { canHoldThreads } from '@meith/forums'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { NewThreadForm } from '@/components/content/new-thread-form'
+import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { firstPostGuidance } from '@/server/onboarding'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { currentTheme } from '@/server/theme'
 import { newThreadFormCopy } from '@/view/content-copy'
@@ -99,8 +101,11 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
     viewerRef(actor),
   )
 
+  const guidance = open ? await firstPostGuidance(actor).catch(() => null) : null
+
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
+      {guidance !== null && <OnboardingBanner {...guidance} />}
       <PostForm {...formModel} copy={slotCopy(theme, 'PostForm', translator)} />
     </main>
   )

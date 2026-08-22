@@ -6,14 +6,17 @@ export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }
 
   return (
     <nav aria-label={c('breadcrumbLabel')} className="border-b border-border bg-muted px-4 py-1.5">
-      <ol className="flex flex-wrap items-center gap-1 font-mono text-xs text-muted-foreground">
+      <ol className="flex items-center gap-1 overflow-x-auto font-mono text-xs whitespace-nowrap text-muted-foreground">
         {items.map((item, index) => {
           const isLast = index === items.length - 1
           return (
-            <li key={item.href} className="flex items-center gap-1">
+            <li key={item.href} className="flex shrink-0 items-center gap-1">
               {index > 0 && <span aria-hidden="true">/</span>}
               {isLast ? (
-                <span aria-current="page" className="text-foreground">
+                <span
+                  aria-current="page"
+                  className="max-w-[24ch] truncate text-foreground sm:max-w-none"
+                >
                   {item.label}
                 </span>
               ) : (

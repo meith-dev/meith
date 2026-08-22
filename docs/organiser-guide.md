@@ -292,6 +292,24 @@ including pruning, merging accounts and clearing a second factor — stay
 confirmation-only because recreating the previous state would be misleading
 or unsafe.
 
+### Onboarding new members
+
+A member who has not posted yet sees a light, dismissible sequence of
+prompts, in order: a welcome notice below the header, then — once that
+is dismissed — a nudge to add an avatar and a bio if either is still
+missing, then, the first time they open the composer, a short notice
+above the form. None of it blocks posting, none of it needs
+JavaScript, and each prompt is remembered per browser once dismissed —
+it dismisses through a plain link, so it also works with JavaScript
+off. A member stops seeing all of it the moment they post.
+
+The composer notice links to a **Rules & FAQ** page when one is
+published. Write it at **`/admin/settings?group=legal`**, alongside
+the terms of service and privacy policy — like those two, it is
+Markdown, it is linked from the footer once non-empty, and it is
+unpublished (and the composer notice drops its link) while empty. It
+ships empty: there is no default text to edit around.
+
 ### Roles are group memberships
 
 A member's rights come from the groups they are in. Every board starts

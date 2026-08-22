@@ -53,9 +53,11 @@ export function Header({
 }: HeaderModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `midnight.header.${key}`)
 
+  const opensMenus = navigation.some((item) => item.submenu !== undefined)
+
   return (
     <header>
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border bg-secondary px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border bg-secondary px-4 py-3 sm:px-6">
         <a
           href={homeHref}
           className="inline-flex items-center font-mono text-xl font-semibold tracking-tight text-foreground hover:text-primary"
@@ -66,19 +68,27 @@ export function Header({
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label={c('sectionsLabel')} className="flex flex-wrap border-b border-border">
-          {navigation.map((item) => (
-            <span key={item.href} className="group relative">
-              <a
-                href={item.href}
-                {...linkTarget(item)}
-                className="block border-r border-border px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                {item.label}
-              </a>
-              <Submenu items={item.submenu} />
-            </span>
-          ))}
+        <nav aria-label={c('sectionsLabel')} className="border-b border-border">
+          <div
+            className={`-mx-4 flex px-4 sm:-mx-6 sm:px-6 ${
+              opensMenus
+                ? 'flex-wrap'
+                : 'overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] sm:[mask-image:none]'
+            }`}
+          >
+            {navigation.map((item) => (
+              <span key={item.href} className="group relative shrink-0">
+                <a
+                  href={item.href}
+                  {...linkTarget(item)}
+                  className="block border-r border-border px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  {item.label}
+                </a>
+                <Submenu items={item.submenu} />
+              </span>
+            ))}
+          </div>
         </nav>
       )}
     </header>
