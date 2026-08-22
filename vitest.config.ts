@@ -55,8 +55,46 @@ export default defineConfig({
     maxWorkers: 4,
     coverage: {
       provider: 'v8',
-      include: ['packages/*/src/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/index.ts'],
+      include: ['packages/*/src/**/*.{ts,tsx}', 'apps/worker/src/**/*.ts'],
+      exclude: [
+        '**/*.test.{ts,tsx}',
+        '**/*.type-test.ts',
+        '**/index.ts',
+        '**/types.ts',
+        'apps/worker/src/migrate.ts',
+      ],
+      reporter: ['text', 'json-summary', 'html'],
+      reportsDirectory: 'coverage',
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        statements: 60,
+        branches: 60,
+        'apps/worker/src/**': {
+          lines: 80,
+          functions: 60,
+          statements: 80,
+          branches: 75,
+        },
+        'packages/attachments/src/**': {
+          lines: 90,
+          functions: 80,
+          statements: 85,
+          branches: 75,
+        },
+        'packages/polls/src/**': {
+          lines: 95,
+          functions: 85,
+          statements: 95,
+          branches: 90,
+        },
+        'packages/ui/src/**': {
+          lines: 55,
+          functions: 40,
+          statements: 55,
+          branches: 45,
+        },
+      },
     },
   },
 })
