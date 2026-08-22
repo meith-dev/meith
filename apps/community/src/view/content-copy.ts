@@ -7,6 +7,12 @@ export function replyFormCopy(t: Translator = untranslated()): Readonly<Record<s
   return copyFor(
     [
       'composer.draftSaved',
+      'composer.autosave.failed',
+      'composer.autosave.saved',
+      'composer.autosave.saving',
+      'composer.recovery.available',
+      'composer.recovery.discard',
+      'composer.recovery.restore',
       'composer.notifyReplies',
       'composer.reply.submit',
       'composer.reply.write',

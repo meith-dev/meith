@@ -1,6 +1,6 @@
 import type { ContentScope } from '@meith/core'
 
-import type { PostLocation, PostPage, PostRatingTarget, QuotablePost } from './types'
+import type { PostLocation, PostPage, PostRatingTarget, PostRevision, QuotablePost } from './types'
 
 export interface PostRepository {
   findRatingTarget(postId: number): Promise<PostRatingTarget | null>
@@ -8,6 +8,8 @@ export interface PostRepository {
   findVisibleById(threadId: number, postId: number): Promise<number | null>
 
   findQuotable(threadId: number, postId: number): Promise<QuotablePost | null>
+
+  listRevisions(threadId: number, postId: number): Promise<readonly PostRevision[]>
 
   locate(
     threadId: number,

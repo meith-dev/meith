@@ -8,10 +8,12 @@ import type {
   PostLocation,
   PostPage,
   PostRepository,
+  type PostRevision,
   QuotablePost,
 } from '@meith/posts'
 
 import type { Database } from './client'
+import { resultRows } from './result-rows'
 import { posts, users } from './schema'
 import { visibleIn } from './visibility'
 
@@ -96,6 +98,49 @@ export class PostgresPostRepository implements PostRepository {
       authorUsername: row.authorUsername,
       message: sourceAsMarkdown(row.message, Number(row.bodyFormat)),
     }
+  }
+
+  async listRevisions(threadId: number, postId: number): Promise<readonly PostRevision[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select r.revision, r.message, r.subject, r.edited_by_user_id,
+               coalesce(u.username, 'Deleted member') as edited_by_username,
+               r.edit_reason, r.created_at, false as current
+          from post_revisions r
+          left join users u on u.id = r.edited_by_user_id
+         where r.post_id = ${postId}
+           and exists (select 1 from posts p where p.id = r.post_id and p.thread_id = ${threadId})
+        union all
+        select p.revision_count, p.message, p.subject, p.edited_by_user_id,
+               coalesce(u.username, p.author_username, 'Deleted member'),
+               p.edit_reason, coalesce(p.edited_at, p.created_at), true
+          from posts p
+          left join users u on u.id = p.edited_by_user_id
+         where p.id = ${postId} and p.thread_id = ${threadId}
+        order by revision asc
+      `),
+    ) as Array<{
+      revision: number
+      message: string
+      subject: string | null
+      edited_by_user_id: number | null
+      edited_by_username: string
+      edit_reason: string | null
+      created_at: Date | string
+      current: boolean
+    }>
+
+    return rows.map((row) => ({
+      revision: Number(row.revision),
+      message: row.message,
+      subject: row.subject,
+      editedByUserId:
+        row.edited_by_user_id === null ? null : Number(row.edited_by_user_id),
+      editedByUsername: row.edited_by_username,
+      reason: row.edit_reason,
+      createdAt: new Date(row.created_at),
+      current: row.current,
+    }))
   }
 
   async locate(

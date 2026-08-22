@@ -11,12 +11,13 @@ export function PostActions({
   const items = [
     { href: actions.quoteHref, label: c('quote') },
     { href: actions.editHref, label: c('edit') },
+    { href: actions.historyHref, label: c('history') },
     { href: actions.restoreHref, label: c('restore') },
     { href: actions.rateHref, label: c('rate') },
     { href: actions.reportHref, label: c('report') },
     { href: actions.warnHref, label: c('warn') },
     { href: actions.moderateHref, label: c('moderate') },
-  ].filter((item): item is { href: string; label: string } => item.href !== null)
+  ].filter((item): item is { href: string; label: string } => item.href != null)
 
   if (items.length === 0 && children === undefined) return null
 

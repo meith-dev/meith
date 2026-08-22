@@ -12,7 +12,7 @@ export class PostgresDraftRepository implements DraftRepository {
   async find(userId: number, forumId: number, threadId: number | null): Promise<Draft | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-      select forum_id, thread_id, title, message, body_format, prefix_id from post_drafts
+      select forum_id, thread_id, title, message, body_format, prefix_id, updated_at from post_drafts
        where user_id = ${userId} and forum_id = ${forumId}
          and thread_id is not distinct from ${threadId}
     `),
@@ -23,6 +23,7 @@ export class PostgresDraftRepository implements DraftRepository {
       message: string
       body_format: number
       prefix_id: number | null
+      updated_at: Date | string
     }>
     const row = rows[0]
     return row === undefined
@@ -33,6 +34,7 @@ export class PostgresDraftRepository implements DraftRepository {
           title: row.title,
           message: sourceAsMarkdown(row.message, Number(row.body_format)),
           prefixId: row.prefix_id === null ? null : Number(row.prefix_id),
+          updatedAt: new Date(row.updated_at),
         }
   }
 

@@ -44,6 +44,23 @@ export class FixturePostRepository implements PostRepository {
       : { id: row.id, authorUsername: row.authorUsername, message: row.message }
   }
 
+  async listRevisions(threadId: number, postId: number) {
+    const row = this.rows.find((entry) => entry.threadId === threadId && entry.id === postId)
+    if (row === undefined) return []
+    return [
+      {
+        revision: 0,
+        message: row.message,
+        subject: null,
+        editedByUserId: row.authorUserId,
+        editedByUsername: row.authorUsername,
+        reason: row.editReason,
+        createdAt: row.editedAt ?? row.createdAt,
+        current: true,
+      },
+    ]
+  }
+
   async locate(
     threadId: number,
     postId: number,

@@ -1,3 +1,4 @@
+export { type DiffLine, diffLines } from './diff'
 export {
   type EditablePost,
   type EditCapabilities,
@@ -19,5 +20,6 @@ export type {
   PostLocation,
   PostPage,
   PostRatingTarget,
+  PostRevision,
   QuotablePost,
 } from './types'

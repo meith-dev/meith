@@ -21,6 +21,7 @@ export function PostActions({
   const reader: Action[] = [
     actions.quoteHref === null ? null : { href: actions.quoteHref, label: c('quote') },
     actions.editHref === null ? null : { href: actions.editHref, label: c('edit') },
+    actions.historyHref == null ? null : { href: actions.historyHref, label: c('history') },
     actions.rateHref === null ? null : { href: actions.rateHref, label: c('rate') },
     actions.reportHref === null ? null : { href: actions.reportHref, label: c('report') },
   ].filter((action): action is Action => action !== null)

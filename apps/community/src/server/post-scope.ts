@@ -14,6 +14,8 @@ export interface PostManageScope {
   readonly mayEdit: boolean
   readonly mayDelete: boolean
   readonly mayRestore: boolean
+  readonly mayViewHistory: boolean
+  readonly mayRollback: boolean
   readonly capabilities: EditCapabilities
   readonly bypassesLock: boolean
 }
@@ -41,6 +43,13 @@ export async function resolvePostScope(
   const editsOthers = authorizer.can(actor, 'post.editOthers', scope)
   const moderates = authorizer.can(actor, 'content.viewUnapproved', scope)
   const softDeletes = authorizer.can(actor, 'post.softDelete', scope)
+  const seesUnapproved = authorizer.can(actor, 'content.viewUnapproved', scope)
+  const seesDeleted = authorizer.can(actor, 'content.viewDeleted', scope)
+  const staffCanSeePost =
+    editsOthers &&
+    (target.post.visibility === 'visible' ||
+      (target.post.visibility === 'unapproved' && seesUnapproved) ||
+      (target.post.visibility === 'deleted' && seesDeleted))
 
   return {
     target,
@@ -50,6 +59,9 @@ export async function resolvePostScope(
     mayRestore:
       authorizer.can(actor, 'post.restore', scope) &&
       authorizer.can(actor, 'content.viewDeleted', scope),
+    mayViewHistory:
+      (isOwn && target.post.visibility === 'visible') || staffCanSeePost,
+    mayRollback: staffCanSeePost && target.post.visibility !== 'deleted',
     bypassesLock: moderates,
     capabilities: {
       isOwn,
