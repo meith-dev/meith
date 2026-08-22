@@ -222,7 +222,10 @@ export async function saveSecondaryGroupsAction(
     }
 
     const repository = requireUserAdmin()
-    const before = await repository.readSecondaryGroups(id)
+    const before =
+      getContainer().dataSource === 'postgres'
+        ? await repository.readSecondaryGroups(id)
+        : undefined
     await repository.setSecondaryGroups(id, groupIds, context.session.userId)
 
     await emitEvent(
@@ -239,11 +242,14 @@ export async function saveSecondaryGroupsAction(
 
     return {
       notice: 'saved',
-      undo: await issueAdminUndo({
-        actorUserId: context.session.userId,
-        operation: 'user.groups',
-        snapshot: { userId: id, memberships: before },
-      }),
+      undo:
+        before === undefined
+          ? undefined
+          : await issueAdminUndo({
+              actorUserId: context.session.userId,
+              operation: 'user.groups',
+              snapshot: { userId: id, memberships: before },
+            }),
     }
   } catch (err) {
     return toFormState(err)
