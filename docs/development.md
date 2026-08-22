@@ -229,6 +229,24 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test 
 CI's `migrations` job sets it, so "it passed locally" covers everything
 except those seams — and CI covers them.
 
+## Coverage
+
+`pnpm test:coverage` runs the unit and integration suite with V8 coverage and
+writes the detailed HTML report to `coverage/index.html`. CI runs the same
+command as a required gate, prints the summary in the job log, and uploads the
+whole `coverage/` directory as the `coverage-report` artifact.
+
+The global thresholds prevent repository-wide regressions. Separate floors for
+the worker, polls, attachments, and UI packages keep well-tested packages from
+hiding a decline in those areas. Thresholds are a ratchet: raise them when the
+measured baseline improves, and do not lower them without documenting the
+reason in the same change.
+
+`packages/drafts` contains only TypeScript interfaces, which are erased before
+runtime and therefore have no runtime coverage denominator. Its repository and
+immutable draft contracts are checked by `index.type-test.ts`; add a package
+coverage floor when runtime behavior is introduced.
+
 ## The browser suite
 
 `pnpm test:e2e` starts everything it needs: a PGlite serving the Postgres
