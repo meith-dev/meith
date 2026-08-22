@@ -8,6 +8,7 @@ import { drivers } from '@meith/drivers'
 import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
+import { issueAdminUndo } from './admin-undo'
 import { recordStaffAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
@@ -25,6 +26,8 @@ const MERGE_CHUNK = 500
 const PRUNE_CHUNK = 500
 
 const MASS_MAIL_CHUNK = 500
+
+export const USER_BULK_LIMIT = 500
 
 function userId(form: FormData): number {
   const id = Number(trimmedText(form, 'userId'))
@@ -118,7 +121,7 @@ export async function clearSecondFactorAction(
 
 export async function setMemberStateAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
-    await requireAdmin()
+    const context = await requireAdmin()
     const id = userId(form)
 
     const state = trimmedText(form, 'state')
@@ -126,12 +129,22 @@ export async function setMemberStateAction(_prev: FormState, form: FormData): Pr
       throw new ValidationError(msg('error.app.choose-active-awaiting-activation'))
     }
 
-    await requireUserAdmin().setState(id, state)
+    const repository = requireUserAdmin()
+    const before = await repository.readDetail(id)
+    if (before === null) throw new ValidationError(msg('error.app.such-member'))
+    await repository.setState(id, state)
 
     refreshMemberScreens()
     await recordAdminAction({ action: 'user.state_changed', detail: { userId: id, state } })
 
-    return { notice: 'saved' }
+    return {
+      notice: 'saved',
+      undo: await issueAdminUndo({
+        actorUserId: context.session.userId,
+        operation: 'user.state',
+        snapshot: { userId: id, state: before.state },
+      }),
+    }
   } catch (err) {
     return toFormState(err)
   }
@@ -174,7 +187,14 @@ export async function banMemberAction(_prev: FormState, form: FormData): Promise
       detail: { userId: id, days: days === '' ? null : Number(days) },
     })
 
-    return { notice: 'banned' }
+    return {
+      notice: 'banned',
+      undo: await issueAdminUndo({
+        actorUserId: context.session.userId,
+        operation: 'user.ban',
+        snapshot: { userId: id },
+      }),
+    }
   } catch (err) {
     return toFormState(err)
   }
@@ -197,7 +217,9 @@ export async function saveSecondaryGroupsAction(
       groupIds.push(parsed)
     }
 
-    await requireUserAdmin().setSecondaryGroups(id, groupIds, context.session.userId)
+    const repository = requireUserAdmin()
+    const before = await repository.readSecondaryGroups(id)
+    await repository.setSecondaryGroups(id, groupIds, context.session.userId)
 
     await emitEvent(
       'user.groups.changed',
@@ -211,7 +233,14 @@ export async function saveSecondaryGroupsAction(
       detail: { userId: id, groups: groupIds.length },
     })
 
-    return { notice: 'saved' }
+    return {
+      notice: 'saved',
+      undo: await issueAdminUndo({
+        actorUserId: context.session.userId,
+        operation: 'user.groups',
+        snapshot: { userId: id, groupIds: before },
+      }),
+    }
   } catch (err) {
     return toFormState(err)
   }
@@ -384,6 +413,94 @@ async function queueMassMailBatch(
     },
     sent: chunk.recipients.length,
     queued: total,
+  }
+}
+
+export async function bulkUserAction(_prev: FormState, form: FormData): Promise<FormState> {
+  try {
+    const context = await requireFreshAdmin()
+    const ids = [...new Set(form.getAll('userIds').map((value) => Number(value)))]
+    if (
+      ids.length === 0 ||
+      ids.length > USER_BULK_LIMIT ||
+      ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
+    ) {
+      throw new ValidationError(msg('adminUsers.bulkInvalid'))
+    }
+    if (ids.includes(context.session.userId)) throw new ValidationError(msg('adminUsers.bulkSelf'))
+
+    const repository = requireUserAdmin()
+    const members = await Promise.all(ids.map((id) => repository.readDetail(id)))
+    if (members.some((member) => member === null || member.deletedAt !== null)) {
+      throw new ValidationError(msg('adminUsers.bulkStale'))
+    }
+
+    const kind = trimmedText(form, 'bulkAction')
+    if (kind === 'ban') {
+      const reason = trimmedText(form, 'reason')
+      const banned: number[] = []
+      for (const id of ids) {
+        await banService().ban({
+          userId: id,
+          bannedByUserId: context.session.userId,
+          ...(reason === '' ? {} : { reason }),
+        })
+        banned.push(id)
+      }
+      refreshMemberScreens()
+      await recordAdminAction({ action: 'user.bulk_banned', detail: { count: banned.length } })
+      return {
+        notice: 'bulk-banned',
+        undo: await issueAdminUndo({
+          actorUserId: context.session.userId,
+          operation: 'user.bulk_ban',
+          snapshot: { userIds: banned },
+        }),
+      }
+    }
+
+    if (kind === 'group') {
+      const groupId = Number(trimmedText(form, 'groupId'))
+      if (!Number.isSafeInteger(groupId) || groupId <= 0) {
+        throw new ValidationError(msg('error.app.such-group'))
+      }
+      const rows: Array<{ userId: number; groupIds: readonly number[] }> = []
+      for (const id of ids) {
+        const before = await repository.readSecondaryGroups(id)
+        rows.push({ userId: id, groupIds: before })
+        await repository.setSecondaryGroups(
+          id,
+          [...new Set([...before, groupId])],
+          context.session.userId,
+        )
+      }
+      refreshMemberScreens()
+      await recordAdminAction({ action: 'user.bulk_groups_changed', detail: { count: ids.length } })
+      return {
+        notice: 'bulk-grouped',
+        undo: await issueAdminUndo({
+          actorUserId: context.session.userId,
+          operation: 'user.bulk_groups',
+          snapshot: { rows },
+        }),
+      }
+    }
+
+    if (kind === 'prune') {
+      const selection = await issueAdminUndo({
+        actorUserId: context.session.userId,
+        operation: 'user.prune_selection',
+        snapshot: { userIds: ids },
+      })
+      return {
+        notice: 'prune-selection',
+        values: { selection: selection.token },
+      }
+    }
+
+    throw new ValidationError(msg('adminUsers.bulkChoose'))
+  } catch (err) {
+    return toFormState(err)
   }
 }
 

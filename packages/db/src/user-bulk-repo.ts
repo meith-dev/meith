@@ -182,6 +182,73 @@ export class PostgresUserBulkRepository {
     }
   }
 
+  async selectedPrunePreview(userIds: readonly number[]): Promise<PrunePreview> {
+    if (userIds.length === 0) return { total: 0, sample: [] }
+    const idList = sql.join(userIds.map((id) => sql`${id}`), sql`, `)
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select u.id, u.username, u.email, u.created_at
+          from users u
+         where u.id in (${idList})
+           and u.deleted_at is null
+           and u.post_count = 0
+           and u.thread_count = 0
+           and not exists (select 1 from posts p where p.author_user_id = u.id)
+           and not exists (select 1 from threads t where t.author_user_id = u.id)
+           and not ${BANNED_PREDICATE}
+           and not exists (
+             select 1 from usergroups g
+              where g.id = u.primary_group_id and (${isStaffGroupSql('g')})
+           )
+           and not exists (
+             select 1 from user_group_memberships m
+               join usergroups g on g.id = m.group_id
+              where m.user_id = u.id and (${isStaffGroupSql('g')})
+           )
+           and not exists (select 1 from forum_moderators f where f.user_id = u.id)
+         order by u.id
+      `),
+    ) as Array<Record<string, unknown>>
+
+    const sample = rows.map((row) => ({
+      id: Number(row.id),
+      username: String(row.username),
+      email: String(row.email),
+      createdAt: row.created_at instanceof Date ? row.created_at : new Date(String(row.created_at)),
+    }))
+    return { total: sample.length, sample }
+  }
+
+  async pruneSelected(userIds: readonly number[]): Promise<readonly number[]> {
+    const eligible = await this.selectedPrunePreview(userIds)
+    const ids = eligible.sample.map((row) => row.id)
+    if (ids.length === 0) return []
+    const idList = sql.join(ids.map((id) => sql`${id}`), sql`, `)
+
+    return withPermissionVersionBump(this.db, async (tx) => {
+      for (const entry of ACCOUNT_CLOSURE_DISCARD) {
+        await tx.execute(sql`
+          delete from ${sql.raw(entry.table)} where ${sql.raw(entry.column)} in (${idList})
+        `)
+      }
+      await tx.execute(sql`
+        update remember_tokens set revoked_at = now(), revoked_reason = 'account_closure'
+         where user_id in (${idList}) and revoked_at is null
+      `)
+      await tx.execute(sql`
+        update sessions set revoked_at = now()
+         where user_id in (${idList}) and revoked_at is null
+      `)
+      const rows = resultRows(
+        await tx.execute(sql`
+          update users set deleted_at = now(), updated_at = now()
+           where id in (${idList}) and deleted_at is null returning id
+        `),
+      ) as Array<{ id: number }>
+      return rows.map((row) => Number(row.id))
+    })
+  }
+
   async createMassMail(input: {
     readonly subject: string
     readonly body: string

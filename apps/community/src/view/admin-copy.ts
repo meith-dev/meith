@@ -5,6 +5,12 @@ import { untranslated } from './time'
 
 export const ADMIN_SHARED_KEYS = [
   'admin.saved',
+  'admin.undo',
+  'admin.undoExpired',
+  'admin.undoInvalid',
+  'admin.undoSucceeded',
+  'admin.undoUntil',
+  'admin.undoUnavailable',
   'admin.created',
   'admin.create',
   'admin.remove',

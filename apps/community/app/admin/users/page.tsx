@@ -9,12 +9,14 @@ import {
   PANEL_ROW,
   PanelActionLink,
 } from '@/components/shell/panel-list'
+import { UserBulkToolbar } from '@/components/admin/user-bulk-toolbar'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { parseUserFilter, USER_PAGE, userAdminRepository } from '@/server/user-admin'
 import { readPage } from '@/view/pager'
+import { adminSharedCopy } from '@/view/admin-copy'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -165,13 +167,42 @@ export default async function AdminUsersPage({
         </div>
       </form>
 
+      {page.rows.length > 0 && (
+        <UserBulkToolbar
+          groups={groups}
+          copy={adminSharedCopy(translator)}
+          labels={{
+            action: translator.t('adminUsers.bulkAction'),
+            apply: translator.t('adminUsers.bulkApply'),
+            ban: translator.t('adminUsers.bulkBan'),
+            banned: translator.t('adminUsers.bulkBanned'),
+            choose: translator.t('adminUsers.bulkChoose'),
+            group: translator.t('adminUsers.bulkGroup'),
+            grouped: translator.t('adminUsers.bulkGrouped'),
+            prune: translator.t('adminUsers.bulkPrune'),
+            pruneReview: translator.t('adminUsers.pruneReview'),
+            reason: translator.t('adminUsers.bulkReason'),
+            selectPage: translator.t('adminUsers.bulkSelectPage'),
+          }}
+        />
+      )}
+
       {page.rows.length === 0 ? (
         <p className={PANEL_NOTE}>{translator.t('adminUsers.noMatches')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.rows.map((row) => (
             <li key={row.id} className={PANEL_ROW}>
-              <span className="flex min-w-0 flex-col">
+              <input
+                type="checkbox"
+                name="userIds"
+                value={row.id}
+                form="admin-user-bulk"
+                data-admin-user-select
+                aria-label={translator.t('adminUsers.bulkSelect', { username: row.username })}
+                className="size-4 shrink-0"
+              />
+              <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm font-medium">
                   {row.username}
                   {row.isBanned ? (
