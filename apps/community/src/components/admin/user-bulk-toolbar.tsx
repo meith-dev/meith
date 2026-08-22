@@ -6,9 +6,9 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { bulkUserAction } from '@/server/user-admin-actions'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import type { Copy } from '../shell/copy'
 import { AdminUndo } from './admin-undo'
 import { INPUT, Saved } from './form-bits'
-import type { Copy } from '../shell/copy'
 
 interface Labels {
   readonly action: string
@@ -50,7 +50,11 @@ export function UserBulkToolbar({
           {labels.pruneReview}
         </a>
       )}
-      <form id="admin-user-bulk" action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form
+        id="admin-user-bulk"
+        action={action}
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+      >
         <label className="flex min-w-48 flex-col gap-1 text-sm">
           <span className="font-medium">{labels.action}</span>
           <select name="bulkAction" defaultValue="" className={INPUT} required>
@@ -65,7 +69,9 @@ export function UserBulkToolbar({
           <select name="groupId" defaultValue="" className={INPUT}>
             <option value="">{labels.choose}</option>
             {groups.map((group) => (
-              <option key={group.id} value={group.id}>{group.title}</option>
+              <option key={group.id} value={group.id}>
+                {group.title}
+              </option>
             ))}
           </select>
         </label>
@@ -77,7 +83,9 @@ export function UserBulkToolbar({
           type="button"
           className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium"
           onClick={() => {
-            for (const checkbox of document.querySelectorAll<HTMLInputElement>('[data-admin-user-select]')) {
+            for (const checkbox of document.querySelectorAll<HTMLInputElement>(
+              '[data-admin-user-select]',
+            )) {
               checkbox.checked = true
             }
           }}

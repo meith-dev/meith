@@ -184,7 +184,10 @@ export class PostgresUserBulkRepository {
 
   async selectedPrunePreview(userIds: readonly number[]): Promise<PrunePreview> {
     if (userIds.length === 0) return { total: 0, sample: [] }
-    const idList = sql.join(userIds.map((id) => sql`${id}`), sql`, `)
+    const idList = sql.join(
+      userIds.map((id) => sql`${id}`),
+      sql`, `,
+    )
     const rows = resultRows(
       await this.db.execute(sql`
         select u.id, u.username, u.email, u.created_at
@@ -223,7 +226,10 @@ export class PostgresUserBulkRepository {
     const eligible = await this.selectedPrunePreview(userIds)
     const ids = eligible.sample.map((row) => row.id)
     if (ids.length === 0) return []
-    const idList = sql.join(ids.map((id) => sql`${id}`), sql`, `)
+    const idList = sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `,
+    )
 
     return withPermissionVersionBump(this.db, async (tx) => {
       for (const entry of ACCOUNT_CLOSURE_DISCARD) {

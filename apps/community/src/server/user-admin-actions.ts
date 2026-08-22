@@ -8,7 +8,7 @@ import { drivers } from '@meith/drivers'
 import { msg } from '@meith/i18n'
 
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
-import { issueAdminUndo } from './admin-undo'
+import { claimAdminUndo, issueAdminUndo } from './admin-undo'
 import { recordStaffAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
@@ -130,7 +130,8 @@ export async function setMemberStateAction(_prev: FormState, form: FormData): Pr
     }
 
     const repository = requireUserAdmin()
-    const before = await repository.readDetail(id)
+    const before =
+      getContainer().dataSource === 'postgres' ? await repository.readDetail(id) : undefined
     if (before === null) throw new ValidationError(msg('error.app.such-member'))
     await repository.setState(id, state)
 
@@ -139,11 +140,14 @@ export async function setMemberStateAction(_prev: FormState, form: FormData): Pr
 
     return {
       notice: 'saved',
-      undo: await issueAdminUndo({
-        actorUserId: context.session.userId,
-        operation: 'user.state',
-        snapshot: { userId: id, state: before.state },
-      }),
+      undo:
+        before === undefined
+          ? undefined
+          : await issueAdminUndo({
+              actorUserId: context.session.userId,
+              operation: 'user.state',
+              snapshot: { userId: id, state: before.state },
+            }),
     }
   } catch (err) {
     return toFormState(err)
@@ -238,7 +242,7 @@ export async function saveSecondaryGroupsAction(
       undo: await issueAdminUndo({
         actorUserId: context.session.userId,
         operation: 'user.groups',
-        snapshot: { userId: id, groupIds: before },
+        snapshot: { userId: id, memberships: before },
       }),
     }
   } catch (err) {
@@ -335,6 +339,49 @@ export async function pruneMembersAction(_prev: FormState, form: FormData): Prom
       notice: chunk.remaining > 0 ? 'more' : 'finished',
       values: { pruned: String(chunk.pruned), remaining: String(chunk.remaining) },
     }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function pruneSelectedMembersAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const context = await requireFreshAdmin()
+    const selection = await claimAdminUndo({
+      token: trimmedText(form, 'selection'),
+      actorUserId: context.session.userId,
+    })
+    if (selection.operation !== 'user.prune_selection') {
+      throw new ValidationError(msg('admin.undoInvalid'))
+    }
+    const values = selection.snapshot.userIds
+    if (!Array.isArray(values)) throw new ValidationError(msg('admin.undoInvalid'))
+    const ids = values.map((value) => Number(value))
+    if (
+      ids.length === 0 ||
+      ids.length > USER_BULK_LIMIT ||
+      ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
+    ) {
+      throw new ValidationError(msg('admin.undoInvalid'))
+    }
+
+    const prunedUserIds = await requireUserBulk().pruneSelected(ids)
+    for (const prunedUserId of prunedUserIds) {
+      await emitEvent(
+        'user.deleted',
+        { userId: prunedUserId, reason: 'pruned' },
+        { requestId: currentRequestId() ?? null },
+      )
+    }
+    refreshMemberScreens()
+    await recordAdminAction({
+      action: 'user.pruned_selected',
+      detail: { selected: ids.length, pruned: prunedUserIds.length },
+    })
+    return { notice: 'finished', values: { pruned: String(prunedUserIds.length) } }
   } catch (err) {
     return toFormState(err)
   }
@@ -464,10 +511,8 @@ export async function bulkUserAction(_prev: FormState, form: FormData): Promise<
       if (!Number.isSafeInteger(groupId) || groupId <= 0) {
         throw new ValidationError(msg('error.app.such-group'))
       }
-      const rows: Array<{ userId: number; groupIds: readonly number[] }> = []
       for (const id of ids) {
         const before = await repository.readSecondaryGroups(id)
-        rows.push({ userId: id, groupIds: before })
         await repository.setSecondaryGroups(
           id,
           [...new Set([...before, groupId])],
@@ -476,14 +521,7 @@ export async function bulkUserAction(_prev: FormState, form: FormData): Promise<
       }
       refreshMemberScreens()
       await recordAdminAction({ action: 'user.bulk_groups_changed', detail: { count: ids.length } })
-      return {
-        notice: 'bulk-grouped',
-        undo: await issueAdminUndo({
-          actorUserId: context.session.userId,
-          operation: 'user.bulk_groups',
-          snapshot: { rows },
-        }),
-      }
+      return { notice: 'bulk-grouped' }
     }
 
     if (kind === 'prune') {
@@ -492,6 +530,7 @@ export async function bulkUserAction(_prev: FormState, form: FormData): Promise<
         operation: 'user.prune_selection',
         snapshot: { userIds: ids },
       })
+      if (selection === undefined) throw new ValidationError(msg('admin.undoUnavailable'))
       return {
         notice: 'prune-selection',
         values: { selection: selection.token },

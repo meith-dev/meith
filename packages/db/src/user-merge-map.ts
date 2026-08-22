@@ -14,6 +14,7 @@ export type DiscardColumn = ReassignColumn
 
 export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'admin_log', column: 'user_id' },
+  { table: 'admin_undo_operations', column: 'actor_user_id' },
   { table: 'attachments', column: 'uploader_user_id' },
   { table: 'ban_filters', column: 'created_by_user_id' },
   { table: 'bans', column: 'banned_by_user_id' },
