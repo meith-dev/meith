@@ -164,6 +164,7 @@ export function postActionsCopy(t: Translator): SlotCopy {
   return copyFor(t, [
     'raidframe.postActions.quote',
     'raidframe.postActions.edit',
+    'raidframe.postActions.history',
     'raidframe.postActions.restore',
     'raidframe.postActions.rate',
     'raidframe.postActions.report',

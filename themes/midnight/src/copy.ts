@@ -114,6 +114,7 @@ export function postActionsCopy(t: Translator): SlotCopy {
     'midnight.postActions.ariaLabel',
     'midnight.postActions.quote',
     'midnight.postActions.edit',
+    'midnight.postActions.history',
     'midnight.postActions.restore',
     'midnight.postActions.rate',
     'midnight.postActions.report',

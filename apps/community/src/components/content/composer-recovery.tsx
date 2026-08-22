@@ -4,10 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Alert, AlertDescription } from '@meith/ui'
 
-import {
-  autosaveComposerAction,
-  type ComposerAutosaveInput,
-} from '@/server/content-actions'
+import { autosaveComposerAction, type ComposerAutosaveInput } from '@/server/content-actions'
 
 import { type Copy, fromCopy } from '../shell/copy'
 
@@ -65,7 +62,14 @@ function storedBackup(key: string): Backup | null {
 
 function setField(form: HTMLFormElement, name: string, value: string): void {
   const control = form.elements.namedItem(name)
-  if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement)) return
+  if (
+    !(
+      control instanceof HTMLInputElement ||
+      control instanceof HTMLTextAreaElement ||
+      control instanceof HTMLSelectElement
+    )
+  )
+    return
   control.value = value
   control.dispatchEvent(new Event('input', { bubbles: true }))
   control.dispatchEvent(new Event('change', { bubbles: true }))
@@ -95,7 +99,8 @@ export function ComposerRecovery({
     const payload = readPayload(form, { ...scope, title: '', message: '', prefixId: null })
     const next = signature(payload)
     latest.current = next
-    if (next === saved.current || (payload.title.trim() === '' && payload.message.trim() === '')) return
+    if (next === saved.current || (payload.title.trim() === '' && payload.message.trim() === ''))
+      return
 
     setSaveState('saving')
     try {
@@ -119,7 +124,11 @@ export function ComposerRecovery({
     latest.current = signature(initial)
     saved.current = latest.current
     const backup = storedBackup(storageKey)
-    if (backup !== null && backup.savedAt > serverUpdatedAt && signature(backup) !== latest.current) {
+    if (
+      backup !== null &&
+      backup.savedAt > serverUpdatedAt &&
+      signature(backup) !== latest.current
+    ) {
       setRecovery(backup)
     }
 

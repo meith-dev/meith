@@ -178,6 +178,7 @@ export function panelPageCopy(t: Translator): SlotCopy {
 export function postActionsCopy(t: Translator): SlotCopy {
   return copyFor(t, [
     'default.postActions.edit',
+    'default.postActions.history',
     'default.postActions.moderate',
     'default.postActions.nav',
     'default.postActions.quote',

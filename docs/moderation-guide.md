@@ -163,6 +163,12 @@ Two things about editing and deleting posts:
   however fresh the post, and every edit is kept in the revision
   history — see [the silent edit window](./operating.md#the-silent-edit-window).
 
+A post's author and staff who may edit other members' posts can open **History**
+from the post actions. The history compares adjacent revisions and records the
+editor, date and reason. Staff may restore an earlier version after confirming
+the action; restoration runs through the normal edit path and appends a new
+revision rather than deleting or rewriting any existing history.
+
 ## Warnings
 
 A warning is the formal step between a quiet word and a ban. If you hold

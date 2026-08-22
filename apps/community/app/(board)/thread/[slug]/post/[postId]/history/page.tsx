@@ -5,9 +5,9 @@ import { diffLines } from '@meith/posts'
 import { Card, CardContent, CardHeader, CardTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
+import { getContainer } from '@/server/container'
 import { rollbackPostAction } from '@/server/content-actions'
 import { getActor } from '@/server/context'
-import { getContainer } from '@/server/container'
 import { getTranslator, tr } from '@/server/i18n'
 import { resolvePostScope } from '@/server/post-scope'
 import { leadingId } from '@/view/slug-id'
@@ -47,8 +47,7 @@ export default async function PostHistoryPage({
 
   const requestedFrom = revisionId(query.from)
   const requestedTo = revisionId(query.to)
-  const to =
-    revisions.find((entry) => entry.revision === requestedTo) ?? revisions.at(-1)!
+  const to = revisions.find((entry) => entry.revision === requestedTo) ?? revisions.at(-1)!
   const toIndex = revisions.findIndex((entry) => entry.revision === to.revision)
   const from =
     revisions.find((entry) => entry.revision === requestedFrom) ??
@@ -76,9 +75,9 @@ export default async function PostHistoryPage({
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-md border border-border font-mono text-sm">
-              {diffLines(from.message, to.message).map((line, index) => (
+              {diffLines(from.message, to.message).map((line) => (
                 <div
-                  key={`${line.kind}-${index}`}
+                  key={line.id}
                   className={
                     line.kind === 'added'
                       ? 'bg-primary/10 px-3 py-1 text-foreground'
@@ -130,7 +129,10 @@ export default async function PostHistoryPage({
                       </a>
                     )}
                     {scope.mayRollback && !revision.current && (
-                      <form action={rollbackPostAction} className="flex flex-wrap items-center gap-2">
+                      <form
+                        action={rollbackPostAction}
+                        className="flex flex-wrap items-center gap-2"
+                      >
                         <input type="hidden" name="threadId" value={threadId} />
                         <input type="hidden" name="postId" value={postId} />
                         <input type="hidden" name="revision" value={revision.revision} />

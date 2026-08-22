@@ -8,7 +8,7 @@ import type {
   PostLocation,
   PostPage,
   PostRepository,
-  type PostRevision,
+  PostRevision,
   QuotablePost,
 } from '@meith/posts'
 
@@ -134,8 +134,7 @@ export class PostgresPostRepository implements PostRepository {
       revision: Number(row.revision),
       message: row.message,
       subject: row.subject,
-      editedByUserId:
-        row.edited_by_user_id === null ? null : Number(row.edited_by_user_id),
+      editedByUserId: row.edited_by_user_id === null ? null : Number(row.edited_by_user_id),
       editedByUsername: row.edited_by_username,
       reason: row.edit_reason,
       createdAt: new Date(row.created_at),

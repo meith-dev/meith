@@ -827,8 +827,9 @@ One choice in a `<select>` or a radio group, with the current one marked. `isSel
 | `quoteHref` | `string \| null` |  |
 | `editHref` | `string \| null` |  |
 | `restoreHref` | `string \| null` | Where a soft-deleted post is put back. A separate field rather than a second meaning for `editHref`, because the two are never both offered: a deleted post cannot be edited, and a visible one has nothing to restore. A theme that renders both gets exactly one. |
+| `historyHref` | `string \| null` | optional |
 | `reportHref` | `string \| null` |  |
-| `warnHref` | `string \| null` | Warn this post's author, citing this post. Present for moderators only, and `null` for a post whose author is the viewer or a deleted account. Separate from `moderateHref` because a warning is aimed at the *person* and the post is only the evidence — which is also why the link carries the post id rather than living on the post's own moderation controls. |
+| `warnHref` | `string \| null` | Warn this post's author, citing this post. Present for moderators only, and `null` for a post whose author is the viewer or a deleted account. Separate from `moderateHref` because a warning is aimed at the *person* and the post is only the evidence ��� which is also why the link carries the post id rather than living on the post's own moderation controls. |
 | `moderateHref` | `string \| null` | Reserved for per-post moderation controls that are not inline. Still `null` everywhere: per-post moderation is on checkboxes and a bar rather than a per-post link, so nothing fills this yet. It stays in the contract because the moderation control panel is where such a *page* would live, and removing a public field to add it back next feature is worse than a documented `null`. |
 | `rateHref` | `string \| null` | Rate this post's author, for this post. Null on your own post, on a board with reputation off, and for anybody without the permission. It carries the post so the rating is attached to *this* post rather than to the author generally — which is what makes one rating per post a meaningful rule. |
 

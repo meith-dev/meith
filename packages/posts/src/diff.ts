@@ -1,7 +1,10 @@
 export interface DiffLine {
+  readonly id: string
   readonly kind: 'same' | 'added' | 'removed'
   readonly value: string
 }
+
+type UnkeyedDiffLine = Omit<DiffLine, 'id'>
 
 export function diffLines(before: string, after: string): readonly DiffLine[] {
   const left = before.split('\n')
@@ -19,7 +22,7 @@ export function diffLines(before: string, after: string): readonly DiffLine[] {
     }
   }
 
-  const result: DiffLine[] = []
+  const result: UnkeyedDiffLine[] = []
   let i = 0
   let j = 0
   while (i < left.length && j < right.length) {
@@ -43,5 +46,5 @@ export function diffLines(before: string, after: string): readonly DiffLine[] {
     result.push({ kind: 'added', value: right[j]! })
     j += 1
   }
-  return result
+  return result.map((line, index) => ({ ...line, id: `${index}:${line.kind}` }))
 }

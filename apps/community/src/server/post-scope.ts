@@ -59,8 +59,7 @@ export async function resolvePostScope(
     mayRestore:
       authorizer.can(actor, 'post.restore', scope) &&
       authorizer.can(actor, 'content.viewDeleted', scope),
-    mayViewHistory:
-      (isOwn && target.post.visibility === 'visible') || staffCanSeePost,
+    mayViewHistory: (isOwn && target.post.visibility === 'visible') || staffCanSeePost,
     mayRollback: staffCanSeePost && target.post.visibility !== 'deleted',
     bypassesLock: moderates,
     capabilities: {
