@@ -183,6 +183,26 @@ export const adminLog = pgTable(
   ],
 )
 
+export const adminUndoOperations = pgTable(
+  'admin_undo_operations',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    tokenHash: text('token_hash').notNull(),
+    actorUserId: integer('actor_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    operation: text('operation').notNull(),
+    snapshot: jsonb('snapshot').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('admin_undo_operations_token_key').on(t.tokenHash),
+    index('admin_undo_operations_live_idx').on(t.actorUserId, t.expiresAt),
+  ],
+)
+
 export const contentCounterRollups = pgTable('content_counter_rollups', {
   postId: integer('post_id').primaryKey(),
   appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),

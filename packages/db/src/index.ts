@@ -17,6 +17,11 @@ export {
   PostgresAdminSessionRepository,
 } from './admin-session-repo'
 export {
+  ADMIN_UNDO_MAX_SNAPSHOT_BYTES,
+  type AdminUndoOperation,
+  PostgresAdminUndoRepository,
+} from './admin-undo-repo'
+export {
   type AnnouncementInput,
   type AnnouncementRow,
   PostgresAnnouncementRepository,

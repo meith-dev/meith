@@ -18,6 +18,7 @@ import {
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
+import { AdminUndo } from './admin-undo'
 import { INPUT, Saved } from './form-bits'
 
 export interface GroupChoice {
@@ -128,6 +129,7 @@ export function MemberStateForm({
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
       <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
+      <AdminUndo undo={state.undo} copy={copy} />
       <input type="hidden" name="userId" value={userId} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -194,6 +196,7 @@ export function BanMemberForm({ userId, copy }: { userId: number; copy: Copy }) 
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
       <Saved when={state.notice === 'banned'}>{fromCopy(copy, 'adminUser.banned')}</Saved>
+      <AdminUndo undo={state.undo} copy={copy} />
       <input type="hidden" name="userId" value={userId} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -247,6 +250,7 @@ export function SecondaryGroupsForm({
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
       <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
+      <AdminUndo undo={state.undo} copy={copy} />
       <input type="hidden" name="userId" value={userId} />
 
       <fieldset className="flex flex-col gap-2">
