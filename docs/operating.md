@@ -183,6 +183,18 @@ Use `--save` only when you want the CLI to store the pair in board settings. Rea
 
 Do not add a second web instance while using process-local cache invalidation. Configure the shared Redis-compatible cache first and follow [Scaling out](./scaling.md). PostgreSQL remains the durable source of truth.
 
+## Composer recovery
+
+Signed-in members writing a new thread or reply get two layers of protection.
+The browser keeps an unsent local recovery copy and the board debounces changes
+into the existing server-side draft. After a crash or reload, a newer browser
+copy is offered for explicit restore or discard; it never silently replaces a
+newer server draft. The existing **Save draft** action remains available, and
+posting clears the server draft through the normal create flow.
+
+Browser storage is crash recovery, not the durable record. Clearing site data
+removes that local copy, while server drafts remain in PostgreSQL.
+
 ## Troubleshooting
 
 ### Migration does not complete

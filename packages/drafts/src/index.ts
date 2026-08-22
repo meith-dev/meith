@@ -4,6 +4,7 @@ export interface Draft {
   readonly title: string
   readonly message: string
   readonly prefixId: number | null
+  readonly updatedAt?: Date
 }
 
 export interface DraftRepository {

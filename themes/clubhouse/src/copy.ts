@@ -133,6 +133,7 @@ export function paginationCopy(t: Translator): SlotCopy {
 export function postActionsCopy(t: Translator): SlotCopy {
   return copyFor(t, [
     'clubhouse.postActions.edit',
+    'clubhouse.postActions.history',
     'clubhouse.postActions.moderate',
     'clubhouse.postActions.postActions',
     'clubhouse.postActions.quote',

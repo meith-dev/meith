@@ -141,6 +141,7 @@ export function postActionsCopy(t: Translator): SlotCopy {
   return copyFor(t, [
     'phasebook.postActions.ariaLabel',
     'phasebook.postActions.edit',
+    'phasebook.postActions.history',
     'phasebook.postActions.moderate',
     'phasebook.postActions.quote',
     'phasebook.postActions.rate',

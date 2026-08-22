@@ -362,13 +362,14 @@ export interface PostActionsModel {
    * one has nothing to restore. A theme that renders both gets exactly one.
    */
   readonly restoreHref: string | null
+  readonly historyHref?: string | null
   readonly reportHref: string | null
   /**
    * Warn this post's author, citing this post.
    *
    * Present for moderators only, and `null` for a post whose author is the
    * viewer or a deleted account. Separate from `moderateHref` because a warning
-   * is aimed at the *person* and the post is only the evidence — which is also
+   * is aimed at the *person* and the post is only the evidence ��� which is also
    * why the link carries the post id rather than living on the post's own
    * moderation controls.
    */

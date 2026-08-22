@@ -97,6 +97,51 @@ function field(form: FormData, name: string): string {
 
 const toFormState = formStateReporter('content-actions', 'unexpected error writing content')
 
+export interface ComposerAutosaveInput {
+  readonly forumId?: number
+  readonly threadId?: number
+  readonly title: string
+  readonly message: string
+  readonly prefixId: number | null
+}
+
+export interface ComposerAutosaveResult {
+  readonly savedAt: number
+}
+
+export async function autosaveComposerAction(
+  input: ComposerAutosaveInput,
+): Promise<ComposerAutosaveResult> {
+  const actor = await getActor()
+  if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged-2'))
+
+  const { drafts } = getContainer()
+  if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
+
+  if (input.threadId !== undefined) {
+    const resolved = await resolveReplyTarget(actor, input.threadId)
+    await drafts.save(actor.userId, {
+      forumId: resolved.forumId,
+      threadId: input.threadId,
+      title: '',
+      message: input.message.trim(),
+      prefixId: null,
+    })
+  } else {
+    if (input.forumId === undefined) throw new ValidationError(msg('error.app.forum-exist'))
+    await resolveThreadTarget(actor, input.forumId)
+    await drafts.save(actor.userId, {
+      forumId: input.forumId,
+      threadId: null,
+      title: input.title.trim(),
+      message: input.message.trim(),
+      prefixId: input.prefixId,
+    })
+  }
+
+  return { savedAt: Date.now() }
+}
+
 export async function createThreadAction(_prev: FormState, form: FormData): Promise<FormState> {
   const forumId = positiveIntIn(field(form, 'forumId'))
   const title = field(form, 'title')
@@ -294,6 +339,49 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
     redirect(`${thread}?posted=moderated`)
   }
   redirect(postLink(thread, edited.postId))
+}
+
+export async function rollbackPostAction(form: FormData): Promise<void> {
+  const threadId = positiveIntIn(field(form, 'threadId'))
+  const postId = positiveIntIn(field(form, 'postId'))
+  const revisionValue = field(form, 'revision')
+  const revision = /^\d+$/.test(revisionValue) ? Number(revisionValue) : null
+  if (
+    threadId === null ||
+    postId === null ||
+    revision === null ||
+    !Number.isSafeInteger(revision)
+  ) {
+    throw new ValidationError(msg('error.app.post-exist'))
+  }
+
+  const actor = await getActor()
+  const { posts, postWrites } = getContainer()
+  if (actor.userId === null || postWrites === null) {
+    throw new ForbiddenError(msg('error.app.must-logged-edit-post'))
+  }
+
+  const scope = await resolvePostScope(threadId, postId, actor)
+  if (scope === null || !scope.mayRollback) {
+    throw new ForbiddenError(msg('error.app.edit-post'))
+  }
+
+  const revisions = await posts.listRevisions(threadId, postId)
+  const selected = revisions.find((entry) => entry.revision === revision && !entry.current)
+  if (selected === undefined) throw new ValidationError(msg('error.app.post-exist'))
+
+  const editor = await postEditor(postWrites)
+  await editor.edit(
+    {
+      message: selected.message,
+      reason: `Rolled back to revision ${revision}`,
+      capabilities: scope.capabilities,
+    },
+    actor.userId,
+    scope.target,
+  )
+
+  redirect(`/thread/${threadId}-${scope.target.thread.slug}/post/${postId}/history`)
 }
 
 export async function deletePostAction(_prev: FormState, form: FormData): Promise<FormState> {

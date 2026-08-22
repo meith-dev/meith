@@ -154,6 +154,10 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
           : `${replyHref}?quote=${post.id}`,
       editHref: mayEdit ? manageHref : null,
       restoreHref: post.visibility === 'deleted' && capabilities.restore ? manageHref : null,
+      historyHref:
+        post.editedAt !== null && (isOwn || capabilities.editOthers)
+          ? `/thread/${thread.id}-${thread.slug}/post/${post.id}/history`
+          : null,
       reportHref:
         capabilities.canReport && !isOwn && post.visibility === 'visible'
           ? `/report?kind=post&id=${post.id}`

@@ -13,6 +13,7 @@ import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 import { AttachmentField } from './attachment-field'
 import { ComposerIntents } from './composer-intents'
+import { ComposerRecovery } from './composer-recovery'
 import { MarkdownEditor } from './markdown-editor'
 
 export function ReplyForm({
@@ -56,6 +57,13 @@ export function ReplyForm({
           value={state.values?.seenLastPostId ?? seenLastPostId}
         />
       )}
+
+      <ComposerRecovery
+        storageKey={`meith:composer:reply:${threadId}`}
+        scope={{ threadId }}
+        serverUpdatedAt={draft?.updatedAt?.getTime() ?? 0}
+        copy={copy}
+      />
 
       <MarkdownEditor
         rows={collapsible ? 6 : 12}

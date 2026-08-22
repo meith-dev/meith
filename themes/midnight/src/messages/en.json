@@ -49,6 +49,7 @@
   "midnight.pagination.prev": "prev",
   "midnight.postActions.ariaLabel": "Post actions",
   "midnight.postActions.edit": "edit",
+  "midnight.postActions.history": "history",
   "midnight.postActions.moderate": "moderate",
   "midnight.postActions.quote": "quote",
   "midnight.postActions.rate": "rate",

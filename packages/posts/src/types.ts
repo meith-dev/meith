@@ -20,6 +20,17 @@ export interface PostListingRow {
   readonly editReason: string | null
 }
 
+export interface PostRevision {
+  readonly revision: number
+  readonly message: string
+  readonly subject: string | null
+  readonly editedByUserId: number | null
+  readonly editedByUsername: string
+  readonly reason: string | null
+  readonly createdAt: Date
+  readonly current: boolean
+}
+
 export interface PostPage {
   readonly rows: readonly PostListingRow[]
   readonly nextAfterId: number | null

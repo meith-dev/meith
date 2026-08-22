@@ -13,6 +13,7 @@ import { Field, FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { AttachmentField } from './attachment-field'
 import { ComposerIntents } from './composer-intents'
+import { ComposerRecovery } from './composer-recovery'
 import { MarkdownEditor } from './markdown-editor'
 
 export interface PrefixOption {
@@ -86,6 +87,13 @@ export function NewThreadForm({
           </select>
         </label>
       )}
+
+      <ComposerRecovery
+        storageKey={`meith:composer:new-thread:${forumId}`}
+        scope={{ forumId }}
+        serverUpdatedAt={draft?.updatedAt?.getTime() ?? 0}
+        copy={copy}
+      />
 
       <MarkdownEditor
         required
