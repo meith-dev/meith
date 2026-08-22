@@ -6,22 +6,19 @@ import { Alert } from './alert'
 import { Avatar } from './avatar'
 import { Card } from './card'
 import { Disclosure } from './disclosure'
-import { Field, Input, NativeSelect, Textarea } from './field'
+import { Field, type FieldProps, Input, NativeSelect, Textarea } from './field'
 import { Separator } from './separator'
 
 describe('Field', () => {
   it('wires its label, description, and error to the control', () => {
     const html = renderToStaticMarkup(
-      createElement(
-        Field as ElementType,
-        {
-          name: 'title',
-          label: 'Title',
-          description: 'Be specific',
-          error: 'Required',
-        },
-        (control) => createElement(Input, control),
-      ),
+      createElement(Field, {
+        name: 'title',
+        label: 'Title',
+        description: 'Be specific',
+        error: 'Required',
+        children: (control) => createElement(Input, control),
+      } satisfies FieldProps),
     )
 
     expect(html).toContain('for="field-title"')
@@ -32,11 +29,12 @@ describe('Field', () => {
 
   it('honors an explicit id and omits absent ARIA relationships', () => {
     const html = renderToStaticMarkup(
-      createElement(
-        Field as ElementType,
-        { id: 'custom', name: 'body', label: 'Body' },
-        (control) => createElement(Textarea, control),
-      ),
+      createElement(Field, {
+        id: 'custom',
+        name: 'body',
+        label: 'Body',
+        children: (control) => createElement(Textarea, control),
+      } satisfies FieldProps),
     )
     expect(html).toContain('for="custom"')
     expect(html).not.toContain('aria-describedby')
