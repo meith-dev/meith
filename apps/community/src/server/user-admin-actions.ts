@@ -27,7 +27,7 @@ const PRUNE_CHUNK = 500
 
 const MASS_MAIL_CHUNK = 500
 
-export const USER_BULK_LIMIT = 500
+const USER_BULK_LIMIT = 500
 
 function userId(form: FormData): number {
   const id = Number(trimmedText(form, 'userId'))
