@@ -26,6 +26,7 @@
     "@meith/install": "workspace:*",
     "@meith/mail": "workspace:*",
     "@meith/markdown": "workspace:*",
+    "@meith/marketplace": "workspace:*",
     "@meith/messages": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",

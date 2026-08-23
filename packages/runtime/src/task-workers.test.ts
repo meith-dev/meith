@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
+import type { MarketplaceFeed } from '@meith/marketplace'
 
 import { buildEventRegistry } from './event-handlers'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
@@ -262,5 +263,131 @@ describe('the search index backfill', () => {
 
     expect(workers.reindexSearch).toBeUndefined()
     expect('reindexSearch' in workers).toBe(false)
+  })
+})
+
+describe('the marketplace catalog refresh', () => {
+  const base = {
+    ...unusedDeps,
+    queue: new MemoryQueue(),
+    outbox: new FakeOutbox([]),
+    events: buildEventRegistry({
+      counters: { rollUpAncestors: async () => true, applyVisibilityChange: async () => false },
+    }),
+  }
+
+  function feed(listings: unknown[]) {
+    return JSON.stringify({ schema: 'https://www.meith.dev/marketplace/v1.json#/schema', listings })
+  }
+
+  function listing(overrides: Record<string, unknown> = {}) {
+    return {
+      key: 'dues',
+      kind: 'plugin',
+      package: '@meith/plugin-dues',
+      name: 'Dues',
+      description: 'Paid memberships through Stripe.',
+      screenshots: ['/marketplace/screenshots/dues-light.png'],
+      version: '0.17.0',
+      apiVersion: 0,
+      meith: '>=0.16 <1',
+      repository: 'https://github.com/meith-dev/meith',
+      licence: 'LGPL-3.0-or-later',
+      ...overrides,
+    }
+  }
+
+  function fakeRepository() {
+    const notified = new Set<string>()
+    let saved: { feed: MarketplaceFeed | null; error: string | null } = { feed: null, error: null }
+    return {
+      async read() {
+        return {
+          feed: saved.feed,
+          sourceUrl: null,
+          fetchedAt: null,
+          error: saved.error,
+          errorAt: null,
+        }
+      },
+      async saveFeed({ feed: f }: { feed: MarketplaceFeed; sourceUrl: string; fetchedAt: Date }) {
+        saved = { feed: f, error: null }
+      },
+      async saveError({ message }: { message: string }) {
+        saved = { ...saved, error: message }
+      },
+      async hasNotified(key: string, version: string) {
+        return notified.has(`${key}@${version}`)
+      },
+      async markNotified(key: string, version: string) {
+        notified.add(`${key}@${version}`)
+      },
+      get savedFeed() {
+        return saved
+      },
+    }
+  }
+
+  it('fetches, caches and reports the listing count', async () => {
+    const repository = fakeRepository()
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => feed([listing()]),
+    }) as unknown as typeof fetch
+    vi.stubGlobal('fetch', fetchImpl)
+
+    const workers = taskWorkers({
+      ...base,
+      marketplace: {
+        repository,
+        plugins: [{ key: 'dues', name: 'Dues', version: '0.16.0' }] as never,
+        feedUrl: async () => 'https://example.com/v1.json',
+        notifyUpdate: vi.fn(),
+      },
+    })
+
+    const result = await workers.refreshMarketplaceCatalog!()
+    expect(result).toMatchObject({ ok: true, listingCount: 1 })
+
+    vi.unstubAllGlobals()
+  })
+
+  it('notifies exactly once for a plugin update, through the wired notifier', async () => {
+    const repository = fakeRepository()
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => feed([listing({ version: '0.17.0' })]),
+    }) as unknown as typeof fetch
+    vi.stubGlobal('fetch', fetchImpl)
+
+    const notifyUpdate = vi.fn().mockResolvedValue(undefined)
+    const workers = taskWorkers({
+      ...base,
+      marketplace: {
+        repository,
+        plugins: [{ key: 'dues', name: 'Dues', version: '0.16.0' }] as never,
+        feedUrl: async () => 'https://example.com/v1.json',
+        notifyUpdate,
+      },
+    })
+
+    await workers.refreshMarketplaceCatalog!()
+    await workers.refreshMarketplaceCatalog!()
+
+    expect(notifyUpdate).toHaveBeenCalledTimes(1)
+    expect(notifyUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'dues', version: '0.17.0' }),
+    )
+
+    vi.unstubAllGlobals()
+  })
+
+  it('is absent, not a stub, when there is no catalog to refresh', () => {
+    const workers = taskWorkers(base)
+
+    expect(workers.refreshMarketplaceCatalog).toBeUndefined()
+    expect('refreshMarketplaceCatalog' in workers).toBe(false)
   })
 })

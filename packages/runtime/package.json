@@ -18,6 +18,7 @@
     "@meith/i18n": "workspace:*",
     "@meith/mail": "workspace:*",
     "@meith/markdown": "workspace:*",
+    "@meith/marketplace": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",
     "@meith/plugin-kit": "workspace:*",

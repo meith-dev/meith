@@ -77,6 +77,8 @@
       "@meith/mail": ["./packages/mail/src/index.ts"],
       "@meith/mail/*": ["./packages/mail/src/*"],
       "@meith/markdown/*": ["./packages/markdown/src/*"],
+      "@meith/marketplace": ["./packages/marketplace/src/index.ts"],
+      "@meith/marketplace/*": ["./packages/marketplace/src/*"],
       "@meith/plugin-dues": ["./plugins/dues/src/index.ts"],
       "@meith/plugin-dues/*": ["./plugins/dues/src/*"],
       "@meith/plugin-reference": ["./plugins/reference/src/index.ts"],

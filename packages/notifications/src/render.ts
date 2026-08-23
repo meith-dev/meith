@@ -213,6 +213,16 @@ const TEMPLATES: Readonly<
         (error === '' ? '' : `\n\n${t.t('notification.render.task.error', { error })}`),
     }
   },
+
+  'marketplace.update_available': (data, t) => {
+    const name = str(data, 'name', str(data, 'key'))
+    const version = str(data, 'version')
+    const packageName = str(data, 'package')
+    return {
+      subject: t.t('notification.render.marketplace.subject', { name, version }),
+      body: t.t('notification.render.marketplace.body', { package: packageName, version }),
+    }
+  },
 }
 
 export function renderNotification(
