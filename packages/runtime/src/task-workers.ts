@@ -4,8 +4,17 @@ import type { AvatarService } from '@meith/avatars'
 import { optional, type QueueDriver } from '@meith/core'
 import { type EventRegistry, type OutboxReader, relayOutbox as runOutboxRelay } from '@meith/events'
 import { type PromotionGuards, PromotionService } from '@meith/groups'
+import {
+  type MarketplaceCacheRepository,
+  type MarketplaceListing,
+  MEITH_VERSION,
+  PLUGIN_API_MAJOR,
+  refreshCatalog,
+  THEME_API_MAJOR,
+} from '@meith/marketplace'
 import { type WarningRepository, WarningService } from '@meith/moderation'
 import type { NotificationService } from '@meith/notifications'
+import type { PluginDefinition } from '@meith/plugin-kit'
 import {
   SubscriptionNotifier,
   type SubscriptionRepository,
@@ -55,6 +64,12 @@ export interface TaskWorkerDeps {
       concurrentCount(now: Date): Promise<number>
       recordIfHigher(count: number, now: Date): Promise<boolean>
     }
+  }
+  readonly marketplace?: {
+    readonly repository: MarketplaceCacheRepository
+    readonly plugins: readonly PluginDefinition[]
+    readonly feedUrl: () => Promise<string>
+    readonly notifyUpdate: (listing: MarketplaceListing) => Promise<void>
   }
 }
 
@@ -206,6 +221,26 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
     ...optional(deps.avatars, (avatars) => ({
       async sweepAvatars(batchSize: number) {
         return avatars.sweep(batchSize)
+      },
+    })),
+
+    ...optional(deps.marketplace, (marketplace) => ({
+      async refreshMarketplaceCatalog() {
+        const url = await marketplace.feedUrl()
+        return refreshCatalog({
+          url,
+          repository: marketplace.repository,
+          build: {
+            meithVersion: MEITH_VERSION,
+            pluginApiMajor: PLUGIN_API_MAJOR,
+            themeApiMajor: THEME_API_MAJOR,
+          },
+          resolveInstalled: (listing) => {
+            const definition = marketplace.plugins.find((plugin) => plugin.key === listing.key)
+            return definition === undefined ? null : { enabled: true, version: definition.version }
+          },
+          notifyUpdate: marketplace.notifyUpdate,
+        })
       },
     })),
 

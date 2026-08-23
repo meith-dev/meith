@@ -28,6 +28,10 @@ export const E2E_FAKE_STRIPE_PORT = 12_111
 
 export const E2E_DUES_WEBHOOK_SECRET = 'whsec_e2e_dues_signing_secret'
 
+export const E2E_FAKE_MARKETPLACE_PORT = 12_112
+
+export const E2E_FAKE_MARKETPLACE_BASE_URL = `http://127.0.0.1:${E2E_FAKE_MARKETPLACE_PORT}`
+
 export const DEMO_DB_PORT = 55_434
 
 export const DEMO_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${DEMO_DB_PORT}/postgres`

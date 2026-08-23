@@ -93,9 +93,47 @@ staleness rather than a build step that produces it fresh.
 `/marketplace/v1.json` is versioned in its path on purpose. A board built
 against today's shape can keep reading it after the shape changes,
 because that change ships as `/marketplace/v2.json` alongside it rather
-than in place of it. Nothing in this issue writes a board-side consumer —
-that is a separate piece of work — but the URL it will eventually read is
-already the stable one.
+than in place of it.
+
+## The board-side consumer: the Browse tab
+
+`marketplace.feed_url` is a board setting (**Settings → Marketplace**),
+defaulting to the URL above, so a self-hosted mirror serving the same
+shape works as a drop-in replacement. **The board fetches it, never the
+member's or the operator's browser** — a `marketplace.refresh_catalog`
+task (`packages/tasks`) fetches, validates against the same shape this
+document describes, and caches the result once a day; the **Refresh**
+button on **Admin → Plugins → Browse** and **Admin → Themes → Browse**
+runs the identical pass on demand (`refreshCatalog` in
+`packages/marketplace`, called by both the task and the admin action —
+one implementation, not two). A board with no outbound network fails the
+fetch quietly — logged, not alarmed — and the Browse tab falls back to
+the installed list plus a plain note that the catalog could not be
+loaded; whatever it last fetched successfully keeps showing.
+
+Each listing's status is computed against what this build actually
+contains — `Active`, `Installed — disabled`, `Not installed`, `Update
+available`, or `Incompatible` (its `apiVersion` or `meith` range fails
+against this build) — never against what installing it would do. An
+incompatible listing never gets install steps; a **Not installed** one
+gets the exact `community plugin:add <package>` (or `pnpm add` plus a
+`community.config.ts` line, for a theme) this board would need, and a
+link to this document — not a button that pretends to act, because nothing
+here installs anything.
+
+Screenshots are proxied through the board's own `/admin/api/marketplace/screenshot`
+route rather than linked to the feed's host directly, so a member's — or
+an operator's — browser never makes a request to meith.dev or a mirror on
+its own. When the daily fetch finds a newer, compatible version of an
+installed plugin, administrators are notified through the board's own
+notification system (`marketplace.update_available`, a staff-audience
+kind next to `system.task_failed`) once per (plugin, version) ever —
+independent of whether that notification has since been read, which a
+bare dedupe key on the notification service is not.
+
+See [The organiser's guide § When to hand it to somebody
+technical](./organiser-guide.md#when-to-hand-it-to-somebody-technical) for
+the operator-facing walkthrough.
 
 ## Listing by pull request
 

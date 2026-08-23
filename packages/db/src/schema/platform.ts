@@ -160,6 +160,37 @@ export const pluginHealth = pgTable('plugin_health', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * The cached copy of the meith.dev marketplace feed (or a self-hosted
+ * mirror's) — a single row, refreshed daily by a task and on demand by the
+ * admin panel's "Refresh" button. `feed` and `fetchedAt` are null until the
+ * first successful fetch; `error`/`errorAt` describe the most recent failed
+ * attempt, cleared on the next success, so a board with no outbound network
+ * shows a plain "unreachable" note rather than nothing. `notifiedUpdates`
+ * carries `"<plugin key>@<version>"` strings, one per update notification
+ * ever sent, which is what makes that notification fire once per version —
+ * not once per unread bell entry, which the notification service's own
+ * dedupe key gives up on as soon as the entry is read.
+ */
+export const marketplaceCatalog = pgTable(
+  'marketplace_catalog',
+  {
+    id: smallint('id').primaryKey().default(1),
+    feed: jsonb('feed'),
+    /** The feed URL the cached copy was actually fetched from — screenshots are
+     *  absolute *paths*, resolved against this rather than against whatever the
+     *  setting reads today, so a mid-day setting change cannot point an old
+     *  cached screenshot at the wrong host. */
+    sourceUrl: text('source_url'),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }),
+    error: text('error'),
+    errorAt: timestamp('error_at', { withTimezone: true }),
+    notifiedUpdates: jsonb('notified_updates').notNull().default([]),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('marketplace_catalog_single_row', sql`${t.id} = 1`)],
+)
+
 export const adminLog = pgTable(
   'admin_log',
   {

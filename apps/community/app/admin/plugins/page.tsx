@@ -5,10 +5,12 @@ import { cn } from '@meith/ui'
 import { PluginEnableForm, PluginHealthResetForm } from '@/components/admin/plugin-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
 import { pluginFormsCopy } from '@/view/admin-panel-copy'
+import { catalogTabs } from '@/view/marketplace-panel'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.plugins') }
@@ -32,6 +34,16 @@ export default async function AdminPluginsPage() {
         </>
       }
     >
+      <ViewTabs
+        label={t.t('adminMarketplace.tabsLabel')}
+        tabs={catalogTabs({
+          installedHref: '/admin/plugins',
+          browseHref: '/admin/plugins/browse',
+          current: 'installed',
+          t,
+        })}
+      />
+
       {plugins.length === 0 ? (
         <p className={PANEL_NOTE}>{t.t('page.no-plugins-configured-this-board')}</p>
       ) : (

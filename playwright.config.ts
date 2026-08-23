@@ -4,6 +4,7 @@ import {
   E2E_DATABASE_URL,
   E2E_DB_PORT,
   E2E_DUES_WEBHOOK_SECRET,
+  E2E_FAKE_MARKETPLACE_PORT,
   E2E_FAKE_STRIPE_PORT,
   E2E_INSTALL_BASE_URL,
   E2E_INSTALL_DATABASE_URL,
@@ -56,6 +57,13 @@ export default defineConfig({
     {
       command: 'pnpm exec tsx e2e/support/fake-stripe.ts',
       port: E2E_FAKE_STRIPE_PORT,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      stdout: 'pipe',
+    },
+    {
+      command: 'pnpm exec tsx e2e/support/fake-marketplace.ts',
+      port: E2E_FAKE_MARKETPLACE_PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       stdout: 'pipe',

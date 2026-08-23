@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { normaliseLocale, SOURCE_LOCALE } from '@meith/i18n'
 
 import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
-import { isUsableIssuer, isUsableOrigin } from './origin'
+import { isUsableFeedUrl, isUsableIssuer, isUsableOrigin } from './origin'
 
 export type SettingGroup =
   | 'board'
@@ -18,6 +18,7 @@ export type SettingGroup =
   | 'antispam'
   | 'push'
   | 'legal'
+  | 'marketplace'
 
 interface SettingDefinitionBase<T> {
   readonly key: string
@@ -1056,6 +1057,22 @@ export const SETTING_DEFINITIONS = [
     default: '',
     invalidates: ['settings', 'layout'],
     ui: { multiline: true },
+  }),
+
+  define({
+    key: 'marketplace.feed_url',
+    group: 'marketplace',
+    label: 'Catalog feed URL',
+    description:
+      'Where the daily catalog fetch and the Browse tab’s Refresh button read the ' +
+      'marketplace feed from. The default is meith.dev’s own curated feed; point it at a ' +
+      'self-hosted mirror serving the same /v1.json shape to run a private catalog instead. ' +
+      'The board fetches this address itself — a member’s browser never does.',
+    schema: z
+      .string()
+      .trim()
+      .refine(isUsableFeedUrl, 'Give an https URL — or http to a loopback address, for testing.'),
+    default: 'https://www.meith.dev/marketplace/v1.json',
   }),
 ] as const
 

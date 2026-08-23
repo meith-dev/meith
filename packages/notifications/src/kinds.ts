@@ -141,6 +141,20 @@ export const NOTIFICATION_KINDS = [
     pushByDefault: false,
     pushConfigurable: true,
   },
+  {
+    id: 'marketplace.update_available',
+    titleKey: 'notification.marketplace.update_available.title',
+    descriptionKey: 'notification.marketplace.update_available.description',
+    title: 'An installed plugin has a newer listed version',
+    description:
+      'The daily catalog fetch finds a newer, compatible version of a plugin this ' +
+      'board runs. Sent once per version, whether or not anybody installs it.',
+    audience: 'staff',
+    emailByDefault: false,
+    emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
+  },
 ] as const satisfies readonly (NotificationKindBase & { readonly id: string })[]
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]['id']

@@ -6,6 +6,7 @@ import { LogoUploadForm } from '@/components/admin/branding-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
+import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
 import { logoKey, logoSrc } from '@/server/branding'
 import { getTranslator, tr } from '@/server/i18n'
@@ -13,6 +14,7 @@ import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { themeListing } from '@/server/theme-admin'
 import { brandingFormsCopy } from '@/view/admin-panel-copy'
 import { themeStateCopy } from '@/view/admin-theme-copy'
+import { catalogTabs } from '@/view/marketplace-panel'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,6 +33,16 @@ export default async function AdminThemesPage() {
 
   return (
     <PanelPage title={await tr('page.themes')} lede={translator.t('adminThemes.lede')}>
+      <ViewTabs
+        label={translator.t('adminMarketplace.tabsLabel')}
+        tabs={catalogTabs({
+          installedHref: '/admin/themes',
+          browseHref: '/admin/themes/browse',
+          current: 'installed',
+          t: translator,
+        })}
+      />
+
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <h2 className="font-heading text-lg font-semibold">{translator.t('adminThemes.logo')}</h2>

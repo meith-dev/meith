@@ -17,6 +17,7 @@ export interface TaskWorkers {
   flushThreadViews(batchSize: number): Promise<number>
   backfillPostRenders(batchSize: number): Promise<number>
   reindexSearch(batchSize: number): Promise<number>
+  refreshMarketplaceCatalog(): Promise<{ ok: boolean; listingCount: number; notified: number }>
   applyPromotions(batchSize: number): Promise<number>
   expireBans(batchSize: number): Promise<number>
   expireGroupMemberships(batchSize: number): Promise<number>
@@ -220,6 +221,25 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
     },
 
     {
+      id: 'marketplace.refresh_catalog',
+      title: 'Refresh the plugin and theme catalog',
+      titleKey: 'adminSystem.task.marketplaceRefreshCatalog.title',
+      description:
+        'Fetches the marketplace feed, validates it and caches it for the admin ' +
+        "panel's Browse tab, then notifies administrators once per plugin version " +
+        'that becomes available for the first time. A board with no outbound network ' +
+        'fails this quietly — logged, not alarmed — and the Browse tab falls back to a ' +
+        'plain note that the catalog is unreachable.',
+      descriptionKey: 'adminSystem.task.marketplaceRefreshCatalog.description',
+      intervalSeconds: 86_400,
+      maxDurationSeconds: 30,
+      async run() {
+        const { ok, listingCount, notified } = await workers.refreshMarketplaceCatalog()
+        return { detail: { ok: ok ? 1 : 0, listingCount, notified } }
+      },
+    },
+
+    {
       id: 'promotions.apply',
       title: 'Apply group promotions',
       titleKey: 'adminSystem.task.promotionsApply.title',
@@ -415,6 +435,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'views.flush': 'flushThreadViews',
   'posts.render_backfill': 'backfillPostRenders',
   'search.reindex': 'reindexSearch',
+  'marketplace.refresh_catalog': 'refreshMarketplaceCatalog',
   'promotions.apply': 'applyPromotions',
   'bans.expire': 'expireBans',
   'groups.expire': 'expireGroupMemberships',

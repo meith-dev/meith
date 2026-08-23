@@ -16,6 +16,7 @@ import {
   PostgresContentCounterRepository,
   PostgresCounterRecount,
   PostgresMaintenanceRepository,
+  PostgresMarketplaceCacheRepository,
   PostgresNotificationRepository,
   PostgresOutboxReader,
   PostgresPresenceRepository,
@@ -287,10 +288,38 @@ export function buildSchedulerBundle(deps: {
             }),
             unsubscribeSecret: env.AUTH_SECRET ?? null,
           },
+          marketplace: {
+            repository: new PostgresMarketplaceCacheRepository(db),
+            plugins,
+            feedUrl: () => marketplaceFeedUrl(db),
+            async notifyUpdate(listing) {
+              await new NotificationService({ notifications }).raiseForAdministrators({
+                kind: 'marketplace.update_available',
+                data: {
+                  key: listing.key,
+                  name: listing.name,
+                  package: listing.package,
+                  version: listing.version,
+                },
+                href: '/admin/plugins/browse',
+                dedupeKey: `marketplace.update_available:${listing.key}:${listing.version}`,
+              })
+            },
+          },
         }),
       ),
       ...contributed,
     ]),
+  }
+}
+
+async function marketplaceFeedUrl(db: Database): Promise<string> {
+  try {
+    const overrides = await new PostgresSettingsRepository(db).loadAll()
+    return SettingsSnapshot.fromOverrides(new Map(overrides)).get('marketplace.feed_url')
+  } catch (err) {
+    logger({ module: 'tick' }).warn({ err }, 'could not read the marketplace feed URL setting')
+    return SettingsSnapshot.fromOverrides(new Map()).get('marketplace.feed_url')
   }
 }
 

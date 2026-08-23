@@ -52,7 +52,7 @@ export {
   resolveMailConfig,
   type SmtpMailConfig,
 } from './mail'
-export { isUsableIssuer } from './origin'
+export { isUsableFeedUrl, isUsableIssuer } from './origin'
 export {
   type PushConfig,
   type PushProblem,

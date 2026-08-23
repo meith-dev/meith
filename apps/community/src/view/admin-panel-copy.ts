@@ -186,3 +186,9 @@ export function badgeFormsCopy(t: Translator = untranslated()): Readonly<Record<
     ...patternCopy(['adminPanel.badge.labelSr', 'adminPanel.badge.formats'], t),
   }
 }
+
+export function marketplaceFormsCopy(
+  t: Translator = untranslated(),
+): Readonly<Record<string, string>> {
+  return copyFor(['adminPanel.marketplace.refresh', 'adminPanel.marketplace.refreshed'], t)
+}
