@@ -4,6 +4,12 @@ Every place a Meith board deliberately behaves differently from MyBB, what
 it does instead, and why. **Read this before promising anyone a
 like-for-like move.**
 
+> [!NOTE]
+> Looking for the procedure — the import command, what comes across, what
+> to do afterwards? That is [Migrating from MyBB or phpBB](./migrating.md).
+> This page is the reference for *why* an imported board will not feel
+> identical to the one it came from, not a step-by-step guide.
+
 Each entry has the same four parts:
 
 | Part | What it tells you |
@@ -21,8 +27,8 @@ This page is about behaviour, not transfer. What the importer actually
 carries across — members, forums, threads, posts, private messages,
 attachments, avatars, subscriptions, polls and votes, reputation,
 warnings, bans and buddy/ignore lists, per source — is tabulated in
-[Operations](./operating.md#import-a-legacy-board), together with what it
-deliberately leaves behind.
+[Migrating from MyBB or phpBB](./migrating.md#what-comes-across-and-what-does-not),
+together with what it deliberately leaves behind.
 
 ## What is on this page
 

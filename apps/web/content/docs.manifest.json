@@ -44,7 +44,7 @@
     {
       "id": "migrating",
       "title": "Moving from MyBB or phpBB",
-      "blurb": "What the importer carries across from MyBB or phpBB, and where a Meith board deliberately behaves differently from MyBB."
+      "blurb": "The procedure for importing a MyBB or phpBB board, and where a Meith board deliberately behaves differently from MyBB."
     },
     {
       "id": "development",
@@ -243,13 +243,22 @@
       "primary": false
     },
     {
+      "slug": "migrating",
+      "file": "migrating.md",
+      "section": "migrating",
+      "title": "Migrating from MyBB or phpBB",
+      "blurb": "The full procedure: what to check first, the import command for each source, what does and does not come across, and what to do after it finishes.",
+      "generated": false,
+      "primary": true
+    },
+    {
       "slug": "mybb-parity",
       "file": "mybb-parity.md",
       "section": "migrating",
       "title": "MyBB parity decisions",
-      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. The import procedure itself, with per-source coverage, is in Operations.",
+      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move.",
       "generated": false,
-      "primary": true
+      "primary": false
     },
     {
       "slug": "development",
