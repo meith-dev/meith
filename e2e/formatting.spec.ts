@@ -7,6 +7,11 @@ test('typing @ opens mention suggestions, and picking one inserts the name', asy
   page,
   browser,
 }) => {
+  // e2e runs against `next dev`, and this is the only test that exercises the
+  // mention-search server action: its first invocation always pays a dev-server
+  // JIT compile, which can push well past the default 5s/30s budgets.
+  test.setTimeout(60_000)
+
   const targetContext = await browser.newContext()
   const targetPage = await targetContext.newPage()
   const targetUsername = await signUp(targetPage, 'mentionable')
@@ -23,7 +28,7 @@ test('typing @ opens mention suggestions, and picking one inserts the name', asy
   await message.fill(`hi @${targetUsername.slice(0, 6)}`)
 
   const suggestion = page.getByRole('option', { name: `@${targetUsername}` })
-  await expect(suggestion).toBeVisible()
+  await expect(suggestion).toBeVisible({ timeout: 30_000 })
   await suggestion.click()
 
   await expect(message).toHaveValue(`hi @${targetUsername} `)
