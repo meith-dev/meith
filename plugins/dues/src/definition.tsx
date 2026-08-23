@@ -46,7 +46,7 @@ export function dues(input: DuesConfigInput): PluginDefinition {
   return definePlugin({
     key: 'dues',
     name: 'Dues',
-    version: '0.15.0',
+    version: '0.16.0',
     description: en['dues.definition.description'].replace('{label}', config.label.toLowerCase()),
     descriptionKey: 'dues.definition.description',
     descriptionArgs: { label: config.label.toLowerCase() },

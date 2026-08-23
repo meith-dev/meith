@@ -6,7 +6,7 @@ import { planUpgrade, type UpgradeState, upgradeNotice } from '@meith/upgrade'
 
 import { activeDefinitions } from './plugin-host'
 
-export const CODE_VERSION = '0.15.0'
+export const CODE_VERSION = '0.16.0'
 
 export async function pendingUpgradeNotice(): Promise<string | null> {
   if (env.DATA_SOURCE !== 'postgres') return null
