@@ -260,6 +260,30 @@ describe('PollService.edit', () => {
     ).rejects.toBeInstanceOf(ValidationError)
   })
 
+  it('rejects an edit to a poll that is not on that thread', async () => {
+    const repository = pollRepository(null)
+    await expect(
+      new PollService(repository, () => NOW).edit({
+        threadId: 1,
+        pollId: 2,
+        edit: anEdit,
+        capabilities: CAPABILITIES,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(repository.applyEdit).not.toHaveBeenCalled()
+  })
+
+  it('rejects an edit the repository refuses', async () => {
+    await expect(
+      new PollService(pollRepository(storedPoll(), false), () => NOW).edit({
+        threadId: 1,
+        pollId: 2,
+        edit: anEdit,
+        capabilities: CAPABILITIES,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
+
   it.each([
     { ...CAPABILITIES, editWindowMinutes: 90 },
     { ...CAPABILITIES, editWindowMinutes: 30, bypassesWindow: true },
@@ -355,6 +379,22 @@ describe('planPollEdit', () => {
   it('refuses a new closing time in the past', () => {
     expect(() =>
       planPollEdit(storedPoll(), { ...anEdit, closesAt: new Date('2026-08-22T11:30:00Z') }, NOW),
+    ).toThrow(ValidationError)
+  })
+
+  it('refuses the same option listed twice', () => {
+    expect(() =>
+      planPollEdit(
+        storedPoll(),
+        {
+          ...anEdit,
+          options: [
+            { id: 3, label: 'Stable' },
+            { id: 3, label: 'Stable again' },
+          ],
+        },
+        NOW,
+      ),
     ).toThrow(ValidationError)
   })
 
