@@ -1,3 +1,9 @@
+// GENERATED FILE — do not edit.
+//
+// Written by scripts/board-plugins-gen.mjs from board.plugins.json. Run
+// `pnpm board:gen` after changing the manifest; `pnpm verify` and CI run
+// `pnpm board:gen:check` and fail when this file and the manifest disagree.
+
 import type { InstalledPlugin } from '@meith/core'
 import type { PluginDefinition } from '@meith/plugin-kit'
 

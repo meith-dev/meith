@@ -8,10 +8,11 @@ payload — is generated into [Plugin hooks](./plugin-hooks.md).
 
 ## Writing a plugin
 
-A plugin is a module that calls `definePlugin` and is registered in
-`community.plugins.ts` — the installed list lives in its own file beside
-`community.config.ts`, so the operator CLI can read it without importing the
-themes' component trees.
+A plugin is a module that calls `definePlugin`. `community.plugins.ts` — the
+installed list, in its own file beside `community.config.ts` so the operator
+CLI can read it without importing the themes' component trees — is
+**generated** from `board.plugins.json`, and that manifest is the
+installation path for any plugin that fits it:
 
 ```ts
 export const greeter = definePlugin({
@@ -30,11 +31,57 @@ export const greeter = definePlugin({
 })
 ```
 
-Installing a plugin is `pnpm add`, a line in `community.plugins.ts`, and a
-redeploy. That file holds your board's list and nothing else — this
-repository's own demo and test boards keep their plugins in
-`community.demo.plugins.ts`, spread into the list behind their flags, so what
-you read in `community.plugins.ts` is what your board runs.
+**Fitting the manifest** means the package's entry point exports the
+finished plugin under two fixed names, built with no arguments — its own
+configuration resolved from [settings](#settings) rather than a
+constructor, the way `plugins/dues`'s plans moved there:
+
+```ts
+// index.ts — @meith/plugin-greeter
+export { greeter as plugin } from './definition'
+export { greeterMessages as messages } from './messages'
+```
+
+Installing one is then `pnpm add`, `community plugin:add <package>`, and a
+rebuild and redeploy:
+
+```sh
+pnpm add @meith/plugin-greeter --filter @meith/web
+community plugin:add @meith/plugin-greeter
+```
+
+`plugin:add` infers the manifest key from a `@scope/plugin-<key>` package
+name (pass `--key` when it does not fit that shape, or `--disabled` to
+install it switched off) and writes `board.plugins.json`:
+
+```json
+{ "plugins": [{ "key": "greeter", "package": "@meith/plugin-greeter", "enabled": true }] }
+```
+
+then runs `pnpm board:gen` for you, which writes the import and the list
+entry into `community.plugins.ts`. `community plugin:remove <key>` is the
+reverse. Neither command takes plugin configuration — the manifest has no
+field for it, on purpose, and `plugin:add` refuses an attempt to pass any:
+a plugin that needs arguments is not manifest-installable until its
+configuration moves into its own settings, the way `plugins/dues`'s did.
+
+**The escape hatch is still real code, and it is honest about being one.**
+A plugin that cannot yet fit the manifest — it takes constructor
+configuration, or you are still writing it — is registered by hand, exactly
+as before: a line in `community.plugins.ts`. Because that file is generated,
+a hand-written entry cannot live there directly; it goes in
+`community.demo.plugins.ts` instead (this repository's own demo and test
+boards keep their plugins there already), spread into the generated list
+through `showcasePlugins()`, which the generator preserves as a fixed
+extension point. Nothing about `community.plugins.ts` being generated
+changes what runs — it changes how the manifest-installable, common case
+gets there without hand-editing TypeScript.
+
+`pnpm board:gen:check`, wired into `pnpm verify`, fails when the manifest
+and `community.plugins.ts` disagree — run `pnpm board:gen` and commit the
+result. `board.plugins.json` refuses a duplicate key, a key `definePlugin`
+would refuse, and a package `apps/community` does not depend on, naming
+`pnpm add <package> --filter @meith/web` as the fix for the last one.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
@@ -253,10 +300,12 @@ so it is counted and shown in the plugin's health row rather than reported to
 the operator as their action having failed.
 
 **`onUninstall` needs `community plugin:purge`, and that is not a workaround.**
-Removing a plugin is `pnpm remove`, a line out of `community.plugins.ts` and a
-redeploy — and at the moment the board would call `onUninstall`, the function
-is no longer in the build. There is no point in time where the host holds both
-"this plugin is gone" and "this plugin's code". So the operator says when:
+Removing a plugin is `pnpm remove`, taking it out of `community.plugins.ts`
+(`community plugin:remove <key>` for a manifest entry, by hand for the escape
+hatch) and a redeploy — and at the moment the board would call `onUninstall`,
+the function is no longer in the build. There is no point in time where the
+host holds both "this plugin is gone" and "this plugin's code". So the
+operator says when:
 
 ```sh
 community plugin:purge dues          # says what it would do

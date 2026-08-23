@@ -191,6 +191,26 @@ const commands: Command[] = [
   },
 
   {
+    name: 'plugin:add',
+    summary: 'Add a package to board.plugins.json and regenerate community.plugins.ts.',
+    usage: 'community plugin:add <package> [--key <key>] [--disabled]',
+    async run(args: readonly string[]) {
+      const { pluginAdd } = await import('./plugin-manifest')
+      return pluginAdd(args)
+    },
+  },
+
+  {
+    name: 'plugin:remove',
+    summary: 'Remove a plugin from board.plugins.json and regenerate community.plugins.ts.',
+    usage: 'community plugin:remove <key>',
+    async run(args: readonly string[]) {
+      const { pluginRemove } = await import('./plugin-manifest')
+      return pluginRemove(args)
+    },
+  },
+
+  {
     name: 'settings:list',
     summary: 'Print the setting registry with default values.',
     async run() {
