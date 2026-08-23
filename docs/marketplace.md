@@ -1,0 +1,177 @@
+# The marketplace
+
+A curated, reviewed feed of the plugins and themes worth pointing a board
+at — `marketplace/` in this repository, published at
+[meith.dev/marketplace/v1.json](https://www.meith.dev/marketplace/v1.json).
+
+It is metadata only. **Nothing is fetched through this feed.** Installing
+a plugin or theme is still `pnpm add`, a line in `community.plugins.ts` or
+your theme selection, and a redeploy — the same procedure described in
+[the plugin API](./plugin-api.md#writing-a-plugin) and
+[the theme API](./theme-api.md). The feed exists so a board operator can
+find out what is available and whether it is worth their trust before they
+do any of that; it has no way to make the board do it for them.
+
+## What is in a listing
+
+Each file in `marketplace/listings/` is one entry, validated against
+`marketplace/schema.json`. This shape, not any one listing's actual
+values:
+
+```json
+{
+  "key": "dues",
+  "kind": "plugin",
+  "package": "@meith/plugin-dues",
+  "name": "Dues",
+  "description": "Paid memberships through Stripe.",
+  "screenshots": ["dues-light.png"],
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "meith": ">=1.0 <3",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "LGPL-3.0-or-later"
+}
+```
+
+These fields are the whole of it — a listing carries nothing else. Adding
+a field is a decision for a maintainer to sign off on, not something a
+pull request adding a listing should do on its own; `scripts/marketplace-gen.mjs`
+refuses a file with an extra property for exactly that reason.
+
+- **`key`** follows the same rule `definePlugin` applies to a plugin's own
+  key — lower-case letters, digits and hyphens, starting with a letter.
+- **`version` is the *listed package's* own version**, not this
+  repository's release version. This is the one place the workspace's
+  lockstep versioning does not apply — a third-party plugin releases on
+  its own schedule, and the feed has to be able to say so. A first-party
+  listing (Dues, the five bundled themes) still tracks the release,
+  because it ships inside this repository and there is only one version
+  of it to name.
+- **`apiVersion`** is the plugin-kit or theme-kit major the listing was
+  built against, and **`meith`** is a version range naming which board
+  line it has been checked to run on — comparators (`>=`, `<=`, `>`, `<`,
+  `=`) against a numeric version, space-separated to mean AND. Neither is
+  resolved against anything at generation time; they are declarations the
+  generator checks *parse*, not claims it verifies are true.
+- **`screenshots`** are filenames only, resolved against
+  `marketplace/screenshots/`. **The feed never references a third-party
+  host.** The generator copies each file into the site's own public
+  assets, so a screenshot the feed points at is a screenshot meith.dev
+  itself serves.
+
+## The generator
+
+```sh
+pnpm marketplace:gen          # validates and writes the feed
+pnpm marketplace:gen:check    # validates and fails if the feed is stale
+```
+
+`pnpm verify` runs the check. It fails, naming the file and the field, on
+a `kind` that is not `plugin` or `theme`, a `version` or `meith` range that
+does not parse, a `key` that would not pass `definePlugin` either, a
+screenshot the array names that does not exist under
+`marketplace/screenshots/`, or two listings claiming the same `key` or
+`package`. It also fails, separately, if the listings changed and nobody
+ran `pnpm marketplace:gen` to update the published feed — the same
+discipline as [the other generated documents](./development.md#the-generated-documents).
+
+The output is deterministic: listings are sorted by `key` regardless of
+directory order, and nothing in it is time-stamped, so running the
+generator twice with unchanged listings produces byte-identical output.
+
+The merged feed lands at `apps/web/public/marketplace/v1.json` — Next.js
+serves anything under a site's `public/` directory at the matching path,
+the same way `apps/web/public/shots` becomes the images on meith.dev's own
+pages — and the screenshots land beside it at
+`apps/web/public/marketplace/screenshots/`. Both are committed, exactly
+like `docs/openapi.json`: a generated file `pnpm verify` checks for
+staleness rather than a build step that produces it fresh.
+
+## The feed URL is a contract
+
+`/marketplace/v1.json` is versioned in its path on purpose. A board built
+against today's shape can keep reading it after the shape changes,
+because that change ships as `/marketplace/v2.json` alongside it rather
+than in place of it. Nothing in this issue writes a board-side consumer —
+that is a separate piece of work — but the URL it will eventually read is
+already the stable one.
+
+## Listing by pull request
+
+There is no submission form. A listing is a pull request against this
+repository adding one file to `marketplace/listings/` and its screenshot
+to `marketplace/screenshots/` — the same route [HACS](https://hacs.xyz)
+uses for its default repository, and for the same reason: a human reviews
+it before it is reachable by anyone.
+
+### The review bar
+
+Before a listing is merged, a maintainer checks:
+
+- **The licence is compatible.** Readable by anyone installing it,
+  compatible with this project's own LGPL-3.0-or-later, and truthfully
+  named in the `licence` field.
+- **The code has actually been read.** Not compiled, not run — read. What
+  it imports, what it sends over the network, and whether its migrations
+  stay inside its own `plugin_<key>_*` namespace as
+  [the plugin API](./plugin-api.md#the-namespace-is-enforced-where-it-can-be)
+  requires.
+- **No network call beyond what the listing describes.** A dues-style
+  plugin talking to a payment processor is expected; the same plugin
+  phoning home to an analytics endpoint nobody asked for is not, and is
+  grounds for refusal on its own.
+
+None of this is automated, and none of it is enforced by `plugin-kit` or
+`theme-kit` at install time. It is editorial judgement, applied once, by
+whoever merges the pull request.
+
+## The honest trust statement
+
+**The feed lists. It does not sandbox.** Nothing about appearing here
+changes what a plugin or theme can do once it is running — every boundary
+in [the plugin API](./plugin-api.md#what-a-plugin-cannot-do) and every
+constraint on a theme in [the theme API](./theme-api.md) applies exactly
+the same to a listed package as to one you wrote yourself. Being listed is
+a statement that the code was reviewed once, at a point in time, by a
+maintainer who read it — not a guarantee about the version you actually
+install, not a promise it was reviewed again on its last update, and not
+a sandbox that would catch something the review missed.
+
+Installing anything, listed or not, is the operator extending trust to
+that code through their own build. This document does not change that;
+it only tries to make the decision an informed one.
+
+## Delisting
+
+A listing is removed — its file deleted from `marketplace/listings/`, its
+screenshot from `marketplace/screenshots/`, `pnpm marketplace:gen` run
+again — when:
+
+- it stops meeting the review bar above, on a later look;
+- the package is unpublished, abandoned, or its repository is gone;
+- a maintainer is told about a real problem — a vulnerability, undisclosed
+  network calls, a licence that turns out not to be what the listing
+  claimed — and confirms it.
+
+Removal is silent to any board already running the package: it stops
+appearing in `/marketplace/v1.json` on the next publish, and nothing
+reaches out to a board that installed it while it was listed. A board
+that wants to know whether a plugin it runs is still listed has to check
+the feed itself.
+
+## What is seeded today
+
+Six first-party listings: **Dues** and the five themes described in
+[Development](./development.md#the-workspace) — default, midnight,
+phasebook, raidframe and clubhouse. Their `version` and `licence` fields
+are read from each package's own `package.json`, kept honest the same way
+`release:check` keeps every other published package's version honest.
+
+**Their screenshots are placeholders** — a small solid-colour PNG per
+listing, generated rather than captured, standing in until real marketing
+screenshots exist. Nothing about them claims to show the product; they
+exist so the feed's screenshot pipeline (validate, copy, publish) has real
+files to prove itself against. Replacing one is the same pull request as
+any other listing update: a new PNG in `marketplace/screenshots/`, the
+filename changed in the listing, `pnpm marketplace:gen`.

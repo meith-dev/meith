@@ -89,6 +89,7 @@ The table below is generated from `apps/web/content/docs.manifest.json` by `pnpm
 | Themes, plugins and the API | [`theme-slots.md`](./docs/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
 | Themes, plugins and the API | [`plugin-api.md`](./docs/plugin-api.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
 | Themes, plugins and the API | [`plugin-hooks.md`](./docs/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
+| Themes, plugins and the API | [`marketplace.md`](./docs/marketplace.md) | The curated, reviewed feed of plugins and themes: the listing schema, the review bar, the trust it does and does not extend, and how to submit or remove one. |
 | Themes, plugins and the API | [`rest-api.md`](./docs/rest-api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
 | Moving from MyBB or phpBB | [`migrating.md`](./docs/migrating.md) | The full procedure: what to check first, the import command for each source, what does and does not come across, and what to do after it finishes. |
 | Moving from MyBB or phpBB | [`mybb-parity.md`](./docs/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |

@@ -1,0 +1,13 @@
+{
+  "key": "phasebook",
+  "kind": "theme",
+  "package": "@meith/theme-phasebook",
+  "name": "Phasebook",
+  "description": "A theme for Meith with a familiar social shape, built on the default theme's slots.",
+  "screenshots": ["phasebook-light.png"],
+  "version": "0.16.0",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "LGPL-3.0-or-later"
+}
