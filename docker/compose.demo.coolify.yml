@@ -106,7 +106,10 @@ services:
       - DEMO_RESET_MINUTES=${DEMO_RESET_MINUTES:-60}
       - SHOWCASE_THEMES=1
       # The Dues plugin, against the fake Stripe this board serves itself at
-      # /demo/stripe. See docs/demo-mode.md.
+      # /demo/stripe. See docs/demo-mode.md. DUES_CURRENCY matches the demo
+      # seed's own currency (packages/demo/src/dues.ts), which is independent
+      # of this setting and always writes its history in eur.
+      - DUES_CURRENCY=eur
       - DUES_STRIPE_SECRET_KEY=sk_test_demo_no_such_account
       - DUES_STRIPE_WEBHOOK_SECRET=$SERVICE_BASE64_64_DUESHOOK
       - DUES_STRIPE_API_BASE=http://127.0.0.1:3000/demo/stripe

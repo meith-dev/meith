@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { type DuesConfigInput, parseDuesConfig } from './config'
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_GRACE_DAYS,
+  type DuesConfigInput,
+  MAX_GRACE_DAYS,
+  parseDuesConfig,
+  resolveDuesConfig,
+} from './config'
 
 const FIXED = {
   key: 'pass-90',
@@ -19,16 +26,21 @@ const AUTO = {
 } as const
 
 function config(overrides: Partial<DuesConfigInput> = {}): DuesConfigInput {
-  return { currency: 'gbp', plans: [FIXED, AUTO], ...overrides }
+  return { plans: [FIXED, AUTO], ...overrides }
 }
 
 describe('parseDuesConfig', () => {
   it('parses a sound configuration and fills the defaults', () => {
     const parsed = parseDuesConfig(config())
-    expect(parsed.currency).toBe('gbp')
-    expect(parsed.graceDays).toBe(7)
     expect(parsed.label).toBe('Membership')
     expect(parsed.seedPlans).toHaveLength(2)
+  })
+
+  it('takes no arguments at all — the zero-argument export', () => {
+    const parsed = parseDuesConfig()
+    expect(parsed.label).toBe('Membership')
+    expect(parsed.seedPlans).toEqual([])
+    expect(parsed.extraRedirectHosts).toEqual([])
   })
 
   it('a fixed plan is giftable by default; an auto plan never is', () => {
@@ -44,13 +56,8 @@ describe('parseDuesConfig', () => {
     )
   })
 
-  it.each([
-    [{ currency: 'pounds' }, /ISO 4217/],
-    [{ graceDays: 45 }, /0 to 30/],
-    [{ graceDays: -1 }, /0 to 30/],
-    [{ label: '  ' }, /label/],
-  ])('refuses %o', (override, message) => {
-    expect(() => parseDuesConfig(config(override as Partial<DuesConfigInput>))).toThrow(message)
+  it('refuses an empty label', () => {
+    expect(() => parseDuesConfig(config({ label: '  ' }))).toThrow(/label/)
   })
 
   it.each([
@@ -73,19 +80,26 @@ describe('parseDuesConfig', () => {
     expect(() => parseDuesConfig(config({ plans: [FIXED, { ...FIXED }] }))).toThrow(/twice/)
   })
 
-  it('the period plus grace must stay inside the grant cap', () => {
+  it('the period cap is checked against the longest possible grace window, not the current one', () => {
+    // 2 * 366 = 732 is the grant cap; MAX_GRACE_DAYS (30) is always added,
+    // regardless of what `grace_days` is set to today — a seed plan is
+    // validated once, at registration, long before any request has
+    // resolved the setting that could make a too-long pass briefly legal.
     expect(() =>
       parseDuesConfig(
-        config({
-          graceDays: 30,
-          plans: [{ ...FIXED, billing: { mode: 'fixed', period: 'P2Y' } }],
-        }),
+        config({ plans: [{ ...FIXED, billing: { mode: 'fixed', period: 'P703D' } }] }),
       ),
     ).toThrow(/two years/)
+
+    expect(() =>
+      parseDuesConfig(
+        config({ plans: [{ ...FIXED, billing: { mode: 'fixed', period: 'P702D' } }] }),
+      ),
+    ).not.toThrow()
   })
 
   it('seeds are optional — a board may open its shop from the panel alone', () => {
-    const parsed = parseDuesConfig({ currency: 'gbp' })
+    const parsed = parseDuesConfig({})
     expect(parsed.seedPlans).toEqual([])
   })
 
@@ -98,6 +112,37 @@ describe('parseDuesConfig', () => {
     expect(() => parseDuesConfig(config({ extraRedirectHosts: ['ok.example'] }))).not.toThrow()
     expect(() => parseDuesConfig(config({ extraRedirectHosts: ['https://bad.example'] }))).toThrow(
       /host name/,
+    )
+  })
+})
+
+describe('resolveDuesConfig', () => {
+  const staticConfig = parseDuesConfig({ label: 'Supporters' })
+
+  it('falls back to the defaults when no setting has a value', () => {
+    const resolved = resolveDuesConfig(staticConfig, {})
+    expect(resolved.currency).toBe(DEFAULT_CURRENCY)
+    expect(resolved.graceDays).toBe(DEFAULT_GRACE_DAYS)
+    expect(resolved.label).toBe('Supporters')
+  })
+
+  it('carries the resolved settings values through', () => {
+    const resolved = resolveDuesConfig(staticConfig, { currency: 'GBP', grace_days: 14 })
+    expect(resolved.currency).toBe('gbp')
+    expect(resolved.graceDays).toBe(14)
+  })
+
+  it('clamps an out-of-range grace period rather than refusing it', () => {
+    expect(resolveDuesConfig(staticConfig, { grace_days: 90 }).graceDays).toBe(MAX_GRACE_DAYS)
+    expect(resolveDuesConfig(staticConfig, { grace_days: -5 }).graceDays).toBe(0)
+    expect(resolveDuesConfig(staticConfig, { grace_days: 'not-a-number' }).graceDays).toBe(
+      DEFAULT_GRACE_DAYS,
+    )
+  })
+
+  it('falls back to the default currency rather than an unrecognised value', () => {
+    expect(resolveDuesConfig(staticConfig, { currency: 'not-a-code' }).currency).toBe(
+      DEFAULT_CURRENCY,
     )
   })
 })

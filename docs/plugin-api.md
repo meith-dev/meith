@@ -700,8 +700,9 @@ The host owns the decisions a plugin must not:
 ## Settings
 
 A setting declares a `type` when its default cannot say enough: `'secret'`
-and `'select'` are strings with extra rules, and `env` names an environment
-variable that overrides whatever the panel stores.
+and `'select'` are strings with extra rules, `'number'` and `'boolean'` are
+usually inferred from the default's own JavaScript type, and `env` names an
+environment variable that overrides whatever the panel stores.
 
 ```ts
 settings: [
@@ -729,6 +730,11 @@ settings: [
 - **A `select` whose stored value is no longer among its options** — an
   older version of the plugin declared more — resolves to the default
   instead of handing the plugin a value it never declared.
+- **A `number` has no minimum, maximum or step to declare.** An unparseable
+  stored or environment value resolves as if unset, falling through to the
+  next source in the same order as everything else; a plugin that needs a
+  bounded number clamps it itself when reading `context.settings` — see
+  `plugins/dues`'s grace-period setting for the pattern.
 
 ## Migrations
 

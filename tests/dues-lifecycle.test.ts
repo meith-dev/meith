@@ -10,7 +10,7 @@ import {
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
 import type { PluginRequest, PluginRuntimeContext } from '@meith/plugin-kit'
 
-import { parseDuesConfig } from '../plugins/dues/src/config'
+import { parseDuesConfig, resolveDuesConfig } from '../plugins/dues/src/config'
 import {
   buildServices,
   entitlementDeps,
@@ -55,9 +55,7 @@ import { runReconcile, runSweep } from '../plugins/dues/src/tasks'
 
 const WEBHOOK_SECRET = 'whsec_lifecycle_suite'
 
-const CONFIG = parseDuesConfig({
-  currency: 'gbp',
-  graceDays: 7,
+const STATIC_CONFIG = parseDuesConfig({
   plans: [
     {
       key: 'pass-90',
@@ -198,7 +196,10 @@ let notified: Array<Record<string, unknown>>
 const NOW = () => new Date()
 
 function services() {
-  return buildServices(CONFIG, context, { stripe, now: NOW })
+  return buildServices(resolveDuesConfig(STATIC_CONFIG, context.settings), context, {
+    stripe,
+    now: NOW,
+  })
 }
 
 async function exec(sql: string): Promise<void> {
@@ -305,6 +306,8 @@ beforeEach(async () => {
   notified = []
   context = {
     settings: {
+      currency: 'gbp',
+      grace_days: 7,
       stripe_secret_key: 'sk_test_suite',
       stripe_webhook_secret: WEBHOOK_SECRET,
       stripe_api_version: '2024-12-18.acacia',

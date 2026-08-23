@@ -6,7 +6,15 @@ import {
   type PluginRuntimeContext,
 } from '@meith/plugin-kit'
 
-import { type DuesConfigInput, parseDuesConfig } from './config'
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_GRACE_DAYS,
+  DUES_CURRENCY_OPTIONS,
+  type DuesConfig,
+  type DuesConfigInput,
+  parseDuesConfig,
+  resolveDuesConfig,
+} from './config'
 import {
   buildServices,
   type DuesServices,
@@ -33,26 +41,66 @@ import { runReconcile, runSweep } from './tasks'
 import { CodesPage, LedgerPage, MembersPage, PlansAdminPage, StatusPage } from './ui/admin'
 import { GoPage, ManagePage, PlansPage, ReturnPage } from './ui/pages'
 
-export function dues(input: DuesConfigInput): PluginDefinition {
-  const config = parseDuesConfig(input)
+/**
+ * The code-configured path: still takes constructor arguments, for a board
+ * that registers Dues directly in `community.plugins.ts` rather than
+ * through a marketplace install. `dues`, below, is this called with none —
+ * the zero-argument export a marketplace install actually uses.
+ */
+export function createDues(input: DuesConfigInput = {}): PluginDefinition {
+  const staticConfig = parseDuesConfig(input)
+
+  // Resolved fresh per call: `currency` and `graceDays` are settings, so a
+  // request made after an operator edits them must see the new value, not
+  // one baked in when the plugin was registered.
+  const configFor = (context: PluginRuntimeContext): DuesConfig =>
+    resolveDuesConfig(staticConfig, context.settings)
 
   const route =
     (
       fn: (services: DuesServices, request: PluginRequest) => Promise<PluginResponse>,
     ): ((request: PluginRequest, context: PluginRuntimeContext) => Promise<PluginResponse>) =>
     (request, context) =>
-      fn(buildServices(config, context), request)
+      fn(buildServices(configFor(context), context), request)
 
   return definePlugin({
     key: 'dues',
     name: 'Dues',
     version: '0.16.0',
-    description: en['dues.definition.description'].replace('{label}', config.label.toLowerCase()),
+    description: en['dues.definition.description'].replace(
+      '{label}',
+      staticConfig.label.toLowerCase(),
+    ),
     descriptionKey: 'dues.definition.description',
-    descriptionArgs: { label: config.label.toLowerCase() },
+    descriptionArgs: { label: staticConfig.label.toLowerCase() },
     apiVersion: '0',
 
     settings: [
+      {
+        key: 'currency',
+        label: en['dues.definition.setting.currency.label'],
+        labelKey: 'dues.definition.setting.currency.label',
+        type: 'select',
+        options: DUES_CURRENCY_OPTIONS,
+        env: 'DUES_CURRENCY',
+        default: DEFAULT_CURRENCY,
+        description: en['dues.definition.setting.currency.description'],
+        descriptionKey: 'dues.definition.setting.currency.description',
+      },
+      {
+        key: 'grace_days',
+        label: en['dues.definition.setting.graceDays.label'],
+        labelKey: 'dues.definition.setting.graceDays.label',
+        type: 'number',
+        env: 'DUES_GRACE_DAYS',
+        default: DEFAULT_GRACE_DAYS,
+        // PluginSetting has no descriptionArgs — unlike the definition's own
+        // description, a setting's is translated with no interpolation — so
+        // the range is spelled out in the catalog text itself, and MIN/MAX
+        // below only need to stay in sync with the words there by hand.
+        description: en['dues.definition.setting.graceDays.description'],
+        descriptionKey: 'dues.definition.setting.graceDays.description',
+      },
       {
         key: 'stripe_secret_key',
         label: en['dues.definition.setting.secret.label'],
@@ -103,7 +151,7 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         id: 'reconcile',
         intervalSeconds: 300,
         run: async (context) => {
-          const services = buildServices(config, context)
+          const services = buildServices(configFor(context), context)
           const result = await runReconcile(entitlementDeps(services), services.stripe)
           if (
             result.ordersSettled +
@@ -120,7 +168,7 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         id: 'sweep',
         intervalSeconds: 3600,
         run: async (context) => {
-          const services = buildServices(config, context)
+          const services = buildServices(configFor(context), context)
           const expired = await runSweep(entitlementDeps(services))
           if (expired > 0) context.logger.info('dues: memberships expired', { expired })
         },
@@ -233,24 +281,24 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     pages: [
       {
         path: '',
-        title: config.label,
+        title: staticConfig.label,
         access: 'anonymous',
-        render: (context) => PlansPage({ config, context }),
+        render: (context) => PlansPage({ config: configFor(context), context }),
       },
       {
         path: 'return',
         title: en['dues.definition.page.return'],
         titleKey: 'dues.definition.page.return',
         access: 'member',
-        render: (context) => ReturnPage({ config, context }),
+        render: (context) => ReturnPage({ config: configFor(context), context }),
       },
       {
         path: 'manage',
-        title: en['dues.definition.manage'].replace('{label}', config.label.toLowerCase()),
+        title: en['dues.definition.manage'].replace('{label}', staticConfig.label.toLowerCase()),
         titleKey: 'dues.definition.manage',
-        titleArgs: { label: config.label.toLowerCase() },
+        titleArgs: { label: staticConfig.label.toLowerCase() },
         access: 'member',
-        render: (context) => ManagePage({ config, context }),
+        render: (context) => ManagePage({ config: configFor(context), context }),
       },
       {
         path: 'go',
@@ -259,12 +307,12 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         access: 'member',
         render: (context) =>
           GoPage({
-            config,
+            config: configFor(context),
             context,
             allowedHosts: [
               'checkout.stripe.com',
               'billing.stripe.com',
-              ...config.extraRedirectHosts,
+              ...staticConfig.extraRedirectHosts,
             ],
           }),
       },
@@ -275,13 +323,13 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         path: 'status',
         title: en['dues.definition.page.status'],
         titleKey: 'dues.definition.page.status',
-        render: (context) => StatusPage({ config, context }),
+        render: (context) => StatusPage({ config: configFor(context), context }),
       },
       {
         path: 'plans',
         title: en['dues.definition.page.plans'],
         titleKey: 'dues.definition.page.plans',
-        render: (context) => PlansAdminPage({ config, context }),
+        render: (context) => PlansAdminPage({ config: configFor(context), context }),
       },
       {
         path: 'members',
@@ -293,23 +341,23 @@ export function dues(input: DuesConfigInput): PluginDefinition {
         path: 'codes',
         title: en['dues.definition.page.codes'],
         titleKey: 'dues.definition.page.codes',
-        render: (context) => CodesPage({ config, context }),
+        render: (context) => CodesPage({ config: configFor(context), context }),
       },
       {
         path: 'ledger',
         title: en['dues.definition.page.ledger'],
         titleKey: 'dues.definition.page.ledger',
-        render: (context) => LedgerPage({ config, context }),
+        render: (context) => LedgerPage({ config: configFor(context), context }),
       },
     ],
 
     navigation: [
-      { key: 'plans', label: config.label, path: '', audience: 'members' },
+      { key: 'plans', label: staticConfig.label, path: '', audience: 'members' },
       {
         key: 'manage',
-        label: en['dues.definition.manage'].replace('{label}', config.label.toLowerCase()),
+        label: en['dues.definition.manage'].replace('{label}', staticConfig.label.toLowerCase()),
         labelKey: 'dues.definition.manage',
-        labelArgs: { label: config.label.toLowerCase() },
+        labelArgs: { label: staticConfig.label.toLowerCase() },
         path: 'manage',
         audience: 'members',
         under: 'plans',
@@ -319,7 +367,19 @@ export function dues(input: DuesConfigInput): PluginDefinition {
     allowedRedirectHosts: [
       'checkout.stripe.com',
       'billing.stripe.com',
-      ...config.extraRedirectHosts,
+      ...staticConfig.extraRedirectHosts,
     ],
   })
 }
+
+/**
+ * The zero-argument export: what a marketplace install actually registers.
+ * `allowedRedirectHosts` carries only Stripe's own hosts — a marketplace
+ * install cannot express a constructor argument, and `allowedRedirectHosts`
+ * is fixed on the definition at this call, before any settings resolve, so
+ * there is no later point where a board-configured host could be added. A
+ * board that genuinely needs another redirect host (a proxy, a loopback
+ * address for a test double) registers `createDues({ extraRedirectHosts })`
+ * directly instead.
+ */
+export const dues: PluginDefinition = createDues()

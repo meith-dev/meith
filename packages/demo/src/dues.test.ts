@@ -14,7 +14,10 @@ let summary: SeedSummary
 
 const NOW = new Date('2026-08-10T09:00:00Z')
 
-const PLUGIN = dues({ currency: 'eur', graceDays: 7 })
+// Registered here only for its migrations and key — the demo seed's own
+// currency and grace window come from seedDuesDemoBoard's own constants
+// (packages/demo/src/dues.ts), independent of the plugin's settings.
+const PLUGIN = dues
 
 beforeAll(async () => {
   harness = await createTestDb()

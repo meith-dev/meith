@@ -128,7 +128,7 @@
   "packages/ui/src/menu.tsx": 4,
   "packages/ui/src/variants.ts": 3,
   "packages/upgrade/src/plan.ts": 1,
-  "plugins/dues/src/config.ts": 5,
+  "plugins/dues/src/config.ts": 4,
   "plugins/dues/src/demo.ts": 7,
   "plugins/dues/src/handlers-admin.ts": 2,
   "plugins/dues/src/plans.ts": 1,
