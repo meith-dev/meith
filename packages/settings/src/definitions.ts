@@ -315,12 +315,11 @@ export const SETTING_DEFINITIONS = [
   define({
     key: 'board.legacy_redirects',
     group: 'board',
-    label: 'Redirect old MyBB URLs',
+    label: 'Redirect old forum URLs',
     description:
-      'Answer MyBB addresses — showthread.php, forumdisplay.php, member.php, index.php, ' +
-      'and the rewritten Thread-Title-91, Thread-Title--4102 and Forum-Name-3 forms — ' +
-      'with a permanent redirect (308) to the imported content. Needs an import: the ' +
-      'redirect is a lookup in the legacy id map.',
+      'Answer legacy addresses — MyBB’s showthread.php forms and rewritten routes, plus ' +
+      'phpBB’s viewtopic.php, viewforum.php and memberlist.php — with a permanent ' +
+      'redirect (308) to the imported content. Needs an import: the redirect is a lookup in the legacy id map.',
     schema: z.boolean(),
     default: false,
   }),

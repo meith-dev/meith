@@ -49,7 +49,7 @@ export const forums = pgTable(
     lastPostUsername: text('last_post_username'),
     lastPostAt: timestamp('last_post_at', { withTimezone: true }),
 
-    legacyMybbFid: integer('legacy_mybb_fid'),
+    legacyId: integer('legacy_id'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -62,9 +62,7 @@ export const forums = pgTable(
 
     index('forums_parent_order_idx').on(t.parentId, t.displayOrder),
     index('forums_path_idx').on(t.path),
-    uniqueIndex('forums_legacy_mybb_fid_key')
-      .on(t.legacyMybbFid)
-      .where(sql`${t.legacyMybbFid} is not null`),
+    uniqueIndex('forums_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
   ],
 )
 

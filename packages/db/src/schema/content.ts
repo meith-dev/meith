@@ -77,7 +77,7 @@ export const threads = pgTable(
 
     movedToThreadId: integer('moved_to_thread_id'),
 
-    legacyMybbTid: integer('legacy_mybb_tid'),
+    legacyId: integer('legacy_id'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -90,9 +90,7 @@ export const threads = pgTable(
     index('threads_forum_listing_all_idx').on(t.forumId, t.isSticky.desc(), t.lastPostAt.desc()),
 
     index('threads_author_idx').on(t.authorUserId, t.createdAt.desc()),
-    uniqueIndex('threads_legacy_mybb_tid_key')
-      .on(t.legacyMybbTid)
-      .where(sql`${t.legacyMybbTid} is not null`),
+    uniqueIndex('threads_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
   ],
 )
 
@@ -138,7 +136,7 @@ export const posts = pgTable(
     searchVector: tsvector('search_vector'),
     searchVersion: smallint('search_version').notNull().default(1),
 
-    legacyMybbPid: integer('legacy_mybb_pid'),
+    legacyId: integer('legacy_id'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -156,9 +154,7 @@ export const posts = pgTable(
       .on(t.forumId, t.createdAt.desc())
       .where(sql`${t.visibility} <> 'visible'`),
 
-    uniqueIndex('posts_legacy_mybb_pid_key')
-      .on(t.legacyMybbPid)
-      .where(sql`${t.legacyMybbPid} is not null`),
+    uniqueIndex('posts_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
 
     index('posts_search_vector_idx').using('gin', t.searchVector),
   ],
@@ -329,10 +325,12 @@ export const reputation = pgTable(
     }),
     points: smallint('points').notNull().default(1),
     comment: text('comment').notNull().default(''),
+    legacyId: integer('legacy_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    uniqueIndex('reputation_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
     uniqueIndex('reputation_profile_unique')
       .on(t.givenByUserId, t.userId)
       .where(sql`${t.postId} is null`),
@@ -366,10 +364,12 @@ export const attachments = pgTable(
     status: text('status').notNull().default('pending'),
     failureReason: text('failure_reason'),
     downloadCount: integer('download_count').notNull().default(0),
+    legacyId: integer('legacy_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     readyAt: timestamp('ready_at', { withTimezone: true }),
   },
   (t) => [
+    uniqueIndex('attachments_legacy_id_key').on(t.legacyId).where(sql`${t.legacyId} is not null`),
     index('attachments_post_idx').on(t.postId),
     index('attachments_uploader_idx').on(t.uploaderUserId),
     index('attachments_pending_idx').on(t.createdAt).where(sql`${t.status} = 'pending'`),

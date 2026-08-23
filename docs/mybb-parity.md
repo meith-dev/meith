@@ -17,6 +17,13 @@ Each entry has the same four parts:
 > An entry is added when a divergence is **chosen**, not when one is
 > discovered by accident. A surprise is a bug, not a parity decision.
 
+This page is about behaviour, not transfer. What the importer actually
+carries across — members, forums, threads, posts, private messages,
+attachments, avatars, subscriptions, polls and votes, reputation,
+warnings, bans and buddy/ignore lists, per source — is tabulated in
+[Operations](./operating.md#import-a-legacy-board), together with what it
+deliberately leaves behind.
+
 ## What is on this page
 
 - [Permissions and groups](#permissions-and-groups)

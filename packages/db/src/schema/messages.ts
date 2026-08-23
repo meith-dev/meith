@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
 import { users } from './identity'
@@ -37,11 +38,15 @@ export const privateMessages = pgTable(
       onDelete: 'set null',
     }),
     receiptRequested: boolean('receipt_requested').notNull().default(false),
+    legacyId: integer('legacy_id'),
     sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('private_messages_render_version_idx').on(t.renderVersion, t.id),
     index('private_messages_vocab_version_idx').on(t.vocabVersion, t.id),
+    uniqueIndex('private_messages_legacy_id_key')
+      .on(t.legacyId)
+      .where(sql`${t.legacyId} is not null`),
   ],
 )
 

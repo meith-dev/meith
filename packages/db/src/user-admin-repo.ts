@@ -63,7 +63,7 @@ export interface UserDetail extends UserSearchRow {
   readonly emailVerifiedAt: Date | null
   readonly passwordChangedAt: Date | null
   readonly threadCount: number
-  readonly legacyMybbUid: number | null
+  readonly legacyId: number | null
 }
 
 export interface UserAccountInput {
@@ -215,7 +215,7 @@ export class PostgresUserAdminRepository {
       emailVerifiedAt: toNullableDate(row.email_verified_at),
       passwordChangedAt: toNullableDate(row.password_changed_at),
       threadCount: Number(row.thread_count),
-      legacyMybbUid: row.legacy_mybb_uid === null ? null : Number(row.legacy_mybb_uid),
+      legacyId: row.legacy_id === null ? null : Number(row.legacy_id),
     }
   }
 

@@ -1,19 +1,63 @@
-import type { ImportedForum, ImportedPost, ImportedThread, ImportedUser } from './map'
-import { mapForum, mapPost, mapThread, mapUser } from './map'
-import type { MybbSource } from './source'
+import type { ImportSource, Page } from './source'
+import type {
+  ImportedAttachment,
+  ImportedAvatar,
+  ImportedBan,
+  ImportedForum,
+  ImportedPoll,
+  ImportedPollVote,
+  ImportedPost,
+  ImportedPrivateMessage,
+  ImportedReputation,
+  ImportedSubscription,
+  ImportedThread,
+  ImportedUser,
+  ImportedUserRelation,
+  ImportedWarning,
+} from './types'
 
-export const KINDS = ['users', 'forums', 'threads', 'posts'] as const
+export const KINDS = [
+  'users',
+  'forums',
+  'threads',
+  'posts',
+  'avatars',
+  'attachments',
+  'polls',
+  'pollVotes',
+  'privateMessages',
+  'threadSubscriptions',
+  'forumSubscriptions',
+  'reputation',
+  'warnings',
+  'bans',
+  'userRelations',
+] as const
 export type Kind = (typeof KINDS)[number]
 
 export type Cursors = Readonly<Record<Kind, number>>
 
-export const NO_PROGRESS: Cursors = { users: 0, forums: 0, threads: 0, posts: 0 }
+export const NO_PROGRESS: Cursors = Object.fromEntries(KINDS.map((kind) => [kind, 0])) as Record<
+  Kind,
+  number
+>
 
 export interface ImportSink {
   putUsers(rows: readonly ImportedUser[]): Promise<WriteResult>
   putForums(rows: readonly ImportedForum[]): Promise<WriteResult>
   putThreads(rows: readonly ImportedThread[]): Promise<WriteResult>
   putPosts(rows: readonly ImportedPost[]): Promise<WriteResult>
+  putAvatars(rows: readonly ImportedAvatar[]): Promise<WriteResult>
+  putAttachments(rows: readonly ImportedAttachment[]): Promise<WriteResult>
+  putPolls(rows: readonly ImportedPoll[]): Promise<WriteResult>
+  putPollVotes(rows: readonly ImportedPollVote[]): Promise<WriteResult>
+  putPrivateMessages(rows: readonly ImportedPrivateMessage[]): Promise<WriteResult>
+  putThreadSubscriptions(rows: readonly ImportedSubscription[]): Promise<WriteResult>
+  putForumSubscriptions(rows: readonly ImportedSubscription[]): Promise<WriteResult>
+  putReputation(rows: readonly ImportedReputation[]): Promise<WriteResult>
+  putWarnings(rows: readonly ImportedWarning[]): Promise<WriteResult>
+  putBans(rows: readonly ImportedBan[]): Promise<WriteResult>
+  putUserRelations(rows: readonly ImportedUserRelation[]): Promise<WriteResult>
 }
 
 export interface WriteResult {
@@ -37,11 +81,11 @@ export interface ImportReport {
 }
 
 export interface RunOptions {
-  readonly source: MybbSource
+  readonly source: ImportSource
   readonly sink: ImportSink
   readonly pageSize?: number | undefined
   readonly budget?: number | undefined
-  readonly from?: Cursors | undefined
+  readonly from?: Partial<Cursors> | undefined
 }
 
 const emptyKind = (): KindReport => ({ read: 0, inserted: 0, updated: 0, skipped: [] })
@@ -51,12 +95,10 @@ export async function runImport(options: RunOptions): Promise<ImportReport> {
   const budget = options.budget ?? 2000
   const cursors: Record<Kind, number> = { ...NO_PROGRESS, ...options.from }
 
-  const kinds: Record<Kind, KindReport> = {
-    users: emptyKind(),
-    forums: emptyKind(),
-    threads: emptyKind(),
-    posts: emptyKind(),
-  }
+  const kinds = Object.fromEntries(KINDS.map((kind) => [kind, emptyKind()])) as Record<
+    Kind,
+    KindReport
+  >
 
   let readThisRun = 0
   const exhausted = new Set<Kind>()
@@ -103,24 +145,51 @@ async function importPage(
   const { source, sink } = options
 
   const write = async <T>(
-    page: { rows: readonly T[]; nextCursor: number | null },
-    map: (row: T) => unknown,
-    put: (rows: never) => Promise<WriteResult>,
+    page: Page<T>,
+    put: (rows: readonly T[]) => Promise<WriteResult>,
   ): Promise<{ report: KindReport; nextCursor: number | null }> => {
     if (page.rows.length === 0) return { report: emptyKind(), nextCursor: page.nextCursor }
-    const written = await put(page.rows.map(map) as never)
+    const written = await put(page.rows)
     return { report: report(page.rows.length, written), nextCursor: page.nextCursor }
   }
 
   switch (kind) {
     case 'users':
-      return write(await source.users(after, limit), mapUser, sink.putUsers.bind(sink))
+      return write(await source.users(after, limit), sink.putUsers.bind(sink))
     case 'forums':
-      return write(await source.forums(after, limit), mapForum, sink.putForums.bind(sink))
+      return write(await source.forums(after, limit), sink.putForums.bind(sink))
     case 'threads':
-      return write(await source.threads(after, limit), mapThread, sink.putThreads.bind(sink))
+      return write(await source.threads(after, limit), sink.putThreads.bind(sink))
     case 'posts':
-      return write(await source.posts(after, limit), mapPost, sink.putPosts.bind(sink))
+      return write(await source.posts(after, limit), sink.putPosts.bind(sink))
+    case 'avatars':
+      return write(await source.avatars(after, limit), sink.putAvatars.bind(sink))
+    case 'attachments':
+      return write(await source.attachments(after, limit), sink.putAttachments.bind(sink))
+    case 'polls':
+      return write(await source.polls(after, limit), sink.putPolls.bind(sink))
+    case 'pollVotes':
+      return write(await source.pollVotes(after, limit), sink.putPollVotes.bind(sink))
+    case 'privateMessages':
+      return write(await source.privateMessages(after, limit), sink.putPrivateMessages.bind(sink))
+    case 'threadSubscriptions':
+      return write(
+        await source.threadSubscriptions(after, limit),
+        sink.putThreadSubscriptions.bind(sink),
+      )
+    case 'forumSubscriptions':
+      return write(
+        await source.forumSubscriptions(after, limit),
+        sink.putForumSubscriptions.bind(sink),
+      )
+    case 'reputation':
+      return write(await source.reputation(after, limit), sink.putReputation.bind(sink))
+    case 'warnings':
+      return write(await source.warnings(after, limit), sink.putWarnings.bind(sink))
+    case 'bans':
+      return write(await source.bans(after, limit), sink.putBans.bind(sink))
+    case 'userRelations':
+      return write(await source.userRelations(after, limit), sink.putUserRelations.bind(sink))
   }
 }
 

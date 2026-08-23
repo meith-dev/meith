@@ -1,6 +1,6 @@
 import { argon2id, argon2Verify } from 'hash-wasm'
 
-import { isLegacyHash, verifyMybbPassword } from './legacy'
+import { isLegacyHash, verifyLegacyPassword } from './legacy'
 
 export interface PasswordPolicy {
   readonly memorySize: number
@@ -42,7 +42,7 @@ export async function verifyPassword(
 ): Promise<boolean> {
   if (!encodedHash) return false
 
-  if (isLegacyHash(encodedHash)) return verifyMybbPassword(password, encodedHash)
+  if (isLegacyHash(encodedHash)) return verifyLegacyPassword(password, encodedHash)
 
   try {
     return await argon2Verify({ password, hash: encodedHash })

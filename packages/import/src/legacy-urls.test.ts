@@ -117,3 +117,46 @@ describe('the redirect path', () => {
     expect(legacyRedirectPath(resolve('/showthread.php?tid=91')!, 7, null)).toBe('/thread/7-thread')
   })
 })
+
+describe('phpBB URLs', () => {
+  it('resolves a topic link', () => {
+    expect(resolveLegacyUrl('/viewtopic.php', '?f=2&t=741')).toEqual({
+      kind: 'thread',
+      legacyId: 741,
+      postId: null,
+      page: null,
+    })
+  })
+
+  it('resolves a post link, keeping the post for the anchor', () => {
+    expect(resolveLegacyUrl('/viewtopic.php', '?t=741&p=9932')).toEqual({
+      kind: 'thread',
+      legacyId: 741,
+      postId: 9932,
+      page: null,
+    })
+    expect(resolveLegacyUrl('/viewtopic.php', '?p=9932')).toEqual({ kind: 'post', legacyId: 9932 })
+  })
+
+  it('resolves a forum link', () => {
+    expect(resolveLegacyUrl('/viewforum.php', '?f=6')).toEqual({
+      kind: 'forum',
+      legacyId: 6,
+      page: null,
+    })
+  })
+
+  it('resolves a profile link only in viewprofile mode', () => {
+    expect(resolveLegacyUrl('/memberlist.php', '?mode=viewprofile&u=32')).toEqual({
+      kind: 'user',
+      legacyId: 32,
+    })
+    expect(resolveLegacyUrl('/memberlist.php', '?u=32')).toBeNull()
+    expect(resolveLegacyUrl('/memberlist.php', '?mode=viewprofile')).toBeNull()
+  })
+
+  it('drops garbage ids', () => {
+    expect(resolveLegacyUrl('/viewtopic.php', '?t=-1')).toBeNull()
+    expect(resolveLegacyUrl('/viewforum.php', '?f=abc')).toBeNull()
+  })
+})

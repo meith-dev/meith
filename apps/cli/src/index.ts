@@ -102,10 +102,11 @@ const commands: Command[] = [
 
   {
     name: 'import',
-    summary: 'Import a MyBB board. Resumable — run it again to continue.',
+    summary: 'Import a MyBB or phpBB board. Resumable — run it again to continue.',
     usage:
-      'MYBB_PASSWORD=… forum import --host H --user U --database D ' +
-      '[--prefix mybb_] [--port 3306] [--charset utf8mb4] [--ssl] ' +
+      'IMPORT_SOURCE_PASSWORD=… forum import --host H --user U --database D ' +
+      '[--source mybb|phpbb] [--prefix mybb_] [--uploads-dir /path/to/uploads] ' +
+      '[--port 3306] [--charset utf8mb4] [--ssl] ' +
       '[--budget 20000] [--page-size 200]',
     async run(args: readonly string[]) {
       const { assertEnv } = await import('@meith/core')
