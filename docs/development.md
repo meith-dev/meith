@@ -371,6 +371,7 @@ repository that nothing else reads:
 | `slots:check` | The server/client boundary in theme slots, in both directions. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
+| `board:gen:check` | `apps/community/community.plugins.ts` out of step with `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin). |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 
 ## The generated documents

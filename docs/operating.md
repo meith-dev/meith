@@ -170,7 +170,22 @@ Back up the source, rehearse against a non-production board, and run the importe
 
 ## Plugins
 
-Install plugins written for the board's release. Before removing plugin code, purge its owned data through the lifecycle hook:
+Installing a manifest-eligible plugin — one that ships a zero-argument `plugin` export, see
+[Writing a plugin](./plugin-api.md#writing-a-plugin) — is a checkout-time change, run where you
+would run `pnpm add`, not against the deployed image:
+
+```sh
+pnpm add @meith/plugin-dues --filter @meith/web
+community plugin:add @meith/plugin-dues
+```
+
+`plugin:add` and `plugin:remove` edit `board.plugins.json` and regenerate
+`community.plugins.ts`; commit both and rebuild and redeploy the image for the change to take
+effect. A plugin that cannot yet satisfy the manifest's export convention stays a line in
+`community.plugins.ts` you write by hand, exactly as before.
+
+Before removing plugin code, purge its owned data through the lifecycle hook — this one *does*
+run against the deployed board, because it needs the live database:
 
 ```sh
 docker compose run --rm web community plugin:purge <key> --yes

@@ -1,5 +1,9 @@
 export type { DuesConfigInput, DuesPlanInput } from './config'
-export { createDues, dues } from './definition'
+// `plugin` and `messages` (below) are the manifest-installable convention
+// board.plugins.json generation relies on (scripts/board-plugins-gen.mjs) —
+// re-exports, not a second definition, so `dues` stays the name everyone
+// reads in code that names it directly.
+export { createDues, dues, dues as plugin } from './definition'
 export {
   DUES_DEMO_CODES,
   DUES_DEMO_CURRENCY,
@@ -12,6 +16,6 @@ export {
   type DuesDemoSummary,
   seedDuesDemo,
 } from './demo'
-export { duesMessages } from './messages'
+export { duesMessages, duesMessages as messages } from './messages'
 export { SUBSCRIBED_EVENT_TYPES } from './stripe/events'
 export { signStripePayload } from './stripe/webhook'
