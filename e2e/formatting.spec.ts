@@ -37,6 +37,11 @@ test('typing @ opens mention suggestions, and picking one inserts the name', asy
 test('the "Insert attachment" toolbar button uploads and places [attachment=id]', async ({
   page,
 }) => {
+  // Same dev-server cold-compile risk as the mention test above: the upload
+  // (with re-encode) and the thread-creation submit are both real server
+  // round trips that can outrun the default budgets.
+  test.setTimeout(60_000)
+
   await signUp(page, 'inlineattacher')
 
   await page.goto('/200-general')
@@ -52,9 +57,9 @@ test('the "Insert attachment" toolbar button uploads and places [attachment=id]'
   await chooser.setFiles({ name: 'inline.png', mimeType: 'image/png', buffer: samplePng() })
 
   const message = page.getByLabel('Message')
-  await expect(message).toHaveValue(/Look at this:\[attachment=\d+\]/)
+  await expect(message).toHaveValue(/Look at this:\[attachment=\d+\]/, { timeout: 15_000 })
 
   await page.getByRole('button', { name: 'Post thread' }).click()
-  await expect(page).toHaveURL(/\/thread\/\d+-/)
+  await expect(page).toHaveURL(/\/thread\/\d+-/, { timeout: 15_000 })
   await expect(page.locator('article .md-attachment')).toBeVisible()
 })
