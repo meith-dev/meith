@@ -11,7 +11,7 @@ const config = {
     plugins: [] as Array<{ key: string; enabled?: boolean; plugin?: unknown }>,
   },
 }
-vi.mock('../../community.config', () => ({
+vi.mock('@board/config', () => ({
   get default() {
     return config.current
   },

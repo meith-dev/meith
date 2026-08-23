@@ -1,5 +1,6 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
 import { cache } from 'react'
 
 import { CacheTags, cachedGlobal, env } from '@meith/core'
@@ -7,7 +8,6 @@ import { getDb, PostgresThemeRepository, type ThemeRuntimeState } from '@meith/d
 import { drivers } from '@meith/drivers'
 import { DARK_TOKENS as DEFAULT_DARK, LIGHT_TOKENS as DEFAULT_LIGHT } from '@meith/theme-default'
 
-import forumConfig from '../../community.config'
 import {
   type BoardTheme,
   effectiveTokens,

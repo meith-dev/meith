@@ -1,5 +1,7 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
+
 import { env, logger, readPluginEnv } from '@meith/core'
 import {
   appliedPluginMigrations,
@@ -20,7 +22,6 @@ import {
   resolvePluginSettingDetails,
 } from '@meith/plugin-kit'
 
-import forumConfig from '../../community.config'
 import { configuredPlugins, pluginHost, syncPluginEnablement } from './plugin-host'
 import { getSettingOverrides } from './settings'
 

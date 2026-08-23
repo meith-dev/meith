@@ -135,7 +135,7 @@ const commands: Command[] = [
       }
 
       const { upgrade } = await import('./upgrade')
-      const { installedPluginDefinitions } = await import('../../community/community.plugins')
+      const { installedPluginDefinitions } = await import('@board/plugins')
       return upgrade({
         dryRun: args.includes('--dry-run'),
         plugins: installedPluginDefinitions(),
@@ -180,7 +180,7 @@ const commands: Command[] = [
       }
 
       const { purge } = await import('./plugins')
-      const { installedPluginDefinitions } = await import('../../community/community.plugins')
+      const { installedPluginDefinitions } = await import('@board/plugins')
       return purge({
         key,
         plugins: installedPluginDefinitions(),

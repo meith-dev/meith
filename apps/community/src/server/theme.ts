@@ -1,5 +1,6 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 
@@ -12,7 +13,6 @@ import {
   THEME_COOKIE,
 } from '@/view/theme-preference'
 
-import forumConfig from '../../community.config'
 import { getBoardThemeStyle } from './theme-runtime'
 
 const RESOLVED: ReadonlyMap<string, ResolvedTheme> = new Map(

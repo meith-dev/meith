@@ -1,3 +1,4 @@
+import forumConfig from '@board/config'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
@@ -15,7 +16,6 @@ import {
   type ThemeDefinition,
 } from '@meith/theme-kit'
 
-import forumConfig from '../../community.config'
 import { SLOT_FIXTURES } from './contract.fixture'
 
 const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.values(

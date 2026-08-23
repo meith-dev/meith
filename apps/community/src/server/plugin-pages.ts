@@ -1,5 +1,6 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
 import type { ReactNode } from 'react'
 
 import { env, logger, readPluginEnv } from '@meith/core'
@@ -19,7 +20,6 @@ import {
   unavailablePluginUsers,
 } from '@meith/plugin-kit'
 
-import forumConfig from '../../community.config'
 import { getTranslator } from './i18n'
 import { notificationService } from './notifications'
 import { getSettingOverrides } from './settings'

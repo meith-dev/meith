@@ -1,5 +1,6 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
 import { cache } from 'react'
 
 import { CacheTags, cachedGlobal, env } from '@meith/core'
@@ -13,7 +14,6 @@ import {
   PluginHost,
 } from '@meith/plugin-kit'
 
-import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
 
 const HEALTH_TTL_SECONDS = 30

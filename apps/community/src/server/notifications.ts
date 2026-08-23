@@ -1,5 +1,6 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
 import { cache } from 'react'
 
 import { currentRequestId } from '@meith/core/logger'
@@ -11,7 +12,6 @@ import {
   pluginNotificationKindSpecs,
 } from '@meith/plugin-kit'
 
-import forumConfig from '../../community.config'
 import { getContainer } from './container'
 import { emitEvent, filterView } from './plugin-view'
 

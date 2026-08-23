@@ -1,8 +1,8 @@
+import forumConfig from '@board/config'
 import { describe, expect, it } from 'vitest'
 
 import { LIGHT_TOKENS, TOKEN_NAMES } from '@meith/theme-default'
 
-import forumConfig from '../../community.config'
 import {
   CONTRAST_PAIRS,
   checkContrast,

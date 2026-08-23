@@ -33,6 +33,14 @@ The Docker Compose deployment adds a one-shot migration service. It finishes bef
 
 Applications are composition roots. They connect framework input to domain operations and concrete infrastructure. Packages never import application internals.
 
+## The board-config seam
+
+A board's installed themes and plugins are declared in `apps/community/community.config.ts` and `apps/community/community.plugins.ts`. `apps/cli` and `apps/community` itself reach those two files through one named boundary — the `@board/config` and `@board/plugins` tsconfig path aliases, defined identically in `tsconfig.base.json` and `apps/community/tsconfig.json` — never through a relative path into `apps/community`. Node's own subpath-imports field (`#specifier` in `package.json`) cannot express this seam: its targets may not resolve outside the declaring package, and `apps/cli` reaching into `apps/community` is exactly that. A tsconfig path alias has no such restriction and is already how every `@meith/*` package is resolved, so `@board/*` follows the same convention.
+
+`scripts/guards.config.mjs`'s `no-relative-board-config-import` guard fails the build on a new relative import of either file from outside their own definition, so the boundary cannot silently erode back to a relative path. The two files may still import each other by relative path — that is the seam's own definition, not a caller reaching around it.
+
+Naming board config through one alias, rather than a relative path that assumes `apps/community`'s location, is what would let a board's configuration move into its own workspace later without changing every file that reads it.
+
 ## Package layers
 
 ### Core

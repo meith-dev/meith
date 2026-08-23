@@ -1,5 +1,7 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
+
 import {
   BOARD_CATALOG,
   createCatalogRegistry,
@@ -9,7 +11,6 @@ import {
 
 import { resolveLocale } from '@/view/locale'
 
-import forumConfig from '../../community.config'
 import { getSettings } from './settings'
 
 export const catalogs = createCatalogRegistry([
