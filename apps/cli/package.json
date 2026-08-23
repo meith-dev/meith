@@ -1,15 +1,30 @@
 {
   "name": "@meith/cli",
   "version": "0.16.0",
-  "private": true,
+  "description": "The operator CLI: migrations, backup and restore, imports, users and settings — and the community bin that runs it against an external board workspace.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "apps/cli"
+  },
   "type": "module",
+  "bin": {
+    "community": "./bin/community.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
     "build": "esbuild --bundle --platform=node --format=cjs --target=node22 --log-override:empty-import-meta=silent src/index.ts --outfile=dist/cli.cjs"
-  },
-  "bin": {
-    "community": "./dist/index.js"
   },
   "dependencies": {
     "@meith/accounts": "workspace:*",
@@ -22,10 +37,10 @@
     "@meith/profile-fields": "workspace:*",
     "@meith/runtime": "workspace:*",
     "@meith/settings": "workspace:*",
-    "@meith/tasks": "workspace:*"
+    "@meith/tasks": "workspace:*",
+    "tsx": "^4.23.12"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2",
-    "tsx": "^4.23.12"
+    "esbuild": "^0.28.2"
   }
 }

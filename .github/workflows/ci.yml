@@ -314,6 +314,46 @@ jobs:
         if: always()
         run: docker rm -f forum-web forum-worker 2>/dev/null || true
 
+  # MEI-75: `create-meith` scaffolds a board that depends on `@meith/web` and
+  # `@meith/cli` and calls a `forum-web` bin — this is the job that proves
+  # that promise is real rather than aspirational. It packs every workspace
+  # package `@meith/web`'s own dependency closure newly requires (none of
+  # them are on the real npm registry yet), scaffolds a board exactly as a
+  # user would, installs it from the packed tarballs, and builds and boots
+  # the result. See docs/development.md, "Consuming the board from a
+  # workspace", and scripts/board-workspace-smoke.mts for the mechanism and
+  # why the boot check runs against Postgres rather than fixture mode.
+  board-workspace:
+    name: A scaffolded board builds and boots from packed tarballs
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: board_workspace_smoke
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Pack, scaffold, install, build and boot
+        run: pnpm board:workspace:smoke
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_workspace_smoke
+
   # meith.dev's own image. A different app, Dockerfile and Next config branch
   # from the board above, so a green `image` job says nothing about it.
   site-image:

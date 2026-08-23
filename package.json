@@ -48,6 +48,7 @@
     "docs:index:check": "node scripts/docs-index.mjs",
     "marketplace:gen": "node scripts/marketplace-gen.mjs",
     "marketplace:gen:check": "node scripts/marketplace-gen.mjs --check",
+    "board:workspace:smoke": "tsx scripts/board-workspace-smoke.mts",
     "perf": "tsx packages/testkit/src/load/run.ts",
     "perf:docs": "node scripts/perf-docs.mjs",
     "perf:docs:check": "node scripts/perf-docs.mjs --check"

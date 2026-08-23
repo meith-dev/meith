@@ -1,8 +1,21 @@
 {
   "name": "@meith/tasks",
   "version": "0.16.0",
-  "private": true,
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "packages/tasks"
+  },
   "type": "module",
   "main": "./src/index.ts",
-  "types": "./src/index.ts"
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

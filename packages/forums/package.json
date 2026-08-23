@@ -1,10 +1,27 @@
 {
   "name": "@meith/forums",
   "version": "0.16.0",
-  "private": true,
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "packages/forums"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./arrange": "./src/arrange.ts"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@meith/core": "workspace:*",
     "@meith/i18n": "workspace:*"

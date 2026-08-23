@@ -132,6 +132,7 @@
         "scripts/**",
         "apps/cli/**",
         "apps/worker/**",
+        "apps/community/bin/**",
         "packages/create-meith/**",
         "packages/testkit/**",
         "**/*.config.ts",

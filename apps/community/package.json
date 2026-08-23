@@ -1,7 +1,34 @@
 {
   "name": "@meith/web",
   "version": "0.16.0",
-  "private": true,
+  "description": "The board itself: the Next.js app, and the forum-web bin that materializes it into an external board workspace.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "apps/community"
+  },
+  "bin": {
+    "forum-web": "./bin/forum-web.mjs"
+  },
+  "exports": {
+    "./config": "./src/config.ts"
+  },
+  "files": [
+    "bin",
+    "app",
+    "src",
+    "next.config.mjs",
+    "postcss.config.mjs",
+    "components.json",
+    "instrumentation.ts",
+    "proxy.ts",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,15 +41,19 @@
     "@meith/admin": "workspace:*",
     "@meith/antispam": "workspace:*",
     "@meith/api": "workspace:*",
+    "@meith/attachments": "workspace:*",
     "@meith/authorization": "workspace:*",
+    "@meith/avatars": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/demo": "workspace:*",
     "@meith/drafts": "workspace:*",
     "@meith/drivers": "workspace:*",
+    "@meith/events": "workspace:*",
     "@meith/forums": "workspace:*",
     "@meith/groups": "workspace:*",
     "@meith/i18n": "workspace:*",
+    "@meith/import": "workspace:*",
     "@meith/install": "workspace:*",
     "@meith/mail": "workspace:*",
     "@meith/markdown": "workspace:*",
@@ -37,8 +68,10 @@
     "@meith/relations": "workspace:*",
     "@meith/reputation": "workspace:*",
     "@meith/runtime": "workspace:*",
+    "@meith/search": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/signatures": "workspace:*",
+    "@meith/subscriptions": "workspace:*",
     "@meith/tasks": "workspace:*",
     "@meith/theme-clubhouse": "workspace:*",
     "@meith/theme-default": "workspace:*",
@@ -48,17 +81,16 @@
     "@meith/theme-raidframe": "workspace:*",
     "@meith/threads": "workspace:*",
     "@meith/ui": "workspace:*",
+    "@meith/upgrade": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "next": "16.3.1",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
-  },
-  "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "next": "16.3.1",
     "postcss": "^8.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tailwindcss": "^4.3.3",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
   }
 }
