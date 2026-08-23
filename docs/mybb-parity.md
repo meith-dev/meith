@@ -5,16 +5,17 @@ it does instead, and why. **Read this before promising anyone a
 like-for-like move.**
 
 > [!NOTE]
-> Looking for the procedure — the import command, what comes across, what
-> to do afterwards? That is [Migrating from MyBB or phpBB](./migrating.md).
-> This page is the reference for *why* an imported board will not feel
-> identical to the one it came from, not a step-by-step guide. Moving from
-> phpBB instead, most of this page still applies — it is a decision about
-> this board, not about MyBB specifically — but read
-> [phpBB parity decisions](./phpbb-parity.md) too, for the handful of
-> places where phpBB's own model needed a different answer.
+> Looking for the procedure instead — the import command, what comes
+> across, what to do afterwards? That is
+> [Migrating from MyBB or phpBB](./migrating.md), which also has the
+> [full coverage table](./migrating.md#what-comes-across-and-what-does-not).
+> This page is about behaviour, not transfer. Coming from phpBB, most of
+> it still applies — it is a decision about this board, not about MyBB —
+> but also read [phpBB parity decisions](./phpbb-parity.md) for the
+> handful of places phpBB needed a different answer.
 
-Each entry has the same four parts:
+Each entry has the same four parts, and only exists when the divergence
+was **chosen** — a surprise is a bug, not a parity decision:
 
 | Part | What it tells you |
 |---|---|
@@ -22,17 +23,6 @@ Each entry has the same four parts:
 | **Meith** | What this board does instead |
 | **Why** | The reasoning, so you can judge whether it suits your community |
 | **Cost** | What an imported board actually loses, stated plainly |
-
-> [!NOTE]
-> An entry is added when a divergence is **chosen**, not when one is
-> discovered by accident. A surprise is a bug, not a parity decision.
-
-This page is about behaviour, not transfer. What the importer actually
-carries across — members, forums, threads, posts, private messages,
-attachments, avatars, subscriptions, polls and votes, reputation,
-warnings, bans and buddy/ignore lists, per source — is tabulated in
-[Migrating from MyBB or phpBB](./migrating.md#what-comes-across-and-what-does-not),
-together with what it deliberately leaves behind.
 
 ## What is on this page
 
@@ -63,10 +53,10 @@ together with what it deliberately leaves behind.
 
 ### Flood intervals
 
-**MyBB** stores `floodtime` and `searchfloodtime` as per-usergroup numeric
+**MyBB:** stores `floodtime` and `searchfloodtime` as per-usergroup numeric
 columns, combined like any other numeric limit.
 
-**Meith** does not model flood intervals as permission fields at all. The
+**Meith:** does not model flood intervals as permission fields at all. The
 board settings `posting.flood_seconds` and `search.flood_seconds` hold the
 intervals, and the boolean permission `canBypassFloodCheck` exempts a group
 from them.
@@ -89,10 +79,10 @@ granularity would mean adding a `numeric-min` kind to
 
 ### Permission field naming
 
-**MyBB** uses lowercase, unpunctuated column names (`canpostthreads`,
+**MyBB:** uses lowercase, unpunctuated column names (`canpostthreads`,
 `canviewthreads`).
 
-**Meith** uses camelCase keys (`canPostThreads`) mapped to snake_case
+**Meith:** uses camelCase keys (`canPostThreads`) mapped to snake_case
 columns (`can_post_threads`).
 
 **Why.** The keys are consumed as TypeScript property names across three
@@ -103,10 +93,10 @@ translate a legacy column name in one place.
 
 ### Separate `canAccessAdminCp` and `isAdministrator`
 
-**MyBB** treats admin status and admin CP access as effectively the same
+**MyBB:** treats admin status and admin CP access as effectively the same
 thing.
 
-**Meith** keeps them as two fields: `isAdministrator` grants the permission
+**Meith:** keeps them as two fields: `isAdministrator` grants the permission
 bypass, `canAccessAdminCp` grants the panel.
 
 **Why.** A bypass has to be explicit and logged. Splitting the fields makes
@@ -120,11 +110,11 @@ audit log meaningful, because a bypass entry now implies a specific field.
 
 ### The markup language is Markdown, not BBCode
 
-**MyBB** posts are BBCode: `b i u s color size font align url email img
+**MyBB:** posts are BBCode: `b i u s color size font align url email img
 quote code php list hr video`, plus smilies, admin-defined custom MyCode,
 and auto-linking of bare URLs.
 
-**Meith** posts are Markdown. A board that upgrades or imports has its
+**Meith:** posts are Markdown. A board that upgrades or imports has its
 content **converted once**: posts are rewritten in the background by the
 render backfill, and private messages, signatures, announcements and
 drafts are converted when they are next read. There is no BBCode renderer
@@ -187,10 +177,10 @@ help exist for exactly that week.
 
 ### Quoting fills the box you are looking at
 
-**MyBB** quotes by navigating to the reply page, with multiquote for
+**MyBB:** quotes by navigating to the reply page, with multiquote for
 collecting several posts first.
 
-**Meith** does both and, with JavaScript on, neither navigates: clicking
+**Meith:** does both and, with JavaScript on, neither navigates: clicking
 **Quote** puts the quote into the quick reply already on the page, opens
 it, and puts the caret under the quote.
 
@@ -233,10 +223,10 @@ page, exactly as it always was.
 
 ### No hosted captcha, and limits beside the interval
 
-**MyBB** ships a built-in image captcha, supports reCAPTCHA and hCaptcha,
+**MyBB:** ships a built-in image captcha, supports reCAPTCHA and hCaptcha,
 and models flood control as a per-usergroup interval.
 
-**Meith** ships a honeypot, a fill-time floor, admin-defined question
+**Meith:** ships a honeypot, a fill-time floor, admin-defined question
 challenges and first-post moderation, plus hourly limits on posting,
 searching, private messages, reports and uploads. There is no image
 captcha and no hosted provider.
@@ -269,18 +259,18 @@ settings map onto the interval; the hourly limits start at zero.
 
 ### Announcements are not sticky threads
 
-**MyBB** has announcements, and boards frequently use a pinned thread for
+**MyBB:** has announcements, and boards frequently use a pinned thread for
 the same job anyway.
 
-**Meith** has announcements that are deliberately *not* threads: nobody
+**Meith:** has announcements that are deliberately *not* threads: nobody
 can reply to one, it has a start and an end date, and it lives above the
 forums rather than in the listing.
 
 **Why.** A sticky thread is a conversation — it belongs to its author,
 members reply to it, and taking it down deletes what they said. That is
 what leaves a three-year-old rules post pinned at the top of a forum. An
-announcement expires on its own and removing it removes nothing anybody
-wrote, which is the point of having both.
+announcement expires on its own, and removing it removes nothing anybody
+wrote.
 
 Two smaller differences follow. There is no per-group visibility on an
 announcement: a forum's announcement is shown to whoever can see that
@@ -296,10 +286,10 @@ announcement appearing at a different hour depending on the container's
 
 ### Markup that does not close
 
-**MyBB**'s regex passes leave an unmatched `[b]` as literal text, and can
+**MyBB:** its regex passes leave an unmatched `[b]` as literal text, and can
 emit unbalanced HTML for crossed tags.
 
-**Meith** cannot emit unbalanced markup at all: the renderer builds a tree
+**Meith:** cannot emit unbalanced markup at all: the renderer builds a tree
 and writes elements out of it, so no opening tag reaches the page without
 its closing one. An unmatched `**` is two asterisks, an unterminated
 `` ` `` is a backtick, and an unclosed fence ends at the end of the post
@@ -312,11 +302,11 @@ mistake is the same as MyBB's: you see what you typed.
 
 ### Deleting the first post of a thread
 
-**MyBB** lets a member with `candeleteposts` delete any of their own
+**MyBB:** lets a member with `candeleteposts` delete any of their own
 posts, including the opening one — leaving the remaining replies under a
 first post that no longer exists.
 
-**Meith** refuses it, with a message pointing at thread deletion instead.
+**Meith:** refuses it, with a message pointing at thread deletion instead.
 
 **Why.** The opening post *is* the thread as far as every listing is
 concerned — it supplies the title, the author, and the counters. The two
@@ -333,10 +323,10 @@ moderator view shows it, the member view skips it.
 
 ### Editing a post after the window closes
 
-**MyBB** hides the edit control once `edittimelimit` has passed and
+**MyBB:** hides the edit control once `edittimelimit` has passed and
 refuses the submission server-side.
 
-**Meith** does the same, with one difference: the window is a **numeric
+**Meith:** does the same, with one difference: the window is a **numeric
 permission**, so the usual combination applies — `0` means unlimited and
 beats every other value across a member's groups. A member in a 30-minute
 group and an unlimited group gets unlimited.
@@ -352,11 +342,11 @@ genuinely is correct and the field was therefore modelled as a setting.
 
 ### Making a poll's voters public after voting has started
 
-**MyBB** stores `public` on the poll and an administrator may switch it on
+**MyBB:** stores `public` on the poll and an administrator may switch it on
 at any point, including on a poll that has been running for a month. Every
 vote already cast becomes attributable.
 
-**Meith** carries the same flag, and the same import, but refuses to turn
+**Meith:** carries the same flag, and the same import, but refuses to turn
 it on once the first vote is in. It may be switched **off** at any time,
 and a poll created with public votes says so above the options before
 anybody picks one.
@@ -373,10 +363,10 @@ and re-run.
 
 ### A multiple-choice poll carries a maximum, not a flag
 
-**MyBB** models multiple choice as the boolean `multiple`: a member either
+**MyBB:** models multiple choice as the boolean `multiple`: a member either
 picks one option or picks as many as they like.
 
-**Meith** stores a number — 1 for a single choice, N for up to N, and 0
+**Meith:** stores a number — 1 for a single choice, N for up to N, and 0
 for no limit — so "pick your top three" is expressible. A MyBB poll with
 `multiple` set imports as 0, which is exactly what it meant.
 
@@ -389,10 +379,10 @@ other importer needs.
 
 ### Who may edit a poll, and what they may change
 
-**MyBB** has a `canmanagepolls` moderator right and lets the poll's author
+**MyBB:** has a `canmanagepolls` moderator right and lets the poll's author
 edit it inside the forum's edit window.
 
-**Meith** drops the separate right — it granted nothing, as
+**Meith:** drops the separate right — it granted nothing, as
 [Upgrading](./upgrading.md) records — and authorises a poll edit exactly
 as it authorises editing the thread's opening post: the author inside the
 forum's edit window, and anybody who may edit others' posts at any time.
@@ -414,11 +404,11 @@ rights has to grant the post-editing right instead.
 
 ### Who handles a report
 
-**MyBB** has a dedicated permission, `canmanagereportedcontent`, separate
+**MyBB:** has a dedicated permission, `canmanagereportedcontent`, separate
 from the moderator rights that decide what somebody can actually *do*
 about a report.
 
-**Meith** scopes reports by the sets that already exist: a report about a
+**Meith:** scopes reports by the sets that already exist: a report about a
 post or thread is visible to the moderators of its forum (the same set
 that scopes the approval queue), and a report about a member — or a
 private message — is visible to board staff (`modcp.access`).
@@ -435,21 +425,21 @@ access, and anybody who moderates a forum gains it.
 
 ### What can be reported
 
-**MyBB** allows reports against posts, threads, profiles, private
+**MyBB:** allows reports against posts, threads, profiles, private
 messages and (with plugins) more.
 
-**Meith** ships posts, threads, members and private messages. A private
+**Meith:** ships posts, threads, members and private messages. A private
 message can only be reported by somebody who holds a copy of it, and
 reporting is the *only* path by which staff can read one — see
 [private messages](#reporting-is-the-only-way-staff-read-a-private-message).
 
 ### Who can lock, pin and move threads
 
-**MyBB** grants these through `moderators` rows (per forum, per right)
+**MyBB:** grants these through `moderators` rows (per forum, per right)
 plus the super-moderator and administrator bypasses. There is no
 usergroup column for them.
 
-**Meith** does the same — and this is a parity entry only because it is
+**Meith:** does the same — and this is a parity entry only because it is
 the first place the permission model diverges from its own pattern: every
 other action reads a field off the resolved forum matrix, and the five
 thread-management rights (lock, stick, move, merge, split) read an
@@ -468,11 +458,11 @@ person, but it is not one checkbox.
 
 ### Copying a thread
 
-**MyBB** offers "copy thread" alongside move, duplicating every post and
+**MyBB:** offers "copy thread" alongside move, duplicating every post and
 crediting the copies to their original authors — so one piece of writing
 raises its author's post count twice.
 
-**Meith** offers it too, on the same thread tools as move, and makes the
+**Meith:** offers it too, on the same thread tools as move, and makes the
 same choice about the counts — see
 [copying credits its authors twice](#copying-a-thread-credits-its-authors-twice)
 and
@@ -482,10 +472,10 @@ approval queue, and copying removed content would republish it.
 
 ### Splitting a thread, and where the pieces land
 
-**MyBB** splits by checkbox selection and lets the moderator choose a
+**MyBB:** splits by checkbox selection and lets the moderator choose a
 destination forum.
 
-**Meith** offers two selections — "from this post onwards" on the thread
+**Meith:** offers two selections — "from this post onwards" on the thread
 tools, and a per-post checkbox selection through inline moderation — and
 the new thread always lands in the **same forum**.
 
@@ -499,10 +489,10 @@ then moves — two operations and two audit rows instead of one.
 
 ### Which thread survives a merge
 
-**MyBB** merges by thread URL or id and keeps the thread the moderator is
+**MyBB:** merges by thread URL or id and keeps the thread the moderator is
 looking at, absorbing the one they name.
 
-**Meith** goes the other way round, and the direction is the important
+**Meith:** goes the other way round, and the direction is the important
 sentence on this page: **the thread on screen is the one that is merged
 away.** Its posts move into the thread whose number the moderator types,
 and the thread they were looking at is the row that is deleted. The tools
@@ -530,11 +520,11 @@ making the mistake for them.
 
 ### What a merge does to post counts
 
-**MyBB** moves the posts and leaves author post counts alone — correct,
+**MyBB:** moves the posts and leaves author post counts alone — correct,
 and worth stating because its neighbouring operation (copy) counts one
 piece of writing twice.
 
-**Meith** matches MyBB on merge and split, for a reason it can state
+**Meith:** matches MyBB on merge and split, for a reason it can state
 exactly: neither operation creates or destroys a post, so
 `users.post_count` never moves. Only `users.thread_count` moves, by one —
 a split creates a thread, a merge destroys one.
@@ -966,9 +956,9 @@ are silencing.
 
 ### Timezones are IANA names, never offsets
 
-**MyBB** stores a numeric offset (`timezone = -5`) plus a DST flag.
+**MyBB:** stores a numeric offset (`timezone = -5`) plus a DST flag.
 
-**Meith** stores an IANA zone name (`America/New_York`), validated
+**Meith:** stores an IANA zone name (`America/New_York`), validated
 against the runtime's tz database. Offsets are refused even though
 `Intl` would accept them.
 
@@ -984,10 +974,10 @@ say so.
 
 ### The default timezone is the reader's, not the board's
 
-**MyBB** has one board timezone that every guest and every member who has
+**MyBB:** has one board timezone that every guest and every member who has
 not changed it reads the board in.
 
-**Meith** has no board timezone. A reader's own zone is detected in the
+**Meith:** has no board timezone. A reader's own zone is detected in the
 browser and reported to the server in a cookie, so a guest in Auckland
 and a guest in Chicago see the same thread at their own two clocks. A
 member may pin a zone, and a pinned zone wins on every device.
@@ -1290,7 +1280,7 @@ the send path a way to read somebody's list. The ambiguous refusal is
 the only option honest to the sender without betraying the recipient.
 
 **Cost.** A sender cannot tell "they blocked me" from "their group
-cannot use PMs". That ambiguity is the feature.
+cannot use PMs" — deliberately, for the reason above.
 
 ### A signature's forbidden constructs render as text
 
@@ -2000,14 +1990,13 @@ was the ranking, not the lookup. A term matching 1,171 posts, through
 the same code, took 35 ms. Bounding the ranked set brought the first
 case to 98 ms.
 
-**Who notices: almost nobody, and that is the argument.** For any term
-matching fewer than 20,000 posts the window contains the entire match
-set and the results are *identical*. The difference appears only for a
-term so common that "the single most relevant post" is not a
-meaningful thing to ask for — and there the answer becomes "the most
-relevant of the recent ones", which is what a member searching a
-ubiquitous word actually wants. The alternative was a five-second
-page, which is not a page.
+**Who this affects: almost nobody.** For any term matching fewer than
+20,000 posts the window contains the entire match set, so the results
+are *identical*. The difference appears only for a term so common that
+"the single most relevant post" is not a meaningful thing to ask for —
+and there the answer becomes "the most relevant of the recent ones",
+which is what a member searching a ubiquitous word actually wants. The
+alternative was a five-second page.
 
 **What was not done.** A search extension (RUM, or an external engine)
 would rank the whole corpus quickly and properly. It is a runtime
