@@ -3,11 +3,11 @@
 This is the procedure: what to do, in order, to move a MyBB or phpBB board
 onto Meith with its members, content and old URLs intact. If you are
 deciding *whether* your community will feel at home here rather than *how*
-to run the move, read [MyBB parity decisions](./mybb-parity.md) instead —
-it is the list of places Meith deliberately behaves differently, with the
+to run the move, read [MyBB parity decisions](./mybb-parity.md) or
+[phpBB parity decisions](./phpbb-parity.md) instead — each is the list of
+places Meith deliberately behaves differently from that board, with the
 reasoning and what an imported board loses. This page assumes you have
-already made that call, or are migrating from phpBB, which has no
-equivalent list because Meith was not built as a phpBB alternative first.
+already made that call.
 
 The importer is one command, run against the old board's database. It is
 resumable — interrupt it or its budget runs out, run the same command
@@ -166,6 +166,14 @@ working.
 
 Before you announce the move, check:
 
+- **Promote yourself — and any other former staff — to administrator
+  before you do anything else.** The importer does not carry legacy group
+  membership across at all: every migrated account, including the old
+  board's own administrators, lands in the ordinary registered group.
+  Nothing about the sign-in page hints at this, so a board where nobody
+  runs `community user:promote` (or grants access in `/admin` from an
+  account that already has it) has, silently, no administrator. Do this
+  first.
 - **Sign in as a migrated member, using their old password.** The stored
   hash is your evidence the import worked, not a formality: Meith
   recognises the legacy MyBB or phpBB hash on that first sign-in, verifies
@@ -179,21 +187,26 @@ Before you announce the move, check:
   not that the import failed.
 - **Follow an old thread link and an old member-profile link** and confirm
   they land on the new address, now that redirects are on.
-- **Rebuild permissions**, add back any custom profile fields you need, and
-  re-post announcements — the three things the table above says are on
-  you, not the importer.
+- **Rebuild the rest of your groups and forum permissions**, add back any
+  custom profile fields you need, and re-post announcements — the three
+  things the table above says are on you, not the importer.
 
 ## Content conversion
 
-MyBB posts are BBCode; Meith posts are Markdown. The importer does not
-convert content at read time — every imported post, private message and
-signature is rewritten once, in the background, the same way an
-in-place upgrade converts an existing board's content. What survives the
-conversion, what is degraded to plain text, and what phpBB's own BBCode
-cleanup does before conversion, is documented in full — with the exact
-list of tags — in
-[The markup language is Markdown, not BBCode](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode).
-Read it before telling members what to expect; the short version is that
+MyBB and phpBB posts are both BBCode; Meith posts are Markdown. The
+importer does not convert content at read time — every imported post,
+private message and signature is rewritten once, in the background, the
+same way an in-place upgrade converts an existing board's content. Both
+sources go through the **same** converter — a phpBB post has its
+`bbcode_uid` markers and stored smiley/link markup cleaned up first, but
+the BBCode itself parses identically either way. What survives the
+conversion and what is degraded to plain text is documented in full —
+with the exact list of tags — in
+[The markup language is Markdown, not BBCode](./mybb-parity.md#the-markup-language-is-markdown-not-bbcode);
+the phpBB-only parts (smilies becoming their typed code rather than their
+image, and what happens to a global announcement) are in
+[phpBB parity decisions](./phpbb-parity.md). Read whichever applies before
+telling members what to expect; the short version for both is that
 formatting (colour, size, underline) is lost and the words are not.
 
 ## Troubleshooting
@@ -216,6 +229,7 @@ For everything about running the container stack itself — logs,
 | You want to | Read |
 |---|---|
 | Understand where this board deliberately differs from MyBB before you promise members a like-for-like move | [MyBB parity decisions](./mybb-parity.md) |
+| Same question, coming from phpBB | [phpBB parity decisions](./phpbb-parity.md) |
 | Rebuild groups and forum permissions | [The organiser's guide](./organiser-guide.md) |
 | Hand the approval queue and reports to your moderators | [The moderator's guide](./moderation-guide.md) |
 | Run backups, upgrades and routine maintenance from here on | [Operations](./operating.md) |
