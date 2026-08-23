@@ -16,7 +16,7 @@ function requireDemoMode(): void {
 }
 
 async function plugins(): Promise<readonly PluginDefinition[]> {
-  const { installedPluginDefinitions } = await import('../../community/community.plugins')
+  const { installedPluginDefinitions } = await import('@board/plugins')
   return installedPluginDefinitions()
 }
 

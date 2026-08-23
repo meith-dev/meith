@@ -8,7 +8,7 @@ const config = {
   },
 }
 
-vi.mock('../../community.config', () => ({
+vi.mock('@board/config', () => ({
   get default() {
     return config.current
   },

@@ -1,5 +1,7 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
+
 import {
   type AccountStore,
   type BanLookup,
@@ -90,7 +92,6 @@ import type {
   ThreadWriteRepository,
 } from '@meith/threads'
 
-import forumConfig from '../../community.config'
 import { ABSENT_SERVICES } from './absent-services'
 import {
   AUTH_CONFIG,

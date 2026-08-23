@@ -22,6 +22,8 @@
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": false,
     "paths": {
+      "@board/config": ["./apps/community/community.config.ts"],
+      "@board/plugins": ["./apps/community/community.plugins.ts"],
       "@meith/core": ["./packages/core/src/index.ts"],
       "@meith/core/*": ["./packages/core/src/*"],
       "@meith/db": ["./packages/db/src/index.ts"],

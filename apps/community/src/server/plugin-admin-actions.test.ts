@@ -18,7 +18,7 @@ vi.mock('next/cache', async (importOriginal) => {
   }
 })
 
-vi.mock('../../community.config', () => ({
+vi.mock('@board/config', () => ({
   get default() {
     return config.current
   },

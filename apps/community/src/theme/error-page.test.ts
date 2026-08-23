@@ -1,3 +1,4 @@
+import forumConfig from '@board/config'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
@@ -9,7 +10,6 @@ import { CrashNoticeProvider } from '@/components/shell/crash-notice'
 import { buildErrorNotice, CRASH_NOTICE, crashNoticeCopy } from '@/view/error-notice'
 
 import ErrorPage from '../../app/error'
-import forumConfig from '../../community.config'
 
 const REQUEST_ID = 'req-8f21'
 

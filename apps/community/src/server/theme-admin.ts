@@ -1,13 +1,14 @@
 import { msg } from '@meith/i18n'
 import 'server-only'
 
+import forumConfig from '@board/config'
+
 import { ForbiddenError } from '@meith/core'
 import { getDb, PostgresThemeAdminRepository, type ThemeRecord } from '@meith/db'
 
 import type { EditableToken } from '@/view/theme-draft'
 import { tokenCopy } from '@/view/theme-tokens'
 
-import forumConfig from '../../community.config'
 import { getContainer } from './container'
 import { getTranslator } from './i18n'
 import { type TokenOverrides, validateTokenOverrides } from './theme-style'

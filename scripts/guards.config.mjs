@@ -234,6 +234,7 @@ export const GUARDS = [
     id: 'no-third-party-browser-code',
     why:
       'What the board imports is an allowlist: relative paths, @/, @meith/*, ' +
+      '@board/* (the community.config.ts / community.plugins.ts seam), ' +
       'node:*, next, react, react-dom and server-only. Everything else is a ' +
       "third party in a member's browser, and that is not a dependency " +
       "decision — it is a decision about somebody else's members, so it is " +
@@ -247,13 +248,14 @@ export const GUARDS = [
       'exempt because a test ships to nobody.',
     files: /^apps\/community\/(app|src)\/.*\.tsx?$/,
     pattern:
-      /(?:\bfrom\s+|\bimport\s+|\bimport\s*\(\s*|\brequire\s*\(\s*)['"](?!\.|@\/|@meith\/|node:|(?:next|react|react-dom|server-only)(?:\/|['"]))[^'"\s]+['"]/,
+      /(?:\bfrom\s+|\bimport\s+|\bimport\s*\(\s*|\brequire\s*\(\s*)['"](?!\.|@\/|@meith\/|@board\/|node:|(?:next|react|react-dom|server-only)(?:\/|['"]))[^'"\s]+['"]/,
     allow: /\.test\.tsx?$/,
     probe: {
       violates: 'import { Analytics } from "@vercel/analytics/next"',
       clean: 'import { getSettings } from "@/server/settings"',
     },
     alsoClean: [
+      'import forumConfig from "@board/config"',
       'import { Inter } from "next/font/google"',
       'import { renderToString } from "react-dom/server"',
       'import { randomUUID } from "node:crypto"',
@@ -330,6 +332,32 @@ export const GUARDS = [
     alsoClean: [
       'const prefix = await countingPrefix()',
       'const address = await remoteAddress()\n\tif (!ipAllowed(address, allowlist)) return',
+    ],
+  },
+  {
+    id: 'no-relative-board-config-import',
+    why:
+      'community.config.ts and community.plugins.ts are reached through one seam — ' +
+      '@board/config and @board/plugins (tsconfig path aliases in tsconfig.base.json ' +
+      'and apps/community/tsconfig.json) — never a relative path into apps/community. ' +
+      'For a board to become an external workspace later, every consumer must resolve ' +
+      'board config through a name a consuming workspace can supply, not through a ' +
+      "relative path that assumes today's directory layout. The two files may still " +
+      'import each other by relative path (community.config.ts pulls in ' +
+      "community.plugins.ts); that is the seam's own definition, not a caller reaching " +
+      'around it.',
+    files: /\.(ts|tsx)$/,
+    pattern:
+      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[./]*community(?:\/community)?\.(?:config|plugins)['"]/,
+    allow: /^apps\/community\/community\.(?:config|plugins)\.ts$/,
+    probe: {
+      violates: "import forumConfig from '../../community.config'",
+      clean: "import forumConfig from '@board/config'",
+    },
+    alsoClean: [
+      "await import('@board/plugins')",
+      "vi.mock('@board/config', () => ({ default: {} }))",
+      "import { showcasePlugins } from './community.demo.plugins'",
     ],
   },
 ]

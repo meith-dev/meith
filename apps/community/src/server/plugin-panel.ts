@@ -1,11 +1,12 @@
 import 'server-only'
 
+import forumConfig from '@board/config'
+
 import type { Translator } from '@meith/i18n'
 import { type PluginDefinition, pluginAdminPath } from '@meith/plugin-kit'
 
 import type { PluginPage } from '@/view/plugin-panel'
 
-import forumConfig from '../../community.config'
 import { getSettingOverrides } from './settings'
 
 export interface PluginPanelSection {

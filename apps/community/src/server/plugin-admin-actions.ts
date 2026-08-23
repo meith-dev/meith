@@ -1,5 +1,6 @@
 'use server'
 
+import forumConfig from '@board/config'
 import { revalidatePath } from 'next/cache'
 
 import { CacheTags, env, isAppError, logger, readPluginEnv, ValidationError } from '@meith/core'
@@ -15,7 +16,6 @@ import {
 } from '@meith/plugin-kit'
 import { runPluginLifecycle } from '@meith/runtime'
 
-import forumConfig from '../../community.config'
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
