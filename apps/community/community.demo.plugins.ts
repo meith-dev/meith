@@ -1,6 +1,6 @@
 import type { InstalledPlugin } from '@meith/core'
 import { readPluginEnv } from '@meith/core'
-import { dues, duesMessages } from '@meith/plugin-dues'
+import { createDues, duesMessages } from '@meith/plugin-dues'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
 const PLAIN_HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/
@@ -30,9 +30,9 @@ const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
     messages: duesMessages,
-    plugin: dues({
-      currency: 'gbp',
-      graceDays: 7,
+    // currency defaults to 'usd'; the e2e suite sets DUES_CURRENCY=gbp on
+    // the settings env override, matching the '£' assertions in its specs.
+    plugin: createDues({
       plans: [
         {
           key: 'supporter-month',
@@ -64,9 +64,9 @@ const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
     messages: duesMessages,
-    plugin: dues({
-      currency: 'eur',
-      graceDays: 7,
+    // currency defaults to 'usd'; the demo deployment sets DUES_CURRENCY=eur
+    // so the shop and the demo seed (packages/demo/src/dues.ts) agree.
+    plugin: createDues({
       extraRedirectHosts: boardHosts(),
     }),
   },

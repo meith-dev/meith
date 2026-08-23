@@ -242,10 +242,17 @@ per [Running a board](./operating.md#plugins) and the plugin's own
 - **The webhook** — an endpoint created in the Stripe dashboard at the
   address the Status screen gives, subscribed to exactly the events it
   lists.
-- **The board's currency, the grace window and the shop's label** — set
-  where the plugin is registered.
+
+Everything past that point is yours, in the browser: the board's
+**currency** and **grace period** are settings on the same **Admin →
+Plugins → Dues** screen as the Stripe keys above (an environment variable
+can pin either of those too, on the same rule), and the shop's **label** —
+what the navigation calls it, if not "Membership" — is the one piece still
+set where the operator registers the plugin, because it is a cosmetic
+choice made once rather than something you would ever need to change from
+the panel.
 
 If the shop says payments are not set up, or the Status screen is not
-green, that list is where the fix lives — send it to the operator. What
+green, that shorter list is where the fix lives — send it to the operator. What
 plugins can and cannot do on a board, and what "enabled" means, is
 [Administering one](./operating.md#administering-one).

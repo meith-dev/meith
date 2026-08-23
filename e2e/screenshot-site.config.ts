@@ -20,6 +20,9 @@ const DEMO_ENV = {
   UPLOADS_DIR: DEMO_UPLOADS_DIR,
   DEMO_MODE: '1',
   SHOWCASE_THEMES: '1',
+  // Matches the demo seed's own currency (packages/demo/src/dues.ts), which
+  // is independent of this setting and always writes its history in eur.
+  DUES_CURRENCY: 'eur',
 } as const
 
 export default defineConfig({

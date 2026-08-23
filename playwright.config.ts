@@ -79,6 +79,7 @@ export default defineConfig({
         NEXT_TELEMETRY_DISABLED: '1',
         SHOWCASE_THEMES: '1',
         DUES_TEST_BOARD: '1',
+        DUES_CURRENCY: 'gbp',
         DUES_STRIPE_SECRET_KEY: 'sk_test_e2e_0000000000000000',
         DUES_STRIPE_WEBHOOK_SECRET: E2E_DUES_WEBHOOK_SECRET,
         DUES_STRIPE_API_BASE: `http://127.0.0.1:${E2E_FAKE_STRIPE_PORT}`,

@@ -1,7 +1,7 @@
 import type { PluginData, PluginGrants, PluginNotify } from '@meith/plugin-kit'
 
 import { discountedPrice } from './codes'
-import { type DuesConfig, parseDuesConfig } from './config'
+import { type DuesConfig, parseDuesConfig, resolveDuesConfig } from './config'
 import { applyInternalEvent, type EntitlementDeps, settlePaidOrder } from './entitlement'
 import { addDays } from './period'
 import {
@@ -103,9 +103,9 @@ class DemoSeed {
   private counts = { plans: 0, codes: 0, orders: 0, memberships: 0, events: 0 }
 
   constructor(private readonly deps: DuesDemoDeps) {
-    this.config = parseDuesConfig({
+    this.config = resolveDuesConfig(parseDuesConfig({}), {
       currency: DUES_DEMO_CURRENCY,
-      graceDays: DUES_DEMO_GRACE_DAYS,
+      grace_days: DUES_DEMO_GRACE_DAYS,
     })
     this.clock = deps.now
     this.grants = deps.grants(() => this.clock)
