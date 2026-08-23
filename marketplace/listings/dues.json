@@ -1,0 +1,13 @@
+{
+  "key": "dues",
+  "kind": "plugin",
+  "package": "@meith/plugin-dues",
+  "name": "Dues",
+  "description": "Paid memberships through Stripe.",
+  "screenshots": ["dues-light.png"],
+  "version": "0.16.0",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "LGPL-3.0-or-later"
+}

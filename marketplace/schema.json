@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.meith.dev/marketplace/v1.json#/schema",
+  "title": "Meith marketplace listing",
+  "description": "One entry in marketplace/listings/*.json. Exactly these fields — extend only with maintainer sign-off, never on your own. scripts/marketplace-gen.mjs enforces this shape and a few rules a JSON Schema cannot express (the plugin key pattern, that the version fields parse, that every screenshot file exists); marketplace-gen.test.ts checks the two do not drift apart.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "key",
+    "kind",
+    "package",
+    "name",
+    "description",
+    "screenshots",
+    "version",
+    "apiVersion",
+    "meith",
+    "repository",
+    "licence"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,39}$",
+      "description": "Lower-case letters, digits and hyphens. Mirrors the plugin key rule in packages/plugin-kit/src/plugin.ts."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["plugin", "theme"]
+    },
+    "package": {
+      "type": "string",
+      "description": "The npm package name a board runs `pnpm add` against."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The display name shown in a catalogue UI."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One sentence. What it is, not how to configure it."
+    },
+    "screenshots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*\\.png$"
+      },
+      "description": "Filenames only, resolved against marketplace/screenshots/. Never a third-party URL — the generator copies the files into the site's own public assets."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "The *listed package's* own version — not the repository's release version. This is the one place lockstep does not apply; see docs/marketplace.md."
+    },
+    "apiVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The plugin-kit or theme-kit major version this listing was built against."
+    },
+    "meith": {
+      "type": "string",
+      "description": "A version range this listing has been checked against, e.g. \">=0.16 <1\". Comparators are `>=`, `<=`, `>`, `<` or `=` against a major, major.minor, or major.minor.patch number, space-separated to mean AND."
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^https://",
+      "description": "Where the source lives."
+    },
+    "licence": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The listed package's licence. Checked for compatibility during review, not by the generator — see docs/marketplace.md."
+    }
+  }
+}

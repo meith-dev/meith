@@ -1,0 +1,13 @@
+{
+  "key": "clubhouse",
+  "kind": "theme",
+  "package": "@meith/theme-clubhouse",
+  "name": "Clubhouse",
+  "description": "A sports club theme for Meith — GAA, soccer, basketball — painted from the club's own two colours.",
+  "screenshots": ["clubhouse-light.png"],
+  "version": "0.16.0",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "LGPL-3.0-or-later"
+}

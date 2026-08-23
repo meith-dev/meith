@@ -25,7 +25,7 @@
     "site:shots": "playwright test --config e2e/screenshot-site.config.ts",
     "community": "pnpm --filter @meith/cli start",
     "format": "biome check --write .",
-    "verify": "pnpm workspace:check && pnpm root:check && pnpm release:check && pnpm guards && pnpm guards:probe && pnpm i18n:check && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm board:gen:check && pnpm hooks:wired && pnpm api:docs:check && pnpm perf:docs:check && pnpm docs:index:check && pnpm site:docs:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm typecheck:site && pnpm test",
+    "verify": "pnpm workspace:check && pnpm root:check && pnpm release:check && pnpm guards && pnpm guards:probe && pnpm i18n:check && pnpm slots:check && pnpm slots:probe && pnpm theme:docs:check && pnpm plugin:docs:check && pnpm board:gen:check && pnpm hooks:wired && pnpm api:docs:check && pnpm perf:docs:check && pnpm docs:index:check && pnpm site:docs:check && pnpm marketplace:gen:check && pnpm lint && pnpm depcruise && pnpm typecheck && pnpm typecheck:app && pnpm typecheck:site && pnpm test",
     "workspace:check": "node scripts/workspace-check.mjs",
     "release:check": "node scripts/release-check.mjs",
     "release:bump": "node scripts/release-bump.mjs",
@@ -46,6 +46,8 @@
     "api:docs": "tsx scripts/api-docs.mts",
     "api:docs:check": "tsx scripts/api-docs.mts --check",
     "docs:index:check": "node scripts/docs-index.mjs",
+    "marketplace:gen": "node scripts/marketplace-gen.mjs",
+    "marketplace:gen:check": "node scripts/marketplace-gen.mjs --check",
     "perf": "tsx packages/testkit/src/load/run.ts",
     "perf:docs": "node scripts/perf-docs.mjs",
     "perf:docs:check": "node scripts/perf-docs.mjs --check"

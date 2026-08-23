@@ -1,0 +1,13 @@
+{
+  "key": "raidframe",
+  "kind": "theme",
+  "package": "@meith/theme-raidframe",
+  "name": "Raidframe",
+  "description": "A gaming theme for Meith — guild, raid and match boards — built on the default theme's slots.",
+  "screenshots": ["raidframe-light.png"],
+  "version": "0.16.0",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "LGPL-3.0-or-later"
+}
