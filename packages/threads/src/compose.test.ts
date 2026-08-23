@@ -200,6 +200,9 @@ describe('ThreadComposer', () => {
         question: 'Choose one',
         options: ['First', 'Second'],
         closesAt: null,
+        maxOptions: 1,
+        allowRevote: false,
+        publicVotes: false,
       })
 
       await expect(

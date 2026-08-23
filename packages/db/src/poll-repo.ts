@@ -1,11 +1,16 @@
-import { sql } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 
-import type {
-  NewPoll,
-  Poll,
-  PollRepository,
-  ThreadRating,
-  ThreadRatingRepository,
+import {
+  POLL_CHOICES_UNLIMITED,
+  POLL_VOTERS_SHOWN_MAX,
+  type Poll,
+  type PollEditPlan,
+  type PollRepository,
+  type PollVote,
+  type PollVoter,
+  type ThreadRating,
+  type ThreadRatingRepository,
+  type ValidatedPoll,
 } from '@meith/polls'
 
 import type { Database } from './client'
@@ -15,15 +20,23 @@ function date(value: Date | string | null): Date | null {
   return value === null ? null : value instanceof Date ? value : new Date(value)
 }
 
+function ids(values: readonly number[]): SQL {
+  return sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `,
+  )
+}
+
 export class PostgresPollRepository implements PollRepository, ThreadRatingRepository {
   constructor(private readonly db: Database) {}
 
-  async create(threadId: number, poll: NewPoll): Promise<void> {
+  async create(threadId: number, poll: ValidatedPoll): Promise<void> {
     await this.db.transaction(async (tx) => {
       const rows = resultRows(
         await tx.execute(sql`
-          insert into polls (thread_id, question, closes_at)
-          values (${threadId}, ${poll.question}, ${poll.closesAt}) returning id
+          insert into polls (thread_id, question, closes_at, max_options, allow_revote, public_votes)
+          values (${threadId}, ${poll.question}, ${poll.closesAt}, ${poll.maxOptions},
+                  ${poll.allowRevote}, ${poll.publicVotes}) returning id
         `),
       ) as Array<{ id: number }>
       const id = rows[0]?.id
@@ -41,17 +54,22 @@ export class PostgresPollRepository implements PollRepository, ThreadRatingRepos
   async find(threadId: number, voterUserId: number | null): Promise<Poll | null> {
     const polls = resultRows(
       await this.db.execute(sql`
-        select id, question, closes_at from polls where thread_id = ${threadId}
+        select id, question, closes_at, created_at, max_options, allow_revote, public_votes
+          from polls where thread_id = ${threadId}
       `),
     ) as Array<{
       id: number
       question: string
       closes_at: Date | string | null
+      created_at: Date | string
+      max_options: number
+      allow_revote: boolean
+      public_votes: boolean
     }>
     const poll = polls[0]
     if (poll === undefined) return null
 
-    const [options, votes] = await Promise.all([
+    const [options, votes, voters] = await Promise.all([
       this.db.execute(sql`
         select id, label, vote_count from poll_options
          where poll_id = ${poll.id} order by display_order, id
@@ -59,15 +77,23 @@ export class PostgresPollRepository implements PollRepository, ThreadRatingRepos
       voterUserId === null
         ? Promise.resolve([])
         : this.db.execute(sql`
-            select option_id from poll_votes where poll_id = ${poll.id} and user_id = ${voterUserId}
+            select option_id from poll_votes
+             where poll_id = ${poll.id} and user_id = ${voterUserId}
           `),
+      poll.public_votes ? this.voters(Number(poll.id)) : Promise.resolve(new Map()),
     ])
     const voteRows = resultRows(votes) as Array<{ option_id: number }>
+    const byOption = voters as Map<number, PollVoter[]>
+
     return {
       id: Number(poll.id),
       threadId,
       question: poll.question,
       closesAt: date(poll.closes_at),
+      createdAt: date(poll.created_at) ?? new Date(0),
+      maxOptions: Number(poll.max_options),
+      allowRevote: poll.allow_revote === true,
+      publicVotes: poll.public_votes === true,
       options: (
         resultRows(options) as Array<{
           id: number
@@ -78,35 +104,173 @@ export class PostgresPollRepository implements PollRepository, ThreadRatingRepos
         id: Number(row.id),
         label: row.label,
         votes: Number(row.vote_count),
+        voters: byOption.get(Number(row.id)) ?? [],
       })),
-      votedOptionId: voteRows[0] === undefined ? null : Number(voteRows[0].option_id),
+      votedOptionIds: voteRows.map((row) => Number(row.option_id)),
     }
   }
 
-  async vote(input: {
-    readonly threadId: number
-    readonly pollId: number
-    readonly optionId: number
-    readonly userId: number
-  }): Promise<boolean> {
+  private async voters(pollId: number): Promise<Map<number, PollVoter[]>> {
     const rows = resultRows(
       await this.db.execute(sql`
-        with vote as (
-          insert into poll_votes (poll_id, user_id, option_id)
-          select p.id, ${input.userId}, o.id
-            from polls p join poll_options o on o.poll_id = p.id
-           where p.id = ${input.pollId} and p.thread_id = ${input.threadId}
-             and o.id = ${input.optionId}
-             and (p.closes_at is null or p.closes_at > now())
-          on conflict (poll_id, user_id) do nothing
-          returning poll_id, option_id
-        )
-        update poll_options o set vote_count = o.vote_count + 1
-          from vote where o.poll_id = vote.poll_id and o.id = vote.option_id
-        returning o.id
+        select o.id as option_id, v.user_id, u.username, v.created_at
+          from poll_options o
+          join lateral (
+            select pv.user_id, pv.created_at from poll_votes pv
+             where pv.poll_id = o.poll_id and pv.option_id = o.id
+             order by pv.created_at, pv.user_id limit ${POLL_VOTERS_SHOWN_MAX}
+          ) v on true
+          join users u on u.id = v.user_id
+         where o.poll_id = ${pollId}
+         order by o.display_order, o.id, v.created_at, v.user_id
       `),
-    )
-    return rows.length === 1
+    ) as Array<{
+      option_id: number
+      user_id: number
+      username: string
+      created_at: Date | string | null
+    }>
+
+    const byOption = new Map<number, PollVoter[]>()
+    for (const row of rows) {
+      const optionId = Number(row.option_id)
+      const list = byOption.get(optionId) ?? []
+      list.push({
+        userId: Number(row.user_id),
+        username: row.username,
+        votedAt: date(row.created_at),
+      })
+      byOption.set(optionId, list)
+    }
+    return byOption
+  }
+
+  async vote(input: PollVote): Promise<boolean> {
+    const wanted = [...new Set(input.optionIds)]
+    if (wanted.length === 0) return false
+
+    return this.db.transaction(async (tx) => {
+      const polls = resultRows(
+        await tx.execute(sql`
+          select id, max_options, allow_revote from polls
+           where id = ${input.pollId} and thread_id = ${input.threadId}
+             and (closes_at is null or closes_at > now())
+           for update
+        `),
+      ) as Array<{ id: number; max_options: number; allow_revote: boolean }>
+      const poll = polls[0]
+      if (poll === undefined) return false
+
+      const maxOptions = Number(poll.max_options)
+      if (maxOptions !== POLL_CHOICES_UNLIMITED && wanted.length > maxOptions) return false
+
+      const chosen = resultRows(
+        await tx.execute(sql`
+          select id from poll_options
+           where poll_id = ${poll.id} and id in (${ids(wanted)})
+        `),
+      )
+      if (chosen.length !== wanted.length) return false
+
+      const previous = resultRows(
+        await tx.execute(sql`
+          select option_id from poll_votes
+           where poll_id = ${poll.id} and user_id = ${input.userId}
+        `),
+      ) as Array<{ option_id: number }>
+
+      if (previous.length > 0) {
+        if (poll.allow_revote !== true) return false
+        await tx.execute(sql`
+          delete from poll_votes where poll_id = ${poll.id} and user_id = ${input.userId}
+        `)
+        await tx.execute(sql`
+          update poll_options set vote_count = greatest(0, vote_count - 1)
+           where poll_id = ${poll.id}
+             and id in (${ids(previous.map((row) => Number(row.option_id)))})
+        `)
+      }
+
+      await tx.execute(sql`
+        insert into poll_votes (poll_id, user_id, option_id)
+        values ${sql.join(
+          wanted.map((optionId) => sql`(${poll.id}, ${input.userId}, ${optionId})`),
+          sql`, `,
+        )}
+      `)
+      await tx.execute(sql`
+        update poll_options set vote_count = vote_count + 1
+         where poll_id = ${poll.id} and id in (${ids(wanted)})
+      `)
+      return true
+    })
+  }
+
+  async applyEdit(plan: PollEditPlan): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const polls = resultRows(
+        await tx.execute(sql`
+          select id, public_votes from polls where id = ${plan.pollId} for update
+        `),
+      ) as Array<{ id: number; public_votes: boolean }>
+      const poll = polls[0]
+      if (poll === undefined) return false
+
+      const kept = plan.options.map((option) => option.id).filter((id): id is number => id !== null)
+      const known = resultRows(
+        await tx.execute(sql`
+          select id from poll_options where poll_id = ${poll.id}
+        `),
+      ) as Array<{ id: number }>
+      const existing = new Set(known.map((row) => Number(row.id)))
+      if (kept.some((id) => !existing.has(id))) return false
+
+      const cast = resultRows(
+        await tx.execute(sql`
+          select option_id from poll_votes where poll_id = ${poll.id}
+        `),
+      ) as Array<{ option_id: number }>
+
+      const removed = [...existing].filter((id) => !kept.includes(id))
+      if (removed.some((id) => cast.some((row) => Number(row.option_id) === id))) return false
+      if (plan.publicVotes && poll.public_votes !== true && cast.length > 0) return false
+
+      if (removed.length > 0) {
+        await tx.execute(sql`
+          delete from poll_options where poll_id = ${poll.id} and id in (${ids(removed)})
+        `)
+      }
+
+      if (kept.length > 0) {
+        await tx.execute(sql`
+          update poll_options set display_order = -1 - display_order where poll_id = ${poll.id}
+        `)
+      }
+
+      let order = 0
+      for (const option of plan.options) {
+        if (option.id === null) {
+          await tx.execute(sql`
+            insert into poll_options (poll_id, label, display_order)
+            values (${poll.id}, ${option.label}, ${order})
+          `)
+        } else {
+          await tx.execute(sql`
+            update poll_options set label = ${option.label}, display_order = ${order}
+             where poll_id = ${poll.id} and id = ${option.id}
+          `)
+        }
+        order += 1
+      }
+
+      await tx.execute(sql`
+        update polls set question = ${plan.question}, closes_at = ${plan.closesAt},
+                         max_options = ${plan.maxOptions}, allow_revote = ${plan.allowRevote},
+                         public_votes = ${plan.publicVotes}
+         where id = ${poll.id}
+      `)
+      return true
+    })
   }
 
   async rate(input: {

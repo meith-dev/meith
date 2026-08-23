@@ -58,7 +58,15 @@ export interface SubmitThreadInput {
   readonly message: string
   readonly prefixId?: number | null
   readonly subscribe?: boolean
-  readonly poll?: { readonly question: string; readonly options: readonly string[] } | undefined
+  readonly poll?:
+    | {
+        readonly question: string
+        readonly options: readonly string[]
+        readonly maxOptions?: number
+        readonly allowRevote?: boolean
+        readonly publicVotes?: boolean
+      }
+    | undefined
 }
 
 export async function submitThread(
@@ -122,7 +130,20 @@ export async function submitThread(
       requiresApproval: scope.forum.requiresThreadApproval === true,
       ...(input.poll === undefined
         ? {}
-        : { poll: { question: input.poll.question, options: input.poll.options, closesAt: null } }),
+        : {
+            poll: {
+              question: input.poll.question,
+              options: input.poll.options,
+              closesAt: null,
+              ...(input.poll.maxOptions === undefined ? {} : { maxOptions: input.poll.maxOptions }),
+              ...(input.poll.allowRevote === undefined
+                ? {}
+                : { allowRevote: input.poll.allowRevote }),
+              ...(input.poll.publicVotes === undefined
+                ? {}
+                : { publicVotes: input.poll.publicVotes }),
+            },
+          }),
       mayPostPoll: authorizer.can(actor, 'poll.post', target),
       bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', target),
       bypassesFlood: authorizer.can(actor, 'flood.bypass'),

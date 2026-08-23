@@ -29,6 +29,7 @@ import { moderatorTargetFor } from '@/server/modcp'
 import { cspNonce } from '@/server/nonce'
 import { pageMetadata } from '@/server/page-metadata'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
+import { resolvePollScope } from '@/server/poll-scope'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
 import { reputationSettings, thanksForPosts } from '@/server/reputation'
@@ -511,6 +512,7 @@ export default async function ThreadPage({
     polls !== null &&
     actor.userId !== null &&
     authorizer.can(actor, 'poll.vote', { forumId: forum.id, forum: matrix })
+  const pollScope = poll === null ? null : await resolvePollScope(actor, thread.id)
   const ratingsEnabled = (await getSettings()).get('posting.thread_ratings_enabled')
   const rating = polls === null ? null : await polls.findRating(thread.id, actor.userId)
   const canRateThread =
@@ -592,7 +594,14 @@ export default async function ThreadPage({
             />
           </ThreadToolsForm>
         )}
-        {poll !== null && <PollForm poll={poll} threadId={thread.id} canVote={canVotePoll} />}
+        {poll !== null && (
+          <PollForm
+            poll={poll}
+            threadId={thread.id}
+            canVote={canVotePoll}
+            editHref={pollScope?.mayEdit === true ? `/thread/${thread.id}/poll` : null}
+          />
+        )}
       </>
     )
 

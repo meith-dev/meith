@@ -223,7 +223,14 @@ describe('phpBB attachments', () => {
 })
 
 describe('phpBB polls', () => {
-  const topic = { topic_id: 7, poll_title: 'Q?', poll_start: NOW, poll_length: 0 }
+  const topic = {
+    topic_id: 7,
+    poll_title: 'Q?',
+    poll_start: NOW,
+    poll_length: 0,
+    poll_max_options: 1,
+    poll_vote_change: 0,
+  }
   const options = [
     { topic_id: 7, poll_option_id: 1, poll_option_text: 'A', poll_option_total: 2 },
     { topic_id: 7, poll_option_id: 2, poll_option_text: 'B', poll_option_total: 0 },
@@ -241,6 +248,20 @@ describe('phpBB polls', () => {
     expect(mapPhpbbPoll({ ...topic, poll_length: 60 }, options)?.closesAt).toEqual(
       new Date((NOW + 60) * 1000),
     )
+  })
+
+  it('carries the choice limit and re-voting across', () => {
+    expect(
+      mapPhpbbPoll({ ...topic, poll_max_options: 2, poll_vote_change: 1 }, options),
+    ).toMatchObject({ maxOptions: 2, allowRevote: true, publicVotes: false })
+  })
+
+  it('clamps a choice limit larger than the poll has options', () => {
+    expect(mapPhpbbPoll({ ...topic, poll_max_options: 9 }, options)?.maxOptions).toBe(2)
+  })
+
+  it('treats a missing choice limit as a single choice', () => {
+    expect(mapPhpbbPoll({ ...topic, poll_max_options: 0 }, options)?.maxOptions).toBe(1)
   })
 })
 
@@ -440,7 +461,16 @@ const BOARD: PhpbbTables = {
       thumbnail: 0,
     },
   ],
-  pollTopics: [{ topic_id: 1, poll_title: 'Q?', poll_start: NOW, poll_length: 0 }],
+  pollTopics: [
+    {
+      topic_id: 1,
+      poll_title: 'Q?',
+      poll_start: NOW,
+      poll_length: 0,
+      poll_max_options: 1,
+      poll_vote_change: 0,
+    },
+  ],
   pollOptions: [
     { topic_id: 1, poll_option_id: 1, poll_option_text: 'A', poll_option_total: 1 },
     { topic_id: 1, poll_option_id: 2, poll_option_text: 'B', poll_option_total: 0 },

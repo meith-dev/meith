@@ -95,6 +95,14 @@ function field(form: FormData, name: string): string {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+function pollChoiceLimit(form: FormData): number {
+  const raw = field(form, 'pollMaxOptions')
+  if (raw === '') return 1
+
+  const limit = Number(raw)
+  return Number.isSafeInteger(limit) && limit >= 0 ? limit : 1
+}
+
 const toFormState = formStateReporter('content-actions', 'unexpected error writing content')
 
 export interface ComposerAutosaveInput {
@@ -185,7 +193,13 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
       poll:
         pollQuestion === '' && pollOptions.every((option) => option.trim() === '')
           ? undefined
-          : { question: pollQuestion, options: pollOptions },
+          : {
+              question: pollQuestion,
+              options: pollOptions,
+              maxOptions: pollChoiceLimit(form),
+              allowRevote: checkbox(form, 'pollAllowRevote'),
+              publicVotes: checkbox(form, 'pollPublicVotes'),
+            },
     })
 
     const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })

@@ -193,6 +193,9 @@ export function mapPhpbbPoll(
     closesAt:
       topic.poll_length > 0 ? new Date((topic.poll_start + topic.poll_length) * 1000) : null,
     createdAt,
+    maxOptions: Math.min(Math.max(1, topic.poll_max_options), mapped.length),
+    allowRevote: topic.poll_vote_change > 0,
+    publicVotes: false,
   }
 }
 

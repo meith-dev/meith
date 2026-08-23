@@ -62,6 +62,10 @@ export interface DemoPoll {
    */
   readonly options: readonly { readonly label: string; readonly voters: readonly string[] }[]
   readonly closesInDays: number | null
+  /** How many options one member may pick: 1 for a single choice, 0 for no limit. */
+  readonly maxOptions?: number
+  readonly allowRevote?: boolean
+  readonly publicVotes?: boolean
 }
 
 export interface DemoThread {

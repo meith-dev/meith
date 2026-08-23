@@ -126,6 +126,28 @@ export function NewThreadForm({
               maxLength={200}
             />
           ))}
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">{fromCopy(copy, 'composer.newThread.pollChoices')}</span>
+            <input
+              type="number"
+              name="pollMaxOptions"
+              min={0}
+              step={1}
+              defaultValue="1"
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+            <span className="text-xs text-muted-foreground">
+              {fromCopy(copy, 'composer.newThread.pollChoicesHint')}
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="pollAllowRevote" value="1" className="size-4" />
+            <span>{fromCopy(copy, 'composer.newThread.pollRevote')}</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="pollPublicVotes" value="1" className="size-4" />
+            <span>{fromCopy(copy, 'composer.newThread.pollPublic')}</span>
+          </label>
         </Disclosure>
       )}
 

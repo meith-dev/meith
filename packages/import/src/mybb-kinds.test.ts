@@ -86,6 +86,8 @@ describe('polls', () => {
     options: 'Red||~|~||Green||~|~||Blue',
     votes: '3||~|~||1||~|~||0',
     timeout: 0,
+    multiple: 0,
+    public: 0,
   }
 
   it('splits options on the MyBB separator, in order', () => {
@@ -104,6 +106,21 @@ describe('polls', () => {
 
   it('drops a poll with no usable options', () => {
     expect(mapPoll({ ...row, options: ' ' })).toBeNull()
+  })
+
+  it('reads a single-choice poll as one choice with private votes', () => {
+    expect(mapPoll(row)).toMatchObject({
+      maxOptions: 1,
+      allowRevote: false,
+      publicVotes: false,
+    })
+  })
+
+  it('reads a multiple-choice poll as unlimited, and a public one as public', () => {
+    expect(mapPoll({ ...row, multiple: 1, public: 1 })).toMatchObject({
+      maxOptions: 0,
+      publicVotes: true,
+    })
   })
 
   it('keeps a vote pointing at its option by position', () => {
@@ -274,6 +291,8 @@ const BOARD: MybbTables = {
       options: 'A||~|~||B',
       votes: '1||~|~||0',
       timeout: 0,
+      multiple: 0,
+      public: 0,
     },
   ],
   pollVotes: [{ vid: 1, pid: 1, uid: 1, voteoption: 1, dateline: NOW }],

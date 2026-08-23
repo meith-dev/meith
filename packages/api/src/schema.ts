@@ -112,6 +112,7 @@ export const COMPONENT_NAMES = [
   'Participant',
   'Poll',
   'PollOption',
+  'PollVoter',
   'Post',
   'SearchHit',
   'Subscription',
@@ -235,8 +236,14 @@ export const COMPONENTS: Readonly<Record<ComponentName, ObjectSchema>> = {
       threadId: integer('The thread the poll is attached to.'),
       question: text('What the poll asks.'),
       closesAt: timestamp('When voting closes, or `null` if it does not.', true),
+      maxOptions: integer('How many options one member may pick. 0 means no limit.'),
+      allowRevote: boolean('Whether a member may change their vote.'),
+      publicVotes: boolean('Whether the voters are named on each option.'),
       options: list(ref('PollOption'), 'What may be voted for.'),
-      votedOptionId: integer('What the caller voted for, or `null`.', { nullable: true }),
+      votedOptionId: integer('The first option the caller voted for, or `null`.', {
+        nullable: true,
+      }),
+      votedOptionIds: list(integer('An option the caller voted for.'), 'Everything they picked.'),
     },
     undefined,
     'A thread’s poll.',
@@ -247,9 +254,20 @@ export const COMPONENTS: Readonly<Record<ComponentName, ObjectSchema>> = {
       id: integer('The option’s id. Vote with this.'),
       label: text('The option as it is shown.'),
       votes: integer('How many votes it has.'),
+      voters: list(ref('PollVoter'), 'Who voted for it, on a poll with public votes.'),
     },
     undefined,
     'One option on a poll.',
+  ),
+
+  PollVoter: object(
+    {
+      userId: integer('Who voted.'),
+      username: text('Their name.'),
+      votedAt: timestamp('When they voted, or `null` if the board did not record it.', true),
+    },
+    undefined,
+    'One named voter on a poll that makes its votes public.',
   ),
 
   Post: object(

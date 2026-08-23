@@ -10,7 +10,7 @@
   disagree.
 -->
 
-20 endpoints, 13 scopes. Base path: `/api/v1`.
+21 endpoints, 13 scopes. Base path: `/api/v1`.
 
 The machine-readable form of everything below — request and response schemas,
 parameters, status codes, scopes and rate-limit costs — is the OpenAPI 3 document
@@ -38,7 +38,7 @@ telling a caller "expired" confirms the token was real.
 
 ## Reading without a token
 
-7 of the 20 endpoints answer an unauthenticated request. They are all reads,
+7 of the 21 endpoints answer an unauthenticated request. They are all reads,
 and they resolve as **the board’s guest** — the same actor a logged-out browser
 gets — through the same Authorizer and the same visibility filter as every other
 request. A forum a guest may not see is not in `GET /forums` for them, its threads
@@ -147,6 +147,7 @@ table is the map.
 | `GET` | `/messages/{messageId}` | `messages:read` | 1 | required | One private message the caller is on. Opening it marks it read and, if the sender asked for a receipt, tells them. |
 | `GET` | `/threads/{threadId}/poll` | `threads:read` | 1 | optional | A thread’s poll, with the running totals and the caller’s own vote. |
 | `POST` | `/polls/{pollId}/votes` | `polls:write` | 5 | required | Vote in a thread’s poll. |
+| `PATCH` | `/polls/{pollId}` | `polls:write` | 5 | required | Edit a poll the caller wrote, or any poll they moderate. |
 | `GET` | `/subscriptions` | `subscriptions:read` | 1 | required | Everything the caller follows, filtered to forums they may still see. |
 | `POST` | `/subscriptions` | `subscriptions:write` | 2 | required | Follow a thread or a forum. |
 | `DELETE` | `/subscriptions/{target}/{targetId}` | `subscriptions:write` | 2 | required | Stop following a thread or a forum. |

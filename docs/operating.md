@@ -174,7 +174,7 @@ IMPORT_SOURCE_PASSWORD=… community import --source phpbb --host db.old --user 
 | Attachments | yes | yes (post attachments; PM attachments are not) |
 | Avatars | uploaded and gallery; remote URLs are not | uploaded and gallery; remote URLs are not |
 | Thread and forum subscriptions | yes | yes |
-| Polls, options and votes | yes (one vote per member — extra multiple-choice votes are skipped) | yes (same single-vote limit) |
+| Polls, options and votes | yes, every vote in a multiple-choice poll included; `multiple` arrives as an unlimited choice count and `public` as a public voter list | yes, including `poll_max_options` as the choice count and `poll_vote_change` as re-voting |
 | Reputation, with recomputed totals | yes | phpBB has none |
 | Warnings, with recomputed points | yes, including expiry and revocation | minimal — phpBB stores no points, titles or expiry |
 | Bans | yes (member moved to the banned group; expired bans lift on the next `bans.expire` run) | user bans; e-mail and IP bans are not |

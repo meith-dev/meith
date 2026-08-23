@@ -31,6 +31,7 @@ deliberately leaves behind.
 - [Spam](#spam)
 - [Announcements](#announcements)
 - [Editing and deleting](#editing-and-deleting)
+- [Polls](#polls)
 - [Moderation](#moderation)
 - [Warnings](#warnings)
 - [The moderator log](#the-moderator-log)
@@ -334,6 +335,68 @@ group and an unlimited group gets unlimited.
 edit window is an *allowance*, so MAX is the right rule and no special
 case is needed — unlike the flood interval above, where minimum-wins
 genuinely is correct and the field was therefore modelled as a setting.
+
+---
+
+## Polls
+
+### Making a poll's voters public after voting has started
+
+**MyBB** stores `public` on the poll and an administrator may switch it on
+at any point, including on a poll that has been running for a month. Every
+vote already cast becomes attributable.
+
+**Meith** carries the same flag, and the same import, but refuses to turn
+it on once the first vote is in. It may be switched **off** at any time,
+and a poll created with public votes says so above the options before
+anybody picks one.
+
+**Why.** A public voter list is a disclosure a member consents to when
+they vote, and consent given to a secret ballot cannot be reinterpreted
+afterwards. Making the flag one-way in the risky direction is the only
+version of the feature that does not turn a past vote into something the
+voter did not agree to.
+
+**Cost.** A board that meant to run a public poll and forgot to tick the
+box cannot fix it in place once voting starts. The poll has to be closed
+and re-run.
+
+### A multiple-choice poll carries a maximum, not a flag
+
+**MyBB** models multiple choice as the boolean `multiple`: a member either
+picks one option or picks as many as they like.
+
+**Meith** stores a number — 1 for a single choice, N for up to N, and 0
+for no limit — so "pick your top three" is expressible. A MyBB poll with
+`multiple` set imports as 0, which is exactly what it meant.
+
+**Why.** The two useful polls MyBB cannot express are both caps, and the
+boolean is the degenerate case of the number rather than a separate idea.
+phpBB already stores `poll_max_options`, so the number is also what the
+other importer needs.
+
+**Cost.** None on import in either direction.
+
+### Who may edit a poll, and what they may change
+
+**MyBB** has a `canmanagepolls` moderator right and lets the poll's author
+edit it inside the forum's edit window.
+
+**Meith** drops the separate right — it granted nothing, as
+[Upgrading](./upgrading.md) records — and authorises a poll edit exactly
+as it authorises editing the thread's opening post: the author inside the
+forum's edit window, and anybody who may edit others' posts at any time.
+Options may be added while a poll is running, and an option that already
+has votes cannot be removed.
+
+**Why.** A poll is part of the post it was attached to, so a second
+permission for it is a second thing to get wrong. Refusing to remove a
+voted-for option keeps the running totals meaning what they said they
+meant; adding options is safe because it cannot change a vote already
+cast.
+
+**Cost.** A board that gave a moderator poll rights without post-editing
+rights has to grant the post-editing right instead.
 
 ---
 

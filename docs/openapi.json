@@ -2005,12 +2005,19 @@
                   },
                   "optionId": {
                     "type": "integer",
-                    "description": "The option being voted for."
+                    "description": "One option being voted for. Use `optionIds` for a multi-choice poll."
+                  },
+                  "optionIds": {
+                    "type": "array",
+                    "description": "Every option being voted for, up to the poll’s `maxOptions`.",
+                    "items": {
+                      "type": "integer",
+                      "description": "An option being voted for."
+                    }
                   }
                 },
                 "required": [
-                  "threadId",
-                  "optionId"
+                  "threadId"
                 ],
                 "additionalProperties": false
               }
@@ -2037,6 +2044,184 @@
                         "pollId"
                       ],
                       "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or the token is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope, or its owner lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The board refused the contents by its own posting rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over the window budget, or over the board’s own anti-flood limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The board is offline and this caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/polls/{pollId}": {
+      "patch": {
+        "operationId": "patchPollsByPollId",
+        "summary": "Edit a poll the caller wrote, or any poll they moderate.",
+        "tags": [
+          "polls"
+        ],
+        "security": [
+          {
+            "bearerToken": [
+              "polls:write"
+            ]
+          }
+        ],
+        "x-scope": "polls:write",
+        "x-rate-limit-cost": 5,
+        "parameters": [
+          {
+            "name": "pollId",
+            "in": "path",
+            "required": true,
+            "description": "The poll to edit.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "threadId": {
+                    "type": "integer",
+                    "description": "The thread the poll is attached to."
+                  },
+                  "question": {
+                    "type": "string",
+                    "description": "What the poll asks."
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "The options the poll should end up with, in order. Omitting one removes it.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The option to keep, or omit to add a new one."
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "The option as it is shown."
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "closesAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "When voting closes, or `null` if it does not.",
+                    "format": "date-time"
+                  },
+                  "maxOptions": {
+                    "type": "integer",
+                    "description": "How many options one member may pick. 0 means no limit."
+                  },
+                  "allowRevote": {
+                    "type": "boolean",
+                    "description": "Whether a member may change their vote."
+                  },
+                  "publicVotes": {
+                    "type": "boolean",
+                    "description": "Whether the voters are named on each option."
+                  }
+                },
+                "required": [
+                  "threadId",
+                  "question",
+                  "options"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Edit a poll the caller wrote, or any poll they moderate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Poll"
                     }
                   },
                   "required": [
@@ -3130,6 +3315,18 @@
             "description": "When voting closes, or `null` if it does not.",
             "format": "date-time"
           },
+          "maxOptions": {
+            "type": "integer",
+            "description": "How many options one member may pick. 0 means no limit."
+          },
+          "allowRevote": {
+            "type": "boolean",
+            "description": "Whether a member may change their vote."
+          },
+          "publicVotes": {
+            "type": "boolean",
+            "description": "Whether the voters are named on each option."
+          },
           "options": {
             "type": "array",
             "description": "What may be voted for.",
@@ -3142,7 +3339,15 @@
               "integer",
               "null"
             ],
-            "description": "What the caller voted for, or `null`."
+            "description": "The first option the caller voted for, or `null`."
+          },
+          "votedOptionIds": {
+            "type": "array",
+            "description": "Everything they picked.",
+            "items": {
+              "type": "integer",
+              "description": "An option the caller voted for."
+            }
           }
         },
         "required": [
@@ -3150,8 +3355,12 @@
           "threadId",
           "question",
           "closesAt",
+          "maxOptions",
+          "allowRevote",
+          "publicVotes",
           "options",
-          "votedOptionId"
+          "votedOptionId",
+          "votedOptionIds"
         ],
         "additionalProperties": false
       },
@@ -3170,12 +3379,48 @@
           "votes": {
             "type": "integer",
             "description": "How many votes it has."
+          },
+          "voters": {
+            "type": "array",
+            "description": "Who voted for it, on a poll with public votes.",
+            "items": {
+              "$ref": "#/components/schemas/PollVoter"
+            }
           }
         },
         "required": [
           "id",
           "label",
-          "votes"
+          "votes",
+          "voters"
+        ],
+        "additionalProperties": false
+      },
+      "PollVoter": {
+        "type": "object",
+        "description": "One named voter on a poll that makes its votes public.",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "Who voted."
+          },
+          "username": {
+            "type": "string",
+            "description": "Their name."
+          },
+          "votedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When they voted, or `null` if the board did not record it.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userId",
+          "username",
+          "votedAt"
         ],
         "additionalProperties": false
       },
@@ -3457,7 +3702,8 @@
       "POST /messages"
     ],
     "polls:write": [
-      "POST /polls/:pollId/votes"
+      "POST /polls/:pollId/votes",
+      "PATCH /polls/:pollId"
     ],
     "reputation:write": [
       "POST /members/:userId/reputation"

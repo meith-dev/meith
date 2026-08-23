@@ -533,6 +533,9 @@ async function seedPolls(
       question: poll.question,
       options: poll.options.map((option) => option.label),
       closesAt: poll.closesInDays === null ? null : daysAfter(new Date(), poll.closesInDays),
+      maxOptions: poll.maxOptions ?? 1,
+      allowRevote: poll.allowRevote ?? false,
+      publicVotes: poll.publicVotes ?? false,
     })
 
     const found = await polls.find(entry.threadId, null)
@@ -546,7 +549,7 @@ async function seedPolls(
         await polls.vote({
           threadId: entry.threadId,
           pollId: found.id,
-          optionId,
+          optionIds: [optionId],
           userId: requireUser(userIds, voter).id,
         })
       }
