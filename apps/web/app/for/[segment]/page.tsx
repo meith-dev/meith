@@ -182,7 +182,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             <Link className="textlink text-micro" href="/">
               What Meith is, in five hundred words
             </Link>
-            <Link className="textlink text-micro" href={docHref('mybb-parity')}>
+            <Link className="textlink text-micro" href={docHref('migrating')}>
               {origin.link}
             </Link>
           </div>

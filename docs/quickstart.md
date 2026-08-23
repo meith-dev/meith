@@ -368,5 +368,5 @@ people doing those jobs.
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |
 | Change how it looks | [The theme API](./theme-api.md) |
 | Add behaviour | [The plugin API](./plugin-api.md) |
-| Move a MyBB forum here | [MyBB parity decisions](./mybb-parity.md) |
+| Move a MyBB or phpBB forum here | [Migrating from MyBB or phpBB](./migrating.md) |
 | Work on Meith itself | [Development](./development.md) |

@@ -38,7 +38,7 @@ export const origin = {
     'There is no clean way out of a Facebook group, a Discord server or a Slack. Most ' +
     'communities start fresh, run both for a season, and move what was worth keeping. A MyBB ' +
     'board imports whole.',
-  link: 'What moving involves',
+  link: 'How the move works',
 } as const
 
 export const segments: readonly [Segment, ...Segment[]] = [
