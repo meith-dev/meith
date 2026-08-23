@@ -46,6 +46,7 @@ These guides use the browser interface; they do not require shell access.
 - [Theme slot reference](./theme-slots.md) — generated slot and view-model reference.
 - [Plugin API](./plugin-api.md) — plugin boundaries, lifecycle, and packaging.
 - [Plugin hook reference](./plugin-hooks.md) — generated hook and payload reference.
+- [The marketplace](./marketplace.md) — the curated feed of plugins and themes, the listing-by-PR process, and the review bar.
 - [REST API v1](./rest-api.md) — generated routes, scopes, request bodies, and responses.
 - `openapi.json` — machine-readable OpenAPI document generated alongside the REST reference.
 

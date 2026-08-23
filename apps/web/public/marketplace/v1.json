@@ -1,0 +1,95 @@
+{
+  "schema": "https://www.meith.dev/marketplace/v1.json#/schema",
+  "listings": [
+    {
+      "key": "clubhouse",
+      "kind": "theme",
+      "package": "@meith/theme-clubhouse",
+      "name": "Clubhouse",
+      "description": "A sports club theme for Meith — GAA, soccer, basketball — painted from the club's own two colours.",
+      "screenshots": [
+        "/marketplace/screenshots/clubhouse-light.png"
+      ],
+      "version": "0.16.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "LGPL-3.0-or-later"
+    },
+    {
+      "key": "default",
+      "kind": "theme",
+      "package": "@meith/theme-default",
+      "name": "Default",
+      "description": "Meith's default theme — every slot and every token, and the reference for what a complete theme fills.",
+      "screenshots": [
+        "/marketplace/screenshots/default-light.png"
+      ],
+      "version": "0.16.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "LGPL-3.0-or-later"
+    },
+    {
+      "key": "dues",
+      "kind": "plugin",
+      "package": "@meith/plugin-dues",
+      "name": "Dues",
+      "description": "Paid memberships through Stripe.",
+      "screenshots": [
+        "/marketplace/screenshots/dues-light.png"
+      ],
+      "version": "0.16.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "LGPL-3.0-or-later"
+    },
+    {
+      "key": "midnight",
+      "kind": "theme",
+      "package": "@meith/theme-midnight",
+      "name": "Midnight",
+      "description": "A dark theme for Meith, built on the default theme's slots.",
+      "screenshots": [
+        "/marketplace/screenshots/midnight-light.png"
+      ],
+      "version": "0.16.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "LGPL-3.0-or-later"
+    },
+    {
+      "key": "phasebook",
+      "kind": "theme",
+      "package": "@meith/theme-phasebook",
+      "name": "Phasebook",
+      "description": "A theme for Meith with a familiar social shape, built on the default theme's slots.",
+      "screenshots": [
+        "/marketplace/screenshots/phasebook-light.png"
+      ],
+      "version": "0.16.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "LGPL-3.0-or-later"
+    },
+    {
+      "key": "raidframe",
+      "kind": "theme",
+      "package": "@meith/theme-raidframe",
+      "name": "Raidframe",
+      "description": "A gaming theme for Meith — guild, raid and match boards — built on the default theme's slots.",
+      "screenshots": [
+        "/marketplace/screenshots/raidframe-light.png"
+      ],
+      "version": "0.16.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "LGPL-3.0-or-later"
+    }
+  ]
+}

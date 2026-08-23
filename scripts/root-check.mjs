@@ -15,6 +15,10 @@ const ALLOWED = new Map([
   ['docs', 'the documentation set — docs/README.md is its index'],
   ['e2e', 'the browser suite, rooted by playwright.config.ts'],
   ['examples', 'workspace — reference code to copy'],
+  [
+    'marketplace',
+    'curated listings source: schema, listing JSON and screenshots — pnpm marketplace:gen publishes them',
+  ],
   ['packages', 'workspace'],
   ['plugins', 'workspace'],
   ['scripts', 'the invariant checks and generators'],

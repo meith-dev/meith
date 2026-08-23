@@ -234,6 +234,15 @@
       "primary": false
     },
     {
+      "slug": "marketplace",
+      "file": "marketplace.md",
+      "section": "extending",
+      "title": "The marketplace",
+      "blurb": "The curated, reviewed feed of plugins and themes: the listing schema, the review bar, the trust it does and does not extend, and how to submit or remove one.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "rest-api",
       "file": "rest-api.md",
       "section": "extending",
