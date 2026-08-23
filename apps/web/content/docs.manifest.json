@@ -261,6 +261,15 @@
       "primary": false
     },
     {
+      "slug": "phpbb-parity",
+      "file": "phpbb-parity.md",
+      "section": "migrating",
+      "title": "phpBB parity decisions",
+      "blurb": "Where a Meith board imported from phpBB behaves differently from the one it came from — the ACL, warnings, bans, announcements and polls, and a couple of places phpBB's own model already matches Meith's.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "development",
       "file": "development.md",
       "section": "development",

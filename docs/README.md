@@ -51,7 +51,7 @@ These guides use the browser interface; they do not require shell access.
 
 ## Migrate from MyBB or phpBB
 
-The importer moves members, content, private messages, attachments, avatars, subscriptions, polls, reputation, warnings, bans and buddy lists from MyBB or phpBB, with working passwords and redirects from the old URLs. [Migrating from MyBB or phpBB](./migrating.md) is the full procedure, with the per-source coverage table and what to do after it finishes. Moving from MyBB, also read [MyBB parity decisions](./mybb-parity.md) — it lists intentional product differences.
+The importer moves members, content, private messages, attachments, avatars, subscriptions, polls, reputation, warnings, bans and buddy lists from MyBB or phpBB, with working passwords and redirects from the old URLs. [Migrating from MyBB or phpBB](./migrating.md) is the full procedure, with the per-source coverage table and what to do after it finishes. Also read [MyBB parity decisions](./mybb-parity.md) or [phpBB parity decisions](./phpbb-parity.md) — each lists intentional product differences from the board you are leaving.
 
 ## Contribute
 

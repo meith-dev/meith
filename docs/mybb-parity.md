@@ -8,7 +8,11 @@ like-for-like move.**
 > Looking for the procedure — the import command, what comes across, what
 > to do afterwards? That is [Migrating from MyBB or phpBB](./migrating.md).
 > This page is the reference for *why* an imported board will not feel
-> identical to the one it came from, not a step-by-step guide.
+> identical to the one it came from, not a step-by-step guide. Moving from
+> phpBB instead, most of this page still applies — it is a decision about
+> this board, not about MyBB specifically — but read
+> [phpBB parity decisions](./phpbb-parity.md) too, for the handful of
+> places where phpBB's own model needed a different answer.
 
 Each entry has the same four parts:
 
