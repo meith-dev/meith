@@ -92,3 +92,28 @@ export function bodyInteger(body: Record<string, unknown> | null, name: string):
   const value = body?.[name]
   return typeof value === 'number' && Number.isSafeInteger(value) ? value : null
 }
+
+export function bodyFlagOr(
+  body: Record<string, unknown> | null,
+  name: string,
+  fallback: boolean,
+): boolean {
+  const value = body?.[name]
+  return typeof value === 'boolean' ? value : fallback
+}
+
+export function bodyIdList(body: Record<string, unknown> | null, name: string): readonly number[] {
+  const value = body?.[name]
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (entry): entry is number =>
+      typeof entry === 'number' && Number.isSafeInteger(entry) && entry > 0,
+  )
+}
+
+export function bodyTime(body: Record<string, unknown> | null, name: string): Date | null {
+  const value = body?.[name]
+  if (typeof value !== 'string') return null
+  const at = new Date(value)
+  return Number.isNaN(at.getTime()) ? null : at
+}

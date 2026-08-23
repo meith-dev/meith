@@ -8,7 +8,7 @@ import {
   renderThrough,
   vocabularyOptions,
 } from '@meith/markdown'
-import type { NewPoll } from '@meith/polls'
+import type { ValidatedPoll } from '@meith/polls'
 import type {
   CreatedThread,
   ForumPostingTarget,
@@ -336,11 +336,12 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
   }
 }
 
-async function createPoll(tx: Database, threadId: number, poll: NewPoll): Promise<void> {
+async function createPoll(tx: Database, threadId: number, poll: ValidatedPoll): Promise<void> {
   const rows = resultRows(
     await tx.execute(sql`
-      insert into polls (thread_id, question, closes_at)
-      values (${threadId}, ${poll.question}, ${poll.closesAt}) returning id
+      insert into polls (thread_id, question, closes_at, max_options, allow_revote, public_votes)
+      values (${threadId}, ${poll.question}, ${poll.closesAt}, ${poll.maxOptions},
+              ${poll.allowRevote}, ${poll.publicVotes}) returning id
     `),
   ) as Array<{ id: number }>
   const pollId = rows[0]?.id

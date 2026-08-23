@@ -6,11 +6,12 @@ import { ForbiddenError, ValidationError } from '@meith/core'
 import { canHoldThreads } from '@meith/forums'
 import { msg } from '@meith/i18n'
 import { sourceAsMarkdown } from '@meith/markdown'
-import { PollService } from '@meith/polls'
+import { type Poll, PollService } from '@meith/polls'
 import type { ThreadCursor } from '@meith/threads'
 
 import { getContainer } from '../container'
 import { emitEvent, filterView, viewerRef } from '../plugin-view'
+import { resolvePollScope } from '../poll-scope'
 import { postEditor, resolvePostScope } from '../post-scope'
 import { resolveReplyTarget, submitReply } from '../reply-core'
 import { resolveThreadTarget, submitThread } from '../thread-core'
@@ -18,8 +19,12 @@ import {
   type ApiResult,
   type ApiRoutes,
   bodyFlag,
+  bodyFlagOr,
   bodyId,
+  bodyIdList,
+  bodyInteger,
   bodyText,
+  bodyTime,
   decodeCursor,
   encodeCursor,
   notFound,
@@ -51,6 +56,45 @@ async function threadScope(actor: Actor, threadId: number): Promise<ThreadScope 
     scope: authorizer.contentScope(actor, target),
     authors: authorizer.authorFilter(actor, target),
   }
+}
+
+function pollBody(poll: Poll): Record<string, unknown> {
+  return {
+    id: poll.id,
+    threadId: poll.threadId,
+    question: poll.question,
+    closesAt: poll.closesAt === null ? null : poll.closesAt.toISOString(),
+    maxOptions: poll.maxOptions,
+    allowRevote: poll.allowRevote,
+    publicVotes: poll.publicVotes,
+    options: poll.options.map((option) => ({
+      id: option.id,
+      label: option.label,
+      votes: option.votes,
+      voters: option.voters.map((voter) => ({
+        userId: voter.userId,
+        username: voter.username,
+        votedAt: voter.votedAt === null ? null : voter.votedAt.toISOString(),
+      })),
+    })),
+    votedOptionId: poll.votedOptionIds[0] ?? null,
+    votedOptionIds: poll.votedOptionIds,
+  }
+}
+
+function pollOptionsFrom(body: Record<string, unknown> | null): readonly {
+  id: number | null
+  label: string
+}[] {
+  const value = body?.options
+  if (!Array.isArray(value)) return []
+
+  return value.flatMap((entry) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const row = entry as Record<string, unknown>
+    const id = typeof row.id === 'number' && Number.isSafeInteger(row.id) ? row.id : null
+    return [{ id, label: typeof row.label === 'string' ? row.label : '' }]
+  })
 }
 
 function threadBody(row: {
@@ -214,23 +258,7 @@ export const CONTENT_HANDLERS: ApiRoutes = [
       const poll = await polls.find(threadId, actor.userId)
       if (poll === null) return notFound()
 
-      return {
-        status: 200,
-        body: {
-          data: {
-            id: poll.id,
-            threadId: poll.threadId,
-            question: poll.question,
-            closesAt: poll.closesAt === null ? null : poll.closesAt.toISOString(),
-            options: poll.options.map((option) => ({
-              id: option.id,
-              label: option.label,
-              votes: option.votes,
-            })),
-            votedOptionId: poll.votedOptionId,
-          },
-        },
-      }
+      return { status: 200, body: { data: pollBody(poll) } }
     },
   ],
 
@@ -240,36 +268,65 @@ export const CONTENT_HANDLERS: ApiRoutes = [
     async ({ actor, params, body }): Promise<ApiResult> => {
       const pollId = idParam(params.pollId)
       const threadId = bodyId(body, 'threadId')
-      const optionId = bodyId(body, 'optionId')
-      if (pollId === null || threadId === null || optionId === null) return notFound()
+      if (pollId === null || threadId === null) return notFound()
 
-      const { authorizer, forums, polls, threads } = getContainer()
+      const single = bodyId(body, 'optionId')
+      const optionIds = [...bodyIdList(body, 'optionIds'), ...(single === null ? [] : [single])]
+
+      const { polls } = getContainer()
       if (polls === null) return notFound()
 
-      const located = await threads.locate(threadId)
-      const forum = located === null ? null : await forums.findById(located.forumId)
-      if (located === null || forum === null || !canHoldThreads(forum.type)) {
-        throw new ValidationError(msg('error.app.poll-exist'))
-      }
-
-      const target = {
-        forumId: forum.id,
-        forum: await authorizer.forumMatrix(actor, forum.id),
-        threadAuthorId: located.authorUserId,
-      }
-      if (!authorizer.can(actor, 'thread.view', target)) {
-        throw new ValidationError(msg('error.app.poll-exist'))
-      }
+      const scope = await resolvePollScope(actor, threadId)
+      if (scope === null) throw new ValidationError(msg('error.app.poll-exist'))
 
       await new PollService(polls).vote({
         threadId,
         pollId,
-        optionId,
+        optionIds,
         userId: requireUserId(actor),
-        mayVote: authorizer.can(actor, 'poll.vote', target),
+        mayVote: scope.mayVote,
       })
 
       return { status: 201, body: { data: { pollId } } }
+    },
+  ],
+
+  [
+    'PATCH',
+    '/polls/:pollId',
+    async ({ actor, params, body }): Promise<ApiResult> => {
+      const pollId = idParam(params.pollId)
+      const threadId = bodyId(body, 'threadId')
+      if (pollId === null || threadId === null) return notFound()
+
+      const { polls } = getContainer()
+      if (polls === null) return notFound()
+
+      requireUserId(actor)
+      const scope = await resolvePollScope(actor, threadId)
+      if (scope === null) throw new ValidationError(msg('error.app.poll-exist'))
+
+      const current = await polls.find(threadId, null)
+      if (current === null) throw new ValidationError(msg('error.app.poll-exist'))
+
+      await new PollService(polls).edit({
+        threadId,
+        pollId,
+        edit: {
+          question: bodyText(body, 'question'),
+          options: pollOptionsFrom(body),
+          closesAt: bodyTime(body, 'closesAt'),
+          maxOptions: bodyInteger(body, 'maxOptions') ?? current.maxOptions,
+          allowRevote: bodyFlagOr(body, 'allowRevote', current.allowRevote),
+          publicVotes: bodyFlagOr(body, 'publicVotes', current.publicVotes),
+        },
+        capabilities: scope.capabilities,
+      })
+
+      const edited = await polls.find(threadId, actor.userId)
+      if (edited === null) throw new ValidationError(msg('error.app.poll-exist'))
+
+      return { status: 200, body: { data: pollBody(edited) } }
     },
   ],
 

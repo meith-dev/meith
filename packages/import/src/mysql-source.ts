@@ -245,7 +245,7 @@ export class MysqlMybbSource implements ImportSource {
   async polls(afterId: number, limit: number): Promise<Page<ImportedPoll>> {
     return mapPage(
       await this.#page<MybbPoll>(
-        `select pid, tid, question, dateline, options, votes, timeout
+        `select pid, tid, question, dateline, options, votes, timeout, multiple, public
            from \`${this.prefix}polls\``,
         'pid',
         (row) => row.pid,

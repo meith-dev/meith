@@ -84,6 +84,9 @@ interface ImportedPollRow {
   readonly options: readonly { order: number; label: string; voteCount: number }[]
   readonly closesAt: Date | null
   readonly createdAt: Date
+  readonly maxOptions: number
+  readonly allowRevote: boolean
+  readonly publicVotes: boolean
 }
 
 interface ImportedPollVoteRow {
@@ -742,12 +745,17 @@ export class PostgresImportSink {
 
       const result = resultRows<Written>(
         await this.db.execute(sql`
-          insert into polls (thread_id, question, closes_at, created_at, legacy_id)
-          values (${threadId}, ${row.question}, ${row.closesAt}, ${row.createdAt}, ${row.legacyId})
+          insert into polls (thread_id, question, closes_at, created_at, legacy_id,
+                             max_options, allow_revote, public_votes)
+          values (${threadId}, ${row.question}, ${row.closesAt}, ${row.createdAt}, ${row.legacyId},
+                  ${row.maxOptions}, ${row.allowRevote}, ${row.publicVotes})
           on conflict (legacy_id) where legacy_id is not null do update set
             thread_id = excluded.thread_id,
             question = excluded.question,
-            closes_at = excluded.closes_at
+            closes_at = excluded.closes_at,
+            max_options = excluded.max_options,
+            allow_revote = excluded.allow_revote,
+            public_votes = excluded.public_votes
           returning legacy_id, id as new_id, (xmax = 0) as inserted
         `),
       )
@@ -848,7 +856,7 @@ export class PostgresImportSink {
           ),
           sql`, `,
         )}
-        on conflict (poll_id, user_id) do nothing
+        on conflict (poll_id, user_id, option_id) do nothing
         returning poll_id
       `),
     )

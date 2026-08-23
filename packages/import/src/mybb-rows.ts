@@ -79,6 +79,8 @@ export interface MybbPoll {
   readonly options: string
   readonly votes: string
   readonly timeout: number
+  readonly multiple: number
+  readonly public: number
 }
 
 export interface MybbPollVote {

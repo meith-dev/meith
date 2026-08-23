@@ -176,7 +176,7 @@ export class MysqlPhpbbSource implements ImportSource {
   async polls(afterId: number, limit: number): Promise<Page<ImportedPoll>> {
     const topics = await selectRows<PhpbbPollTopic>(
       this.connection,
-      `select topic_id, poll_title, poll_start, poll_length
+      `select topic_id, poll_title, poll_start, poll_length, poll_max_options, poll_vote_change
          from \`${this.prefix}topics\`
         where topic_id > ? and poll_title <> '' and topic_moved_id = 0
         order by topic_id asc limit ?`,

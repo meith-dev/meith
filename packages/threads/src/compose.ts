@@ -1,6 +1,6 @@
 import { RateLimitedError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
-import { type NewPoll, validatePoll } from '@meith/polls'
+import { type NewPoll, type ValidatedPoll, validatePoll } from '@meith/polls'
 
 export interface ForumPostingRules {
   readonly id: number
@@ -54,7 +54,7 @@ export interface NewThreadRecord {
   readonly authorUsername: string
   readonly visibility: 'visible' | 'unapproved'
   readonly subscribe: boolean
-  readonly poll?: NewPoll | undefined
+  readonly poll?: ValidatedPoll | undefined
   readonly createdAt: Date
 }
 

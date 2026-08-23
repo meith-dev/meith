@@ -17,8 +17,14 @@ export class MemorySink implements ImportSink {
   putAttachments = (rows: readonly { legacyId: number }[]) =>
     this.#put('attachments', rows, byLegacyId)
   putPolls = (rows: readonly { legacyId: number }[]) => this.#put('polls', rows, byLegacyId)
-  putPollVotes = (rows: readonly { legacyPollId: number; legacyUserId: number }[]) =>
-    this.#put('pollVotes', rows, (row) => `${row.legacyPollId}:${row.legacyUserId}`)
+  putPollVotes = (
+    rows: readonly { legacyPollId: number; legacyUserId: number; optionOrder: number }[],
+  ) =>
+    this.#put(
+      'pollVotes',
+      rows,
+      (row) => `${row.legacyPollId}:${row.legacyUserId}:${row.optionOrder}`,
+    )
   putPrivateMessages = (rows: readonly { legacyId: number }[]) =>
     this.#put('privateMessages', rows, byLegacyId)
   putThreadSubscriptions = (rows: readonly { legacyUserId: number; legacyTargetId: number }[]) =>

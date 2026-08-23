@@ -165,6 +165,9 @@ export function mapPoll(row: MybbPoll): ImportedPoll | null {
     closesAt:
       row.timeout > 0 ? new Date(createdAt.getTime() + row.timeout * 24 * 60 * 60 * 1000) : null,
     createdAt,
+    maxOptions: row.multiple > 0 ? 0 : 1,
+    allowRevote: false,
+    publicVotes: row.public > 0,
   }
 }
 

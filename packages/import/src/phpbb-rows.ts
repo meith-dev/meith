@@ -76,6 +76,8 @@ export interface PhpbbPollTopic {
   readonly poll_title: string
   readonly poll_start: number
   readonly poll_length: number
+  readonly poll_max_options: number
+  readonly poll_vote_change: number
 }
 
 export interface PhpbbPollOption {

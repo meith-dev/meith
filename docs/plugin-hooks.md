@@ -178,7 +178,7 @@ the whole board and stays off until an operator clears the record. See
 - **`attachment.uploaded`** — A file finished uploading and re-encoding.
 - **`attachment.deleted`** — An attachment was removed, by a member or by the orphan sweep.
 - **`poll.created`** — A poll was attached to a thread.
-- **`poll.voted`** — A vote was cast. Fires once; the database enforces one per member.
+- **`poll.voted`** — A vote was cast, once per option chosen. It fires again when a poll that allows re-voting takes a replacement.
 - **`rating.recorded`** — A thread rating was recorded or changed.
 
 ## Moderation

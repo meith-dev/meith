@@ -349,7 +349,9 @@ export const HOOKS = {
   },
   'poll.voted': {
     kind: 'event',
-    purpose: 'A vote was cast. Fires once; the database enforces one per member.',
+    purpose:
+      'A vote was cast, once per option chosen. It fires again when a poll that allows ' +
+      're-voting takes a replacement.',
   },
   'rating.recorded': {
     kind: 'event',

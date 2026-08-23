@@ -12,6 +12,7 @@ import {
   SUBSCRIPTION_MODES,
   SUBSCRIPTION_TARGETS,
   text,
+  timestamp,
 } from './schema'
 import type { Scope } from './tokens'
 
@@ -336,14 +337,49 @@ export const ROUTES = [
     cost: 5,
     authenticated: true,
     params: [pathId('pollId', 'The poll to vote in.')],
-    request: object({
-      threadId: integer('The thread the poll is attached to.'),
-      optionId: integer('The option being voted for.'),
-    }),
+    request: object(
+      {
+        threadId: integer('The thread the poll is attached to.'),
+        optionId: integer('One option being voted for. Use `optionIds` for a multi-choice poll.'),
+        optionIds: list(
+          integer('An option being voted for.'),
+          'Every option being voted for, up to the poll’s `maxOptions`.',
+        ),
+      },
+      ['threadId'],
+    ),
     response: {
       status: 201,
       schema: envelope(object({ pollId: integer('The poll voted in.') })),
     },
+  },
+  {
+    method: 'PATCH',
+    path: '/polls/:pollId',
+    scope: 'polls:write',
+    summary: 'Edit a poll the caller wrote, or any poll they moderate.',
+    cost: 5,
+    authenticated: true,
+    params: [pathId('pollId', 'The poll to edit.')],
+    request: object(
+      {
+        threadId: integer('The thread the poll is attached to.'),
+        question: text('What the poll asks.'),
+        options: list(
+          object({
+            id: integer('The option to keep, or omit to add a new one.'),
+            label: text('The option as it is shown.'),
+          }),
+          'The options the poll should end up with, in order. Omitting one removes it.',
+        ),
+        closesAt: timestamp('When voting closes, or `null` if it does not.', true),
+        maxOptions: integer('How many options one member may pick. 0 means no limit.'),
+        allowRevote: boolean('Whether a member may change their vote.'),
+        publicVotes: boolean('Whether the voters are named on each option.'),
+      },
+      ['threadId', 'question', 'options'],
+    ),
+    response: { status: 200, schema: envelope(ref('Poll')) },
   },
   {
     method: 'GET',

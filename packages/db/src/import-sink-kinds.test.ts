@@ -108,6 +108,9 @@ const poll = (pid: number, tid = 91) => ({
   ],
   closesAt: null,
   createdAt: new Date('2015-01-02T00:00:00Z'),
+  maxOptions: 1,
+  allowRevote: false,
+  publicVotes: false,
 })
 
 const pm = (pmid: number, from = 1, owner = 2) => ({
@@ -291,6 +294,32 @@ describe('polls and votes', () => {
 
     const rows = await rowsOf<{ n: number }>(sql`select count(*)::int as n from poll_options`)
     expect(rows[0]!.n).toBe(2)
+  })
+
+  it('keeps every option a member picked in a multiple-choice poll', async () => {
+    await seedTree()
+    await sink.putPolls([{ ...poll(7), maxOptions: 0 }])
+
+    const result = await sink.putPollVotes([
+      { legacyPollId: 7, legacyUserId: 2, optionOrder: 1, votedAt: null },
+      { legacyPollId: 7, legacyUserId: 2, optionOrder: 2, votedAt: null },
+    ])
+    expect(result).toMatchObject({ inserted: 2 })
+
+    const rows = await rowsOf<{ option_id: number }>(sql`select option_id from poll_votes`)
+    expect(rows).toHaveLength(2)
+  })
+
+  it('carries the choice limit, re-voting and public votes onto the poll', async () => {
+    await seedTree()
+    await sink.putPolls([{ ...poll(7), maxOptions: 2, allowRevote: true, publicVotes: true }])
+
+    const rows = await rowsOf<{
+      max_options: number
+      allow_revote: boolean
+      public_votes: boolean
+    }>(sql`select max_options, allow_revote, public_votes from polls`)
+    expect(rows[0]).toMatchObject({ max_options: 2, allow_revote: true, public_votes: true })
   })
 
   it('skips a vote for an option that does not exist', async () => {

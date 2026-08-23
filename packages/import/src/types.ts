@@ -84,6 +84,9 @@ export interface ImportedPoll {
   readonly options: readonly ImportedPollOption[]
   readonly closesAt: Date | null
   readonly createdAt: Date
+  readonly maxOptions: number
+  readonly allowRevote: boolean
+  readonly publicVotes: boolean
 }
 
 export interface ImportedPollVote {
