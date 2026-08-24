@@ -237,7 +237,11 @@ async function main() {
     console.log(
       '== building the ejected board image from its own (unmodified) scaffolded Dockerfile ==',
     )
-    run('docker', ['build', '-t', BOARD_IMAGE_TAG, ejectedDir], ejectedDir)
+    run(
+      'docker',
+      ['build', '--build-arg', `MEITH_VERSION=${version}`, '-t', BOARD_IMAGE_TAG, ejectedDir],
+      ejectedDir,
+    )
 
     console.log('== COMMUNITY_ROLE=migrate against the SAME database (should be a no-op) ==')
     run(
