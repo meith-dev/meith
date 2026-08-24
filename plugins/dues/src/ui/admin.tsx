@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 
 import type { PluginAdminPageContext } from '@meith/plugin-kit'
 
-import type { DuesConfig } from '../config'
+import { type DuesConfig, MAX_GRACE_DAYS } from '../config'
 import { formatMinor } from '../money'
-import { describeBilling, isLifetime, loadPlans, MAX_PLAN_DAYS } from '../plans'
+import { describeBilling, isLifetime, loadPlans } from '../plans'
 import {
   allMemberships,
   attentionCount,
@@ -571,7 +571,7 @@ export async function CodesPage({
         <BadNotice>
           {context.t.t(
             error,
-            context.query.error === 'too-long' ? { days: MAX_PLAN_DAYS } : undefined,
+            context.query.error === 'too-long' ? { days: MAX_GRACE_DAYS } : undefined,
           )}
         </BadNotice>
       )}

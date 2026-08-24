@@ -1,6 +1,6 @@
 import type { PluginData } from '@meith/plugin-kit'
 
-import type { DuesConfig } from './config'
+import { type DuesConfig, MAX_GRACE_DAYS } from './config'
 import { isCurrencyCode, isValidMinorAmount } from './money'
 import { addDays, type Period, parsePeriod, periodCeilingDays } from './period'
 import {
@@ -117,7 +117,13 @@ function bad(error: string): PlanParse {
   return { ok: false, error }
 }
 
-export function parsePlanForm(form: PlanFormInput, graceDays: number): PlanParse {
+/**
+ * Checks a fixed plan's length against `MAX_GRACE_DAYS`, not the live
+ * `grace_days` setting — mirroring the seed-path cap in `parseDuesConfig`
+ * (`config.ts`), for the same reason: `grace_days` is a runtime setting an
+ * operator can raise after the plan already exists.
+ */
+export function parsePlanForm(form: PlanFormInput): PlanParse {
   const key = (form.key ?? '').trim().toLowerCase()
   if (!PLAN_KEY.test(key)) return bad('bad-key')
 
@@ -157,7 +163,7 @@ export function parsePlanForm(form: PlanFormInput, graceDays: number): PlanParse
     periodSpec = `P${length}${letter}`
     const parsed = parsePeriod(periodSpec)
     if (parsed === null) return bad('bad-length')
-    if (periodCeilingDays(parsed) + graceDays > MAX_PLAN_DAYS) return bad('too-long')
+    if (periodCeilingDays(parsed) + MAX_GRACE_DAYS > MAX_PLAN_DAYS) return bad('too-long')
   }
 
   if (mode === 'auto') {

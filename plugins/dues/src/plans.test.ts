@@ -45,7 +45,7 @@ describe('parsePlanForm', () => {
   }
 
   it('builds a fixed plan with an ISO period from length and unit', () => {
-    const parsed = parsePlanForm(base, 7)
+    const parsed = parsePlanForm(base)
     expect(parsed).toMatchObject({
       ok: true,
       plan: {
@@ -62,20 +62,23 @@ describe('parsePlanForm', () => {
 
   it('builds subscription and lifetime plans', () => {
     expect(
-      parsePlanForm({ ...base, mode: 'auto', interval: 'year', giftable: undefined }, 7),
+      parsePlanForm({ ...base, mode: 'auto', interval: 'year', giftable: undefined }),
     ).toMatchObject({ ok: true, plan: { mode: 'auto', billingInterval: 'year', giftable: false } })
 
-    expect(parsePlanForm({ ...base, mode: 'lifetime' }, 7)).toMatchObject({
+    expect(parsePlanForm({ ...base, mode: 'lifetime' })).toMatchObject({
       ok: true,
       plan: { mode: 'lifetime', periodSpec: null, giftable: true },
     })
   })
 
   it('normalises key, currency and group to lower case; trims the name', () => {
-    const parsed = parsePlanForm(
-      { ...base, key: 'Day-Pass', currency: 'GBP', group: 'Supporters', name: ' Day pass ' },
-      7,
-    )
+    const parsed = parsePlanForm({
+      ...base,
+      key: 'Day-Pass',
+      currency: 'GBP',
+      group: 'Supporters',
+      name: ' Day pass ',
+    })
     expect(parsed).toMatchObject({
       ok: true,
       plan: { planKey: 'day-pass', currency: 'gbp', groupKey: 'supporters', name: 'Day pass' },
@@ -84,7 +87,7 @@ describe('parsePlanForm', () => {
 
   it('refuses each broken field with its own error', () => {
     const error = (form: Record<string, string | undefined>) => {
-      const parsed = parsePlanForm(form, 7)
+      const parsed = parsePlanForm(form)
       return parsed.ok ? 'ok' : parsed.error
     }
 
@@ -101,11 +104,17 @@ describe('parsePlanForm', () => {
     expect(error({ ...base, mode: 'auto', interval: 'month' })).toBe('auto-gift')
   })
 
-  it('the two-year cap counts the grace window too', () => {
-    const twoYearsLessGrace = parsePlanForm({ ...base, length: '725', unit: 'days' }, 7)
-    expect(twoYearsLessGrace.ok).toBe(true)
-    const overWithGrace = parsePlanForm({ ...base, length: '726', unit: 'days' }, 7)
-    expect(overWithGrace.ok).toBe(false)
+  it('caps the period against the longest possible grace window, not the live grace_days', () => {
+    const withinCap = parsePlanForm({ ...base, length: '702', unit: 'days' })
+    expect(withinCap.ok).toBe(true)
+
+    const overCap = parsePlanForm({ ...base, length: '703', unit: 'days' })
+    expect(overCap.ok).toBe(false)
+  })
+
+  it('refuses a P732D plan even while grace_days is set to 0 today — MEI-98', () => {
+    const parsed = parsePlanForm({ ...base, length: '732', unit: 'days' })
+    expect(parsed.ok).toBe(false)
   })
 })
 
