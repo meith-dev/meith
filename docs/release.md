@@ -40,6 +40,9 @@ The version is also written in places npm never reads:
   the admin panel compares the recorded version against.
 - The version `packages/create-meith/src/bin.ts` writes into a scaffolded
   project's dependencies.
+- `MEITH_VERSION` in `packages/marketplace/src/build-info.ts` — this
+  board's own version, checked against a listing's `meith` compatibility
+  range.
 - The `version` each first-party plugin declares to `definePlugin`
   (`plugins/dues`, `plugins/reference`) — what `/admin/plugins` shows, and
   the only one of these an operator ever sees.
