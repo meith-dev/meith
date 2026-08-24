@@ -32,17 +32,41 @@
  *
  * This assumes a *hoisted* `node_modules` (npm, yarn classic, or pnpm with
  * `node-linker=hoisted`) — see docs/development.md for why.
+ *
+ * `boards/stock` (docker/Dockerfile) is this bin's one *in-repo* consumer,
+ * and it has neither a hoisted `node_modules` nor a two-directories-up
+ * workspace root — it is a workspace member of this monorepo's own
+ * (non-hoisted) pnpm install, nested two directories deeper again. Two
+ * environment variables, set only by that workspace's own `build`/`dev`
+ * scripts, cover the difference without changing anything for a real
+ * external board, which never sets either: `FORUM_WORKSPACE_ROOT`
+ * (apps/community/next.config.mjs) points tracing at this repository's real
+ * root, and `FORUM_ALIASES_FROM` (`monorepoAliases()` below) carries this
+ * repository's own `@meith/*` tsconfig aliases into the generated tsconfig,
+ * since packages here resolve each other through those aliases rather than
+ * through real `dependencies` entries a hoisted `node_modules` would need.
  */
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join, relative, sep } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const packageRoot = join(here, '..')
 const workspaceRoot = process.cwd()
 const appDir = join(workspaceRoot, '.meith', 'app')
+
+// `next dev|build` runs with `.meith/app` as its own cwd (see `run()` below),
+// so a relative FORUM_WORKSPACE_ROOT / FORUM_ALIASES_FROM — the shape
+// boards/stock/package.json's scripts write, relative to *this* process's
+// own cwd (the board's own directory) — would resolve against the wrong
+// directory if left for next.config.mjs to resolve itself. Rewriting them to
+// absolute paths here, before spawning, means both env vars mean the same
+// thing regardless of which process reads them.
+for (const name of ['FORUM_WORKSPACE_ROOT', 'FORUM_ALIASES_FROM']) {
+  if (process.env[name]) process.env[name] = resolve(workspaceRoot, process.env[name])
+}
 
 // Files this package ships (see its `files` allowlist) that belong inside
 // the materialized app. Board files (community.config.ts, board.plugins.json,
@@ -66,6 +90,45 @@ function fail(message) {
 function toPosixRelative(from, to) {
   const rel = relative(from, to).split(sep).join('/')
   return rel.startsWith('.') ? rel : `./${rel}`
+}
+
+/**
+ * A board outside this monorepo has a hoisted `node_modules` (see the module
+ * comment), so plain bare-specifier resolution reaches every `@meith/*`
+ * package this app's dependency graph needs, and `transpilePackages`
+ * (apps/community/next.config.mjs) is what lets Next compile the `.ts`
+ * source that resolution lands on. A board built *inside* this monorepo's
+ * own pnpm install has no such hoisting — packages here resolve each other
+ * through tsconfig path aliases straight to source (docs/architecture.md,
+ * "The board-config seam"; docs/development.md, "The workspace") rather than
+ * through real `dependencies` entries, so plain node_modules resolution
+ * finds nothing for most of them.
+ *
+ * `FORUM_ALIASES_FROM`, set only by docker/Dockerfile for `boards/stock`,
+ * names that other tsconfig (this repository's own `tsconfig.base.json`).
+ * When set, every `@meith/*` alias it declares is copied into the
+ * materialized app's own generated tsconfig, rebased to be relative to
+ * `.meith/app` — the same aliases apps/community's own tsconfig.json
+ * hand-maintains for exactly this reason. Unset (the default, and the only
+ * path a real external board ever takes), this is a no-op.
+ */
+function monorepoAliases() {
+  const configFile = process.env.FORUM_ALIASES_FROM
+  if (!configFile) return {}
+
+  const sourceDir = dirname(resolve(configFile))
+  const source = JSON.parse(readFileSync(configFile, 'utf8'))
+  const paths = source.compilerOptions?.paths ?? {}
+
+  const aliases = {}
+  for (const [alias, targets] of Object.entries(paths)) {
+    // `@board/config`/`@board/plugins` are this workspace's own seam, wired
+    // below to *this* board's files — never to whatever apps/community's own
+    // tsconfig happens to alias them to.
+    if (alias === '@board/config' || alias === '@board/plugins') continue
+    aliases[alias] = targets.map((target) => toPosixRelative(appDir, join(sourceDir, target)))
+  }
+  return aliases
 }
 
 function materialize() {
@@ -110,6 +173,7 @@ function materialize() {
       strict: true,
       plugins: [{ name: 'next' }],
       paths: {
+        ...monorepoAliases(),
         '@/*': ['./src/*'],
         '@board/config': [toPosixRelative(appDir, boardConfig)],
         '@board/plugins': [toPosixRelative(appDir, boardPlugins)],

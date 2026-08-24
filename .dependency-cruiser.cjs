@@ -150,6 +150,7 @@ module.exports = {
       path: [
         'node_modules',
         '\\.next(-e2e)?/',
+        '\\.meith/',
         'dist/',
         '\\.test\\.ts$',
         '\\.spec\\.ts$',

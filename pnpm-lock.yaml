@@ -328,6 +328,69 @@ importers:
         specifier: ^4.23.12
         version: 4.23.12
 
+  boards/stock:
+    dependencies:
+      '@meith/cli':
+        specifier: workspace:*
+        version: link:../../apps/cli
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@meith/plugin-dues':
+        specifier: workspace:*
+        version: link:../../plugins/dues
+      '@meith/plugin-kit':
+        specifier: workspace:*
+        version: link:../../packages/plugin-kit
+      '@meith/theme-clubhouse':
+        specifier: workspace:*
+        version: link:../../themes/clubhouse
+      '@meith/theme-default':
+        specifier: workspace:*
+        version: link:../../themes/default
+      '@meith/theme-midnight':
+        specifier: workspace:*
+        version: link:../../themes/midnight
+      '@meith/theme-phasebook':
+        specifier: workspace:*
+        version: link:../../themes/phasebook
+      '@meith/theme-raidframe':
+        specifier: workspace:*
+        version: link:../../themes/raidframe
+      '@meith/web':
+        specifier: workspace:*
+        version: link:../../apps/community
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      '@tailwindcss/postcss':
+        specifier: ^4.3.3
+        version: 4.3.3
+      '@types/react':
+        specifier: ^19
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.4(@types/react@19.2.18)
+      next:
+        specifier: 16.3.1
+        version: 16.3.1(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      postcss:
+        specifier: ^8.5
+        version: 8.5.26
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   examples/hello-plugin:
     dependencies:
       '@meith/plugin-kit':

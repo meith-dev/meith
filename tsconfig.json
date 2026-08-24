@@ -12,9 +12,10 @@
     "examples/**/*.tsx",
     "apps/cli/**/*.ts",
     "apps/worker/**/*.ts",
+    "boards/**/*.ts",
     "e2e/**/*.ts",
     "*.ts",
     "*.mts"
   ],
-  "exclude": ["node_modules", "**/dist", "**/.next", "apps/community"]
+  "exclude": ["node_modules", "**/dist", "**/.next", "**/.meith", "apps/community"]
 }

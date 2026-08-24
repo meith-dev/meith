@@ -44,11 +44,16 @@ export const HEADER = `// GENERATED FILE — do not edit.
  * spell the fix.
  *
  * @param {readonly ManifestEntry[]} plugins
- * @param {ReadonlySet<string>} dependencies apps/community/package.json's own "dependencies" keys
+ * @param {ReadonlySet<string>} dependencies the board package's own "dependencies" keys
  * @param {string} manifestFile the manifest's path, as named in the error (e.g.
  *   "apps/community/board.plugins.json")
+ * @param {{ readonly packageLabel?: string, readonly filterName?: string }} [options]
+ *   packageLabel: the board package's directory, named in the "is not a dependency of …"
+ *   message (default "apps/community"). filterName: the `--filter` target named in the
+ *   fix it suggests (default "@meith/web").
  */
-export function validateManifest(plugins, dependencies, manifestFile) {
+export function validateManifest(plugins, dependencies, manifestFile, options = {}) {
+  const { packageLabel = 'apps/community', filterName = '@meith/web' } = options
   const seen = new Set()
 
   for (const entry of plugins) {
@@ -74,7 +79,7 @@ export function validateManifest(plugins, dependencies, manifestFile) {
     if (!dependencies.has(entry.package)) {
       throw new Error(
         `${manifestFile}: "${entry.package}" (key "${entry.key}") is not a dependency of ` +
-          `apps/community. Run \`pnpm add ${entry.package} --filter @meith/web\` first.`,
+          `${packageLabel}. Run \`pnpm add ${entry.package} --filter ${filterName}\` first.`,
       )
     }
   }

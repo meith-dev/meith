@@ -1,0 +1,41 @@
+{
+  "name": "@meith/board-stock",
+  "version": "0.16.0",
+  "description": "The stock board: a create-meith-shaped workspace consuming @meith/web and @meith/cli, built by docker/Dockerfile into the official image. Not published.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "boards/stock"
+  },
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "FORUM_WORKSPACE_ROOT=../.. FORUM_ALIASES_FROM=../../tsconfig.base.json forum-web dev",
+    "build": "FORUM_WORKSPACE_ROOT=../.. FORUM_ALIASES_FROM=../../tsconfig.base.json forum-web build",
+    "start": "forum-web start",
+    "community": "community"
+  },
+  "dependencies": {
+    "@meith/cli": "workspace:*",
+    "@meith/core": "workspace:*",
+    "@meith/plugin-dues": "workspace:*",
+    "@meith/plugin-kit": "workspace:*",
+    "@meith/theme-clubhouse": "workspace:*",
+    "@meith/theme-default": "workspace:*",
+    "@meith/theme-midnight": "workspace:*",
+    "@meith/theme-phasebook": "workspace:*",
+    "@meith/theme-raidframe": "workspace:*",
+    "@meith/web": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "@tailwindcss/postcss": "^4.3.3",
+    "next": "16.3.1",
+    "postcss": "^8.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "7.0.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
+  }
+}

@@ -430,6 +430,10 @@ the same compatibility promise the image tags make.
   no board-config seam, no bin, no dependant in `create-meith`'s scaffold.
 - **`@meith/site`** (`apps/web`) — meith.dev itself. It is the project's own
   marketing site, not part of what an operator installs.
+- **`boards/stock`** — the workspace `docker/Dockerfile` builds the official
+  image from (see docs/architecture.md, "The stock board"). It is a board,
+  not a library, so it stays private the same way `apps/community` does; the
+  version lockstep above still applies to it, like every workspace manifest.
 - **`@meith/testkit`** — it drags `@meith/db` and `@meith/drivers` behind
   it, and that closure is most of the board.
 - **The examples** — `hello-plugin` and `iris-theme` are documentation.

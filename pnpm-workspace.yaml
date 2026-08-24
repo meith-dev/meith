@@ -1,5 +1,6 @@
 packages:
   - "apps/*"
+  - "boards/*"
   - "packages/*"
   - "themes/*"
   - "plugins/*"

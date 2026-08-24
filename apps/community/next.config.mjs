@@ -4,7 +4,36 @@ import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
-const workspaceRoot = path.join(here, '../../')
+// Two directories up from this file's own location — correct whenever this
+// file sits at that fixed depth below the real workspace root: in place at
+// `apps/community` inside this monorepo, or materialized to `.meith/app`
+// inside a *board whose own directory sits two levels below its own
+// `node_modules`* (a create-meith scaffold with hoisted node_modules, per
+// docs/development.md, "Consuming the board from a workspace").
+//
+// `boards/stock` (docker/Dockerfile) is neither: it is a workspace member of
+// *this* monorepo's own pnpm install, which does not hoist, so its real
+// dependencies (including `next` itself) resolve through this repository's
+// root `node_modules`, two directories further up again — a fixed offset
+// this file cannot compute from its own path alone, because pnpm resolves
+// its dependencies through symlinks into a central store rather than by
+// nesting a workspace member two directories below everything it needs.
+// FORUM_WORKSPACE_ROOT lets the Dockerfile say so explicitly, without
+// changing the default for every other consumer this computation already
+// serves correctly.
+const workspaceRoot = process.env.FORUM_WORKSPACE_ROOT
+  ? path.resolve(process.env.FORUM_WORKSPACE_ROOT)
+  : path.join(here, '../../')
+
+// How many `../` this file's own directory is below workspaceRoot — 2 by
+// construction in the default case (see above), more when
+// FORUM_WORKSPACE_ROOT points further up. Used below instead of a literal
+// `'../../'` wherever a *relative* climb has to reach the same root, because
+// `outputFileTracingIncludes` (unlike `outputFileTracingRoot` and
+// `turbopack.root`) resolves its globs relative to this directory itself,
+// not against `workspaceRoot` — an absolute glob there silently matches
+// nothing useful once it is rejoined onto this directory downstream.
+const upToWorkspaceRoot = path.relative(here, workspaceRoot).split(path.sep).join('/')
 
 const loadedEnvFiles = []
 for (const name of ['.env.local', '.env']) {
@@ -51,7 +80,9 @@ const nextConfig = {
   // symlink into node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers
   // — so that is the path that has to be complete, not the app's own copy.
   outputFileTracingIncludes: {
-    '/**': ['../../node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers/**/*'],
+    '/**': [
+      `${upToWorkspaceRoot}/node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers/**/*`,
+    ],
   },
   images: {
     unoptimized: true,
