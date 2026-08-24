@@ -601,11 +601,17 @@ jobs:
             || { echo "::error::web and worker do not share uploads"; exit 1; }
 
       # The operator CLI ships inside the image, so a server needs no checkout
-      # and no toolchain. The guide's alias is this command.
+      # and no toolchain. docs/operating.md documents every command as
+      # `community <cmd>` — checked here too (MEI-81), not just the
+      # underlying `node apps/cli/cli.cjs` this comment used to call "the
+      # guide's alias" back when nothing in the image actually put a
+      # `community` binary on PATH to make that alias real.
       - name: The operator CLI runs from the image
         run: |
           docker compose run --rm --no-deps web node apps/cli/cli.cjs --help | grep -qi 'usage' \
             || { echo "::error::the operator CLI is not in the image"; exit 1; }
+          docker compose run --rm --no-deps web community --help | grep -qi 'usage' \
+            || { echo "::error::the documented \`community\` command is not in the image"; exit 1; }
 
       - name: The image carries the postgres client tools backup needs
         run: |
