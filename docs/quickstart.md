@@ -81,7 +81,7 @@ with no spaces.
 
 This writes a small workspace into `./my-board` — `package.json`,
 `community.config.ts`, and a deploy kit of its own: `Dockerfile`,
-`compose.yml` and `.github/workflows/build.yml`. It depends on the
+`docker-compose.yml` and `.github/workflows/build.yml`. It depends on the
 published `@meith/web` and `@meith/cli` packages rather than containing a
 copy of this repository, and it is what turns "installing a plugin" from a
 fork of this project into `npm install` and a line in a config file — see
@@ -113,11 +113,15 @@ pushes the result to `ghcr.io/<you>/my-board` — using only the
 computer, no registry account beyond the GitHub account you already have.
 
 > [!IMPORTANT]
-> Open the run under the repository's **Actions** tab once it finishes.
-> Its **Summary** prints the two things step 3 needs: the exact image to
-> paste into Coolify, and a direct link to the one-time step of making the
-> package public — it starts **private**, and Coolify's pull fails with an
-> authentication error no operator can act on until that is done.
+> **Before moving on**, once that run finishes:
+>
+> 1. Open it, and click its **Summary** tab.
+> 2. Copy the image value it shows — you'll paste it into Coolify in
+>    [step 3](#3-set-your-domain-and-deploy).
+> 3. Click the link under **make the package public**, and do that now.
+>    It only takes a click, and skipping it means Coolify fails to pull
+>    the image later with a confusing error, so it's easier to handle
+>    here while you're already on the page.
 
 ## 3. Set your domain and deploy
 
@@ -127,13 +131,9 @@ In the panel: **New Resource → Docker Compose → Public Repository**.
 |---|---|
 | Repository | `https://github.com/<you>/my-board` |
 | Branch | `main` |
-| Compose file | `/compose.yml` |
 
-> [!IMPORTANT]
-> Coolify defaults the compose file field to `/docker-compose.yml`, which
-> does not exist in your repository — `create-meith` named it `compose.yml`,
-> at the root, one word. Leaving the default fails fast with
-> file-not-found; the fix is the field, not the error.
+Coolify finds `docker-compose.yml` on its own — that is the one field
+worth knowing you don't have to touch.
 
 Coolify offers a generated domain and accepts your own. Put yours in — the
 one whose `A` record points at this server.

@@ -205,6 +205,7 @@ APP_URL=
   files.set(
     'Dockerfile',
     `# syntax=docker/dockerfile:1.7-labs
+# check=skip=InvalidDefaultArgInFrom
 # ${name}'s deploy image.
 #
 # FROM the published framework base image — deps + framework layers only,
@@ -222,10 +223,11 @@ APP_URL=
 # docs/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
 # traced as reachable from the web server alone. The tick itself is driven
-# by compose.yml's own \`worker\` service — a lightweight loop against
+# by docker-compose.yml's own \`worker\` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
 # not published (see the meith repository's docs/release.md).
-FROM ghcr.io/meith-dev/meith-base:${version} AS deps
+ARG MEITH_VERSION
+FROM ghcr.io/meith-dev/meith-base:\${MEITH_VERSION} AS deps
 WORKDIR /board
 
 # This board's own manifest, cached independently of its source — editing
@@ -281,7 +283,7 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 #
 # "web" (the default) runs the board; "migrate" applies the schema and
 # exits. There is no "worker" role in this image: @meith/worker is not
-# published, so nothing here can run it — compose.yml's own \`worker\`
+# published, so nothing here can run it — docker-compose.yml's own \`worker\`
 # service drives the tick a different way, calling this image's web role
 # over HTTP instead of running as a role of this image.
 set -e
@@ -372,7 +374,8 @@ jobs:
       - name: Build and push
         run: |
           IMAGE=$(echo "ghcr.io/\${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t "$IMAGE:\${{ github.sha }}" -t "$IMAGE:latest" .
+          MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']")
+          docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:\${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:\${{ github.sha }}"
           docker push "$IMAGE:latest"
 
@@ -403,7 +406,7 @@ jobs:
   )
 
   files.set(
-    'compose.yml',
+    'docker-compose.yml',
     `# ${name}, deployed by Coolify — the same shape as the meith repository's own
 # docker/compose.coolify.yml: db, migrate, web, worker. See README.md for
 # the three-step deploy story this file is the last step of.
@@ -522,7 +525,7 @@ A forum, built on [Meith](${repositoryUrl}).
 ## Deploy
 
 Nothing here builds on your own server — a 2 GB VPS OOMs on a Next.js build,
-which is the whole reason \`Dockerfile\`, \`compose.yml\` and
+which is the whole reason \`Dockerfile\`, \`docker-compose.yml\` and
 \`.github/workflows/build.yml\` exist: something else builds the image, the
 server only ever pulls one. Three steps, nothing to configure by hand beyond
 one value only you know:
@@ -539,15 +542,15 @@ one value only you know:
    package public. It starts **private**, and Coolify's pull fails with an
    authentication error no operator can act on until that is done.
 
-2. **Point [Coolify](https://coolify.io) at \`compose.yml\`** — a Docker
-   Compose resource, this repository as its source. \`compose.yml\` already
+2. **Point [Coolify](https://coolify.io) at \`docker-compose.yml\`** — a Docker
+   Compose resource, this repository as its source. \`docker-compose.yml\` already
    carries Coolify's own "magic variables" for \`AUTH_SECRET\`,
    \`TICK_SECRET\` and the database password, generated on the first deploy
    and never typed in. The one thing Coolify cannot generate is the image
    step 1 just pushed: set \`MEITH_IMAGE\` in the resource's own environment
    to the value that run's Summary printed — \`ghcr.io/<you>/${name}:latest\`
    (or a commit sha, once you want a pin that only moves when you say so —
-   \`compose.yml\` refuses to start without this set, with a message saying
+   \`docker-compose.yml\` refuses to start without this set, with a message saying
    why).
 
 3. **Deploy, then \`/install\` on your own domain.** Coolify issues the
@@ -562,20 +565,24 @@ one value only you know:
 No Docker Hub, no paid CI: GitHub Actions' free tier and GHCR are the whole
 build side of this, for a board of any size.
 
-**Building it yourself**: \`docker build -t ${name} .\` works on any machine
-with Docker, if you would rather not use GitHub Actions for the build —
-push the result wherever \`compose.yml\`'s \`MEITH_IMAGE\` can reach.
+**Building it yourself**: works on any machine with Docker, if you would
+rather not use GitHub Actions for the build — push the result wherever
+\`docker-compose.yml\`'s \`MEITH_IMAGE\` can reach.
+
+\`\`\`sh
+docker build --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t ${name} .
+\`\`\`
 
 **Without a panel**: [docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md)
 is the same four containers by hand — your own \`.env\`, a reverse proxy you
-already run, no Coolify. \`Dockerfile\` and \`compose.yml\` here are this
+already run, no Coolify. \`Dockerfile\` and \`docker-compose.yml\` here are this
 board's own version of exactly that shape.
 
 Two things nothing configures for you:
 
 - **Mail.** Until \`MAIL_DRIVER\` and its three settings exist, every message is
   written to the log and delivered to nobody, so password reset fails silently.
-- **The tick.** \`compose.yml\`'s \`worker\` service drives it here — a small
+- **The tick.** \`docker-compose.yml\`'s \`worker\` service drives it here — a small
   loop calling \`/api/system/tick\` once a minute, since \`@meith/web\`'s own
   worker package is not something a board outside the meith monorepo can
   depend on yet. Deploy some other way and something still has to call that
@@ -613,17 +620,18 @@ npm run forum -- user:create --admin
 
 \`\`\`sh
 npm install @meith/web@latest @meith/cli@latest
-npm run forum -- upgrade
+git commit -am "Upgrade @meith/web and @meith/cli"
+git push
 \`\`\`
 
-\`Dockerfile\`'s \`FROM ghcr.io/meith-dev/meith-base:...\` line pins the same
-version as \`@meith/web\` — bump it to match what \`npm install\` just
-resolved (\`npm ls @meith/web\` prints it) in the same commit as the
-\`package.json\` change above, before the next \`git push\` triggers a
-rebuild. The two pins drifting is not a broken board — \`npm install\` inside
-the Docker build still resolves the newer \`@meith/web\` correctly — only a
-slower one, rebuilding more than the base image already had to. There is no
-script for this yet: it is one line, by hand.
+That one \`package.json\` change is the whole pin: \`Dockerfile\`'s own
+\`FROM\` line takes the version as a build argument, and
+\`.github/workflows/build.yml\` reads it straight out of \`package.json\`'s
+own \`@meith/web\` dependency when it rebuilds — nothing in \`Dockerfile\`
+itself to keep in sync by hand. Once the rebuilt image is deployed, run
+\`npm run forum -- upgrade\` against it for the plugin migrations — see
+[the operator CLI](${repositoryUrl}/blob/main/docs/operating.md#the-operator-cli)
+for running it against this deployment.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —
 there is no down migration to undo a destructive one, and a button that pretended

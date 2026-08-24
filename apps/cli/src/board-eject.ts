@@ -171,7 +171,7 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   console.log('  git init && git add -A && git commit -m "Graduate from the stock image"')
   console.log('  # push it to a new GitHub repository')
   console.log('  # .github/workflows/build.yml builds and pushes the image on every push to main —')
-  console.log("  # point Coolify at this repository's compose.yml and set MEITH_IMAGE to it")
+  console.log('  # point Coolify at this repository and set MEITH_IMAGE to the pushed image')
   console.log('  # redeploy — same database, same uploads, same secrets, new image source')
   console.log('')
   console.log('See docs/marketplace.md, "Moving to a custom board", for the full walkthrough.')

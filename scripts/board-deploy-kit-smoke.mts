@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 /**
  * The integration test for MEI-77 — does a scaffolded board's *deploy kit*
- * (Dockerfile, compose.yml, .github/workflows/build.yml) actually build and
+ * (Dockerfile, docker-compose.yml, .github/workflows/build.yml) actually build and
  * boot? scripts/board-workspace-smoke.mts (MEI-75) proves `forum-web`/
  * `community` work against a real, externally-installed board; this proves
  * the Docker shape on top of that — the thing an operator with nothing but
@@ -28,7 +28,7 @@
  * against real package names is exercised for real only by an actual
  * release) — see the PR description for that gap and why it is an
  * acceptable one. What it does prove, faithfully: the scaffolded
- * Dockerfile, compose.yml and the "install only the delta" shape all work,
+ * Dockerfile, docker-compose.yml and the "install only the delta" shape all work,
  * because those are exercised completely unmodified.
  *
  * Also reports how long installing and rebuilding after a plugin is added
@@ -168,7 +168,7 @@ async function pointAtVendoredTarballs(
 
 function buildBoardImage(boardDir: string, tag: string): number {
   const started = Date.now()
-  run('docker', ['build', '-t', tag, boardDir], boardDir)
+  run('docker', ['build', '--build-arg', `MEITH_VERSION=${VERSION}`, '-t', tag, boardDir], boardDir)
   return Date.now() - started
 }
 
@@ -260,8 +260,8 @@ function runMigrate(tag: string) {
 }
 
 function checkComposeParses(boardDir: string, tag: string) {
-  console.log('== compose.yml parses ==')
-  run('docker', ['compose', '-f', join(boardDir, 'compose.yml'), 'config'], boardDir, {
+  console.log('== docker-compose.yml parses ==')
+  run('docker', ['compose', '-f', join(boardDir, 'docker-compose.yml'), 'config'], boardDir, {
     ...process.env,
     MEITH_IMAGE: tag,
     SERVICE_PASSWORD_POSTGRES: 'stub',

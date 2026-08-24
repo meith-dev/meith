@@ -69,9 +69,12 @@ describe('boardEject', () => {
 
     // The deploy kit rides along, unmodified — same machinery create-meith uses.
     await expect(readFile(join(target, 'Dockerfile'), 'utf8')).resolves.toContain(
-      `ghcr.io/meith-dev/meith-base:${CODE_VERSION}`,
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
+      'ghcr.io/meith-dev/meith-base:${MEITH_VERSION}',
     )
-    await expect(readFile(join(target, 'compose.yml'), 'utf8')).resolves.toContain('services:')
+    await expect(readFile(join(target, 'docker-compose.yml'), 'utf8')).resolves.toContain(
+      'services:',
+    )
     await expect(readFile(join(target, '.github/workflows/build.yml'), 'utf8')).resolves.toContain(
       'docker build',
     )

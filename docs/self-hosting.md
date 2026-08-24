@@ -342,7 +342,7 @@ curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- <name>
 scaffolds a small workspace of its own — `package.json`,
 `community.config.ts`, `board.plugins.json` — that depends on the
 published `@meith/web` and `@meith/cli` packages instead, and comes with
-its own deploy kit already written: `Dockerfile`, `compose.yml` and
+its own deploy kit already written: `Dockerfile`, `docker-compose.yml` and
 `.github/workflows/build.yml`, plus a git repository already initialized
 and staged. `npx create-meith <name>` does the identical thing for anyone
 who already has Node.js and would rather use it. See [Consuming the board
@@ -370,12 +370,13 @@ own registry. Three steps:
    making the resulting package public — it starts **private**, and
    Coolify's pull fails with an authentication error no operator can act
    on until that is done.
-2. **Point Coolify at the scaffolded repository's `compose.yml`** — a
-   Docker Compose resource, that repository as its source, the same
-   mechanics the [Quickstart](./quickstart.md#3-set-your-domain-and-deploy)
-   walks through step by step for the same scaffold. It carries the same
+2. **Point Coolify at the scaffolded repository** — a Docker Compose
+   resource, that repository as its source, the same mechanics the
+   [Quickstart](./quickstart.md#3-set-your-domain-and-deploy) walks through
+   step by step for the same scaffold. `docker-compose.yml` is named for
+   Coolify's own default, so there is no path to type; it carries the same
    Coolify magic variables `docker/compose.coolify.yml` does for
-   `AUTH_SECRET`, `TICK_SECRET` and the database password; the one thing it
+   `AUTH_SECRET`, `TICK_SECRET` and the database password. The one thing it
    cannot generate is the image step 1's Summary just printed, so the
    operator sets `MEITH_IMAGE` once, in the resource's own environment —
    the compose file refuses to start without it, with a message saying so.
@@ -397,13 +398,16 @@ itself on every release (`docker/Dockerfile.base`). A scaffolded board's
 own `Dockerfile` only ever installs its own delta on top of that already-warm
 layer — a newly added plugin's own dependency, typically nothing more —
 which is what keeps "add a plugin, redeploy" a build of minutes rather than
-a cold toolchain build every time. The base image's pin and the `@meith/*`
-dependency versions in the scaffolded `package.json` move together, by
-hand, on an upgrade; `create-meith`'s own generated README documents the
+a cold toolchain build every time. The base image's tag is not written into
+the scaffolded `Dockerfile` at all: `FROM` takes it as a build argument,
+and `.github/workflows/build.yml` reads the value straight out of
+`package.json`'s own `@meith/web` dependency on every build — so an
+upgrade is that one line in `package.json`, never a second pin to remember
+in `Dockerfile` too; `create-meith`'s own generated README documents the
 exact commands.
 
 `@meith/worker` is not published, so a scaffolded board's image carries no
-compiled worker binary — its `compose.yml`'s own `worker` service drives
+compiled worker binary — its `docker-compose.yml`'s own `worker` service drives
 the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)
 describes instead: a small loop against `/api/system/tick`, needing nothing
 this image does not already expose.

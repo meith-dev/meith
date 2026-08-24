@@ -35,7 +35,7 @@ describe('what the scaffold writes', () => {
       'board.plugins.json',
       'community.config.ts',
       'community.plugins.ts',
-      'compose.yml',
+      'docker-compose.yml',
       'docker-entrypoint.sh',
       'docker-healthcheck.sh',
       'package.json',
@@ -126,13 +126,23 @@ describe('the deploy kit', () => {
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
   const buildWorkflow = files.get('.github/workflows/build.yml')!
-  const compose = files.get('compose.yml')!
+  const compose = files.get('docker-compose.yml')!
   const entrypoint = files.get('docker-entrypoint.sh')!
   const healthcheck = files.get('docker-healthcheck.sh')!
   const dockerignore = files.get('.dockerignore')!
 
-  it("starts the board's image FROM the published, version-pinned base image", () => {
-    expect(dockerfile).toContain('FROM ghcr.io/meith-dev/meith-base:1.2.3 AS deps')
+  it("starts the board's image FROM the published base image, pinned by a build arg rather than a literal version", () => {
+    expect(dockerfile).toContain('ARG MEITH_VERSION')
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
+    expect(dockerfile).toContain('FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps')
+    expect(dockerfile).not.toContain('meith-base:1.2.3')
+  })
+
+  it("reads that build arg from package.json's own @meith/web dependency, so upgrading is one file", () => {
+    expect(buildWorkflow).toContain(
+      "MEITH_VERSION=$(node -p \"require('./package.json').dependencies['@meith/web']\")",
+    )
+    expect(buildWorkflow).toContain('--build-arg MEITH_VERSION="$MEITH_VERSION"')
   })
 
   it('installs only its own delta on top of the base image', () => {
@@ -256,13 +266,15 @@ describe('the deploy kit', () => {
     expect(readme).toMatch(/github actions/i)
     expect(readme).toMatch(/coolify/i)
     expect(readme).toContain('MEITH_IMAGE')
-    expect(readme).toMatch(/docker build -t my-board \./)
+    expect(readme).toContain('docker build --build-arg MEITH_VERSION=')
+    expect(readme).toMatch(/-t my-board \.\s*```/)
   })
 
-  it('documents the upgrade path for the version pins', () => {
+  it('tells the operator upgrading is one package.json edit, not a second pin to keep in sync', () => {
     const readme = files.get('README.md')!
-    expect(readme).toMatch(/FROM ghcr\.io\/meith-dev\/meith-base/)
-    expect(readme).toMatch(/bump/i)
+    expect(readme).toMatch(/npm install @meith\/web@latest @meith\/cli@latest/)
+    expect(readme).toMatch(/build argument/i)
+    expect(readme).not.toMatch(/bump/i)
   })
 })
 
@@ -306,7 +318,7 @@ describe('the CLI', () => {
         'board.plugins.json',
         'community.config.ts',
         'community.plugins.ts',
-        'compose.yml',
+        'docker-compose.yml',
         'docker-entrypoint.sh',
         'docker-healthcheck.sh',
         'package.json',
