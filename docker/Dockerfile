@@ -30,6 +30,17 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 # manifests-only layer it was written to be.
 COPY --parents ./*/*/package.json ./
 
+# MEI-76: `boards/stock` depends on `@meith/web` and `@meith/cli` as real
+# `workspace:*` dependencies (not path aliases), and both declare a `bin`
+# (`forum-web`, `community`) pnpm must link into `boards/stock/node_modules/
+# .bin`. pnpm reads the target file to do that, so — same as the package.json
+# line above — the actual bin scripts have to exist at install time, not just
+# their package.json entries. Without this, install only warns (`Failed to
+# create bin ... ENOENT`) and silently skips the symlink, so `forum-web build`
+# fails later in the build stage with `forum-web: not found`, once the actual
+# source is present but nothing re-runs install to fix the now-missing links.
+COPY --parents ./*/*/bin/*.mjs ./
+
 RUN pnpm install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
