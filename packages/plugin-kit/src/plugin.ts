@@ -231,7 +231,13 @@ export interface PluginDefinition {
   readonly onUninstall?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
 }
 
-const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
+/**
+ * The rule a plugin key (and, by marketplace-gen.mjs's own mirrored copy, a
+ * marketplace listing key) has to satisfy. Exported so
+ * scripts/marketplace-gen.test.ts can pin its own copy directly against
+ * this one rather than trusting the two stay in sync by comment alone.
+ */
+export const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const SETTING_KEY_PATTERN = /^[a-z][a-z0-9_]{1,39}$/
 const MIGRATION_ID_PATTERN = /^\d{4}_[a-z0-9_]{1,60}$/
 const TASK_ID_PATTERN = /^[a-z][a-z0-9-]{1,39}$/

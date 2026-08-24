@@ -76,9 +76,12 @@ screenshot the array names that does not exist under
 ran `pnpm marketplace:gen` to update the published feed — the same
 discipline as [the other generated documents](./development.md#the-generated-documents).
 
-The output is deterministic: listings are sorted by `key` regardless of
-directory order, and nothing in it is time-stamped, so running the
-generator twice with unchanged listings produces byte-identical output.
+The output is deterministic: listings are sorted by `key` — by UTF-16 code
+point, not `String.localeCompare`, whose result follows the machine's own
+`LANG`/ICU collation and disagrees across machines on `[a-z0-9-]` strings
+— regardless of directory order, and nothing in it is time-stamped, so
+running the generator twice with unchanged listings produces
+byte-identical output on any machine, not only the one that generated it.
 
 The merged feed lands at `apps/web/public/marketplace/v1.json` — Next.js
 serves anything under a site's `public/` directory at the matching path,
@@ -87,6 +90,24 @@ pages — and the screenshots land beside it at
 `apps/web/public/marketplace/screenshots/`. Both are committed, exactly
 like `docs/openapi.json`: a generated file `pnpm verify` checks for
 staleness rather than a build step that produces it fresh.
+
+The generator also verifies that these are the *only* files in play. Every
+screenshot actually present under `marketplace/screenshots/` must be
+referenced by some current listing's `screenshots` field, and every file
+under `apps/web/public/marketplace/` must be either the feed file or a
+referenced screenshot — nothing else. `pnpm marketplace:gen:check` fails,
+naming the file, on anything that does not fit that shape: a screenshot a
+deleted or renamed listing left behind, or a file dropped straight into
+the published directory rather than added as a reviewed listing.
+`pnpm marketplace:gen` deletes such orphans on both sides rather than
+leaving them for a human to notice — which is also why deleting a
+listing's screenshot from `marketplace/screenshots/` before running the
+generator, as [Delisting](#delisting) already asked for, does the right
+thing either way. Each screenshot is also checked as a file, not just as a
+name: its first 8 bytes must be a real PNG signature, and it must be under
+5,000,000 bytes — the same ceiling the screenshot proxy route applies to a
+screenshot fetched from a self-hosted mirror — so a `*.png` filename with
+some other payload behind it never reaches meith.dev's public assets.
 
 ## The feed URL is a contract
 

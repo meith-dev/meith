@@ -5,13 +5,24 @@ import { fileURLToPath } from 'node:url'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { KEY_PATTERN as MARKETPLACE_PKG_KEY_PATTERN } from '../packages/marketplace/src/schema'
+import { KEY_PATTERN as PLUGIN_KIT_KEY_PATTERN } from '../packages/plugin-kit/src/plugin'
 import {
   buildFeed,
   checkScreenshotsExist,
   checkUniqueness,
   collectListings,
+  compareKeys,
+  findExtraneousPublishedFiles,
+  findOrphanScreenshots,
   isValidRange,
+  KEY_PATTERN,
+  KINDS,
+  MAX_SCREENSHOT_BYTES,
+  PNG_SIGNATURE,
   REQUIRED_FIELDS,
+  SCREENSHOT_NAME_PATTERN,
+  VERSION_PATTERN,
   validateEntry,
 } from './marketplace-gen.mjs'
 
@@ -150,6 +161,32 @@ describe('buildFeed', () => {
   })
 })
 
+describe('compareKeys', () => {
+  it('orders by UTF-16 code point', () => {
+    expect(compareKeys({ key: 'aaa' }, { key: 'zzz' })).toBeLessThan(0)
+    expect(compareKeys({ key: 'zzz' }, { key: 'aaa' })).toBeGreaterThan(0)
+    expect(compareKeys({ key: 'aaa' }, { key: 'aaa' })).toBe(0)
+  })
+
+  it(
+    "disagrees with String.localeCompare's own default collation on a real pair (MEI-94) — " +
+      'proof that a bare localeCompare call would not have byte-matched across machines',
+    () => {
+      expect('a_b'.localeCompare('a-b')).toBeLessThan(0)
+      expect(compareKeys({ key: 'a_b' }, { key: 'a-b' })).toBeGreaterThan(0)
+    },
+  )
+
+  it(
+    'disagrees with a real named locale collation too — Danish groups a doubled "aa" near ' +
+      '"å", after "z", which reverses this pair relative to code-point order',
+    () => {
+      expect('aaa'.localeCompare('aba', 'da-DK')).toBeGreaterThan(0)
+      expect(compareKeys({ key: 'aaa' }, { key: 'aba' })).toBeLessThan(0)
+    },
+  )
+})
+
 describe('marketplace/schema.json stays in step with the generator', () => {
   it('declares exactly REQUIRED_FIELDS, no more and no less', async () => {
     const schema = JSON.parse(await readFile(join(ROOT, 'marketplace/schema.json'), 'utf8'))
@@ -157,6 +194,31 @@ describe('marketplace/schema.json stays in step with the generator', () => {
     expect(Object.keys(schema.properties).sort()).toEqual([...REQUIRED_FIELDS].sort())
     expect(schema.additionalProperties).toBe(false)
   })
+
+  it(
+    'declares the same patterns, enum and minimum this generator enforces, not just the ' +
+      'same field names (MEI-94)',
+    async () => {
+      const schema = JSON.parse(await readFile(join(ROOT, 'marketplace/schema.json'), 'utf8'))
+      expect(schema.properties.key.pattern).toBe(KEY_PATTERN.source)
+      expect(schema.properties.kind.enum).toEqual([...KINDS])
+      expect(schema.properties.screenshots.items.pattern).toBe(SCREENSHOT_NAME_PATTERN.source)
+      expect(schema.properties.version.pattern).toBe(VERSION_PATTERN.source)
+      expect(schema.properties.apiVersion.minimum).toBe(0)
+      expect(schema.properties.repository.pattern).toBe('^https://')
+    },
+  )
+
+  it(
+    'agrees with packages/marketplace and definePlugin on the key pattern itself, all four ' +
+      'copies pinned against one another (MEI-94)',
+    async () => {
+      const schema = JSON.parse(await readFile(join(ROOT, 'marketplace/schema.json'), 'utf8'))
+      expect(KEY_PATTERN.source).toBe(schema.properties.key.pattern)
+      expect(KEY_PATTERN.source).toBe(MARKETPLACE_PKG_KEY_PATTERN.source)
+      expect(KEY_PATTERN.source).toBe(PLUGIN_KIT_KEY_PATTERN.source)
+    },
+  )
 })
 
 describe('the real marketplace listings', () => {
@@ -170,6 +232,19 @@ describe('the real marketplace listings', () => {
       join(ROOT, 'marketplace/screenshots'),
     )
     expect(screenshotProblems).toEqual([])
+  })
+
+  it('leaves no orphan screenshot and no extraneous published file behind (MEI-94)', async () => {
+    const { files } = await collectListings(join(ROOT, 'marketplace/listings'))
+
+    const sourceOrphans = await findOrphanScreenshots(files, join(ROOT, 'marketplace/screenshots'))
+    expect(sourceOrphans).toEqual([])
+
+    const publishedExtraneous = await findExtraneousPublishedFiles(
+      files,
+      join(ROOT, 'apps/web/public/marketplace'),
+    )
+    expect(publishedExtraneous).toEqual([])
   })
 })
 
@@ -207,4 +282,89 @@ describe('collectListings and checkScreenshotsExist against a temp fixture', () 
       'ghost.json: field "screenshots" names "missing.png", which does not exist in the screenshots directory',
     ])
   })
+})
+
+describe('checkScreenshotsExist against screenshot content, not just the filename', () => {
+  let dir: string
+
+  afterEach(async () => {
+    if (dir) await rm(dir, { recursive: true, force: true })
+  })
+
+  it('rejects a file named *.png whose bytes are not a PNG (MEI-94)', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'marketplace-gen-'))
+    await writeFile(join(dir, 'dues-light.png'), 'not actually a png')
+
+    const files = [{ file: 'dues.json', entry: { screenshots: ['dues-light.png'] } }]
+    const problems = await checkScreenshotsExist(files, dir)
+
+    expect(problems).toEqual([
+      'dues.json: screenshot "dues-light.png" is not a PNG file (its signature does not match)',
+    ])
+  })
+
+  it('rejects a real PNG over MAX_SCREENSHOT_BYTES (MEI-94)', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'marketplace-gen-'))
+    const oversized = Buffer.concat([PNG_SIGNATURE, Buffer.alloc(MAX_SCREENSHOT_BYTES)])
+    await writeFile(join(dir, 'dues-light.png'), oversized)
+
+    const files = [{ file: 'dues.json', entry: { screenshots: ['dues-light.png'] } }]
+    const problems = await checkScreenshotsExist(files, dir)
+
+    expect(problems).toEqual([
+      `dues.json: screenshot "dues-light.png" is ${oversized.length} bytes, over the ` +
+        `${MAX_SCREENSHOT_BYTES} byte ceiling`,
+    ])
+  })
+
+  it('accepts a real PNG under the ceiling', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'marketplace-gen-'))
+    await writeFile(join(dir, 'dues-light.png'), PNG_SIGNATURE)
+
+    const files = [{ file: 'dues.json', entry: { screenshots: ['dues-light.png'] } }]
+    expect(await checkScreenshotsExist(files, dir)).toEqual([])
+  })
+})
+
+describe('findOrphanScreenshots and findExtraneousPublishedFiles (MEI-94)', () => {
+  let dir: string
+
+  afterEach(async () => {
+    if (dir) await rm(dir, { recursive: true, force: true })
+  })
+
+  it('names a screenshot no listing references', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'marketplace-gen-'))
+    await writeFile(join(dir, 'dues-light.png'), PNG_SIGNATURE)
+    await writeFile(join(dir, 'leftover-light.png'), PNG_SIGNATURE)
+
+    const files = [{ file: 'dues.json', entry: { screenshots: ['dues-light.png'] } }]
+    expect(await findOrphanScreenshots(files, dir)).toEqual(['leftover-light.png'])
+  })
+
+  it('reports no orphan once every file on disk is referenced', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'marketplace-gen-'))
+    await writeFile(join(dir, 'dues-light.png'), PNG_SIGNATURE)
+
+    const files = [{ file: 'dues.json', entry: { screenshots: ['dues-light.png'] } }]
+    expect(await findOrphanScreenshots(files, dir)).toEqual([])
+  })
+
+  it(
+    'names a published file no current listing produced, including one dropped straight ' +
+      'into the published directory rather than added as a reviewed listing',
+    async () => {
+      dir = await mkdtemp(join(tmpdir(), 'marketplace-gen-'))
+      await mkdir(join(dir, 'screenshots'), { recursive: true })
+      await writeFile(join(dir, 'v1.json'), '{}')
+      await writeFile(join(dir, 'screenshots', 'dues-light.png'), PNG_SIGNATURE)
+      await writeFile(join(dir, 'screenshots', 'smuggled.png'), 'anything')
+      await writeFile(join(dir, 'anything.json'), '{}')
+
+      const files = [{ file: 'dues.json', entry: { screenshots: ['dues-light.png'] } }]
+      const extraneous = await findExtraneousPublishedFiles(files, dir)
+
+      expect(extraneous.sort()).toEqual(['anything.json', 'screenshots/smuggled.png'])
+    },
+  )
 })

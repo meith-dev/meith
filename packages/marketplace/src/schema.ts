@@ -52,7 +52,12 @@ export const REQUIRED_LISTING_FIELDS = [
   'licence',
 ] as const
 
-const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
+/**
+ * Mirrors KEY_PATTERN in scripts/marketplace-gen.mjs and
+ * packages/plugin-kit/src/plugin.ts. Exported so
+ * scripts/marketplace-gen.test.ts can pin all three against each other.
+ */
+export const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/
 const PACKAGE_PATTERN = /^(@[a-z0-9-][a-z0-9-._]*\/)?[a-z0-9-][a-z0-9-._]*$/
 // The served feed's screenshots are absolute site paths, not bare filenames —
