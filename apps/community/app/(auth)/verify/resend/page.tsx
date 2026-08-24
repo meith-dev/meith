@@ -23,7 +23,7 @@ export default async function ResendVerificationPage({
   const lede =
     params.sent === '1' ? (
       email === '' ? (
-        <>{t.t('page.we-have-sent-confirmation-link')}</>
+        t.t('page.we-have-sent-confirmation-link')
       ) : (
         <>
           {sentLead}
@@ -32,7 +32,7 @@ export default async function ResendVerificationPage({
         </>
       )
     ) : (
-      <>{t.t('page.enter-address-registered-with-we')}</>
+      t.t('page.enter-address-registered-with-we')
     )
 
   return (

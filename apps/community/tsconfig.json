@@ -60,6 +60,8 @@
       "@meith/posts/*": ["../../packages/posts/src/*"],
       "@meith/markdown": ["../../packages/markdown/src/index.ts"],
       "@meith/markdown/*": ["../../packages/markdown/src/*"],
+      "@meith/marketplace": ["../../packages/marketplace/src/index.ts"],
+      "@meith/marketplace/*": ["../../packages/marketplace/src/*"],
       "@meith/plugin-reference": ["../../plugins/reference/src/index.ts"],
       "@meith/import": ["../../packages/import/src/index.ts"],
       "@meith/upgrade": ["../../packages/upgrade/src/index.ts"],

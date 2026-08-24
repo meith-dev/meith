@@ -366,6 +366,15 @@ the page they need:
 | Installing a theme or a plugin | [Running a board § Themes](./operating.md#themes), [The plugin API](./plugin-api.md) |
 | Recovering lost administrator access | [Running a board § The operator CLI](./operating.md#the-operator-cli) |
 
+Deciding *what* to install is yours, even when installing it is not.
+**Admin → Plugins → Browse** and **Admin → Themes → Browse** read a
+cached copy of the meith.dev catalog and show, for each listing, whether
+it is already running, switched off, updatable, not installed, or built
+for a version of Meith this board does not run — plainly labelled, and
+with the exact command line whoever has the terminal will need. It reads
+the catalog; it does not install anything, so browsing it costs nothing
+and needs nobody technical yet.
+
 One of these is worth chasing rather than filing: **backups**. A board
 accumulates years of a community's writing, and the backup is the only
 way back from a bad day. Ask the person who runs the server two

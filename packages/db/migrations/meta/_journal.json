@@ -393,6 +393,13 @@
       "when": 1787522456353,
       "tag": "0055_poll_parity",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1787524084640,
+      "tag": "0056_marketplace_catalog",
+      "breakpoints": true
     }
   ]
 }

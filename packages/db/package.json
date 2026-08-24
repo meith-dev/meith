@@ -39,6 +39,7 @@
     "@meith/groups": "workspace:*",
     "@meith/i18n": "workspace:*",
     "@meith/markdown": "workspace:*",
+    "@meith/marketplace": "workspace:*",
     "@meith/messages": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",

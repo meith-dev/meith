@@ -151,6 +151,9 @@ importers:
       '@meith/markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
+      '@meith/marketplace':
+        specifier: workspace:*
+        version: link:../../packages/marketplace
       '@meith/messages':
         specifier: workspace:*
         version: link:../../packages/messages
@@ -478,6 +481,9 @@ importers:
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
+      '@meith/marketplace':
+        specifier: workspace:*
+        version: link:../marketplace
       '@meith/messages':
         specifier: workspace:*
         version: link:../messages
@@ -667,6 +673,12 @@ importers:
 
   packages/markdown: {}
 
+  packages/marketplace:
+    dependencies:
+      '@meith/theme-kit':
+        specifier: workspace:*
+        version: link:../theme-kit
+
   packages/messages:
     dependencies:
       '@meith/core':
@@ -799,6 +811,9 @@ importers:
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
+      '@meith/marketplace':
+        specifier: workspace:*
+        version: link:../marketplace
       '@meith/moderation':
         specifier: workspace:*
         version: link:../moderation
