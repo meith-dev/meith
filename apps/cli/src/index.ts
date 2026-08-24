@@ -211,6 +211,17 @@ const commands: Command[] = [
   },
 
   {
+    name: 'board:eject',
+    summary:
+      'Write this build as a standalone workspace — the first step of graduating off the stock image.',
+    usage: 'community board:eject <dir>',
+    async run(args: readonly string[]) {
+      const { boardEject } = await import('./board-eject')
+      return boardEject(args)
+    },
+  },
+
+  {
     name: 'settings:list',
     summary: 'Print the setting registry with default values.',
     async run() {

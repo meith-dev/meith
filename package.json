@@ -50,6 +50,7 @@
     "marketplace:gen:check": "node scripts/marketplace-gen.mjs --check",
     "board:workspace:smoke": "tsx scripts/board-workspace-smoke.mts",
     "board:deploy-kit:smoke": "tsx scripts/board-deploy-kit-smoke.mts",
+    "board:eject:smoke": "tsx scripts/board-eject-smoke.mts",
     "perf": "tsx packages/testkit/src/load/run.ts",
     "perf:docs": "node scripts/perf-docs.mjs",
     "perf:docs:check": "node scripts/perf-docs.mjs --check"

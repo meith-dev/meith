@@ -155,6 +155,15 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
 # The generated SQL. Not part of the traced standalone output — it is data, not
 # a module — so the migrate role would find an empty folder without this.
 COPY --from=build --chown=nextjs:nodejs /repo/packages/db/migrations ./migrations
+# MEI-81: `community board:eject` reads this to write the manifest a graduated
+# board starts with — the plugins this exact build actually compiled in, not
+# an assumption. `BOARD_PLUGINS_MANIFEST` names it explicitly because a
+# bundled `dist/cli.cjs` does not sit the same distance from the repository
+# root that `apps/cli/src/*.ts` does (the COPY two lines up drops the `dist`
+# segment) — see apps/cli/src/board-eject.ts for the fallback that distance
+# would otherwise wrongly compute.
+COPY --from=build --chown=nextjs:nodejs /repo/boards/stock/board.plugins.json ./board.plugins.json
+ENV BOARD_PLUGINS_MANIFEST=/app/board.plugins.json
 COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
 COPY --chown=nextjs:nodejs docker/healthcheck.sh ./healthcheck.sh
 

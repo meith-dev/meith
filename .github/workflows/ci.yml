@@ -394,6 +394,45 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_deploy_kit_smoke
 
+  # MEI-81: the epic's own closing acceptance rule — eject → build via the
+  # scaffold Dockerfile → boot against the *same* database → the board comes
+  # up unchanged, before any plugin is added. Seeds a distinctive thread first
+  # (the same "Start here" content the backup/restore job already checks
+  # for), runs `community board:eject` for real against this checkout
+  # standing in for a running stock image, then reuses the same local
+  # stand-in base image trick as board-deploy-kit above to build the ejected
+  # Dockerfile unmodified. See scripts/board-eject-smoke.mts.
+  board-eject:
+    name: A graduated board builds and boots unchanged against the same database
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: board_eject_smoke
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Seed, eject, pack, build a stand-in base image, build and boot the graduated image
+        run: pnpm board:eject:smoke
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_eject_smoke
+
   # meith.dev's own image. A different app, Dockerfile and Next config branch
   # from the board above, so a green `image` job says nothing about it.
   site-image:

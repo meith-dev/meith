@@ -94,6 +94,15 @@ export function MarketplaceListingCard({
           >
             {t.t('adminMarketplace.installDocsLink')}
           </a>
+          {listing.onStockImage && (
+            <a
+              href="https://www.meith.dev/docs/marketplace#moving-to-a-custom-board"
+              rel="noopener noreferrer"
+              className="w-fit text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+            >
+              {t.t('adminMarketplace.graduationLink')}
+            </a>
+          )}
         </div>
       )}
 
