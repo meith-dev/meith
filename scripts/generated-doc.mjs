@@ -4,8 +4,21 @@ import { join } from 'node:path'
 
 import { ROOT } from './workspace-packages.mjs'
 
-export async function emitGeneratedDoc({ outputFile, generated, staleReason, upToDate, wrote }) {
-  const target = join(ROOT, outputFile)
+/**
+ * `root` defaults to the repository root; scripts/board-plugins-gen.mjs
+ * passes a fixture directory instead when MEITH_BOARD_PLUGINS_ROOT is set, so
+ * a test can exercise a real generator run without writing into this
+ * checkout's own generated files.
+ */
+export async function emitGeneratedDoc({
+  outputFile,
+  generated,
+  staleReason,
+  upToDate,
+  wrote,
+  root = ROOT,
+}) {
+  const target = join(root, outputFile)
 
   if (!process.argv.includes('--check')) {
     await writeFile(target, generated, 'utf8')

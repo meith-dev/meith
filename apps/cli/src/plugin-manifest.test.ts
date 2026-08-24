@@ -110,7 +110,9 @@ describe('pluginAdd', () => {
       plugins: [{ key: 'dues', package: '@meith/plugin-dues', enabled: true }],
     })
 
-    await expect(pluginAdd(['@meith/plugin-dues'])).rejects.toThrow(/already in board.plugins.json/)
+    await expect(pluginAdd(['@meith/plugin-dues'])).rejects.toThrow(
+      /already in apps\/community\/board\.plugins\.json/,
+    )
     expect(execCalls).toHaveLength(0)
   })
 

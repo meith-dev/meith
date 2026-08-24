@@ -489,8 +489,32 @@ repository that nothing else reads:
 | `slots:check` | The server/client boundary in theme slots, in both directions. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
-| `board:gen:check` | `apps/community/community.plugins.ts` out of step with `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin). |
+| `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
+
+## The board plugin manifests
+
+This repository carries two boards, and each has its own
+`board.plugins.json` and generated `community.plugins.ts`: `apps/community`,
+the in-repo dev target, and `boards/stock`, the workspace
+`docker/Dockerfile` builds the official image from. `tests/boards-stock.test.ts`
+requires the two manifests to stay identical, so a plugin installed into one
+and not the other fails `pnpm verify`.
+
+`scripts/boards.json` is the one place that list of boards is written down.
+Both `scripts/board-plugins-gen.mjs` (`pnpm board:gen`) and
+`apps/cli/src/plugin-manifest.ts` (`community plugin:add` / `plugin:remove`)
+read it, so a board added there is picked up by both without a second list
+to keep in step. Installing a plugin in this checkout means adding the
+dependency to both boards — see
+[the plugin API](./plugin-api.md#writing-a-plugin).
+
+`MEITH_BOARD_PLUGINS_ROOT` overrides the directory those manifests,
+`package.json` files and generated files are read from and written to; the
+generator inherits it from the CLI when the CLI shells out. Only the tests
+set it, pointing at a throwaway fixture tree so a real add-and-remove round
+trip never edits this checkout's own boards. Unset — which is what any real
+run leaves it — both fall back to the repository root.
 
 ## The generated documents
 

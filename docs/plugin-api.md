@@ -42,28 +42,41 @@ export { greeter as plugin } from './definition'
 export { greeterMessages as messages } from './messages'
 ```
 
-Installing one is then `pnpm add`, `community plugin:add <package>`, and a
-rebuild and redeploy:
+Installing one in this checkout is then `pnpm add`, `community
+plugin:add <package>`, and a rebuild and redeploy. This repository carries
+two boards — `apps/community`, the in-repo dev target, and `boards/stock`,
+the workspace `docker/Dockerfile` builds the official image from (see
+`docs/architecture.md`, "The board-config seam") — and their two
+`board.plugins.json` files are required to stay identical
+(`tests/boards-stock.test.ts` is the drift guard `pnpm verify` runs), so the
+package has to land as a dependency of both, and `plugin:add` writes both
+manifests:
 
 ```sh
 pnpm add @meith/plugin-greeter --filter @meith/web
+pnpm add @meith/plugin-greeter --filter @meith/board-stock
 community plugin:add @meith/plugin-greeter
 ```
 
 `plugin:add` infers the manifest key from a `@scope/plugin-<key>` package
 name (pass `--key` when it does not fit that shape, or `--disabled` to
-install it switched off) and writes `board.plugins.json`:
+install it switched off) and writes both `board.plugins.json` files:
 
 ```json
 { "plugins": [{ "key": "greeter", "package": "@meith/plugin-greeter", "enabled": true }] }
 ```
 
 then runs `pnpm board:gen` for you, which writes the import and the list
-entry into `community.plugins.ts`. `community plugin:remove <key>` is the
-reverse. Neither command takes plugin configuration — the manifest has no
-field for it, on purpose, and `plugin:add` refuses an attempt to pass any:
-a plugin that needs arguments is not manifest-installable until its
-configuration moves into its own settings, the way `plugins/dues`'s did.
+entry into both `community.plugins.ts` files. `community plugin:remove <key>`
+is the reverse, on both boards. If the generator refuses one board's manifest
+— the package is not yet a dependency there, most often, or the two manifests
+already disagree before the command ran — neither `board.plugins.json` file
+is touched: `plugin:add`/`plugin:remove` roll every board back together, so a
+failed attempt never leaves one manifest edited and the other not. Neither
+command takes plugin configuration — the manifest has no field for it, on
+purpose, and `plugin:add` refuses an attempt to pass any: a plugin that needs
+arguments is not manifest-installable until its configuration moves into its
+own settings, the way `plugins/dues`'s did.
 
 **The escape hatch is still real code, and it is honest about being one.**
 A plugin that cannot yet fit the manifest — it takes constructor
@@ -77,11 +90,15 @@ extension point. Nothing about `community.plugins.ts` being generated
 changes what runs — it changes how the manifest-installable, common case
 gets there without hand-editing TypeScript.
 
-`pnpm board:gen:check`, wired into `pnpm verify`, fails when the manifest
-and `community.plugins.ts` disagree — run `pnpm board:gen` and commit the
-result. `board.plugins.json` refuses a duplicate key, a key `definePlugin`
-would refuse, and a package `apps/community` does not depend on, naming
-`pnpm add <package> --filter @meith/web` as the fix for the last one.
+`pnpm board:gen:check`, wired into `pnpm verify`, fails when either board's
+manifest and its `community.plugins.ts` disagree — run `pnpm board:gen` and
+commit the result — and `tests/boards-stock.test.ts` fails when the two
+`board.plugins.json` files disagree with each other. Each `board.plugins.json`
+refuses a duplicate key, a key `definePlugin` would refuse, and a package its
+own board does not depend on, naming the fix — `pnpm add <package> --filter
+@meith/web` for `apps/community`, `pnpm add <package> --filter
+@meith/board-stock` for `boards/stock` — against whichever board actually
+lacks it.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
