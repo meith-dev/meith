@@ -1,13 +1,13 @@
 # Quickstart
 
-You do not need to be a programmer to set up a Meith board, and you do not
-need anything installed on your own computer either — a terminal is
-enough. This page is written for whichever volunteer drew the short
-straw: if you can rent a server, point a domain at it and copy-paste a
-handful of commands, it takes you from nothing to a board the whole
-community can reach — on your own domain, over HTTPS — in about twenty
-minutes. Nothing is built on your server: the deploy pulls an image
-GitHub built for you.
+You do not need to be a programmer to set up a Meith board. This page is
+written for whichever volunteer drew the short straw: if you can rent a
+server, point a domain at it, and follow along, it takes you from
+nothing to a board the whole community can reach — on your own domain,
+over HTTPS — in about twenty minutes. Nothing is built on your server:
+the deploy pulls an image GitHub built for you, and step 2 offers a route
+that needs nothing installed on your own computer at all — not even a
+terminal.
 
 This is the guided route, and the one most boards should take:
 [Coolify](https://coolify.io) is a free panel you install on your server
@@ -65,30 +65,49 @@ same proxy that will serve your board — worth doing before you close 8000.
 
 ## 2. Create your board
 
-Same terminal, same server or your own computer — this step does not
-care which, since it only writes files and does not need Docker, Node.js
-or anything else already installed:
+Three ways to get there — pick whichever matches what you have to hand.
+All three end up in the same place: a repository on GitHub with the
+deploy kit already in it.
 
-```sh
-curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board
-```
+- **Rather not open a terminal at all?** Click **Use this template** on
+  [meith-dev/template](https://github.com/meith-dev/template), name your
+  new repository, and skip straight to [step
+  3](#3-set-your-domain-and-deploy) — GitHub creates the repository and
+  its first commit for you, no local anything required.
+- **Have a terminal, nothing installed?**
 
-Pick `my-board`'s replacement now — the name of the directory this writes
-and, once you push it, of the repository on GitHub. It is not the board's
-display name (the installer asks for that later, in [step
+  ```sh
+  curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board
+  ```
+
+- **Already have Node.js and reach for `npx`?**
+
+  ```sh
+  npx create-meith my-board
+  ```
+
+If you used one of the two commands, pick `my-board`'s replacement now —
+the name of the directory it writes and, once you push it, of the
+repository on GitHub. (The template route asks for this itself, at the
+point you click through.) It is not the board's display name (the
+installer asks for that later, in [step
 4](#4-run-the-installer)), so it does not have to be pretty, only lower-case
 with no spaces.
 
-This writes a small workspace into `./my-board` — `package.json`,
-`community.config.ts`, and a deploy kit of its own: `Dockerfile`,
-`docker-compose.yml` and `.github/workflows/build.yml`. It depends on the
-published `@meith/web` and `@meith/cli` packages rather than containing a
-copy of this repository, and it is what turns "installing a plugin" from a
-fork of this project into `npm install` and a line in a config file — see
-[Self-hosting § Custom boards](./self-hosting.md#custom-boards) for the
-mechanism. It also initializes a git repository in `./my-board` and stages
-every file, so the only commands left are the ones only you can fill in —
-the script prints them back to you, ready to paste:
+The two commands write an identical small workspace into `./my-board` —
+`package.json`, `community.config.ts`, and a deploy kit of its own:
+`Dockerfile`, `docker-compose.yml` and `.github/workflows/build.yml` —
+the same files the template repository already has. All three depend on
+the published `@meith/web` and `@meith/cli` packages rather than
+containing a copy of this repository, and this is what turns "installing
+a plugin" from a fork of this project into `npm install` and a line in a
+config file — see [Self-hosting § Custom
+boards](./self-hosting.md#custom-boards) for the mechanism.
+
+**If you used curl or npx:** the command also initialized a git
+repository in `./my-board` and staged every file, so the only commands
+left are the ones only you can fill in — it prints them back to you,
+ready to paste:
 
 ```sh
 cd my-board
@@ -98,19 +117,16 @@ git push -u origin main
 ```
 
 Create that empty repository on GitHub first — **New repository**, no
-README, no `.gitignore` — then run the four lines above.
-
-> [!NOTE]
-> **Already have Node.js and prefer `npx`?** `npx create-meith my-board`
-> does the exact same thing — same files, same git init — and is worth
-> using instead if you already reach for `npx` day to day. Nothing past
-> this step differs between the two.
+README, no `.gitignore` — then run the four lines above. (Skip this whole
+part if you used the template — GitHub already did it.)
 
 `.github/workflows/build.yml`, already written, builds `Dockerfile` on
-GitHub's own runners the moment `main` has something pushed to it, and
-pushes the result to `ghcr.io/<you>/my-board` — using only the
-`GITHUB_TOKEN` every Actions run already carries. No Docker on your
-computer, no registry account beyond the GitHub account you already have.
+GitHub's own runners the moment `main` has something pushed to it — for
+the template route, that means the moment GitHub finishes creating your
+repository — and pushes the result to `ghcr.io/<you>/my-board`, using
+only the `GITHUB_TOKEN` every Actions run already carries. No Docker on
+your computer, no registry account beyond the GitHub account you already
+have.
 
 > [!IMPORTANT]
 > **Before moving on**, once that run finishes:

@@ -345,7 +345,10 @@ published `@meith/web` and `@meith/cli` packages instead, and comes with
 its own deploy kit already written: `Dockerfile`, `docker-compose.yml` and
 `.github/workflows/build.yml`, plus a git repository already initialized
 and staged. `npx create-meith <name>` does the identical thing for anyone
-who already has Node.js and would rather use it. See [Consuming the board
+who already has Node.js and would rather use it, and clicking **Use this
+template** on [meith-dev/template](https://github.com/meith-dev/template)
+does it with no local tooling at all — GitHub creates the repository and
+its first commit directly. See [Consuming the board
 from a workspace](./development.md#consuming-the-board-from-a-workspace)
 for the mechanism (`forum-web`/`community` — the same bins this
 repository's own image is built through, see [the stock
