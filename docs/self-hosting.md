@@ -334,16 +334,23 @@ drift apart, and why there is no second Dockerfile.
 Everything above deploys **this board** — the stock one, whatever plugins
 and themes `apps/community`'s own `community.config.ts` compiles in.
 Installing a third-party plugin does not mean forking this repository:
-`npx create-meith <name>` scaffolds a small workspace of its own —
-`package.json`, `community.config.ts`, `board.plugins.json` — that depends
-on the published `@meith/web` and `@meith/cli` packages instead, and comes
-with its own deploy kit already written: `Dockerfile`, `compose.yml` and
-`.github/workflows/build.yml`. See [Consuming the board from a
-workspace](./development.md#consuming-the-board-from-a-workspace) for the
-mechanism (`forum-web`/`community` — the same bins this repository's own
-image is built through, see [the stock board](./architecture.md#the-stock-board))
-and [the plugin API](./plugin-api.md) for installing a plugin once the
-workspace exists.
+
+```sh
+curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- <name>
+```
+
+scaffolds a small workspace of its own — `package.json`,
+`community.config.ts`, `board.plugins.json` — that depends on the
+published `@meith/web` and `@meith/cli` packages instead, and comes with
+its own deploy kit already written: `Dockerfile`, `compose.yml` and
+`.github/workflows/build.yml`, plus a git repository already initialized
+and staged. `npx create-meith <name>` does the identical thing for anyone
+who already has Node.js and would rather use it. See [Consuming the board
+from a workspace](./development.md#consuming-the-board-from-a-workspace)
+for the mechanism (`forum-web`/`community` — the same bins this
+repository's own image is built through, see [the stock
+board](./architecture.md#the-stock-board)) and [the plugin
+API](./plugin-api.md) for installing a plugin once the workspace exists.
 
 The "server pulls an image; something else builds it" promise this
 document stands behind carries over to a custom board, with one

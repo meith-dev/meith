@@ -1,11 +1,12 @@
 # Quickstart
 
-You do not need to be a programmer to set up a Meith board. This page is
-written for whichever volunteer drew the short straw: if you can rent a
-server, point a domain at it, run one command on your own computer and
-push what it writes to GitHub, it takes you from nothing to a board the
-whole community can reach — on your own domain, over HTTPS — in about
-twenty minutes. Nothing is built on your server: the deploy pulls an image
+You do not need to be a programmer to set up a Meith board, and you do not
+need anything installed on your own computer either — a terminal is
+enough. This page is written for whichever volunteer drew the short
+straw: if you can rent a server, point a domain at it and copy-paste a
+handful of commands, it takes you from nothing to a board the whole
+community can reach — on your own domain, over HTTPS — in about twenty
+minutes. Nothing is built on your server: the deploy pulls an image
 GitHub built for you.
 
 This is the guided route, and the one most boards should take:
@@ -27,8 +28,7 @@ runs it on your laptop in two commands.
 | **A server** | Rented in the community's name, from any provider, for a few euro a month. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
 | **A domain** | With an `A` record already pointing at the server's IP — the certificate step needs it resolving. Your registrar's control panel does this. |
 | **SSH** | Root, once, to install the panel. The terminal appears in step 1 and never again. |
-| **A GitHub account** | Free. Your board's own repository lives there, and GitHub's own runners build its image — no Docker toolchain of yours involved. |
-| **[Node.js](https://nodejs.org) 22 or newer, on your own computer** | Not the server — a laptop, any OS. Runs the one command in step 2 that writes your board's files; nothing after that needs it. |
+| **A GitHub account** | Free. Your board's own repository lives there, and GitHub's own runners build its image — no software of yours involved. |
 
 ## 1. Install Coolify
 
@@ -65,11 +65,19 @@ same proxy that will serve your board — worth doing before you close 8000.
 
 ## 2. Create your board
 
-On your own computer, not the server:
+Same terminal, same server or your own computer — this step does not
+care which, since it only writes files and does not need Docker, Node.js
+or anything else already installed:
 
 ```sh
-npx create-meith my-board
+curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board
 ```
+
+Pick `my-board`'s replacement now — the name of the directory this writes
+and, once you push it, of the repository on GitHub. It is not the board's
+display name (the installer asks for that later, in [step
+4](#4-run-the-installer)), so it does not have to be pretty, only lower-case
+with no spaces.
 
 This writes a small workspace into `./my-board` — `package.json`,
 `community.config.ts`, and a deploy kit of its own: `Dockerfile`,
@@ -80,7 +88,7 @@ fork of this project into `npm install` and a line in a config file — see
 [Self-hosting § Custom boards](./self-hosting.md#custom-boards) for the
 mechanism. It also initializes a git repository in `./my-board` and stages
 every file, so the only commands left are the ones only you can fill in —
-the CLI prints them back to you, ready to paste:
+the script prints them back to you, ready to paste:
 
 ```sh
 cd my-board
@@ -89,8 +97,14 @@ git remote add origin https://github.com/<you>/my-board.git
 git push -u origin main
 ```
 
-Create that empty repository on GitHub first, then run the three lines
-above.
+Create that empty repository on GitHub first — **New repository**, no
+README, no `.gitignore` — then run the four lines above.
+
+> [!NOTE]
+> **Already have Node.js and prefer `npx`?** `npx create-meith my-board`
+> does the exact same thing — same files, same git init — and is worth
+> using instead if you already reach for `npx` day to day. Nothing past
+> this step differs between the two.
 
 `.github/workflows/build.yml`, already written, builds `Dockerfile` on
 GitHub's own runners the moment `main` has something pushed to it, and
@@ -124,23 +138,20 @@ In the panel: **New Resource → Docker Compose → Public Repository**.
 Coolify offers a generated domain and accepts your own. Put yours in — the
 one whose `A` record points at this server.
 
-Before you press deploy, set one variable the compose file has no default
-for: open the resource's **Environment Variables** and add `MEITH_IMAGE`,
-set to what step 2's Actions run Summary printed —
+Before you press deploy, set one thing the compose file has no default
+for: open the resource's **Environment Variables**, add `MEITH_IMAGE`,
+and paste in the first value step 2's Actions run Summary printed —
 `ghcr.io/<you>/my-board:latest`. The compose file refuses to start
 without it.
 
-`:latest` is the right value to get your first deploy up; pinning is a
-follow-up, not a blocker. Once the board is live, know what else can move
-it: Coolify re-reads the compose file from the branch every time it
-deploys the resource, and on this kind of resource the **Restart** button
-is a deploy too — so with `MEITH_IMAGE` left on the mutable `:latest`
-tag, a future push to `main` (adding a plugin, say) turns somebody else's
-Restart into an unplanned upgrade. When that matters to you, move
-`MEITH_IMAGE` to the commit-sha tag the same Summary prints alongside
-`:latest` — it never moves, so every button re-creates exactly the
-version you pinned. Upgrading is then a deliberate act: back up, move
-`MEITH_IMAGE` to the new sha, press Redeploy.
+> [!NOTE]
+> **Why this matters later, not now.** That Summary also printed a second
+> value ending in a long code instead of `:latest`. Using it instead is
+> worth doing once the board is live and you care about upgrades happening
+> only when you choose, not on their own — see [Self-hosting § Custom
+> boards](./self-hosting.md#custom-boards) when you get there. For getting
+> the board up today, the `:latest` value above is the right one; nothing
+> below depends on which you picked.
 
 Now press deploy. It pulls the image and takes a minute or two. Four
 containers come up, in order:
