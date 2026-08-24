@@ -2,9 +2,35 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CODE_VERSION } from './upgrade'
+
+/**
+ * MEI-90's own case: a bind-mounted target the container cannot write into
+ * behaves exactly like a real EACCES, without needing an actual permission
+ * failure on disk (this suite, like CI, may run as root, which bypasses
+ * filesystem permission bits entirely). `writeFailure.path` targets one
+ * write; every other call passes straight through to the real writeFile.
+ */
+const writeFailure: { path: string | undefined } = { path: undefined }
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  return {
+    ...actual,
+    writeFile: async (path: string, contents: string, encoding: BufferEncoding) => {
+      if (writeFailure.path !== undefined && path === writeFailure.path) {
+        const error = new Error(
+          `EACCES: permission denied, open '${path}'`,
+        ) as NodeJS.ErrnoException
+        error.code = 'EACCES'
+        throw error
+      }
+      return actual.writeFile(path, contents, encoding)
+    },
+  }
+})
 
 let manifestDir: string
 let manifestPath: string
@@ -24,6 +50,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   delete process.env.BOARD_PLUGINS_MANIFEST
+  writeFailure.path = undefined
 })
 
 const { boardEject } = await import('./board-eject')
@@ -218,5 +245,35 @@ describe('boardEject', () => {
     const target = join(targetParent, 'my-board')
 
     await expect(boardEject([target])).rejects.toThrow(/non-boolean "enabled"/)
+  })
+
+  it('accepts a target directory that already exists and is empty, the shape a bind mount leaves behind (MEI-90)', async () => {
+    const target = join(targetParent, 'my-board')
+    await mkdir(target, { recursive: true })
+
+    expect(await boardEject([target])).toBe(0)
+
+    const manifest = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
+    expect(manifest.name).toBe('my-board')
+  })
+
+  it('turns a permission-denied write into an actionable error instead of a bare stack (MEI-90)', async () => {
+    const target = join(targetParent, 'my-board')
+    await mkdir(target, { recursive: true })
+    writeFailure.path = join(target, 'package.json')
+
+    let caught: unknown
+    try {
+      await boardEject([target])
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).toBeInstanceOf(Error)
+    const message = (caught as Error).message
+    expect(message).toMatch(/could not write to .*: permission denied/)
+    expect(message).toContain(target)
+    expect(message).toContain('needs write access')
+    expect(message).toContain('docs/marketplace.md')
   })
 })

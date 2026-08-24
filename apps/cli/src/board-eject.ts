@@ -220,6 +220,30 @@ export function installedPluginDefinitions() {
 `
 }
 
+function isFsPermissionError(error: unknown): error is NodeJS.ErrnoException {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code
+  return code === 'EACCES' || code === 'EPERM'
+}
+
+/**
+ * Turns an EACCES/EPERM from the write loop below into this instead of a
+ * bare Node stack trace — see docs/marketplace.md, "1. Eject", for the
+ * bind-mount ownership rule this message is naming. Anything else passes
+ * through unchanged.
+ */
+function translateWriteError(error: unknown, target: string, path: string): never {
+  if (isFsPermissionError(error)) {
+    throw new ValidationError(
+      `board:eject could not write to ${path}: permission denied. The account running this ` +
+        `command needs write access to ${target} — inside the official image that account is ` +
+        'a fixed, non-root user, so a bind-mounted target directory has to already be owned by ' +
+        '(or writable by) that same account before eject runs. See docs/marketplace.md, ' +
+        '"Moving to a custom board", for the exact invocation.',
+    )
+  }
+  throw error
+}
+
 export async function boardEject(args: readonly string[]): Promise<number> {
   const positional = args.filter((arg) => !arg.startsWith('-'))
   const [dir] = positional
@@ -258,8 +282,12 @@ export async function boardEject(args: readonly string[]): Promise<number> {
 
   for (const [relative, contents] of files) {
     const path = join(target, relative)
-    await mkdir(dirname(path), { recursive: true })
-    await writeFile(path, contents, 'utf8')
+    try {
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, contents, 'utf8')
+    } catch (error) {
+      translateWriteError(error, target, path)
+    }
   }
 
   console.log(`Ejected ${files.size} files to ${target}, pinned to meith ${CODE_VERSION}.`)

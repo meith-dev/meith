@@ -153,15 +153,42 @@ you already run.
 
 ### 1. Eject
 
-Run this inside the stock image, the same way every other operator
+This runs inside the stock image, the same way every other operator
 command runs (see [Operating a board § The operator
-CLI](./operating.md#the-operator-cli)):
+CLI](./operating.md#the-operator-cli)) — with two additions this one
+needs and no other operator command does, because this is the one that
+writes a whole new workspace onto your host rather than only reading or
+writing the database:
 
 ```sh
-docker compose run --rm web community board:eject /data/my-board
+mkdir my-board
+docker compose run --rm --user "$(id -u):$(id -g)" \
+  -v "$PWD/my-board:/data/my-board" \
+  web community board:eject /data/my-board
 ```
 
-`/data/my-board` becomes a complete workspace: `package.json` pinned to
+Run it from the same directory you already run `docker compose` in.
+Neither addition is optional:
+
+- **`-v "$PWD/my-board:/data/my-board"`** is what makes `/data/my-board`
+  land anywhere real. The image declares no volume at `/data`, and `--rm`
+  destroys the container's own filesystem — everything eject wrote —
+  the moment the command exits, so without a bind mount the workspace
+  eject just built is gone before you can use it.
+- **`mkdir my-board` first, then `--user "$(id -u):$(id -g)"`** is what
+  lets the container actually write into it. The image runs as a fixed,
+  non-root account (`nextjs`, uid 1001) that owns nothing on your host;
+  creating the mount point yourself, rather than leaving Docker to create
+  it, keeps it owned by you instead of root; and `--user` is what makes
+  this one-off container run as you too, so the account writing and the
+  account owning the directory are the same one. Skip either half and
+  eject fails with `EACCES: permission denied`.
+
+`/data/my-board` is the container's own name for the directory it writes
+to — on your host, once the command exits, it is `my-board`, exactly
+where `mkdir` made it.
+
+`my-board` becomes a complete workspace: `package.json` pinned to
 *this image's exact release version* — never `latest`, so graduating is
 never a surprise upgrade — the full deploy kit (`Dockerfile`,
 `docker-compose.yml`, `.github/workflows/build.yml`, described in full in
@@ -174,14 +201,15 @@ actually resolve the imports `community.plugins.ts` writes for it — a
 manifest package `create-meith`'s scaffold already pins (`@meith/web`,
 `@meith/cli`, `@meith/theme-default`) is left exactly where it is rather
 than duplicated. It refuses to write into a directory that already exists
-and is not empty, the same as `create-meith` itself.
+and is not empty, the same as `create-meith` itself — the empty directory
+`mkdir` just made, and that the bind mount leaves untouched, passes.
 
 ### 2. Push it to GitHub
 
-`/data/my-board` is a plain directory, not a git repository yet:
+`my-board` is a plain directory, not a git repository yet:
 
 ```sh
-cd /data/my-board
+cd my-board
 git init && git add -A && git commit -m "Graduate from the stock image"
 ```
 
