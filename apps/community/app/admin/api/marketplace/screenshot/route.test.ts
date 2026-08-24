@@ -44,6 +44,15 @@ describe('GET /admin/api/marketplace/screenshot', () => {
     expect(response.status).toBe(404)
   })
 
+  function streamOf(bytes: Uint8Array): ReadableStream<Uint8Array> {
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes)
+        controller.close()
+      },
+    })
+  }
+
   it('streams the image bytes with a safe content type, never the raw upstream one', async () => {
     screenshotUrl.current = 'https://www.meith.dev/marketplace/screenshots/dues-light.png'
     const bytes = new Uint8Array([1, 2, 3, 4])
@@ -51,7 +60,8 @@ describe('GET /admin/api/marketplace/screenshot', () => {
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        arrayBuffer: async () => bytes.buffer,
+        headers: new Headers(),
+        body: streamOf(bytes),
       }),
     )
 
@@ -65,6 +75,34 @@ describe('GET /admin/api/marketplace/screenshot', () => {
   it('answers 502 when the upstream host fails, rather than the browser seeing it directly', async () => {
     screenshotUrl.current = 'https://www.meith.dev/marketplace/screenshots/dues-light.png'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+
+    const response = await GET(request('?key=dues&index=0'))
+    expect(response.status).toBe(502)
+  })
+
+  it('treats a redirect from the catalog host as a failed fetch, never following it', async () => {
+    screenshotUrl.current = 'https://www.meith.dev/marketplace/screenshots/dues-light.png'
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 302 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await GET(request('?key=dues&index=0'))
+    expect(response.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://www.meith.dev/marketplace/screenshots/dues-light.png',
+      expect.objectContaining({ redirect: 'manual' }),
+    )
+  })
+
+  it('answers 502 for a body over the size cap without buffering it whole', async () => {
+    screenshotUrl.current = 'https://www.meith.dev/marketplace/screenshots/dues-light.png'
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-length': '6000000' }),
+        body: streamOf(new Uint8Array(4)),
+      }),
+    )
 
     const response = await GET(request('?key=dues&index=0'))
     expect(response.status).toBe(502)

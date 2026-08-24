@@ -333,7 +333,13 @@ describe('the marketplace catalog refresh', () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => feed([listing()]),
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(feed([listing()])))
+          controller.close()
+        },
+      }),
     }) as unknown as typeof fetch
     vi.stubGlobal('fetch', fetchImpl)
 
@@ -355,11 +361,17 @@ describe('the marketplace catalog refresh', () => {
 
   it('notifies exactly once for a plugin update, through the wired notifier', async () => {
     const repository = fakeRepository()
-    const fetchImpl = vi.fn().mockResolvedValue({
+    const fetchImpl = vi.fn().mockImplementation(async () => ({
       ok: true,
       status: 200,
-      text: async () => feed([listing({ version: '0.17.0' })]),
-    }) as unknown as typeof fetch
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(feed([listing({ version: '0.17.0' })])))
+          controller.close()
+        },
+      }),
+    })) as unknown as typeof fetch
     vi.stubGlobal('fetch', fetchImpl)
 
     const notifyUpdate = vi.fn().mockResolvedValue(undefined)

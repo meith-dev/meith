@@ -27,10 +27,18 @@ function feedBody(listings: readonly MarketplaceListing[]) {
 }
 
 function fakeFetch(body: unknown, ok = true): typeof fetch {
+  const text = JSON.stringify(body)
   return vi.fn().mockResolvedValue({
     ok,
     status: ok ? 200 : 500,
-    text: async () => JSON.stringify(body),
+    headers: new Headers(),
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(text))
+        controller.close()
+      },
+    }),
+    arrayBuffer: async () => new TextEncoder().encode(text).buffer,
   }) as unknown as typeof fetch
 }
 

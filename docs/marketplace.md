@@ -135,6 +135,61 @@ See [The organiser's guide § When to hand it to somebody
 technical](./organiser-guide.md#when-to-hand-it-to-somebody-technical) for
 the operator-facing walkthrough.
 
+### Outbound fetches do not follow redirects
+
+Both places the board fetches an untrusted host — the daily/on-demand
+catalog fetch (`packages/marketplace/src/fetch.ts`) and the screenshot
+proxy route (`apps/community/app/admin/api/marketplace/screenshot/route.ts`)
+— pass `redirect: 'manual'` and treat any non-2xx response, a redirect
+included, as a failed fetch, exactly like an unreachable host or a 503.
+Per-listing screenshot paths are already constrained to the feed's own
+origin (they are validated as site-relative and resolved against it, not
+trusted as full URLs), but the feed host itself is an admin-configured
+address (see below) that could answer with a `302` to a link-local or
+RFC1918 target; left unhandled, the screenshot proxy would follow it and
+stream whatever answered back to the admin's browser, and the daily fetch
+would follow it too before its own shape validation caught the mismatch —
+usable either way as a reachability or timing probe into a network the
+feed host itself cannot otherwise reach. Refusing to follow closes that
+without changing how a redirect-free feed or screenshot host behaves.
+
+Both fetches also refuse to buffer a hostile body whole before enforcing
+their size cap. A `Content-Length` over the cap is rejected before any
+read begins; otherwise the body is read through `readCappedBody`
+(`packages/marketplace/src/fetch.ts`, exported for the screenshot route to
+share), which walks the response stream chunk by chunk and cancels it the
+moment the running total passes the cap, rather than accumulating the
+whole thing first. The existing 10-second abort timeout is unchanged.
+
+### The feed URL is an admin-trusted setting
+
+`marketplace.feed_url` (validated by `isUsableFeedUrl`,
+`packages/settings/src/origin.ts`) accepts any `https:` host, plus plain
+`http:` to a loopback address for local mirrors and tests. That
+deliberately permits internal addresses too: an admin can point it at an
+RFC1918 or link-local host, and the board will fetch it once a day and on
+demand from the Refresh button — a standing SSRF pivot into whatever
+network the board can reach.
+
+This is accepted, not fixed, on purpose. `marketplace.feed_url` sits at
+the same trust tier as every other admin-only setting a board already
+trusts outright — a custom SMTP host, a webhook URL, an OAuth issuer
+origin — none of which are resolved-IP checked either; singling this one
+out would be inconsistent without buying much, since an admin able to set
+it can already reach the network directly. It would also buy less than it
+looks like: `isUsableFeedUrl` is a synchronous, isomorphic `zod`
+refinement shared between the browser-rendered settings form and the
+server-side save path (`packages/settings/src/definitions.ts`), so it has
+no way to resolve the hostname — Node's `dns` module does not exist in a
+browser bundle, and `refine` here is not async. Moved server-side and made
+async, a resolved-IP deny list would still only run once, at save time; it
+would not stop a host that resolves to a public address at that moment and
+a private one when the daily task or the Refresh button actually fetches
+it (DNS rebinding), which is exactly the case a determined or compromised
+admin session would use. Given that, the honest fix here is naming the
+trust boundary, not a check that would mostly look like one without being
+one.
+
 ## Moving to a custom board
 
 The stock image is fixed at the version it was built at — nothing can be
