@@ -375,6 +375,30 @@ jobs:
           docker build -t "$IMAGE:\${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:\${{ github.sha }}"
           docker push "$IMAGE:latest"
+
+      - name: Summary
+        run: |
+          IMAGE=$(echo "ghcr.io/\${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "\${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          PKG_NAME=$(echo "$REPO_LOWER" | cut -d/ -f2)
+          PKG_URL="https://github.com/$REPO_LOWER/pkgs/container/$PKG_NAME"
+          {
+            echo "## Deploy this image"
+            echo
+            echo "Paste this into the MEITH_IMAGE variable on the Coolify resource:"
+            echo
+            echo "    $IMAGE:latest"
+            echo
+            echo "Once you want a pin that only moves when you say so:"
+            echo
+            echo "    $IMAGE:\${{ github.sha }}"
+            echo
+            echo "## One-time: make the package public"
+            echo
+            echo "This package starts private. Coolify's pull fails until you visit"
+            echo "$PKG_URL and change its visibility — **Package settings** →"
+            echo "**Change visibility** → **Public**."
+          } >> "$GITHUB_STEP_SUMMARY"
 `,
   )
 
@@ -388,9 +412,10 @@ jobs:
 # the certificate. The two secrets and the database password are Coolify's
 # own "magic variables": it fills them in on the first deploy and shows them
 # in the panel, so nothing here needs a value typed into it except
-# MEITH_IMAGE, which only you can know — see README.md for where it comes
-# from. Requires Coolify v4.0.0-beta.411 or newer, which is when magic
-# variables in a compose file from a Git source arrived.
+# MEITH_IMAGE, which only you can know — the build workflow's own Summary
+# tab prints it, ready to paste, the moment it finishes. Requires Coolify
+# v4.0.0-beta.411 or newer, which is when magic variables in a compose file
+# from a Git source arrived.
 services:
   postgres:
     image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
@@ -412,7 +437,7 @@ services:
   # Runs to completion, then exits. web waits for it, so the schema is
   # always applied before the first request rather than racing it.
   migrate:
-    image: \${MEITH_IMAGE:?set this to the image .github/workflows/build.yml just pushed, e.g. ghcr.io/<you>/${name}:latest — see README.md}
+    image: \${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/${name}:latest}
     environment:
       COMMUNITY_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -424,7 +449,7 @@ services:
     restart: 'no'
 
   web:
-    image: \${MEITH_IMAGE:?set this to the image .github/workflows/build.yml just pushed, e.g. ghcr.io/<you>/${name}:latest — see README.md}
+    image: \${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/${name}:latest}
     restart: unless-stopped
     mem_limit: \${WEB_MEM_LIMIT:-1g}
     cpus: \${WEB_CPUS:-2}
@@ -508,11 +533,11 @@ one value only you know:
    \`GITHUB_TOKEN\` every GitHub Actions run already carries. No secret to
    add, no registry account beyond the GitHub account you already have.
 
-   The package GitHub creates for it starts **private**. Make it public —
-   the package's own Settings → Change visibility — or Coolify's pull fails
-   with an authentication error no operator can act on; the meith project's
-   own release process has the identical one-time step for its official
-   image.
+   Open the run under the repository's **Actions** tab once it finishes —
+   its **Summary** prints the two things left: the exact image to paste
+   into step 2 below, and a direct link to the one-time step of making the
+   package public. It starts **private**, and Coolify's pull fails with an
+   authentication error no operator can act on until that is done.
 
 2. **Point [Coolify](https://coolify.io) at \`compose.yml\`** — a Docker
    Compose resource, this repository as its source. \`compose.yml\` already
@@ -520,9 +545,10 @@ one value only you know:
    \`TICK_SECRET\` and the database password, generated on the first deploy
    and never typed in. The one thing Coolify cannot generate is the image
    step 1 just pushed: set \`MEITH_IMAGE\` in the resource's own environment
-   to \`ghcr.io/<you>/${name}:latest\` (or a commit sha, once you want a
-   pin that only moves when you say so — \`compose.yml\` refuses to start
-   without this set, with a message saying why).
+   to the value that run's Summary printed — \`ghcr.io/<you>/${name}:latest\`
+   (or a commit sha, once you want a pin that only moves when you say so —
+   \`compose.yml\` refuses to start without this set, with a message saying
+   why).
 
 3. **Deploy, then \`/install\` on your own domain.** Coolify issues the
    certificate; the installer from there is the one

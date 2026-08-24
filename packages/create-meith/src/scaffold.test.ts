@@ -239,6 +239,12 @@ describe('the deploy kit', () => {
     expect(compose).toContain('Authorization: Bearer')
   })
 
+  it("prints the image to deploy and a link to the package's visibility toggle in the run's own Summary", () => {
+    expect(buildWorkflow).toContain('GITHUB_STEP_SUMMARY')
+    expect(buildWorkflow).toMatch(/\$IMAGE:latest/)
+    expect(buildWorkflow).toMatch(/pkgs\/container/)
+  })
+
   it('mounts the uploads volume into both processes that write to it', () => {
     expect(compose).toMatch(/uploads:\/app\/\.uploads/g)
     expect([...compose.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
@@ -286,7 +292,7 @@ describe('the CLI', () => {
 
   it('writes the tree into a new directory', async () => {
     await inTemp(async (dir) => {
-      const result = await run(['my-board'], '1.2.3')
+      const result = await run(['my-board', '--no-git'], '1.2.3')
       expect(result.code).toBe(0)
 
       const written = await readdir(join(dir, 'my-board'))
@@ -337,6 +343,34 @@ describe('the CLI', () => {
       await run(['my-board', '--repo', 'https://example.test/fork'], '1.0.0')
       const readme = await readFile(join(dir, 'my-board/README.md'), 'utf8')
       expect(readme).toContain('https://example.test/fork')
+    })
+  })
+
+  it('initializes a git repository and stages every file, so pushing is the only step left', async () => {
+    await inTemp(async (dir) => {
+      const result = await run(['my-board'], '1.0.0')
+      expect(result.lines.join('\n')).toContain('Initialized a git repository')
+
+      const top = await readdir(join(dir, 'my-board'))
+      expect(top).toContain('.git')
+
+      const head = await readFile(join(dir, 'my-board/.git/HEAD'), 'utf8')
+      expect(head.trim()).toBe('ref: refs/heads/main')
+
+      const gitDir = await readdir(join(dir, 'my-board/.git'))
+      expect(gitDir).toContain('index')
+    })
+  })
+
+  it('--no-git skips the repository and prints the full manual sequence instead', async () => {
+    await inTemp(async (dir) => {
+      const result = await run(['my-board', '--no-git'], '1.0.0')
+      const output = result.lines.join('\n')
+      expect(output).not.toContain('Initialized a git repository')
+      expect(output).toContain('git init && git add -A && git commit')
+
+      const top = await readdir(join(dir, 'my-board'))
+      expect(top).not.toContain('.git')
     })
   })
 })

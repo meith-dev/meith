@@ -3,7 +3,7 @@
 You do not need to be a programmer to set up a Meith board. This page is
 written for whichever volunteer drew the short straw: if you can rent a
 server, point a domain at it, run one command on your own computer and
-paste a couple more on the server, it takes you from nothing to a board the
+push what it writes to GitHub, it takes you from nothing to a board the
 whole community can reach — on your own domain, over HTTPS — in about
 twenty minutes. Nothing is built on your server: the deploy pulls an image
 GitHub built for you.
@@ -78,31 +78,32 @@ published `@meith/web` and `@meith/cli` packages rather than containing a
 copy of this repository, and it is what turns "installing a plugin" from a
 fork of this project into `npm install` and a line in a config file — see
 [Self-hosting § Custom boards](./self-hosting.md#custom-boards) for the
-mechanism.
-
-Push it to a **new, empty repository on GitHub**:
+mechanism. It also initializes a git repository in `./my-board` and stages
+every file, so the only commands left are the ones only you can fill in —
+the CLI prints them back to you, ready to paste:
 
 ```sh
 cd my-board
-git init && git add -A && git commit -m "Scaffold my-board"
+git commit -m "Scaffold my-board"
 git remote add origin https://github.com/<you>/my-board.git
 git push -u origin main
 ```
+
+Create that empty repository on GitHub first, then run the three lines
+above.
 
 `.github/workflows/build.yml`, already written, builds `Dockerfile` on
 GitHub's own runners the moment `main` has something pushed to it, and
 pushes the result to `ghcr.io/<you>/my-board` — using only the
 `GITHUB_TOKEN` every Actions run already carries. No Docker on your
 computer, no registry account beyond the GitHub account you already have.
-Watch it finish under the repository's **Actions** tab before continuing.
 
 > [!IMPORTANT]
-> The package GitHub creates for it starts **private**. Make it public —
-> the repository's **Packages** link → the package → **Package settings**
-> → **Change visibility** — or Coolify's pull fails later with an
-> authentication error no operator can act on. This is the same one-time
-> step [Releasing](./release.md#the-first-release) describes for this
-> project's own image.
+> Open the run under the repository's **Actions** tab once it finishes.
+> Its **Summary** prints the two things step 3 needs: the exact image to
+> paste into Coolify, and a direct link to the one-time step of making the
+> package public — it starts **private**, and Coolify's pull fails with an
+> authentication error no operator can act on until that is done.
 
 ## 3. Set your domain and deploy
 
@@ -125,19 +126,21 @@ one whose `A` record points at this server.
 
 Before you press deploy, set one variable the compose file has no default
 for: open the resource's **Environment Variables** and add `MEITH_IMAGE`,
-set to the image step 2's Actions run just pushed — the run's summary
-names it, as does its own `docker push` log line, something like
-`ghcr.io/<you>/my-board:a1b2c3d`. The compose file refuses to start
+set to what step 2's Actions run Summary printed —
+`ghcr.io/<you>/my-board:latest`. The compose file refuses to start
 without it.
 
-Use that commit-sha tag rather than `:latest`. Coolify re-reads the
-compose file from the branch every time it deploys the resource, and on
-this kind of resource the **Restart** button is a deploy too — so if
-`MEITH_IMAGE` pointed at the mutable `:latest` tag, a future push to
-`main` (adding a plugin, say) would turn somebody else's Restart into an
-unplanned upgrade. A commit sha never moves, so every button re-creates
-exactly the version you set here. Upgrading is then always deliberate:
-back up, move `MEITH_IMAGE` to the new sha, press Redeploy.
+`:latest` is the right value to get your first deploy up; pinning is a
+follow-up, not a blocker. Once the board is live, know what else can move
+it: Coolify re-reads the compose file from the branch every time it
+deploys the resource, and on this kind of resource the **Restart** button
+is a deploy too — so with `MEITH_IMAGE` left on the mutable `:latest`
+tag, a future push to `main` (adding a plugin, say) turns somebody else's
+Restart into an unplanned upgrade. When that matters to you, move
+`MEITH_IMAGE` to the commit-sha tag the same Summary prints alongside
+`:latest` — it never moves, so every button re-creates exactly the
+version you pinned. Upgrading is then a deliberate act: back up, move
+`MEITH_IMAGE` to the new sha, press Redeploy.
 
 Now press deploy. It pulls the image and takes a minute or two. Four
 containers come up, in order:
@@ -382,7 +385,7 @@ can fix and retry:
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
 | Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
 | Nothing happens on a schedule | The `worker` container is not running, so nothing is calling `/api/system/tick` — see `/admin/system`. |
-| The board is on a newer version than you deployed | Something moved `MEITH_IMAGE` to `:latest` or a push to `main` landed a rebuild you did not ask this resource to take. Set it to a fixed commit sha instead — [step 3](#3-set-your-domain-and-deploy) — and neither **Restart** nor **Redeploy** can do it again on their own. |
+| The board is on a newer version than you deployed | `MEITH_IMAGE` is still on the mutable `:latest` tag, and a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. Move `MEITH_IMAGE` to a commit-sha tag instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it again on its own. |
 
 [Running a board § Troubleshooting](./operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.

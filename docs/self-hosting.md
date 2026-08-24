@@ -351,24 +351,27 @@ difference: instead of a release publishing `ghcr.io/meith-dev/meith`, an
 operator's own GitHub Actions build their own board and push it to their
 own registry. Three steps:
 
-1. **Push the scaffolded repository to GitHub.** Its
+1. **Push the scaffolded repository to GitHub.** `create-meith` already
+   initialized it and staged every file, so this is a commit and a push,
+   not a `git init` — see [Development § Consuming the board from a
+   workspace](./development.md#consuming-the-board-from-a-workspace).
    `.github/workflows/build.yml` builds `Dockerfile` on every push to
    `main` and pushes the image to `ghcr.io/<you>/<board>` — the automatic
    `GITHUB_TOKEN` every workflow run already carries is enough; there is no
-   secret to add. The resulting package starts **private** — make it public
-   (its own Settings → Change visibility), the same one-time step
-   [Releasing](./release.md#the-first-release) describes for
-   `ghcr.io/meith-dev/meith`, or Coolify's pull fails with an
-   authentication error no operator can act on.
+   secret to add. The run's own **Summary** tab, once it finishes, prints
+   the exact image for step 2 and a direct link to the one-time step of
+   making the resulting package public — it starts **private**, and
+   Coolify's pull fails with an authentication error no operator can act
+   on until that is done.
 2. **Point Coolify at the scaffolded repository's `compose.yml`** — a
    Docker Compose resource, that repository as its source, the same
    mechanics the [Quickstart](./quickstart.md#3-set-your-domain-and-deploy)
    walks through step by step for the same scaffold. It carries the same
    Coolify magic variables `docker/compose.coolify.yml` does for
    `AUTH_SECRET`, `TICK_SECRET` and the database password; the one thing it
-   cannot generate is the image step 1 just pushed, so the operator sets
-   `MEITH_IMAGE` once, in the resource's own environment — the compose file
-   refuses to start without it, with a message saying so.
+   cannot generate is the image step 1's Summary just printed, so the
+   operator sets `MEITH_IMAGE` once, in the resource's own environment —
+   the compose file refuses to start without it, with a message saying so.
 3. **Redeploy, then run `/install`** on the operator's own domain —
    identical to [Quickstart § Run the installer](./quickstart.md#4-run-the-installer).
    Every push to `main` after this rebuilds the image; Coolify's own
