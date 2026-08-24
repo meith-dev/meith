@@ -24,7 +24,9 @@
     "instrumentation.ts",
     "proxy.ts",
     "!src/**/*.test.*",
-    "!src/**/*.type-test.*"
+    "!src/**/*.type-test.*",
+    "!app/**/*.test.*",
+    "!app/**/*.type-test.*"
   ],
   "publishConfig": {
     "access": "public"

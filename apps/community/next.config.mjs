@@ -95,6 +95,7 @@ const nextConfig = {
     '@meith/install',
     '@meith/mail',
     '@meith/markdown',
+    '@meith/marketplace',
     '@meith/messages',
     '@meith/moderation',
     '@meith/notifications',
