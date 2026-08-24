@@ -104,7 +104,7 @@ export function PaletteGrid({
   onSelect: (name: string) => void
 }) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-2">
+    <div className="grid grid-cols-2 gap-2 @lg:grid-cols-3">
       {cells.map((cell) => (
         <Cell
           key={cell.token.name}
