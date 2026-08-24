@@ -27,7 +27,7 @@ test('a member writes a message, and the recipient reads it and replies', async 
     await recipientPage.goto('/messages')
     const row = recipientPage.locator('li', { hasText: subject })
     await expect(row).toBeVisible()
-    await expect(row.getByText('New')).toBeVisible()
+    await expect(row.getByText('New', { exact: true })).toBeVisible()
     await row.getByRole('link', { name: subject }).click()
     await expect(recipientPage.getByText('did it arrive?')).toBeVisible()
 
@@ -43,7 +43,7 @@ test('a member writes a message, and the recipient reads it and replies', async 
     await senderPage.goto('/messages')
     const replyRow = senderPage.locator('li', { hasText: `Re: ${subject}` })
     await expect(replyRow).toBeVisible()
-    await expect(replyRow.getByText('New')).toBeVisible()
+    await expect(replyRow.getByText('New', { exact: true })).toBeVisible()
   } finally {
     await senderContext.close()
     await recipientContext.close()

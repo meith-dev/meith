@@ -27,14 +27,14 @@ test('a notification is marked read, singly and then all at once', async ({ brow
     await namedPage.goto('/notifications')
     const row = namedPage.locator('li', { hasText: `${poster} mentioned you in ${title}` })
     await expect(row).toBeVisible()
-    await expect(row.getByText('New')).toBeVisible()
+    await expect(row.getByText('New', { exact: true })).toBeVisible()
 
     await row.getByRole('button', { name: 'Mark as read' }).click()
     const rowAfter = namedPage.locator('li', {
       hasText: `${poster} mentioned you in ${title}`,
     })
     await expect(rowAfter).toBeVisible()
-    await expect(rowAfter.getByText('New')).toHaveCount(0)
+    await expect(rowAfter.getByText('New', { exact: true })).toHaveCount(0)
 
     await expect(namedPage.getByRole('button', { name: 'Mark all as read' })).toHaveCount(0)
   } finally {

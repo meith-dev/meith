@@ -50,7 +50,7 @@ test('a reply that quotes one member and mentions another notifies both', async 
       hasText: `${poster} quoted your post in ${title}`,
     })
     await expect(quotedRow).toBeVisible()
-    await expect(quotedRow.getByText('New')).toBeVisible()
+    await expect(quotedRow.getByText('New', { exact: true })).toBeVisible()
 
     await mentionedPage.goto('/notifications')
     const mentionedRow = mentionedPage.locator('li', {
