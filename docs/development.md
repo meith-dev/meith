@@ -137,6 +137,8 @@ the app on every invocation:
 1. Copy the package's own Next app sources (or, for `community`, `apps/cli`'s
    sources) into `.meith/app/` (`.meith/cli/` for the CLI) inside the
    invoking workspace — gitignored, rebuilt every run, never a merge target.
+   `public/` travels with them, so `/sw.js` and the placeholder assets it
+   references are served from the materialized app too.
 2. Write a fresh `tsconfig.json` there whose `paths` point `@board/config`
    and `@board/plugins` at *that workspace's own* `community.config.ts` /
    `community.plugins.ts`. A tsconfig path alias is a compiler/bundler alias,

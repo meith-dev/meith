@@ -83,6 +83,7 @@ for (const name of ['FORUM_WORKSPACE_ROOT', 'FORUM_ALIASES_FROM']) {
 const APP_ENTRIES = [
   'app',
   'src',
+  'public',
   'next.config.mjs',
   'postcss.config.mjs',
   'components.json',

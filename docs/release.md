@@ -293,9 +293,11 @@ non-excluded entry in `files` must have put something in the tarball, and
 every `bin` target must be a real file in it. That is what catches, before
 a release ever runs, the failure mode a bare version bump cannot: a
 `files` allowlist that still names a directory nothing is written into any
-more (the Next app directory, `app/`, under `@meith/web`, is the one worth
-being paranoid about — nothing exercises it externally except a board
-actually built from the published tarball). Each package is packed by
+more. Under `@meith/web`, the Next app directory `app/` and `public/` are
+the two worth being paranoid about: nothing exercises either externally
+except a board actually built from the published tarball, and a `public/`
+left out of the allowlist costs web push its service worker without
+failing anything inside this repository. Each package is packed by
 `pnpm` — which rewrites the `workspace:` ranges into real ones — and
 published by the `npm` CLI, which is what implements trusted publishing.
 
