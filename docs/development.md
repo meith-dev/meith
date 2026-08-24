@@ -83,10 +83,11 @@ A pnpm workspace: applications in `apps/`, everything else in `packages/`,
 
 | Directory | Package | What it is |
 |---|---|---|
-| `apps/community` | `@meith/web` | The board itself. `pnpm dev`, on port 3000. |
+| `apps/community` | `@meith/web` | The board itself, and the in-repo dev target. `pnpm dev`, on port 3000. |
 | `apps/web` | `@meith/site` | meith.dev — the landing page and these documents. `pnpm site:dev`, on port 3100. |
 | `apps/worker` | `@meith/worker` | The background tick, as a long-running process. |
 | `apps/cli` | `@meith/cli` | The operator CLI. `pnpm community …`. |
+| `boards/stock` | `@meith/board-stock` | A second, create-meith-shaped board — the workspace `docker/Dockerfile` builds the official image from. See [Architecture](./architecture.md#the-stock-board). |
 | `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
 | `themes/*` | `@meith/theme-*` | The default theme and four alternates: midnight, phasebook, raidframe, clubhouse. |
 | `plugins/*` | `@meith/plugin-*` | Dues (paid membership through Stripe) and the reference plugin. |

@@ -31,6 +31,12 @@ node_modules
 **/dist
 apps/worker/dist
 
+# forum-web's own materialized app (see docker/Dockerfile's build stage,
+# which regenerates it fresh with `pnpm --filter @meith/board-stock build`).
+# A developer's own local run of it under boards/stock/.meith would otherwise
+# ride into the build context for no reason.
+**/.meith
+
 # History and CI: not needed to build, and .git is large.
 .git
 .github

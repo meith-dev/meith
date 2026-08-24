@@ -17,7 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:app": "tsc -p apps/community/tsconfig.json --noEmit",
     "typecheck:site": "tsc -p apps/web/tsconfig.json --noEmit",
-    "depcruise": "depcruise --config .dependency-cruiser.cjs apps packages themes plugins examples",
+    "depcruise": "depcruise --config .dependency-cruiser.cjs apps boards packages themes plugins examples",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",

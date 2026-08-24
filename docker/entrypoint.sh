@@ -30,7 +30,10 @@ case "${COMMUNITY_ROLE:-web}" in
     exec node apps/worker/migrate.cjs
     ;;
   web)
-    exec node apps/community/server.js
+    # MEI-76: the image is built through boards/stock (forum-web build), so
+    # the traced standalone server sits at that path rather than
+    # apps/community/server.js — see docker/Dockerfile's runtime stage.
+    exec node boards/stock/.meith/app/server.js
     ;;
   *)
     # Every role this file handles, not two of the three. `migrate` is the one

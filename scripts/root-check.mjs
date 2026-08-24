@@ -8,6 +8,7 @@ const ALLOWED = new Map([
   ['.git', 'the repository itself'],
   ['.github', 'GitHub reads workflows and community files from this path only'],
   ['apps', 'workspace'],
+  ['boards', 'workspace — the stock board docker/Dockerfile builds the official image from'],
   [
     'docker',
     'the deployment interface: the compose files, Dockerfiles, entrypoint and healthcheck',

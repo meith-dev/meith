@@ -387,6 +387,10 @@ the same compatibility promise the image tags make.
   gate (install from packed tarballs, build, boot) before publishing it
   would be honest. The kits going out first is what lets plugin and theme
   authors start now, while that question waits.
+- **`boards/stock`** — the workspace `docker/Dockerfile` builds the official
+  image from (see docs/architecture.md, "The stock board"). It is a board,
+  not a library, so it stays private the same way `apps/community` does; the
+  version lockstep above still applies to it, like every workspace manifest.
 - **`@meith/testkit`** — it drags `@meith/db` and `@meith/drivers` behind
   it, and that closure is most of the board.
 - **The examples** — `hello-plugin` and `iris-theme` are documentation.

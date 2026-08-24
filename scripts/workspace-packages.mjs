@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 export const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 
-export const WORKSPACE_GLOBS = ['apps', 'packages', 'themes', 'plugins', 'examples']
+export const WORKSPACE_GLOBS = ['apps', 'boards', 'packages', 'themes', 'plugins', 'examples']
 
 export async function workspaceEntries(root = ROOT) {
   const entries = []

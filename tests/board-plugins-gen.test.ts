@@ -110,4 +110,20 @@ describe('validateManifest', () => {
       validateManifest([{ ...ENTRY, package: '@meith/plugin-widget' }], deps, MANIFEST_FILE),
     ).toThrow('pnpm add @meith/plugin-widget --filter @meith/web')
   })
+
+  it('names a different board and filter target when told to, for boards/stock', () => {
+    expect(() =>
+      validateManifest(
+        [{ ...ENTRY, package: '@meith/plugin-widget' }],
+        deps,
+        'boards/stock/board.plugins.json',
+        {
+          packageLabel: 'boards/stock',
+          filterName: '@meith/board-stock',
+        },
+      ),
+    ).toThrow(
+      'is not a dependency of boards/stock. Run `pnpm add @meith/plugin-widget --filter @meith/board-stock`',
+    )
+  })
 })

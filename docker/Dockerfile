@@ -60,7 +60,20 @@ ENV NODE_ENV=production
 # enforced unconditionally when the server boots, in the runtime stage.
 ENV DATA_SOURCE=fixture
 
-RUN pnpm --filter @meith/web build
+# MEI-76: built through `boards/stock` — the same create-meith-shaped
+# workspace shape a custom board has (docs/architecture.md, "The board-config
+# seam") — via `forum-web build`, rather than `pnpm --filter @meith/web build`
+# against apps/community directly. Graduating from the official image to a
+# custom board is then a source swap, not a migration.
+#
+# `boards/stock`'s own `build` script already sets FORUM_WORKSPACE_ROOT and
+# FORUM_ALIASES_FROM (see apps/community/bin/forum-web.mjs and
+# apps/community/next.config.mjs) — this workspace's pnpm install does not
+# hoist `node_modules`, unlike the real external boards this mechanism was
+# built for, so the materialized app needs those two pointed explicitly at
+# this repository's own root and its own tsconfig path aliases. Both are
+# no-ops for every other consumer of forum-web.
+RUN pnpm --filter @meith/board-stock build
 # Bundled separately from the Next output; see the COPY below for why.
 RUN pnpm --filter @meith/worker build
 # The operator CLI, for the same reason and by the same means. A self-hosted
@@ -103,9 +116,19 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 # `standalone` already contains a pruned node_modules with only what the server
 # traced as reachable, which is why nothing is installed in this stage.
-COPY --from=build --chown=nextjs:nodejs /repo/apps/community/.next/standalone ./
-COPY --from=build --chown=nextjs:nodejs /repo/apps/community/.next/static ./apps/community/.next/static
-COPY --from=build --chown=nextjs:nodejs /repo/apps/community/public ./apps/community/public
+#
+# The traced tree's own app directory is `boards/stock/.meith/app`, not
+# `apps/community`: `forum-web build` materializes apps/community's sources
+# there (see apps/community/bin/forum-web.mjs), and the standalone output
+# mirrors that path relative to the traced root — a relative path Next bakes
+# into server.js's own `require()` calls at build time, so it cannot be
+# renamed on the way in. `.next/static` and `public` (still read from
+# apps/community's own source — that directory is unaffected by where the
+# build ran) each have to land at that same nested path, alongside server.js,
+# for the same reason.
+COPY --from=build --chown=nextjs:nodejs /repo/boards/stock/.meith/app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /repo/boards/stock/.meith/app/.next/static ./boards/stock/.meith/app/.next/static
+COPY --from=build --chown=nextjs:nodejs /repo/apps/community/public ./boards/stock/.meith/app/public
 
 # F04's other half: the same image runs the worker.
 #

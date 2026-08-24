@@ -44,8 +44,11 @@ export const GUARDS = [
       'instead of at boot.',
     files: /\.(ts|tsx|mjs)$/,
     pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
+    // apps/community/bin/: forum-web.mjs, like the bins under apps/cli/, runs
+    // as an operator-invoked script outside the request/response cycle, not
+    // application code — see FORUM_WORKSPACE_ROOT / FORUM_ALIASES_FROM there.
     allow:
-      /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
+      /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|apps\/community\/bin\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
     probe: {
       violates: 'const url = process.env.DATABASE_URL',
       clean: "import { env } from '@meith/core'\nconst url = env.DATABASE_URL",
@@ -353,9 +356,11 @@ export const GUARDS = [
     // community.config.ts/community.plugins.ts are: its match is template
     // text for an *external* workspace's own community.config.ts, relative
     // to that workspace's own community.plugins.ts — the seam this guard
-    // protects is apps/community's, not a scaffolded board's.
+    // protects is apps/community's, not a scaffolded board's. boards/stock's
+    // own community.config.ts is exactly such a board, in-repo — see
+    // docs/architecture.md, "The board-config seam".
     allow:
-      /^apps\/community\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$/,
+      /^apps\/community\/community\.(?:config|plugins)\.ts$|^boards\/stock\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$/,
     probe: {
       violates: "import forumConfig from '../../community.config'",
       clean: "import forumConfig from '@board/config'",
