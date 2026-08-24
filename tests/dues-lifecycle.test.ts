@@ -885,6 +885,59 @@ describe('discount codes', () => {
   })
 })
 
+describe('the checkout origin', () => {
+  it('refuses to guess an origin from a forged X-Forwarded-Host on an unconfigured board', async () => {
+    const response = await handleCheckout(
+      services(),
+      request(
+        alice,
+        { plan: 'pass-90' },
+        {
+          boardUrl: '',
+          headers: { host: 'realboard.example', 'x-forwarded-host': 'evil.attacker.example' },
+        },
+      ),
+    )
+    expect((response as { to: string }).to).toContain('error=unconfigured')
+    expect(stripe.checkoutInputs).toHaveLength(0)
+  })
+
+  it('ignores a forged X-Forwarded-Host even when the direct connection is loopback', async () => {
+    const response = await handleCheckout(
+      services(),
+      request(
+        alice,
+        { plan: 'pass-90' },
+        {
+          boardUrl: '',
+          headers: { host: '127.0.0.1:3001', 'x-forwarded-host': 'evil.attacker.example' },
+        },
+      ),
+    )
+    expect((response as { to: string }).to).toBe(
+      `/plugins/dues/go?to=${encodeURIComponent(stripe.nextSessionUrl)}`,
+    )
+    const input = stripe.checkoutInputs.at(-1) as { success_url: string; cancel_url: string }
+    expect(input.success_url).toMatch(/^http:\/\/127\.0\.0\.1:3001\/plugins\/dues\/return\?/)
+    expect(input.cancel_url).toMatch(/^http:\/\/127\.0\.0\.1:3001\/plugins\/dues\?cancelled=1$/)
+    expect(input.success_url).not.toContain('evil.attacker.example')
+    expect(input.cancel_url).not.toContain('evil.attacker.example')
+  })
+
+  it('does not treat 127.0.0.1.evil.example as loopback', async () => {
+    const response = await handleCheckout(
+      services(),
+      request(
+        alice,
+        { plan: 'pass-90' },
+        { boardUrl: '', headers: { host: '127.0.0.1.evil.example:3001' } },
+      ),
+    )
+    expect((response as { to: string }).to).toContain('error=unconfigured')
+    expect(stripe.checkoutInputs).toHaveLength(0)
+  })
+})
+
 describe('the admin desk', () => {
   async function buyPass(userId: number): Promise<number> {
     const { sessionId } = await checkout(userId, 'pass-90')

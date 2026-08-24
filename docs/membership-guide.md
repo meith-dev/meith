@@ -243,6 +243,20 @@ per [Running a board](./operating.md#plugins) and the plugin's own
   address the Status screen gives, subscribed to exactly the events it
   lists.
 
+### Origin for Stripe redirects
+
+Checkout and the billing portal build Stripe's `success_url`, `cancel_url`
+and `returnUrl` from the board's own address — `APP_URL` in the
+environment, or **Board address** under Admin → Settings if the operator
+set it there instead. Until one of those is set, both flows refuse with
+the same "payments are not set up" message an unconfigured board gives
+everywhere else, rather than trusting whatever host arrived with the
+request — a board's own settings decide where a payer comes back to, never
+a header a visitor's browser sent. The one exception is a request whose
+`Host` header is exactly `127.0.0.1`, `localhost` or `::1`: a loopback
+connection, which is what `pnpm dev` and the end-to-end suite both are, so
+local development never needs a board address configured to work.
+
 Everything past that point is yours, in the browser: the board's
 **currency** and **grace period** are settings on the same **Admin →
 Plugins → Dues** screen as the Stripe keys above (an environment variable
