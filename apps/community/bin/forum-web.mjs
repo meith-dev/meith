@@ -47,7 +47,15 @@
  * through real `dependencies` entries a hoisted `node_modules` would need.
  */
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -258,8 +266,16 @@ function run(executable, args, cwd) {
 // Guarded so `forum-web.test.ts` can import this module's pure exports
 // (rebaseGlobalsCssSources) without triggering a real materialize-and-run —
 // true when this file is the process's actual entry point (run directly, or
-// via the package.json `bin` shim), false when a test imports it.
-if (import.meta.url === `file://${resolve(process.argv[1] ?? '')}`) {
+// via the package.json `bin` shim), false when a test imports it. The real
+// invocation is always through node_modules/.bin/forum-web, a symlink to
+// this file — process.argv[1] is that symlink's own path, which never
+// string-equals import.meta.url (already the resolved real path); comparing
+// realpathSync(argv[1]) against it instead makes the check survive the
+// symlink. Getting this wrong doesn't error, it silently skips the entire
+// build — confirmed the hard way against a real `pnpm --filter
+// @meith/board-stock build`, which a direct `node forum-web.mjs` invocation
+// during development never exercises.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [, , command, ...rest] = process.argv
 
   if (!['dev', 'build', 'start'].includes(command ?? '')) {
