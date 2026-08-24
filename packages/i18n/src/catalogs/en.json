@@ -481,6 +481,7 @@
   "adminMarketplace.browseThemesTitle": "Browse themes",
   "adminMarketplace.emptyPlugins": "The catalog has no plugin listings right now.",
   "adminMarketplace.emptyThemes": "The catalog has no theme listings right now.",
+  "adminMarketplace.graduationLink": "This board can't install anything itself — moving to a custom board",
   "adminMarketplace.installDocsLink": "More about the marketplace",
   "adminMarketplace.installSteps": "To install this on your own board:",
   "adminMarketplace.installedVersion": "This board runs {version}.",

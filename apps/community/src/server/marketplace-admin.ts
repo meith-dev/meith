@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { env, logger } from '@meith/core'
+import { env, logger, readPluginEnv } from '@meith/core'
 import { getDb, PostgresMarketplaceCacheRepository } from '@meith/db'
 import {
   type CachedMarketplace,
@@ -25,6 +25,19 @@ const BUILD_INFO = {
   meithVersion: MEITH_VERSION,
   pluginApiMajor: PLUGIN_API_MAJOR,
   themeApiMajor: THEME_API_MAJOR,
+}
+
+/**
+ * Whether this process is the stock image rather than a graduated custom
+ * board — both run identical @meith/web code, so an env var set only by
+ * docker/Dockerfile is the only signal available: `BOARD_PLUGINS_MANIFEST`,
+ * baked in for `community board:eject` (see apps/cli/src/board-eject.ts). A
+ * graduated board's own scaffolded Dockerfile never sets it. Read fresh
+ * rather than cached at module load, so it is not fixed by whichever test
+ * happens to import this module first.
+ */
+function onStockImage(): boolean {
+  return readPluginEnv('BOARD_PLUGINS_MANIFEST') !== undefined
 }
 
 /** Caps against untrusted feed content — a self-hosted mirror can serve anything. */
@@ -79,6 +92,14 @@ export interface MarketplaceListingRow {
   readonly installedVersion: string | null
   /** Set only for 'not-installed': the exact steps this board would need. Never an affordance that acts. */
   readonly installSteps: readonly string[] | null
+  /**
+   * True only for 'not-installed' on the stock image, where installSteps'
+   * own `community plugin:add`/`community.config.ts` line cannot actually
+   * run — the image is fixed at build time. Signposts
+   * docs/marketplace.md's "Moving to a custom board" walkthrough; never a
+   * claim this board can graduate itself.
+   */
+  readonly onStockImage: boolean
 }
 
 export interface MarketplaceCatalogView {
@@ -146,6 +167,7 @@ function toRow(
       incompatibleReason === null ? null : truncate(incompatibleReason, MAX_REASON_LENGTH),
     installedVersion: installed?.version ?? null,
     installSteps: status === 'not-installed' ? installSteps(listing.kind, listing.package) : null,
+    onStockImage: status === 'not-installed' && onStockImage(),
   }
 }
 

@@ -65,6 +65,11 @@ test('the Browse tab renders the seeded catalog with correct statuses, screensho
     'href',
     'https://www.meith.dev/docs/marketplace',
   )
+  // This dev server is not the stock image (BOARD_PLUGINS_MANIFEST is unset
+  // here, the same as a graduated board), so the graduation signpost stays
+  // absent — see apps/community/src/server/marketplace-admin.test.ts for the
+  // case where it is set.
+  await expect(greeter.getByRole('link', { name: /moving to a custom board/i })).toHaveCount(0)
 
   const futureThing = page.locator('li').filter({ hasText: 'Future Thing' }).first()
   await expect(futureThing.getByText('Incompatible')).toBeVisible()

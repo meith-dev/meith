@@ -152,9 +152,29 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/worker/dist/ ./apps/worker/
 # explicit command straight through, so no role is needed for a program that
 # takes arguments and exits.
 COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
+
+# docs/operating.md documents every operator command as `community <cmd>` —
+# and until this line, nothing in this image put a `community` binary on
+# PATH to make that real (this is a runtime-only stage with no `pnpm
+# install`, so no bin symlink is ever created here). CI's own working
+# invocation was the giveaway: `node apps/cli/cli.cjs`, not `community`. A
+# one-line wrapper makes the documented command the actual one, for every
+# operator command this image has ever shipped — not just MEI-81's new
+# `board:eject`.
+RUN printf '#!/bin/sh\nexec node /app/apps/cli/cli.cjs "$@"\n' > /usr/local/bin/community \
+  && chmod +x /usr/local/bin/community
 # The generated SQL. Not part of the traced standalone output — it is data, not
 # a module — so the migrate role would find an empty folder without this.
 COPY --from=build --chown=nextjs:nodejs /repo/packages/db/migrations ./migrations
+# MEI-81: `community board:eject` reads this to write the manifest a graduated
+# board starts with — the plugins this exact build actually compiled in, not
+# an assumption. `BOARD_PLUGINS_MANIFEST` names it explicitly because a
+# bundled `dist/cli.cjs` does not sit the same distance from the repository
+# root that `apps/cli/src/*.ts` does (the COPY two lines up drops the `dist`
+# segment) — see apps/cli/src/board-eject.ts for the fallback that distance
+# would otherwise wrongly compute.
+COPY --from=build --chown=nextjs:nodejs /repo/boards/stock/board.plugins.json ./board.plugins.json
+ENV BOARD_PLUGINS_MANIFEST=/app/board.plugins.json
 COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
 COPY --chown=nextjs:nodejs docker/healthcheck.sh ./healthcheck.sh
 

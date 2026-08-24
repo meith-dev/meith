@@ -53,7 +53,16 @@ export async function packClosure(
     if (entry === undefined) throw new Error(`packClosure: no workspace package named ${name}`)
     for (const field of ['dependencies', 'peerDependencies'] as const) {
       for (const dep of Object.keys(entry.manifest[field] ?? {})) {
-        if (dep.startsWith('@meith/')) queue.push(dep)
+        // A workspace-internal dependency by whether it names a workspace
+        // package, not by a `@meith/` naming convention — MEI-81 added
+        // `@meith/cli`'s dependency on the bare-named `create-meith`, which
+        // this used to silently drop from the closure (never packed, never
+        // overridden), so `npm install` fell through to the real registry
+        // looking for a version of `create-meith` that has never been
+        // published from a local checkout. Any real third-party dependency
+        // (react, zod, …) is absent from `byName` and correctly still
+        // resolves from the real registry.
+        if (byName.has(dep)) queue.push(dep)
       }
     }
   }

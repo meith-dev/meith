@@ -38,6 +38,7 @@
     "@meith/runtime": "workspace:*",
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*",
+    "create-meith": "workspace:*",
     "tsx": "^4.23.12"
   },
   "devDependencies": {

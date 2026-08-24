@@ -135,6 +135,79 @@ See [The organiser's guide § When to hand it to somebody
 technical](./organiser-guide.md#when-to-hand-it-to-somebody-technical) for
 the operator-facing walkthrough.
 
+## Moving to a custom board
+
+The stock image is fixed at the version it was built at — nothing can be
+installed into a running container, which is exactly why a **Not
+installed** listing on a stock board's Browse tab links here rather than
+offering an install button. Because the stock image is itself built from
+a workspace shaped like [`create-meith`](./development.md#the-workspace)'s
+own scaffold (see [Self-hosting § Custom
+boards](./self-hosting.md#custom-boards)), graduating to one is generating
+those same files from *this build's own state* and repointing the deploy
+— the database is untouched, because the board's identity lives in
+Postgres, not in the image.
+
+Three steps, nothing beyond a browser, a GitHub account and the server
+you already run.
+
+### 1. Eject
+
+Run this inside the stock image, the same way every other operator
+command runs (see [Operating a board § The operator
+CLI](./operating.md#the-operator-cli)):
+
+```sh
+docker compose run --rm web community board:eject /data/my-board
+```
+
+`/data/my-board` becomes a complete workspace: `package.json` pinned to
+*this image's exact release version* — never `latest`, so graduating is
+never a surprise upgrade — the full deploy kit (`Dockerfile`,
+`compose.yml`, `.github/workflows/build.yml`, described in full in
+[Self-hosting § Custom boards](./self-hosting.md#custom-boards)),
+`board.plugins.json` matching what this build actually compiled in, and
+`community.config.ts` matching the stock configuration. It refuses to
+write into a directory that already exists and is not empty, the same as
+`create-meith` itself.
+
+### 2. Push it to GitHub
+
+`/data/my-board` is a plain directory, not a git repository yet:
+
+```sh
+cd /data/my-board
+git init && git add -A && git commit -m "Graduate from the stock image"
+```
+
+Push it to a new, empty repository on GitHub. No local Docker toolchain
+needed from here — `.github/workflows/build.yml`, already written, builds
+the image on GitHub's own runners the first time this repository's `main`
+branch is pushed to.
+
+### 3. Point Coolify at it and redeploy
+
+From here it is the same three-step deploy [Self-hosting § Custom
+boards](./self-hosting.md#custom-boards) describes for any scaffolded
+board: make the GitHub package public (it starts private), point Coolify
+at the new repository's `compose.yml` and set `MEITH_IMAGE` to the image
+step 2 just pushed, then redeploy.
+
+### What does not move
+
+- **The database.** `board:eject` never touches it — the same Postgres,
+  the same connection string, before and after.
+- **Uploads.** Wherever the `uploads` volume already points, it keeps
+  pointing there.
+- **Every environment variable** — `AUTH_SECRET`, `TICK_SECRET`,
+  `DATABASE_URL`, mail settings, all of it. Only where the image comes
+  from changes.
+
+Once the redeploy is live, the board is an ordinary workspace: installing
+the plugin that started this is `pnpm add` and a line in
+`community.plugins.ts`, the same as [the plugin API](./plugin-api.md#writing-a-plugin)
+describes, followed by a commit, a push, and the same redeploy.
+
 ## Listing by pull request
 
 There is no submission form. A listing is a pull request against this

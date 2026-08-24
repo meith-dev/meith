@@ -53,6 +53,10 @@ vi.mock('@meith/core', () => ({
     return { DATA_SOURCE: dataSource.current }
   },
   logger: () => ({ warn: () => {}, info: () => {}, error: () => {} }),
+  readPluginEnv: (name: string) => {
+    const value = process.env[name]
+    return value === undefined || value === '' ? undefined : value
+  },
 }))
 
 vi.mock('@meith/db', () => ({
@@ -197,6 +201,45 @@ describe('marketplaceCatalog', () => {
       'community plugin:add @meith/plugin-dues',
       'Rebuild and redeploy for it to take effect.',
     ])
+    expect(row?.onStockImage).toBe(false)
+  })
+
+  it('flags "not-installed" as onStockImage when BOARD_PLUGINS_MANIFEST is set — docker/Dockerfile\'s own signal', async () => {
+    cache.current = {
+      feed: { schema: 'x', listings: [pluginListing()] },
+      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
+      fetchedAt: new Date(),
+      error: null,
+      errorAt: null,
+    }
+    process.env.BOARD_PLUGINS_MANIFEST = '/app/board.plugins.json'
+    try {
+      const [row] = (await marketplaceCatalog('plugin')).listings
+      expect(row?.onStockImage).toBe(true)
+    } finally {
+      delete process.env.BOARD_PLUGINS_MANIFEST
+    }
+  })
+
+  it('never flags an installed, active listing as onStockImage', async () => {
+    configuredPlugins.current = [
+      { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
+    ]
+    cache.current = {
+      feed: { schema: 'x', listings: [pluginListing()] },
+      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
+      fetchedAt: new Date(),
+      error: null,
+      errorAt: null,
+    }
+    process.env.BOARD_PLUGINS_MANIFEST = '/app/board.plugins.json'
+    try {
+      const [row] = (await marketplaceCatalog('plugin')).listings
+      expect(row?.status).toBe('active')
+      expect(row?.onStockImage).toBe(false)
+    } finally {
+      delete process.env.BOARD_PLUGINS_MANIFEST
+    }
   })
 
   it('reports "update-available" when the feed lists a newer, compatible version', async () => {
