@@ -154,6 +154,29 @@ export function toIdentifier(key: string): string {
   return key.replace(/-([a-z0-9])/g, (_match, char) => char.toUpperCase())
 }
 
+interface EjectedPackageJson {
+  dependencies: Record<string, string>
+  [key: string]: unknown
+}
+
+/**
+ * Every manifest entry's package pinned into the scaffolded package.json's
+ * dependencies, at this exact running version — see docs/marketplace.md,
+ * "1. Eject", for why never `latest`, and for the collision policy this
+ * implements: a package scaffold() already pins is left exactly where it
+ * is, never duplicated or reordered, because both pins are always this
+ * same CODE_VERSION.
+ */
+function mergePluginDependencies(packageJson: string, plugins: readonly ManifestEntry[]): string {
+  const parsed = JSON.parse(packageJson) as EjectedPackageJson
+  for (const entry of plugins) {
+    if (!(entry.package in parsed.dependencies)) {
+      parsed.dependencies[entry.package] = CODE_VERSION
+    }
+  }
+  return `${JSON.stringify(parsed, null, 2)}\n`
+}
+
 /**
  * The ejected workspace's own community.plugins.ts — the same shape
  * create-meith's scaffold() writes for a plugin-free board (see
@@ -225,6 +248,11 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   const files = new Map(
     scaffold({ name, version: CODE_VERSION, repositoryUrl: DEFAULT_REPOSITORY_URL }),
   )
+  const packageJson = files.get('package.json')
+  if (packageJson === undefined) {
+    throw new Error('scaffold() did not emit package.json')
+  }
+  files.set('package.json', mergePluginDependencies(packageJson, manifest.plugins))
   files.set('board.plugins.json', `${JSON.stringify({ plugins: manifest.plugins }, null, 2)}\n`)
   files.set('community.plugins.ts', renderInstalledPluginsModule(manifest.plugins))
 

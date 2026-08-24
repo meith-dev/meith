@@ -167,9 +167,14 @@ never a surprise upgrade — the full deploy kit (`Dockerfile`,
 `docker-compose.yml`, `.github/workflows/build.yml`, described in full in
 [Self-hosting § Custom boards](./self-hosting.md#custom-boards)),
 `board.plugins.json` matching what this build actually compiled in, and
-`community.config.ts` matching the stock configuration. It refuses to
-write into a directory that already exists and is not empty, the same as
-`create-meith` itself.
+`community.config.ts` matching the stock configuration. Every plugin the
+manifest names is also added to `package.json`'s own `dependencies`, at
+that same exact version, so the ejected workspace's first build can
+actually resolve the imports `community.plugins.ts` writes for it — a
+manifest package `create-meith`'s scaffold already pins (`@meith/web`,
+`@meith/cli`, `@meith/theme-default`) is left exactly where it is rather
+than duplicated. It refuses to write into a directory that already exists
+and is not empty, the same as `create-meith` itself.
 
 ### 2. Push it to GitHub
 

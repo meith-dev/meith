@@ -92,6 +92,45 @@ describe('boardEject', () => {
     })
   })
 
+  it('adds each manifest plugin to package.json dependencies, pinned to the exact code version (MEI-89)', async () => {
+    await writeManifest([
+      { key: 'dues', package: '@meith/plugin-dues', enabled: true },
+      { key: 'reference', package: '@meith/plugin-reference', enabled: false },
+    ])
+    const target = join(targetParent, 'my-board')
+
+    await boardEject([target])
+
+    const written = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
+    expect(written.dependencies['@meith/plugin-dues']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/plugin-reference']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/web']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/cli']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/theme-default']).toBe(CODE_VERSION)
+    expect(Object.keys(written.dependencies)).toEqual([
+      '@meith/web',
+      '@meith/cli',
+      '@meith/theme-default',
+      '@meith/plugin-dues',
+      '@meith/plugin-reference',
+    ])
+  })
+
+  it('does not duplicate a manifest plugin package that scaffold() already pins', async () => {
+    await writeManifest([{ key: 'web', package: '@meith/web', enabled: true }])
+    const target = join(targetParent, 'my-board')
+
+    await boardEject([target])
+
+    const written = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
+    expect(written.dependencies['@meith/web']).toBe(CODE_VERSION)
+    expect(Object.keys(written.dependencies)).toEqual([
+      '@meith/web',
+      '@meith/cli',
+      '@meith/theme-default',
+    ])
+  })
+
   it('renders an empty community.plugins.ts with no showcase wiring when the manifest is empty', async () => {
     const target = join(targetParent, 'my-board')
     await boardEject([target])
