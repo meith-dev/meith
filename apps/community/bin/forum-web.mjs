@@ -47,7 +47,15 @@
  * through real `dependencies` entries a hoisted `node_modules` would need.
  */
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -90,6 +98,24 @@ function fail(message) {
 function toPosixRelative(from, to) {
   const rel = relative(from, to).split(sep).join('/')
   return rel.startsWith('.') ? rel : `./${rel}`
+}
+
+export function rebaseGlobalsCssSources(css, cssDir, workspaceRootOverride) {
+  return css.replace(/@source "((?:\.\.\/)+)([^"]+)";/g, (_match, _dots, tail) => {
+    const target = join(workspaceRootOverride, ...tail.split('/'))
+    return `@source "${toPosixRelative(cssDir, target)}";`
+  })
+}
+
+function rewriteGlobalsCssSourcePaths() {
+  const workspaceRootOverride = process.env.FORUM_WORKSPACE_ROOT
+  if (!workspaceRootOverride) return
+
+  const cssPath = join(appDir, 'src', 'styles', 'globals.css')
+  if (!existsSync(cssPath)) return
+
+  const css = readFileSync(cssPath, 'utf8')
+  writeFileSync(cssPath, rebaseGlobalsCssSources(css, dirname(cssPath), workspaceRootOverride))
 }
 
 /**
@@ -156,6 +182,8 @@ function materialize() {
     cpSync(source, target, { recursive: true })
   }
 
+  rewriteGlobalsCssSourcePaths()
+
   const tsconfig = {
     compilerOptions: {
       target: 'ES2022',
@@ -213,29 +241,31 @@ function run(executable, args, cwd) {
   child.on('error', (error) => fail(error.message))
 }
 
-const [, , command, ...rest] = process.argv
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [, , command, ...rest] = process.argv
 
-if (!['dev', 'build', 'start'].includes(command ?? '')) {
-  console.error('Usage: forum-web <dev|build|start> [next arguments]')
-  process.exit(1)
-}
-
-materialize()
-
-if (command === 'start') {
-  // `next.config.mjs` sets `output: 'standalone'`, and a standalone build is
-  // run from its own traced server.js, not `next start` (see docker/Dockerfile
-  // and docker/entrypoint.sh, which run the image's board the same way). The
-  // tracing root is the workspace root (see the module comment on why
-  // `.meith/app` sits exactly two levels below it), so the standalone bundle
-  // preserves that same relative path down to the app directory.
-  const standaloneRoot = join(appDir, '.next', 'standalone')
-  const serverScript = join(standaloneRoot, relative(workspaceRoot, appDir), 'server.js')
-  if (!existsSync(serverScript)) {
-    fail(`no standalone build at ${serverScript} — run "forum-web build" first.`)
+  if (!['dev', 'build', 'start'].includes(command ?? '')) {
+    console.error('Usage: forum-web <dev|build|start> [next arguments]')
+    process.exit(1)
   }
-  run(process.execPath, [serverScript, ...rest], standaloneRoot)
-} else {
-  const nextBin = resolveNextBin()
-  run(process.execPath, [nextBin, command, ...rest], appDir)
+
+  materialize()
+
+  if (command === 'start') {
+    // `next.config.mjs` sets `output: 'standalone'`, and a standalone build is
+    // run from its own traced server.js, not `next start` (see docker/Dockerfile
+    // and docker/entrypoint.sh, which run the image's board the same way). The
+    // tracing root is the workspace root (see the module comment on why
+    // `.meith/app` sits exactly two levels below it), so the standalone bundle
+    // preserves that same relative path down to the app directory.
+    const standaloneRoot = join(appDir, '.next', 'standalone')
+    const serverScript = join(standaloneRoot, relative(workspaceRoot, appDir), 'server.js')
+    if (!existsSync(serverScript)) {
+      fail(`no standalone build at ${serverScript} — run "forum-web build" first.`)
+    }
+    run(process.execPath, [serverScript, ...rest], standaloneRoot)
+  } else {
+    const nextBin = resolveNextBin()
+    run(process.execPath, [nextBin, command, ...rest], appDir)
+  }
 }
