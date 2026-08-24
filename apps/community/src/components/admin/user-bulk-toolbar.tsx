@@ -53,7 +53,7 @@ export function UserBulkToolbar({
       <form
         id="admin-user-bulk"
         action={action}
-        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
       >
         <label className="flex min-w-48 flex-col gap-1 text-sm">
           <span className="font-medium">{labels.action}</span>
@@ -81,7 +81,7 @@ export function UserBulkToolbar({
         </label>
         <button
           type="button"
-          className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium"
+          className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-border px-4 text-sm font-medium"
           onClick={() => {
             for (const checkbox of document.querySelectorAll<HTMLInputElement>(
               '[data-admin-user-select]',
@@ -92,7 +92,9 @@ export function UserBulkToolbar({
         >
           {labels.selectPage}
         </button>
-        <SubmitButton>{labels.apply}</SubmitButton>
+        <span className="min-w-48">
+          <SubmitButton>{labels.apply}</SubmitButton>
+        </span>
       </form>
     </div>
   )

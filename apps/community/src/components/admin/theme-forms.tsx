@@ -385,7 +385,7 @@ export function ThemeEditorForm({
               <fieldset
                 key={group.titleKey}
                 hidden={hydrated && matches === 0}
-                className="flex flex-col gap-2 rounded-md border border-border p-3"
+                className="flex min-w-0 flex-col gap-2 rounded-md border border-border p-3"
               >
                 <legend className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-1">
                   <span className="text-sm font-medium">{copy[group.titleKey]}</span>

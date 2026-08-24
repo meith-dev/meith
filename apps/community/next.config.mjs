@@ -52,6 +52,10 @@ const nextConfig = {
   poweredByHeader: false,
   distDir: process.env.FORUM_DIST_DIR ?? '.next',
 
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
+
   serverExternalPackages: [
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',

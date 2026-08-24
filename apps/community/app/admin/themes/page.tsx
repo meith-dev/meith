@@ -24,10 +24,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdminThemesPage() {
   if ((await adminPageContext()) === null) return null
 
-  const themes = await themeListing()
-  const [lightKey, darkKey] = await Promise.all([logoKey('light'), logoKey('dark')])
+  const [themes, lightKey, darkKey, translator] = await Promise.all([
+    themeListing(),
+    logoKey('light'),
+    logoKey('dark'),
+    getTranslator(),
+  ])
   const now = new Date()
-  const translator = await getTranslator()
   const brandingCopy = brandingFormsCopy(translator)
   const stateCopy = themeStateCopy(translator)
 

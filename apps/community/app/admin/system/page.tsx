@@ -36,9 +36,8 @@ export default async function AdminSystemPage() {
   if ((await adminPageContext()) === null) return null
 
   const now = new Date()
-  const translator = await getTranslator()
+  const [translator, view] = await Promise.all([getTranslator(), buildSystemHealthView(now)])
   const copy = systemFormsCopy(translator)
-  const view = await buildSystemHealthView(now)
 
   if (view === null) {
     return (
