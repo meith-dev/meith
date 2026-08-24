@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { MEITH_VERSION } from '@meith/marketplace'
+
 import { E2E_FAKE_MARKETPLACE_BASE_URL } from './support/config'
 import { enterAdminPanel } from './support/session'
 
@@ -55,7 +57,7 @@ test('the Browse tab renders the seeded catalog with correct statuses, screensho
 
   const dues = page.locator('li').filter({ hasText: 'Dues' }).first()
   await expect(dues.getByText('Update available')).toBeVisible()
-  await expect(dues.getByText('This board runs 0.16.0.')).toBeVisible()
+  await expect(dues.getByText(`This board runs ${MEITH_VERSION}.`)).toBeVisible()
   await expect(dues.locator('img').first()).toBeVisible()
 
   const greeter = page.locator('li').filter({ hasText: 'Greeter' }).first()
