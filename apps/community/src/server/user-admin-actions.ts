@@ -179,26 +179,26 @@ export async function banMemberAction(_prev: FormState, form: FormData): Promise
       ...(expiresAt === undefined ? {} : { expiresAt }),
     })
 
-    await emitEvent(
-      'user.banned',
-      { userId: id, expiresAt: expiresAt?.toISOString() ?? null },
-      { moderatorId: context.session.userId, reason: trimmedText(form, 'reason') || null },
-    )
-
     refreshMemberScreens()
-    await recordAdminAction({
-      action: 'user.banned',
-      detail: { userId: id, days: days === '' ? null : Number(days) },
-    })
 
-    return {
-      notice: 'banned',
-      undo: await issueAdminUndo({
+    const [, undo] = await Promise.all([
+      emitEvent(
+        'user.banned',
+        { userId: id, expiresAt: expiresAt?.toISOString() ?? null },
+        { moderatorId: context.session.userId, reason: trimmedText(form, 'reason') || null },
+      ),
+      issueAdminUndo({
         actorUserId: context.session.userId,
         operation: 'user.ban',
         snapshot: { userId: id },
       }),
-    }
+      recordAdminAction({
+        action: 'user.banned',
+        detail: { userId: id, days: days === '' ? null : Number(days) },
+      }),
+    ])
+
+    return { notice: 'banned', undo }
   } catch (err) {
     return toFormState(err)
   }
@@ -556,14 +556,16 @@ export async function liftBanAction(_prev: FormState, form: FormData): Promise<F
 
     await banService().lift(id)
 
-    await emitEvent(
-      'user.unbanned',
-      { userId: id, expired: false },
-      { moderatorId: context.session.userId, reason: null },
-    )
-
     refreshMemberScreens()
-    await recordAdminAction({ action: 'user.ban_lifted', detail: { userId: id } })
+
+    await Promise.all([
+      emitEvent(
+        'user.unbanned',
+        { userId: id, expired: false },
+        { moderatorId: context.session.userId, reason: null },
+      ),
+      recordAdminAction({ action: 'user.ban_lifted', detail: { userId: id } }),
+    ])
 
     return { notice: 'lifted' }
   } catch (err) {

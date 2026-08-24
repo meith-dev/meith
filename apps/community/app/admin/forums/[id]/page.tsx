@@ -30,9 +30,12 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
   const options = await repository?.readOptions(forum.id)
   if (options === null || options === undefined || repository === null) notFound()
 
-  const t = await getTranslator()
-  const moderators = await repository.listModerators(forum.id)
-  const groups = (await repository.listGroups()).map((group) => ({
+  const [t, moderators, groupRows] = await Promise.all([
+    getTranslator(),
+    repository.listModerators(forum.id),
+    repository.listGroups(),
+  ])
+  const groups = groupRows.map((group) => ({
     groupId: group.id,
     title: group.title,
   }))
