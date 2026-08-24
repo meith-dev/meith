@@ -31,9 +31,9 @@ export default async function AdminSettingsPage({
   if (query.group === undefined && query.q === undefined) {
     redirect(settingsHref({ group: DEFAULT_SETTING_GROUP, advanced: query.advanced === '1' }))
   }
-  const t = await getTranslator()
+  const [t, snapshot] = await Promise.all([getTranslator(), getSettings()])
   const model = buildAdminSettingsModel({
-    snapshot: await getSettings(),
+    snapshot,
     query: query.q,
     group: query.group,
     advanced: query.advanced === '1',

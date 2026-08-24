@@ -118,13 +118,14 @@ export async function buildMemberView(userId: number): Promise<MemberView | null
 
   const prefix = member.lastIpPrefix ?? member.registrationIpPrefix ?? ''
 
-  return {
-    member,
-    secondaryGroupIds: await repository.readSecondaryGroups(userId),
-    groups: await repository.listGroups(),
-    activeBan: await bans.findActive(userId),
-    sharedNetwork: await repository.sharingIpPrefix(prefix, userId),
-  }
+  const [secondaryGroupIds, groups, activeBan, sharedNetwork] = await Promise.all([
+    repository.readSecondaryGroups(userId),
+    repository.listGroups(),
+    bans.findActive(userId),
+    repository.sharingIpPrefix(prefix, userId),
+  ])
+
+  return { member, secondaryGroupIds, groups, activeBan, sharedNetwork }
 }
 
 export function requireUserBulk(): PostgresUserBulkRepository {

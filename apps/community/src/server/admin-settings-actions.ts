@@ -62,16 +62,16 @@ export async function saveAdminSettingsAction(
     if (result.changed.length > 0) {
       const tags = [CacheTags.settings(), ...result.invalidates]
       await drivers().cache.invalidateTags(tags)
-      for (const tag of tags) await emitEvent('cache.invalidated', { tag }, {})
-
       revalidatePath('/admin/settings')
 
-      await emitEvent('settings.saved', { keys: result.changed }, { adminId: admin.session.userId })
-
-      await recordAdminAction({
-        action: 'settings.changed',
-        detail: { keys: result.changed },
-      })
+      await Promise.all([
+        ...tags.map((tag) => emitEvent('cache.invalidated', { tag }, {})),
+        emitEvent('settings.saved', { keys: result.changed }, { adminId: admin.session.userId }),
+        recordAdminAction({
+          action: 'settings.changed',
+          detail: { keys: result.changed },
+        }),
+      ])
     }
 
     return { notice: result.changed.length === 0 ? 'unchanged' : 'saved' }
