@@ -145,4 +145,39 @@ describe('boardEject', () => {
     expect(output).toContain('environment variable')
     expect(output).toMatch(/GitHub/i)
   })
+
+  it('refuses a key whose repeated hyphen would break the generated import (MEI-87)', async () => {
+    await writeManifest([{ key: 'foo--bar', package: '@meith/plugin-dues', enabled: true }])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(
+      /"foo--bar" is a valid plugin key, but the identifier/,
+    )
+  })
+
+  it('refuses a trailing-hyphen key for the same reason', async () => {
+    await writeManifest([{ key: 'foo-', package: '@meith/plugin-dues', enabled: true }])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(/"foo-" is a valid plugin key, but/)
+  })
+
+  it('refuses two keys that collide on the same generated identifier', async () => {
+    await writeManifest([
+      { key: 'foo-1', package: '@meith/plugin-dues', enabled: true },
+      { key: 'foo1', package: '@meith/plugin-widget', enabled: true },
+    ])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(
+      /"foo1" and "foo-1" both generate the identifier "foo1"/,
+    )
+  })
+
+  it('refuses a non-boolean "enabled"', async () => {
+    await writeManifest([{ key: 'dues', package: '@meith/plugin-dues', enabled: 'false' }])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(/non-boolean "enabled"/)
+  })
 })

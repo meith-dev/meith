@@ -94,11 +94,23 @@ gets there without hand-editing TypeScript.
 manifest and its `community.plugins.ts` disagree — run `pnpm board:gen` and
 commit the result — and `tests/boards-stock.test.ts` fails when the two
 `board.plugins.json` files disagree with each other. Each `board.plugins.json`
-refuses a duplicate key, a key `definePlugin` would refuse, and a package its
-own board does not depend on, naming the fix — `pnpm add <package> --filter
-@meith/web` for `apps/community`, `pnpm add <package> --filter
+refuses: a duplicate key; a key `definePlugin` would refuse; a key that is
+legal but whose camelCase identifier collides with another entry's, or is
+not itself a valid identifier (a repeated or trailing hyphen, most often —
+`foo--bar` and `foo-` are both legal plugin keys and both make
+`community.plugins.ts` un-generatable without this check); a non-boolean
+`enabled`; a `package` that is not a valid npm package name; and a package
+its own board does not depend on, naming the fix — `pnpm add <package>
+--filter @meith/web` for `apps/community`, `pnpm add <package> --filter
 @meith/board-stock` for `boards/stock` — against whichever board actually
-lacks it.
+lacks it. `apps/cli/src/board-eject.ts` renders the same shape of
+`community.plugins.ts` for an ejected board and carries its own copy of the
+key/identifier/`enabled`/package-name checks (not the dependency check — an
+ejected build has no such list to check against); the two `toIdentifier`
+implementations are pinned to agree by a test in `board-eject.test.ts`
+rather than shared, for the reason `plugin-manifest.ts`'s shelling out to
+the generator is: a plain script and a workspace TypeScript package cannot
+share a module without one of them changing what it is.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)

@@ -76,6 +76,17 @@ async function readManifestFor(board: Board): Promise<Manifest> {
   if (!Array.isArray(parsed.plugins)) {
     throw new ValidationError(`${path} must have a "plugins" array.`)
   }
+
+  const extraFields = Object.keys(parsed).filter((field) => field !== 'plugins')
+  if (extraFields.length > 0) {
+    throw new ValidationError(
+      `${path} has ${extraFields.length === 1 ? 'a field' : 'fields'} plugin:add/plugin:remove ` +
+        `do not know how to carry forward: ${extraFields.join(', ')}. "plugins" is the ` +
+        "manifest's only field — remove the rest by hand, since rewriting the file here would " +
+        'otherwise drop them silently.',
+    )
+  }
+
   return { plugins: parsed.plugins }
 }
 
@@ -133,7 +144,7 @@ export async function pluginAdd(args: readonly string[]): Promise<number> {
     throw new ValidationError(
       `community plugin:add does not take plugin configuration (--${configFlags[0]}). The ` +
         "manifest has no field for it — a plugin's own settings are the only place its " +
-        'configuration lives now, the way plugins/dues moved its plans there. Export a ' +
+        "configuration lives now, the way MEI-74 moved plugins/dues's plans there. Export a " +
         'zero-argument plugin and add it with just its package name.',
     )
   }

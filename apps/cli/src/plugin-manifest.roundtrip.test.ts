@@ -92,6 +92,17 @@ describe('pluginAdd/pluginRemove, the real round trip', () => {
     expect(after).toEqual(before)
   })
 
+  it('refuses a legal key whose repeated hyphen would break the generated import, before touching any board (MEI-87, was a raw Biome parse error surfacing through the generator)', async () => {
+    const before = await Promise.all(BOARDS.map((board) => readBoardFile(board.manifestFile)))
+
+    await expect(pluginAdd([FIXTURE_PACKAGE, '--key', 'foo--bar'])).rejects.toThrow(
+      /"foo--bar" is a valid plugin key, but the identifier/,
+    )
+
+    const after = await Promise.all(BOARDS.map((board) => readBoardFile(board.manifestFile)))
+    expect(after).toEqual(before)
+  })
+
   it('rolls every board back together when one board refuses the package', async () => {
     const [first, ...rest] = BOARDS
     if (first === undefined) throw new Error('scripts/boards.json listed no boards')

@@ -516,6 +516,12 @@ set it, pointing at a throwaway fixture tree so a real add-and-remove round
 trip never edits this checkout's own boards. Unset — which is what any real
 run leaves it — both fall back to the repository root.
 
+`plugin:add`/`plugin:remove` only know how to rewrite a manifest shaped
+`{ "plugins": [...] }` — a hand-edited `board.plugins.json` carrying any
+other top-level field is refused rather than silently rewritten without it,
+since a rewrite that dropped a field nobody named would be a worse surprise
+than a refusal that does.
+
 ## The generated documents
 
 Five documents are written from the code they describe and must not be
