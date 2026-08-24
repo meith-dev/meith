@@ -805,6 +805,11 @@ settings: [
   named problem on the plugin's screen rather than a save that refuses
   everything else, so a board mid-setup can still be configured a field at
   a time.
+- **A `select`'s option values are matched case-insensitively and
+  trimmed**, so a stray `DUES_CURRENCY=EUR` or a trailing space from
+  copy-pasting an environment value still finds the option `'eur'`
+  declares — the resolved value is always the option's own declared
+  casing, never the raw input. Declare option values lowercase.
 - **A `select` whose stored value is no longer among its options** — an
   older version of the plugin declared more — resolves to the default
   instead of handing the plugin a value it never declared.

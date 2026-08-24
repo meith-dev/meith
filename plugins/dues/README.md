@@ -70,7 +70,9 @@ history behind it, and a checkout a visitor can actually go through. See
      defaults to, what the ledger shows, and the fallback when a Stripe
      event carries no currency of its own) and the days a lapsed renewal
      keeps access. `DUES_CURRENCY` and `DUES_GRACE_DAYS` override them from
-     the environment, on the same rule as the keys below.
+     the environment, on the same rule as the keys below. `DUES_CURRENCY` is
+     matched case-insensitively and trimmed — `EUR` and `eur` both select
+     the same option — but write it lower-case.
    - **`DUES_STRIPE_SECRET_KEY`** and **`DUES_STRIPE_WEBHOOK_SECRET`** — set
      in the environment, or filled in here. Environment wins, and the
      screen says which source is in force.

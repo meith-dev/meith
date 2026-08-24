@@ -219,6 +219,7 @@ describe('typed settings and the environment override', () => {
           { value: 'off', label: 'Off' },
           { value: 'live', label: 'Live' },
         ],
+        env: 'BILLING_MODE',
         default: 'off',
       },
       { key: 'label', label: 'Label', default: 'Membership' },
@@ -257,6 +258,19 @@ describe('typed settings and the environment override', () => {
 
     const detail = resolvePluginSettingDetails(plugin, stored).find((d) => d.setting.key === 'mode')
     expect(detail?.source).toBe('default')
+  })
+
+  it('a select matches its options case-insensitively, trimmed, and resolves to the option’s own casing', () => {
+    const stored = new Map([['plugin.billing.mode', ' LIVE ']])
+    const details = resolvePluginSettingDetails(plugin, stored)
+    const detail = details.find((d) => d.setting.key === 'mode')
+    expect(detail?.value).toBe('live')
+    expect(detail?.source).toBe('board')
+  })
+
+  it('the same normalisation applies to a select fed from the environment', () => {
+    const env = (name: string) => (name === 'BILLING_MODE' ? ' Live ' : undefined)
+    expect(resolvePluginSettings(plugin, none, env).mode).toBe('live')
   })
 
   it('reports a required, unset setting as a problem — naming the variable that could set it', () => {
