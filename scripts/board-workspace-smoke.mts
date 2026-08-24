@@ -184,14 +184,26 @@ async function main() {
     })
 
     console.log('== forum-web start ==')
-    // `stdio: 'pipe'`, forwarded by hand, rather than `'inherit'`: an
-    // inherited fd is *shared* with this process, so this script's own
-    // stdout only reaches EOF once the server process's copy of it closes
-    // too — and a standalone Next server does not reliably die on its own
-    // from one SIGTERM. Piped and forwarded, the server's lifetime cannot
-    // hold this script's own output open after `main()` returns.
+    // Two things this has to defend against, both confirmed against a real
+    // CI run of this exact script (the smoke test itself passed in under two
+    // minutes; the *process* then sat for over an hour until the run was
+    // cancelled — see the PR for the log):
+    //
+    // `forum-web start` is itself a wrapper (apps/community/bin/forum-web.mjs)
+    // that spawns the real `node server.js` as *its own* child with
+    // `stdio: 'inherit'`. Killing the wrapper does not kill that grandchild —
+    // Linux does not cascade a signal to orphaned children — so `detached:
+    // true` plus signalling the whole process group (`-server.pid`) is what
+    // actually reaches the standalone server, not just its wrapper.
+    //
+    // Even with the server fully dead, nothing here calls `process.exit()`,
+    // and something in this dependency chain (`tsx`'s own loader is a
+    // documented culprit) can leave the process waiting on a handle that
+    // never clears on its own. `main()` completing is not the same claim as
+    // the process exiting, so the caller forces the latter explicitly.
     const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start'], {
       cwd: boardDir,
+      detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
@@ -206,6 +218,23 @@ async function main() {
     server.stdout?.on('data', (chunk) => process.stdout.write(chunk))
     server.stderr?.on('data', (chunk) => process.stderr.write(chunk))
 
+    function stopServer() {
+      if (server.pid === undefined) return
+      try {
+        process.kill(-server.pid, 'SIGTERM')
+      } catch {
+        // Already gone.
+      }
+      setTimeout(() => {
+        if (server.pid === undefined) return
+        try {
+          process.kill(-server.pid, 'SIGKILL')
+        } catch {
+          // Already gone.
+        }
+      }, 5000).unref()
+    }
+
     try {
       console.log('== waiting for it to answer / ==')
       const response = await waitForResponse(`http://127.0.0.1:${PORT}/`, 40)
@@ -218,8 +247,7 @@ async function main() {
       }
       console.log('== the materialized, standalone board rendered / ==')
     } finally {
-      server.kill('SIGTERM')
-      setTimeout(() => server.kill('SIGKILL'), 5000).unref()
+      stopServer()
     }
   } finally {
     await rm(tarballDir, { recursive: true, force: true })
@@ -227,5 +255,21 @@ async function main() {
   }
 }
 
-await main()
-console.log('✓ board-workspace-smoke: a scaffolded, externally-installed board builds and boots')
+// `main()` resolving is not the same claim as this process exiting on its
+// own — confirmed against a real CI run, where the checks above all passed
+// and printed their success lines in under two minutes, and the process
+// then sat with nothing left to do for over an hour until the run was
+// cancelled externally. Something in this dependency chain (`tsx`'s own
+// loader is a documented cause of exactly this) can leave a handle open
+// that Node's own idle-exit never clears, so this calls `process.exit()`
+// itself rather than trusting the event loop to empty.
+try {
+  await main()
+  console.log('✓ board-workspace-smoke: a scaffolded, externally-installed board builds and boots')
+  process.exit(0)
+} catch (error) {
+  console.error(
+    `✗ board-workspace-smoke: ${error instanceof Error ? error.message : String(error)}`,
+  )
+  process.exit(1)
+}
