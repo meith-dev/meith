@@ -45,6 +45,16 @@ cat > "$BOARD_NAME/package.json" <<'MEITH_SCAFFOLD_EOF'
 }
 MEITH_SCAFFOLD_EOF
 
+mkdir -p "$(dirname -- "$BOARD_NAME/.npmrc")"
+cat > "$BOARD_NAME/.npmrc" <<'MEITH_SCAFFOLD_EOF'
+# Every @meith/* dependency here is an exact version, not a range — see
+# README.md, "Upgrading", for why a range breaks the build. This makes that
+# the default for any `npm install` run in this project from here on,
+# including a plugin installed by hand later, not only the three packages
+# the scaffold pinned itself.
+save-exact=true
+MEITH_SCAFFOLD_EOF
+
 mkdir -p "$(dirname -- "$BOARD_NAME/community.config.ts")"
 cat > "$BOARD_NAME/community.config.ts" <<'MEITH_SCAFFOLD_EOF'
 /**
@@ -367,6 +377,10 @@ jobs:
         run: |
           IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']")
+          if ! echo "$MEITH_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::@meith/web in package.json is '$MEITH_VERSION', not an exact X.Y.Z version — that is not a legal Docker image tag. Upgrade with \`npm install --save-exact\` (see README.md, Upgrading) so this dependency always resolves to one."
+            exit 1
+          fi
           docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
@@ -609,8 +623,8 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 ## Upgrading
 
 ```sh
-npm install @meith/web@latest @meith/cli@latest
-git commit -am "Upgrade @meith/web and @meith/cli"
+npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
+git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
 git push
 ```
 
@@ -618,7 +632,14 @@ That one `package.json` change is the whole pin: `Dockerfile`'s own
 `FROM` line takes the version as a build argument, and
 `.github/workflows/build.yml` reads it straight out of `package.json`'s
 own `@meith/web` dependency when it rebuilds — nothing in `Dockerfile`
-itself to keep in sync by hand. Once the rebuilt image is deployed, run
+itself to keep in sync by hand. `--save-exact` matters: npm's default
+`save-prefix` is `^`, and a caret range is not a legal Docker image tag —
+without it, this exact command would write `"^0.18.0"` and the next build
+would fail with `invalid reference format` instead of building. This
+project's own `.npmrc` sets `save-exact=true` for the same reason, so an
+`npm install` of anything else here — a plugin, say — stays pinned too; the
+build workflow also refuses to build from anything but an exact version, as
+a second line of defense. Once the rebuilt image is deployed, run
 `npm run community -- upgrade` against it for the plugin migrations — see
 [the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/operating.md#the-operator-cli)
 for running it against this deployment.
@@ -639,7 +660,7 @@ if command -v git >/dev/null 2>&1 \
   GIT_READY=1
 fi
 
-echo "Created $BOARD_NAME — 13 files."
+echo "Created $BOARD_NAME — 14 files."
 echo
 echo "  cd $BOARD_NAME"
 echo "  npm install"

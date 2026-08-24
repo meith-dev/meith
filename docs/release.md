@@ -328,16 +328,20 @@ policy that already backs `apiVersion` for themes and plugins
 [plugin API versioning](./plugin-api.md#versioning)): a minor may add
 capability, only a major may remove or rename it, and a package built
 against one major keeps working against every release on that major.
-`@meith/web` and `@meith/cli` are not exempt from [the version
-policy](#the-version-policy) just because they are new to npm — a
-scaffolded board pins them to an exact version rather than a range
-(deliberately: `create-meith`'s scaffold upgrades by `npm install
-@meith/web@latest @meith/cli@latest`, an explicit act, never a silent
-range resolution on a board process holding a database migration), while a
-theme or plugin's `workspace:^` on `@meith/theme-kit` / `@meith/plugin-kit`
-is the same policy stated as a version range instead. Same guarantee,
-different mechanism for the different risk: a board upgrade runs
-migrations, a theme or plugin upgrade does not.
+`@meith/web`, `@meith/cli` and `@meith/theme-default` are not exempt from
+[the version policy](#the-version-policy) just because they are new to npm
+— a scaffolded board pins all three to an exact version rather than a
+range (deliberately: `create-meith`'s scaffold upgrades by `npm install
+--save-exact @meith/web@latest @meith/cli@latest
+@meith/theme-default@latest`, an explicit act, never a silent range
+resolution on a board process holding a database migration — the
+scaffolded `.npmrc` sets `save-exact=true` so the same holds even for an
+install run by hand, and the generated `build.yml` refuses to build from
+anything but an exact version regardless), while a theme or plugin's
+`workspace:^` on `@meith/theme-kit` / `@meith/plugin-kit` is the same
+policy stated as a version range instead. Same guarantee, different
+mechanism for the different risk: a board upgrade runs migrations, a theme
+or plugin upgrade does not.
 
 ### How the workflow authenticates
 

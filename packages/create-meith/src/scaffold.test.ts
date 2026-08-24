@@ -31,6 +31,7 @@ describe('what the scaffold writes', () => {
       '.env.example',
       '.github/workflows/build.yml',
       '.gitignore',
+      '.npmrc',
       'Dockerfile',
       'README.md',
       'board.plugins.json',
@@ -52,6 +53,10 @@ describe('what the scaffold writes', () => {
     expect(manifest.name).toBe('my-board')
     expect(manifest.dependencies['@meith/web']).toBe('1.2.3')
     expect(manifest.dependencies['@meith/theme-default']).toBe('1.2.3')
+  })
+
+  it("ships an .npmrc that keeps every install here exact, not only the scaffold's own pins", () => {
+    expect(files.get('.npmrc')).toMatch(/^save-exact=true$/m)
   })
 
   it('gives the project the three scripts an operator needs', () => {
@@ -281,9 +286,27 @@ describe('the deploy kit', () => {
 
   it('tells the operator upgrading is one package.json edit, not a second pin to keep in sync', () => {
     const readme = files.get('README.md')!
-    expect(readme).toMatch(/npm install @meith\/web@latest @meith\/cli@latest/)
+    expect(readme).toMatch(
+      /npm install --save-exact @meith\/web@latest @meith\/cli@latest @meith\/theme-default@latest/,
+    )
     expect(readme).toMatch(/build argument/i)
     expect(readme).not.toMatch(/bump/i)
+  })
+
+  it('documents --save-exact, so the upgrade it tells the operator to run never writes a caret range', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/--save-exact/)
+    expect(readme).toMatch(/not a legal Docker image tag|invalid reference format/)
+  })
+
+  it('refuses to build from anything but an exact @meith/web version, not only a documented --save-exact', () => {
+    expect(buildWorkflow).toContain(
+      'if ! echo "$MEITH_VERSION" | grep -Eq \'^[0-9]+\\.[0-9]+\\.[0-9]+$\'; then',
+    )
+    expect(buildWorkflow).toMatch(/::error::.*not an exact X\.Y\.Z version/)
+    expect(buildWorkflow.indexOf('grep -Eq')).toBeLessThan(
+      buildWorkflow.indexOf('docker build --build-arg MEITH_VERSION'),
+    )
   })
 })
 
@@ -322,6 +345,7 @@ describe('the CLI', () => {
         '.env.example',
         '.github',
         '.gitignore',
+        '.npmrc',
         'Dockerfile',
         'README.md',
         'board.plugins.json',
