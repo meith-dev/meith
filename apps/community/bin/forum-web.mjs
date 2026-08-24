@@ -100,28 +100,6 @@ function toPosixRelative(from, to) {
   return rel.startsWith('.') ? rel : `./${rel}`
 }
 
-/**
- * `src/styles/globals.css` names this monorepo's `themes/`, `plugins/`,
- * `examples/` and `packages/ui/src` as Tailwind `@source` scan roots, each
- * written as a relative path from the file's own on-disk location —
- * correct where it sits today (`apps/community/src/styles/`), four
- * directories from the workspace root. `boards/stock` materializes this
- * same file two directories deeper again, so those same relative paths
- * climb only as far as `boards/stock` itself: Tailwind finds nothing
- * there and silently contributes zero classes from all four directories,
- * which is most of a theme's own responsive markup (confirmed: a
- * boards/stock build's compiled CSS carried 0 `md:` and 1 `lg:` utility
- * versus a direct apps/community build's 12 and 22 — the board looked
- * permanently mobile-width no matter the viewport). `FORUM_WORKSPACE_ROOT`
- * is already resolved to an absolute path above; this rewrites every
- * `@source` line in the materialized file against it, so the depth stays
- * correct regardless of how many such lines exist or where boards/stock
- * sits relative to the root. Unset (a real external board), this is a
- * no-op — the shipped relative paths pass through untouched, since a real
- * board resolves `@meith/*` through its own hoisted `node_modules`, not
- * this monorepo's directories, and needs its own fix (tracked separately,
- * not blocking this one).
- */
 export function rebaseGlobalsCssSources(css, cssDir, workspaceRootOverride) {
   return css.replace(/@source "((?:\.\.\/)+)([^"]+)";/g, (_match, _dots, tail) => {
     const target = join(workspaceRootOverride, ...tail.split('/'))
@@ -263,18 +241,6 @@ function run(executable, args, cwd) {
   child.on('error', (error) => fail(error.message))
 }
 
-// Guarded so `forum-web.test.ts` can import this module's pure exports
-// (rebaseGlobalsCssSources) without triggering a real materialize-and-run —
-// true when this file is the process's actual entry point (run directly, or
-// via the package.json `bin` shim), false when a test imports it. The real
-// invocation is always through node_modules/.bin/forum-web, a symlink to
-// this file — process.argv[1] is that symlink's own path, which never
-// string-equals import.meta.url (already the resolved real path); comparing
-// realpathSync(argv[1]) against it instead makes the check survive the
-// symlink. Getting this wrong doesn't error, it silently skips the entire
-// build — confirmed the hard way against a real `pnpm --filter
-// @meith/board-stock build`, which a direct `node forum-web.mjs` invocation
-// during development never exercises.
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [, , command, ...rest] = process.argv
 

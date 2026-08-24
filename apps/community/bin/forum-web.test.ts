@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-// @ts-expect-error forum-web.mjs ships untyped (it's the package's real bin,
-// run directly by node, not compiled) — allowJs is off, so tsc has no
-// declaration for it; vitest itself resolves and runs the import fine.
+// @ts-expect-error forum-web.mjs ships untyped, imported directly for its pure export
 import { rebaseGlobalsCssSources } from './forum-web.mjs'
 
 describe('rebaseGlobalsCssSources', () => {
@@ -18,9 +16,6 @@ describe('rebaseGlobalsCssSources', () => {
       '.foo { color: red; }',
     ].join('\n')
 
-    // apps/community/src/styles/globals.css materialized into
-    // boards/stock/.meith/app/src/styles/ — two directories deeper than
-    // where the shipped relative paths assume.
     const cssDir = '/repo/boards/stock/.meith/app/src/styles'
     const workspaceRoot = '/repo'
 
@@ -30,7 +25,6 @@ describe('rebaseGlobalsCssSources', () => {
     expect(rewritten).toContain('@source "../../../../../../plugins";')
     expect(rewritten).toContain('@source "../../../../../../examples";')
     expect(rewritten).toContain('@source "../../../../../../packages/ui/src";')
-    // Everything else in the file passes through untouched.
     expect(rewritten).toContain('.foo { color: red; }')
   })
 
