@@ -6,37 +6,95 @@ import { join } from 'node:path'
 
 import { ROOT, workspacePackages } from './workspace-packages.mjs'
 
-const dryRun = process.argv.includes('--dry-run')
+// Dependencies before dependents, among only the packages that are
+// themselves publishing. Throws on a dependency cycle rather than returning
+// one, since there is no ordering to hand back.
+export function orderByDependency(packages) {
+  const names = new Set(packages.map((entry) => entry.name))
+  const ordered = []
+  const remaining = new Map(packages.map((entry) => [entry.name, entry]))
 
-const packages = (await workspacePackages())
-  .filter(({ manifest }) => manifest.private !== true)
-  .map(({ dir, manifest }) => ({ dir, name: manifest.name, version: manifest.version, manifest }))
+  while (remaining.size > 0) {
+    const ready = [...remaining.values()]
+      .filter((entry) =>
+        Object.keys(entry.manifest.dependencies ?? {}).every(
+          (dep) => !names.has(dep) || !remaining.has(dep),
+        ),
+      )
+      .sort((a, b) => (a.name < b.name ? -1 : 1))
+    if (ready.length === 0) {
+      throw new Error(`dependency cycle among ${[...remaining.keys()].sort().join(', ')}`)
+    }
+    const next = ready[0]
+    remaining.delete(next.name)
+    ordered.push(next)
+  }
 
-if (packages.length === 0) {
-  console.error('✗ npm publish: no publishable package found — every manifest is private')
-  process.exit(1)
+  return ordered
 }
 
-const names = new Set(packages.map((entry) => entry.name))
-const ordered = []
-const remaining = new Map(packages.map((entry) => [entry.name, entry]))
-while (remaining.size > 0) {
-  const ready = [...remaining.values()]
-    .filter((entry) =>
-      Object.keys(entry.manifest.dependencies ?? {}).every(
-        (dep) => !names.has(dep) || !remaining.has(dep),
-      ),
-    )
-    .sort((a, b) => (a.name < b.name ? -1 : 1))
-  if (ready.length === 0) {
-    console.error(
-      `✗ npm publish: dependency cycle among ${[...remaining.keys()].sort().join(', ')}`,
-    )
-    process.exit(1)
+// The path each non-negated `files` entry requires the tarball to contain
+// something under — the entry itself for a bare filename ("next.config.mjs"),
+// or the directory name for "app", "src", "bin". A "!exclude/**" entry is a
+// carve-out, not a requirement, and is dropped.
+export function requiredTarballPrefixes(manifest) {
+  const files = Array.isArray(manifest.files) ? manifest.files : []
+  const prefixes = new Set()
+  for (const entry of files) {
+    if (entry.startsWith('!')) continue
+    prefixes.add(entry.split('/')[0])
   }
-  const next = ready[0]
-  remaining.delete(next.name)
-  ordered.push(next)
+  return [...prefixes].sort()
+}
+
+// A package's `bin` targets, normalised to the path they have inside the
+// tarball ("./bin/forum-web.mjs" -> "bin/forum-web.mjs").
+export function binTargets(manifest) {
+  return Object.values(manifest.bin ?? {}).map((target) => target.replace(/^\.\//, ''))
+}
+
+// `tarballEntries` are paths relative to the tarball's own package/ root —
+// see tarballEntriesFrom. Checks both directions a packed tarball can betray
+// its manifest: something the files allowlist promises is missing (the case
+// this exists for is @meith/web's app/ directory, silently empty or excluded
+// and never noticed until a materialized build fails outside this repo), and
+// a bin target that is not actually a file the tarball ships.
+export function missingTarballContents(manifest, tarballEntries) {
+  const problems = []
+  const set = new Set(tarballEntries)
+
+  for (const prefix of requiredTarballPrefixes(manifest)) {
+    const present = tarballEntries.some(
+      (entry) => entry === prefix || entry.startsWith(`${prefix}/`),
+    )
+    if (!present) {
+      problems.push(`"${prefix}" is in the files allowlist, but nothing under it is in the tarball`)
+    }
+  }
+
+  for (const target of binTargets(manifest)) {
+    if (!set.has(target)) {
+      problems.push(`the bin target "${target}" is not a file in the tarball`)
+    }
+  }
+
+  return problems
+}
+
+// The files inside a tarball packed by `pnpm pack`, with the `package/` root
+// stripped and directory entries dropped — comparable directly against
+// `files` allowlist entries and `bin` targets, which are written the same
+// way in package.json.
+export function tarballEntriesFrom(tarballPath) {
+  const list = spawnSync('tar', ['-tzf', tarballPath], { encoding: 'utf8' })
+  if (list.status !== 0) {
+    throw new Error(`tar -tzf ${tarballPath} failed:\n${list.stderr}`)
+  }
+  return list.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.endsWith('/'))
+    .map((line) => line.replace(/^package\//, ''))
 }
 
 const indent = (text) =>
@@ -46,127 +104,175 @@ const indent = (text) =>
     .map((line) => `    ${line}`)
     .join('\n')
 
-const onRegistry = new Map()
-const newToRegistry = []
-const failures = []
-const heldBack = new Map()
-const staysAbsent = new Set()
+async function main() {
+  const dryRun = process.argv.includes('--dry-run')
 
-for (const { dir, name, version } of ordered) {
-  if (dryRun) {
+  const packages = (await workspacePackages())
+    .filter(({ manifest }) => manifest.private !== true)
+    .map(({ dir, manifest }) => ({ dir, name: manifest.name, version: manifest.version, manifest }))
+
+  if (packages.length === 0) {
+    console.error('✗ npm publish: no publishable package found — every manifest is private')
+    process.exit(1)
+  }
+
+  const names = new Set(packages.map((entry) => entry.name))
+  let ordered
+  try {
+    ordered = orderByDependency(packages)
+  } catch (error) {
+    console.error(`✗ npm publish: ${error.message}`)
+    process.exit(1)
+  }
+
+  const onRegistry = new Map()
+  const newToRegistry = []
+  const failures = []
+  const heldBack = new Map()
+  const staysAbsent = new Set()
+
+  for (const { dir, name, version } of ordered) {
+    if (dryRun) {
+      onRegistry.set(name, 'publishable')
+      continue
+    }
+
+    const atVersion = spawnSync('npm', ['view', `${name}@${version}`, 'version'], {
+      cwd: join(ROOT, dir),
+      encoding: 'utf8',
+    })
+    if (atVersion.status === 0 && atVersion.stdout.trim() !== '') {
+      onRegistry.set(name, 'published')
+      continue
+    }
+    if (atVersion.status !== 0 && !`${atVersion.stderr}`.includes('E404')) {
+      failures.push({
+        name,
+        why: `the registry could not be asked about it:\n${indent(atVersion.stderr)}`,
+      })
+      staysAbsent.add(name)
+      continue
+    }
+
+    const byName = spawnSync('npm', ['view', name, 'name'], { encoding: 'utf8' })
+    if (byName.status !== 0 && `${byName.stderr}`.includes('E404')) {
+      onRegistry.set(name, 'new')
+      newToRegistry.push({ dir, name, version })
+      staysAbsent.add(name)
+      continue
+    }
     onRegistry.set(name, 'publishable')
-    continue
   }
 
-  const atVersion = spawnSync('npm', ['view', `${name}@${version}`, 'version'], {
-    cwd: join(ROOT, dir),
-    encoding: 'utf8',
-  })
-  if (atVersion.status === 0 && atVersion.stdout.trim() !== '') {
-    onRegistry.set(name, 'published')
-    continue
-  }
-  if (atVersion.status !== 0 && !`${atVersion.stderr}`.includes('E404')) {
-    failures.push({
-      name,
-      why: `the registry could not be asked about it:\n${indent(atVersion.stderr)}`,
+  let published = 0
+  let alreadyThere = 0
+
+  for (const { dir, name, version, manifest } of ordered) {
+    if (onRegistry.get(name) === 'published') {
+      console.log(`- ${name}@${version} is already on the registry, skipping`)
+      alreadyThere += 1
+      continue
+    }
+    if (onRegistry.get(name) === 'new') {
+      console.log(`- ${name} is new to the registry, skipping — a first publish is made by hand`)
+      continue
+    }
+    if (staysAbsent.has(name)) continue
+
+    const missing = Object.keys(manifest.dependencies ?? {}).find(
+      (dep) => names.has(dep) && staysAbsent.has(dep),
+    )
+    if (missing) {
+      heldBack.set(name, missing)
+      staysAbsent.add(name)
+      continue
+    }
+
+    console.log(`- packing ${name}@${version}${dryRun ? ' (dry run)' : ''}`)
+
+    const tarball = join(tmpdir(), `${name.replace('/', '-').replace('@', '')}-${version}.tgz`)
+    const pack = spawnSync('pnpm', ['pack', '--out', tarball], {
+      cwd: join(ROOT, dir),
+      stdio: 'inherit',
     })
-    staysAbsent.add(name)
-    continue
+    if (pack.status !== 0) {
+      failures.push({ name, why: 'packing it failed; the publish was never attempted' })
+      staysAbsent.add(name)
+      continue
+    }
+
+    let tarballProblems
+    try {
+      tarballProblems = missingTarballContents(manifest, tarballEntriesFrom(tarball))
+    } catch (error) {
+      failures.push({ name, why: `reading the packed tarball failed: ${error.message}` })
+      staysAbsent.add(name)
+      await rm(tarball, { force: true })
+      continue
+    }
+    if (tarballProblems.length > 0) {
+      failures.push({
+        name,
+        why: `the packed tarball does not match its manifest:\n${indent(tarballProblems.join('\n'))}`,
+      })
+      staysAbsent.add(name)
+      await rm(tarball, { force: true })
+      continue
+    }
+    console.log(`  ✓ tarball contents match ${name}'s files allowlist and bin targets`)
+
+    console.log(`- ${dryRun ? 'would publish' : 'publishing'} ${name}@${version}`)
+
+    const publish = spawnSync(
+      'npm',
+      ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
+      { cwd: join(ROOT, dir), stdio: 'inherit' },
+    )
+    await rm(tarball, { force: true })
+
+    if (publish.status !== 0) {
+      failures.push({
+        name,
+        why:
+          'npm publish refused it — the error is above. A package that already exists publishes\n' +
+          '  by trusted publishing, so the usual cause is its trusted publisher on npmjs.com\n' +
+          '  naming a different repository or workflow file than this one.',
+      })
+      staysAbsent.add(name)
+      continue
+    }
+    published += 1
   }
 
-  const byName = spawnSync('npm', ['view', name, 'name'], { encoding: 'utf8' })
-  if (byName.status !== 0 && `${byName.stderr}`.includes('E404')) {
-    onRegistry.set(name, 'new')
-    newToRegistry.push({ dir, name, version })
-    staysAbsent.add(name)
-    continue
-  }
-  onRegistry.set(name, 'publishable')
-}
-
-let published = 0
-let alreadyThere = 0
-
-for (const { dir, name, version, manifest } of ordered) {
-  if (onRegistry.get(name) === 'published') {
-    console.log(`- ${name}@${version} is already on the registry, skipping`)
-    alreadyThere += 1
-    continue
-  }
-  if (onRegistry.get(name) === 'new') {
-    console.log(`- ${name} is new to the registry, skipping — a first publish is made by hand`)
-    continue
-  }
-  if (staysAbsent.has(name)) continue
-
-  const missing = Object.keys(manifest.dependencies ?? {}).find(
-    (dep) => names.has(dep) && staysAbsent.has(dep),
-  )
-  if (missing) {
-    heldBack.set(name, missing)
-    staysAbsent.add(name)
-    continue
-  }
-
-  console.log(`- publishing ${name}@${version}${dryRun ? ' (dry run)' : ''}`)
-
-  const tarball = join(tmpdir(), `${name.replace('/', '-').replace('@', '')}-${version}.tgz`)
-  const pack = spawnSync('pnpm', ['pack', '--out', tarball], {
-    cwd: join(ROOT, dir),
-    stdio: 'inherit',
-  })
-  if (pack.status !== 0) {
-    failures.push({ name, why: 'packing it failed; the publish was never attempted' })
-    staysAbsent.add(name)
-    continue
-  }
-
-  const publish = spawnSync(
-    'npm',
-    ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
-    { cwd: join(ROOT, dir), stdio: 'inherit' },
-  )
-  await rm(tarball, { force: true })
-
-  if (publish.status !== 0) {
-    failures.push({
-      name,
-      why:
-        'npm publish refused it — the error is above. A package that already exists publishes\n' +
-        '  by trusted publishing, so the usual cause is its trusted publisher on npmjs.com\n' +
-        '  naming a different repository or workflow file than this one.',
-    })
-    staysAbsent.add(name)
-    continue
-  }
-  published += 1
-}
-
-console.log(
-  `✓ npm publish: ${published} package${published === 1 ? '' : 's'} ` +
-    `${dryRun ? 'packed (dry run)' : 'published'}${alreadyThere > 0 ? `, ${alreadyThere} already on the registry` : ''}`,
-)
-
-if (newToRegistry.length > 0) {
-  const list = newToRegistry.map((entry) => `${entry.name}@${entry.version}`).join(', ')
   console.log(
-    `\n! the registry has never seen ${list}, so ${newToRegistry.length === 1 ? 'it was' : 'they were'} skipped: ` +
-      'trusted publishing cannot create a package, and this workflow holds no token that could.\n' +
-      "  Publish by hand and add the trusted publisher — docs/release.md § A package's first publish — " +
-      'then re-run this workflow against the tag.',
+    `✓ npm publish: ${published} package${published === 1 ? '' : 's'} ` +
+      `${dryRun ? 'packed (dry run)' : 'published'}${alreadyThere > 0 ? `, ${alreadyThere} already on the registry` : ''}`,
   )
+
+  if (newToRegistry.length > 0) {
+    const list = newToRegistry.map((entry) => `${entry.name}@${entry.version}`).join(', ')
+    console.log(
+      `\n! the registry has never seen ${list}, so ${newToRegistry.length === 1 ? 'it was' : 'they were'} skipped: ` +
+        'trusted publishing cannot create a package, and this workflow holds no token that could.\n' +
+        "  Publish by hand and add the trusted publisher — docs/release.md § A package's first publish — " +
+        'then re-run this workflow against the tag.',
+    )
+  }
+
+  for (const [name, dep] of heldBack) {
+    console.log(`! ${name} was held back: it depends on ${dep}, which is not on the registry.`)
+  }
+
+  if (failures.length > 0) {
+    console.error(
+      `\n✗ npm publish: ${failures.length} package${failures.length === 1 ? '' : 's'} did not publish. ` +
+        'Everything else went out; re-running this script resumes after what succeeded.',
+    )
+    for (const { name, why } of failures) console.error(`\n  ${name}: ${why}`)
+    process.exit(1)
+  }
 }
 
-for (const [name, dep] of heldBack) {
-  console.log(`! ${name} was held back: it depends on ${dep}, which is not on the registry.`)
-}
-
-if (failures.length > 0) {
-  console.error(
-    `\n✗ npm publish: ${failures.length} package${failures.length === 1 ? '' : 's'} did not publish. ` +
-      'Everything else went out; re-running this script resumes after what succeeded.',
-  )
-  for (const { name, why } of failures) console.error(`\n  ${name}: ${why}`)
-  process.exit(1)
+if (process.argv[1] === new URL(import.meta.url).pathname) {
+  await main()
 }
