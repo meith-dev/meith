@@ -1090,6 +1090,71 @@ describe('the plan manager', () => {
     })
   })
 
+  it('a length edit mid-checkout settles the ordered length, not the edited one', async () => {
+    await plan({
+      key: 'yearly',
+      name: 'Yearly pass',
+      group: 'supporters',
+      price: '1000',
+      currency: 'gbp',
+      mode: 'fixed',
+      length: '1',
+      unit: 'years',
+      giftable: 'on',
+    })
+
+    const { sessionId } = await checkout(alice, 'yearly')
+    const seeded = await planRowByKey(context.data, 'yearly')
+
+    await handleAdminPlanUpdate(
+      services(),
+      adminRequest(alice, 'plans/update', {
+        id: String(seeded!.id),
+        name: 'Yearly pass',
+        group: 'supporters',
+        price: '1000',
+        currency: 'gbp',
+        length: '1',
+        unit: 'months',
+        giftable: 'on',
+      }),
+    )
+
+    await handleWebhook(services(), paidSessionEvent(sessionId, { amount_total: 1000 }))
+
+    const [membership] = await membershipsFor(context.data, alice)
+    const days = (membership!.currentPeriodEnd.getTime() - Date.now()) / 86_400_000
+    expect(days).toBeGreaterThan(360)
+    expect(days).toBeLessThan(367)
+  })
+
+  it('an order with no stored period falls back to the plan row', async () => {
+    const { orderId, sessionId } = await checkout(bob, 'pass-90')
+    await exec(`update plugin_dues_order set period_spec = null where id = ${orderId}`)
+
+    const seeded = await planRowByKey(context.data, 'pass-90')
+    await handleAdminPlanUpdate(
+      services(),
+      adminRequest(alice, 'plans/update', {
+        id: String(seeded!.id),
+        name: '90-day pass',
+        group: 'supporters',
+        price: '1200',
+        currency: 'gbp',
+        length: '45',
+        unit: 'days',
+        giftable: 'on',
+      }),
+    )
+
+    await handleWebhook(services(), paidSessionEvent(sessionId))
+
+    const [membership] = await membershipsFor(context.data, bob)
+    const days = (membership!.currentPeriodEnd.getTime() - Date.now()) / 86_400_000
+    expect(days).toBeGreaterThan(44)
+    expect(days).toBeLessThan(46)
+  })
+
   it('lifetime is one payment forever, carried by a grant window the sweep renews', async () => {
     await plan({
       key: 'forever',

@@ -126,6 +126,13 @@ sees the new number. Plans are never deleted — **archiving** takes one off
 sale while everyone who holds it keeps it. The plan key is permanent because
 it is how orders, memberships and the ledger refer to the plan forever.
 
+A pass's length is part of that snapshot, and settlement reads it from the
+order, not from the plan row — an edit made while a buyer is mid-checkout
+grants what they paid for, never the edited length. Money already worked
+this way (the exact-match rule above); the length just needed to match it.
+The plan's own length is a fallback only, for an order that genuinely
+predates carrying one of its own.
+
 ## How it decides things
 
 - **A pass stacks.** Buying a fixed pass while holding one adds to the end —
