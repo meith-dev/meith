@@ -152,6 +152,25 @@ kind next to `system.task_failed`) once per (plugin, version) ever —
 independent of whether that notification has since been read, which a
 bare dedupe key on the notification service is not.
 
+The daily task and an admin's **Refresh** click can land on the same
+newly-seen version at the same moment, so "once ever" is enforced by
+claiming the (plugin, version) marker atomically before the notification
+is raised, not by checking it and writing it back afterwards — a
+`PostgresMarketplaceCacheRepository.claimNotified` call is a single
+`UPDATE ... WHERE NOT (already claimed)` against the one
+`marketplace_catalog` row, so a second, concurrent caller either blocks
+behind the row lock and then sees the marker already there, or loses the
+`WHERE` race outright; either way it reports the claim as already taken
+and `refreshCatalog` skips the notification. The marker is written before
+the notification is raised, on purpose: if raising the notification then
+throws, this build has claimed a (plugin, version) it never actually
+announced, and will not retry it — a missed notice, not a duplicate one.
+That is the accepted failure mode, because the Browse tab's status badge
+is computed fresh from the cached feed on every read, independent of the
+notified-marker set; a missed notification is recoverable by the operator
+simply visiting Browse, where a duplicate notification for the same
+version, ever, is the one thing this system promises not to do.
+
 See [The organiser's guide § When to hand it to somebody
 technical](./organiser-guide.md#when-to-hand-it-to-somebody-technical) for
 the operator-facing walkthrough.

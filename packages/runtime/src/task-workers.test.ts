@@ -316,11 +316,11 @@ describe('the marketplace catalog refresh', () => {
       async saveError({ message }: { message: string }) {
         saved = { ...saved, error: message }
       },
-      async hasNotified(key: string, version: string) {
-        return notified.has(`${key}@${version}`)
-      },
-      async markNotified(key: string, version: string) {
-        notified.add(`${key}@${version}`)
+      async claimNotified(key: string, version: string) {
+        const marker = `${key}@${version}`
+        if (notified.has(marker)) return false
+        notified.add(marker)
+        return true
       },
       get savedFeed() {
         return saved

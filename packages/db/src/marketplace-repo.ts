@@ -82,30 +82,23 @@ export class PostgresMarketplaceCacheRepository implements MarketplaceCacheRepos
     `)
   }
 
-  async hasNotified(key: string, version: string): Promise<boolean> {
+  async claimNotified(key: string, version: string): Promise<boolean> {
+    const marker = `${key}@${version}`
     const rows = resultRows(
       await this.db.execute(sql`
-        select 1
-          from marketplace_catalog
-         where id = 1
-           and notified_updates @> ${JSON.stringify([`${key}@${version}`])}::jsonb
+        insert into marketplace_catalog (id, notified_updates, updated_at)
+        values (1, ${JSON.stringify([marker])}::jsonb, now())
+        on conflict (id) do update
+          set notified_updates = (
+                select jsonb_agg(distinct value)
+                  from jsonb_array_elements(marketplace_catalog.notified_updates || excluded.notified_updates)
+              ),
+              updated_at = now()
+        where not (marketplace_catalog.notified_updates @> excluded.notified_updates)
+        returning 1
       `),
     ) as unknown[]
 
     return rows.length > 0
-  }
-
-  async markNotified(key: string, version: string): Promise<void> {
-    const marker = `${key}@${version}`
-    await this.db.execute(sql`
-      insert into marketplace_catalog (id, notified_updates, updated_at)
-      values (1, ${JSON.stringify([marker])}::jsonb, now())
-      on conflict (id) do update
-        set notified_updates = (
-              select jsonb_agg(distinct value)
-                from jsonb_array_elements(marketplace_catalog.notified_updates || excluded.notified_updates)
-            ),
-            updated_at = now()
-    `)
   }
 }

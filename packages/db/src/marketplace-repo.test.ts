@@ -101,27 +101,32 @@ describe('PostgresMarketplaceCacheRepository', () => {
   })
 
   it('tracks notified (plugin, version) pairs independently', async () => {
-    expect(await repository.hasNotified('dues', '0.17.0')).toBe(false)
+    expect(await repository.claimNotified('dues', '0.17.0')).toBe(true)
 
-    await repository.markNotified('dues', '0.17.0')
-
-    expect(await repository.hasNotified('dues', '0.17.0')).toBe(true)
-    expect(await repository.hasNotified('dues', '0.18.0')).toBe(false)
-    expect(await repository.hasNotified('other', '0.17.0')).toBe(false)
+    expect(await repository.claimNotified('dues', '0.17.0')).toBe(false)
+    expect(await repository.claimNotified('dues', '0.18.0')).toBe(true)
+    expect(await repository.claimNotified('other', '0.17.0')).toBe(true)
   })
 
   it('accumulates more than one notified version without losing earlier ones', async () => {
-    await repository.markNotified('dues', '0.17.0')
-    await repository.markNotified('dues', '0.18.0')
+    await repository.claimNotified('dues', '0.17.0')
+    await repository.claimNotified('dues', '0.18.0')
 
-    expect(await repository.hasNotified('dues', '0.17.0')).toBe(true)
-    expect(await repository.hasNotified('dues', '0.18.0')).toBe(true)
+    expect(await repository.claimNotified('dues', '0.17.0')).toBe(false)
+    expect(await repository.claimNotified('dues', '0.18.0')).toBe(false)
   })
 
-  it('is idempotent: marking the same version twice does not duplicate it', async () => {
-    await repository.markNotified('dues', '0.17.0')
-    await repository.markNotified('dues', '0.17.0')
+  it('is idempotent: claiming the same version twice only succeeds once', async () => {
+    expect(await repository.claimNotified('dues', '0.17.0')).toBe(true)
+    expect(await repository.claimNotified('dues', '0.17.0')).toBe(false)
+  })
 
-    expect(await repository.hasNotified('dues', '0.17.0')).toBe(true)
+  it('lets exactly one of two concurrent claims for the same version win', async () => {
+    const [first, second] = await Promise.all([
+      repository.claimNotified('dues', '0.17.0'),
+      repository.claimNotified('dues', '0.17.0'),
+    ])
+
+    expect([first, second].filter(Boolean)).toHaveLength(1)
   })
 })

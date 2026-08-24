@@ -71,10 +71,9 @@ vi.mock('@meith/db', () => ({
     async saveError(input: unknown) {
       repositoryCalls.saveError.push(input)
     }
-    async hasNotified() {
-      return false
+    async claimNotified() {
+      return true
     }
-    async markNotified() {}
   },
 }))
 
