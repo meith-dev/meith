@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1.7-labs
+# MEI-77 — the framework base image for a custom board.
+#
+# Published as ghcr.io/meith-dev/meith-base:X.Y.Z on every release, alongside
+# the board image (docker/Dockerfile) and the npm packages themselves — see
+# docs/release.md. It exists so a scaffolded board's own Dockerfile
+# (packages/create-meith/src/scaffold.ts) is not a cold toolchain build every
+# time an operator adds a plugin: this image already carries `npm install`
+# for the exact @meith/web, @meith/cli and @meith/theme-default closure at
+# this release's version — the same three dependencies a fresh
+# `npx create-meith` board depends on. A board's own Dockerfile starts FROM
+# this image, copies in its own (much smaller) package.json, and installs
+# only the delta on top of an already-warm node_modules tree.
+#
+# Framework only, by construction: the build context is empty (see the RUN
+# below — the manifest is written in the image, not copied in), so there is
+# no board config, no plugin, no secret and no COPY of anything this
+# repository owns for this to carry. It never reads community.config.ts,
+# board.plugins.json or any environment variable a running board needs — it
+# does not even contain a Next.js app to run, only the dependency closure a
+# board needs to build one.
+FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS base
+WORKDIR /board
+
+# Stamped by the release workflow — see docs/release.md. Left at its default,
+# `npm install` below fails outright: no such version exists on the
+# registry, which is the point — nobody should pull an unpinned base image
+# into a real board, and a local `docker build` with no --build-arg should
+# say so loudly rather than silently resolving `latest`.
+ARG MEITH_VERSION=0.0.0-dev
+
+LABEL org.opencontainers.image.title="Meith board base" \
+      org.opencontainers.image.description="Framework and dependency layers for a Meith board. No board config, no secrets — see a board's own Dockerfile for what is added on top." \
+      org.opencontainers.image.url="https://meith.dev" \
+      org.opencontainers.image.source="https://github.com/meith-dev/meith" \
+      org.opencontainers.image.version=$MEITH_VERSION \
+      org.opencontainers.image.licenses="LGPL-3.0-or-later"
+
+# Written here rather than COPYed in from a build context: the base image's
+# entire content is these three packages at this exact version, resolved
+# against the real npm registry (they are published before this job runs —
+# see the `base-image` job's `needs: [build, npm]` in
+# .github/workflows/release.yml), so there is nothing this build needs from
+# outside itself. `create-meith`'s own scaffold assumes a hoisted
+# node_modules (docs/development.md, "Consuming the board from a
+# workspace") — npm's default — which is why this uses npm rather than pnpm,
+# matching the scaffold it primes.
+RUN cat > package.json <<JSON
+{
+  "name": "meith-base",
+  "private": true,
+  "dependencies": {
+    "@meith/web": "$MEITH_VERSION",
+    "@meith/cli": "$MEITH_VERSION",
+    "@meith/theme-default": "$MEITH_VERSION"
+  }
+}
+JSON
+
+RUN npm install

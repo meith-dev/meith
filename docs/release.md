@@ -16,6 +16,7 @@ release publishes comes out of that one act:
 | `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, for `linux/amd64` and `linux/arm64`. This tag never moves again, and it is the only tag anything deploys: the Coolify compose file pins it exactly. |
 | `ghcr.io/meith-dev/meith:X.Y` | The release line, floating over its patches. A convenience for trying the image; nothing this repository ships deploys a floating tag. |
 | `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. Same status: for trying, never for deploying. |
+| `ghcr.io/meith-dev/meith-base:X.Y.Z` | The framework base image a scaffolded custom board's own Dockerfile starts `FROM` — the `@meith/web`/`@meith/cli`/`@meith/theme-default` dependency closure, version-locked to this release, no board config and no secret (`docker/Dockerfile.base`). No floating tag: a board pins it exactly, the same way it pins the npm packages below. See [Self-hosting § Custom boards](./self-hosting.md#custom-boards). |
 | The `@meith` packages on npm | The board itself (`@meith/web`, `@meith/cli`), the theme and plugin kits, the first-party themes and plugins, `create-meith`, and all of their dependency closures — fifty packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
 | The `release` branch | Fast-forwarded to the tag. The Quickstart points Coolify at this branch, so a board deployed by the guide follows releases and never sees `main` mid-cycle. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish — see [the release notes](#the-notes-say-which-kind-of-upgrade-this-is). |
@@ -145,6 +146,14 @@ broken promise, which is why the workflow drafts rather than publishes.
      resumes rather than starts over; a name the registry has never seen
      is skipped with a notice, because only a person can make a first
      publish ([below](#a-packages-first-publish));
+   - `ghcr.io/meith-dev/meith-base` is built and pushed, one architecture
+     per runner like the board image above, then merged under the exact
+     version — no floating tag. It `npm install`s the just-published
+     `@meith/web`, `@meith/cli` and `@meith/theme-default` from the real
+     registry, so it runs after the npm job and fails the same way that job
+     does if one of those three was skipped as new-to-the-registry; re-run
+     the workflow once it is published by hand, same as everywhere else in
+     this pipeline;
    - the `release` branch is fast-forwarded to the tag — refused if the
      tag is not descended from it, which is the guard against tagging a
      side branch;
