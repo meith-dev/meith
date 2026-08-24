@@ -1,11 +1,24 @@
 {
   "name": "create-meith",
   "version": "0.16.0",
-  "private": true,
+  "description": "Scaffold a Meith board — npx create-meith <name> writes a workspace that depends on @meith/web and @meith/cli.",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "packages/create-meith"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "bin": {
     "create-meith": "./src/bin.ts"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
