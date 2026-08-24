@@ -144,7 +144,18 @@ describe('the deploy kit', () => {
   })
 
   it('builds the board, not just installs it', () => {
-    expect(dockerfile).toContain('RUN npx forum-web build')
+    expect(dockerfile).toContain('npx forum-web build')
+  })
+
+  it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
+    // This Dockerfile has no separate runtime stage to reset a build-only
+    // ENV in (see "Two stages, not three" in its own header comment) — an
+    // `ENV DATA_SOURCE=fixture` declaration would leak into every container
+    // started from this image, silently forcing fixture mode (and the
+    // in-memory queue driver it implies) in production regardless of the
+    // DATABASE_URL an operator supplies at `docker run` time.
+    expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
+    expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
   })
 
   it('carries no board secret or database URL', () => {

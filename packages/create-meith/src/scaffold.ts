@@ -243,12 +243,16 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# The build needs neither a database nor a production secret — see the
-# meith repository's docs/development.md, "Fixture mode". Nothing here
-# opens a connection.
-ENV DATA_SOURCE=fixture
 
-RUN npx forum-web build
+# DATA_SOURCE is scoped to this one RUN, not declared with ENV — an ENV
+# persists into every container started from this image afterward, and this
+# Dockerfile has no later stage to reset it in (see "Two stages, not three"
+# above). The build needs neither a database nor a production secret (see
+# the meith repository's docs/development.md, "Fixture mode"), but baking
+# DATA_SOURCE=fixture into the image itself would silently force fixture
+# mode — and with it the in-memory queue driver — at runtime too, no matter
+# what DATABASE_URL an operator supplies to \`docker run\`.
+RUN DATA_SOURCE=fixture npx forum-web build
 
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0

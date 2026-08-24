@@ -198,8 +198,18 @@ async function bootAndRender(tag: string, containerName: string) {
       '-d',
       '--name',
       containerName,
-      '-p',
-      `127.0.0.1:${PORT}:3000`,
+      // The container needs to reach the GitHub Actions Postgres service,
+      // which is bound to the *runner's* 127.0.0.1:5432 — on the default
+      // bridge network, a container's own 127.0.0.1 is itself, not the
+      // runner. --network host (the same fix the site-image job above
+      // already uses) puts it on the runner's network directly, so it also
+      // replaces the -p mapping: the app binds PORT on the host interface
+      // itself, so PORT is passed in rather than fixed at the image's own
+      // default of 3000.
+      '--network',
+      'host',
+      '-e',
+      `PORT=${PORT}`,
       '-e',
       `DATABASE_URL=${DATABASE_URL}`,
       '-e',
@@ -231,6 +241,10 @@ function runMigrate(tag: string) {
     [
       'run',
       '--rm',
+      // Same reachability fix as bootAndRender above: the container needs
+      // the runner's own network to see the Postgres service on 127.0.0.1.
+      '--network',
+      'host',
       '-e',
       'COMMUNITY_ROLE=migrate',
       '-e',
