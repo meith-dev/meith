@@ -236,9 +236,32 @@ function resolveNextBin() {
   }
 }
 
-function run(executable, args, cwd) {
+function standaloneAppDir() {
+  return join(appDir, '.next', 'standalone', relative(workspaceRoot, appDir))
+}
+
+function stageStandaloneAssets() {
+  const targetAppDir = standaloneAppDir()
+
+  const staticTarget = join(targetAppDir, '.next', 'static')
+  rmSync(staticTarget, { recursive: true, force: true })
+  cpSync(join(appDir, '.next', 'static'), staticTarget, { recursive: true })
+
+  const publicSource = join(appDir, 'public')
+  const publicTarget = join(targetAppDir, 'public')
+  rmSync(publicTarget, { recursive: true, force: true })
+  if (existsSync(publicSource)) {
+    cpSync(publicSource, publicTarget, { recursive: true })
+  }
+}
+
+function run(executable, args, cwd, onSuccess) {
   const child = spawn(executable, args, { cwd, stdio: 'inherit' })
-  child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)))
+  child.on('exit', (code, signal) => {
+    const exitCode = code ?? (signal ? 1 : 0)
+    if (exitCode === 0 && onSuccess) onSuccess()
+    process.exit(exitCode)
+  })
   child.on('error', (error) => fail(error.message))
 }
 
@@ -253,20 +276,20 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   materialize()
 
   if (command === 'start') {
-    // `next.config.mjs` sets `output: 'standalone'`, and a standalone build is
-    // run from its own traced server.js, not `next start` (see docker/Dockerfile
-    // and docker/entrypoint.sh, which run the image's board the same way). The
-    // tracing root is the workspace root (see the module comment on why
-    // `.meith/app` sits exactly two levels below it), so the standalone bundle
-    // preserves that same relative path down to the app directory.
+    const targetAppDir = standaloneAppDir()
     const standaloneRoot = join(appDir, '.next', 'standalone')
-    const serverScript = join(standaloneRoot, relative(workspaceRoot, appDir), 'server.js')
+    const serverScript = join(targetAppDir, 'server.js')
     if (!existsSync(serverScript)) {
       fail(`no standalone build at ${serverScript} — run "forum-web build" first.`)
     }
     run(process.execPath, [serverScript, ...rest], standaloneRoot)
   } else {
     const nextBin = resolveNextBin()
-    run(process.execPath, [nextBin, command, ...rest], appDir)
+    run(
+      process.execPath,
+      [nextBin, command, ...rest],
+      appDir,
+      command === 'build' ? stageStandaloneAssets : undefined,
+    )
   }
 }

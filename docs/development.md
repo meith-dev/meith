@@ -150,6 +150,21 @@ the app on every invocation:
 3. Run `next dev|build|start` (`forum-web`) or `tsx` against the materialized
    entry point (`community`) with that directory as the working root.
 
+**`forum-web build` stages `.next/static` and `public/` into the standalone
+tree**, right after `next build` finishes. `next.config.mjs` sets
+`output: 'standalone'`, and Next's own standalone output deliberately
+excludes both directories — they have to be copied in alongside the traced
+`server.js` for it to serve `/_next/static/*` and anything under `public/`
+(Next's bundled docs, under `node_modules/next/dist/docs`, say so under
+"output"). `forum-web start` only execs that already-staged tree; it does not
+re-stage anything itself, so a board's own Dockerfile — which runs `build`
+and `start` in the same image, not across a stage boundary — gets a
+self-contained standalone tree for free. The official image (`docker/Dockerfile`)
+is built differently: its runtime stage is a separate, slimmer image than the
+one `forum-web build` ran in, so it copies `.next/static` and `public/` in on
+its own, directly from the build stage, rather than relying on `forum-web`'s
+staged copy to survive a COPY it does not control.
+
 `.meith/app/` sits exactly two directories below the workspace root on
 purpose: `next.config.mjs` computes its own workspace root as two
 directories up from itself (for `.env` loading and `outputFileTracingRoot`),
@@ -210,6 +225,11 @@ this closure is on the real npm registry yet), scaffolds a board with
 `create-meith`, installs it with `overrides` pointing every packed name at
 its tarball, runs `forum-web build`, applies migrations and boots the
 standalone server against a real, disposable Postgres, and asks it for `/`.
+It also pulls a real `/_next/static/*` reference out of the rendered HTML and
+fetches it, and fetches `/sw.js`, so a standalone build that renders `/` but
+serves neither its own script/style bundles nor its service worker fails the
+smoke rather than passing it (`scripts/board-smoke-assets.mts`, shared with
+`board-deploy-kit-smoke.mts` and `board-eject-smoke.mts`).
 
 ## The commands
 

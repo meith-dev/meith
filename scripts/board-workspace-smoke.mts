@@ -32,6 +32,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { assertBoardAssetsServe } from './board-smoke-assets.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -208,6 +209,10 @@ async function main() {
         throw new Error('board-workspace-smoke: / answered but did not render <main>')
       }
       console.log('== the materialized, standalone board rendered / ==')
+
+      console.log('== confirming static assets and /sw.js actually serve ==')
+      await assertBoardAssetsServe(`http://127.0.0.1:${PORT}`, body)
+      console.log('== static assets and /sw.js served correctly ==')
     } finally {
       stopServer()
     }

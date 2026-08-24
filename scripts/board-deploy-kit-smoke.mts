@@ -43,6 +43,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 
+import { assertBoardAssetsServe } from './board-smoke-assets.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 
 const DATABASE_URL = process.env.DATABASE_URL
@@ -229,6 +230,10 @@ async function bootAndRender(tag: string, containerName: string) {
     const body = await response.text()
     if (!body.includes('<main')) throw new Error('/ answered but did not render <main>')
     console.log(`== ${containerName} rendered / ==`)
+
+    console.log(`== confirming ${containerName} actually serves its static assets and /sw.js ==`)
+    await assertBoardAssetsServe(`http://127.0.0.1:${PORT}`, body)
+    console.log(`== ${containerName} static assets and /sw.js served correctly ==`)
   } finally {
     stopAndRemove(containerName)
   }
