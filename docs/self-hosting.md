@@ -1,11 +1,16 @@
 # Deploying by hand
 
-**Advanced.** The [Quickstart](./quickstart.md) deploys this board with
-[Coolify](https://coolify.io) and is the route most boards should take:
-same image, same four containers, same environment contract — and it
-issues the certificate and generates the secrets for you. This page is for
-whoever minds a community's machines, not for the organisers; it assumes a
-terminal, a text editor and no fear of either.
+**Advanced.** The [Quickstart](./quickstart.md) deploys a board with
+[Coolify](https://coolify.io) — since 0.17.0, a board of your own rather
+than this repository's own image, which is what lets
+[the marketplace](./marketplace.md) actually install into it — and is the
+route most boards should take: same four containers, same environment
+contract either way, and it issues the certificate and generates the
+secrets for you. This page deploys **this repository's own stock board**
+instead, by hand — same shape, no panel — for whoever minds a community's
+machines, not for the organisers; it assumes a terminal, a text editor and
+no fear of either. Want your own board's shape without the panel? Skip to
+[Custom boards](#custom-boards).
 
 This page is the same board without the panel: the compose file, a `.env`
 you write, and a reverse proxy you already run. Take it if:
@@ -309,10 +314,10 @@ can jump in one go.
 ## Building somewhere else
 
 On a 1 GB server the Next build can run out of memory. The shortest fix
-is to not build at all: every release publishes the image the Quickstart
-deploys — multi-arch, boot-tested in every role — so replace each
-`build:` block in the compose file with
-`image: ghcr.io/meith-dev/meith:0.6.0` and everything else is unchanged.
+is to not build at all: every release publishes this project's own image
+— multi-arch, boot-tested in every role — so replace each `build:` block
+in the compose file with `image: ghcr.io/meith-dev/meith:0.6.0` and
+everything else is unchanged.
 
 Pin the exact version: a floating tag turns the next incidental
 `docker compose pull` into an unplanned upgrade. Upgrading is then
@@ -355,9 +360,10 @@ own registry. Three steps:
    [Releasing](./release.md#the-first-release) describes for
    `ghcr.io/meith-dev/meith`, or Coolify's pull fails with an
    authentication error no operator can act on.
-2. **Point Coolify at the scaffolded repository's `compose.yml`**, the same
-   way the [Quickstart](./quickstart.md) points it at this one — a Docker
-   Compose resource, that repository as its source. It carries the same
+2. **Point Coolify at the scaffolded repository's `compose.yml`** — a
+   Docker Compose resource, that repository as its source, the same
+   mechanics the [Quickstart](./quickstart.md#3-set-your-domain-and-deploy)
+   walks through step by step for the same scaffold. It carries the same
    Coolify magic variables `docker/compose.coolify.yml` does for
    `AUTH_SECRET`, `TICK_SECRET` and the database password; the one thing it
    cannot generate is the image step 1 just pushed, so the operator sets
