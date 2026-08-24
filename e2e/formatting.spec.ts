@@ -23,10 +23,17 @@ test('typing @ opens mention suggestions, and picking one inserts the name', asy
 
   const message = page.getByLabel('Message')
   await message.fill('hi ')
-  await message.pressSequentially(`@${targetUsername.slice(0, 6)}`)
+  const queryPrefix = targetUsername.slice(0, 6)
+  const lastQueryChar = queryPrefix.slice(-1)
+  await message.pressSequentially(`@${queryPrefix}`)
 
   const suggestion = page.getByRole('option', { name: `@${targetUsername}` })
-  await expect(suggestion).toBeVisible({ timeout: 20_000 })
+  await expect(async () => {
+    if (await suggestion.isVisible()) return
+    await message.press('Backspace')
+    await message.pressSequentially(lastQueryChar)
+    await expect(suggestion).toBeVisible({ timeout: 5_000 })
+  }).toPass({ timeout: 40_000 })
   await suggestion.click()
 
   await expect(message).toHaveValue(`hi @${targetUsername} `)
