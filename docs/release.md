@@ -428,6 +428,20 @@ set:
   `node_modules` path, or its class names are silently dropped from the
   stylesheet and its pages render unstyled with no error anywhere.
 
+The one package this does not describe is `create-meith`: its published
+`bin` runs under plain `node`, invoked by `npx` — never inside a board's
+Next build, so there is no bundler on the other end to compile it from
+source the way a theme or plugin is. Node's own native TypeScript support
+refuses to strip types for a file under `node_modules`
+(`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), which is where npm always
+installs a package before running its bin — so a `bin` entry pointing at
+raw `.ts` fails for every real `npx create-meith`, even though it runs
+fine from this repository's own tsx-driven tooling, where the failure
+would never surface. `create-meith`'s own `pnpm build` (esbuild, bundling
+`src/bin.ts` to `dist/bin.mjs`) is the one dist step in the published set,
+and the release workflow's `npm` job runs it — the only package-specific
+build step there — immediately before `node scripts/npm-publish.mjs`.
+
 ### The set is closed, and closing it is the cost of publishing
 
 A published package may not depend on a private one — that would be an

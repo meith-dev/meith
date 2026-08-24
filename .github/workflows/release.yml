@@ -166,6 +166,7 @@ jobs:
       # rather than trust whatever version the runner's Node happens to bundle.
       - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter create-meith build
       - run: node scripts/npm-publish.mjs
 
   # MEI-77: the framework base image a scaffolded board's own Dockerfile

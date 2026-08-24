@@ -1,6 +1,7 @@
-import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
@@ -384,5 +385,41 @@ describe('the CLI', () => {
       const top = await readdir(join(dir, 'my-board'))
       expect(top).not.toContain('.git')
     })
+  })
+})
+
+describe('the published bin, run the way npx actually runs it', () => {
+  it('executes under plain node with no TypeScript loader', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'create-meith-bin-'))
+    try {
+      const esbuild = await import('esbuild')
+      const bundlePath = join(dir, 'bin.mjs')
+      await esbuild.build({
+        entryPoints: [fileURLToPath(new URL('./bin.ts', import.meta.url))],
+        bundle: true,
+        platform: 'node',
+        format: 'esm',
+        target: 'node22',
+        outfile: bundlePath,
+      })
+
+      const { execFile } = await import('node:child_process')
+      const { promisify } = await import('node:util')
+      const { stdout } = await promisify(execFile)(
+        process.execPath,
+        [bundlePath, 'plain-node-board'],
+        {
+          cwd: dir,
+        },
+      )
+
+      expect(stdout).toContain('Created plain-node-board')
+      const manifest = JSON.parse(
+        await readFile(join(dir, 'plain-node-board/package.json'), 'utf8'),
+      )
+      expect(manifest.name).toBe('plain-node-board')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 })
