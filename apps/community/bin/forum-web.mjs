@@ -93,6 +93,46 @@ function toPosixRelative(from, to) {
 }
 
 /**
+ * `src/styles/globals.css` names this monorepo's `themes/`, `plugins/`,
+ * `examples/` and `packages/ui/src` as Tailwind `@source` scan roots, each
+ * written as a relative path from the file's own on-disk location —
+ * correct where it sits today (`apps/community/src/styles/`), four
+ * directories from the workspace root. `boards/stock` materializes this
+ * same file two directories deeper again, so those same relative paths
+ * climb only as far as `boards/stock` itself: Tailwind finds nothing
+ * there and silently contributes zero classes from all four directories,
+ * which is most of a theme's own responsive markup (confirmed: a
+ * boards/stock build's compiled CSS carried 0 `md:` and 1 `lg:` utility
+ * versus a direct apps/community build's 12 and 22 — the board looked
+ * permanently mobile-width no matter the viewport). `FORUM_WORKSPACE_ROOT`
+ * is already resolved to an absolute path above; this rewrites every
+ * `@source` line in the materialized file against it, so the depth stays
+ * correct regardless of how many such lines exist or where boards/stock
+ * sits relative to the root. Unset (a real external board), this is a
+ * no-op — the shipped relative paths pass through untouched, since a real
+ * board resolves `@meith/*` through its own hoisted `node_modules`, not
+ * this monorepo's directories, and needs its own fix (tracked separately,
+ * not blocking this one).
+ */
+export function rebaseGlobalsCssSources(css, cssDir, workspaceRootOverride) {
+  return css.replace(/@source "((?:\.\.\/)+)([^"]+)";/g, (_match, _dots, tail) => {
+    const target = join(workspaceRootOverride, ...tail.split('/'))
+    return `@source "${toPosixRelative(cssDir, target)}";`
+  })
+}
+
+function rewriteGlobalsCssSourcePaths() {
+  const workspaceRootOverride = process.env.FORUM_WORKSPACE_ROOT
+  if (!workspaceRootOverride) return
+
+  const cssPath = join(appDir, 'src', 'styles', 'globals.css')
+  if (!existsSync(cssPath)) return
+
+  const css = readFileSync(cssPath, 'utf8')
+  writeFileSync(cssPath, rebaseGlobalsCssSources(css, dirname(cssPath), workspaceRootOverride))
+}
+
+/**
  * A board outside this monorepo has a hoisted `node_modules` (see the module
  * comment), so plain bare-specifier resolution reaches every `@meith/*`
  * package this app's dependency graph needs, and `transpilePackages`
@@ -156,6 +196,8 @@ function materialize() {
     cpSync(source, target, { recursive: true })
   }
 
+  rewriteGlobalsCssSourcePaths()
+
   const tsconfig = {
     compilerOptions: {
       target: 'ES2022',
@@ -213,29 +255,35 @@ function run(executable, args, cwd) {
   child.on('error', (error) => fail(error.message))
 }
 
-const [, , command, ...rest] = process.argv
+// Guarded so `forum-web.test.ts` can import this module's pure exports
+// (rebaseGlobalsCssSources) without triggering a real materialize-and-run —
+// true when this file is the process's actual entry point (run directly, or
+// via the package.json `bin` shim), false when a test imports it.
+if (import.meta.url === `file://${resolve(process.argv[1] ?? '')}`) {
+  const [, , command, ...rest] = process.argv
 
-if (!['dev', 'build', 'start'].includes(command ?? '')) {
-  console.error('Usage: forum-web <dev|build|start> [next arguments]')
-  process.exit(1)
-}
-
-materialize()
-
-if (command === 'start') {
-  // `next.config.mjs` sets `output: 'standalone'`, and a standalone build is
-  // run from its own traced server.js, not `next start` (see docker/Dockerfile
-  // and docker/entrypoint.sh, which run the image's board the same way). The
-  // tracing root is the workspace root (see the module comment on why
-  // `.meith/app` sits exactly two levels below it), so the standalone bundle
-  // preserves that same relative path down to the app directory.
-  const standaloneRoot = join(appDir, '.next', 'standalone')
-  const serverScript = join(standaloneRoot, relative(workspaceRoot, appDir), 'server.js')
-  if (!existsSync(serverScript)) {
-    fail(`no standalone build at ${serverScript} — run "forum-web build" first.`)
+  if (!['dev', 'build', 'start'].includes(command ?? '')) {
+    console.error('Usage: forum-web <dev|build|start> [next arguments]')
+    process.exit(1)
   }
-  run(process.execPath, [serverScript, ...rest], standaloneRoot)
-} else {
-  const nextBin = resolveNextBin()
-  run(process.execPath, [nextBin, command, ...rest], appDir)
+
+  materialize()
+
+  if (command === 'start') {
+    // `next.config.mjs` sets `output: 'standalone'`, and a standalone build is
+    // run from its own traced server.js, not `next start` (see docker/Dockerfile
+    // and docker/entrypoint.sh, which run the image's board the same way). The
+    // tracing root is the workspace root (see the module comment on why
+    // `.meith/app` sits exactly two levels below it), so the standalone bundle
+    // preserves that same relative path down to the app directory.
+    const standaloneRoot = join(appDir, '.next', 'standalone')
+    const serverScript = join(standaloneRoot, relative(workspaceRoot, appDir), 'server.js')
+    if (!existsSync(serverScript)) {
+      fail(`no standalone build at ${serverScript} — run "forum-web build" first.`)
+    }
+    run(process.execPath, [serverScript, ...rest], standaloneRoot)
+  } else {
+    const nextBin = resolveNextBin()
+    run(process.execPath, [nextBin, command, ...rest], appDir)
+  }
 }

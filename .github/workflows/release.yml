@@ -196,9 +196,23 @@ jobs:
       - name: Build the base image, stamped
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          docker build -f docker/Dockerfile.base \
-            --build-arg MEITH_VERSION="$VERSION" \
-            -t meith-base:release .
+          # The `npm` job just published these exact versions moments ago —
+          # this Dockerfile's own `npm install` can briefly outrun registry
+          # replication and see an ETARGET for a package that publish-completed
+          # just seconds earlier. Not a network-transient error npm itself
+          # retries (a hard "no such version" response, not a timeout), so
+          # the retry has to happen here instead.
+          for attempt in 1 2 3 4 5; do
+            if docker build -f docker/Dockerfile.base \
+              --build-arg MEITH_VERSION="$VERSION" \
+              -t meith-base:release .; then
+              exit 0
+            fi
+            echo "::warning::base image build attempt $attempt failed, retrying in 20s (likely npm registry replication lag right after this release's own packages published)"
+            sleep 20
+          done
+          echo "::error::base image build failed after 5 attempts"
+          exit 1
 
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
