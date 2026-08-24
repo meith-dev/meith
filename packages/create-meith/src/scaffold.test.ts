@@ -24,14 +24,20 @@ describe('the project name', () => {
 describe('what the scaffold writes', () => {
   const files = scaffold(OPTIONS)
 
-  it('writes the seven files a deployable project needs', () => {
+  it('writes the files a deployable project needs, including the deploy kit', () => {
     expect([...files.keys()].sort()).toEqual([
+      '.dockerignore',
       '.env.example',
+      '.github/workflows/build.yml',
       '.gitignore',
+      'Dockerfile',
       'README.md',
       'board.plugins.json',
       'community.config.ts',
       'community.plugins.ts',
+      'compose.yml',
+      'docker-entrypoint.sh',
+      'docker-healthcheck.sh',
       'package.json',
     ])
   })
@@ -112,6 +118,148 @@ describe('what the scaffold writes', () => {
   })
 })
 
+// MEI-77: the deploy kit — a scaffolded board must work for someone with
+// nothing but a GitHub account and a Coolify server, with every file
+// complete and no placeholder needing hand-finishing except the board name
+// (already templated above).
+describe('the deploy kit', () => {
+  const files = scaffold(OPTIONS)
+  const dockerfile = files.get('Dockerfile')!
+  const buildWorkflow = files.get('.github/workflows/build.yml')!
+  const compose = files.get('compose.yml')!
+  const entrypoint = files.get('docker-entrypoint.sh')!
+  const healthcheck = files.get('docker-healthcheck.sh')!
+  const dockerignore = files.get('.dockerignore')!
+
+  it("starts the board's image FROM the published, version-pinned base image", () => {
+    expect(dockerfile).toContain('FROM ghcr.io/meith-dev/meith-base:1.2.3 AS deps')
+  })
+
+  it('installs only its own delta on top of the base image', () => {
+    expect(dockerfile).toContain('COPY package.json ./')
+    expect(dockerfile).toContain('RUN npm install')
+    // Not a monorepo pnpm install — a real external board's node_modules is
+    // hoisted, and the base image primes it with npm for the same reason.
+    expect(dockerfile).not.toContain('pnpm install')
+  })
+
+  it('builds the board, not just installs it', () => {
+    expect(dockerfile).toContain('npx forum-web build')
+  })
+
+  it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
+    // This Dockerfile has no separate runtime stage to reset a build-only
+    // ENV in (see "Two stages, not three" in its own header comment) — an
+    // `ENV DATA_SOURCE=fixture` declaration would leak into every container
+    // started from this image, silently forcing fixture mode (and the
+    // in-memory queue driver it implies) in production regardless of the
+    // DATABASE_URL an operator supplies at `docker run` time.
+    expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
+    expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
+  })
+
+  it('carries no board secret or database URL', () => {
+    for (const file of [dockerfile, buildWorkflow]) {
+      expect(file).not.toMatch(/AUTH_SECRET=\S/)
+      expect(file).not.toContain('DATABASE_URL=postgres')
+    }
+  })
+
+  it('drops root privilege before running', () => {
+    expect(dockerfile).toContain('USER node')
+  })
+
+  it('declares a healthcheck and an entrypoint, both made executable', () => {
+    expect(dockerfile).toContain('RUN chmod +x docker-entrypoint.sh docker-healthcheck.sh')
+    expect(dockerfile).toContain('HEALTHCHECK')
+    expect(dockerfile).toContain('ENTRYPOINT ["./docker-entrypoint.sh"]')
+  })
+
+  it('ignores what a local checkout has that the image build must not see', () => {
+    for (const entry of ['node_modules', '.env', '.git']) {
+      expect(dockerignore.split('\n')).toContain(entry)
+    }
+  })
+
+  it('the entrypoint runs the web role by default and migrate on request, and refuses anything else', () => {
+    expect(entrypoint).toContain('node_modules/.bin/forum-web start')
+    expect(entrypoint).toContain('node_modules/.bin/community migrate')
+    expect(entrypoint).toMatch(/COMMUNITY_ROLE:-web/)
+    expect(entrypoint).toContain('exit 1')
+  })
+
+  it('the healthcheck has no opinion while migrate runs', () => {
+    expect(healthcheck).toMatch(/COMMUNITY_ROLE:-web.*=.*migrate/)
+    expect(healthcheck).toContain('exit 0')
+  })
+
+  it("pushes to the operator's own GHCR with only the automatic GITHUB_TOKEN — no secret to configure", () => {
+    expect(buildWorkflow).toContain('on:')
+    expect(buildWorkflow).toMatch(/push:\s*\n\s*branches: \[main\]/)
+    expect(buildWorkflow).toContain('packages: write')
+    expect(buildWorkflow).toContain('registry: ghcr.io')
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal GitHub Actions expression syntax, not a template-string typo
+    expect(buildWorkflow).toContain('password: ${{ secrets.GITHUB_TOKEN }}')
+    expect(buildWorkflow).not.toMatch(/secrets\.(?!GITHUB_TOKEN)[A-Z_]+/)
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal GitHub Actions expression syntax, not a template-string typo
+    expect(buildWorkflow).toContain('ghcr.io/${{ github.repository }}')
+  })
+
+  it('offers no paid CI or registry', () => {
+    for (const file of [buildWorkflow, compose]) {
+      expect(file).not.toMatch(/hub\.docker\.com/)
+      expect(file).not.toMatch(/circleci|travis-ci|buildkite/i)
+    }
+  })
+
+  it('runs the whole board, mirroring the meith repository’s own Coolify compose shape', () => {
+    for (const service of ['postgres', 'migrate', 'web', 'worker']) {
+      expect(compose).toMatch(new RegExp(`\\n {2}${service}:\\n`))
+    }
+  })
+
+  it('asks the operator for nothing except the image it cannot generate itself', () => {
+    expect(compose).toContain('AUTH_SECRET: $SERVICE_BASE64_64_AUTH')
+    expect(compose).toContain('TICK_SECRET: $SERVICE_BASE64_64_TICK')
+    expect(compose).toContain('$SERVICE_PASSWORD_POSTGRES')
+    expect(compose).not.toMatch(/AUTH_SECRET=\$\{[^}]*:-/)
+  })
+
+  it('refuses to start without an image, loudly, rather than pulling something unpinned', () => {
+    expect(compose).toMatch(/image: \$\{MEITH_IMAGE:\?/)
+    expect(compose).not.toMatch(/image: \$\{MEITH_IMAGE:-/)
+  })
+
+  it('publishes no ports, leaving the proxy in front', () => {
+    expect(compose).not.toMatch(/^\s*ports:/m)
+  })
+
+  it('drives the tick without a compiled worker binary', () => {
+    expect(compose).toMatch(/system\/tick/)
+    expect(compose).toContain('Authorization: Bearer')
+  })
+
+  it('mounts the uploads volume into both processes that write to it', () => {
+    expect(compose).toMatch(/uploads:\/app\/\.uploads/g)
+    expect([...compose.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
+  })
+
+  it('tells the three-step deploy story, and the local alternative', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/push this repository to github/i)
+    expect(readme).toMatch(/github actions/i)
+    expect(readme).toMatch(/coolify/i)
+    expect(readme).toContain('MEITH_IMAGE')
+    expect(readme).toMatch(/docker build -t my-board \./)
+  })
+
+  it('documents the upgrade path for the version pins', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/FROM ghcr\.io\/meith-dev\/meith-base/)
+    expect(readme).toMatch(/bump/i)
+  })
+})
+
 describe('the CLI', () => {
   async function inTemp<T>(body: (dir: string) => Promise<T>): Promise<T> {
     const dir = await mkdtemp(join(tmpdir(), 'create-meith-'))
@@ -143,12 +291,18 @@ describe('the CLI', () => {
 
       const written = await readdir(join(dir, 'my-board'))
       expect(written.sort()).toEqual([
+        '.dockerignore',
         '.env.example',
+        '.github',
         '.gitignore',
+        'Dockerfile',
         'README.md',
         'board.plugins.json',
         'community.config.ts',
         'community.plugins.ts',
+        'compose.yml',
+        'docker-entrypoint.sh',
+        'docker-healthcheck.sh',
         'package.json',
       ])
 

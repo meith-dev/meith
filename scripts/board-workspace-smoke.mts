@@ -32,7 +32,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { ROOT, workspacePackages } from './workspace-packages.mjs'
+import { packClosure } from './pack-workspace-closure.mts'
+import { ROOT } from './workspace-packages.mjs'
 
 const DATABASE_URL = process.env.DATABASE_URL
 if (!DATABASE_URL) {
@@ -60,46 +61,7 @@ function run(
   }
 }
 
-function safeName(name: string): string {
-  return name.replace('@', '').replace('/', '-')
-}
-
-async function packClosure(tarballDir: string): Promise<ReadonlyMap<string, string>> {
-  const pkgs = await workspacePackages()
-  const byName = new Map(pkgs.map((p) => [p.manifest.name, p]))
-
-  const closure = new Set<string>()
-  const queue = ['@meith/web', '@meith/cli', '@meith/theme-default']
-  while (queue.length > 0) {
-    const name = queue.pop()
-    if (name === undefined || closure.has(name)) continue
-    closure.add(name)
-    const entry = byName.get(name)
-    if (entry === undefined)
-      throw new Error(`board-workspace-smoke: no workspace package named ${name}`)
-    for (const field of ['dependencies', 'peerDependencies'] as const) {
-      for (const dep of Object.keys(entry.manifest[field] ?? {})) {
-        if (dep.startsWith('@meith/')) queue.push(dep)
-      }
-    }
-  }
-
-  const tarballs = new Map<string, string>()
-  for (const name of [...closure].sort()) {
-    const entry = byName.get(name)
-    if (entry === undefined) continue
-    if (entry.manifest.private === true) {
-      throw new Error(
-        `board-workspace-smoke: ${name} (${entry.dir}) is still private — it is in ` +
-          "@meith/web's own dependency closure, so it has to publish.",
-      )
-    }
-    const out = join(tarballDir, `${safeName(name)}.tgz`)
-    run('pnpm', ['pack', '--out', out], { cwd: join(ROOT, entry.dir) })
-    tarballs.set(name, out)
-  }
-  return tarballs
-}
+const CLOSURE_ROOTS = ['@meith/web', '@meith/cli', '@meith/theme-default']
 
 async function scaffoldBoard(parentDir: string): Promise<string> {
   const { run: runCreateMeith } = await import(join(ROOT, 'packages/create-meith/src/cli.ts'))
@@ -153,7 +115,7 @@ async function main() {
 
   try {
     console.log('== packing the workspace closure ==')
-    const tarballs = await packClosure(tarballDir)
+    const tarballs = await packClosure(tarballDir, CLOSURE_ROOTS)
     console.log(`packed ${tarballs.size} packages`)
 
     console.log('== scaffolding a board with create-meith ==')

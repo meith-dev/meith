@@ -324,6 +324,79 @@ The image takes `COMMUNITY_ROLE` — `web`, `worker` or `migrate` — so one
 image is all three services. That is what makes the roles impossible to
 drift apart, and why there is no second Dockerfile.
 
+## Custom boards
+
+Everything above deploys **this board** — the stock one, whatever plugins
+and themes `apps/community`'s own `community.config.ts` compiles in.
+Installing a third-party plugin does not mean forking this repository:
+`npx create-meith <name>` scaffolds a small workspace of its own —
+`package.json`, `community.config.ts`, `board.plugins.json` — that depends
+on the published `@meith/web` and `@meith/cli` packages instead, and comes
+with its own deploy kit already written: `Dockerfile`, `compose.yml` and
+`.github/workflows/build.yml`. See [Consuming the board from a
+workspace](./development.md#consuming-the-board-from-a-workspace) for the
+mechanism (`forum-web`/`community` — the same bins this repository's own
+image is built through, see [the stock board](./architecture.md#the-stock-board))
+and [the plugin API](./plugin-api.md) for installing a plugin once the
+workspace exists.
+
+The "server pulls an image; something else builds it" promise this
+document stands behind carries over to a custom board, with one
+difference: instead of a release publishing `ghcr.io/meith-dev/meith`, an
+operator's own GitHub Actions build their own board and push it to their
+own registry. Three steps:
+
+1. **Push the scaffolded repository to GitHub.** Its
+   `.github/workflows/build.yml` builds `Dockerfile` on every push to
+   `main` and pushes the image to `ghcr.io/<you>/<board>` — the automatic
+   `GITHUB_TOKEN` every workflow run already carries is enough; there is no
+   secret to add. The resulting package starts **private** — make it public
+   (its own Settings → Change visibility), the same one-time step
+   [Releasing](./release.md#the-first-release) describes for
+   `ghcr.io/meith-dev/meith`, or Coolify's pull fails with an
+   authentication error no operator can act on.
+2. **Point Coolify at the scaffolded repository's `compose.yml`**, the same
+   way the [Quickstart](./quickstart.md) points it at this one — a Docker
+   Compose resource, that repository as its source. It carries the same
+   Coolify magic variables `docker/compose.coolify.yml` does for
+   `AUTH_SECRET`, `TICK_SECRET` and the database password; the one thing it
+   cannot generate is the image step 1 just pushed, so the operator sets
+   `MEITH_IMAGE` once, in the resource's own environment — the compose file
+   refuses to start without it, with a message saying so.
+3. **Redeploy, then run `/install`** on the operator's own domain —
+   identical to [Quickstart § Run the installer](./quickstart.md#4-run-the-installer).
+   Every push to `main` after this rebuilds the image; Coolify's own
+   **Redeploy** is what actually pulls it.
+
+No Docker Hub, no paid CI, whatever the board's size: GitHub Actions' free
+tier and GHCR are the whole build side, exactly as they are for the
+official image.
+
+The scaffolded `Dockerfile`'s `FROM` line pins
+`ghcr.io/meith-dev/meith-base:X.Y.Z` — a published, framework-only image
+(the `@meith/web`, `@meith/cli` and `@meith/theme-default` dependency
+closure, version-locked, no board config and no secret) that this
+project's release pipeline rebuilds alongside `ghcr.io/meith-dev/meith`
+itself on every release (`docker/Dockerfile.base`). A scaffolded board's
+own `Dockerfile` only ever installs its own delta on top of that already-warm
+layer — a newly added plugin's own dependency, typically nothing more —
+which is what keeps "add a plugin, redeploy" a build of minutes rather than
+a cold toolchain build every time. The base image's pin and the `@meith/*`
+dependency versions in the scaffolded `package.json` move together, by
+hand, on an upgrade; `create-meith`'s own generated README documents the
+exact commands.
+
+`@meith/worker` is not published, so a scaffolded board's image carries no
+compiled worker binary — its `compose.yml`'s own `worker` service drives
+the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)
+describes instead: a small loop against `/api/system/tick`, needing nothing
+this image does not already expose.
+
+Building nowhere but a laptop is still available: `docker build -t <board> .`
+in the scaffolded repository works on any machine with Docker, exactly like
+["Building somewhere else"](#building-somewhere-else) above, for an operator
+who would rather not use GitHub Actions for the build at all.
+
 ## Running the tick without a second set of credentials
 
 The `worker` service holds database credentials, which some operators

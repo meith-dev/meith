@@ -354,6 +354,46 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_workspace_smoke
 
+  # MEI-77: the scaffold's own deploy kit — Dockerfile, compose.yml,
+  # .github/workflows/build.yml — proves it actually builds and boots, not
+  # just that its strings look right (scaffold.test.ts covers that half).
+  # Cannot pull the real ghcr.io/meith-dev/meith-base — it does not exist
+  # until the next release publishes it — so this builds a local stand-in
+  # from packed tarballs and tags it identically, then builds the
+  # unmodified scaffolded Dockerfile against it. See
+  # scripts/board-deploy-kit-smoke.mts for the full reasoning and what this
+  # does and does not prove.
+  board-deploy-kit:
+    name: The scaffold's deploy kit builds and boots (local stand-in base image)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: board_deploy_kit_smoke
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Pack, scaffold, build a stand-in base image, build the deploy kit and boot it
+        run: pnpm board:deploy-kit:smoke
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_deploy_kit_smoke
+
   # meith.dev's own image. A different app, Dockerfile and Next config branch
   # from the board above, so a green `image` job says nothing about it.
   site-image:

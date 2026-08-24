@@ -19,6 +19,9 @@ permissions:
 
 env:
   IMAGE: ghcr.io/meith-dev/meith
+  # MEI-77: the framework-only base image a scaffolded board's own Dockerfile
+  # starts FROM. See docker/Dockerfile.base and the `base-image` job below.
+  BASE_IMAGE: ghcr.io/meith-dev/meith-base
   NEXT_TELEMETRY_DISABLED: '1'
 
 jobs:
@@ -165,9 +168,53 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/npm-publish.mjs
 
+  # MEI-77: the framework base image a scaffolded board's own Dockerfile
+  # starts FROM (docker/Dockerfile.base) — deps + framework layers only, no
+  # board, no secrets. Needs [build, npm] rather than just `versions`: the
+  # image it builds `npm install`s @meith/web, @meith/cli and
+  # @meith/theme-default straight from the real npm registry, so those three
+  # have to already be there. On a release whose npm job skipped one of them
+  # as "new to the registry" (docs/release.md, "A package's first publish"),
+  # this job fails the same way and for the same reason — re-run the Release
+  # workflow against the tag once the package is published by hand, exactly
+  # as that document already describes for the rest of the pipeline.
+  base-image:
+    name: Build the base image (${{ matrix.arch }})
+    needs: [build, npm]
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build the base image, stamped
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker build -f docker/Dockerfile.base \
+            --build-arg MEITH_VERSION="$VERSION" \
+            -t meith-base:release .
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the architecture tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker tag meith-base:release "$BASE_IMAGE:$VERSION-${{ matrix.arch }}"
+          docker push "$BASE_IMAGE:$VERSION-${{ matrix.arch }}"
+
   publish:
     name: Tags, the release branch, and the draft notes
-    needs: [build, npm]
+    needs: [build, npm, base-image]
     runs-on: ubuntu-24.04
     steps:
       # Full history, not the default shallow clone: pushing over an existing
@@ -196,6 +243,17 @@ jobs:
             -t "$IMAGE:$LINE" \
             -t "$IMAGE:latest" \
             "$IMAGE:$VERSION-amd64" "$IMAGE:$VERSION-arm64"
+
+      # The base image carries no floating tag: nothing pulls it by anything
+      # but an exact version — a scaffolded board's Dockerfile always pins
+      # the release it was scaffolded against, the same way it pins
+      # @meith/web itself. See docs/self-hosting.md, "Custom boards".
+      - name: Merge the base image's architectures
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          docker buildx imagetools create \
+            -t "$BASE_IMAGE:$VERSION" \
+            "$BASE_IMAGE:$VERSION-amd64" "$BASE_IMAGE:$VERSION-arm64"
 
       # Fast-forward only: a tag not descended from `release` is a mistake this
       # push refuses rather than rewrites.
