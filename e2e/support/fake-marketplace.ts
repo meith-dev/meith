@@ -1,16 +1,17 @@
 import { createServer } from 'node:http'
 
+import { MEITH_VERSION } from '@meith/marketplace'
+
 import { E2E_FAKE_MARKETPLACE_PORT } from './config'
 import { samplePng } from './png'
 
-/**
- * A tiny stand-in for meith.dev's marketplace feed — MEI-80's Browse tab
- * fetches this instead of the real host in e2e, the same way fake-stripe.ts
- * stands in for Stripe. Seeds four shapes the admin-marketplace spec needs:
- * an installed plugin with a newer version (Dues, 0.17.0 against the
- * compiled 0.16.0), the board's active theme, a plugin nothing has
- * installed, and one whose declared apiVersion this build cannot run.
- */
+function oneMinorAhead(version: string): string {
+  const [major = 0, minor = 0] = version.split('.').map(Number)
+  return `${major}.${minor + 1}.0`
+}
+
+export const DUES_FIXTURE_VERSION = oneMinorAhead(MEITH_VERSION)
+
 const FEED = {
   schema: 'https://www.meith.dev/marketplace/v1.json#/schema',
   listings: [
@@ -21,7 +22,7 @@ const FEED = {
       name: 'Dues',
       description: 'Paid memberships through Stripe.',
       screenshots: ['/marketplace/screenshots/dues-light.png'],
-      version: '0.17.0',
+      version: DUES_FIXTURE_VERSION,
       apiVersion: 0,
       meith: '>=0.16 <1',
       repository: 'https://github.com/meith-dev/meith',
