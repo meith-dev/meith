@@ -51,6 +51,10 @@ const SOURCE_CONSTANTS = [
     file: 'packages/create-meith/src/bin.ts',
     pattern: /(run\(process\.argv\.slice\(2\), ')[^']+('\))/,
   },
+  {
+    file: 'packages/marketplace/src/build-info.ts',
+    pattern: /(export const MEITH_VERSION = ')[^']+(')/,
+  },
 ]
 
 const PLUGIN_MANIFESTS = [
