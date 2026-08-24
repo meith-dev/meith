@@ -34,7 +34,7 @@ the violation from legitimate code that resembles it. The sections below
 explain what each review rule is actually asking for, because for those the
 reviewer is the enforcement.
 
-The guards themselves live in `scripts/guards.config.mjs` — fourteen in
+The guards themselves live in `scripts/guards.config.mjs` — eighteen in
 all. The table above names the five that encode conventions from this page;
 the others hold invariants documented elsewhere (a single environment
 reader, no `next` imports in domain packages, no ad-hoc visibility queries,
