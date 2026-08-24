@@ -47,6 +47,11 @@ The version is also written in places npm never reads:
   (`plugins/dues`, `plugins/reference`) — what `/admin/plugins` shows, and
   the only one of these an operator ever sees.
 - The exact image tag the Coolify compose file pins.
+- The `version` field of every listing in `marketplace/listings/` whose
+  `package` names a workspace package — Dues and the five bundled themes,
+  see [the marketplace](./marketplace.md#what-is-in-a-listing). A
+  third-party listing is explicitly exempt: it tracks its own package's
+  release, not this repository's.
 
 Nothing fails at runtime if these drift, but the drift is visible: the
 plugin version once sat at `0.1.0` through two releases, so a board that
@@ -70,6 +75,16 @@ in the same run that moves the version, and the release commit carries the
 fresh documents. Before that, a bump left them at the previous version and
 CI failed at `api:docs:check` or `board-installer:gen:check` on the
 release commit.
+
+The six first-party marketplace listings are a third case: `release-check`
+enforces their `version` field directly (listed above), but the merged
+feed at `apps/web/public/marketplace/v1.json` is a generated mirror of
+those listings, and its own staleness is `pnpm marketplace:gen:check`'s
+job, not `release-check`'s — the same relationship `api:docs:check` has to
+`docs/openapi.json`. `pnpm release:bump` moves the six listings and
+regenerates the feed (`pnpm marketplace:gen`) in the same run, so the
+release commit carries a feed that already matches them; see
+[the marketplace § What is seeded today](./marketplace.md#what-is-seeded-today).
 
 The image additionally carries the version as `MEITH_VERSION` (an
 environment variable and OCI labels, stamped by the workflow). A local
@@ -120,8 +135,9 @@ broken promise, which is why the workflow drafts rather than publishes.
 2. **Run the "Cut a release" workflow** — Actions → *Cut a release* → the
    version, `major.minor.patch` with no leading `v`. It bumps every place
    the version is written (`pnpm release:bump` — the manifests, the source
-   constants, the plugin manifests, the compose pin) and regenerates the
-   one document that stamps the version, `docs/openapi.json`, proves
+   constants, the plugin manifests, the compose pin, the six first-party
+   marketplace listings) and regenerates every document that stamps the
+   version, `docs/openapi.json` and the marketplace feed among them, proves
    coherence with `release-check --tag`, commits `chore(release): vX.Y.Z`
    to `main`, pushes the tag, and thereby starts the Release workflow. A
    version that would not move the tree forward is refused before anything

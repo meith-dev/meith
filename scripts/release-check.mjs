@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { ROOT, workspacePackages } from './workspace-packages.mjs'
@@ -87,6 +87,25 @@ for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS]) {
   }
 }
 
+const LISTINGS_DIR = 'marketplace/listings'
+const listingNames = (await readdir(join(ROOT, LISTINGS_DIR)))
+  .filter((name) => name.endsWith('.json'))
+  .sort()
+
+let firstPartyListings = 0
+for (const name of listingNames) {
+  const file = `${LISTINGS_DIR}/${name}`
+  const listing = JSON.parse(await readFile(join(ROOT, file), 'utf8'))
+  const target = byName.get(listing.package)
+  if (target === undefined) continue
+  firstPartyListings += 1
+  if (listing.version !== target.manifest.version) {
+    problems.push(
+      `${file} says version "${listing.version}"; ${listing.package} (${target.dir}) is at ${target.manifest.version}`,
+    )
+  }
+}
+
 const compose = await readFile(join(ROOT, 'docker/compose.coolify.yml'), 'utf8')
 const pins = [...compose.matchAll(/\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:([^}]+)\}/g)]
 
@@ -123,6 +142,6 @@ if (problems.length > 0) {
 console.log(
   `✓ release coherence: ${version} in the root manifest, ${byName.size} workspace manifests, ` +
     `${CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
-    'and the compose pin; ' +
+    `${firstPartyListings} first-party marketplace listings, and the compose pin; ` +
     `${published.length} packages publish to npm and the set is closed`,
 )
