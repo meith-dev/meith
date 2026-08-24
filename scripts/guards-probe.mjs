@@ -43,14 +43,16 @@ for (const guard of GUARDS) {
 
   const { violates, clean } = guard.probe
 
-  guard.pattern.lastIndex = 0
-  if (!guard.pattern.test(violates)) {
-    fail(
-      guard.id,
-      `is INERT: its violating sample no longer matches.\n` +
-        `  sample:  ${JSON.stringify(violates)}\n` +
-        `  pattern: ${guard.pattern}`,
-    )
+  for (const sample of [violates, ...(guard.alsoViolates ?? [])]) {
+    guard.pattern.lastIndex = 0
+    if (!guard.pattern.test(sample)) {
+      fail(
+        guard.id,
+        `is INERT: a violating sample no longer matches.\n` +
+          `  sample:  ${JSON.stringify(sample)}\n` +
+          `  pattern: ${guard.pattern}`,
+      )
+    }
   }
 
   for (const sample of [clean, ...(guard.alsoClean ?? [])]) {
