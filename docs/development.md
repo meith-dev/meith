@@ -113,6 +113,101 @@ file until it is either moved into a folder or registered with a reason.
 How the packages relate — the layers, what may import what, and why — is
 [Architecture](./architecture.md).
 
+## Consuming the board from a workspace
+
+`packages/create-meith` scaffolds a board whose `package.json` depends on
+`@meith/web` and `@meith/cli` and whose scripts call `forum-web` and
+`community` — a board outside this monorepo, in a directory that holds only
+its own files: `community.config.ts`, `board.plugins.json`,
+`community.plugins.ts` and `package.json`. This section is how that actually
+runs, for anyone changing `apps/community`, `apps/cli` or the scaffold and
+needing to know what still has to hold true outside this repository.
+
+**A Next.js app is not consumable as a bare dependency.** `next dev|build|start`
+need to run with the app's own directory as the project root, and the
+[board-config seam](./architecture.md#the-board-config-seam) —
+`@board/config` / `@board/plugins` — is a pair of tsconfig path aliases that,
+inside this monorepo, point at `apps/community`'s own files. Neither survives
+`npm install`ing `@meith/web` into somebody else's workspace unchanged. So
+`forum-web` (`apps/community/bin/forum-web.mjs`, `@meith/web`'s bin) and
+`community` (`apps/cli/bin/community.mjs`, `@meith/cli`'s bin) **materialize**
+the app on every invocation:
+
+1. Copy the package's own Next app sources (or, for `community`, `apps/cli`'s
+   sources) into `.meith/app/` (`.meith/cli/` for the CLI) inside the
+   invoking workspace — gitignored, rebuilt every run, never a merge target.
+2. Write a fresh `tsconfig.json` there whose `paths` point `@board/config`
+   and `@board/plugins` at *that workspace's own* `community.config.ts` /
+   `community.plugins.ts`. A tsconfig path alias is a compiler/bundler alias,
+   not a package boundary — nothing stops one from naming a path two
+   directories up, which is the whole trick, and it is why this is a
+   tsconfig path alias rather than a Node subpath import in the first place:
+   a subpath import's target may not resolve outside the declaring package,
+   which is exactly what this needs to do.
+3. Run `next dev|build|start` (`forum-web`) or `tsx` against the materialized
+   entry point (`community`) with that directory as the working root.
+
+`.meith/app/` sits exactly two directories below the workspace root on
+purpose: `next.config.mjs` computes its own workspace root as two
+directories up from itself (for `.env` loading and `outputFileTracingRoot`),
+and materializing at that exact depth keeps that computation correct without
+touching the file, whether it runs in place inside this monorepo or copied
+into somebody else's workspace.
+
+**This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
+`node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
+materialized app's source imports every `@meith/*` package it needs by bare
+specifier, resolved the ordinary Node way by walking up from `.meith/app/`
+looking for `node_modules` — which only reaches a dependency hoisted to the
+workspace root. pnpm's default, strict linking nests a package's own
+dependencies inside its own `node_modules` entry instead, invisible to that
+walk from a sibling directory. `apps/community/next.config.mjs`'s
+`transpilePackages` list names every `@meith/*` package this app's
+dependency graph reaches for the same underlying reason: inside this
+monorepo, every one of them resolves through a tsconfig path alias straight
+to its source file, bypassing `node_modules` entirely, so this list used to
+be a small, seemingly arbitrary subset. A materialized workspace's generated
+tsconfig carries no such alias map — only the seam itself — so every other
+`@meith/*` specifier resolves the ordinary way once this package is
+installed, and needs the same source-compilation treatment or the build
+fails with "Unknown module type" on a `.ts` file inside `node_modules`.
+
+**Fixture mode covers `forum-web dev` and `forum-web build`,** not
+`forum-web start`. A production process refuses `QUEUE_DRIVER=memory` —
+fixture mode's only queue driver — on purpose
+(`packages/core/src/env.ts`): queued work would be lost on every cold start.
+Building needs no database (`next build` sets `NEXT_PHASE`, which exempts
+it), so a fresh scaffold builds and its dev server runs against fixture data
+with nothing configured; running the built, standalone server for real needs
+`DATA_SOURCE=postgres` and the same secrets a deployed board needs, exactly
+as today.
+
+**The CLI resolves the seam the same way, for a different reason.**
+`apps/cli/src/index.ts` reaches `@board/plugins` with a *dynamic*
+`await import('@board/plugins')` rather than a static one, so unlike the
+released image's own bundled CLI — which bakes in whichever board it was
+built next to — the `community` bin needs to resolve that seam at the moment
+it actually runs, against whichever workspace invoked it. Materializing
+`apps/cli`'s sources and running them with `tsx` (already how `pnpm community`
+runs inside this monorepo) against a generated tsconfig is the same
+mechanism `forum-web` uses for the Next app, through the tool this package
+already runs through.
+
+**The worker is not part of this.** `apps/worker` has no `@board/config` or
+`@board/plugins` import anywhere in its source, so it needs none of the
+above — and `create-meith`'s scaffold does not depend on `@meith/worker`
+today. Giving it its own bin for a scaffolded workspace is orthogonal follow-up
+work.
+
+**`scripts/board-workspace-smoke.mts`** (`pnpm board:workspace:smoke`, wired
+into CI as the `board-workspace` job) is what proves all of this: it packs
+`@meith/web`'s whole dependency closure with `pnpm pack` (the same tool a
+release uses, which rewrites `workspace:*` ranges into real ones — none of
+this closure is on the real npm registry yet), scaffolds a board with
+`create-meith`, installs it with `overrides` pointing every packed name at
+its tarball, runs `forum-web build`, applies migrations and boots the
+standalone server against a real, disposable Postgres, and asks it for `/`.
+
 ## The commands
 
 | Command | What it does |

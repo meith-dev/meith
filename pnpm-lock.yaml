@@ -81,13 +81,13 @@ importers:
       '@meith/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
+      tsx:
+        specifier: ^4.23.12
+        version: 4.23.12
     devDependencies:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
-      tsx:
-        specifier: ^4.23.12
-        version: 4.23.12
 
   apps/community:
     dependencies:
@@ -103,9 +103,15 @@ importers:
       '@meith/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@meith/attachments':
+        specifier: workspace:*
+        version: link:../../packages/attachments
       '@meith/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
+      '@meith/avatars':
+        specifier: workspace:*
+        version: link:../../packages/avatars
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -121,6 +127,9 @@ importers:
       '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
+      '@meith/events':
+        specifier: workspace:*
+        version: link:../../packages/events
       '@meith/forums':
         specifier: workspace:*
         version: link:../../packages/forums
@@ -130,6 +139,9 @@ importers:
       '@meith/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@meith/import':
+        specifier: workspace:*
+        version: link:../../packages/import
       '@meith/install':
         specifier: workspace:*
         version: link:../../packages/install
@@ -175,12 +187,18 @@ importers:
       '@meith/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+      '@meith/search':
+        specifier: workspace:*
+        version: link:../../packages/search
       '@meith/settings':
         specifier: workspace:*
         version: link:../../packages/settings
       '@meith/signatures':
         specifier: workspace:*
         version: link:../../packages/signatures
+      '@meith/subscriptions':
+        specifier: workspace:*
+        version: link:../../packages/subscriptions
       '@meith/tasks':
         specifier: workspace:*
         version: link:../../packages/tasks
@@ -208,19 +226,12 @@ importers:
       '@meith/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@meith/upgrade':
+        specifier: workspace:*
+        version: link:../../packages/upgrade
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
-      next:
-        specifier: 16.3.1
-        version: 16.3.1(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-    devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
@@ -230,9 +241,18 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.4(@types/react@19.2.18)
+      next:
+        specifier: 16.3.1
+        version: 16.3.1(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       postcss:
         specifier: ^8.5
         version: 8.5.26
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -587,6 +607,9 @@ importers:
       '@meith/settings':
         specifier: workspace:*
         version: link:../settings
+      '@types/nodemailer':
+        specifier: ^8.0.1
+        version: 8.0.1
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@electric-sql/pglite@0.5.5)(@opentelemetry/api@1.9.1)(mysql2@3.23.3(@types/node@26.2.0))(postgres@3.4.9)
@@ -602,10 +625,6 @@ importers:
       shiki:
         specifier: ^4.4.3
         version: 4.4.3
-    devDependencies:
-      '@types/nodemailer':
-        specifier: ^8.0.1
-        version: 8.0.1
 
   packages/events: {}
 

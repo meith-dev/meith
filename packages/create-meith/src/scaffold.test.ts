@@ -24,12 +24,14 @@ describe('the project name', () => {
 describe('what the scaffold writes', () => {
   const files = scaffold(OPTIONS)
 
-  it('writes the five files a deployable project needs', () => {
+  it('writes the seven files a deployable project needs', () => {
     expect([...files.keys()].sort()).toEqual([
       '.env.example',
       '.gitignore',
       'README.md',
+      'board.plugins.json',
       'community.config.ts',
+      'community.plugins.ts',
       'package.json',
     ])
   })
@@ -144,7 +146,9 @@ describe('the CLI', () => {
         '.env.example',
         '.gitignore',
         'README.md',
+        'board.plugins.json',
         'community.config.ts',
+        'community.plugins.ts',
         'package.json',
       ])
 

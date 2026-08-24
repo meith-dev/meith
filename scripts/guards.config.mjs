@@ -349,7 +349,13 @@ export const GUARDS = [
     files: /\.(ts|tsx)$/,
     pattern:
       /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[./]*community(?:\/community)?\.(?:config|plugins)['"]/,
-    allow: /^apps\/community\/community\.(?:config|plugins)\.ts$/,
+    // packages/create-meith/src/scaffold.ts is allowed for the same reason
+    // community.config.ts/community.plugins.ts are: its match is template
+    // text for an *external* workspace's own community.config.ts, relative
+    // to that workspace's own community.plugins.ts — the seam this guard
+    // protects is apps/community's, not a scaffolded board's.
+    allow:
+      /^apps\/community\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$/,
     probe: {
       violates: "import forumConfig from '../../community.config'",
       clean: "import forumConfig from '@board/config'",
