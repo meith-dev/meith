@@ -16,7 +16,7 @@ release publishes comes out of that one act:
 | `ghcr.io/meith-dev/meith:X.Y.Z` | The board image — web, worker, migrator and operator CLI in one, for `linux/amd64` and `linux/arm64`. This tag never moves again, and it is the only tag anything deploys: the Coolify compose file pins it exactly. |
 | `ghcr.io/meith-dev/meith:X.Y` | The release line, floating over its patches. A convenience for trying the image; nothing this repository ships deploys a floating tag. |
 | `ghcr.io/meith-dev/meith:latest` | The newest release, whatever line it is on. Same status: for trying, never for deploying. |
-| The `@meith` packages on npm | The theme and plugin kits, the first-party themes and plugins, and their dependency closure — eleven packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
+| The `@meith` packages on npm | The board itself (`@meith/web`, `@meith/cli`), the theme and plugin kits, the first-party themes and plugins, `create-meith`, and all of their dependency closures — fifty packages at the release version, published with provenance. See [what publishes to npm](#what-publishes-to-npm). |
 | The `release` branch | Fast-forwarded to the tag. The Quickstart points Coolify at this branch, so a board deployed by the guide follows releases and never sees `main` mid-cycle. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish — see [the release notes](#the-notes-say-which-kind-of-upgrade-this-is). |
 
@@ -243,21 +243,65 @@ One-time steps around `v0.1.0`, in order:
 ## What publishes to npm
 
 Every workspace package that is **not** `private: true` publishes on every
-release, at the release version. Eleven today:
+release, at the release version. Fifty today, `pnpm release:check`'s own
+count of "packages publish to npm" is the number to trust as this grows —
+this table is a snapshot, not the source of truth:
 
 | | Packages |
 |---|---|
+| The board | `@meith/web`, `@meith/cli` — the Next.js app and the operator CLI. Each carries a bin (`forum-web`, `community`) that materializes its sources into an external workspace and points the [board-config seam](./architecture.md#the-board-config-seam) at that workspace's own files — see [Consuming the board from a workspace](./development.md#consuming-the-board-from-a-workspace). Without these two on npm, `create-meith`'s scaffold would depend on a package that does not exist. |
 | The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against |
-| Their closure | `@meith/core`, `@meith/ui` |
+| The board's dependency closure | `@meith/accounts`, `@meith/admin`, `@meith/antispam`, `@meith/api`, `@meith/attachments`, `@meith/authorization`, `@meith/avatars`, `@meith/core`, `@meith/db`, `@meith/demo`, `@meith/drafts`, `@meith/drivers`, `@meith/events`, `@meith/forums`, `@meith/groups`, `@meith/i18n`, `@meith/import`, `@meith/install`, `@meith/mail`, `@meith/markdown`, `@meith/marketplace`, `@meith/messages`, `@meith/moderation`, `@meith/notifications`, `@meith/polls`, `@meith/posts`, `@meith/profile-fields`, `@meith/relations`, `@meith/reputation`, `@meith/runtime`, `@meith/search`, `@meith/settings`, `@meith/signatures`, `@meith/subscriptions`, `@meith/tasks`, `@meith/threads`, `@meith/ui`, `@meith/upgrade` — every domain and infrastructure package `@meith/web` or `@meith/cli` names in its own `dependencies`, transitively. None of these is independently useful; each is here only because the board (or a theme in its closure) imports it. |
 | The themes | `@meith/theme-default`, `@meith/theme-midnight`, `@meith/theme-phasebook`, `@meith/theme-raidframe`, `@meith/theme-clubhouse` |
 | The plugins | `@meith/plugin-dues`, `@meith/plugin-reference` |
+| The initializer | `create-meith` — `npx create-meith` scaffolds a board whose `package.json` depends on `@meith/web`, `@meith/cli` and `@meith/theme-default`. An npx-able initializer that is not itself on npm does not exist. |
+
+**The worker does not publish, and is not part of this.** `apps/worker`
+(`@meith/worker`) has no [board-config seam](./architecture.md#the-board-config-seam)
+import anywhere in its source — it needs no per-installation customization
+the way the web app and CLI do — and `create-meith`'s scaffold does not
+depend on it: something has to run the tick every minute (the worker
+process, or `community task:run`), but nothing about running it requires
+`@meith/worker` to exist on the registry. Giving it a bin for a scaffolded
+workspace, the way `forum-web` and `community` have one, is orthogonal
+follow-up work — see [Consuming the board from a
+workspace](./development.md#consuming-the-board-from-a-workspace).
 
 `scripts/npm-publish.mjs` is the mechanism: dependencies before
 dependents, a version already on the registry skipped rather than failed,
-and `--dry-run` packs everything locally so the tarballs can be read
-before a release ever runs. Each package is packed by `pnpm` — which
-rewrites the `workspace:` ranges into real ones — and published by the
-`npm` CLI, which is what implements trusted publishing.
+and `--dry-run` packs everything locally — every tarball is also checked
+against its own manifest before anything would be published: every
+non-excluded entry in `files` must have put something in the tarball, and
+every `bin` target must be a real file in it. That is what catches, before
+a release ever runs, the failure mode a bare version bump cannot: a
+`files` allowlist that still names a directory nothing is written into any
+more (the Next app directory, `app/`, under `@meith/web`, is the one worth
+being paranoid about — nothing exercises it externally except a board
+actually built from the published tarball). Each package is packed by
+`pnpm` — which rewrites the `workspace:` ranges into real ones — and
+published by the `npm` CLI, which is what implements trusted publishing.
+
+### The npm surface is a compatibility commitment
+
+Publishing `@meith/web` and `@meith/cli` makes "install this version of
+the board, alongside this version of a theme or plugin" a real question
+with a real answer for the first time — until now that pairing only ever
+existed inside this monorepo, at one commit. It is governed by the same
+policy that already backs `apiVersion` for themes and plugins
+([theme API versioning](./theme-api.md#versioning),
+[plugin API versioning](./plugin-api.md#versioning)): a minor may add
+capability, only a major may remove or rename it, and a package built
+against one major keeps working against every release on that major.
+`@meith/web` and `@meith/cli` are not exempt from [the version
+policy](#the-version-policy) just because they are new to npm — a
+scaffolded board pins them to an exact version rather than a range
+(deliberately: `create-meith`'s scaffold upgrades by `npm install
+@meith/web@latest @meith/cli@latest`, an explicit act, never a silent
+range resolution on a board process holding a database migration), while a
+theme or plugin's `workspace:^` on `@meith/theme-kit` / `@meith/plugin-kit`
+is the same policy stated as a version range instead. Same guarantee,
+different mechanism for the different risk: a board upgrade runs
+migrations, a theme or plugin upgrade does not.
 
 ### How the workflow authenticates
 
@@ -382,11 +426,10 @@ the same compatibility promise the image tags make.
 
 ### What stays private, still
 
-- **The board itself** — `@meith/web` and `@meith/cli`. A
-  board-as-a-dependency flow would need a real bin and an end-to-end CI
-  gate (install from packed tarballs, build, boot) before publishing it
-  would be honest. The kits going out first is what lets plugin and theme
-  authors start now, while that question waits.
+- **`@meith/worker`** (`apps/worker`) — see [above](#what-publishes-to-npm):
+  no board-config seam, no bin, no dependant in `create-meith`'s scaffold.
+- **`@meith/site`** (`apps/web`) — meith.dev itself. It is the project's own
+  marketing site, not part of what an operator installs.
 - **`@meith/testkit`** — it drags `@meith/db` and `@meith/drivers` behind
   it, and that closure is most of the board.
 - **The examples** — `hello-plugin` and `iris-theme` are documentation.
