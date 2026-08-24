@@ -1,7 +1,11 @@
+import { execFile } from 'node:child_process'
 import { mkdir, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
+import { promisify } from 'node:util'
 
 import { DEFAULT_REPOSITORY_URL, nextSteps, scaffold, validateName } from './scaffold'
+
+const execFileAsync = promisify(execFile)
 
 export interface CliResult {
   readonly code: number
@@ -16,6 +20,16 @@ async function isSafeTarget(target: string): Promise<boolean> {
   }
 }
 
+async function initGit(target: string): Promise<boolean> {
+  try {
+    await execFileAsync('git', ['init', '-q', '-b', 'main'], { cwd: target })
+    await execFileAsync('git', ['add', '-A'], { cwd: target })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function run(argv: readonly string[], version: string): Promise<CliResult> {
   const positional = argv.filter((arg) => !arg.startsWith('-'))
   const name = positional[0] ?? ''
@@ -26,10 +40,12 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
       lines: [
         'create-meith — scaffold a forum project.',
         '',
-        '  npx create-meith <name> [--repo <url>]',
+        '  npx create-meith <name> [--repo <url>] [--no-git]',
         '',
         'Writes package.json, community.config.ts, .env.example, .gitignore and',
         'README.md into ./<name>, then tells you what to run.',
+        '',
+        '--no-git skips initializing a git repository in the new directory.',
       ],
     }
   }
@@ -61,12 +77,32 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     await writeFile(path, contents, 'utf8')
   }
 
+  const gitReady = argv.includes('--no-git') ? false : await initGit(target)
+
   return {
     code: 0,
     lines: [
       `Created ${name} — ${files.size} files.`,
       '',
       ...nextSteps(name).map((step) => `  ${step}`),
+      '',
+      ...(gitReady
+        ? [
+            'Initialized a git repository here and staged every file. Commit it,',
+            'add a GitHub remote and push:',
+            '',
+            `  git commit -m "Scaffold ${name}"`,
+            `  git remote add origin https://github.com/<you>/${name}.git`,
+            '  git push -u origin main',
+          ]
+        : [
+            'Push it to a new, empty repository on GitHub:',
+            '',
+            `  cd ${name}`,
+            `  git init && git add -A && git commit -m "Scaffold ${name}"`,
+            `  git remote add origin https://github.com/<you>/${name}.git`,
+            '  git push -u origin main',
+          ]),
       '',
       'Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy.',
       'Something must run the tick every minute — the worker process, or',

@@ -1,58 +1,53 @@
-export interface ScaffoldOptions {
-  readonly name: string
-  readonly version: string
-  readonly repositoryUrl: string
-}
+#!/bin/sh
+set -e
 
-export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
+BOARD_NAME=${1:-}
+if [ -z "$BOARD_NAME" ]; then
+  echo "create-board: a board name is required." >&2
+  echo "Usage: curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board" >&2
+  exit 1
+fi
 
-const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
+if ! printf '%s' "$BOARD_NAME" | grep -Eq '^[a-z0-9][a-z0-9._-]{0,213}$'; then
+  echo "create-board: use lower-case letters, digits, dots, hyphens and underscores, starting with a letter or digit." >&2
+  exit 1
+fi
 
-export function validateName(name: string): string | null {
-  if (name === '') return 'A project name is required.'
-  if (name === '.' || name === '..') return 'That name would write outside the new directory.'
-  if (name.includes('/') || name.includes('\\'))
-    return 'A project name cannot contain a path separator.'
-  if (name !== name.toLowerCase()) return 'npm package names must be lower-case.'
-  if (!NAME_PATTERN.test(name)) {
-    return 'Use lower-case letters, digits, dots, hyphens and underscores, starting with a letter or digit.'
+if [ -d "$BOARD_NAME" ] && [ -n "$(ls -A "$BOARD_NAME" 2>/dev/null)" ]; then
+  echo "create-board: $BOARD_NAME already exists and is not empty." >&2
+  echo "Refusing to write into it — pick another name, or empty it first." >&2
+  exit 1
+fi
+
+mkdir -p "$BOARD_NAME"
+
+mkdir -p "$(dirname -- "$BOARD_NAME/package.json")"
+cat > "$BOARD_NAME/package.json" <<'MEITH_SCAFFOLD_EOF'
+{
+  "name": "__MEITH_BOARD_NAME__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "forum-web dev",
+    "build": "forum-web build",
+    "start": "forum-web start",
+    "community": "community"
+  },
+  "dependencies": {
+    "@meith/web": "0.17.0",
+    "@meith/cli": "0.17.0",
+    "@meith/theme-default": "0.17.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
-  return null
 }
+MEITH_SCAFFOLD_EOF
 
-export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> {
-  const { name, version, repositoryUrl } = options
-  const files = new Map<string, string>()
-
-  files.set(
-    'package.json',
-    `${JSON.stringify(
-      {
-        name,
-        version: '0.1.0',
-        private: true,
-        type: 'module',
-        scripts: {
-          dev: 'forum-web dev',
-          build: 'forum-web build',
-          start: 'forum-web start',
-          community: 'community',
-        },
-        dependencies: {
-          '@meith/web': version,
-          '@meith/cli': version,
-          '@meith/theme-default': version,
-        },
-        engines: { node: '>=22' },
-      },
-      null,
-      2,
-    )}\n`,
-  )
-
-  files.set(
-    'community.config.ts',
-    `/**
+mkdir -p "$(dirname -- "$BOARD_NAME/community.config.ts")"
+cat > "$BOARD_NAME/community.config.ts" <<'MEITH_SCAFFOLD_EOF'
+/**
  * The board's build-time registry.
  *
  * Everything installable is named here, statically, so the bundler can see it
@@ -61,7 +56,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
  * directory walked at request time is empty and a plugin "installed" that way is
  * not there at all.
  *
- * Adding a theme is: \`npm install\` it, add a line here, redeploy. Adding a
+ * Adding a theme is: `npm install` it, add a line here, redeploy. Adding a
  * plugin is the same, through board.plugins.json and community.plugins.ts —
  * see docs/plugin-api.md.
  */
@@ -89,21 +84,25 @@ export default defineForumConfig({
 
   plugins: INSTALLED_PLUGINS,
 })
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set('board.plugins.json', `${JSON.stringify({ plugins: [] }, null, 2)}\n`)
+mkdir -p "$(dirname -- "$BOARD_NAME/board.plugins.json")"
+cat > "$BOARD_NAME/board.plugins.json" <<'MEITH_SCAFFOLD_EOF'
+{
+  "plugins": []
+}
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    'community.plugins.ts',
-    `/**
+mkdir -p "$(dirname -- "$BOARD_NAME/community.plugins.ts")"
+cat > "$BOARD_NAME/community.plugins.ts" <<'MEITH_SCAFFOLD_EOF'
+/**
  * The board's installed-plugin list.
  *
  * Inside the Meith monorepo this file is generated from board.plugins.json
- * by \`pnpm board:gen\` (see docs/plugin-api.md) — that generator is
+ * by `pnpm board:gen` (see docs/plugin-api.md) — that generator is
  * repository tooling, not something this workspace carries, so this file
  * starts as a plain, valid file with the same shape instead. Add a plugin by
- * importing its \`plugin\`/\`messages\` exports and adding an entry:
+ * importing its `plugin`/`messages` exports and adding an entry:
  *
  *   import { messages as greeterMessages, plugin as greeterPlugin } from '@meith/plugin-greeter'
  *
@@ -112,7 +111,7 @@ export default defineForumConfig({
  *   ]
  *
  * and the matching entry in board.plugins.json, which is what
- * \`community plugin:add\`/\`plugin:remove\` read inside the monorepo — kept
+ * `community plugin:add`/`plugin:remove` read inside the monorepo — kept
  * here too so the two files agree about what is installed.
  */
 import type { InstalledPlugin } from '@meith/web/config'
@@ -124,14 +123,13 @@ export function installedPluginDefinitions() {
     (entry) => entry.enabled !== false && entry.plugin !== undefined,
   ).map((entry) => entry.plugin)
 }
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    '.env.example',
-    `# ${name} — environment.
+mkdir -p "$(dirname -- "$BOARD_NAME/.env.example")"
+cat > "$BOARD_NAME/.env.example" <<'MEITH_SCAFFOLD_EOF'
+# __MEITH_BOARD_NAME__ — environment.
 #
-# Copy to .env.local for development. On the server this is \`.env\` beside the
+# Copy to .env.local for development. On the server this is `.env` beside the
 # compose file; nothing here belongs in git.
 
 # ─── Required ────────────────────────────────────────────────────────────────
@@ -160,7 +158,7 @@ TICK_SECRET=
 # ─── Optional ────────────────────────────────────────────────────────────────
 
 # fixture = deterministic in-memory sample data, no database needed. This is
-# what \`npm run build\` uses, and what a checkout with no database falls back to.
+# what `npm run build` uses, and what a checkout with no database falls back to.
 DATA_SOURCE=postgres
 
 # Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
@@ -186,12 +184,11 @@ APP_URL=
 # MAIL_SMTP_PASSWORD=
 # MAIL_FROM=noreply@yourdomain.com
 
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    '.gitignore',
-    `node_modules
+mkdir -p "$(dirname -- "$BOARD_NAME/.gitignore")"
+cat > "$BOARD_NAME/.gitignore" <<'MEITH_SCAFFOLD_EOF'
+node_modules
 .next
 .meith
 .env
@@ -199,42 +196,41 @@ APP_URL=
 .env*.local
 *.log
 .DS_Store
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    'Dockerfile',
-    `# syntax=docker/dockerfile:1.7-labs
+mkdir -p "$(dirname -- "$BOARD_NAME/Dockerfile")"
+cat > "$BOARD_NAME/Dockerfile" <<'MEITH_SCAFFOLD_EOF'
+# syntax=docker/dockerfile:1.7-labs
 # check=skip=InvalidDefaultArgInFrom
-# ${name}'s deploy image.
+# __MEITH_BOARD_NAME__'s deploy image.
 #
 # FROM the published framework base image — deps + framework layers only,
 # locked to this exact release (see the meith repository's
 # docs/self-hosting.md, "Custom boards", and docker/Dockerfile.base for what
 # it is and is not). This board's own Dockerfile only ever installs its own
 # delta on top of it — a new plugin's own dependency, typically nothing more
-# — which is what keeps a rebuild after \`npm install some-plugin\` a matter
+# — which is what keeps a rebuild after `npm install some-plugin` a matter
 # of minutes rather than a cold toolchain build.
 #
 # Two stages, not three: unlike the official image, this does not prune down
-# to Next's own standalone output. The migrate role below runs \`community
-# migrate\`, and \`community\` materializes @meith/cli's sources and runs them
+# to Next's own standalone output. The migrate role below runs `community
+# migrate`, and `community` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
 # docs/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
 # traced as reachable from the web server alone. The tick itself is driven
-# by docker-compose.yml's own \`worker\` service — a lightweight loop against
+# by docker-compose.yml's own `worker` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
 # not published (see the meith repository's docs/release.md).
 ARG MEITH_VERSION
-FROM ghcr.io/meith-dev/meith-base:\${MEITH_VERSION} AS deps
+FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps
 WORKDIR /board
 
 # This board's own manifest, cached independently of its source — editing
 # community.config.ts should not re-run npm install. The base image above
 # already carries node_modules for @meith/web, @meith/cli and
 # @meith/theme-default at this exact version, so installing this file on top
-# of it only fetches what changed: a plugin newly added to \`dependencies\`,
+# of it only fetches what changed: a plugin newly added to `dependencies`,
 # typically nothing at all.
 COPY package.json ./
 RUN npm install
@@ -253,7 +249,7 @@ ENV NODE_ENV=production
 # the meith repository's docs/development.md, "Fixture mode"), but baking
 # DATA_SOURCE=fixture into the image itself would silently force fixture
 # mode — and with it the in-memory queue driver — at runtime too, no matter
-# what DATABASE_URL an operator supplies to \`docker run\`.
+# what DATABASE_URL an operator supplies to `docker run`.
 RUN DATA_SOURCE=fixture npx forum-web build
 
 ENV PORT=3000
@@ -269,33 +265,32 @@ USER node
 COPY --chown=node:node docker-entrypoint.sh docker-healthcheck.sh ./
 RUN chmod +x docker-entrypoint.sh docker-healthcheck.sh
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \\
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["./docker-healthcheck.sh"]
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    'docker-entrypoint.sh',
-    `#!/bin/sh
+mkdir -p "$(dirname -- "$BOARD_NAME/docker-entrypoint.sh")"
+cat > "$BOARD_NAME/docker-entrypoint.sh" <<'MEITH_SCAFFOLD_EOF'
+#!/bin/sh
 # One image, two roles — see Dockerfile and README.md.
 #
 # "web" (the default) runs the board; "migrate" applies the schema and
 # exits. There is no "worker" role in this image: @meith/worker is not
-# published, so nothing here can run it — docker-compose.yml's own \`worker\`
+# published, so nothing here can run it — docker-compose.yml's own `worker`
 # service drives the tick a different way, calling this image's web role
 # over HTTP instead of running as a role of this image.
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# \`docker run <image> node_modules/.bin/community --help\` should still run
+# `docker run <image> node_modules/.bin/community --help` should still run
 # the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
-case "\${COMMUNITY_ROLE:-web}" in
+case "${COMMUNITY_ROLE:-web}" in
   migrate)
     # Runs to completion and exits; compose's one-shot service waits on it.
     exec node_modules/.bin/community migrate
@@ -304,44 +299,41 @@ case "\${COMMUNITY_ROLE:-web}" in
     exec node_modules/.bin/forum-web start
     ;;
   *)
-    echo "Unknown COMMUNITY_ROLE: \${COMMUNITY_ROLE}. Expected 'web' or 'migrate'." >&2
+    echo "Unknown COMMUNITY_ROLE: ${COMMUNITY_ROLE}. Expected 'web' or 'migrate'." >&2
     exit 1
     ;;
 esac
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    'docker-healthcheck.sh',
-    `#!/bin/sh
+mkdir -p "$(dirname -- "$BOARD_NAME/docker-healthcheck.sh")"
+cat > "$BOARD_NAME/docker-healthcheck.sh" <<'MEITH_SCAFFOLD_EOF'
+#!/bin/sh
 # What "healthy" means depends on the role — see docker-entrypoint.sh.
 # "migrate" runs to completion and exits; its exit code is the verdict, and
 # a health probe taken while it runs has no opinion.
 set -e
 
-if [ "\${COMMUNITY_ROLE:-web}" = "migrate" ]; then
+if [ "${COMMUNITY_ROLE:-web}" = "migrate" ]; then
   exit 0
 fi
 
 node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    '.dockerignore',
-    `node_modules
+mkdir -p "$(dirname -- "$BOARD_NAME/.dockerignore")"
+cat > "$BOARD_NAME/.dockerignore" <<'MEITH_SCAFFOLD_EOF'
+node_modules
 .next
 .meith
 .git
 .env
 .env.local
 *.log
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    '.github/workflows/build.yml',
-    `# Builds this board's image and pushes it to your own GHCR, on every push to
+mkdir -p "$(dirname -- "$BOARD_NAME/.github/workflows/build.yml")"
+cat > "$BOARD_NAME/.github/workflows/build.yml" <<'MEITH_SCAFFOLD_EOF'
+# Builds this board's image and pushes it to your own GHCR, on every push to
 # main. No secret to configure: GITHUB_TOKEN is provided automatically by
 # GitHub Actions and is enough to push to ghcr.io/<this repository>. See
 # README.md for the rest of the three-step deploy story.
@@ -366,23 +358,23 @@ jobs:
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # GHCR requires a lower-case image name, and neither your GitHub
       # username nor this repository's name is guaranteed to be.
       - name: Build and push
         run: |
-          IMAGE=$(echo "ghcr.io/\${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']")
-          docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:\${{ github.sha }}" -t "$IMAGE:latest" .
-          docker push "$IMAGE:\${{ github.sha }}"
+          docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
       - name: Summary
         run: |
-          IMAGE=$(echo "ghcr.io/\${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          REPO_LOWER=$(echo "\${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           PKG_NAME=$(echo "$REPO_LOWER" | cut -d/ -f2)
           PKG_URL="https://github.com/$REPO_LOWER/pkgs/container/$PKG_NAME"
           {
@@ -394,7 +386,7 @@ jobs:
             echo
             echo "Once you want a pin that only moves when you say so:"
             echo
-            echo "    $IMAGE:\${{ github.sha }}"
+            echo "    $IMAGE:${{ github.sha }}"
             echo
             echo "## One-time: make the package public"
             echo
@@ -402,12 +394,11 @@ jobs:
             echo "$PKG_URL and change its visibility — **Package settings** →"
             echo "**Change visibility** → **Public**."
           } >> "$GITHUB_STEP_SUMMARY"
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    'docker-compose.yml',
-    `# ${name}, deployed by Coolify — the same shape as the meith repository's own
+mkdir -p "$(dirname -- "$BOARD_NAME/docker-compose.yml")"
+cat > "$BOARD_NAME/docker-compose.yml" <<'MEITH_SCAFFOLD_EOF'
+# __MEITH_BOARD_NAME__, deployed by Coolify — the same shape as the meith repository's own
 # docker/compose.coolify.yml: db, migrate, web, worker. See README.md for
 # the three-step deploy story this file is the last step of.
 #
@@ -423,8 +414,8 @@ services:
   postgres:
     image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
     restart: unless-stopped
-    mem_limit: \${POSTGRES_MEM_LIMIT:-1g}
-    cpus: \${POSTGRES_CPUS:-1}
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    cpus: ${POSTGRES_CPUS:-1}
     environment:
       POSTGRES_USER: community
       POSTGRES_PASSWORD: $SERVICE_PASSWORD_POSTGRES
@@ -440,7 +431,7 @@ services:
   # Runs to completion, then exits. web waits for it, so the schema is
   # always applied before the first request rather than racing it.
   migrate:
-    image: \${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/${name}:latest}
+    image: ${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/__MEITH_BOARD_NAME__:latest}
     environment:
       COMMUNITY_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -452,10 +443,10 @@ services:
     restart: 'no'
 
   web:
-    image: \${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/${name}:latest}
+    image: ${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/__MEITH_BOARD_NAME__:latest}
     restart: unless-stopped
-    mem_limit: \${WEB_MEM_LIMIT:-1g}
-    cpus: \${WEB_CPUS:-2}
+    mem_limit: ${WEB_MEM_LIMIT:-1g}
+    cpus: ${WEB_CPUS:-2}
     environment:
       # Ask Coolify for a domain on port 3000, then hand the board the same
       # thing with a scheme in front.
@@ -469,13 +460,13 @@ services:
       - FILESTORE_DRIVER=local
       # Left unset, mail is configured on the board itself — the installer
       # asks on first run. Set MAIL_DRIVER here and this file wins instead.
-      - MAIL_DRIVER=\${MAIL_DRIVER:-log}
-      - MAIL_SMTP_HOST=\${MAIL_SMTP_HOST:-}
-      - MAIL_SMTP_PORT=\${MAIL_SMTP_PORT:-}
-      - MAIL_SMTP_SECURITY=\${MAIL_SMTP_SECURITY:-}
-      - MAIL_SMTP_USERNAME=\${MAIL_SMTP_USERNAME:-}
-      - MAIL_SMTP_PASSWORD=\${MAIL_SMTP_PASSWORD:-}
-      - MAIL_FROM=\${MAIL_FROM:-}
+      - MAIL_DRIVER=${MAIL_DRIVER:-log}
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST:-}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT:-}
+      - MAIL_SMTP_SECURITY=${MAIL_SMTP_SECURITY:-}
+      - MAIL_SMTP_USERNAME=${MAIL_SMTP_USERNAME:-}
+      - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
     volumes:
       - uploads:/app/.uploads
     depends_on:
@@ -492,8 +483,8 @@ services:
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
     restart: unless-stopped
-    mem_limit: \${WORKER_MEM_LIMIT:-64m}
-    cpus: \${WORKER_CPUS:-0.25}
+    mem_limit: ${WORKER_MEM_LIMIT:-64m}
+    cpus: ${WORKER_CPUS:-0.25}
     environment:
       TICK_SECRET: $SERVICE_BASE64_64_TICK
     command:
@@ -502,8 +493,8 @@ services:
       - |
         apk add --no-cache curl >/dev/null
         while true; do
-          curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \\
-            http://web:3000/api/system/tick >/dev/null 2>&1 \\
+          curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \
+            http://web:3000/api/system/tick >/dev/null 2>&1 \
             || echo "tick failed at $$(date -Is)"
           sleep 60
         done
@@ -513,27 +504,26 @@ services:
 volumes:
   pgdata:
   uploads:
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  files.set(
-    'README.md',
-    `# ${name}
+mkdir -p "$(dirname -- "$BOARD_NAME/README.md")"
+cat > "$BOARD_NAME/README.md" <<'MEITH_SCAFFOLD_EOF'
+# __MEITH_BOARD_NAME__
 
-A forum, built on [Meith](${repositoryUrl}).
+A forum, built on [Meith](https://github.com/meith-dev/meith).
 
 ## Deploy
 
 Nothing here builds on your own server — a 2 GB VPS OOMs on a Next.js build,
-which is the whole reason \`Dockerfile\`, \`docker-compose.yml\` and
-\`.github/workflows/build.yml\` exist: something else builds the image, the
+which is the whole reason `Dockerfile`, `docker-compose.yml` and
+`.github/workflows/build.yml` exist: something else builds the image, the
 server only ever pulls one. Three steps, nothing to configure by hand beyond
 one value only you know:
 
-1. **Push this repository to GitHub.** \`.github/workflows/build.yml\` builds
-   \`Dockerfile\` on every push to \`main\` and pushes the result to your own
-   GitHub Container Registry, \`ghcr.io/<you>/${name}\` — using only the
-   \`GITHUB_TOKEN\` every GitHub Actions run already carries. No secret to
+1. **Push this repository to GitHub.** `.github/workflows/build.yml` builds
+   `Dockerfile` on every push to `main` and pushes the result to your own
+   GitHub Container Registry, `ghcr.io/<you>/__MEITH_BOARD_NAME__` — using only the
+   `GITHUB_TOKEN` every GitHub Actions run already carries. No secret to
    add, no registry account beyond the GitHub account you already have.
 
    Open the run under the repository's **Actions** tab once it finishes —
@@ -542,23 +532,23 @@ one value only you know:
    package public. It starts **private**, and Coolify's pull fails with an
    authentication error no operator can act on until that is done.
 
-2. **Point [Coolify](https://coolify.io) at \`docker-compose.yml\`** — a Docker
-   Compose resource, this repository as its source. \`docker-compose.yml\` already
-   carries Coolify's own "magic variables" for \`AUTH_SECRET\`,
-   \`TICK_SECRET\` and the database password, generated on the first deploy
+2. **Point [Coolify](https://coolify.io) at `docker-compose.yml`** — a Docker
+   Compose resource, this repository as its source. `docker-compose.yml` already
+   carries Coolify's own "magic variables" for `AUTH_SECRET`,
+   `TICK_SECRET` and the database password, generated on the first deploy
    and never typed in. The one thing Coolify cannot generate is the image
-   step 1 just pushed: set \`MEITH_IMAGE\` in the resource's own environment
-   to the value that run's Summary printed — \`ghcr.io/<you>/${name}:latest\`
+   step 1 just pushed: set `MEITH_IMAGE` in the resource's own environment
+   to the value that run's Summary printed — `ghcr.io/<you>/__MEITH_BOARD_NAME__:latest`
    (or a commit sha, once you want a pin that only moves when you say so —
-   \`docker-compose.yml\` refuses to start without this set, with a message saying
+   `docker-compose.yml` refuses to start without this set, with a message saying
    why).
 
-3. **Deploy, then \`/install\` on your own domain.** Coolify issues the
+3. **Deploy, then `/install` on your own domain.** Coolify issues the
    certificate; the installer from there is the one
-   [docs/quickstart.md](${repositoryUrl}/blob/main/docs/quickstart.md#4-run-the-installer)
+   [docs/quickstart.md](https://github.com/meith-dev/meith/blob/main/docs/quickstart.md#4-run-the-installer)
    walks through, screen for screen. It seals itself when it finishes, and
-   \`/install\` answers 404 from then on — run it **against the database you
-   are going to keep**. Every push to \`main\` after this rebuilds the
+   `/install` answers 404 from then on — run it **against the database you
+   are going to keep**. Every push to `main` after this rebuilds the
    image; Coolify's own **Redeploy** button is what actually pulls it —
    pushing alone does not.
 
@@ -567,81 +557,111 @@ build side of this, for a board of any size.
 
 **Building it yourself**: works on any machine with Docker, if you would
 rather not use GitHub Actions for the build — push the result wherever
-\`docker-compose.yml\`'s \`MEITH_IMAGE\` can reach.
+`docker-compose.yml`'s `MEITH_IMAGE` can reach.
 
-\`\`\`sh
-docker build --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t ${name} .
-\`\`\`
+```sh
+docker build --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t __MEITH_BOARD_NAME__ .
+```
 
-**Without a panel**: [docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md)
-is the same four containers by hand — your own \`.env\`, a reverse proxy you
-already run, no Coolify. \`Dockerfile\` and \`docker-compose.yml\` here are this
+**Without a panel**: [docs/self-hosting.md](https://github.com/meith-dev/meith/blob/main/docs/self-hosting.md)
+is the same four containers by hand — your own `.env`, a reverse proxy you
+already run, no Coolify. `Dockerfile` and `docker-compose.yml` here are this
 board's own version of exactly that shape.
 
 Two things nothing configures for you:
 
-- **Mail.** Until \`MAIL_DRIVER\` and its three settings exist, every message is
+- **Mail.** Until `MAIL_DRIVER` and its three settings exist, every message is
   written to the log and delivered to nobody, so password reset fails silently.
-- **The tick.** \`docker-compose.yml\`'s \`worker\` service drives it here — a small
-  loop calling \`/api/system/tick\` once a minute, since \`@meith/web\`'s own
+- **The tick.** `docker-compose.yml`'s `worker` service drives it here — a small
+  loop calling `/api/system/tick` once a minute, since `@meith/web`'s own
   worker package is not something a board outside the meith monorepo can
   depend on yet. Deploy some other way and something still has to call that
-  route (or run \`community task:run\`) every minute, or nothing catches up
+  route (or run `community task:run`) every minute, or nothing catches up
   and nothing errors.
 
 ## Local
 
-\`\`\`sh
+```sh
 npm install
 cp .env.example .env.local
 npm run dev
-\`\`\`
+```
 
-With no \`DATABASE_URL\`, the board runs on deterministic in-memory sample data —
+With no `DATABASE_URL`, the board runs on deterministic in-memory sample data —
 enough to click through every reading surface. Posting needs a database:
 
-\`\`\`sh
+```sh
 npm run forum -- migrate
 npm run forum -- user:create --admin
-\`\`\`
+```
 
 ## Configuring
 
-- **\`community.config.ts\`** — installed themes and plugins. Everything installable
+- **`community.config.ts`** — installed themes and plugins. Everything installable
   is named here so the bundler can see it; nothing is found by scanning a
   directory at runtime.
-- **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An
+- **`/admin`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **\`npm run forum -- --help\`** — the operator CLI. Everything the panel does
+- **`npm run forum -- --help`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
 
 ## Upgrading
 
-\`\`\`sh
+```sh
 npm install @meith/web@latest @meith/cli@latest
 git commit -am "Upgrade @meith/web and @meith/cli"
 git push
-\`\`\`
+```
 
-That one \`package.json\` change is the whole pin: \`Dockerfile\`'s own
-\`FROM\` line takes the version as a build argument, and
-\`.github/workflows/build.yml\` reads it straight out of \`package.json\`'s
-own \`@meith/web\` dependency when it rebuilds — nothing in \`Dockerfile\`
+That one `package.json` change is the whole pin: `Dockerfile`'s own
+`FROM` line takes the version as a build argument, and
+`.github/workflows/build.yml` reads it straight out of `package.json`'s
+own `@meith/web` dependency when it rebuilds — nothing in `Dockerfile`
 itself to keep in sync by hand. Once the rebuilt image is deployed, run
-\`npm run forum -- upgrade\` against it for the plugin migrations — see
-[the operator CLI](${repositoryUrl}/blob/main/docs/operating.md#the-operator-cli)
+`npm run forum -- upgrade` against it for the plugin migrations — see
+[the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/operating.md#the-operator-cli)
 for running it against this deployment.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —
 there is no down migration to undo a destructive one, and a button that pretended
 otherwise would be worse than its absence.
-`,
-  )
+MEITH_SCAFFOLD_EOF
 
-  return files
-}
+find "$BOARD_NAME" -type f -exec sh -c \
+  'sed "s/__MEITH_BOARD_NAME__/$1/g" "$2" > "$2.meith-tmp" && mv "$2.meith-tmp" "$2"' \
+  _ "$BOARD_NAME" {} \;
 
-export function nextSteps(name: string): readonly string[] {
-  return [`cd ${name}`, 'npm install', 'cp .env.example .env.local', 'npm run dev']
-}
+GIT_READY=0
+if command -v git >/dev/null 2>&1 \
+  && git -C "$BOARD_NAME" init -q -b main >/dev/null 2>&1 \
+  && git -C "$BOARD_NAME" add -A >/dev/null 2>&1; then
+  GIT_READY=1
+fi
+
+echo "Created $BOARD_NAME — 13 files."
+echo
+echo "  cd $BOARD_NAME"
+echo "  npm install"
+echo "  cp .env.example .env.local"
+echo "  npm run dev"
+echo
+if [ "$GIT_READY" = 1 ]; then
+  echo "Initialized a git repository here and staged every file. Commit it,"
+  echo "add a GitHub remote and push:"
+  echo
+  echo "  git commit -m \"Scaffold $BOARD_NAME\""
+  echo "  git remote add origin https://github.com/<you>/$BOARD_NAME.git"
+  echo "  git push -u origin main"
+else
+  echo "Push it to a new, empty repository on GitHub:"
+  echo
+  echo "  cd $BOARD_NAME"
+  echo "  git init && git add -A && git commit -m \"Scaffold $BOARD_NAME\""
+  echo "  git remote add origin https://github.com/<you>/$BOARD_NAME.git"
+  echo "  git push -u origin main"
+fi
+echo
+echo "Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy."
+echo "Something must run the tick every minute — the worker process, or"
+echo "community task:run. Without it nothing catches up, and nothing errors."

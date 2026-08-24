@@ -1,11 +1,16 @@
 # Deploying by hand
 
-**Advanced.** The [Quickstart](./quickstart.md) deploys this board with
-[Coolify](https://coolify.io) and is the route most boards should take:
-same image, same four containers, same environment contract — and it
-issues the certificate and generates the secrets for you. This page is for
-whoever minds a community's machines, not for the organisers; it assumes a
-terminal, a text editor and no fear of either.
+**Advanced.** The [Quickstart](./quickstart.md) deploys a board with
+[Coolify](https://coolify.io) — since 0.17.0, a board of your own rather
+than this repository's own image, which is what lets
+[the marketplace](./marketplace.md) actually install into it — and is the
+route most boards should take: same four containers, same environment
+contract either way, and it issues the certificate and generates the
+secrets for you. This page deploys **this repository's own stock board**
+instead, by hand — same shape, no panel — for whoever minds a community's
+machines, not for the organisers; it assumes a terminal, a text editor and
+no fear of either. Want your own board's shape without the panel? Skip to
+[Custom boards](#custom-boards).
 
 This page is the same board without the panel: the compose file, a `.env`
 you write, and a reverse proxy you already run. Take it if:
@@ -309,10 +314,10 @@ can jump in one go.
 ## Building somewhere else
 
 On a 1 GB server the Next build can run out of memory. The shortest fix
-is to not build at all: every release publishes the image the Quickstart
-deploys — multi-arch, boot-tested in every role — so replace each
-`build:` block in the compose file with
-`image: ghcr.io/meith-dev/meith:0.6.0` and everything else is unchanged.
+is to not build at all: every release publishes this project's own image
+— multi-arch, boot-tested in every role — so replace each `build:` block
+in the compose file with `image: ghcr.io/meith-dev/meith:0.6.0` and
+everything else is unchanged.
 
 Pin the exact version: a floating tag turns the next incidental
 `docker compose pull` into an unplanned upgrade. Upgrading is then
@@ -329,16 +334,26 @@ drift apart, and why there is no second Dockerfile.
 Everything above deploys **this board** — the stock one, whatever plugins
 and themes `apps/community`'s own `community.config.ts` compiles in.
 Installing a third-party plugin does not mean forking this repository:
-`npx create-meith <name>` scaffolds a small workspace of its own —
-`package.json`, `community.config.ts`, `board.plugins.json` — that depends
-on the published `@meith/web` and `@meith/cli` packages instead, and comes
-with its own deploy kit already written: `Dockerfile`, `compose.yml` and
-`.github/workflows/build.yml`. See [Consuming the board from a
-workspace](./development.md#consuming-the-board-from-a-workspace) for the
-mechanism (`forum-web`/`community` — the same bins this repository's own
-image is built through, see [the stock board](./architecture.md#the-stock-board))
-and [the plugin API](./plugin-api.md) for installing a plugin once the
-workspace exists.
+
+```sh
+curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- <name>
+```
+
+scaffolds a small workspace of its own — `package.json`,
+`community.config.ts`, `board.plugins.json` — that depends on the
+published `@meith/web` and `@meith/cli` packages instead, and comes with
+its own deploy kit already written: `Dockerfile`, `docker-compose.yml` and
+`.github/workflows/build.yml`, plus a git repository already initialized
+and staged. `npx create-meith <name>` does the identical thing for anyone
+who already has Node.js and would rather use it, and clicking **Use this
+template** on [meith-dev/template](https://github.com/meith-dev/template)
+does it with no local tooling at all — GitHub creates the repository and
+its first commit directly. See [Consuming the board
+from a workspace](./development.md#consuming-the-board-from-a-workspace)
+for the mechanism (`forum-web`/`community` — the same bins this
+repository's own image is built through, see [the stock
+board](./architecture.md#the-stock-board)) and [the plugin
+API](./plugin-api.md) for installing a plugin once the workspace exists.
 
 The "server pulls an image; something else builds it" promise this
 document stands behind carries over to a custom board, with one
@@ -346,23 +361,28 @@ difference: instead of a release publishing `ghcr.io/meith-dev/meith`, an
 operator's own GitHub Actions build their own board and push it to their
 own registry. Three steps:
 
-1. **Push the scaffolded repository to GitHub.** Its
+1. **Push the scaffolded repository to GitHub.** `create-meith` already
+   initialized it and staged every file, so this is a commit and a push,
+   not a `git init` — see [Development § Consuming the board from a
+   workspace](./development.md#consuming-the-board-from-a-workspace).
    `.github/workflows/build.yml` builds `Dockerfile` on every push to
    `main` and pushes the image to `ghcr.io/<you>/<board>` — the automatic
    `GITHUB_TOKEN` every workflow run already carries is enough; there is no
-   secret to add. The resulting package starts **private** — make it public
-   (its own Settings → Change visibility), the same one-time step
-   [Releasing](./release.md#the-first-release) describes for
-   `ghcr.io/meith-dev/meith`, or Coolify's pull fails with an
-   authentication error no operator can act on.
-2. **Point Coolify at the scaffolded repository's `compose.yml`**, the same
-   way the [Quickstart](./quickstart.md) points it at this one — a Docker
-   Compose resource, that repository as its source. It carries the same
+   secret to add. The run's own **Summary** tab, once it finishes, prints
+   the exact image for step 2 and a direct link to the one-time step of
+   making the resulting package public — it starts **private**, and
+   Coolify's pull fails with an authentication error no operator can act
+   on until that is done.
+2. **Point Coolify at the scaffolded repository** — a Docker Compose
+   resource, that repository as its source, the same mechanics the
+   [Quickstart](./quickstart.md#3-set-your-domain-and-deploy) walks through
+   step by step for the same scaffold. `docker-compose.yml` is named for
+   Coolify's own default, so there is no path to type; it carries the same
    Coolify magic variables `docker/compose.coolify.yml` does for
-   `AUTH_SECRET`, `TICK_SECRET` and the database password; the one thing it
-   cannot generate is the image step 1 just pushed, so the operator sets
-   `MEITH_IMAGE` once, in the resource's own environment — the compose file
-   refuses to start without it, with a message saying so.
+   `AUTH_SECRET`, `TICK_SECRET` and the database password. The one thing it
+   cannot generate is the image step 1's Summary just printed, so the
+   operator sets `MEITH_IMAGE` once, in the resource's own environment —
+   the compose file refuses to start without it, with a message saying so.
 3. **Redeploy, then run `/install`** on the operator's own domain —
    identical to [Quickstart § Run the installer](./quickstart.md#4-run-the-installer).
    Every push to `main` after this rebuilds the image; Coolify's own
@@ -381,13 +401,16 @@ itself on every release (`docker/Dockerfile.base`). A scaffolded board's
 own `Dockerfile` only ever installs its own delta on top of that already-warm
 layer — a newly added plugin's own dependency, typically nothing more —
 which is what keeps "add a plugin, redeploy" a build of minutes rather than
-a cold toolchain build every time. The base image's pin and the `@meith/*`
-dependency versions in the scaffolded `package.json` move together, by
-hand, on an upgrade; `create-meith`'s own generated README documents the
+a cold toolchain build every time. The base image's tag is not written into
+the scaffolded `Dockerfile` at all: `FROM` takes it as a build argument,
+and `.github/workflows/build.yml` reads the value straight out of
+`package.json`'s own `@meith/web` dependency on every build — so an
+upgrade is that one line in `package.json`, never a second pin to remember
+in `Dockerfile` too; `create-meith`'s own generated README documents the
 exact commands.
 
 `@meith/worker` is not published, so a scaffolded board's image carries no
-compiled worker binary — its `compose.yml`'s own `worker` service drives
+compiled worker binary — its `docker-compose.yml`'s own `worker` service drives
 the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)
 describes instead: a small loop against `/api/system/tick`, needing nothing
 this image does not already expose.

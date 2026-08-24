@@ -2,18 +2,24 @@
 
 You do not need to be a programmer to set up a Meith board. This page is
 written for whichever volunteer drew the short straw: if you can rent a
-server, point a domain at it and paste one command, it takes you from
-nothing to a board the whole community can reach — on your own domain, over
-HTTPS — in about twenty minutes. Nothing is built on your server: the
-deploy pulls the released image.
+server, point a domain at it, and follow along, it takes you from
+nothing to a board the whole community can reach — on your own domain,
+over HTTPS — in about twenty minutes. Nothing is built on your server:
+the deploy pulls an image GitHub built for you, and step 2 offers a route
+that needs nothing installed on your own computer at all — not even a
+terminal.
 
 This is the guided route, and the one most boards should take:
 [Coolify](https://coolify.io) is a free panel you install on your server
-once, and everything after it is a browser. If whoever minds your machines
-would rather run the compose file and a reverse proxy themselves, take
-[Deploying by hand](./self-hosting.md) — same board, same image, more
-work. If you only want to read the code or write a theme,
-[Development](./development.md) runs it on your laptop in two commands.
+once, and everything after it is a browser. It deploys a small board of
+your own rather than this repository directly — the reason is
+[the marketplace](./marketplace.md): a board built this way is yours from
+the first deploy, so a plugin or theme worth installing later is a real
+install, not a dead end. If whoever minds your machines would rather run
+the compose file and a reverse proxy themselves, take
+[Deploying by hand](./self-hosting.md) — same shape, more work. If you only
+want to read the code or write a theme, [Development](./development.md)
+runs it on your laptop in two commands.
 
 **You need:**
 
@@ -22,6 +28,7 @@ work. If you only want to read the code or write a theme,
 | **A server** | Rented in the community's name, from any provider, for a few euro a month. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
 | **A domain** | With an `A` record already pointing at the server's IP — the certificate step needs it resolving. Your registrar's control panel does this. |
 | **SSH** | Root, once, to install the panel. The terminal appears in step 1 and never again. |
+| **A GitHub account** | Free. Your board's own repository lives there, and GitHub's own runners build its image — no software of yours involved. |
 
 ## 1. Install Coolify
 
@@ -56,37 +63,113 @@ same proxy that will serve your board — worth doing before you close 8000.
 > what make this deploy ask you for nothing. The install script gives you
 > the current version; an older existing install needs updating first.
 
-## 2. Point it at the board
+## 2. Create your board
+
+Three ways to get there — pick whichever matches what you have to hand.
+All three end up in the same place: a repository on GitHub with the
+deploy kit already in it.
+
+- **Rather not open a terminal at all?** Click **Use this template** on
+  [meith-dev/template](https://github.com/meith-dev/template), name your
+  new repository, and skip straight to [step
+  3](#3-set-your-domain-and-deploy) — GitHub creates the repository and
+  its first commit for you, no local anything required.
+- **Have a terminal, nothing installed?**
+
+  ```sh
+  curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board
+  ```
+
+- **Already have Node.js and reach for `npx`?**
+
+  ```sh
+  npx create-meith my-board
+  ```
+
+If you used one of the two commands, pick `my-board`'s replacement now —
+the name of the directory it writes and, once you push it, of the
+repository on GitHub. (The template route asks for this itself, at the
+point you click through.) It is not the board's display name (the
+installer asks for that later, in [step
+4](#4-run-the-installer)), so it does not have to be pretty, only lower-case
+with no spaces.
+
+The two commands write an identical small workspace into `./my-board` —
+`package.json`, `community.config.ts`, and a deploy kit of its own:
+`Dockerfile`, `docker-compose.yml` and `.github/workflows/build.yml` —
+the same files the template repository already has. All three depend on
+the published `@meith/web` and `@meith/cli` packages rather than
+containing a copy of this repository, and this is what turns "installing
+a plugin" from a fork of this project into `npm install` and a line in a
+config file — see [Self-hosting § Custom
+boards](./self-hosting.md#custom-boards) for the mechanism.
+
+**If you used curl or npx:** the command also initialized a git
+repository in `./my-board` and staged every file, so the only commands
+left are the ones only you can fill in — it prints them back to you,
+ready to paste:
+
+```sh
+cd my-board
+git commit -m "Scaffold my-board"
+git remote add origin https://github.com/<you>/my-board.git
+git push -u origin main
+```
+
+Create that empty repository on GitHub first — **New repository**, no
+README, no `.gitignore` — then run the four lines above. (Skip this whole
+part if you used the template — GitHub already did it.)
+
+`.github/workflows/build.yml`, already written, builds `Dockerfile` on
+GitHub's own runners the moment `main` has something pushed to it — for
+the template route, that means the moment GitHub finishes creating your
+repository — and pushes the result to `ghcr.io/<you>/my-board`, using
+only the `GITHUB_TOKEN` every Actions run already carries. No Docker on
+your computer, no registry account beyond the GitHub account you already
+have.
+
+> [!IMPORTANT]
+> **Before moving on**, once that run finishes:
+>
+> 1. Open it, and click its **Summary** tab.
+> 2. Copy the image value it shows — you'll paste it into Coolify in
+>    [step 3](#3-set-your-domain-and-deploy).
+> 3. Click the link under **make the package public**, and do that now.
+>    It only takes a click, and skipping it means Coolify fails to pull
+>    the image later with a confusing error, so it's easier to handle
+>    here while you're already on the page.
+
+## 3. Set your domain and deploy
 
 In the panel: **New Resource → Docker Compose → Public Repository**.
 
 | Field | Value |
 |---|---|
-| Repository | `https://github.com/meith-dev/meith` |
-| Branch | `release` |
-| Compose file | `/docker/compose.coolify.yml` |
+| Repository | `https://github.com/<you>/my-board` |
+| Branch | `main` |
 
-`release`, not `main`: the `release` branch moves when a version is
-released and at no other time, so what you deploy is a release that has
-been built, boot-tested in every role and published — never whatever
-`main` held that afternoon. The compose file pulls that release's image
-from the registry; your server builds nothing.
-
-> [!IMPORTANT]
-> The compose file path is the one field worth checking twice. Coolify
-> defaults to `/docker-compose.yml`, which does not exist in this
-> repository, so leaving the default fails fast with file-not-found. The
-> neighbouring `/docker/compose.yml` is the *other* deployment shape: it
-> expects a `.env` you have not written, so picking it stops the deploy
-> with `required variable AUTH_SECRET is missing a value`. Either way the
-> fix is the file path, not the error it names.
-
-## 3. Set your domain and deploy
+Coolify finds `docker-compose.yml` on its own — that is the one field
+worth knowing you don't have to touch.
 
 Coolify offers a generated domain and accepts your own. Put yours in — the
-one whose `A` record points at this server — and press deploy.
+one whose `A` record points at this server.
 
-The first deploy pulls the image and takes a minute or two. Four
+Before you press deploy, set one thing the compose file has no default
+for: open the resource's **Environment Variables**, add `MEITH_IMAGE`,
+and paste in the first value step 2's Actions run Summary printed —
+`ghcr.io/<you>/my-board:latest`. The compose file refuses to start
+without it.
+
+> [!NOTE]
+> **Why this matters later, not now.** That Summary also printed a second
+> value ending in a long code instead of `:latest`. Using it instead is
+> worth doing once the board is live and you care about upgrades happening
+> only when you choose, not on their own — see [Self-hosting § Custom
+> boards](./self-hosting.md#custom-boards) when you get there. For getting
+> the board up today, the `:latest` value above is the right one; nothing
+> below depends on which you picked.
+
+Now press deploy. It pulls the image and takes a minute or two. Four
 containers come up, in order:
 
 | Container | What it does |
@@ -94,7 +177,7 @@ containers come up, in order:
 | `postgres` | The database. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. The next two wait for it, so the code never runs against a schema behind it. |
 | `web` | The board itself. |
-| `worker` | The background tick, on its own one-minute loop. Its first tick runs every scheduled task once to catch up — a long `ran` list in that log is it working, not failing. |
+| `worker` | Not the compiled tick process — `@meith/worker` is not published, so a board built this way calls `/api/system/tick` from a small loop instead. The catch-up it triggers still runs inside `web`, so `web`'s log, not this container's, is where a long `ran` list shows it working. This container only logs on failure. |
 
 Four things happen without your involvement, and they are the reason this
 route exists:
@@ -108,31 +191,12 @@ route exists:
 - **The certificate is issued and renewed** by Coolify's proxy.
 - **Nothing is published on the host**, so the proxy is the only way in.
 
-### Pin the version, so nothing upgrades this board without you
-
-One more minute here saves a surprise later. The compose file names the
-exact version to deploy, and each release moves that pin on the
-`release` branch — but Coolify re-reads the file from the branch every
-time it deploys the resource, and on this kind of resource the
-**Restart** button is a deploy too. Left unpinned, pressing Restart
-after a release has come out is an unplanned upgrade, database
-migrations included.
-
-So pin it to the resource: open the resource's **Environment Variables**
-and add `MEITH_IMAGE`, set to the exact image that just deployed —
-`ghcr.io/meith-dev/meith:` and the version, which the deploy log's first
-lines print (e.g. `ghcr.io/meith-dev/meith:0.11.0`). That value wins
-over the compose file, so from now on every button re-creates the
-version you pinned and nothing else. Upgrading becomes a deliberate act
-— back up, move `MEITH_IMAGE` to the new version, press Redeploy — and
-[Upgrading a board](./upgrading.md#upgrading-each-deployment-route) is
-the page for it.
-
-The same tab tunes the containers' resource ceilings, which default to a
-small VPS: `WEB_MEM_LIMIT`, `WEB_CPUS`, `POSTGRES_MEM_LIMIT`,
-`POSTGRES_CPUS`, `WORKER_MEM_LIMIT` and `WORKER_CPUS` override the
-compose file's defaults the same way `MEITH_IMAGE` does, so a larger
-server is a variable on the resource, never an edit to the file.
+The same **Environment Variables** tab tunes the containers' resource
+ceilings, which default to a small VPS: `WEB_MEM_LIMIT`, `WEB_CPUS`,
+`POSTGRES_MEM_LIMIT`, `POSTGRES_CPUS`, `WORKER_MEM_LIMIT` and
+`WORKER_CPUS` override the compose file's defaults the same way
+`MEITH_IMAGE` does, so a larger server is a variable on the resource,
+never an edit to the file.
 
 ## 4. Run the installer
 
@@ -341,13 +405,14 @@ can fix and retry:
 
 | What you see | What it is |
 |---|---|
-| The deploy fails before any container starts, naming `AUTH_SECRET` or `TICK_SECRET` | Almost always the wrong compose file. It has to be `/docker/compose.coolify.yml` — `/docker/compose.yml` expects a `.env` that does not exist here. |
+| The deploy fails before any container starts, complaining that `MEITH_IMAGE` is unset | You skipped setting it before deploying, or it is set on the wrong resource — [step 3](#3-set-your-domain-and-deploy). The compose file will not guess an image for you. |
+| The deploy fails pulling the image, with an authentication error | The GHCR package is still private — [step 2](#2-create-your-board)'s note on making it public. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
-| The worker logs `worker started` every few seconds | It is crash-looping; the throw is in the log above each restart. |
+| The `worker` container logs `tick failed` repeatedly | The board it is calling is not answering — check `web`'s own log first; the loop container has no logic of its own to break. |
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
 | Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
-| Nothing happens on a schedule | The `worker` container is not running. Every background task is on that loop, and when it stops **nothing errors** — see `/admin/system`. |
-| The board is on a newer version than you deployed | **Restart** and **Redeploy** both re-run the deployment from the `release` branch, which a release has moved since. Pin `MEITH_IMAGE` on the resource — [step 3](#pin-the-version-so-nothing-upgrades-this-board-without-you) — and neither button can do it again. |
+| Nothing happens on a schedule | The `worker` container is not running, so nothing is calling `/api/system/tick` — see `/admin/system`. |
+| The board is on a newer version than you deployed | `MEITH_IMAGE` is still on the mutable `:latest` tag, and a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. Move `MEITH_IMAGE` to a commit-sha tag instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it again on its own. |
 
 [Running a board § Troubleshooting](./operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.
@@ -363,6 +428,7 @@ people doing those jobs.
 | Hand it to whoever runs the community | [The organiser's guide](./organiser-guide.md) |
 | Hand the queue to the moderators | [The moderator's guide](./moderation-guide.md) |
 | Take memberships online | [The memberships guide](./membership-guide.md) |
+| Browse and install a plugin or theme somebody else built | [The marketplace](./marketplace.md) |
 | Run the server day to day | [Running a board](./operating.md) |
 | Take it from one version to the next | [Upgrading a board](./upgrading.md) |
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |

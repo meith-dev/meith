@@ -164,7 +164,7 @@ docker compose run --rm web community board:eject /data/my-board
 `/data/my-board` becomes a complete workspace: `package.json` pinned to
 *this image's exact release version* — never `latest`, so graduating is
 never a surprise upgrade — the full deploy kit (`Dockerfile`,
-`compose.yml`, `.github/workflows/build.yml`, described in full in
+`docker-compose.yml`, `.github/workflows/build.yml`, described in full in
 [Self-hosting § Custom boards](./self-hosting.md#custom-boards)),
 `board.plugins.json` matching what this build actually compiled in, and
 `community.config.ts` matching the stock configuration. It refuses to
@@ -190,8 +190,8 @@ branch is pushed to.
 From here it is the same three-step deploy [Self-hosting § Custom
 boards](./self-hosting.md#custom-boards) describes for any scaffolded
 board: make the GitHub package public (it starts private), point Coolify
-at the new repository's `compose.yml` and set `MEITH_IMAGE` to the image
-step 2 just pushed, then redeploy.
+at the new repository — it finds `docker-compose.yml` on its own — and
+set `MEITH_IMAGE` to the image step 2 just pushed, then redeploy.
 
 ### What does not move
 

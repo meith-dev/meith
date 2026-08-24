@@ -12,12 +12,19 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "bin": {
-    "create-meith": "./src/bin.ts"
+    "create-meith": "./dist/bin.mjs"
   },
   "files": [
+    "dist",
     "src",
     "!src/**/*.test.*"
   ],
+  "scripts": {
+    "build": "esbuild --bundle --platform=node --format=esm --target=node22 src/bin.ts --outfile=dist/bin.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
   "publishConfig": {
     "access": "public"
   }

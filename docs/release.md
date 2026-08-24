@@ -56,14 +56,20 @@ them names a different version, it runs in `pnpm verify` and CI, and the
 release workflow runs it with `--tag` so a tag that disagrees with its tree
 is refused before anything is built.
 
-One more file carries the version, and it is generated rather than
+Two more files carry the version, and both are generated rather than
 checked: `docs/openapi.json` stamps the release version as its
-`info.version`. It is not a `release-check` constant — a stale value is
-caught by `pnpm api:docs:check` instead — so `pnpm release:bump`
-regenerates it (via `pnpm api:docs`) in the same run that moves the
-version, and the release commit carries the fresh document. Before that,
-a bump left the schema at the previous version and CI failed at
-`api:docs:check` on the release commit.
+`info.version`, and `apps/web/public/create-board.sh` — the installer
+[the Quickstart](./quickstart.md#2-create-your-board) points operators at
+instead of `npx create-meith`, so nobody needs Node.js on their own
+machine — bakes it into the `@meith/web`/`@meith/cli`/`@meith/theme-default`
+dependency versions it writes for a new board. Neither is a
+`release-check` constant — a stale value is caught by `pnpm
+api:docs:check` and `pnpm board-installer:gen:check` instead — so `pnpm
+release:bump` regenerates both (`pnpm api:docs`, `pnpm board-installer:gen`)
+in the same run that moves the version, and the release commit carries the
+fresh documents. Before that, a bump left them at the previous version and
+CI failed at `api:docs:check` or `board-installer:gen:check` on the
+release commit.
 
 The image additionally carries the version as `MEITH_VERSION` (an
 environment variable and OCI labels, stamped by the workflow). A local
@@ -421,6 +427,20 @@ set:
 - a theme or plugin needs a Tailwind `@source` entry for its
   `node_modules` path, or its class names are silently dropped from the
   stylesheet and its pages render unstyled with no error anywhere.
+
+The one package this does not describe is `create-meith`: its published
+`bin` runs under plain `node`, invoked by `npx` — never inside a board's
+Next build, so there is no bundler on the other end to compile it from
+source the way a theme or plugin is. Node's own native TypeScript support
+refuses to strip types for a file under `node_modules`
+(`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), which is where npm always
+installs a package before running its bin — so a `bin` entry pointing at
+raw `.ts` fails for every real `npx create-meith`, even though it runs
+fine from this repository's own tsx-driven tooling, where the failure
+would never surface. `create-meith`'s own `pnpm build` (esbuild, bundling
+`src/bin.ts` to `dist/bin.mjs`) is the one dist step in the published set,
+and the release workflow's `npm` job runs it — the only package-specific
+build step there — immediately before `node scripts/npm-publish.mjs`.
 
 ### The set is closed, and closing it is the cost of publishing
 

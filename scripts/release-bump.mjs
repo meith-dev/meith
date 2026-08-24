@@ -89,9 +89,11 @@ for (const { file, pattern } of REWRITES) {
 }
 
 execFileSync('pnpm', ['api:docs'], { cwd: ROOT, stdio: 'inherit' })
+execFileSync('pnpm', ['board-installer:gen'], { cwd: ROOT, stdio: 'inherit' })
 
 console.log(
   `✓ release bump: ${current} → ${version} in the root manifest, ${manifests} workspace manifests, ` +
     `${SOURCE_CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
-    'the compose pin, and the generated OpenAPI document. Run release-check, then commit.',
+    'the compose pin, the generated OpenAPI document, and the generated board installer script. ' +
+    'Run release-check, then commit.',
 )
