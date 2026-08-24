@@ -601,8 +601,8 @@ With no \`DATABASE_URL\`, the board runs on deterministic in-memory sample data 
 enough to click through every reading surface. Posting needs a database:
 
 \`\`\`sh
-npm run forum -- migrate
-npm run forum -- user:create --admin
+npm run community -- migrate
+echo "<password>" | npm run community -- user:create --username <name> --email <address> --group administrators
 \`\`\`
 
 ## Configuring
@@ -613,7 +613,7 @@ npm run forum -- user:create --admin
 - **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **\`npm run forum -- --help\`** — the operator CLI. Everything the panel does
+- **\`npm run community -- --help\`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
 
 ## Upgrading
@@ -629,7 +629,7 @@ That one \`package.json\` change is the whole pin: \`Dockerfile\`'s own
 \`.github/workflows/build.yml\` reads it straight out of \`package.json\`'s
 own \`@meith/web\` dependency when it rebuilds — nothing in \`Dockerfile\`
 itself to keep in sync by hand. Once the rebuilt image is deployed, run
-\`npm run forum -- upgrade\` against it for the plugin migrations — see
+\`npm run community -- upgrade\` against it for the plugin migrations — see
 [the operator CLI](${repositoryUrl}/blob/main/docs/operating.md#the-operator-cli)
 for running it against this deployment.
 

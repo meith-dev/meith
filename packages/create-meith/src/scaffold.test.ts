@@ -66,6 +66,14 @@ describe('what the scaffold writes', () => {
     expect(readme).toMatch(/task:run/)
   })
 
+  it('only documents operator commands through the script the scaffold actually defines', () => {
+    const manifest = JSON.parse(files.get('package.json')!)
+    const readme = files.get('README.md')!
+    expect(readme).not.toContain('npm run forum')
+    expect((readme.match(/npm run community --/g) ?? []).length).toBeGreaterThanOrEqual(4)
+    expect(manifest.scripts.community).toBeDefined()
+  })
+
   it('names every required secret in the env template, with no value', () => {
     const env = files.get('.env.example')!
     for (const key of ['DATABASE_URL', 'AUTH_SECRET', 'TICK_SECRET']) {
