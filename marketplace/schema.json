@@ -73,7 +73,7 @@
     "licence": {
       "type": "string",
       "minLength": 1,
-      "description": "The listed package's licence. Checked for compatibility during review, not by the generator — see docs/marketplace.md."
+      "description": "The listed package's licence. Checked during review for being open and truthfully named, not by the generator — see docs/marketplace.md."
     }
   }
 }
