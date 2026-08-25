@@ -129,7 +129,7 @@ LABEL org.opencontainers.image.title="Meith" \
       org.opencontainers.image.source="https://github.com/meith-dev/meith" \
       org.opencontainers.image.version=$MEITH_VERSION \
       org.opencontainers.image.revision=$MEITH_COMMIT \
-      org.opencontainers.image.licenses="LGPL-3.0-or-later"
+      org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

@@ -18,7 +18,7 @@ function duesListing(version = '0.16.0'): MarketplaceListing {
     apiVersion: 0,
     meith: '>=0.16 <1',
     repository: 'https://github.com/meith-dev/meith',
-    licence: 'LGPL-3.0-or-later',
+    licence: 'MIT',
   }
 }
 

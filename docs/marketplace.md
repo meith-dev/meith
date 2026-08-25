@@ -30,7 +30,7 @@ values:
   "apiVersion": 1,
   "meith": ">=1.0 <3",
   "repository": "https://github.com/meith-dev/meith",
-  "licence": "LGPL-3.0-or-later"
+  "licence": "MIT"
 }
 ```
 
@@ -353,9 +353,11 @@ it before it is reachable by anyone.
 
 Before a listing is merged, a maintainer checks:
 
-- **The licence is compatible.** Readable by anyone installing it,
-  compatible with this project's own LGPL-3.0-or-later, and truthfully
-  named in the `licence` field.
+- **The licence is open.** Readable by anyone installing it, granting
+  the right to run and modify what it covers, and truthfully named in the
+  `licence` field. This project's own MIT licence imposes nothing on a
+  listed package, so the check is that the listing's terms are real and
+  honestly stated, not that they match ours.
 - **The code has actually been read.** Not compiled, not run — read. What
   it imports, what it sends over the network, and whether its migrations
   stay inside its own `plugin_<key>_*` namespace as
