@@ -33,26 +33,17 @@ export class PromotionService {
 
     if (rules.length === 0) return { outcomes: [], applied: write, examined: 0 }
 
-    const now = this.now()
-    const outcomes: PromotionOutcome[] = []
-    let examined = 0
-    let afterUserId = 0
+    const from = write ? await this.deps.promotions.scanCursor() : 0
+    const batch = await this.deps.promotions.candidates(from, limit)
+    const outcomes = evaluatePromotions(rules, batch, this.deps.guards, this.now())
 
-    for (;;) {
-      const batch = await this.deps.promotions.candidates(afterUserId, limit)
-      if (batch.length === 0) break
+    if (write) {
+      if (outcomes.length > 0) await this.deps.promotions.applyPromotions(outcomes)
 
-      examined += batch.length
-      outcomes.push(...evaluatePromotions(rules, batch, this.deps.guards, now))
-      afterUserId = batch[batch.length - 1]?.userId ?? afterUserId
-
-      if (batch.length < limit) break
+      const next = batch.length < limit ? 0 : (batch[batch.length - 1]?.userId ?? 0)
+      await this.deps.promotions.advanceScanCursor(next)
     }
 
-    if (write && outcomes.length > 0) {
-      await this.deps.promotions.applyPromotions(outcomes)
-    }
-
-    return { outcomes, applied: write, examined }
+    return { outcomes, applied: write, examined: batch.length }
   }
 }

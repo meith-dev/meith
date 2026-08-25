@@ -24,6 +24,48 @@ Two endpoints answer different questions, both unauthenticated (neither returns 
 
 `docker/healthcheck.sh` — the image's own `HEALTHCHECK`, driving `docker compose ps` and `depends_on: condition: service_healthy` — calls `/api/ready` for the `web` role. This board runs a single, non-clustered Postgres, so the fleet-wide-blip risk `/api/health` is deliberately blind to does not apply to the container healthcheck the way it would behind a database with automatic failover. The `worker` role has no HTTP server to probe, so its healthcheck runs the same check as a one-shot process instead: `node apps/worker/worker.cjs --ready`, which reuses the identical database-and-scheduler check.
 
+## Driving the tick over HTTP
+
+The [Compose deployment](./self-hosting.md) runs `apps/worker`, a long-lived process that ticks every 60 seconds. Where no long-lived process exists — a serverless deployment, or a board whose host only offers a cron scheduler — the same tick is available over HTTP at **`/api/system/tick`**, and an external scheduler calls it on a schedule instead. Nothing else changes: the HTTP tick runs the identical `tick()` over the identical task list, and tasks claim their work through the database (see [Architecture](./architecture.md)), so an overlapping call from a retry, a second instance, or a worker still running alongside it cannot double-process anything.
+
+`GET` and `POST` both run one tick, so a scheduler that only issues one of them works either way.
+
+### Authenticating the caller
+
+The endpoint accepts a shared secret in two variables, and **either one on its own protects it**:
+
+| Variable | Presented as | For |
+|---|---|---|
+| `TICK_SECRET` | `Authorization: Bearer <TICK_SECRET>`, or an `X-Tick-Secret` header | Any caller: `curl`, a systemd timer, a GitHub Actions workflow, an uptime pinger |
+| `CRON_SECRET` | `Authorization: Bearer <CRON_SECRET>` | [Vercel Cron](https://vercel.com/docs/cron-jobs), which sends exactly this header under exactly this variable name and cannot be told to send another |
+
+Both are compared in constant time, and a caller presenting the wrong one — or nothing — gets a plain `404`, the same answer `/api/metrics` gives an unauthenticated scraper: the endpoint does not admit it exists.
+
+Set whichever the scheduler in front of the board can actually send. Setting both is fine and is how a board moves from one to the other without downtime — during the overlap either is accepted. The secret is never read from the query string; a caller that puts it there is refused and told so in the log.
+
+With **neither** set, the tick runs unauthenticated and logs a warning on every call. That is a development affordance and nothing else: in production the board refuses to boot unless at least one of the two is set, the same way it refuses to boot without `AUTH_SECRET`.
+
+### What the answer means
+
+```json
+{ "ok": true, "ran": [ { "taskId": "outbox.relay", "status": "ran", "durationMs": 12 } ], "registered": 21 }
+```
+
+| Status | Meaning | What a scheduler should do |
+|---|---|---|
+| `200`, `ok: true` | Every task the tick reached ran or was skipped because it was not due | Nothing |
+| `200`, `ok: false` | The tick itself completed; at least one task in `ran` has `status: "failed"` with its `error` | Nothing automatic — look at the failing `taskId` |
+| `404` | The secret was wrong or absent | Fix the secret; retrying will not help |
+| `503` | This board has no scheduler, because `DATA_SOURCE=fixture`. A tick needs durable, cross-instance state to guarantee a task is not run twice | Nothing; a fixture board has no work to do |
+
+**A failed task is deliberately not an error status.** A tick that reached the tasks and ran them did its job, even when one of those tasks threw — so the response is `200` with `ok: false` rather than a `5xx`. The reason is the retry behaviour on the other side: schedulers retry non-2xx responses, and a task that fails every time it runs would turn each retry into another attempt, tight-looping a poisoned task and hammering whatever it fails against. A failing task instead surfaces where failures are meant to surface — the `system.task_failed` administrator notification, `meith_task_runs_total{status="error"}`, the admin panel's System Health page, and `/api/ready`'s `scheduler.failing` — while the scheduler simply calls again on its next scheduled tick. Only a genuinely unusable endpoint (`404`, `503`) answers outside the 2xx range.
+
+### Cadence
+
+Every task carries its own `intervalSeconds` and is skipped when it is not due, so calling the endpoint more often than the shortest interval costs a claim query per task and nothing else. Calling it *less* often than 60 seconds does not break anything either — tasks are written so that a missed run delays work rather than losing it — but it does stretch the latency of everything the shortest-interval tasks drive: relaying domain events onto the queue, draining that queue, and the "as it happens" subscription notifications, all of which want 60 seconds. At an hourly cadence a reply notification can be an hour late; at a daily one, a day. Nothing is lost, but "instant" stops meaning instant.
+
+The route declares `maxDuration = 300`, so a host that reads Next.js's build output (Vercel does) allows a long tick rather than cutting it off at a default. That ceiling is chosen to cover the worst case: the per-minute tasks' own budgets — webhook delivery's 240 seconds being much the largest — can add up to roughly six minutes if every one of them runs to its limit in the same tick, and each task is aborted at its own budget regardless. A tick killed mid-run leaves its claims to expire after 15 minutes, and the next tick picks the work up.
+
 ## Metrics
 
 Off by default. Turn it on with:
@@ -97,6 +139,7 @@ To get logs into a log aggregator, point a collector at the container runtime ra
 |---|---|
 | Is the process alive? | `/api/health` |
 | Can the board do its job? | `/api/ready`, and the container healthchecks it drives |
+| Can the board run scheduled work without a worker process? | `/api/system/tick`, called by a cron scheduler |
 | What are current numbers? | `/api/metrics` (`METRICS_ENABLED=1`) |
 | Where did this request's time go? | Tracing (`OTEL_ENABLED=1`) |
 | What happened, in order? | Structured logs, shipped from the container runtime |

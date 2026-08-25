@@ -8,16 +8,23 @@ import { bearerSecret, secretMatches } from '@/server/secret-auth'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const maxDuration = 300
 
 const SECRET_HEADER = 'x-tick-secret'
 
-function authorised(request: Request): boolean {
-  const expected = env.TICK_SECRET
+function accepted(): string[] {
+  return [env.TICK_SECRET, env.CRON_SECRET].filter(
+    (candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0,
+  )
+}
 
-  if (!expected) {
+function authorised(request: Request): boolean {
+  const expected = accepted()
+
+  if (expected.length === 0) {
     logger().warn(
-      'TICK_SECRET is not set; the tick endpoint is unauthenticated. This is ' +
-        'permitted in development only.',
+      'Neither TICK_SECRET nor CRON_SECRET is set; the tick endpoint is unauthenticated. This is' +
+        ' permitted in development only.',
     )
     return true
   }
@@ -28,7 +35,14 @@ function authorised(request: Request): boolean {
     )
   }
 
-  return secretMatches(bearerSecret(request, SECRET_HEADER), expected)
+  const presented = bearerSecret(request, SECRET_HEADER)
+
+  let matched = false
+  for (const candidate of expected) {
+    if (secretMatches(presented, candidate)) matched = true
+  }
+
+  return matched
 }
 
 async function runTick(request: Request): Promise<NextResponse> {
@@ -60,11 +74,14 @@ async function runTick(request: Request): Promise<NextResponse> {
 
     const failed = outcomes.filter((o) => o.status === 'failed')
 
-    return NextResponse.json({
-      ok: failed.length === 0,
-      ran: outcomes,
-      registered: scheduler.tasks.length,
-    })
+    return NextResponse.json(
+      {
+        ok: failed.length === 0,
+        ran: outcomes,
+        registered: scheduler.tasks.length,
+      },
+      { status: 200 },
+    )
   })
 }
 

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const SECRET = 'tick-secret-tick-secret-tick-sec'
+const CRON = 'cron-secret-cron-secret-cron-sec'
 
-const envRef: { TICK_SECRET: string | undefined } = { TICK_SECRET: SECRET }
+const envRef: { TICK_SECRET: string | undefined; CRON_SECRET: string | undefined } = {
+  TICK_SECRET: SECRET,
+  CRON_SECRET: undefined,
+}
 const warnings: string[] = []
 
 vi.mock('@meith/core', () => ({
@@ -16,10 +20,11 @@ vi.mock('@meith/core', () => ({
 }))
 
 const ran: string[] = []
+const outcomes: { current: unknown[] } = { current: [] }
 vi.mock('@meith/tasks', () => ({
   tick: async () => {
     ran.push('tick')
-    return []
+    return outcomes.current
   },
 }))
 
@@ -38,9 +43,11 @@ function request(url: string, headers: Record<string, string> = {}): Request {
 
 beforeEach(() => {
   envRef.TICK_SECRET = SECRET
+  envRef.CRON_SECRET = undefined
   schedulerRef.current = { repository: {}, tasks: [], onTaskFailure: () => {} }
   warnings.length = 0
   ran.length = 0
+  outcomes.current = []
 })
 
 describe('the tick route', () => {
@@ -104,13 +111,93 @@ describe('the tick route', () => {
     expect(response.status).toBe(404)
   })
 
-  it('runs unauthenticated when no secret is configured, and says so', async () => {
+  it('runs unauthenticated when neither secret is configured, and says so', async () => {
     envRef.TICK_SECRET = undefined
+    envRef.CRON_SECRET = undefined
 
     const response = await POST(request(URL_BASE))
 
     expect(response.status).toBe(200)
-    expect(warnings.join('\n')).toMatch(/TICK_SECRET is not set/)
+    expect(warnings.join('\n')).toMatch(/Neither TICK_SECRET nor CRON_SECRET is set/)
+  })
+
+  it('accepts the bearer token Vercel Cron sends, which is CRON_SECRET', async () => {
+    envRef.TICK_SECRET = undefined
+    envRef.CRON_SECRET = CRON
+
+    const response = await POST(request(URL_BASE, { authorization: `Bearer ${CRON}` }))
+
+    expect(response.status).toBe(200)
+    expect(ran).toEqual(['tick'])
+  })
+
+  it('keeps accepting TICK_SECRET once CRON_SECRET is set alongside it', async () => {
+    envRef.CRON_SECRET = CRON
+
+    const response = await POST(request(URL_BASE, { authorization: `Bearer ${SECRET}` }))
+
+    expect(response.status).toBe(200)
+    expect(ran).toEqual(['tick'])
+  })
+
+  it('accepts either secret when both are set, so a move between them needs no downtime', async () => {
+    envRef.CRON_SECRET = CRON
+
+    expect((await POST(request(URL_BASE, { authorization: `Bearer ${CRON}` }))).status).toBe(200)
+    expect(ran).toEqual(['tick'])
+  })
+
+  it('still accepts the dedicated header once CRON_SECRET is set', async () => {
+    envRef.CRON_SECRET = CRON
+
+    const response = await POST(request(URL_BASE, { 'x-tick-secret': SECRET }))
+
+    expect(response.status).toBe(200)
+    expect(ran).toEqual(['tick'])
+  })
+
+  it('refuses a wrong secret even when CRON_SECRET is the only one set', async () => {
+    envRef.TICK_SECRET = undefined
+    envRef.CRON_SECRET = CRON
+
+    const response = await POST(request(URL_BASE, { authorization: 'Bearer not-the-secret' }))
+
+    expect(response.status).toBe(404)
+    expect(ran).toEqual([])
+  })
+
+  it('treats CRON_SECRET alone as protection, so it never runs unauthenticated', async () => {
+    envRef.TICK_SECRET = undefined
+    envRef.CRON_SECRET = CRON
+
+    const response = await POST(request(URL_BASE))
+
+    expect(response.status).toBe(404)
+    expect(warnings.join('\n')).not.toMatch(/unauthenticated/)
+  })
+
+  it('reports a failed task as ok:false on a 2xx, so a cron retry does not tight-loop it', async () => {
+    outcomes.current = [
+      { taskId: 'outbox.relay', status: 'ran', durationMs: 1 },
+      { taskId: 'search.reindex', status: 'failed', durationMs: 2, error: 'boom' },
+    ]
+
+    const response = await POST(request(URL_BASE, { authorization: `Bearer ${SECRET}` }))
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ ok: false })
+  })
+
+  it('reports ok:true when every task the tick reached succeeded or was skipped', async () => {
+    outcomes.current = [
+      { taskId: 'outbox.relay', status: 'ran', durationMs: 1 },
+      { taskId: 'stats.rollup', status: 'skipped', durationMs: 0 },
+    ]
+
+    const response = await POST(request(URL_BASE, { authorization: `Bearer ${SECRET}` }))
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ ok: true, registered: 0 })
   })
 
   it('reports that a board with no scheduler cannot tick', async () => {

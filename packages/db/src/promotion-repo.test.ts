@@ -6,7 +6,7 @@ import { type PromotionGuards, PromotionService } from '@meith/groups'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPromotionRepository } from './promotion-repo'
-import { cacheVersions, groupPromotions, usergroups, users } from './schema'
+import { cacheVersions, groupPromotions, promotionScanState, usergroups, users } from './schema'
 
 const REGISTERED = 2
 const ADMINS = 3
@@ -42,6 +42,7 @@ beforeEach(async () => {
   await db.delete(groupPromotions)
   await db.delete(users)
   await db.delete(cacheVersions)
+  await db.delete(promotionScanState)
 })
 
 async function addUser(
@@ -249,6 +250,64 @@ describe('rules', () => {
 
     const [outcome] = (await service().preview()).outcomes
     expect(outcome?.ruleTitle).toBe('First')
+  })
+})
+
+describe('the per-tick bound on the scan', () => {
+  it('examines at most one page of members per run', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    const result = await service().apply(2)
+
+    expect(result.examined).toBe(2)
+    expect(result.outcomes.map((o) => o.userId)).toEqual([1, 2])
+    expect(await groupOf(3)).toBe(REGISTERED)
+  })
+
+  it('resumes on the next run where the last one stopped', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    await service().apply(2)
+    const second = await service().apply(2)
+
+    expect(second.outcomes.map((o) => o.userId)).toEqual([3, 4])
+    expect(await groupOf(3)).toBe(VETERAN)
+    expect(await groupOf(5)).toBe(REGISTERED)
+  })
+
+  it('reaches every member across enough runs, then starts the next pass over', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    for (let run = 0; run < 3; run++) await service().apply(2)
+
+    for (let id = 1; id <= 5; id++) expect(await groupOf(id)).toBe(VETERAN)
+    expect(await repo.scanCursor()).toBe(0)
+  })
+
+  it('rewinds to the start once a page comes back short of the bound', async () => {
+    await addRule()
+    for (let id = 1; id <= 3; id++) await addUser(id)
+
+    await service().apply(2)
+    expect(await repo.scanCursor()).toBe(2)
+
+    await service().apply(2)
+    expect(await repo.scanCursor()).toBe(0)
+  })
+
+  it('leaves the cursor alone for a dry run, which always previews from the start', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    await service().apply(2)
+    const preview = await service().preview(2)
+
+    expect(preview.examined).toBe(2)
+    expect(preview.applied).toBe(false)
+    expect(await repo.scanCursor()).toBe(2)
   })
 })
 

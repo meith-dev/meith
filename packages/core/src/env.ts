@@ -40,6 +40,7 @@ const envSchema = z
 
     AUTH_SECRET: secret.optional(),
     TICK_SECRET: secret.optional(),
+    CRON_SECRET: secret.optional(),
 
     APP_URL: z.string().url().optional(),
 
@@ -206,14 +207,20 @@ const envSchema = z
         })
       }
 
-      for (const key of ['AUTH_SECRET', 'TICK_SECRET'] as const) {
-        if (!value[key]) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [key],
-            message: 'is required in production',
-          })
-        }
+      if (!value.AUTH_SECRET) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['AUTH_SECRET'],
+          message: 'is required in production',
+        })
+      }
+
+      if (!value.TICK_SECRET && !value.CRON_SECRET) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['TICK_SECRET'],
+          message: 'is required in production',
+        })
       }
 
       if (value.FILESTORE_DRIVER === 'local' && value.VERCEL) {

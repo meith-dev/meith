@@ -246,12 +246,15 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       description:
         'Moves users into groups whose promotion criteria they now meet. ' +
         'Evaluates current post counts and registration age rather than tracking ' +
-        'thresholds crossed, so a missed run catches up on the next tick.',
+        'thresholds crossed, so a missed run catches up on the next tick, and' +
+        ' reads a bounded page of members per run, resuming from where the last' +
+        ' one stopped so that a large board is walked across several ticks' +
+        ' rather than scanned in one run.',
       descriptionKey: 'adminSystem.task.promotionsApply.description',
-      intervalSeconds: 21_600,
+      intervalSeconds: 3_600,
       maxDurationSeconds: 60,
       async run() {
-        const promoted = await workers.applyPromotions(500)
+        const promoted = await workers.applyPromotions(10_000)
         return { detail: { promoted } }
       },
     },

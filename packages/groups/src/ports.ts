@@ -7,6 +7,10 @@ export interface PromotionRepository {
   candidates(afterUserId: number, limit: number): Promise<readonly PromotionCandidate[]>
 
   applyPromotions(outcomes: readonly PromotionOutcome[]): Promise<void>
+
+  scanCursor(): Promise<number>
+
+  advanceScanCursor(afterUserId: number): Promise<void>
 }
 
 export interface PromotionRuleRepository {

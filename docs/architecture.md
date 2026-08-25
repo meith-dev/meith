@@ -120,7 +120,9 @@ The worker refuses to start in fixture mode because background work must be dura
 
 ## Background work
 
-`apps/worker` loads the runtime task bundle and calls the scheduler every 60 seconds. Tasks claim work through repositories so retries and overlapping ticks do not process the same item twice.
+`apps/worker` loads the runtime task bundle and calls the scheduler every 60 seconds. Tasks claim work through repositories so retries and overlapping ticks do not process the same item twice. Where there is no long-lived process to run that loop, `/api/system/tick` runs exactly one tick over HTTP and a cron scheduler calls it instead — see [Monitoring](./monitoring.md#driving-the-tick-over-http).
+
+Every task caps the work it takes on in a single tick, so the cost of one tick is bounded by that cap rather than by how far behind the board has fallen: what a task does not reach is left for the next tick. A task that walks the whole membership or the whole post table does it a page at a time across successive ticks, resuming from a stored cursor, rather than scanning the table in one run.
 
 A stopped worker does not usually crash the web process. Instead, queued mail and scheduled work stop progressing. Operations must monitor both roles.
 

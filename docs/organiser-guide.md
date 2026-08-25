@@ -328,7 +328,7 @@ grants is spelled out in
 
 Promotions that members *earn* — a "Veteran" group at 500 posts — can be
 automated under **Admin → Groups → Promotions**; the screen previews
-exactly who a rule would move before you enable it. See
+who a rule would move before you enable it. See
 [Running a board § Promotions](./operating.md#promotions).
 
 ### When somebody steps back
