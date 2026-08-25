@@ -241,11 +241,16 @@ async function main() {
 
     console.log(`- ${dryRun ? 'would publish' : 'publishing'} ${name}@${version}`)
 
-    const publish = spawnSync(
-      'npm',
-      ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
-      { cwd: join(ROOT, dir), stdio: 'inherit' },
-    )
+    if (dryRun) {
+      await rm(tarball, { force: true })
+      published += 1
+      continue
+    }
+
+    const publish = spawnSync('npm', ['publish', tarball, '--access', 'public'], {
+      cwd: join(ROOT, dir),
+      stdio: 'inherit',
+    })
     await rm(tarball, { force: true })
 
     if (publish.status !== 0) {

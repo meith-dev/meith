@@ -17,8 +17,12 @@ import { CODE_VERSION } from './upgrade'
  * bundled `dist/cli.cjs` does not sit at that same distance — Docker's own
  * `COPY apps/cli/dist/ ./apps/cli/` drops the `dist` segment.
  */
-const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
-const DEFAULT_MANIFEST_PATH = join(ROOT, 'boards/stock/board.plugins.json')
+function defaultManifestPath(): string {
+  return join(
+    fileURLToPath(new URL('../../../', import.meta.url)),
+    'boards/stock/board.plugins.json',
+  )
+}
 
 interface ManifestEntry {
   readonly key: string
@@ -31,7 +35,7 @@ interface Manifest {
 }
 
 function manifestPath(): string {
-  return process.env.BOARD_PLUGINS_MANIFEST ?? DEFAULT_MANIFEST_PATH
+  return process.env.BOARD_PLUGINS_MANIFEST ?? defaultManifestPath()
 }
 
 /**

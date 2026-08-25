@@ -320,6 +320,15 @@ failing anything inside this repository. Each package is packed by
 `pnpm` — which rewrites the `workspace:` ranges into real ones — and
 published by the `npm` CLI, which is what implements trusted publishing.
 
+A dry run stops at the packing and the tarball check: it never reaches
+the registry. That is what makes it a gate a pull request can run at all
+— the tree between releases carries a version that is already published,
+so asking `npm publish --dry-run` about it would be told, correctly, that
+the version cannot be published over, on every package, every time.
+Nothing is lost by stopping earlier, because the failure this catches is
+a local disagreement between a manifest and the tarball its own `files`
+allowlist produces.
+
 CI's `static` job runs the dry run on every push and pull request
 (`.github/workflows/ci.yml`), building `create-meith`'s `dist` first —
 release.yml's `npm` job orders the same two steps the same way, since the

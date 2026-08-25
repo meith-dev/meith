@@ -13,8 +13,13 @@ import { optional, parseFlags } from './args'
  * distance from the repository root (apps/cli/{src,dist}/<file> either way), so this
  * offset holds whether these commands run from source (tsx) or the built dist/cli.cjs.
  */
-const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
-const GENERATOR_SCRIPT = join(ROOT, 'scripts/board-plugins-gen.mjs')
+function repoRoot(): string {
+  return fileURLToPath(new URL('../../../', import.meta.url))
+}
+
+function generatorScript(): string {
+  return join(repoRoot(), 'scripts/board-plugins-gen.mjs')
+}
 
 /**
  * Every board's board.plugins.json is edited together, from the one list in
@@ -33,7 +38,7 @@ interface Board {
 const BOARDS = BOARDS_JSON as readonly Board[]
 
 function boardsRoot(): string {
-  return process.env.MEITH_BOARD_PLUGINS_ROOT ?? ROOT
+  return process.env.MEITH_BOARD_PLUGINS_ROOT ?? repoRoot()
 }
 
 interface ManifestEntry {
@@ -110,7 +115,7 @@ interface GeneratorResult {
  */
 function runGenerator(): GeneratorResult {
   try {
-    const output = execFileSync(process.execPath, [GENERATOR_SCRIPT], {
+    const output = execFileSync(process.execPath, [generatorScript()], {
       encoding: 'utf8',
       stdio: 'pipe',
     })
