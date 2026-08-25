@@ -439,9 +439,12 @@ check, the slot checks,
 the generated-document and documentation checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
 `api:docs`, `perf:docs`, `docs:index`, `docs:links`, `site:docs`), lint,
 dependency-cruiser, all three typecheck projects, and the full test suite.
-It is a superset of what CI's `static` job runs, so if it passes locally,
-that job will pass too. CI's other jobs build the image and drive a
-browser.
+It covers every gate in CI's `static` job but two. That job also packs every
+publishable package and checks each tarball against its manifest
+(`node scripts/npm-publish.mjs --dry-run`), and it runs the suite exactly once,
+under coverage — so the thresholds are judged there and not by `pnpm verify`.
+Run `pnpm test:coverage` yourself before a pull request that moves what is
+covered. CI's other jobs build the image and drive a browser.
 
 ## Formatting and lint
 
@@ -554,9 +557,13 @@ except those seams — and CI covers them.
 ## Coverage
 
 `pnpm test:coverage` runs the unit and integration suite with V8 coverage and
-writes the detailed HTML report to `coverage/index.html`. CI runs the same
-command as a required gate, prints the summary in the job log, and uploads the
-whole `coverage/` directory as the `coverage-report` artifact.
+writes the detailed HTML report to `coverage/index.html`. CI's `static` job runs
+that command and nothing else in that job runs the suite: `--coverage` decides
+what is *measured*, never what is collected, so this is `pnpm test` plus the
+thresholds rather than a second pass over the same tests. The job prints the
+summary in its log and uploads the whole `coverage/` directory as the
+`coverage-report` artifact. The `migrations` job runs `pnpm test` separately,
+with `TEST_DATABASE_URL` set, for the seams that need a real Postgres.
 
 The global thresholds prevent repository-wide regressions. Separate floors for
 the worker, polls, attachments, and UI packages keep well-tested packages from
