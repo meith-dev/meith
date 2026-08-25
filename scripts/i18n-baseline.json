@@ -93,7 +93,7 @@
   "packages/demo/src/schedule.ts": 3,
   "packages/demo/src/seed.ts": 3,
   "packages/demo/src/stripe.ts": 3,
-  "packages/drivers/src/files/blob-file-store.ts": 5,
+  "packages/drivers/src/files/blob-file-store.ts": 13,
   "packages/drivers/src/files/keys.ts": 3,
   "packages/drivers/src/images/locate-wasm.ts": 1,
   "packages/drivers/src/mail/index.ts": 1,

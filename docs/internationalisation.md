@@ -302,6 +302,13 @@ same language as the log around it. See
 [Running on Vercel](./vercel.md#when-a-derivation-cannot-resolve) for what each
 refusal means.
 
+`packages/drivers/src/files/blob-file-store.ts` went from 5 to 13 for the
+same reason, one layer down. A Vercel Blob store attached to a project
+publishes a store id and no token, so the driver has two credential shapes to
+tell apart and a first-upload failure to explain when the platform supplies
+neither — all of it thrown as `ConfigurationError` from a driver constructed
+at boot, and read by whoever ran the deploy or the backup.
+
 The file store's count is not copy at all — `url()` builds an object
 URL per storage shape, and the counter reads the template's fragments as prose.
 Neither surface has ever rendered to a member.
