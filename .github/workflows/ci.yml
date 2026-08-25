@@ -43,6 +43,12 @@ jobs:
       # silently resolving different versions than a developer has locally.
       - run: pnpm install --frozen-lockfile
 
+      - name: Workspace integrity
+        run: pnpm workspace:check
+
+      - name: Every verify gate runs in CI
+        run: pnpm ci:parity:check
+
       # The workspace releases in lockstep — see docs/release.md. This fails on
       # a manifest, constant or compose pin that names any other version.
       - name: One version everywhere
@@ -80,6 +86,9 @@ jobs:
       - name: Textual invariants — probe
         run: pnpm guards:probe
 
+      - name: Message catalog is complete
+        run: pnpm i18n:check
+
       # A server-kind slot implemented by a "use client" module compiles,
       # renders identically and ships the whole subtree to the browser. Only a
       # static check catches it, and only a probe proves the check still works.
@@ -103,6 +112,9 @@ jobs:
       - name: Plugin hook reference is current
         run: pnpm plugin:docs:check
 
+      - name: Board plugin manifests are current
+        run: pnpm board:gen:check
+
       # This fails on a hook literal that is not in the registry — the typo that
       # would otherwise be a call nothing listens to, with no error anywhere.
       - name: Hook call sites resolve
@@ -125,8 +137,6 @@ jobs:
       - name: Documentation index is complete
         run: pnpm docs:index:check
 
-      # Every internal link and anchor under docs/ resolves, using the site's
-      # own slugifier so the gate and the published page agree by construction.
       - name: Documentation links resolve
         run: pnpm docs:links:check
 
@@ -137,6 +147,15 @@ jobs:
       # README table having drifted from the manifest it is generated from.
       - name: Published documentation set is accounted for
         run: pnpm site:docs:check
+
+      - name: Marketplace registry is current
+        run: pnpm marketplace:gen:check
+
+      - name: Board installer is current
+        run: pnpm board-installer:gen:check
+
+      - name: Vercel template matches the scaffold
+        run: pnpm vercel-template:gen:check
 
       - name: Lint and formatting
         run: pnpm lint
@@ -164,16 +183,6 @@ jobs:
           command -v redis-server >/dev/null 2>&1 \
             || (sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server)
 
-      # One run of the suite, not two. `pnpm test:coverage` is `pnpm test` plus
-      # V8 coverage and the thresholds in vitest.config.ts: `--coverage` changes
-      # what is *measured*, never what is collected, so both commands run the
-      # same files and the same tests. V8 coverage is gathered through the
-      # inspector rather than by rewriting sources, so it cannot decide a
-      # result either. Running both cost this job a second full suite — very
-      # nearly five minutes of an under-twelve-minute job — for no gate the
-      # coverage run does not already carry. `pnpm test` stays a script, and
-      # the `migrations` job below still runs it against real Postgres.
-      # docs/development.md, "Coverage", is the reference.
       - name: Unit and integration tests, with the coverage gate
         run: pnpm test:coverage
 
@@ -779,25 +788,6 @@ jobs:
         if: always()
         run: docker compose -f compose.coolify.yml down -v
 
-  # Sharded across four runners. Each shard is a whole runner with its own
-  # PGlite database and servers, so nothing is shared between them. Playwright
-  # splits by file, and every spec seeds what it needs, so the split is safe in
-  # any order.
-  #
-  # The suite runs against a **built** server, not `next dev`. `pnpm test:e2e`
-  # builds first and then runs Playwright, which is also what a developer runs.
-  # The build costs about seventy-five seconds per shard and pays for itself
-  # several times over: `next dev` compiled each route on first request and held
-  # every route for the life of the run, reaching 7.1 GB across the two servers
-  # on a 16 GB runner that also hosts Chromium and two databases. It hit that
-  # ceiling and restarted, failing whichever test was mid-flight — which is what
-  # made this shard chronically and inexplicably red. A built server compiles
-  # nothing at request time and sits flat at 0.58 GB, and a shard that took
-  # 7.9 minutes takes 2.6. See docs/development.md, "The browser suite runs
-  # against a built server".
-  #
-  # `.next-e2e` is deliberately not cached between runs: a build restored from a
-  # previous run is the stale-cache problem, and a cold build is cheap enough.
   e2e:
     name: No-JS and accessibility browser checks
     runs-on: ubuntu-latest
