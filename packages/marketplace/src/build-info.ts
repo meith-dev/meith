@@ -7,7 +7,7 @@ import { parseApiVersion, THEME_API_VERSION } from '@meith/theme-kit'
  * packages/create-meith/src/bin.ts — see docs/release.md — and kept honest
  * by the same `scripts/release-check.mjs`.
  */
-export const MEITH_VERSION = '0.18.0'
+export const MEITH_VERSION = '0.19.0'
 
 /**
  * The theme-kit major this build implements, read from the single place

@@ -1,6 +1,6 @@
 {
   "name": "@meith/plugin-reference",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "The reference plugin: a handler for every hook Meith fires, as documentation that runs.",
   "license": "MIT",
   "repository": {
