@@ -21,6 +21,17 @@ the compose file and a reverse proxy themselves, take
 want to read the code or write a theme, [Development](./development.md)
 runs it on your laptop in two commands.
 
+And if the server is the part you would rather not have at all, there is a
+fourth route: [Running on Vercel](./vercel.md) deploys a board of your own
+onto functions, with a managed database, a managed cache and an object
+store behind it instead of a machine. Nothing to patch, nothing to back up
+by hand, no certificate to renew — at the cost of four bills rather than
+one, a scheduler whose cadence its plan decides, and a board spread across
+four companies rather than sitting on one box you rent. It is a real
+option and deliberately not the default one, and that page is plain about
+which parts of it are worse. Read it before picking it, particularly the
+section on getting back off again.
+
 **You need:**
 
 | | |
@@ -432,6 +443,7 @@ people doing those jobs.
 | Run the server day to day | [Running a board](./operating.md) |
 | Take it from one version to the next | [Upgrading a board](./upgrading.md) |
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |
+| Deploy it without a server | [Running on Vercel](./vercel.md) |
 | Change how it looks | [The theme API](./theme-api.md) |
 | Add behaviour | [The plugin API](./plugin-api.md) |
 | Move a MyBB or phpBB forum here | [Migrating from MyBB or phpBB](./migrating.md) |

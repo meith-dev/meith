@@ -71,6 +71,7 @@ The table below is generated from `apps/web/content/docs.manifest.json` by `pnpm
 |---|---|---|
 | Getting started | [`quickstart.md`](./docs/quickstart.md) | From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw. |
 | Getting started | [`self-hosting.md`](./docs/self-hosting.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead. |
+| Getting started | [`vercel.md`](./docs/vercel.md) | The board on functions: the driver set, the build command that carries the migration, the cron job that replaces the worker, what previews and rollbacks do to your schema — and how to leave again. |
 | Using your board | [`organiser-guide.md`](./docs/organiser-guide.md) | Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over. |
 | Using your board | [`moderation-guide.md`](./docs/moderation-guide.md) | For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives. |
 | Using your board | [`formatting.md`](./docs/formatting.md) | The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline. |
