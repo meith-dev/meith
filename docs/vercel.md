@@ -136,7 +136,8 @@ And the values those drivers need:
 | `MAIL_FROM`, `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | The sender address, the provider's API endpoint, and its token. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
-| `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. See [the tick](#3-the-tick-replaces-the-worker) for why this name rather than `TICK_SECRET`. |
+| `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. This is the name Vercel Cron can send — see [the tick](#3-the-tick-replaces-the-worker). |
+| `TICK_SECRET` | The same guard under the other name. Strictly speaking `CRON_SECRET` alone protects the endpoint, but set this too: the installer's preflight looks only at `TICK_SECRET` and warns without it, and it is what any other scheduler — or the board you eventually move to — presents. Generate a separate value; it need not match. |
 
 Generate each secret with `openssl rand -hex 32`.
 
@@ -179,10 +180,12 @@ send slow in a place where slow costs money.
 
 ## 3. The tick replaces the worker
 
-The Compose deployment runs `apps/worker`, a long-lived process that ticks
-every 60 seconds. There is no such process here. The same tick is available
-over HTTP at `/api/system/tick`, and Vercel Cron calls it on a schedule
-instead. Nothing else changes: the HTTP tick runs the identical tick over
+A Compose deployment has something ticking every 60 seconds without being
+asked: the compiled `apps/worker` process in this repository's own image,
+or — in a scaffolded board's own compose file, since `@meith/worker` is not
+published — a small container looping against the tick endpoint. There is
+no such thing here. The same tick is available over HTTP at
+`/api/system/tick`, and Vercel Cron calls it on a schedule instead. Nothing else changes: the HTTP tick runs the identical tick over
 the identical task list, and tasks claim their work through the database,
 so an overlapping call cannot double-process anything.
 
@@ -210,10 +213,10 @@ Vercel will send. Setting both is fine.
 
 ### The cadence caveat, stated plainly
 
-**Per-minute cron is a paid-plan feature.** Vercel's Hobby plan allows a
-couple of cron jobs and runs each of them roughly once a day, at an hour
-Vercel picks; only paid plans accept an arbitrary cron expression. A board
-driven by Hobby cron therefore ticks daily.
+**Per-minute cron is a paid-plan feature.** Vercel documents that its Hobby
+plan allows a couple of cron jobs and runs each of them roughly once a day,
+at an hour Vercel picks; only paid plans accept an arbitrary cron
+expression. A board driven by Hobby cron therefore ticks daily.
 
 Nothing is lost at a sparse cadence. Every task carries its own interval
 and is skipped when it is not due, and tasks are written so that a missed
@@ -239,19 +242,27 @@ identically; the endpoint does not care who called it.
 
 ### `maxDuration` is checked at build time
 
-The tick route declares `maxDuration = 300`, chosen to cover the worst case
-where every per-minute task runs to its own budget in the same tick. On
-Vercel that figure is checked when the project **builds**, not when the
-function runs — so a plan that does not allow it fails the deployment
-rather than clamping the request.
+The tick route declares `maxDuration = 300`. Vercel documents that this
+figure is checked when the project **builds**, not when the function runs
+— so a plan that does not allow it fails the deployment rather than
+clamping the request.
+
+300 is a ceiling, not a guarantee that every tick fits inside it. The four
+per-minute tasks are each aborted at their own budget, and those budgets
+add up to roughly six minutes if every one of them runs to its limit in the
+same tick — the scheduler runs them one after another, not in parallel.
+That is survivable rather than alarming: **a tick killed mid-run leaves its
+claims to expire after 15 minutes, and the next tick picks the work up.**
+Nothing is lost, and in practice the tasks do not all run to their limits
+at once.
 
 With [Fluid Compute](https://vercel.com/docs/fluid-compute), which Vercel
 makes the default for new projects, Hobby allows up to 300 seconds and the
 declaration builds as written. With Fluid Compute switched off, Hobby caps
-a function at 60 seconds and **this build fails**. Turn it back on, or
-lower the constant to what the plan allows — a lower ceiling costs nothing
-but the tail of an unusually long tick, which the next tick picks up
-anyway.
+a function at 60 seconds and **this build fails**. Turning Fluid Compute
+back on is the fix available to you: the constant lives inside the
+published `@meith/web` package rather than in your board repository, so it
+is not a line you can edit in your own checkout.
 
 [Monitoring § Driving the tick over HTTP](./monitoring.md#driving-the-tick-over-http)
 has the request and response contract, including what each status code
@@ -266,7 +277,7 @@ is written once, in
 [Quickstart § Run the installer](./quickstart.md#4-run-the-installer): the
 preflight report that separates blockers from warnings, the three form
 sections, the five steps, and the sealing that cannot be undone. Read that,
-then come back for the two things specific to this route:
+then come back for the three things specific to this route:
 
 - **The board's address is not asked for.** `APP_URL` supplies it, and the
   preflight names the value it is using. Check that line — a preview URL
@@ -275,6 +286,13 @@ then come back for the two things specific to this route:
 - **The installer takes the same session-level advisory lock migrations
   do**, so it needs `DIRECT_DATABASE_URL` for the same reason. Run against
   a pooler, it can report itself permanently in flight.
+- **A warning about `TICK_SECRET` means what it says, not that the tick is
+  unprotected.** The preflight checks that one variable by name, so a board
+  configured the way Vercel Cron needs — `CRON_SECRET` and nothing else —
+  is warned that the tick has no secret while the tick is in fact guarded.
+  It is a warning rather than a blocker, so you can install straight past
+  it. Setting `TICK_SECRET` as well, as [the environment](#2-the-environment)
+  recommends, is the tidier answer and clears the check.
 
 Sealing is recorded in the database rather than in the deployment, so it
 survives every redeploy: `/install` answers 404 from then on, however many
@@ -335,9 +353,9 @@ current and applies nothing.
 
 ### Rollback does not un-migrate
 
-The instant rollback Vercel offers — promoting a previous deployment,
-re-pointing an alias at an artefact that was built already — **runs no
-build**, so it never calls `community migrate`. There is nothing to undo
+Vercel documents its instant rollback as promoting a previous deployment
+by re-pointing an alias at an artefact that was built already. That
+**runs no build**, so it never calls `community migrate`. There is nothing to undo
 the schema with. Rolling back the other way, by redeploying an older
 commit, does build and does run `community migrate`, which then applies
 nothing, because migrations are forward-only.
@@ -424,9 +442,24 @@ Copy the bundle somewhere that is none of the four vendors.
 
 Follow [Deploying by hand](./self-hosting.md) — a server, the compose file,
 a `.env` and a proxy — or the [Quickstart](./quickstart.md) if you would
-rather have the panel. Bring it up to the point where the database exists
-and **stop before `/install`**. You are restoring a board, not installing a
-new one.
+rather have the panel. Write the `.env`, and then **bring up Postgres
+alone**:
+
+```sh
+docker compose up -d postgres
+```
+
+**Stop there.** Do not run `docker compose up -d --build` yet, and do not
+open `/install`. The full `up` starts the `migrate` container, which
+applies the schema and exits 0 — and `community restore` refuses a target
+that already holds tables, saying so rather than writing over them. A
+fresh Postgres container gives you the empty database a restore insists
+on. This is the same sequence, for the same reason, as
+[Disaster recovery § Restore the board](./disaster-recovery.md#3-restore-the-board);
+follow that page if you want the commands spelled out against a running
+stack.
+
+You are restoring a board, not installing one.
 
 ### 3. Restore into it
 
@@ -440,17 +473,24 @@ accident. It puts the uploads back where the destination's own
 `FILESTORE_DRIVER` says they go — the local volume on a Compose deployment,
 or a bucket if you keep using one.
 
-Then apply the release's migrations, start web and worker, and verify
-sign-in, recent threads, uploads, mail and scheduled tasks **before** you
-move DNS. [Disaster recovery](./disaster-recovery.md) is the complete
-runbook and applies unchanged; leaving a platform is the same operation as
-recovering from one, minus the urgency.
+It applies any migrations the bundle predates on its way through, so there
+is no separate migration step to remember. Bring up the rest of the stack,
+then verify sign-in, recent threads, uploads, mail and scheduled tasks
+**before** you move DNS. [Disaster recovery](./disaster-recovery.md) is the
+complete runbook and applies unchanged; leaving a platform is the same
+operation as recovering from one, minus the urgency.
 
 ### 4. Turn the tick back into a worker
 
-The destination runs the `worker` container, so drop `vercel.json`'s cron
-entry and let the long-lived process do what the scheduler was standing in
-for. `CRON_SECRET` stops being needed; `TICK_SECRET` stays.
+The destination has a `worker` container, so drop `vercel.json`'s cron
+entry and let it do what Vercel's scheduler was standing in for. It ticks
+every 60 seconds without being asked, which is the cadence the daily-tick
+caveat above was costing you.
+
+That container presents `TICK_SECRET`, not `CRON_SECRET` — so make sure
+`TICK_SECRET` is set in the destination's `.env`, carrying over the value
+you were already advised to set on Vercel. `CRON_SECRET` stops being needed
+the moment the cron job is gone.
 
 That is the whole move: a dump, the bucket, and a guide that was already
 written. **The board stays yours** — which is the only condition under
@@ -471,6 +511,7 @@ which running it on somebody else's functions is a reasonable thing to do.
 | Uploads 404 from the browser | `S3_PUBLIC_BASE_URL` is unset or wrong. R2 does not serve objects from the API endpoint `S3_ENDPOINT` names. |
 | Mail is queued and never sent | Either the tick is not running — `queue.drain` is what sends it — or `MAIL_DRIVER=smtp` is hanging on a blocked port. Use `http`. |
 | An upload fails on a large file | The function's memory limit, not the bucket. Lower the board's attachment limit. |
+| `community restore` says the target already holds tables | The destination's `migrate` container has already run, so the database is not empty. Bring up Postgres alone into a fresh volume — [leaving, step 2](#2-stand-up-the-destination). Nothing was written; it refused before touching anything. |
 
 [Operations § Troubleshooting](./operating.md#troubleshooting) covers the
 failures that are about the board rather than the platform.
