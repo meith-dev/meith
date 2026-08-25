@@ -48,6 +48,24 @@ jobs:
       - name: One version everywhere
         run: pnpm release:check
 
+      # create-meith is the one published package with a dist step — see
+      # docs/release.md, "They ship TypeScript source, deliberately". The
+      # dry run below packs it with `pnpm pack`, which only sees what is
+      # already on disk, so the build has to run first — release.yml's `npm`
+      # job orders these the same way, immediately before npm-publish.mjs.
+      - name: Build create-meith
+        run: pnpm --filter create-meith build
+
+      # docs/release.md documents this as the gate that catches, before a
+      # release ever runs, a `files` allowlist or `bin` path that has rotted:
+      # every publishable package is packed with `pnpm pack` and its tarball
+      # checked against its own manifest, with nothing published and the
+      # registry never contacted. board-workspace below packs only the
+      # @meith/web / @meith/cli / @meith/theme-default closure, so this is
+      # the only coverage for every other publishable package.
+      - name: Release dry run — every publishable tarball matches its manifest
+        run: node scripts/npm-publish.mjs --dry-run
+
       # The root is an interface: every entry in it is registered with the
       # reason it must live there, and a new file fails until it is either
       # foldered or registered. scripts/root-check.mjs is the registry.

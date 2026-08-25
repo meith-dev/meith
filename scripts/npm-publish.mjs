@@ -6,6 +6,12 @@ import { join } from 'node:path'
 
 import { ROOT, workspacePackages } from './workspace-packages.mjs'
 
+export const DEPENDENCY_FIELDS = ['dependencies', 'peerDependencies', 'optionalDependencies']
+
+export function workspaceDependencyNames(manifest) {
+  return DEPENDENCY_FIELDS.flatMap((field) => Object.keys(manifest[field] ?? {}))
+}
+
 // Dependencies before dependents, among only the packages that are
 // themselves publishing. Throws on a dependency cycle rather than returning
 // one, since there is no ordering to hand back.
@@ -17,7 +23,7 @@ export function orderByDependency(packages) {
   while (remaining.size > 0) {
     const ready = [...remaining.values()]
       .filter((entry) =>
-        Object.keys(entry.manifest.dependencies ?? {}).every(
+        workspaceDependencyNames(entry.manifest).every(
           (dep) => !names.has(dep) || !remaining.has(dep),
         ),
       )
@@ -31,6 +37,10 @@ export function orderByDependency(packages) {
   }
 
   return ordered
+}
+
+export function heldBackDependency(manifest, names, staysAbsent) {
+  return workspaceDependencyNames(manifest).find((dep) => names.has(dep) && staysAbsent.has(dep))
 }
 
 // The path each non-negated `files` entry requires the tarball to contain
@@ -179,9 +189,7 @@ async function main() {
     }
     if (staysAbsent.has(name)) continue
 
-    const missing = Object.keys(manifest.dependencies ?? {}).find(
-      (dep) => names.has(dep) && staysAbsent.has(dep),
-    )
+    const missing = heldBackDependency(manifest, names, staysAbsent)
     if (missing) {
       heldBack.set(name, missing)
       staysAbsent.add(name)

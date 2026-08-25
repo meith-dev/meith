@@ -27,7 +27,7 @@ for (const { dir, manifest } of await workspacePackages()) {
 const published = [...byName.values()].filter(({ manifest }) => manifest.private !== true)
 
 for (const { dir, manifest } of published) {
-  for (const field of ['dependencies', 'peerDependencies']) {
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
     for (const dep of Object.keys(manifest[field] ?? {})) {
       const target = byName.get(dep)
       if (target !== undefined && target.manifest.private === true) {

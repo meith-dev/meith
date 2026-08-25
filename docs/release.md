@@ -302,8 +302,11 @@ follow-up work — see [Consuming the board from a
 workspace](./development.md#consuming-the-board-from-a-workspace).
 
 `scripts/npm-publish.mjs` is the mechanism: dependencies before
-dependents, a version already on the registry skipped rather than failed,
-and `--dry-run` packs everything locally — every tarball is also checked
+dependents — a `dependencies`, `peerDependencies` or `optionalDependencies`
+edge, so a workspace-internal peer (the pattern themes and plugins already
+use for react) orders and holds back exactly like a plain dependency would
+— a version already on the registry skipped rather than failed, and
+`--dry-run` packs everything locally — every tarball is also checked
 against its own manifest before anything would be published: every
 non-excluded entry in `files` must have put something in the tarball, and
 every `bin` target must be a real file in it. That is what catches, before
@@ -316,6 +319,17 @@ left out of the allowlist costs web push its service worker without
 failing anything inside this repository. Each package is packed by
 `pnpm` — which rewrites the `workspace:` ranges into real ones — and
 published by the `npm` CLI, which is what implements trusted publishing.
+
+CI's `static` job runs the dry run on every push and pull request
+(`.github/workflows/ci.yml`), building `create-meith`'s `dist` first —
+release.yml's `npm` job orders the same two steps the same way, since the
+dry run packs `create-meith` from disk and only `pnpm build` writes its
+`dist/bin.mjs`. That is the only packing coverage for a package outside
+the `board-workspace` job's closure (`@meith/web`, `@meith/cli`,
+`@meith/theme-default` and what they depend on): a `files`-allowlist or
+`bin`-path rot in, say, a theme or a domain package now fails on the pull
+request that caused it, rather than mid-release after both architecture
+image builds have already pushed tags.
 
 ### The npm surface is a compatibility commitment
 
@@ -468,10 +482,13 @@ build step there — immediately before `node scripts/npm-publish.mjs`.
 
 A published package may not depend on a private one — that would be an
 `npm install` that resolves for nobody. `release-check` enforces the
-closure: publishing a package means deleting its `private: true`, and the
-check then names everything that decision drags with it. That is how
-`@meith/core` and `@meith/ui` entered the set — the kits and themes stand
-on them — and it is the friction that keeps the set deliberate.
+closure across `dependencies`, `peerDependencies` and
+`optionalDependencies` alike, so a workspace-internal peer is exactly as
+disqualifying as a plain dependency: publishing a package means deleting
+its `private: true`, and the check then names everything that decision
+drags with it. That is how `@meith/core` and `@meith/ui` entered the set
+— the kits and themes stand on them — and it is the friction that keeps
+the set deliberate.
 
 Dependency ranges between published packages are `workspace:^`, so a
 published manifest says `^X.Y.Z` — the release line again. A plugin
