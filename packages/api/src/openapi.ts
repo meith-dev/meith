@@ -171,7 +171,7 @@ export function openApiDocument(version: string): OpenApiDocument {
         'anything its owner could not. Endpoints marked as readable without a token ' +
         'resolve as the board’s guest through that same path, which is why a private ' +
         'forum stays private to them.',
-      license: { name: 'LGPL-3.0-or-later', identifier: 'LGPL-3.0-or-later' },
+      license: { name: 'MIT', identifier: 'MIT' },
     },
     servers: [{ url: '/api/v1', description: 'This board.' }],
     security: [{ bearerToken: [] }],

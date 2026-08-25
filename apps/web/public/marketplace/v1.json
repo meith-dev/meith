@@ -14,7 +14,7 @@
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "default",
@@ -29,7 +29,7 @@
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "dues",
@@ -44,7 +44,7 @@
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "midnight",
@@ -59,7 +59,7 @@
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "phasebook",
@@ -74,7 +74,7 @@
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "raidframe",
@@ -89,7 +89,7 @@
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     }
   ]
 }

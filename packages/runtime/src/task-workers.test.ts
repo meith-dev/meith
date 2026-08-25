@@ -292,7 +292,7 @@ describe('the marketplace catalog refresh', () => {
       apiVersion: 0,
       meith: '>=0.16 <1',
       repository: 'https://github.com/meith-dev/meith',
-      licence: 'LGPL-3.0-or-later',
+      licence: 'MIT',
       ...overrides,
     }
   }

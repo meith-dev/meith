@@ -113,6 +113,6 @@ It checks workspace invariants, generated references, formatting, dependency bou
 
 ## Licence
 
-Meith is distributed under the [GNU Lesser General Public License v3 or later](./LICENSE.md). See [`COPYING`](./COPYING) for the incorporated GPL terms.
+Meith is distributed under the [MIT licence](./LICENSE.md). Use it, modify it, and ship it — including in closed-source and commercial work — provided the copyright notice and permission notice travel with it.
 
-Copyright © 2026 the Meith contributors.
+Copyright © 2026 Jordan Harrison and the Meith contributors.

@@ -26,7 +26,7 @@ const FEED = {
       apiVersion: 0,
       meith: '>=0.16 <1',
       repository: 'https://github.com/meith-dev/meith',
-      licence: 'LGPL-3.0-or-later',
+      licence: 'MIT',
     },
     {
       key: 'default',
@@ -39,7 +39,7 @@ const FEED = {
       apiVersion: 0,
       meith: '>=0.16 <1',
       repository: 'https://github.com/meith-dev/meith',
-      licence: 'LGPL-3.0-or-later',
+      licence: 'MIT',
     },
     {
       key: 'greeter',
@@ -52,7 +52,7 @@ const FEED = {
       apiVersion: 0,
       meith: '>=0.16 <1',
       repository: 'https://github.com/meith-dev/meith',
-      licence: 'LGPL-3.0-or-later',
+      licence: 'MIT',
     },
     {
       key: 'future-thing',
@@ -65,7 +65,7 @@ const FEED = {
       apiVersion: 9,
       meith: '>=9 <10',
       repository: 'https://github.com/meith-dev/meith',
-      licence: 'LGPL-3.0-or-later',
+      licence: 'MIT',
     },
   ],
 }
