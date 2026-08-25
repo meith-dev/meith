@@ -13,7 +13,6 @@ export const site = {
 
 export const licence = {
   spdx: 'MIT',
-  short: 'MIT',
   name: 'MIT License',
   file: 'LICENSE.md',
 } as const
@@ -320,8 +319,8 @@ export const openSource = {
   eyebrow: 'Open source',
   heading: 'Yours to run, and yours to keep.',
   body:
-    'Open source under the MIT licence, on a machine your community ' +
-    'rents, at a domain it owns. No company in the middle, nobody who can price it later or ' +
+    'Open source under the MIT licence, on a machine your community rents, at a domain it ' +
+    'owns. No company in the middle, nobody who can price it later or ' +
     'switch it off — and when the people running it change, the board is handed over whole, ' +
     'not rebuilt from scratch.',
   emphasis:
