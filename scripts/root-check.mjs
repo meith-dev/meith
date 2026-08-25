@@ -23,6 +23,10 @@ const ALLOWED = new Map([
   ['packages', 'workspace'],
   ['plugins', 'workspace'],
   ['scripts', 'the invariant checks and generators'],
+  [
+    'templates',
+    'generated deploy templates — pnpm vercel-template:gen writes them from create-meith’s scaffold(), and each is pushed to a repository of its own. Not a workspace: every entry is generated output, and boards/* is a pnpm workspace glob that would claim one as a package',
+  ],
   ['tests', 'cross-package tests, rooted by vitest.config.ts'],
   ['themes', 'workspace'],
 

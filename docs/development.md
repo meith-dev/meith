@@ -244,11 +244,16 @@ instead:
 itself write. It records what it materialized in `.meith/materialized.json` and
 checks each name against that record first; a board that already has its own
 `src/` gets a message naming the file, not a silent replacement. The same list
-is what `create-meith`'s scaffold puts in `.gitignore` and `.dockerignore`
-(`MATERIALIZED_AT_ROOT`), anchored with a leading `/` so a board's own nested
-`src/` still tracks. `scripts/workspace-check.mjs` fails if that list and
-`forum-web`'s own `APP_ENTRIES` ever disagree — the drift would otherwise show
-up as a framework file committed into somebody's board.
+is `MATERIALIZED_AT_ROOT` in `create-meith`'s scaffold, anchored with a leading
+`/` so a board's own nested `src/` still tracks. The **Vercel target's**
+`.gitignore` carries it, because that is the tree that materializes at the root;
+the self-host target's `.gitignore` deliberately does not, since nothing there
+ever materializes at the root and listing those names would only untrack a
+board's own `src/`. Its `.dockerignore` does carry them, which costs nothing and
+keeps a stray local `--at-root` build out of `COPY . .`.
+`scripts/workspace-check.mjs` fails if that list and `forum-web`'s own
+`APP_ENTRIES` ever disagree — the drift would otherwise show up as a framework
+file committed into somebody's board.
 
 **Framework detection is a manifest read, not a resolution.** Vercel looks for
 `next` in the root `package.json`'s `dependencies` or `devDependencies` and
@@ -271,6 +276,18 @@ that pins `next`, `react` or `react-dom` must pin what `@meith/web` pins, and so
 must `create-meith`'s `NEXT_VERSION`. Upgrading Next in `apps/community` and
 nowhere else now fails the check rather than shipping a scaffold that installs
 one version of the framework and builds with another.
+
+**The Vercel target turns the mode on; nothing else does.** `scaffold()`'s
+`target: 'vercel'` tree is where the flag lives — `vercel.json`'s `buildCommand`
+(`community migrate && forum-web build --at-root`) is what Vercel actually runs,
+and the same tree's `dev`, `build` and `start` scripts carry it too, so a board
+built locally and a board built on the platform materialize to the same place
+rather than quietly disagreeing. The self-host target is untouched: its scripts,
+its `.meith/app` artefact and its standalone tree are exactly what they were.
+`pnpm vercel-template:gen:check` ties the generated `templates/vercel/` tree back
+to `scaffold()`, and `scripts/workspace-check.mjs` ties `scaffold()`'s
+`NEXT_VERSION` back to `@meith/web`'s — so the `next` version the deploy form
+installs cannot drift from the one the board is built with, in either link.
 
 **What a board deployed this way still is.** `--at-root` changes where the app
 is materialized and nothing else: same sources, same seam, same
