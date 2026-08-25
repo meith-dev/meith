@@ -32,6 +32,20 @@ export const E2E_FAKE_MARKETPLACE_PORT = 12_112
 
 export const E2E_FAKE_MARKETPLACE_BASE_URL = `http://127.0.0.1:${E2E_FAKE_MARKETPLACE_PORT}`
 
+export const E2E_FAKE_MAIL_PORT = 12_113
+
+export const E2E_FAKE_MAIL_BASE_URL = `http://127.0.0.1:${E2E_FAKE_MAIL_PORT}`
+
+export const E2E_FAKE_MAIL_ENDPOINT = `${E2E_FAKE_MAIL_BASE_URL}/send`
+
+export const E2E_FAKE_MAIL_TOKEN = 'e2e-only-mail-token'
+
+export const E2E_MAIL_FROM = 'board@example.test'
+
+export const E2E_PORT = 3001
+
+export const E2E_BASE_URL = `http://127.0.0.1:${E2E_PORT}`
+
 export const DEMO_DB_PORT = 55_434
 
 export const DEMO_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${DEMO_DB_PORT}/postgres`

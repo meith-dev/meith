@@ -59,6 +59,18 @@ export async function enterAdminPanel(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
 }
 
+export async function cookieHeader(page: Page): Promise<string> {
+  const jar = await page.context().cookies()
+  return jar.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
+}
+
+export async function signedHeaders(
+  page: Page,
+  headers: Record<string, string> = {},
+): Promise<Record<string, string>> {
+  return { ...headers, cookie: await cookieHeader(page) }
+}
+
 export async function runTick(request: APIRequestContext): Promise<void> {
   await request.post('/api/system/tick', {
     headers: { authorization: `Bearer ${E2E_TICK_SECRET}` },

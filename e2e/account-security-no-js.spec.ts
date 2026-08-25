@@ -1,6 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { type Browser, expect, test } from '@playwright/test'
 
-import { PASSWORD, signIn, signUp } from './support/session'
+import { E2E_BASE_URL } from './support/config'
+import { inbox, linkIn, waitForMail } from './support/mailbox'
+import { enterAdminPanel, PASSWORD, signIn, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -79,9 +81,25 @@ test('a spent e-mail confirmation link says so on the screen that can retry it',
   await expect(page.getByRole('button', { name: 'Send confirmation' })).toBeVisible()
 })
 
+async function setBoardAddress(browser: Browser, address: string): Promise<void> {
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+
+  try {
+    await enterAdminPanel(page)
+    await page.goto('/admin/settings?group=board')
+    await page.getByLabel('Board address').fill(address)
+    await page.getByRole('button', { name: 'Save settings' }).click()
+  } finally {
+    await context.close()
+  }
+}
+
 test('a member resets a forgotten password and signs in with the new one', async ({ browser }) => {
   const context = await browser.newContext()
   const page = await context.newPage()
+
+  await setBoardAddress(browser, E2E_BASE_URL)
 
   try {
     const member = await signUp(page, 'forgot')
@@ -92,19 +110,18 @@ test('a member resets a forgotten password and signs in with the new one', async
     await page.getByRole('button', { name: 'Send reset link' }).click()
     const notice = 'If an account exists for that email, a password reset link has been sent.'
     await expect(page.getByText(notice)).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Continue to reset your password' })).toHaveCount(0)
+    expect(await inbox('nobody-at-all@example.test')).toHaveLength(0)
 
     await page.goto('/reset')
     await page.getByLabel('Email').fill(`${member}@example.test`)
     await page.getByRole('button', { name: 'Send reset link' }).click()
     await expect(page.getByText(notice)).toBeVisible()
 
-    const link = page.getByRole('link', { name: 'Continue to reset your password' })
-    await expect(link).toBeVisible()
-    const href = await link.getAttribute('href')
-    expect(href).toMatch(/^\/reset\/confirm\?token=.+/)
+    const mail = await waitForMail(`${member}@example.test`, /password/i)
+    const href = linkIn(mail, '/reset/confirm')
+    expect(href).toMatch(/\/reset\/confirm\?token=.+/)
 
-    await link.click()
+    await page.goto(href)
     await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible()
     await page.getByLabel('New password', { exact: true }).fill(NEW_PASSWORD)
     await page.getByLabel(/again|Confirm/i).fill(NEW_PASSWORD)
@@ -115,7 +132,7 @@ test('a member resets a forgotten password and signs in with the new one', async
     await expect(page.getByRole('link', { name: 'Profile' })).toBeVisible()
 
     await context.clearCookies()
-    await page.goto(href!)
+    await page.goto(href)
     await page.getByLabel('New password', { exact: true }).fill('a-third-long-enough-password')
     await page.getByLabel(/again|Confirm/i).fill('a-third-long-enough-password')
     await page.getByRole('button', { name: /Set|Change|Save|Reset/ }).click()
@@ -126,6 +143,7 @@ test('a member resets a forgotten password and signs in with the new one', async
     await expect(page.getByRole('link', { name: 'Profile' })).toBeVisible()
   } finally {
     await context.close()
+    await setBoardAddress(browser, '')
   }
 })
 
