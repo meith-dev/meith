@@ -28,7 +28,22 @@
  * (`<root>/.meith/app`) on purpose: `next.config.mjs` (copied verbatim, see
  * below) computes its own workspace root as two directories up from itself,
  * so materializing at that exact depth keeps that computation correct
- * without touching the file.
+ * without touching the file. This bin now also passes that root explicitly,
+ * as `FORUM_WORKSPACE_ROOT`, so the depth is what keeps the *copied file's*
+ * own default honest rather than what the build depends on.
+ *
+ * `--at-root` materializes into the workspace root itself instead
+ * (`<root>`, depth zero), which is the one thing Vercel's Next.js preset
+ * needs and `.meith/app` cannot give it: the build artefact at
+ * `<root>/.next`, where that builder looks and where, for a Next.js project,
+ * it cannot be told to look elsewhere. Nothing about the seam changes — the
+ * generated tsconfig's `paths` name `./community.config.ts` instead of
+ * `../../community.config.ts`, and every other path in here is computed from
+ * `appDir` rather than assumed. Because that mode writes framework-owned
+ * names (`app/`, `src/`, `next.config.mjs`, ...) into a directory the board
+ * also keeps its own files in, it refuses to overwrite anything it did not
+ * itself create, recording what it created in `.meith/materialized.json`.
+ * See docs/development.md, "Consuming the board from a workspace".
  *
  * This assumes a *hoisted* `node_modules` (npm, yarn classic, or pnpm with
  * `node-linker=hoisted`) — see docs/development.md for why.
@@ -39,12 +54,17 @@
  * (non-hoisted) pnpm install, nested two directories deeper again. Two
  * environment variables, set only by that workspace's own `build`/`dev`
  * scripts, cover the difference without changing anything for a real
- * external board, which never sets either: `FORUM_WORKSPACE_ROOT`
+ * external board, which sets neither itself: `FORUM_WORKSPACE_ROOT`
  * (apps/community/next.config.mjs) points tracing at this repository's real
  * root, and `FORUM_ALIASES_FROM` (`monorepoAliases()` below) carries this
  * repository's own `@meith/*` tsconfig aliases into the generated tsconfig,
  * since packages here resolve each other through those aliases rather than
  * through real `dependencies` entries a hoisted `node_modules` would need.
+ * `FORUM_WORKSPACE_ROOT` is always exported onward from here, defaulting to
+ * the invoking workspace's own root when that workspace did not set it, so
+ * that everything downstream — the copied `next.config.mjs`, and the
+ * `@source` rebase below — reads one answer rather than each re-deriving it
+ * from where it happens to sit.
  */
 import { spawn } from 'node:child_process'
 import {
@@ -63,11 +83,14 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const packageRoot = join(here, '..')
 const workspaceRoot = process.cwd()
-const appDir = join(workspaceRoot, '.meith', 'app')
+const AT_ROOT_FLAG = '--at-root'
+const atRoot = process.argv.includes(AT_ROOT_FLAG)
+const appDir = atRoot ? workspaceRoot : join(workspaceRoot, '.meith', 'app')
 
 for (const name of ['FORUM_WORKSPACE_ROOT', 'FORUM_ALIASES_FROM']) {
   if (process.env[name]) process.env[name] = resolve(workspaceRoot, process.env[name])
 }
+if (!process.env.FORUM_WORKSPACE_ROOT) process.env.FORUM_WORKSPACE_ROOT = workspaceRoot
 
 /**
  * Files this package ships (see its `files` allowlist) that belong inside the
@@ -91,6 +114,42 @@ function fail(message) {
   process.exit(1)
 }
 
+const GENERATED_ENTRIES = ['tsconfig.json', 'next-env.d.ts']
+const MATERIALIZED_MARKER = join(workspaceRoot, '.meith', 'materialized.json')
+
+/**
+ * `--at-root` only. Every other mode owns `.meith/app` outright and has
+ * nothing to collide with; at depth zero the framework's own names land
+ * beside the board's own files, so each one is either absent, or already
+ * recorded here as this bin's own from an earlier run, or the board's — and
+ * the board's is never overwritten. See docs/development.md, "Consuming the
+ * board from a workspace".
+ */
+function claimRootEntries(entries) {
+  let recorded = []
+  if (existsSync(MATERIALIZED_MARKER)) {
+    try {
+      recorded = JSON.parse(readFileSync(MATERIALIZED_MARKER, 'utf8')).entries ?? []
+    } catch {
+      recorded = []
+    }
+  }
+  const owned = new Set(recorded)
+
+  for (const entry of entries) {
+    if (!existsSync(join(workspaceRoot, entry))) continue
+    if (owned.has(entry)) continue
+    fail(
+      `refusing to overwrite ${entry} in ${workspaceRoot}. "${AT_ROOT_FLAG}" materializes ` +
+        "@meith/web's own app into this directory, and this is not a file it created. " +
+        'Move it aside, or drop the flag to materialize into .meith/app instead.',
+    )
+  }
+
+  mkdirSync(dirname(MATERIALIZED_MARKER), { recursive: true })
+  writeFileSync(MATERIALIZED_MARKER, `${JSON.stringify({ entries }, null, 2)}\n`)
+}
+
 function toPosixRelative(from, to) {
   const rel = relative(from, to).split(sep).join('/')
   return rel.startsWith('.') ? rel : `./${rel}`
@@ -104,14 +163,14 @@ export function rebaseGlobalsCssSources(css, cssDir, workspaceRootOverride) {
 }
 
 function rewriteGlobalsCssSourcePaths() {
-  const workspaceRootOverride = process.env.FORUM_WORKSPACE_ROOT
-  if (!workspaceRootOverride) return
-
   const cssPath = join(appDir, 'src', 'styles', 'globals.css')
   if (!existsSync(cssPath)) return
 
   const css = readFileSync(cssPath, 'utf8')
-  writeFileSync(cssPath, rebaseGlobalsCssSources(css, dirname(cssPath), workspaceRootOverride))
+  writeFileSync(
+    cssPath,
+    rebaseGlobalsCssSources(css, dirname(cssPath), process.env.FORUM_WORKSPACE_ROOT),
+  )
 }
 
 /**
@@ -171,6 +230,8 @@ function materialize() {
         'directory — the one create-meith scaffolded, or one shaped like it.',
     )
   }
+
+  if (atRoot) claimRootEntries([...APP_ENTRIES, ...GENERATED_ENTRIES])
 
   mkdirSync(appDir, { recursive: true })
 
@@ -265,10 +326,10 @@ function run(executable, args, cwd, onSuccess) {
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [, , command, ...rest] = process.argv
+  const [command, ...rest] = process.argv.slice(2).filter((argument) => argument !== AT_ROOT_FLAG)
 
   if (!['dev', 'build', 'start'].includes(command ?? '')) {
-    console.error('Usage: forum-web <dev|build|start> [next arguments]')
+    console.error(`Usage: forum-web <dev|build|start> [${AT_ROOT_FLAG}] [next arguments]`)
     process.exit(1)
   }
 

@@ -18,9 +18,12 @@ const workspaceRoot = process.env.FORUM_WORKSPACE_ROOT
  * The relative equivalent of `workspaceRoot`, for `outputFileTracingIncludes`
  * below — see docs/development.md, "Consuming the board from a workspace",
  * for why that option needs a path relative to this file rather than an
- * absolute one.
+ * absolute one. It is `.` rather than the empty string when this file already
+ * sits at the workspace root, which is what `forum-web build --at-root`
+ * materializes (same section) — an empty prefix would make the glob below
+ * read as an absolute path and match nothing.
  */
-const upToWorkspaceRoot = path.relative(here, workspaceRoot).split(path.sep).join('/')
+const upToWorkspaceRoot = path.relative(here, workspaceRoot).split(path.sep).join('/') || '.'
 
 const loadedEnvFiles = []
 for (const name of ['.env.local', '.env']) {

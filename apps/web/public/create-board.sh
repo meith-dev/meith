@@ -37,7 +37,8 @@ cat > "$BOARD_NAME/package.json" <<'MEITH_SCAFFOLD_EOF'
   "dependencies": {
     "@meith/web": "0.17.2",
     "@meith/cli": "0.17.2",
-    "@meith/theme-default": "0.17.2"
+    "@meith/theme-default": "0.17.2",
+    "next": "16.3.1"
   },
   "engines": {
     "node": ">=22"
@@ -216,6 +217,25 @@ node_modules
 .env*.local
 *.log
 .DS_Store
+
+# What `forum-web --at-root` writes into this directory: @meith/web's own
+# Next app, materialized here rather than into .meith/app so that the build
+# artefact lands at ./.next, where Vercel's Next.js builder reads it. Every
+# name here belongs to the framework, is rewritten on every build, and is
+# never a merge target — the board's own files are the ones NOT listed. If
+# this board grows a directory of its own under one of these names, drop that
+# line: forum-web refuses to overwrite a file it did not write, so the build
+# would stop and say so, but git would already have stopped tracking it.
+/app
+/src
+/public
+/next.config.mjs
+/postcss.config.mjs
+/components.json
+/instrumentation.ts
+/proxy.ts
+/tsconfig.json
+/next-env.d.ts
 MEITH_SCAFFOLD_EOF
 
 mkdir -p "$(dirname -- "$BOARD_NAME/Dockerfile")"
@@ -349,6 +369,16 @@ node_modules
 .env
 .env.local
 *.log
+/app
+/src
+/public
+/next.config.mjs
+/postcss.config.mjs
+/components.json
+/instrumentation.ts
+/proxy.ts
+/tsconfig.json
+/next-env.d.ts
 MEITH_SCAFFOLD_EOF
 
 mkdir -p "$(dirname -- "$BOARD_NAME/.github/workflows/build.yml")"

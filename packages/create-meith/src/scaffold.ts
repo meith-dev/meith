@@ -6,6 +6,21 @@ export interface ScaffoldOptions {
 
 export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
 
+export const NEXT_VERSION = '16.3.1'
+
+export const MATERIALIZED_AT_ROOT = [
+  'app',
+  'src',
+  'public',
+  'next.config.mjs',
+  'postcss.config.mjs',
+  'components.json',
+  'instrumentation.ts',
+  'proxy.ts',
+  'tsconfig.json',
+  'next-env.d.ts',
+]
+
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
 
 export function validateName(name: string): string | null {
@@ -42,6 +57,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
           '@meith/web': version,
           '@meith/cli': version,
           '@meith/theme-default': version,
+          next: NEXT_VERSION,
         },
         engines: { node: '>=22' },
       },
@@ -220,6 +236,16 @@ APP_URL=
 .env*.local
 *.log
 .DS_Store
+
+# What \`forum-web --at-root\` writes into this directory: @meith/web's own
+# Next app, materialized here rather than into .meith/app so that the build
+# artefact lands at ./.next, where Vercel's Next.js builder reads it. Every
+# name here belongs to the framework, is rewritten on every build, and is
+# never a merge target — the board's own files are the ones NOT listed. If
+# this board grows a directory of its own under one of these names, drop that
+# line: forum-web refuses to overwrite a file it did not write, so the build
+# would stop and say so, but git would already have stopped tracking it.
+${MATERIALIZED_AT_ROOT.map((entry) => `/${entry}`).join('\n')}
 `,
   )
 
@@ -357,6 +383,7 @@ node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)
 .env
 .env.local
 *.log
+${MATERIALIZED_AT_ROOT.map((entry) => `/${entry}`).join('\n')}
 `,
   )
 

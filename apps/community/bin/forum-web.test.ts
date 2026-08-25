@@ -28,6 +28,25 @@ describe('rebaseGlobalsCssSources', () => {
     expect(rewritten).toContain('.foo { color: red; }')
   })
 
+  it('leaves the default materialization depth exactly as it found it', () => {
+    const css = ['@source "../../../../themes";', '@source "../../../../packages/ui/src";'].join(
+      '\n',
+    )
+
+    expect(rebaseGlobalsCssSources(css, '/board/.meith/app/src/styles', '/board')).toBe(css)
+  })
+
+  it('rebases against the board root when the app is materialized there', () => {
+    const css = ['@source "../../../../themes";', '@source "../../../../packages/ui/src";'].join(
+      '\n',
+    )
+
+    const rewritten = rebaseGlobalsCssSources(css, '/board/src/styles', '/board')
+
+    expect(rewritten).toContain('@source "../../themes";')
+    expect(rewritten).toContain('@source "../../packages/ui/src";')
+  })
+
   it('is a no-op for a file with no @source lines', () => {
     const css = '@import "tailwindcss";\n.foo { color: red; }\n'
     expect(rebaseGlobalsCssSources(css, '/repo/boards/stock/.meith/app/src/styles', '/repo')).toBe(

@@ -189,6 +189,96 @@ not the workspace root, because unlike `outputFileTracingRoot` and
 `turbopack.root` this option resolves its globs against the config file's
 own directory.
 
+### Building where Vercel looks
+
+`forum-web build --at-root` materializes into the workspace root itself
+(`<root>`, depth zero) instead of `.meith/app`, so `next build` writes its
+artefact to `<root>/.next`. That is the one shape Vercel's Next.js preset can
+read, and it is the only reason the mode exists.
+
+Three constraints, none of them ours to change, close off every other
+arrangement:
+
+- **The builder reads `.next` under the project root**, and for a Next.js
+  project that location is not configurable — unlike every other framework
+  preset, where an Output Directory setting exists. A build that leaves its
+  output at `.meith/app/.next` is invisible to it, and the deploy fails
+  reporting no output rather than reporting a wrong path.
+- **The Root Directory cannot be `.meith/app`.** Vercel resolves it against
+  the *checkout*, before install, and `.meith/app` does not exist until
+  `forum-web` has run. Framework detection then runs against a directory that
+  is not there. Materializing during a postinstall step does not help either:
+  detection has already happened by then.
+- **`.next` cannot be moved after the build.** `required-server-files.json`
+  records the app directory and the paths every traced file was recorded
+  relative to, so relocating the directory invalidates them. That failure
+  arrives at request time on the deployed board, not at build time in CI,
+  which makes it strictly worse than the problem it would be fixing.
+
+So the app moves, not the output. Nothing about the
+[board-config seam](./architecture.md#the-board-config-seam) changes — every
+path `forum-web` writes is computed from the materialization directory rather
+than assumed, so at depth zero the generated tsconfig's `paths` simply name
+`./community.config.ts` where at depth two they named `../../community.config.ts`.
+Three things that used to be able to rely on the depth are now told the answer
+instead:
+
+- **`FORUM_WORKSPACE_ROOT` is always passed on** by `forum-web`, defaulting to
+  the invoking workspace's own root. At depth two it equals what the copied
+  `next.config.mjs` computes for itself, so nothing changes; at depth zero it
+  is what stops that file resolving a workspace root two directories *above*
+  the board. `boards/stock`'s own value still wins, exactly as before.
+- **`outputFileTracingIncludes`' glob prefix** is `.` rather than the empty
+  string when `next.config.mjs` already sits at the workspace root — an empty
+  prefix produces a leading `/`, which reads as an absolute path and silently
+  matches nothing.
+- **`globals.css`'s Tailwind `@source` roots are rebased on every
+  materialization**, not only when `FORUM_WORKSPACE_ROOT` was set externally.
+  At depth two the rebase reproduces the file's own paths byte for byte; at
+  depth zero it is what keeps `themes/`, `plugins/`, `examples/` and
+  `packages/ui/src` pointing inside the board instead of two directories above
+  it.
+
+**Depth zero puts framework-owned names beside the board's own files**, which
+`.meith/app` never did, so `--at-root` refuses to overwrite anything it did not
+itself write. It records what it materialized in `.meith/materialized.json` and
+checks each name against that record first; a board that already has its own
+`src/` gets a message naming the file, not a silent replacement. The same list
+is what `create-meith`'s scaffold puts in `.gitignore` and `.dockerignore`
+(`MATERIALIZED_AT_ROOT`), anchored with a leading `/` so a board's own nested
+`src/` still tracks. `scripts/workspace-check.mjs` fails if that list and
+`forum-web`'s own `APP_ENTRIES` ever disagree — the drift would otherwise show
+up as a framework file committed into somebody's board.
+
+**Framework detection is a manifest read, not a resolution.** Vercel looks for
+`next` in the root `package.json`'s `dependencies` or `devDependencies` and
+reports "No Next.js version detected" when it is absent — setting
+`"framework": "nextjs"` selects the preset but does not answer that question.
+A scaffolded board did not declare `next`: it never needed to, because a hoisted
+`node_modules` puts `@meith/web`'s own copy at the workspace root where the
+materialized app's bare `next` imports resolve to it anyway. `boards/stock`
+declares `next`, `react` and `react-dom` directly for the opposite reason — this
+monorepo's pnpm install is not hoisted, so a workspace member only sees what it
+declares itself (see [The stock board](./architecture.md#the-stock-board)).
+Neither of those is about detection. The scaffold now declares `next`, and only
+`next`, at the version `@meith/web` builds with: `react` and `react-dom` still
+arrive by hoisting, and every pin that does not have to exist is a pin that can
+drift.
+
+That version is a literal a release does not move, so
+`scripts/workspace-check.mjs` holds it in step instead: every workspace manifest
+that pins `next`, `react` or `react-dom` must pin what `@meith/web` pins, and so
+must `create-meith`'s `NEXT_VERSION`. Upgrading Next in `apps/community` and
+nowhere else now fails the check rather than shipping a scaffold that installs
+one version of the framework and builds with another.
+
+**What a board deployed this way still is.** `--at-root` changes where the app
+is materialized and nothing else: same sources, same seam, same
+`output: 'standalone'`, same fixture-mode build with no database. `forum-web
+start` works there too — the standalone tree lands at `<root>/.next/standalone`
+rather than nested — but a board on Vercel never runs it, since the platform
+serves the traced output itself.
+
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
 materialized app's source imports every `@meith/*` package it needs by bare

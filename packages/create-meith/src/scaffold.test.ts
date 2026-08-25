@@ -6,7 +6,14 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { run } from './cli'
-import { DEFAULT_REPOSITORY_URL, nextSteps, scaffold, validateName } from './scaffold'
+import {
+  DEFAULT_REPOSITORY_URL,
+  MATERIALIZED_AT_ROOT,
+  NEXT_VERSION,
+  nextSteps,
+  scaffold,
+  validateName,
+} from './scaffold'
 
 const OPTIONS = { name: 'my-board', version: '1.2.3', repositoryUrl: DEFAULT_REPOSITORY_URL }
 
@@ -53,6 +60,11 @@ describe('what the scaffold writes', () => {
     expect(manifest.name).toBe('my-board')
     expect(manifest.dependencies['@meith/web']).toBe('1.2.3')
     expect(manifest.dependencies['@meith/theme-default']).toBe('1.2.3')
+  })
+
+  it('declares next itself, at the version @meith/web builds with', () => {
+    const manifest = JSON.parse(files.get('package.json')!)
+    expect(manifest.dependencies.next).toBe(NEXT_VERSION)
   })
 
   it("ships an .npmrc that keeps every install here exact, not only the scaffold's own pins", () => {
@@ -129,6 +141,19 @@ describe('what the scaffold writes', () => {
     for (const entry of ['node_modules', '.next', '.env', '.env.local']) {
       expect(ignore.split('\n')).toContain(entry)
     }
+  })
+
+  it('ignores every name forum-web --at-root materializes into the board root', () => {
+    const gitignore = files.get('.gitignore')!.split('\n')
+    const dockerignore = files.get('.dockerignore')!.split('\n')
+    for (const entry of MATERIALIZED_AT_ROOT) {
+      expect(gitignore).toContain(`/${entry}`)
+      expect(dockerignore).toContain(`/${entry}`)
+    }
+  })
+
+  it("ignores those names anchored to the root, so a board's own nested src/ still tracks", () => {
+    expect(files.get('.gitignore')!.split('\n')).not.toContain('src')
   })
 
   it('produces the same tree twice', () => {
