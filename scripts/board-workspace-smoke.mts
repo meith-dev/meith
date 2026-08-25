@@ -71,6 +71,26 @@ function run(
   }
 }
 
+function runCapturingStdout(
+  command: string,
+  args: readonly string[],
+  options: { cwd: string; env?: NodeJS.ProcessEnv },
+): string {
+  console.log(`$ ${command} ${args.join(' ')}  (in ${options.cwd})`)
+  const result = spawnSync(command, args, {
+    cwd: options.cwd,
+    stdio: ['inherit', 'pipe', 'inherit'],
+    encoding: 'utf8',
+    env: options.env ?? process.env,
+  })
+  const stdout = result.stdout ?? ''
+  process.stdout.write(stdout)
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} exited ${result.status ?? result.signal}`)
+  }
+  return stdout
+}
+
 const CLOSURE_ROOTS = ['@meith/web', '@meith/cli', '@meith/theme-default']
 
 async function scaffoldBoard(parentDir: string): Promise<string> {
@@ -154,6 +174,28 @@ async function main() {
         TICK_SECRET,
       },
     })
+
+    console.log('== community migrate over DIRECT_DATABASE_URL, with DATABASE_URL unreachable ==')
+    const migrateOutput = runCapturingStdout(
+      join(boardDir, 'node_modules/.bin/community'),
+      ['migrate'],
+      {
+        cwd: boardDir,
+        env: {
+          ...process.env,
+          DATABASE_URL: 'postgres://nobody@127.0.0.1:1/unreachable',
+          DIRECT_DATABASE_URL: DATABASE_URL,
+          DATA_SOURCE: 'postgres',
+          AUTH_SECRET,
+          TICK_SECRET,
+        },
+      },
+    )
+    if (!migrateOutput.includes('Migrating over DIRECT_DATABASE_URL')) {
+      throw new Error(
+        `community migrate did not report using DIRECT_DATABASE_URL:\n${migrateOutput}`,
+      )
+    }
 
     console.log('== forum-web start ==')
     const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start'], {

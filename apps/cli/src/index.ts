@@ -84,6 +84,19 @@ const commands: Command[] = [
   {
     name: 'migrate',
     summary: 'Apply pending database migrations.',
+    usage: [
+      'community migrate',
+      '',
+      'Applies every migration this release has that the board has not, then exits.',
+      'Safe to run concurrently: the runner holds a Postgres advisory lock for the',
+      'whole run, so a second deploy waits for the first and then finds nothing to do.',
+      '',
+      'Migrates over DIRECT_DATABASE_URL when it is set, and over DATABASE_URL when it',
+      'is not. On a managed database point DIRECT_DATABASE_URL at the direct',
+      '(non-pooler) connection string: a transaction-mode pooler hands the connection',
+      'back as soon as the lock statement ends, so the lock is left on a backend that',
+      'goes to somebody else and the run is no longer serialised against other runs.',
+    ].join('\n'),
     async run() {
       const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
@@ -92,6 +105,12 @@ const commands: Command[] = [
         console.error('Nothing to migrate: DATA_SOURCE is "fixture". Set DATABASE_URL first.')
         return 1
       }
+
+      console.log(
+        env.DIRECT_DATABASE_URL === undefined
+          ? 'Migrating over DATABASE_URL…'
+          : 'Migrating over DIRECT_DATABASE_URL…',
+      )
 
       const { runMigrations } = await import('@meith/db')
       const applied = await runMigrations()

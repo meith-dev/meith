@@ -40,8 +40,9 @@ than code:
   through one instance would 404 from the other. Replicas on **one**
   machine may share the uploads volume; the moment instances span
   machines, switch to `FILESTORE_DRIVER=s3` — any S3-compatible bucket
-  works, and [where uploads go](./operating.md#where-uploads-go) covers
-  the variables.
+  works, configured with `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` and
+  `S3_SECRET_ACCESS_KEY`, plus `S3_ENDPOINT` for a non-AWS bucket such as
+  R2.
 - **Metrics.** `/api/metrics` (see [Monitoring & alerting](./monitoring.md))
   holds its counters and histograms in the process that answers the scrape,
   not in Postgres — every web instance and the worker is a separate scrape
@@ -149,10 +150,8 @@ there is still only one instance to watch. If boot fails naming
 `FILESTORE_DRIVER=s3` and the `S3_*` variables, and copy the existing
 uploads across — the files under the uploads volume keep their keys, so a
 `rclone` or `aws s3 sync` of the volume's contents into the bucket is the
-whole job;
-[moving a board from local disk to S3](./operating.md#moving-a-board-from-local-disk-to-s3)
-is the step-by-step. Skip this step while every instance shares one
-machine and one volume.
+whole job. Skip this step while every instance shares one machine and one
+volume.
 
 **4. Add instances.** On Coolify, raise the web service's replica count.
 On Compose, the `--scale web=3` shape above. Watch the board for a
