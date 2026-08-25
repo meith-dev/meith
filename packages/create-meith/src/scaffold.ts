@@ -260,15 +260,26 @@ ${ENV_TICK_SECRET_PROSE}
 CRON_SECRET=
 # TICK_SECRET=
 
-# Uploads, in the Vercel Blob store the Deploy Button provisions. The store
-# publishes this variable into the project by itself, so there is nothing to
-# type and nothing to mistype — but the board still needs FILESTORE_DRIVER=blob
-# above before it will use it. Every object is written with private access: an
-# object URL is not a public link, and member content is served by the board,
-# which is where permissions are checked.
+# Uploads, in the Vercel Blob store the Deploy Button provisions. A store
+# attached to the project publishes BLOB_STORE_ID and nothing else — no token —
+# because the SDK authenticates with the deployment's own OIDC identity: the
+# board hands it the store id and lets it fetch the credential. There is nothing
+# to type and nothing to mistype, and FILESTORE_DRIVER=blob derives from this
+# variable being present.
 #
-# An upload is held whole in the instance's memory on the way in and on the way
-# out, so the function's memory limit, not the store, is what caps a file.
+# BLOB_READ_WRITE_TOKEN is the other way in, and you make it yourself on the
+# store. Set it when something has to reach the store from OUTSIDE a Vercel
+# deployment — \`community backup\` run on your own machine is the case that
+# matters — because there is no OIDC identity there to borrow. Set both and the
+# board prefers the store id, unless the token names a different store, in which
+# case the token wins: naming another store is a deliberate act.
+#
+# Every object is written with private access: an object URL is not a public
+# link, and member content is served by the board, which is where permissions
+# are checked. An upload is held whole in the instance's memory on the way in
+# and on the way out, so the function's memory limit, not the store, is what
+# caps a file.
+BLOB_STORE_ID=
 BLOB_READ_WRITE_TOKEN=
 
 # Uploads in an S3-compatible bucket instead — AWS, R2, MinIO, Spaces. This is
@@ -1052,9 +1063,11 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
 - **An Upstash Redis store**, attached the same way, for the shared cache. It
   publishes \`KV_URL\`, which the board reads as \`REDIS_URL\` — \`KV_REST_API_URL\`
   beside it is an HTTPS endpoint and is not used for this.
-- **A Vercel Blob store** for uploads, which publishes \`BLOB_READ_WRITE_TOKEN\`
-  into the project by itself. This is the one value that used to be four hand-
-  typed \`S3_*\` secrets.
+- **A Vercel Blob store** for uploads, which publishes \`BLOB_STORE_ID\` into the
+  project by itself. That is the whole credential: the board hands the id to
+  Vercel's SDK, which authenticates with the deployment's own OIDC identity, so
+  there is no token to copy. This is what used to be four hand-typed \`S3_*\`
+  secrets.
 - **A Vercel project** carrying \`vercel.json\` — the build command
   \`${VERCEL_BUILD_COMMAND}\`,
   which applies the schema before it builds, materializes the board's app at
@@ -1232,13 +1245,19 @@ a Blob store does not:
 DATABASE_URL=…            # Neon's pooled string
 DIRECT_DATABASE_URL=…     # Neon's DATABASE_URL_UNPOOLED
 FILESTORE_DRIVER=blob
-BLOB_READ_WRITE_TOKEN=…   # copy it out of the project's environment settings
+BLOB_READ_WRITE_TOKEN=…   # create one on the store; see below
 npm run community -- backup
 \`\`\`
 
 Run that from a checkout of this repository, with those four values in the
 environment — the CLI talks to Neon and to the Blob store over the network, so
-it does not have to run on Vercel. The bundle it writes holds the dump *and*
+it does not have to run on Vercel.
+
+That last one is the one value this route asks you to make by hand, and only
+here. On the deployment the board reaches the store with \`BLOB_STORE_ID\` and
+the deployment's OIDC identity, which a command on your own machine does not
+have. Open the store under **Storage**, create a read-write token, and use it
+for the backup; the board itself never needs it. The bundle it writes holds the dump *and*
 every object. Check the last line it prints: if it says *no uploads*, the
 uploads are not in the bundle and restoring it gives a board whose posts have
 broken images.

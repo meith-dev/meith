@@ -9,26 +9,25 @@ import { assertUsableKey, encodeKeyPath } from './keys'
 
 export const BLOB_ACCESS = 'private'
 
-export interface BlobFileStoreConfig {
-  readonly token: string
-}
+export type BlobFileStoreConfig =
+  | { readonly token: string; readonly storeId?: undefined }
+  | { readonly storeId: string; readonly token?: undefined }
 
-export interface BlobPutOptions {
+export type BlobAuthOptions = { readonly token: string } | { readonly storeId: string }
+
+export type BlobPutOptions = BlobAuthOptions & {
   readonly access: typeof BLOB_ACCESS
-  readonly token: string
   readonly contentType: string
   readonly addRandomSuffix: boolean
   readonly allowOverwrite: boolean
 }
 
-export interface BlobReadOptions {
+export type BlobReadOptions = BlobAuthOptions & {
   readonly access: typeof BLOB_ACCESS
-  readonly token: string
   readonly useCache: boolean
 }
 
-export interface BlobListOptions {
-  readonly token: string
+export type BlobListOptions = BlobAuthOptions & {
   readonly cursor?: string
 }
 
@@ -44,7 +43,7 @@ export interface BlobLike {
     pathname: string,
     options: BlobReadOptions,
   ): Promise<{ readonly stream: ReadableStream<Uint8Array> | null } | null>
-  del(pathname: string, options: { readonly token: string }): Promise<void>
+  del(pathname: string, options: BlobAuthOptions): Promise<void>
   list(options: BlobListOptions): Promise<BlobListPage>
 }
 
@@ -53,6 +52,15 @@ function isNotFound(error: unknown): boolean {
   const named = (error as { constructor?: { name?: string } }).constructor?.name
   const message = (error as { message?: string }).message ?? ''
   return named === 'BlobNotFoundError' || message.includes('The requested blob does not exist')
+}
+
+function normalizeStoreId(storeId: string): string {
+  return storeId.startsWith('store_') ? storeId.slice('store_'.length) : storeId
+}
+
+function needsCredentials(error: unknown): boolean {
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return message.includes('No blob credentials found')
 }
 
 function storeIdFrom(token: string): string {
@@ -69,29 +77,43 @@ function storeIdFrom(token: string): string {
 export class BlobFileStore implements FileStore {
   private readonly storeId: string
 
+  private readonly auth: BlobAuthOptions
+
   private readonly load: () => Promise<BlobLike>
 
   private loading: Promise<BlobLike> | undefined
 
-  constructor(
-    private readonly config: BlobFileStoreConfig,
-    blob?: BlobLike,
-  ) {
-    this.storeId = storeIdFrom(config.token)
+  constructor(config: BlobFileStoreConfig, blob?: BlobLike) {
+    this.auth = config.token === undefined ? { storeId: config.storeId } : { token: config.token }
+    this.storeId =
+      config.token === undefined ? normalizeStoreId(config.storeId) : storeIdFrom(config.token)
     this.load =
       blob === undefined
         ? async () => (await import('@vercel/blob')) satisfies BlobLike
         : () => Promise.resolve(blob)
   }
 
-  static fromEnv(env: { BLOB_READ_WRITE_TOKEN?: string | undefined }): BlobFileStore {
-    if (!env.BLOB_READ_WRITE_TOKEN) {
+  static fromEnv(env: {
+    BLOB_READ_WRITE_TOKEN?: string | undefined
+    BLOB_STORE_ID?: string | undefined
+  }): BlobFileStore {
+    const token = env.BLOB_READ_WRITE_TOKEN
+    const storeId = env.BLOB_STORE_ID
+
+    if (token === undefined && storeId === undefined) {
       throw new ConfigurationError(
-        'FILESTORE_DRIVER=blob requires BLOB_READ_WRITE_TOKEN. A Vercel Blob store ' +
-          'attached to the project publishes it. See .env.example.',
+        'FILESTORE_DRIVER=blob requires BLOB_STORE_ID or BLOB_READ_WRITE_TOKEN. A ' +
+          'Vercel Blob store attached to the project publishes BLOB_STORE_ID, which ' +
+          "the board uses with the deployment's OIDC token; a read-write token you " +
+          'create on the store yourself is the other way in. See .env.example.',
       )
     }
-    return new BlobFileStore({ token: env.BLOB_READ_WRITE_TOKEN })
+    if (storeId === undefined) return new BlobFileStore({ token: token as string })
+    if (token === undefined) return new BlobFileStore({ storeId })
+
+    return storeIdFrom(token) === normalizeStoreId(storeId)
+      ? new BlobFileStore({ storeId })
+      : new BlobFileStore({ token })
   }
 
   private blob(): Promise<BlobLike> {
@@ -99,17 +121,36 @@ export class BlobFileStore implements FileStore {
     return this.loading
   }
 
+  private async attempt<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation()
+    } catch (error) {
+      if (!needsCredentials(error)) throw error
+      throw new ConfigurationError(
+        `The Blob store ${this.storeId} was reached with no usable credential. ` +
+          'BLOB_STORE_ID is set, so the board asked the Vercel SDK to authenticate ' +
+          "with the deployment's OIDC token, and the platform supplied none: either " +
+          'OIDC is turned off for this project, or this is running outside a Vercel ' +
+          'deployment, which a command run on your own machine is. Create a ' +
+          'read-write token on the store and set BLOB_READ_WRITE_TOKEN, which works ' +
+          'in both places.',
+      )
+    }
+  }
+
   async put(key: string, body: Uint8Array, options: PutFileOptions): Promise<StoredFile> {
     assertUsableKey(key)
 
     const blob = await this.blob()
-    await blob.put(key, Buffer.from(body.buffer, body.byteOffset, body.byteLength), {
-      access: BLOB_ACCESS,
-      token: this.config.token,
-      contentType: options.contentType,
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    })
+    await this.attempt(() =>
+      blob.put(key, Buffer.from(body.buffer, body.byteOffset, body.byteLength), {
+        ...this.auth,
+        access: BLOB_ACCESS,
+        contentType: options.contentType,
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      }),
+    )
 
     return { key, size: body.byteLength, contentType: options.contentType }
   }
@@ -119,11 +160,9 @@ export class BlobFileStore implements FileStore {
 
     const blob = await this.blob()
     try {
-      const found = await blob.get(key, {
-        access: BLOB_ACCESS,
-        token: this.config.token,
-        useCache: false,
-      })
+      const found = await this.attempt(() =>
+        blob.get(key, { ...this.auth, access: BLOB_ACCESS, useCache: false }),
+      )
       if (found === null || found.stream === null) return undefined
       return new Uint8Array(await new Response(found.stream).arrayBuffer())
     } catch (error) {
@@ -137,10 +176,9 @@ export class BlobFileStore implements FileStore {
     let cursor: string | undefined
 
     do {
-      const page = await blob.list({
-        token: this.config.token,
-        ...(cursor === undefined ? {} : { cursor }),
-      })
+      const page = await this.attempt(() =>
+        blob.list({ ...this.auth, ...(cursor === undefined ? {} : { cursor }) }),
+      )
 
       for (const entry of page.blobs) yield entry.pathname
 
@@ -153,7 +191,7 @@ export class BlobFileStore implements FileStore {
 
     const blob = await this.blob()
     try {
-      await blob.del(key, { token: this.config.token })
+      await this.attempt(() => blob.del(key, this.auth))
     } catch (error) {
       if (isNotFound(error)) return
       throw error

@@ -14,9 +14,11 @@ A forum, built on [Meith](https://github.com/meith-dev/meith), running as Vercel
 - **An Upstash Redis store**, attached the same way, for the shared cache. It
   publishes `KV_URL`, which the board reads as `REDIS_URL` — `KV_REST_API_URL`
   beside it is an HTTPS endpoint and is not used for this.
-- **A Vercel Blob store** for uploads, which publishes `BLOB_READ_WRITE_TOKEN`
-  into the project by itself. This is the one value that used to be four hand-
-  typed `S3_*` secrets.
+- **A Vercel Blob store** for uploads, which publishes `BLOB_STORE_ID` into the
+  project by itself. That is the whole credential: the board hands the id to
+  Vercel's SDK, which authenticates with the deployment's own OIDC identity, so
+  there is no token to copy. This is what used to be four hand-typed `S3_*`
+  secrets.
 - **A Vercel project** carrying `vercel.json` — the build command
   `community migrate && forum-web build --at-root`,
   which applies the schema before it builds, materializes the board's app at
@@ -198,13 +200,19 @@ a Blob store does not:
 DATABASE_URL=…            # Neon's pooled string
 DIRECT_DATABASE_URL=…     # Neon's DATABASE_URL_UNPOOLED
 FILESTORE_DRIVER=blob
-BLOB_READ_WRITE_TOKEN=…   # copy it out of the project's environment settings
+BLOB_READ_WRITE_TOKEN=…   # create one on the store; see below
 npm run community -- backup
 ```
 
 Run that from a checkout of this repository, with those four values in the
 environment — the CLI talks to Neon and to the Blob store over the network, so
-it does not have to run on Vercel. The bundle it writes holds the dump *and*
+it does not have to run on Vercel.
+
+That last one is the one value this route asks you to make by hand, and only
+here. On the deployment the board reaches the store with `BLOB_STORE_ID` and
+the deployment's OIDC identity, which a command on your own machine does not
+have. Open the store under **Storage**, create a read-write token, and use it
+for the backup; the board itself never needs it. The bundle it writes holds the dump *and*
 every object. Check the last line it prints: if it says *no uploads*, the
 uploads are not in the bundle and restoring it gives a board whose posts have
 broken images.

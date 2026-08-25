@@ -379,16 +379,17 @@ describe('what the platform publishes, and what the board makes of it', () => {
     KV_URL: 'rediss://default:token@upstash.example:6379',
     KV_REST_API_URL: 'https://upstash.example',
     KV_REST_API_TOKEN: 'rest-token',
-    BLOB_STORE_ID: 'store_abc123',
     DATABASE_URL_UNPOOLED: 'postgres://u:p@direct.example:5432/forum',
     POSTGRES_URL_NON_POOLING: 'postgres://u:p@other-direct.example:5432/forum',
     POSTGRES_URL: 'postgres://u:p@pooler.example:6543/forum',
   } satisfies Record<string, string>
 
-  const INJECTED = { ...PUBLISHED, BLOB_READ_WRITE_TOKEN: BLOB_TOKEN } satisfies Record<
-    string,
-    string
-  >
+  const STORE_OWN = {
+    BLOB_STORE_ID: 'store_abc123',
+    BLOB_WEBHOOK_PUBLIC_KEY: 'webhook-key',
+  } satisfies Record<string, string>
+
+  const INJECTED = { ...PUBLISHED, ...STORE_OWN } satisfies Record<string, string>
 
   const onVercel = {
     NODE_ENV: 'production',
@@ -408,6 +409,21 @@ describe('what the platform publishes, and what the board makes of it', () => {
         CACHE_DRIVER: 'redis',
         FILESTORE_DRIVER: 'blob',
       })
+    })
+
+    it('takes the store id alone, which is all a linked Blob store publishes', () => {
+      const env = parseEnv(deployed)
+
+      expect(env.BLOB_STORE_ID).toBe(STORE_OWN.BLOB_STORE_ID)
+      expect(env.BLOB_READ_WRITE_TOKEN).toBeUndefined()
+      expect(env.FILESTORE_DRIVER).toBe('blob')
+    })
+
+    it('takes a read-write token instead, for a store that was set up by hand', () => {
+      const { BLOB_STORE_ID: _id, ...withoutId } = deployed
+      expect(parseEnv({ ...withoutId, BLOB_READ_WRITE_TOKEN: BLOB_TOKEN }).FILESTORE_DRIVER).toBe(
+        'blob',
+      )
     })
 
     it('takes the cache URL from the one Upstash variable that speaks the protocol', () => {
@@ -499,7 +515,8 @@ describe('what the platform publishes, and what the board makes of it', () => {
     it.each(shapes.map((shape, index) => [index, shape] as const))(
       'parses shape %i exactly as it would with none of those names present',
       (_index, shape) => {
-        expect(parseEnv({ ...shape, ...PUBLISHED })).toEqual(parseEnv(shape))
+        const own = { ...STORE_OWN, BLOB_READ_WRITE_TOKEN: BLOB_TOKEN }
+        expect(parseEnv({ ...shape, ...PUBLISHED, ...own })).toEqual(parseEnv({ ...shape, ...own }))
       },
     )
 
@@ -544,28 +561,28 @@ describe('what the platform publishes, and what the board makes of it', () => {
       ).toThrow(/REDIS_URL: is required when CACHE_DRIVER=redis.*KV_URL/s)
     })
 
-    it('refuses the file store rather than writing uploads to a disk that is going away', () => {
-      expect(() =>
-        parseEnv({
-          ...bare,
-          ...INJECTED,
-          BLOB_READ_WRITE_TOKEN: undefined,
-          BLOB_STORE_ID: undefined,
-        }),
-      ).toThrow(/FILESTORE_DRIVER: cannot be derived on Vercel.*BLOB_READ_WRITE_TOKEN/s)
-    })
+    const noStore = { ...bare, ...INJECTED, BLOB_STORE_ID: undefined }
 
-    it('tells an operator whose store is attached but publishes no token what to make', () => {
-      expect(() => parseEnv({ ...bare, ...INJECTED, BLOB_READ_WRITE_TOKEN: undefined })).toThrow(
-        /a Blob store is attached to the project.*read-write token/s,
+    it('refuses the file store rather than writing uploads to a disk that is going away', () => {
+      expect(() => parseEnv(noStore)).toThrow(
+        /FILESTORE_DRIVER: cannot be derived on Vercel.*BLOB_STORE_ID, BLOB_READ_WRITE_TOKEN/s,
       )
     })
 
-    it('offers the bucket in either refusal, and never local', () => {
-      const noStore = { ...bare, ...INJECTED, BLOB_READ_WRITE_TOKEN: undefined }
+    it('does not treat a store id without a token as the broken case, because it is not', () => {
+      expect(() => parseEnv({ ...bare, ...INJECTED })).not.toThrow()
+    })
 
+    it('offers the bucket in the refusal, and never local', () => {
       expect(() => parseEnv(noStore)).toThrow(/FILESTORE_DRIVER=s3/)
       expect(() => parseEnv(noStore)).toThrow(/FILESTORE_DRIVER=local is not the answer/)
+    })
+
+    it('asks for no OIDC token of its own, which a build would not have', () => {
+      const env = parseEnv({ ...bare, ...INJECTED })
+
+      expect(env.FILESTORE_DRIVER).toBe('blob')
+      expect(Object.keys(env)).not.toContain('VERCEL_OIDC_TOKEN')
     })
 
     it('names both database candidates when neither is published', () => {

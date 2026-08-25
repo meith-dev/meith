@@ -29,9 +29,7 @@ export const VERCEL_DIRECT_DATABASE_URL_SOURCES = [
   'POSTGRES_URL_NON_POOLING',
 ] as const
 
-export const VERCEL_BLOB_TOKEN_SOURCES = ['BLOB_READ_WRITE_TOKEN'] as const
-
-export const VERCEL_BLOB_STORE_MARKERS = ['BLOB_STORE_ID', 'BLOB_WEBHOOK_PUBLIC_KEY'] as const
+export const VERCEL_BLOB_CREDENTIAL_SOURCES = ['BLOB_STORE_ID', 'BLOB_READ_WRITE_TOKEN'] as const
 
 const flag = z
   .enum(['0', '1', 'true', 'false'], { message: 'must be one of 0, 1, true or false' })
@@ -78,6 +76,7 @@ const envSchema = z
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
     BLOB_READ_WRITE_TOKEN: nonEmpty.optional(),
+    BLOB_STORE_ID: nonEmpty.optional(),
 
     MAIL_FROM: z.string().email().optional(),
     MAIL_HTTP_ENDPOINT: z.string().url().optional(),
@@ -160,14 +159,18 @@ const envSchema = z
       }
     }
 
-    if (value.FILESTORE_DRIVER === 'blob' && !value.BLOB_READ_WRITE_TOKEN) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['BLOB_READ_WRITE_TOKEN'],
-        message:
-          'is required when FILESTORE_DRIVER=blob — a Vercel Blob store attached ' +
-          'to the project publishes it under exactly this name',
-      })
+    if (value.FILESTORE_DRIVER === 'blob' && !value.BLOB_STORE_ID && !value.BLOB_READ_WRITE_TOKEN) {
+      for (const key of ['BLOB_STORE_ID', 'BLOB_READ_WRITE_TOKEN'] as const) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message:
+            'is required when FILESTORE_DRIVER=blob unless the other one is set — a ' +
+            'Vercel Blob store attached to the project publishes BLOB_STORE_ID, which ' +
+            "the board uses with the deployment's OIDC token, and a read-write token " +
+            'you create on the store yourself is the other way in',
+        })
+      }
     }
 
     if (value.MAIL_DRIVER === 'http') {
@@ -263,7 +266,7 @@ const envSchema = z
             "cannot be 'local' on Vercel — the filesystem is per-instance and " +
             'ephemeral, so uploads are lost as soon as another instance serves ' +
             'the request. Set FILESTORE_DRIVER=blob, which needs only the ' +
-            'BLOB_READ_WRITE_TOKEN a Vercel Blob store publishes by itself, or ' +
+            'BLOB_STORE_ID a Vercel Blob store publishes by itself, or ' +
             'FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID and ' +
             'S3_SECRET_ACCESS_KEY (S3_ENDPOINT too for R2, MinIO or Spaces) to ' +
             'keep the uploads somewhere you can move them from.',
@@ -374,18 +377,14 @@ const S3_INSTEAD =
   'S3_SECRET_ACCESS_KEY. FILESTORE_DRIVER=local is not the answer here: it writes ' +
   'uploads to an instance filesystem that is discarded with the instance.'
 
-const filestoreDriverRefusal = (blob: Resolution, linked: boolean): string =>
-  (linked
-    ? 'cannot be derived on Vercel: a Blob store is attached to the ' +
-      `project — ${VERCEL_BLOB_STORE_MARKERS.join(' or ')} is set — but no ` +
-      `read-write token is published with it. ${searchReport(blob, 'a token')} ` +
-      'Create a read-write token on the store (Storage, then the store, then its ' +
-      'tokens), add it to the project as BLOB_READ_WRITE_TOKEN, and redeploy: the ' +
-      'store id alone cannot write an upload, and a board that took it for one ' +
-      'would boot and then fail on the first attachment. '
-    : 'cannot be derived on Vercel: no object store was found. ' +
-      `${searchReport(blob, 'a token')} A Vercel Blob store attached to the project ` +
-      'publishes that name into it. Attach one. ') + S3_INSTEAD
+const filestoreDriverRefusal = (blob: Resolution): string =>
+  'cannot be derived on Vercel: no object store was found. ' +
+  `${searchReport(blob, 'a credential')} A Vercel Blob store attached to the ` +
+  'project publishes BLOB_STORE_ID, which the board uses with the deployment' +
+  "'s OIDC token; BLOB_READ_WRITE_TOKEN is a token you create on the store " +
+  'yourself, and is what a command running off the platform needs. Attach a ' +
+  'store, or set one of them. ' +
+  S3_INSTEAD
 
 const directDatabaseUrlRefusal = (direct: Resolution): string =>
   'cannot be derived on Vercel. ' +
@@ -428,10 +427,9 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
 
   let filestoreDriver = source.FILESTORE_DRIVER
   if (onVercel && filestoreDriver === undefined) {
-    const blob = resolve(source, VERCEL_BLOB_TOKEN_SOURCES, () => true)
+    const blob = resolve(source, VERCEL_BLOB_CREDENTIAL_SOURCES, () => true)
     if (blob.value === undefined) {
-      const linked = VERCEL_BLOB_STORE_MARKERS.some((name) => source[name] !== undefined)
-      refusals.push({ variable: 'FILESTORE_DRIVER', message: filestoreDriverRefusal(blob, linked) })
+      refusals.push({ variable: 'FILESTORE_DRIVER', message: filestoreDriverRefusal(blob) })
     } else {
       filestoreDriver = 'blob'
     }
