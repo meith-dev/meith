@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Meith REST API",
-    "version": "0.17.1",
+    "version": "0.17.2",
     "summary": "The read and write surface a client, a bot or an integration talks to.",
     "description": "A token is a restriction on an actor, never a grant to one. Every request resolves the owner’s permissions and asks the Authorizer, exactly as a page does, in addition to checking the token’s scope — so a token can never reach anything its owner could not. Endpoints marked as readable without a token resolve as the board’s guest through that same path, which is why a private forum stays private to them.",
     "license": {

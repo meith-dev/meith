@@ -55,3 +55,4 @@ test-results/
 # Common ignores
 node_modules
 .DS_Store
+.claude/
