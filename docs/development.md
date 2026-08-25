@@ -189,6 +189,25 @@ not the workspace root, because unlike `outputFileTracingRoot` and
 `turbopack.root` this option resolves its globs against the config file's
 own directory.
 
+**That store path spells the version out, so a check holds it in step.** A
+pnpm store entry is named for its version, and the glob has to name the
+directory exactly — there is nothing to derive it from at config load, because
+`next.config.mjs` is read from places where `@swc/helpers` does not resolve at
+all: pnpm's strict linking puts nothing at the workspace root, so neither the
+materialized copy at `.meith/app` nor the one `forum-web build --at-root`
+leaves at the root can resolve the package whose version the glob needs. A
+derivation there would fall back to a glob matching nothing, which is the
+failure this works around in the first place. So the literal stays, and
+`scripts/workspace-check.mjs` refuses a tree where it disagrees with the
+`@swc/helpers` pin in any manifest that declares one — naming both sides, the
+same way it holds `next`, `react` and `react-dom` to `@meith/web`. Without it
+a bumped pin leaves the glob matching an entry that is no longer there and
+nothing fails until a request reaches the standalone server, which is the
+worst place to learn it. The check reads both configs that carry the literal
+(`apps/community` and `apps/web`) and fails just as loudly if either stops
+carrying one at all. The second, unversioned glob beside it covers the hoisted
+layout npm installs, where no `.pnpm` directory exists for the first to match.
+
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
 materialized app's source imports every `@meith/*` package it needs by bare

@@ -179,6 +179,54 @@ for (const { dir, manifest } of byName.values()) {
   }
 }
 
+const SWC_HELPERS = '@swc/helpers'
+const SWC_HELPERS_TRACED_BY = ['apps/community/next.config.mjs', 'apps/web/next.config.mjs']
+
+const swcHelpersPins = []
+for (const { dir, manifest } of byName.values()) {
+  for (const field of ['dependencies', 'devDependencies']) {
+    const range = manifest[field]?.[SWC_HELPERS]
+    if (typeof range !== 'string') continue
+    swcHelpersPins.push({ dir, field, range })
+  }
+}
+
+if (swcHelpersPins.length === 0) {
+  problems.push(
+    `no workspace package pins "${SWC_HELPERS}" — update workspace-check.mjs, which reads it ` +
+      "as the version the output-tracing globs in next.config.mjs name inside pnpm's store",
+  )
+}
+
+for (const file of SWC_HELPERS_TRACED_BY) {
+  const source = await readFile(join(ROOT, file), 'utf8')
+  const traced = new Set(
+    [...source.matchAll(/@swc\+helpers@([^/\s'`]+)/g)].map((match) => match[1]),
+  )
+
+  if (traced.size === 0) {
+    problems.push(
+      `${file} no longer names a versioned @swc+helpers entry in pnpm's store — ` +
+        'update workspace-check.mjs with it',
+    )
+    continue
+  }
+
+  for (const version of traced) {
+    for (const { dir, field, range } of swcHelpersPins) {
+      if (version === range) continue
+      problems.push(
+        `${file} traces @swc+helpers@${version} out of pnpm's store; ${dir}/package.json pins ` +
+          `${field}."${SWC_HELPERS}" at ${range}. That glob exists because Next's output ` +
+          "tracer follows only the CJS half of the package and misses the esm/ half next's " +
+          'own require-hook loads; a version it no longer matches makes it a silent no-op, ' +
+          'and the standalone server fails at request time with Cannot find module ' +
+          `'${SWC_HELPERS}/esm/…' rather than at build time`,
+      )
+    }
+  }
+}
+
 function stringList(source, pattern, file, label) {
   const match = pattern.exec(source)
   if (match === null) {
@@ -284,5 +332,6 @@ if (problems.length > 0) {
 console.log(
   `✓ workspace integrity: ${byName.size} packages, every workspace: dependency resolves ` +
     `and matches the lockfile, every ${FRAMEWORK_PINS.join('/')} pin agrees with @meith/web, ` +
+    `every @swc+helpers output-tracing glob names the pinned ${SWC_HELPERS}, ` +
     "and create-meith's scaffold ignores exactly what forum-web --at-root materializes",
 )
