@@ -584,10 +584,18 @@ except those seams — and CI covers them.
 writes the detailed HTML report to `coverage/index.html`. CI's `static` job runs
 that command and nothing else in that job runs the suite: `--coverage` decides
 what is *measured*, never what is collected, so this is `pnpm test` plus the
-thresholds rather than a second pass over the same tests. The job prints the
-summary in its log and uploads the whole `coverage/` directory as the
-`coverage-report` artifact. The `migrations` job runs `pnpm test` separately,
-with `TEST_DATABASE_URL` set, for the seams that need a real Postgres.
+thresholds rather than a second pass over the same tests. V8 gathers coverage
+through the inspector rather than by rewriting sources, so it cannot decide a
+result either. The job prints the summary in its log and uploads the whole
+`coverage/` directory as the `coverage-report` artifact. The `migrations` job
+runs `pnpm test` separately, with `TEST_DATABASE_URL` set, for the seams that
+need a real Postgres.
+
+Running both commands in that job cost it a second full pass over the same
+tests — very nearly five minutes of an under-twelve-minute job — for no gate
+the coverage run does not already carry, so `static` runs `pnpm test:coverage`
+and no step of it runs `pnpm test`. `pnpm test` stays a script, and
+`pnpm verify` still ends on it.
 
 The global thresholds prevent repository-wide regressions. Separate floors for
 the worker, polls, attachments, and UI packages keep well-tested packages from
@@ -666,6 +674,15 @@ control-panel page threw a `ForbiddenError` on a visit its layout had
 already answered with the sign-in form, and every spec asserting on that
 form passed over the top of it.
 
+**CI shards it across four runners.** Each shard is a whole runner with its own
+PGlite databases and its own servers, so nothing is shared between them;
+Playwright splits by file, and every spec seeds what it needs, so the split is
+safe in any order. The build described below runs once per shard.
+
+**`.next-e2e` is deliberately not cached between runs.** A build restored from
+a previous run is the stale-cache problem, and a cold build is cheap enough
+that buying it back is not worth the class of failure a restored one invites.
+
 ### A red browser shard is often not about your change
 
 The shard `No-JS and accessibility browser checks (1)` failed seven times
@@ -682,8 +699,7 @@ four-core machine, the pair of dev servers reaches **10.1 GB** of resident
 memory by the end of shard 1. A CI runner has 16 GB and is also hosting
 Chromium, two PGlite databases and a second dev server. The shard finishes
 within a couple of gigabytes of the ceiling, and the late tests visibly
-slow down as it approaches — which is what `ci.yml` already describes when
-it explains why the suite is sharded at all.
+slow down as it approaches — which is why the suite is sharded at all.
 
 Under that pressure a test fails for reasons its own code cannot explain:
 a compile stalls, or the dev server restarts and serves a route it has not

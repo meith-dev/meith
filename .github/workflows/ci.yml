@@ -137,8 +137,6 @@ jobs:
       - name: Documentation index is complete
         run: pnpm docs:index:check
 
-      # Every internal link and anchor under docs/ resolves, using the site's
-      # own slugifier so the gate and the published page agree by construction.
       - name: Documentation links resolve
         run: pnpm docs:links:check
 
@@ -185,16 +183,6 @@ jobs:
           command -v redis-server >/dev/null 2>&1 \
             || (sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server)
 
-      # One run of the suite, not two. `pnpm test:coverage` is `pnpm test` plus
-      # V8 coverage and the thresholds in vitest.config.ts: `--coverage` changes
-      # what is *measured*, never what is collected, so both commands run the
-      # same files and the same tests. V8 coverage is gathered through the
-      # inspector rather than by rewriting sources, so it cannot decide a
-      # result either. Running both cost this job a second full suite — very
-      # nearly five minutes of an under-twelve-minute job — for no gate the
-      # coverage run does not already carry. `pnpm test` stays a script, and
-      # the `migrations` job below still runs it against real Postgres.
-      # docs/development.md, "Coverage", is the reference.
       - name: Unit and integration tests, with the coverage gate
         run: pnpm test:coverage
 
@@ -800,25 +788,6 @@ jobs:
         if: always()
         run: docker compose -f compose.coolify.yml down -v
 
-  # Sharded across four runners. Each shard is a whole runner with its own
-  # PGlite database and servers, so nothing is shared between them. Playwright
-  # splits by file, and every spec seeds what it needs, so the split is safe in
-  # any order.
-  #
-  # The suite runs against a **built** server, not `next dev`. `pnpm test:e2e`
-  # builds first and then runs Playwright, which is also what a developer runs.
-  # The build costs about seventy-five seconds per shard and pays for itself
-  # several times over: `next dev` compiled each route on first request and held
-  # every route for the life of the run, reaching 7.1 GB across the two servers
-  # on a 16 GB runner that also hosts Chromium and two databases. It hit that
-  # ceiling and restarted, failing whichever test was mid-flight — which is what
-  # made this shard chronically and inexplicably red. A built server compiles
-  # nothing at request time and sits flat at 0.58 GB, and a shard that took
-  # 7.9 minutes takes 2.6. See docs/development.md, "The browser suite runs
-  # against a built server".
-  #
-  # `.next-e2e` is deliberately not cached between runs: a build restored from a
-  # previous run is the stale-cache problem, and a cold build is cheap enough.
   e2e:
     name: No-JS and accessibility browser checks
     runs-on: ubuntu-latest
