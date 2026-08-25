@@ -379,7 +379,7 @@ possible time. The board's own `community backup` takes both in one
 bundle; schedule it as a command on the `web` resource and copy the
 bundle off the machine.
 
-[Backup and restore](./operating.md#backup-and-restore) has the command,
+[Backup and restore](./operating.md#backup) has the command,
 the schedule, and the restore. A backup nobody has restored is a file,
 not a backup.
 
@@ -409,7 +409,7 @@ can fix and retry:
   database — restore the empty database, or drop and recreate it — and
   start again. If the only thing missing is administrator access on a
   board that otherwise works, do not reinstall: use the
-  [operator CLI](./operating.md#the-operator-cli) —
+  [operator CLI](./operating.md#account-recovery) —
   `community user:promote`.
 
 ## When something else goes wrong

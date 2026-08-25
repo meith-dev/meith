@@ -108,7 +108,7 @@ Edit the last line to your real domain — it is the only line you type.
 |---|---|
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed — and hex, see the note below. The compose file has a well-known default, so set your own. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
-| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick from outside](./operating.md#driving-the-tick-from-outside). Compose refuses to start without it too. |
+| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick over HTTP](./monitoring.md#driving-the-tick-over-http). Compose refuses to start without it too. |
 | `PORT` | Optional. The Compose default is `127.0.0.1:3000`, so the TLS proxy is the only route in. Setting this to `3000` deliberately binds every interface and publishes a plaintext route alongside HTTPS; Docker writes its own iptables rules, so `ufw` may not stop it. |
 | `APP_URL` | The board's public origin. The compose file otherwise defaults it to `http://localhost:3000`, which is suitable only for local access; every link in every password-reset and confirmation e-mail is built from it. It must be your real origin, not a placeholder. |
 
@@ -245,9 +245,7 @@ Put a CDN or a second load balancer in front of Caddy and the chain grows
 by one: set `TRUSTED_PROXY_HOPS=2`. Whatever the number, it must match
 reality — too high and a visitor can forge their address by sending a
 forwarding header of their own, walking past `ADMIN_IP_ALLOWLIST` and the
-login lockout.
-[Visitor addresses and proxies](./operating.md#visitor-addresses-and-proxies)
-has the table. If you expose the board's port directly with nothing in
+login lockout. If you expose the board's port directly with nothing in
 front — do not, but if you do — set `TRUSTED_PROXY_HOPS=0` so the header
 is ignored outright.
 
@@ -303,7 +301,7 @@ docker compose up -d --build
 `migrate` runs first and the others wait for it, so the schema is never
 behind the code. **Take a backup first** — migrations are forward-only
 and recovery is by restore; see
-[backup and restore](./operating.md#backup-and-restore).
+[backup and restore](./operating.md#backup).
 
 That applies **core migrations only**. Plugin migrations run through
 `community upgrade` — see
@@ -476,7 +474,7 @@ it:
 - **Backups are yours.** Nobody else is taking one. `community backup`
   bundles the database *and* the uploads; the cron and the offsite copy
   are still yours to build. See
-  [backup and restore](./operating.md#backup-and-restore), and the
+  [backup and restore](./operating.md#backup), and the
   [disaster-recovery runbook](./disaster-recovery.md) for the day they
   are all you have.
 - **Certificates are yours.** Caddy makes it a solved problem, but it is

@@ -1,0 +1,209 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { slugify } from '../apps/web/src/markdown/slug'
+import {
+  checkCapabilities,
+  checkDocument,
+  type Docset,
+  documentLinks,
+  headingAnchors,
+  isExternal,
+  maskCode,
+} from './docs-links.mts'
+
+const directories: string[] = []
+
+afterEach(async () => {
+  await Promise.all(directories.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
+})
+
+async function docset(files: Record<string, string>): Promise<Docset> {
+  const root = await mkdtemp(join(tmpdir(), 'docs-links-'))
+  directories.push(root)
+
+  const anchorsByFile = new Map<string, ReadonlySet<string>>()
+  for (const [name, body] of Object.entries(files)) {
+    await writeFile(join(root, name), body, 'utf8')
+    anchorsByFile.set(name, headingAnchors(body))
+  }
+
+  return {
+    anchorsByFile,
+    indexAnchors: new Set(['install']),
+    fileBySlug: new Map([['operating', 'operating.md']]),
+    docs: root,
+    root,
+  }
+}
+
+describe('headingAnchors', () => {
+  it('slugifies with the site slugifier', () => {
+    expect([...headingAnchors('# Title\n\n## Backup and restore\n')]).toEqual([
+      slugify('Backup and restore'),
+    ])
+  })
+
+  it('drops the leading h1, because the site renders it as the page title', () => {
+    expect(headingAnchors('# Operations\n\ntext\n').has('operations')).toBe(false)
+  })
+
+  it('keeps an h1 that is not the document title', () => {
+    expect(headingAnchors('# Title\n\ntext\n\n# Later\n').has('later')).toBe(true)
+  })
+
+  it('numbers repeated headings the way the site does', () => {
+    expect([...headingAnchors('# T\n\n## Backup\n\n## Backup\n\n## Backup\n')]).toEqual([
+      'backup',
+      'backup-1',
+      'backup-2',
+    ])
+  })
+
+  it('ignores comments inside fenced code that look like headings', () => {
+    const markdown = '# T\n\n```sh\n# Not a heading\n```\n\n## Real\n'
+    expect([...headingAnchors(markdown)]).toEqual(['real'])
+  })
+
+  it('reads through inline code and emphasis, as the renderer does', () => {
+    expect(
+      headingAnchors('# T\n\n## What `community upgrade` does\n').has(
+        'what-community-upgrade-does',
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('documentLinks', () => {
+  it('finds a link whose text wraps onto the next line', () => {
+    const links = documentLinks('# T\n\ntext [Groups a plugin may\ngrant](./operating.md#groups)\n')
+    expect(links.map((link) => link.href)).toEqual(['./operating.md#groups'])
+  })
+
+  it('reports the line the link starts on', () => {
+    const links = documentLinks('# T\n\na\n\n[x](./y.md)\n')
+    expect(links[0]?.line).toBe(5)
+  })
+
+  it('ignores links inside fenced code blocks', () => {
+    expect(documentLinks('# T\n\n```md\n[x](./gone.md)\n```\n')).toEqual([])
+  })
+
+  it('ignores a link inside an inline code span', () => {
+    expect(documentLinks('# T\n\nWrite `[x](./gone.md)` like this.\n')).toEqual([])
+  })
+
+  it('finds reference definitions and html hrefs', () => {
+    const links = documentLinks('# T\n\n[ref]: ./a.md#one\n\n<a href="./b.md#two">b</a>\n')
+    expect(links.map((link) => link.href).sort()).toEqual(['./a.md#one', './b.md#two'])
+  })
+})
+
+describe('maskCode', () => {
+  it('preserves line numbering while blanking code', () => {
+    const masked = maskCode('a\n```\nb\n```\nc\n')
+    expect(masked.split('\n').length).toBe(6)
+    expect(masked.split('\n')[2]).toBe(' ')
+  })
+})
+
+describe('isExternal', () => {
+  it('recognises schemes and protocol-relative urls', () => {
+    expect(isExternal('https://example.com')).toBe(true)
+    expect(isExternal('mailto:a@b.c')).toBe(true)
+    expect(isExternal('//example.com')).toBe(true)
+    expect(isExternal('./operating.md')).toBe(false)
+  })
+})
+
+describe('checkDocument', () => {
+  it('passes a link whose anchor is a real heading', async () => {
+    const set = await docset({
+      'a.md': '# A\n\n[go](./operating.md#backup)\n',
+      'operating.md': '# Operations\n\n## Backup\n',
+    })
+    expect(await checkDocument('a.md', '# A\n\n[go](./operating.md#backup)\n', set)).toEqual([])
+  })
+
+  it('catches an anchor no heading slugifies to', async () => {
+    const markdown = '# A\n\n[go](./operating.md#backup-and-restore)\n'
+    const set = await docset({ 'a.md': markdown, 'operating.md': '# Operations\n\n## Backup\n' })
+    const [problem] = await checkDocument('a.md', markdown, set)
+
+    expect(problem?.source).toBe('docs/a.md')
+    expect(problem?.line).toBe(3)
+    expect(problem?.href).toBe('./operating.md#backup-and-restore')
+    expect(problem?.reason).toContain('no heading in docs/operating.md')
+    expect(problem?.reason).toContain('#backup')
+  })
+
+  it('catches a link to a file that does not exist', async () => {
+    const markdown = '# A\n\n[go](./missing.md)\n'
+    const set = await docset({ 'a.md': markdown })
+    const [problem] = await checkDocument('a.md', markdown, set)
+
+    expect(problem?.reason).toContain('docs/missing.md does not exist')
+  })
+
+  it('catches a same-document anchor that is not there', async () => {
+    const markdown = '# A\n\n## One\n\n[go](#two)\n'
+    const set = await docset({ 'a.md': markdown })
+    const [problem] = await checkDocument('a.md', markdown, set)
+
+    expect(problem?.reason).toContain('no heading in docs/a.md')
+  })
+
+  it('accepts a same-document anchor that is there', async () => {
+    const markdown = '# A\n\n## One\n\n[go](#one)\n'
+    const set = await docset({ 'a.md': markdown })
+    expect(await checkDocument('a.md', markdown, set)).toEqual([])
+  })
+
+  it('checks README anchors against the manifest sections the site renders', async () => {
+    const markdown = '# A\n\n[go](./README.md#nope)\n'
+    const set = await docset({ 'a.md': markdown, 'README.md': '# Index\n\n## Nope\n' })
+    const [problem] = await checkDocument('a.md', markdown, set)
+
+    expect(problem?.reason).toContain('no section')
+  })
+
+  it('catches a link that escapes docs/ and hits nothing', async () => {
+    const markdown = '# A\n\n[go](../nowhere/file.ts)\n'
+    const set = await docset({ 'a.md': markdown })
+    const [problem] = await checkDocument('a.md', markdown, set)
+
+    expect(problem?.reason).toContain('does not exist in the repository')
+  })
+
+  it('leaves external links alone', async () => {
+    const markdown = '# A\n\n[go](https://example.com/x#y)\n'
+    const set = await docset({ 'a.md': markdown })
+    expect(await checkDocument('a.md', markdown, set)).toEqual([])
+  })
+})
+
+describe('checkCapabilities', () => {
+  it('catches a capability anchor with no heading behind it', async () => {
+    const set = await docset({ 'operating.md': '# Operations\n\n## Backup\n' })
+    const source = "  {\n    doc: 'operating',\n    anchor: 'permissions',\n  },\n"
+    const [problem] = checkCapabilities(source, set)
+
+    expect(problem?.href).toBe('/docs/operating#permissions')
+    expect(problem?.reason).toContain('no heading in docs/operating.md')
+  })
+
+  it('accepts a capability anchor that resolves', async () => {
+    const set = await docset({ 'operating.md': '# Operations\n\n## Backup\n' })
+    expect(checkCapabilities("    doc: 'operating',\n    anchor: 'backup',\n", set)).toEqual([])
+  })
+
+  it('catches a capability pointing at an unpublished slug', async () => {
+    const set = await docset({ 'operating.md': '# Operations\n' })
+    const [problem] = checkCapabilities("    doc: 'ghost',\n    anchor: null,\n", set)
+
+    expect(problem?.reason).toContain('publishes no document with the slug "ghost"')
+  })
+})

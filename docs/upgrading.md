@@ -36,7 +36,7 @@ silently did nothing for others would be worse than its absence.
 
 Take a backup before every upgrade, and make sure it is one you have
 actually restored at least once. See
-[backup and restore](./operating.md#backup-and-restore).
+[backup and restore](./operating.md#backup).
 
 ## What `community upgrade` does
 
@@ -426,8 +426,7 @@ behaviour exactly.
 
 Nothing is hidden that should not be: a moderator editing somebody
 else's post is never silent, the revision history is unchanged, and a
-silent edit does not clear a notice already on the post. See
-[the silent edit window](./operating.md#the-silent-edit-window).
+silent edit does not clear a notice already on the post.
 
 #### The minimum search word length works
 
@@ -441,8 +440,7 @@ number now gets that number, which is the change it asked for.
 The rule is *at least one word*, not *every word*: a search is refused
 only when every word in it is shorter than the setting, and short words
 in a search that also has a long one are passed to the index. The label
-now says so. See
-[Running a board](./operating.md#how-short-a-search-may-be).
+now says so.
 
 #### `search.enabled` actually switches search off
 
@@ -453,7 +451,6 @@ places — the link goes, the search pages say search is off, and
 stored `false` loses its search the moment it upgrades** — which is what
 it asked for, though worth telling your members. The index is still
 maintained while search is off, so switching back on needs no reindex.
-See [switching search off](./operating.md#switching-search-off).
 
 #### `registration.enabled` actually closes registration
 
@@ -466,7 +463,8 @@ been quietly accepting registrations, its member list is worth a look.
 
 Neither the installer nor `community user:create` consults it: an
 operator at a terminal cannot be locked out of the board they are
-installing. See [closing registration](./operating.md#closing-registration).
+installing. See
+[The organiser's guide § Registration](./organiser-guide.md#registration).
 
 #### `registration.method` decides what a new account must do
 
@@ -534,8 +532,7 @@ before you deploy if you ever touched that screen.
 Two things moved as part of it: the session lifetime now says **14
 days** (which is what the board was actually doing), and
 `security.max_account_login_attempts` is new, defaulting to the 50 the
-code always used. See
-[the three login counters](./operating.md#the-three-login-counters).
+code always used.
 
 ### Permissions that were lying, and are not any more
 
@@ -549,7 +546,7 @@ Nobody loses an undo they were using: a one-off migration granted
 *Restore posts* to every existing appointment that held *Delete posts*.
 **New appointments get exactly what is ticked** — tick both boxes if you
 mean both. See
-[what an appointment grants](./operating.md#what-an-appointment-grants).
+[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships).
 
 #### Three dead moderator checkboxes are gone
 
@@ -565,10 +562,8 @@ It read "delete a whole thread you started" and nothing read it. Granted,
 the thread's author now gets a **Delete thread** button that moves the
 thread to `visibility=deleted` — reversible, exactly as a moderator's
 delete is; restoring stays a moderator right. It is **off by default**
-and nothing changes until you tick it — read
-[letting members delete their own threads](./operating.md#letting-members-delete-their-own-threads)
-first, because a thread is deleted whole and takes other people's
-replies with it.
+and nothing changes until you tick it — and a thread is deleted whole,
+taking other people's replies with it.
 
 #### `canDeleteOthersPosts` is gone
 
@@ -599,8 +594,7 @@ over a UTC day, on the REST API's endpoints as much as the forms.
 and is the default, so an untouched board is unaffected — but a board
 that set a number, believing it was doing something, will start
 enforcing a number nobody has looked at in a while. *Bypass flood check*
-does not lift this cap; to exempt a group, set its value to `0`. See
-[the daily post allowance](./operating.md#the-daily-post-allowance).
+does not lift this cap; to exempt a group, set its value to `0`.
 
 #### `maxPrivateMessagesPerDay` is enforced
 
@@ -613,7 +607,7 @@ what a member may *keep*, not what they may send in a day.
 
 #### Backup is a verb
 
-The [backup and restore](./operating.md#backup-and-restore) page used to
+The [backup and restore](./operating.md#backup) page used to
 be commands you copied; it is now `community backup` and
 `community restore` — one bundle carrying the database dump and the
 uploads together, restored only into a new, empty database, with the
@@ -690,7 +684,8 @@ resolves the same address it always did. Behind more than one hop (a CDN
 in front of your proxy), set `TRUSTED_PROXY_HOPS=2` — leave it at `1`
 and every visitor resolves to the CDN, visible immediately as an
 allowlist that admits nobody and a moderator log full of one address.
-See [visitor addresses and proxies](./operating.md#visitor-addresses-and-proxies).
+See
+[Deploying by hand § Count your proxies](./self-hosting.md#count-your-proxies).
 
 #### Four anti-spam limits arrive switched on
 

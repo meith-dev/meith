@@ -21,9 +21,8 @@ What you may do is not one switch. You are appointed to forums, one at a
 time, and each appointment carries exactly the rights the organisers
 ticked — approving content, deleting, restoring, locking, pinning,
 moving, merging and splitting are separate grants. The rules are the
-administrator's to set; they are described under
-[Permissions](./operating.md#permissions) and
-[What an appointment grants](./operating.md#what-an-appointment-grants).
+administrator's to set — see
+[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships).
 
 **My forums** (**`/modcp/forums`**) is the page to trust: it lists every
 forum you are appointed to and exactly what you may do in each. If a
@@ -57,7 +56,6 @@ reasons:
 - **The author is new.** The board can hold a member's first posts until
   they have a few to their name — the single most effective spam control
   it has, because spam accounts post once or twice and never come back.
-  See [what each control is worth](./operating.md#what-each-control-is-worth).
 - **The forum holds everything.** A forum can be set to hold all new
   threads, or all new replies, and the permission matrix can require
   approval from particular groups.
@@ -76,8 +74,7 @@ items and press **Approve selected** or **Reject selected**.
   with the restore right can bring it back.
 
 Two rules keep the queue honest, and they are worth knowing so an
-"empty" queue does not surprise you — see
-[the moderation queue](./operating.md#the-moderation-queue):
+"empty" queue does not surprise you:
 
 - **A held reply inside a thread that is itself held is not listed.**
   Approving the thread is the decision; the reply is not a separate one.
@@ -91,7 +88,7 @@ handled, not silently re-decided.
 
 One more thing: the queue shows you the text **as written**, without the
 board's word filter applied. You are judging the words, so you see them —
-see [what the word filter covers](./operating.md#what-the-word-filter-covers).
+see [Keeping it civil](#keeping-it-civil).
 
 ## Reports
 
@@ -161,7 +158,7 @@ Two things about editing and deleting posts:
   grace window to fix their own typos without a *Last edited by* line;
   a moderator's edit of another member's post always carries the notice,
   however fresh the post, and every edit is kept in the revision
-  history — see [the silent edit window](./operating.md#the-silent-edit-window).
+  history.
 
 A post's author and staff who may edit other members' posts can open **History**
 from the post actions. The history compares adjacent revisions and records the
@@ -212,15 +209,13 @@ What a ban is: a record with a reason for the staff, a public reason the
 member is shown, an optional expiry, and the group the member held
 before — so lifting the ban, or its expiry, puts them back exactly where
 they were. A banned member cannot sign in; they are told they are
-banned, and shown the public reason if one was given. See
-[member state and bans](./operating.md#member-state-and-bans).
+banned, and shown the public reason if one was given.
 
 **Banning somebody by hand is not a moderator tool.** The ban screen
 lives in the admin panel, on the member's page under `/admin/users` — a
 moderator's route to a ban is the warning ladder, or asking an
 administrator. The same goes for **ban filters**, the patterns that
-block a registration or sign-in before an account exists — see
-[ban filters](./operating.md#ban-filters).
+block a registration or sign-in before an account exists.
 
 Other things that look like moderation and are not yours to press:
 
@@ -233,7 +228,7 @@ Other things that look like moderation and are not yours to press:
 - **The spam controls** — the first-post hold threshold, the hourly
   limits, the registration challenge. If spam is getting past the queue,
   that is a settings conversation, not more clicking — point the
-  administrator at [spam and rate limits](./operating.md#spam-and-rate-limits).
+  administrator at the board's anti-spam settings.
 - **Closing registration**, activating stuck accounts, lifting bans,
   and anything about a member's account itself.
 - **Warning reasons and the points ladder** — the presets and thresholds
@@ -260,7 +255,7 @@ you day to day:
   out of a spammer's reach. It is the members' tool, not a moderation
   one: a member whose posts are a problem is a matter for the queue, a
   warning, or a report — not for votes. What the feature is on your
-  board is a setting: see [Reputation](./operating.md#reputation).
+  board is a setting the administrator chooses.
 
 Most moderation is none of the tools above. It is the early reply that
 sets a tone, the report answered the same day, and the first post

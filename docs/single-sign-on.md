@@ -145,7 +145,7 @@ community user:2fa-clear --user ada
 
 It does the same work — clears the factor, ends every session, writes the
 same entry — from a shell on the host. See
-[the operator CLI](./operating.md#the-operator-cli) for how to reach it on
+[the operator CLI](./operating.md#account-recovery) for how to reach it on
 your deployment.
 
 ### What signing in looks like
@@ -276,8 +276,8 @@ cannot be triggered by another site.
 
 Between the button and the provider there is a page that says where the
 member is being sent, then follows itself immediately. That hop is not
-decoration: the board's [content policy](./operating.md#the-content-security-policy)
-carries `form-action 'self'`, so a browser refuses to let a form submission
+decoration: the board's content policy carries `form-action 'self'`, so a
+browser refuses to let a form submission
 end anywhere but this board — including through a redirect. Handing off from
 a page keeps that restriction intact, and leaves a plain link behind for any
 browser that does not follow the refresh.
