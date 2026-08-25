@@ -437,7 +437,7 @@ async function stageObjectStoreUploads(
   const pulled = await drainStoreToDirectory(store, dir)
 
   if (pulled === 0) {
-    console.log(`${origin} is empty; the bundle carries no uploads.`)
+    console.log(`Found no objects in ${origin}; the bundle carries no uploads.`)
     await rm(dir, { recursive: true, force: true })
     return 'skipped'
   }
@@ -456,10 +456,10 @@ async function stageUploads(stage: string, mode: UploadsMode): Promise<'included
       return await stageObjectStoreUploads(
         stage,
         S3FileStore.fromEnv(env),
-        `The ${env.S3_BUCKET} bucket`,
+        `the ${env.S3_BUCKET} bucket`,
       )
     case 'blob':
-      return await stageObjectStoreUploads(stage, BlobFileStore.fromEnv(env), 'The Blob store')
+      return await stageObjectStoreUploads(stage, BlobFileStore.fromEnv(env), 'the Blob store')
     case 'local':
       return await stageLocalUploads(stage)
   }

@@ -49,11 +49,16 @@ CACHE_DRIVER=redis
 FILESTORE_DRIVER=blob
 ```
 
-Neither is inferred, deliberately. The board caches in Redis and puts uploads
+Neither is inferred, deliberately: the board caches in Redis and puts uploads
 in an object store because you said so, never because a connection string or a
-token happened to be present — so a store you meant to configure and did not
-fails loudly at boot, instead of quietly caching inside one instance or writing
-uploads to a disk that is about to disappear.
+token happened to be present.
+
+Leaving them blank fails differently, which is why the form asks for both.
+Blank `FILESTORE_DRIVER` means `local`, and the board **refuses to boot** on
+this platform rather than write uploads to a disk that is about to disappear.
+Blank `CACHE_DRIVER` complains about nothing: the board falls back to caching
+inside each instance, and every instance then serves whatever it last saw for
+up to a minute. That one degrades quietly, so type it.
 
 The remaining three drivers do derive themselves, and the form does not ask:
 a `DATABASE_URL` means `DATA_SOURCE=postgres` and `QUEUE_DRIVER=postgres`, and
@@ -106,8 +111,10 @@ sender that posts `{from, to, subject, text, html, reply_to}` with a bearer
 token — Resend's `POST /emails` happens to be exactly that shape, which is why
 it needs no adapter. Any provider with the same shape works: set
 `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` and `MAIL_DRIVER=http` in the
-project's environment settings. The first two override `RESEND_API_KEY`;
-only `RESEND_API_KEY` turns the driver on by itself.
+project's environment settings, and set the first two **together** — either
+one on its own stands the Resend bridge down, so a key issued for Resend is
+never presented to an endpoint you chose. Only `RESEND_API_KEY` turns the
+driver on by itself. Delete it once you have moved off Resend.
 
 Check it worked: sign in as the administrator and use the test button on
 **/admin → Settings → Mail**.

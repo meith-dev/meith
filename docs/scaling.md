@@ -290,12 +290,18 @@ which is where permissions are checked.
 `signedUrl()` returns `undefined`, which is a **deliberate omission rather
 than a limitation of the platform**. The SDK can sign: `issueSignedToken()`
 followed by `presignUrl({ operation: 'get', … })` produces a time-limited
-URL. Both are network calls to Vercel's control plane, and `FileStore.url()`
-and `signedUrl()` have no callers outside the driver contract — every
-attachment, avatar, logo and badge is streamed by a board route calling
-`files.get()`. Adding a two-step signing round-trip to satisfy a method
-nothing invokes would be untested code on a live path, so the driver
-declines instead, which the port explicitly permits. `url()` still returns
+URL, and the cost is modest — only `issueSignedToken()` reaches Vercel, it
+defaults to a whole-store scope valid for an hour, and `presignUrl()` then
+signs each URL locally, so one cached token covers arbitrarily many.
+
+The reason not to build it is simply that nothing would call it.
+`FileStore.url()` and `signedUrl()` have no callers outside the driver
+contract: every attachment, avatar, logo and badge is streamed by a board
+route calling `files.get()`, which is where permissions are checked.
+Implementing a signing path that no request exercises would put untested
+code on a live credential path, so the driver declines instead, which the
+port explicitly permits. Should a caller ever want a signed URL, the SDK
+supports it and this is the method to fill in. `url()` meanwhile returns
 the store's own object URL, built the way the SDK builds it; it simply
 requires authentication that nothing asks for.
 

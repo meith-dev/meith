@@ -339,4 +339,33 @@ describe('a mail key injected under the provider name', () => {
 
     expect(parseEnv(configured).MAIL_DRIVER).toBe('log')
   })
+
+  it('never sends the Resend key to an endpoint someone else chose', () => {
+    const env = parseEnv({
+      ...withKey,
+      MAIL_HTTP_ENDPOINT: 'https://api.other.example/send',
+    })
+
+    expect(env.MAIL_HTTP_ENDPOINT).toBe('https://api.other.example/send')
+    expect(env.MAIL_HTTP_TOKEN).toBeUndefined()
+    expect(env.MAIL_DRIVER).toBe('log')
+  })
+
+  it("does not point someone else's token at Resend either", () => {
+    const env = parseEnv({ ...withKey, MAIL_HTTP_TOKEN: 'other-token' })
+
+    expect(env.MAIL_HTTP_TOKEN).toBe('other-token')
+    expect(env.MAIL_HTTP_ENDPOINT).toBeUndefined()
+    expect(env.MAIL_DRIVER).toBe('log')
+  })
+
+  it('names what is missing when half a mail API is set on purpose', () => {
+    expect(() =>
+      parseEnv({
+        ...withKey,
+        MAIL_DRIVER: 'http',
+        MAIL_HTTP_ENDPOINT: 'https://api.other.example/send',
+      }),
+    ).toThrow(/MAIL_HTTP_TOKEN/)
+  })
 })

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BlobFileStore, type BlobLike } from '@meith/drivers'
 
@@ -418,10 +418,17 @@ describe('carrying a Blob store out and putting it back', () => {
 
     const dir = path.join(scratch, 'uploads')
     await mkdir(dir, { recursive: true })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const pulled = await drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, escaping), dir)
+    try {
+      const pulled = await drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, escaping), dir)
 
-    expect(pulled).toBe(1)
+      expect(pulled).toBe(1)
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('../escaped.txt'))
+    } finally {
+      warn.mockRestore()
+    }
+
     expect(await readdir(dir)).toEqual(['safe.txt'])
     await expect(stat(path.join(scratch, 'escaped.txt'))).rejects.toThrow()
   })

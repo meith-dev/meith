@@ -136,7 +136,7 @@ And the values those drivers need:
 | `S3_PUBLIC_BASE_URL` | Where objects are *served* from, which is not always where the API lives — R2 serves from an `r2.dev` address or a custom domain, not from `S3_ENDPOINT`. Set it to that, or to a CDN in front of the bucket, or public URLs point somewhere a browser cannot fetch. |
 | `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default. |
 | `RESEND_API_KEY` | Set by Resend's Vercel integration when you add it. The board reads this name and needs neither of the next two. |
-| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. Both override `RESEND_API_KEY`. Set `MAIL_DRIVER=http` alongside them — only `RESEND_API_KEY` turns the driver on by itself. |
+| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. **Set them as a pair**, with `MAIL_DRIVER=http`: setting either one on its own stands the Resend bridge down entirely, so that a key issued for Resend is never presented to an endpoint someone else chose. Only `RESEND_API_KEY` turns the driver on by itself. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
 | `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. This is the name Vercel Cron can send — see [the tick](#3-the-tick-replaces-the-worker). |
@@ -151,11 +151,17 @@ beside it implies `MAIL_DRIVER=http`.
 
 `CACHE_DRIVER` and `FILESTORE_DRIVER` stay explicit, deliberately. Each
 turns on an external service the board then depends on for every request,
-and neither should switch on merely because a variable is present: the
-board caches in Redis and puts uploads in an object store because you said
-so. A store you meant to configure and did not then fails loudly at boot,
-rather than quietly caching inside one instance or writing uploads to a
-disk that is about to disappear.
+and neither switches on merely because a variable is present: the board
+caches in Redis and puts uploads in an object store because you said so.
+
+Leaving them unset fails in two different ways, and only one of them is
+loud. Unset `FILESTORE_DRIVER` is `local`, which this platform **refuses
+outright** — the board will not boot rather than write uploads to a disk
+that is about to disappear. Unset `CACHE_DRIVER` is `next`, and nothing
+refuses it: the board caches inside each instance and serves whatever that
+instance last saw for up to a minute, however many instances are running.
+A blank field on a deploy form arrives as an empty value and is treated as
+unset, so the cache is the one to check twice — it will not tell you.
 
 Setting all five by hand, as the table above does, is still the clearest
 thing to do on a project you configure yourself.
@@ -237,6 +243,15 @@ with a `MAIL_FROM` beside it. Configuring the generic pair by hand leaves
 `MAIL_DRIVER` alone, so set it to `http` yourself — a board that had those
 two variables set and `MAIL_DRIVER` unset was not sending mail before, and
 an upgrade is not the moment to start.
+
+Set that pair **together**. Touching either half stands the bridge down
+completely: the board will not combine `RESEND_API_KEY` with an endpoint
+you supplied, nor point a token you supplied at Resend. That matters most
+when moving away from Resend, where the integration has already set
+`RESEND_API_KEY` and the obvious move is to change the endpoint and forget
+the key — which would otherwise send a live Resend credential to the new
+provider as its bearer token. Boot then fails naming `MAIL_HTTP_TOKEN`
+rather than leaking it. Remove `RESEND_API_KEY` once you have moved.
 
 `smtp` can work and is worse here. It opens a raw TCP connection on a port
 the platform may not allow out: port **25 is refused outright by the

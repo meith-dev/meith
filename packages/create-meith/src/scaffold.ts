@@ -206,12 +206,19 @@ function vercelEnvExample(name: string): string {
 # provider's HTTPS API. Setting one here overrides the derivation, which is what
 # this file is for when you copy it to .env.local.
 #
-# The two that stay explicit stay that way on purpose. Each turns on an external
-# service the board then depends on for every request, and neither should be
-# switched on by a variable that merely happens to be present: the board caches
-# in Redis and puts uploads in an object store because you said so. A store you
-# meant to configure and did not then fails loudly at boot, rather than quietly
-# caching in-process or writing uploads to a disk that is about to disappear.
+# The two that stay explicit stay that way on purpose: each turns on an external
+# service the board then depends on for every request, and neither is switched on
+# by a variable that merely happens to be present. The board caches in Redis and
+# puts uploads in an object store because you said so.
+#
+# What happens if you leave one blank differs, and the difference is the reason
+# the form asks for both. Leave FILESTORE_DRIVER blank and the board refuses to
+# boot at all: the default is local, and local on this platform means uploads
+# written to a disk that is about to disappear. Leave CACHE_DRIVER blank and
+# nothing complains — the board falls back to caching inside each instance and
+# serves whatever that instance last saw, for up to a minute, however many
+# instances there are. That one degrades quietly, which is exactly why it is
+# worth typing rather than leaving to a default.
 DATA_SOURCE=postgres
 QUEUE_DRIVER=postgres
 CACHE_DRIVER=redis
@@ -296,9 +303,14 @@ MAIL_FROM=
 RESEND_API_KEY=
 
 # Any other provider with the same shape — a bearer token and an endpoint that
-# accepts {from, to, subject, text, html, reply_to}. These two override
-# RESEND_API_KEY, but do not turn the driver on by themselves: set
-# MAIL_DRIVER=http above as well. Only RESEND_API_KEY implies it.
+# accepts {from, to, subject, text, html, reply_to}. Set BOTH, plus
+# MAIL_DRIVER=http above; they do not turn the driver on by themselves, and only
+# RESEND_API_KEY implies it.
+#
+# Setting just one of them stands the Resend bridge down completely, on purpose:
+# the board will not hand a key issued for Resend to an endpoint you chose, nor
+# aim your token at Resend. Boot fails naming the half you left out. Delete
+# RESEND_API_KEY once you have moved off Resend.
 # MAIL_HTTP_ENDPOINT=
 # MAIL_HTTP_TOKEN=
 
@@ -1079,11 +1091,16 @@ the board then needs for every request:
 ${VERCEL_TYPED_DRIVERS.join('\n')}
 \`\`\`
 
-Neither is inferred, deliberately. The board caches in Redis and puts uploads
+Neither is inferred, deliberately: the board caches in Redis and puts uploads
 in an object store because you said so, never because a connection string or a
-token happened to be present — so a store you meant to configure and did not
-fails loudly at boot, instead of quietly caching inside one instance or writing
-uploads to a disk that is about to disappear.
+token happened to be present.
+
+Leaving them blank fails differently, which is why the form asks for both.
+Blank \`FILESTORE_DRIVER\` means \`local\`, and the board **refuses to boot** on
+this platform rather than write uploads to a disk that is about to disappear.
+Blank \`CACHE_DRIVER\` complains about nothing: the board falls back to caching
+inside each instance, and every instance then serves whatever it last saw for
+up to a minute. That one degrades quietly, so type it.
 
 The remaining three drivers do derive themselves, and the form does not ask:
 a \`DATABASE_URL\` means \`DATA_SOURCE=postgres\` and \`QUEUE_DRIVER=postgres\`, and
@@ -1134,8 +1151,10 @@ sender that posts \`{from, to, subject, text, html, reply_to}\` with a bearer
 token — Resend's \`POST /emails\` happens to be exactly that shape, which is why
 it needs no adapter. Any provider with the same shape works: set
 \`MAIL_HTTP_ENDPOINT\`, \`MAIL_HTTP_TOKEN\` and \`MAIL_DRIVER=http\` in the
-project's environment settings. The first two override \`RESEND_API_KEY\`;
-only \`RESEND_API_KEY\` turns the driver on by itself.
+project's environment settings, and set the first two **together** — either
+one on its own stands the Resend bridge down, so a key issued for Resend is
+never presented to an endpoint you chose. Only \`RESEND_API_KEY\` turns the
+driver on by itself. Delete it once you have moved off Resend.
 
 Check it worked: sign in as the administrator and use the test button on
 **/admin → Settings → Mail**.

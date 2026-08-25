@@ -290,22 +290,20 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const hasDb = Boolean(source.DATABASE_URL)
   const dataSource = source.DATA_SOURCE ?? (hasDb ? 'postgres' : 'fixture')
 
-  const resendKey = source.RESEND_API_KEY
+  const ownMailApi = source.MAIL_HTTP_ENDPOINT !== undefined || source.MAIL_HTTP_TOKEN !== undefined
+  const bridgedKey = ownMailApi ? undefined : source.RESEND_API_KEY
 
   return {
     ...source,
     DATA_SOURCE: dataSource,
     QUEUE_DRIVER: source.QUEUE_DRIVER ?? (dataSource === 'postgres' ? 'postgres' : 'memory'),
     CACHE_DRIVER: source.CACHE_DRIVER ?? (dataSource === 'postgres' ? 'next' : 'memory'),
-    ...(resendKey === undefined
+    ...(bridgedKey === undefined
       ? {}
-      : {
-          MAIL_HTTP_TOKEN: source.MAIL_HTTP_TOKEN ?? resendKey,
-          MAIL_HTTP_ENDPOINT: source.MAIL_HTTP_ENDPOINT ?? RESEND_EMAILS_ENDPOINT,
-        }),
+      : { MAIL_HTTP_TOKEN: bridgedKey, MAIL_HTTP_ENDPOINT: RESEND_EMAILS_ENDPOINT }),
     MAIL_DRIVER:
       source.MAIL_DRIVER ??
-      (resendKey !== undefined && source.MAIL_FROM !== undefined ? 'http' : undefined),
+      (bridgedKey !== undefined && source.MAIL_FROM !== undefined ? 'http' : undefined),
   }
 }
 
