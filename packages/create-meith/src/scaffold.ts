@@ -1,10 +1,22 @@
+export type ScaffoldTarget = 'self-host' | 'vercel'
+
 export interface ScaffoldOptions {
   readonly name: string
   readonly version: string
   readonly repositoryUrl: string
+  readonly target?: ScaffoldTarget
+  readonly templateRepositoryUrl?: string
 }
 
 export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
+
+export const DEFAULT_TEMPLATE_REPOSITORY_URL = 'https://github.com/meith-dev/vercel-template'
+
+export const VERCEL_BUILD_COMMAND = 'community migrate && forum-web build'
+
+export const TICK_PATH = '/api/system/tick'
+
+export const TICK_SCHEDULE = '* * * * *'
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
 
@@ -20,8 +32,271 @@ export function validateName(name: string): string | null {
   return null
 }
 
+const ENV_REQUIRED_HEADING = `# ─── Required ────────────────────────────────────────────────────────────────`
+
+const ENV_OPTIONAL_HEADING = `# ─── Optional ────────────────────────────────────────────────────────────────`
+
+const ENV_DATABASE_URL_PROSE = `# Your Postgres connection string.
+#
+# If it is a managed database that offers a TRANSACTION-MODE POOLER string, use
+# that rather than the direct one — Neon, Supabase and their kind hand out both,
+# and on the direct string a board works in testing and starts refusing
+# connections under the first real traffic, with an error that names the
+# database rather than the cause. Your own Postgres, with a fixed number of
+# processes in front of it, does not need one.`
+
+const ENV_DIRECT_DATABASE_URL_PROSE = `# The other half of that pair: the DIRECT (non-pooler) string, used only by
+# \`community migrate\` and \`community backup\`. Migrations hold a session-level
+# advisory lock so that two deploys landing together queue instead of both
+# applying the same migration, and a transaction-mode pooler cannot hold that
+# lock: it takes the connection back the moment the lock statement ends, which
+# leaves the lock on a backend another client gets. Set both and each gets the
+# connection it needs; set only DATABASE_URL and migrations use it too, which is
+# right for a Postgres you run yourself.`
+
+const ENV_AUTH_SECRET_PROSE = `# Session and token signing. No default, deliberately: a shipped default is a
+# board every reader of the source can sign a session for.
+#
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`
+
+const ENV_TICK_SECRET_PROSE = `# The shared secret the tick caller presents to GET /api/system/tick. Generate
+# it the same way. Without it the tick is unauthenticated, and the tick is how
+# bans expire and digests send.`
+
+const ENV_DATA_SOURCE_PROSE = `# fixture = deterministic in-memory sample data, no database needed. This is
+# what \`npm run build\` uses, and what a checkout with no database falls back to.`
+
+const ENV_APP_URL_PROSE = `# Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
+# place a relative URL cannot work because there is no request to be relative to.
+#
+# Optional: leave it blank and the installer asks, prefilled from the address you
+# load /install at, and stores the answer on the board where the settings screen
+# can change it without a redeploy. Set it here and it wins outright.`
+
+const ENV_SMTP_MAIL_BLOCK = `# Mail. Leave these alone and the installer asks for mail on first run, storing
+# it on the board — a settings screen with a test button, no redeploy. Set
+# MAIL_DRIVER here instead and the environment wins outright, which is what you
+# want if the credential must not live in the database.
+#
+# The default sends NOTHING: each message goes to the server log, so password
+# reset fails silently until mail is configured one way or the other.
+# MAIL_DRIVER=smtp
+# MAIL_SMTP_HOST=smtp.example.com
+# MAIL_SMTP_PORT=465
+# MAIL_SMTP_SECURITY=tls        # tls (465) | starttls (587) | none
+# MAIL_SMTP_USERNAME=
+# MAIL_SMTP_PASSWORD=
+# MAIL_FROM=noreply@yourdomain.com`
+
+function selfHostEnvExample(name: string): string {
+  return `# ${name} — environment.
+#
+# Copy to .env.local for development. On the server this is \`.env\` beside the
+# compose file; nothing here belongs in git.
+
+${ENV_REQUIRED_HEADING}
+
+${ENV_DATABASE_URL_PROSE}
+DATABASE_URL=
+
+${ENV_DIRECT_DATABASE_URL_PROSE}
+# DIRECT_DATABASE_URL=
+
+${ENV_AUTH_SECRET_PROSE}
+AUTH_SECRET=
+
+${ENV_TICK_SECRET_PROSE}
+TICK_SECRET=
+
+${ENV_OPTIONAL_HEADING}
+
+${ENV_DATA_SOURCE_PROSE}
+DATA_SOURCE=postgres
+
+${ENV_APP_URL_PROSE}
+APP_URL=
+
+${ENV_SMTP_MAIL_BLOCK}
+
+`
+}
+
+function vercelEnvExample(name: string): string {
+  return `# ${name} — environment, on Vercel.
+#
+# Nothing on Vercel reads this file. The platform holds each of these as a
+# project environment variable, and the Deploy Button in README.md asks for the
+# ones it cannot provision itself. This is the reference for what they mean —
+# and the file to copy to .env.local to run the same board on your own machine.
+
+# ─── Drivers ─────────────────────────────────────────────────────────────────
+
+# An instance is created for a request, may be frozen between requests, and is
+# destroyed without warning; it has a writable /tmp nothing else can read and no
+# background process of its own. Every driver below therefore keeps its state
+# somewhere outside the instance, and these five values are not a default to
+# tune — they are the one combination the board supports on functions.
+#
+# DATA_SOURCE=fixture is a read-only sample board with no write side.
+# QUEUE_DRIVER=memory loses every queued job when the instance goes away, which
+# is after almost every request, and the board already refuses it in production.
+# CACHE_DRIVER=next and memory cache inside the process, so each instance serves
+# its own stale copy for up to a minute. FILESTORE_DRIVER=local writes to a disk
+# no other instance can read and that is discarded with the instance — on Vercel
+# the board refuses it outright rather than losing uploads quietly.
+DATA_SOURCE=postgres
+QUEUE_DRIVER=postgres
+CACHE_DRIVER=redis
+FILESTORE_DRIVER=s3
+MAIL_DRIVER=http
+
+${ENV_REQUIRED_HEADING}
+
+${ENV_DATABASE_URL_PROSE}
+DATABASE_URL=
+
+${ENV_DIRECT_DATABASE_URL_PROSE}
+#
+# On Vercel this is not optional. DATABASE_URL here is the pooler string, the
+# build runs \`community migrate\` against it, and /install takes the second of
+# those two session locks on first run. Neon publishes the direct string as
+# DATABASE_URL_UNPOOLED; copy that value into this variable.
+DIRECT_DATABASE_URL=
+
+# The shared cache — a Redis or Valkey endpoint, \`rediss://\` for TLS. Redis
+# holds cache entries and nothing else: losing it costs the board a warm cache,
+# not data, and signs nobody out. A store provisioned with the board publishes
+# its own connection variable; copy that value into this one.
+REDIS_URL=
+
+${ENV_AUTH_SECRET_PROSE}
+AUTH_SECRET=
+
+${ENV_TICK_SECRET_PROSE}
+#
+# Vercel Cron sends \`Authorization: Bearer <CRON_SECRET>\` and cannot be told to
+# send any other name, so CRON_SECRET is the one to set here. The board accepts
+# either name, and both when both are set. Whichever you use, 32 characters is
+# the floor — stricter than the 16 Vercel's own cron documentation suggests, so
+# a secret generated by following those instructions is rejected here.
+CRON_SECRET=
+# TICK_SECRET=
+
+# Uploads, in any S3-compatible bucket. The first four are required whenever
+# FILESTORE_DRIVER=s3, and boot fails naming any that are missing. S3_ENDPOINT
+# is for anything that is not AWS — R2, MinIO, Spaces — and switches the client
+# to path-style addressing; set S3_REGION=auto for R2. S3_PUBLIC_BASE_URL is the
+# host objects are *served* from when that is not the API endpoint: an r2.dev
+# domain, a custom domain, or a CDN in front of the bucket.
+#
+# An upload is held whole in the instance's memory on the way in and on the way
+# out, so the function's memory limit, not the bucket, is what caps a file.
+S3_BUCKET=
+S3_REGION=
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+# S3_ENDPOINT=
+# S3_PUBLIC_BASE_URL=
+
+# Mail over the provider's own HTTPS API, on 443 — the one outbound path a
+# function can rely on. SMTP on port 25 is blocked by serverless egress and the
+# board refuses it on Vercel; 587 with STARTTLS may work, but an API does not
+# depend on the platform's egress rules staying as they are.
+MAIL_FROM=
+MAIL_HTTP_ENDPOINT=
+MAIL_HTTP_TOKEN=
+
+${ENV_OPTIONAL_HEADING}
+
+${ENV_APP_URL_PROSE}
+APP_URL=
+
+`
+}
+
+function envExample(name: string, target: ScaffoldTarget): string {
+  return target === 'vercel' ? vercelEnvExample(name) : selfHostEnvExample(name)
+}
+
+const SELF_HOST_DEPLOY_KIT = [
+  '.dockerignore',
+  '.github/workflows/build.yml',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-entrypoint.sh',
+  'docker-healthcheck.sh',
+] as const
+
+const VERCEL_FIXED_DRIVERS = [
+  'DATA_SOURCE=postgres',
+  'QUEUE_DRIVER=postgres',
+  'CACHE_DRIVER=redis',
+  'FILESTORE_DRIVER=s3',
+  'MAIL_DRIVER=http',
+] as const
+
+export const VERCEL_PROMPTED_ENV = [
+  'DATA_SOURCE',
+  'QUEUE_DRIVER',
+  'CACHE_DRIVER',
+  'FILESTORE_DRIVER',
+  'MAIL_DRIVER',
+  'DIRECT_DATABASE_URL',
+  'REDIS_URL',
+  'AUTH_SECRET',
+  'CRON_SECRET',
+  'S3_BUCKET',
+  'S3_REGION',
+  'S3_ACCESS_KEY_ID',
+  'S3_SECRET_ACCESS_KEY',
+  'MAIL_FROM',
+  'MAIL_HTTP_ENDPOINT',
+  'MAIL_HTTP_TOKEN',
+] as const
+
+export const VERCEL_MARKETPLACE_STORES = [
+  { type: 'integration', integrationSlug: 'neon', productSlug: 'neon', protocol: 'storage' },
+  {
+    type: 'integration',
+    integrationSlug: 'upstash',
+    productSlug: 'upstash-kv',
+    protocol: 'storage',
+  },
+] as const
+
+export function deployButtonUrl(templateRepositoryUrl: string): string {
+  const params = new URLSearchParams([
+    ['repository-url', templateRepositoryUrl],
+    ['project-name', 'meith-board'],
+    ['repository-name', 'meith-board'],
+    ['env', VERCEL_PROMPTED_ENV.join(',')],
+    [
+      'envDescription',
+      'Five fixed driver values, two secrets to generate, the direct database URL, the cache URL, and your own bucket and mail API.',
+    ],
+    ['envLink', `${templateRepositoryUrl}/blob/main/.env.example`],
+    ['stores', JSON.stringify(VERCEL_MARKETPLACE_STORES)],
+    ['skippable-integrations', '1'],
+  ])
+
+  return `https://vercel.com/new/clone?${params.toString()}`
+}
+
+function vercelJson(): string {
+  return `${JSON.stringify(
+    {
+      framework: 'nextjs',
+      buildCommand: VERCEL_BUILD_COMMAND,
+      crons: [{ path: TICK_PATH, schedule: TICK_SCHEDULE }],
+    },
+    null,
+    2,
+  )}\n`
+}
+
 export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> {
   const { name, version, repositoryUrl } = options
+  const target = options.target ?? 'self-host'
   const files = new Map<string, string>()
 
   files.set(
@@ -138,77 +413,7 @@ export function installedPluginDefinitions() {
 `,
   )
 
-  files.set(
-    '.env.example',
-    `# ${name} — environment.
-#
-# Copy to .env.local for development. On the server this is \`.env\` beside the
-# compose file; nothing here belongs in git.
-
-# ─── Required ────────────────────────────────────────────────────────────────
-
-# Your Postgres connection string.
-#
-# If it is a managed database that offers a TRANSACTION-MODE POOLER string, use
-# that rather than the direct one — Neon, Supabase and their kind hand out both,
-# and on the direct string a board works in testing and starts refusing
-# connections under the first real traffic, with an error that names the
-# database rather than the cause. Your own Postgres, with a fixed number of
-# processes in front of it, does not need one.
-DATABASE_URL=
-
-# The other half of that pair: the DIRECT (non-pooler) string, used only by
-# \`community migrate\` and \`community backup\`. Migrations hold a session-level
-# advisory lock so that two deploys landing together queue instead of both
-# applying the same migration, and a transaction-mode pooler cannot hold that
-# lock: it takes the connection back the moment the lock statement ends, which
-# leaves the lock on a backend another client gets. Set both and each gets the
-# connection it needs; set only DATABASE_URL and migrations use it too, which is
-# right for a Postgres you run yourself.
-# DIRECT_DATABASE_URL=
-
-# Session and token signing. No default, deliberately: a shipped default is a
-# board every reader of the source can sign a session for.
-#
-#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
-AUTH_SECRET=
-
-# The shared secret the tick caller presents to GET /api/system/tick. Generate
-# it the same way. Without it the tick is unauthenticated, and the tick is how
-# bans expire and digests send.
-TICK_SECRET=
-
-# ─── Optional ────────────────────────────────────────────────────────────────
-
-# fixture = deterministic in-memory sample data, no database needed. This is
-# what \`npm run build\` uses, and what a checkout with no database falls back to.
-DATA_SOURCE=postgres
-
-# Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
-# place a relative URL cannot work because there is no request to be relative to.
-#
-# Optional: leave it blank and the installer asks, prefilled from the address you
-# load /install at, and stores the answer on the board where the settings screen
-# can change it without a redeploy. Set it here and it wins outright.
-APP_URL=
-
-# Mail. Leave these alone and the installer asks for mail on first run, storing
-# it on the board — a settings screen with a test button, no redeploy. Set
-# MAIL_DRIVER here instead and the environment wins outright, which is what you
-# want if the credential must not live in the database.
-#
-# The default sends NOTHING: each message goes to the server log, so password
-# reset fails silently until mail is configured one way or the other.
-# MAIL_DRIVER=smtp
-# MAIL_SMTP_HOST=smtp.example.com
-# MAIL_SMTP_PORT=465
-# MAIL_SMTP_SECURITY=tls        # tls (465) | starttls (587) | none
-# MAIL_SMTP_USERNAME=
-# MAIL_SMTP_PASSWORD=
-# MAIL_FROM=noreply@yourdomain.com
-
-`,
-  )
+  files.set('.env.example', envExample(name, target))
 
   files.set(
     '.gitignore',
@@ -677,7 +882,173 @@ otherwise would be worse than its absence.
 `,
   )
 
+  if (target === 'vercel') {
+    return vercelTree(files, {
+      name,
+      repositoryUrl,
+      templateRepositoryUrl: options.templateRepositoryUrl ?? DEFAULT_TEMPLATE_REPOSITORY_URL,
+    })
+  }
+
   return files
+}
+
+interface VercelTreeOptions {
+  readonly name: string
+  readonly repositoryUrl: string
+  readonly templateRepositoryUrl: string
+}
+
+function vercelTree(
+  base: ReadonlyMap<string, string>,
+  options: VercelTreeOptions,
+): ReadonlyMap<string, string> {
+  const files = new Map(base)
+
+  for (const path of SELF_HOST_DEPLOY_KIT) files.delete(path)
+
+  files.set(
+    '.gitignore',
+    `node_modules
+.next
+.meith
+.vercel
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
+`,
+  )
+
+  files.set('vercel.json', vercelJson())
+  files.set('README.md', vercelReadme(options))
+
+  return files
+}
+
+function vercelReadme({ name, repositoryUrl, templateRepositoryUrl }: VercelTreeOptions): string {
+  return `# ${name}
+
+A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
+
+[![Deploy with Vercel](https://vercel.com/button)](${deployButtonUrl(templateRepositoryUrl)})
+
+## What the button provisions
+
+- **A copy of this repository** under your own GitHub account. Vercel builds
+  from it, and every later push to \`main\` redeploys.
+- **A Neon Postgres database**, attached to the project. Neon publishes the
+  pooled connection string as \`DATABASE_URL\` and the direct one as
+  \`DATABASE_URL_UNPOOLED\`.
+- **An Upstash Redis store**, attached the same way, for the shared cache.
+- **A Vercel project** carrying \`vercel.json\` — the build command
+  \`${VERCEL_BUILD_COMMAND}\`, which applies the schema before it builds, and the
+  cron entry that drives the tick.
+
+Two things it cannot provision, because they are accounts only you can hold: an
+**S3-compatible bucket** for uploads, and a **mail provider's HTTPS API**. Have
+both to hand before you start; the board boots without mail and delivers
+nothing, silently.
+
+## What to type into the deploy form
+
+**Two secrets**, generated rather than chosen. Thirty-two characters is a floor
+the board enforces at boot, not a suggestion:
+
+\`\`\`sh
+openssl rand -hex 32   # AUTH_SECRET
+openssl rand -hex 32   # CRON_SECRET
+\`\`\`
+
+\`CRON_SECRET\` is the name Vercel Cron sends, as \`Authorization: Bearer\`, and it
+cannot be told to send another. Note that this floor is stricter than the 16
+characters Vercel's own cron documentation suggests — a value generated by
+following those instructions is refused here, and the fix is a longer secret.
+
+**Five driver values**, fixed. This is the one combination that works on
+functions, for the reasons \`.env.example\` gives beside each of them:
+
+\`\`\`ini
+${VERCEL_FIXED_DRIVERS.join('\n')}
+\`\`\`
+
+**Two connection strings copied from the stores the button just created.**
+\`DIRECT_DATABASE_URL\` takes Neon's \`DATABASE_URL_UNPOOLED\` — migrations and the
+first-run installer each hold a session-level advisory lock, which a
+transaction-mode pooler cannot hold. \`REDIS_URL\` takes whatever variable the
+Upstash store published.
+
+**Your bucket and your mail API**: \`S3_BUCKET\`, \`S3_REGION\`,
+\`S3_ACCESS_KEY_ID\`, \`S3_SECRET_ACCESS_KEY\`, and \`MAIL_FROM\`,
+\`MAIL_HTTP_ENDPOINT\`, \`MAIL_HTTP_TOKEN\`. Add \`S3_ENDPOINT\` for a bucket that is
+not AWS (set \`S3_REGION=auto\` for R2), and \`S3_PUBLIC_BASE_URL\` when objects
+are served from somewhere other than the API endpoint.
+
+## First run: \`/install\`
+
+The build applies migrations, but an empty schema is not yet a board. Open
+\`https://<your-deployment>/install\` once the first deploy is green. It asks for
+the board's name and address and for the first administrator's username, email
+and password, creates the board and that account, and then **seals itself**:
+\`/install\` answers 404 from then on. Run it against the database you intend to
+keep — the screens are the ones
+[docs/quickstart.md](${repositoryUrl}/blob/main/docs/quickstart.md#4-run-the-installer)
+walks through.
+
+## The tick
+
+\`vercel.json\` asks Vercel to call \`${TICK_PATH}\` on \`${TICK_SCHEDULE}\`. That
+route is how bans expire, digests send, mail leaves the outbox and the queue
+drains; nothing here runs it on its own, because there is no worker process on
+a function platform. Two things about it are worth knowing **before** you
+deploy rather than after:
+
+- **A per-minute schedule needs a paid plan.** Hobby allows a couple of cron
+  jobs and runs each of them roughly once a day, at an hour Vercel chooses;
+  only paid plans accept an arbitrary cron expression. A board ticking daily
+  still loses nothing — tasks are written so a missed run delays work rather
+  than dropping it — but "as it happens" notifications become a daily digest in
+  all but name. To keep a minute-by-minute tick on Hobby, drive
+  \`${TICK_PATH}\` from something else that can call a URL on a schedule — a
+  GitHub Actions workflow, a systemd timer, an uptime pinger — presenting
+  \`TICK_SECRET\` instead.
+- **\`maxDuration = 300\` is validated when the project builds, not when the
+  function runs.** A plan that does not allow 300 seconds therefore **fails the
+  deployment** rather than clamping the request. With Fluid Compute — the
+  default for new projects — Hobby allows 300 and this builds as written. With
+  Fluid Compute switched off, Hobby caps a function at 60 seconds and the build
+  fails. Turn Fluid Compute back on.
+
+A tick that reaches the tasks and runs them answers \`200\` even when one of them
+threw, with \`ok: false\` and the failure named in \`ran\`. That is deliberate:
+schedulers retry non-2xx answers, and a task that fails every time would turn
+each retry into another attempt against whatever it is failing against.
+
+## Upgrading
+
+\`\`\`sh
+npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
+git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
+git push
+\`\`\`
+
+Vercel rebuilds on the push, and the build command applies the new migrations
+before it builds. \`--save-exact\` matters and \`.npmrc\` already sets it for
+everything else installed here.
+
+Migrations are forward-only. Recovery is by restore, so take a backup first —
+there is no down migration to undo a destructive one.
+
+## Somewhere other than Vercel
+
+Everything above is one deployment shape.
+[docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md) is the
+same board as containers you run yourself, and \`npx create-meith <name>\`
+scaffolds that shape instead — a Dockerfile, a compose file and a workflow that
+builds the image. [docs/scaling.md](${repositoryUrl}/blob/main/docs/scaling.md)
+explains why the five drivers above are what they are.
+`
 }
 
 export function nextSteps(name: string): readonly string[] {
