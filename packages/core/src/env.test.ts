@@ -383,9 +383,12 @@ describe('what the platform publishes, and what the board makes of it', () => {
     DATABASE_URL_UNPOOLED: 'postgres://u:p@direct.example:5432/forum',
     POSTGRES_URL_NON_POOLING: 'postgres://u:p@other-direct.example:5432/forum',
     POSTGRES_URL: 'postgres://u:p@pooler.example:6543/forum',
-  } satisfies NodeJS.ProcessEnv
+  } satisfies Record<string, string>
 
-  const INJECTED = { ...PUBLISHED, BLOB_READ_WRITE_TOKEN: BLOB_TOKEN } satisfies NodeJS.ProcessEnv
+  const INJECTED = { ...PUBLISHED, BLOB_READ_WRITE_TOKEN: BLOB_TOKEN } satisfies Record<
+    string,
+    string
+  >
 
   const onVercel = {
     NODE_ENV: 'production',
