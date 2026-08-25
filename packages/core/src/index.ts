@@ -25,6 +25,7 @@ export { timingSafeEqualString } from './crypto'
 export {
   assertEnv,
   assertRuntimeEnv,
+  blobStoreIdFromToken,
   type Env,
   env,
   isDemoMode,

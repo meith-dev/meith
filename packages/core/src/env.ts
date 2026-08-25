@@ -18,6 +18,20 @@ const databaseUrl = z.string().refine(isPostgresUrl, {
 
 const secret = z.string().min(32, 'must be at least 32 characters of high-entropy random data')
 
+export function blobStoreIdFromToken(token: string): string | undefined {
+  const [vendor, product, scope, storeId] = token.split('_')
+  const shaped = vendor === 'vercel' && product === 'blob' && scope === 'rw'
+  return shaped && storeId !== undefined && storeId !== '' ? storeId : undefined
+}
+
+const blobReadWriteToken = z.string().refine((value) => blobStoreIdFromToken(value) !== undefined, {
+  message:
+    'is not a Vercel Blob read-write token. One reads vercel_blob_rw_<store>_<secret>, ' +
+    'and the board takes the store it writes to out of the middle of it. Copy the value ' +
+    'the Blob store published, or remove this variable: on Vercel a linked store also ' +
+    'publishes BLOB_STORE_ID, which is credential enough by itself.',
+})
+
 const redisUrl = z.string().refine(isRedisUrl, {
   message: 'must be a redis:// or rediss:// connection string',
 })
@@ -75,7 +89,7 @@ const envSchema = z
     S3_ENDPOINT: z.string().url().optional(),
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
-    BLOB_READ_WRITE_TOKEN: nonEmpty.optional(),
+    BLOB_READ_WRITE_TOKEN: blobReadWriteToken.optional(),
     BLOB_STORE_ID: nonEmpty.optional(),
 
     MAIL_FROM: z.string().email().optional(),

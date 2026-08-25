@@ -580,9 +580,49 @@ describe('what the platform publishes, and what the board makes of it', () => {
 
     it('asks for no OIDC token of its own, which a build would not have', () => {
       const env = parseEnv({ ...bare, ...INJECTED })
-
       expect(env.FILESTORE_DRIVER).toBe('blob')
-      expect(Object.keys(env)).not.toContain('VERCEL_OIDC_TOKEN')
+
+      let refusal = ''
+      try {
+        parseEnv(noStore)
+      } catch (error) {
+        refusal = (error as Error).message
+      }
+
+      expect(refusal).toMatch(/BLOB_STORE_ID/)
+      expect(refusal).not.toMatch(/OIDC_TOKEN/)
+    })
+
+    it('refuses a token that names no store, at boot rather than at the first upload', () => {
+      expect(() =>
+        parseEnv({ ...bare, ...INJECTED, BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_' }),
+      ).toThrow(/BLOB_READ_WRITE_TOKEN.*vercel_blob_rw_<store>_<secret>/s)
+    })
+
+    it('refuses it with no store id either, where nothing else would ever catch it', () => {
+      expect(() =>
+        parseEnv({ ...bare, ...INJECTED, BLOB_STORE_ID: undefined, BLOB_READ_WRITE_TOKEN: 'nope' }),
+      ).toThrow(/BLOB_READ_WRITE_TOKEN/)
+    })
+
+    it('says the store id is credential enough, for an operator who can just drop it', () => {
+      expect(() => parseEnv({ ...bare, ...INJECTED, BLOB_READ_WRITE_TOKEN: 'nope' })).toThrow(
+        /BLOB_STORE_ID, which is credential enough by itself/,
+      )
+    })
+
+    it('leaves a good token alone, on or off the platform', () => {
+      const token = 'vercel_blob_rw_store123_secret'
+
+      expect(
+        parseEnv({ ...bare, ...INJECTED, BLOB_READ_WRITE_TOKEN: token }).BLOB_READ_WRITE_TOKEN,
+      ).toBe(token)
+      expect(
+        parseEnv({
+          NODE_ENV: 'development',
+          BLOB_READ_WRITE_TOKEN: token,
+        }).BLOB_READ_WRITE_TOKEN,
+      ).toBe(token)
     })
 
     it('names both database candidates when neither is published', () => {

@@ -1,4 +1,5 @@
 import {
+  blobStoreIdFromToken,
   ConfigurationError,
   type FileStore,
   type PutFileOptions,
@@ -54,18 +55,21 @@ function isNotFound(error: unknown): boolean {
   return named === 'BlobNotFoundError' || message.includes('The requested blob does not exist')
 }
 
+export const BLOB_NO_CREDENTIALS = 'No blob credentials found'
+
 function normalizeStoreId(storeId: string): string {
-  return storeId.startsWith('store_') ? storeId.slice('store_'.length) : storeId
+  const trimmed = storeId.trim()
+  return trimmed.startsWith('store_') ? trimmed.slice('store_'.length) : trimmed
 }
 
 function needsCredentials(error: unknown): boolean {
   const message = (error as { message?: string } | null)?.message ?? ''
-  return message.includes('No blob credentials found')
+  return message.includes(BLOB_NO_CREDENTIALS)
 }
 
 function storeIdFrom(token: string): string {
-  const [vendor, product, scope, storeId] = token.split('_')
-  if (vendor !== 'vercel' || product !== 'blob' || scope !== 'rw' || !storeId) {
+  const storeId = blobStoreIdFromToken(token)
+  if (storeId === undefined) {
     throw new ConfigurationError(
       'BLOB_READ_WRITE_TOKEN is not a Vercel Blob read-write token. Copy the ' +
         'value the Blob store published, which starts with vercel_blob_rw_.',
@@ -84,7 +88,8 @@ export class BlobFileStore implements FileStore {
   private loading: Promise<BlobLike> | undefined
 
   constructor(config: BlobFileStoreConfig, blob?: BlobLike) {
-    this.auth = config.token === undefined ? { storeId: config.storeId } : { token: config.token }
+    this.auth =
+      config.token === undefined ? { storeId: config.storeId.trim() } : { token: config.token }
     this.storeId =
       config.token === undefined ? normalizeStoreId(config.storeId) : storeIdFrom(config.token)
     this.load =
@@ -125,7 +130,7 @@ export class BlobFileStore implements FileStore {
     try {
       return await operation()
     } catch (error) {
-      if (!needsCredentials(error)) throw error
+      if (!needsCredentials(error) || !('storeId' in this.auth)) throw error
       throw new ConfigurationError(
         `The Blob store ${this.storeId} was reached with no usable credential. ` +
           'BLOB_STORE_ID is set, so the board asked the Vercel SDK to authenticate ' +
@@ -191,7 +196,7 @@ export class BlobFileStore implements FileStore {
 
     const blob = await this.blob()
     try {
-      await this.attempt(() => blob.del(key, this.auth))
+      await this.attempt(() => blob.del(key, { ...this.auth }))
     } catch (error) {
       if (isNotFound(error)) return
       throw error

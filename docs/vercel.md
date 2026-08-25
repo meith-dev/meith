@@ -251,7 +251,8 @@ Both work, and the board is the same either way. The difference is what
 happens on the day you leave.
 
 A **Vercel Blob store** is the cheapest thing to set up: attach one to the
-project, and `BLOB_READ_WRITE_TOKEN` appears by itself. That replaces four
+project, and `BLOB_STORE_ID` appears by itself — see [how the Blob store
+authenticates](#how-the-blob-store-authenticates). That replaces four
 values that each had exactly one correct setting and each of which was a
 typo away from a board that booted and then failed at the first upload. It
 is what the one-click template in `templates/vercel` defaults to, and what
@@ -307,6 +308,15 @@ Two consequences worth knowing:
   own machine — `community backup` against a Blob store is the case that
   matters — has no OIDC token, so it needs `BLOB_READ_WRITE_TOKEN`. Create
   one on the store under **Storage**. The deployment never needs it.
+- **A token that names no store is refused at boot**, whether or not
+  `BLOB_STORE_ID` is set beside it. A read-write token reads
+  `vercel_blob_rw_<store>_<secret>` and the board takes the store out of the
+  middle of it, so a truncated, stale or wrong-kind value has no store to
+  name. The board will not quietly fall back to the store id and write
+  somewhere the operator did not ask for, and it will not carry the bad value
+  as far as the first upload: the environment refuses it by name, next to
+  every other configuration error, and says the store id alone would have
+  done. Remove the variable or fix it.
 
 Two things here are **reasoned from the SDK's source and not confirmed
 against a live deploy**, because nobody has run this yet:
@@ -687,9 +697,16 @@ store over the network:
 DATABASE_URL=…            # the pooled string
 DIRECT_DATABASE_URL=…     # the direct string, for the dump
 FILESTORE_DRIVER=blob
-BLOB_READ_WRITE_TOKEN=…   # copy it out of the project's environment settings
+BLOB_READ_WRITE_TOKEN=…   # create one on the store — see below
 community backup --uploads include
 ```
+
+That token is the one value here you make by hand. On the deployment the
+board reaches the store with `BLOB_STORE_ID` and the deployment's OIDC
+identity, and a command on your own machine has no such identity — so open
+the store under **Storage**, create a read-write token, and use it for the
+backup. [How the Blob store authenticates](#how-the-blob-store-authenticates)
+has the whole of it.
 
 Copy the bundle somewhere that is none of the four vendors.
 
