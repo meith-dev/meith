@@ -237,11 +237,31 @@ TICK_SECRET=…                                    # 32+ characters of entropy
 `DATABASE_URL` is the pooled string and `DIRECT_DATABASE_URL` the direct
 one, for the reason [the database under more
 instances](#the-database-under-more-instances) gives: functions multiply
-connections faster than anything else, and migrations cannot run through a
-transaction pooler. The board never holds a session open across
-statements, never uses `LISTEN`/`NOTIFY`, and asks the driver for no named
-prepared statements, so a transaction-mode pooler is safe for everything
-except migrations.
+connections faster than anything else.
+
+Serving the board is pooler-safe. It never holds a session open across
+statements, never uses `LISTEN`/`NOTIFY`, and asks the driver for no
+named prepared statements, so every ordinary request can go through a
+transaction-mode pooler.
+
+Two things are not, and they are the two that take a session-level
+advisory lock: **migrations** and the **first-run installer**. A
+transaction-mode pooler hands the server connection back to the pool when
+the statement that took the lock commits, which breaks such a lock twice
+over. Two callers on different pooled backends can each be told they hold
+it, so the mutual exclusion it exists to provide is gone; and the lock
+outlives the caller, because closing a pooled client ends the client side
+only and leaves a backend still holding it — after which every later
+attempt is refused and the installer reports itself permanently in
+flight.
+
+So both run on `DIRECT_DATABASE_URL` when it is set and fall back to
+`DATABASE_URL` when it is not, which is the right answer for a
+self-hosted board whose single string is already a direct connection.
+Each also releases its lock explicitly with `pg_advisory_unlock` rather
+than trusting the connection's end to do it. The rule for an operator is
+simply: if `DATABASE_URL` points at a pooler, set `DIRECT_DATABASE_URL`
+as well.
 
 ### What each driver does under a function
 

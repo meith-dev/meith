@@ -15,6 +15,7 @@ import {
   getDb,
   isInstalled,
   markInstalled,
+  migrationUrl,
   PostgresAdminRepository,
   PostgresForumRepository,
   PostgresSettingsRepository,
@@ -126,7 +127,7 @@ async function forgetCachedBoard(): Promise<void> {
 export type InstallRun = { readonly sealed: true } | { readonly report: readonly StepOutcome[] }
 
 export async function runInstall(input: InstallInput): Promise<InstallRun> {
-  const url = env.DATABASE_URL ?? ''
+  const url = migrationUrl(env)
 
   try {
     const run = await withInstallLock(url, async (): Promise<InstallRun> => {

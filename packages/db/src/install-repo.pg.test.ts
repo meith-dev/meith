@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { createIsolatedDb } from './client'
-import { isInstalled, markInstalled, withInstallLock } from './install-repo'
+import { isInstalled, markInstalled, tryInstallLock, withInstallLock } from './install-repo'
 
 const URL = process.env.TEST_DATABASE_URL
 const describeIfPg = URL ? describe : describe.skip
@@ -75,6 +75,17 @@ describeIfPg('the install lock, against real Postgres', () => {
     ).rejects.toThrow('the install failed')
 
     expect(await withInstallLock(url, async () => 'ran')).toBe('ran')
+  })
+
+  it('gives the lock up on a connection that stays open, without waiting for the session to end', async () => {
+    const holder = createIsolatedDb(url)
+
+    try {
+      expect(await tryInstallLock(holder.sql, async () => 'ran')).toBe('ran')
+      expect(await withInstallLock(url, async () => 'second')).toBe('second')
+    } finally {
+      await holder.close()
+    }
   })
 
   it('seals the board for whichever install got there first, and only that one', async () => {
