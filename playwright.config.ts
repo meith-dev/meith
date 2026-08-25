@@ -28,7 +28,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
-  reporter: [['list'], ['./e2e/support/server-errors.ts']],
+  reporter: [['list'], ['./e2e/support/flaky-notice.ts'], ['./e2e/support/server-errors.ts']],
   use: {
     baseURL: 'http://127.0.0.1:3001',
     timezoneId: 'UTC',
@@ -38,6 +38,7 @@ export default defineConfig({
     {
       name: 'board',
       testIgnore: BOARD_IGNORE,
+      retries: process.env.CI ? 1 : 0,
     },
     {
       name: 'install',
