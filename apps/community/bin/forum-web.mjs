@@ -28,7 +28,32 @@
  * (`<root>/.meith/app`) on purpose: `next.config.mjs` (copied verbatim, see
  * below) computes its own workspace root as two directories up from itself,
  * so materializing at that exact depth keeps that computation correct
- * without touching the file.
+ * without touching the file. This bin now also passes that root explicitly,
+ * as `FORUM_WORKSPACE_ROOT`, so the depth is what keeps the *copied file's*
+ * own default honest rather than what the build depends on.
+ *
+ * `--at-root` materializes into the workspace root itself instead
+ * (`<root>`, depth zero), which is the one thing Vercel's Next.js preset
+ * needs and `.meith/app` cannot give it: the build artefact at
+ * `<root>/.next`, where that builder looks and where, for a Next.js project,
+ * it cannot be told to look elsewhere. Nothing about the seam changes — the
+ * generated tsconfig's `paths` name `./community.config.ts` instead of
+ * `../../community.config.ts`, and every other path in here is computed from
+ * `appDir` rather than assumed. Because that mode writes framework-owned
+ * names (`app/`, `src/`, `next.config.mjs`, ...) into a directory the board
+ * also keeps its own files in, ownership there is decided per *file* — the
+ * files it wrote last time, recorded in `.meith/materialized.json`, plus any
+ * whose contents are already byte for byte what it would write. Everything
+ * else is the board's: never removed, never overwritten, and a collision
+ * stops the build naming every file involved. A board can therefore keep
+ * `public/ads.txt` beside the shipped `public/sw.js`.
+ *
+ * `GENERATED_ENTRIES` are the exception, and have to be: `tsconfig.json` and
+ * `next-env.d.ts` are written from scratch rather than copied, so there is no
+ * shipped file to compare a board's own against and nothing to tell one apart
+ * from a stale one this bin wrote. Both are replaced without asking, so a
+ * board cannot keep its own compiler options at the root of an `--at-root`
+ * workspace. See docs/development.md, "Consuming the board from a workspace".
  *
  * This assumes a *hoisted* `node_modules` (npm, yarn classic, or pnpm with
  * `node-linker=hoisted`) — see docs/development.md for why.
@@ -39,21 +64,29 @@
  * (non-hoisted) pnpm install, nested two directories deeper again. Two
  * environment variables, set only by that workspace's own `build`/`dev`
  * scripts, cover the difference without changing anything for a real
- * external board, which never sets either: `FORUM_WORKSPACE_ROOT`
+ * external board, which sets neither itself: `FORUM_WORKSPACE_ROOT`
  * (apps/community/next.config.mjs) points tracing at this repository's real
  * root, and `FORUM_ALIASES_FROM` (`monorepoAliases()` below) carries this
  * repository's own `@meith/*` tsconfig aliases into the generated tsconfig,
  * since packages here resolve each other through those aliases rather than
  * through real `dependencies` entries a hoisted `node_modules` would need.
+ * `FORUM_WORKSPACE_ROOT` is always exported onward from here, defaulting to
+ * the invoking workspace's own root when that workspace did not set it, so
+ * that everything downstream — the copied `next.config.mjs`, and the
+ * `@source` rebase below — reads one answer rather than each re-deriving it
+ * from where it happens to sit.
  */
 import { spawn } from 'node:child_process'
 import {
   cpSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   realpathSync,
+  rmdirSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -63,11 +96,14 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const packageRoot = join(here, '..')
 const workspaceRoot = process.cwd()
-const appDir = join(workspaceRoot, '.meith', 'app')
+const AT_ROOT_FLAG = '--at-root'
+const atRoot = process.argv.includes(AT_ROOT_FLAG)
+const appDir = atRoot ? workspaceRoot : join(workspaceRoot, '.meith', 'app')
 
 for (const name of ['FORUM_WORKSPACE_ROOT', 'FORUM_ALIASES_FROM']) {
   if (process.env[name]) process.env[name] = resolve(workspaceRoot, process.env[name])
 }
+if (!process.env.FORUM_WORKSPACE_ROOT) process.env.FORUM_WORKSPACE_ROOT = workspaceRoot
 
 /**
  * Files this package ships (see its `files` allowlist) that belong inside the
@@ -91,6 +127,180 @@ function fail(message) {
   process.exit(1)
 }
 
+const GENERATED_ENTRIES = ['tsconfig.json', 'next-env.d.ts']
+const SHARED_ENTRIES = ['public']
+const GLOBALS_CSS = 'src/styles/globals.css'
+const MATERIALIZED_RECORD = join(workspaceRoot, '.meith', 'materialized.json')
+
+function walkFiles(dir, prefix, into) {
+  for (const item of readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix === '' ? item.name : `${prefix}/${item.name}`
+    if (item.isDirectory()) walkFiles(join(dir, item.name), rel, into)
+    else into.push(rel)
+  }
+  return into
+}
+
+/**
+ * Every file `--at-root` is about to write into the workspace root, as posix
+ * relative paths: the shipped entries expanded file by file, plus the two
+ * this bin generates. Ownership is decided per file rather than per
+ * top-level name so that a board can keep its own files inside a directory
+ * the framework also writes into — `public/ads.txt` beside the shipped
+ * `public/sw.js`. See docs/development.md, "Consuming the board from a
+ * workspace".
+ */
+function intendedRootFiles() {
+  const files = []
+  for (const entry of APP_ENTRIES) {
+    const source = join(packageRoot, entry)
+    if (!existsSync(source)) continue
+    if (statSync(source).isDirectory()) walkFiles(source, entry, files)
+    else files.push(entry)
+  }
+  return [...files, ...GENERATED_ENTRIES]
+}
+
+function readMaterializedRecord() {
+  if (!existsSync(MATERIALIZED_RECORD)) return []
+  try {
+    return JSON.parse(readFileSync(MATERIALIZED_RECORD, 'utf8')).files ?? []
+  } catch {
+    return []
+  }
+}
+
+function absoluteRootPath(rel) {
+  return join(workspaceRoot, ...rel.split('/'))
+}
+
+/**
+ * What this bin would leave at `rel`, which is the shipped file's own bytes
+ * for everything except `globals.css` — that one is rewritten in place after
+ * the copy (`rewriteGlobalsCssSourcePaths`), so comparing a materialized
+ * tree against the package source would report the one file this bin always
+ * edits as though the board had edited it.
+ */
+function materializedContent(rel) {
+  const source = readFileSync(join(packageRoot, ...rel.split('/')))
+  if (rel !== GLOBALS_CSS) return source
+  return Buffer.from(
+    rebaseGlobalsCssSources(
+      source.toString('utf8'),
+      dirname(absoluteRootPath(rel)),
+      process.env.FORUM_WORKSPACE_ROOT,
+    ),
+  )
+}
+
+function alreadyMaterialized(rel) {
+  try {
+    return readFileSync(absoluteRootPath(rel)).equals(materializedContent(rel))
+  } catch {
+    return false
+  }
+}
+
+function pruneEmptyDirectories(rel) {
+  let current = dirname(absoluteRootPath(rel))
+  while (current !== workspaceRoot && current.startsWith(workspaceRoot)) {
+    try {
+      rmdirSync(current)
+    } catch {
+      return
+    }
+    current = dirname(current)
+  }
+}
+
+/**
+ * `--at-root` only; every other mode owns `.meith/app` outright and replaces
+ * it wholesale. A file this bin is about to write is its own to replace when
+ * the record says it wrote that file before, or when what is on disk is byte
+ * for byte what it would write anyway — the second case being a checkout
+ * that committed a materialized file, where no record exists and refusing
+ * would fail the deploy over a file identical to the one being written.
+ * Anything else is the board's, and the board's is never overwritten —
+ * except `GENERATED_ENTRIES`, which are written rather than copied and so
+ * can satisfy neither test; those are replaced unconditionally.
+ */
+function claimRootFiles(intended) {
+  const owned = new Set(readMaterializedRecord())
+
+  const collisions = intended.filter((rel) => {
+    if (!existsSync(absoluteRootPath(rel))) return false
+    if (owned.has(rel)) return false
+    if (GENERATED_ENTRIES.includes(rel)) return false
+    return !alreadyMaterialized(rel)
+  })
+
+  if (collisions.length > 0) {
+    fail(
+      `refusing to overwrite ${collisions.length} file(s) in ${workspaceRoot} that ` +
+        `"${AT_ROOT_FLAG}" did not write:\n` +
+        collisions.map((rel) => `  ${rel}`).join('\n') +
+        `\nThis mode materializes @meith/web's own app into this directory, and each of ` +
+        "these is either the board's own file under a name the framework ships, or a " +
+        'materialized file that has been edited since. Move it aside, or drop the flag ' +
+        'to materialize into .meith/app instead.',
+    )
+  }
+}
+
+/**
+ * Files the previous run wrote and this one will not: the framework stopped
+ * shipping them. They were this bin's own, so they go — nothing the board
+ * added is in the record, which is why removal is driven from it rather than
+ * from the directory.
+ */
+function removeStaleRootFiles(intended) {
+  const keeping = new Set(intended)
+  for (const rel of readMaterializedRecord()) {
+    if (keeping.has(rel)) continue
+    rmSync(absoluteRootPath(rel), { recursive: true, force: true })
+    pruneEmptyDirectories(rel)
+  }
+}
+
+function recordRootFiles(intended) {
+  mkdirSync(dirname(MATERIALIZED_RECORD), { recursive: true })
+  writeFileSync(MATERIALIZED_RECORD, `${JSON.stringify({ files: intended }, null, 2)}\n`)
+}
+
+/**
+ * Files the board itself put under a directory the framework owns outright.
+ * Nothing here removes them — ownership is per file, so they simply survive —
+ * but a scaffolded board gitignores those directories as a unit, so a route
+ * added under `app/` works locally, is never committed, and is absent from a
+ * deploy built out of the checkout. Warned about rather than refused: the
+ * file is the author's to keep, and this is the only moment anything looks at
+ * it. `public/` is excluded because that one is shared on purpose.
+ */
+function warnAboutStrayBoardFiles(intended) {
+  const written = new Set(intended)
+  const owned = APP_ENTRIES.filter((entry) => !SHARED_ENTRIES.includes(entry))
+  const strays = []
+
+  for (const entry of owned) {
+    const dir = join(workspaceRoot, entry)
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) continue
+    for (const rel of walkFiles(dir, entry, [])) {
+      if (!written.has(rel)) strays.push(rel)
+    }
+  }
+
+  if (strays.length === 0) return
+
+  console.warn(
+    `forum-web: ${strays.length} file(s) here are not @meith/web's, under a directory that is:\n` +
+      `${strays.map((rel) => `  ${rel}`).join('\n')}\n` +
+      'They are left exactly as they are. A scaffolded board gitignores these directories as ' +
+      'a unit, though, so nothing above is committed, and a deploy that builds from the ' +
+      'checkout will not see it. A board extends the forum through plugins and themes ' +
+      '(docs/plugin-api.md, docs/theme-api.md), not by adding files here.',
+  )
+}
+
 function toPosixRelative(from, to) {
   const rel = relative(from, to).split(sep).join('/')
   return rel.startsWith('.') ? rel : `./${rel}`
@@ -104,14 +314,14 @@ export function rebaseGlobalsCssSources(css, cssDir, workspaceRootOverride) {
 }
 
 function rewriteGlobalsCssSourcePaths() {
-  const workspaceRootOverride = process.env.FORUM_WORKSPACE_ROOT
-  if (!workspaceRootOverride) return
-
-  const cssPath = join(appDir, 'src', 'styles', 'globals.css')
+  const cssPath = join(appDir, ...GLOBALS_CSS.split('/'))
   if (!existsSync(cssPath)) return
 
   const css = readFileSync(cssPath, 'utf8')
-  writeFileSync(cssPath, rebaseGlobalsCssSources(css, dirname(cssPath), workspaceRootOverride))
+  writeFileSync(
+    cssPath,
+    rebaseGlobalsCssSources(css, dirname(cssPath), process.env.FORUM_WORKSPACE_ROOT),
+  )
 }
 
 /**
@@ -172,12 +382,18 @@ function materialize() {
     )
   }
 
+  const rootFiles = atRoot ? intendedRootFiles() : null
+  if (rootFiles) {
+    claimRootFiles(rootFiles)
+    removeStaleRootFiles(rootFiles)
+  }
+
   mkdirSync(appDir, { recursive: true })
 
   for (const entry of APP_ENTRIES) {
     const source = join(packageRoot, entry)
     const target = join(appDir, entry)
-    rmSync(target, { recursive: true, force: true })
+    if (!atRoot) rmSync(target, { recursive: true, force: true })
     if (!existsSync(source)) continue
     cpSync(source, target, { recursive: true })
   }
@@ -217,6 +433,11 @@ function materialize() {
     join(appDir, 'next-env.d.ts'),
     '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n',
   )
+
+  if (rootFiles) {
+    recordRootFiles(rootFiles)
+    warnAboutStrayBoardFiles(rootFiles)
+  }
 }
 
 /**
@@ -265,10 +486,10 @@ function run(executable, args, cwd, onSuccess) {
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [, , command, ...rest] = process.argv
+  const [command, ...rest] = process.argv.slice(2).filter((argument) => argument !== AT_ROOT_FLAG)
 
   if (!['dev', 'build', 'start'].includes(command ?? '')) {
-    console.error('Usage: forum-web <dev|build|start> [next arguments]')
+    console.error(`Usage: forum-web <dev|build|start> [${AT_ROOT_FLAG}] [next arguments]`)
     process.exit(1)
   }
 

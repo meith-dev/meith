@@ -1,0 +1,21 @@
+{
+  "name": "meith-board",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "forum-web dev --at-root",
+    "build": "forum-web build --at-root",
+    "start": "forum-web start --at-root",
+    "community": "community"
+  },
+  "dependencies": {
+    "@meith/web": "0.17.2",
+    "@meith/cli": "0.17.2",
+    "@meith/theme-default": "0.17.2",
+    "next": "16.3.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

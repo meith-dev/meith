@@ -5,10 +5,15 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 
 /**
- * Two directories up from this file's own location by default — correct at
- * the depth every consumer places it at except `boards/stock`, which
- * `FORUM_WORKSPACE_ROOT` overrides (see docs/architecture.md, "The stock
- * board"; docs/development.md, "Consuming the board from a workspace").
+ * Two directories up from this file's own location by default — correct
+ * where `forum-web` materializes at `.meith/app` and where this file sits in
+ * `apps/community` unmaterialized. `boards/stock` and `forum-web --at-root`
+ * are both at other depths, and neither relies on this default:
+ * `FORUM_WORKSPACE_ROOT` is set for the first by that board's own scripts
+ * and passed on by `forum-web` in every case, so this fallback only applies
+ * when the file is read outside that bin entirely (see
+ * docs/architecture.md, "The stock board"; docs/development.md, "Consuming
+ * the board from a workspace").
  */
 const workspaceRoot = process.env.FORUM_WORKSPACE_ROOT
   ? path.resolve(process.env.FORUM_WORKSPACE_ROOT)
@@ -18,9 +23,12 @@ const workspaceRoot = process.env.FORUM_WORKSPACE_ROOT
  * The relative equivalent of `workspaceRoot`, for `outputFileTracingIncludes`
  * below — see docs/development.md, "Consuming the board from a workspace",
  * for why that option needs a path relative to this file rather than an
- * absolute one.
+ * absolute one. It is `.` rather than the empty string when this file already
+ * sits at the workspace root, which is what `forum-web build --at-root`
+ * materializes (same section) — an empty prefix would make the glob below
+ * read as an absolute path and match nothing.
  */
-const upToWorkspaceRoot = path.relative(here, workspaceRoot).split(path.sep).join('/')
+const upToWorkspaceRoot = path.relative(here, workspaceRoot).split(path.sep).join('/') || '.'
 
 const loadedEnvFiles = []
 for (const name of ['.env.local', '.env']) {
@@ -61,6 +69,7 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/**': [
       `${upToWorkspaceRoot}/node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers/**/*`,
+      `${upToWorkspaceRoot}/node_modules/@swc/helpers/**/*`,
     ],
   },
   images: {

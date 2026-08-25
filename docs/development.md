@@ -253,6 +253,153 @@ serves neither its own script/style bundles nor its service worker fails the
 smoke rather than passing it (`scripts/board-smoke-assets.mts`, shared with
 `board-deploy-kit-smoke.mts` and `board-eject-smoke.mts`).
 
+### Building where Vercel looks
+
+`forum-web build --at-root` materializes into the workspace root itself
+(`<root>`, depth zero) instead of `.meith/app`, so `next build` writes its
+artefact to `<root>/.next`. That is the one shape Vercel's Next.js preset can
+read, and it is the only reason the mode exists.
+
+Three constraints, none of them ours to change, close off every other
+arrangement:
+
+- **The builder reads `.next` under the project root**, and for a Next.js
+  project that location is not configurable — unlike every other framework
+  preset, where an Output Directory setting exists. A build that leaves its
+  output at `.meith/app/.next` is invisible to it, and the deploy fails
+  reporting no output rather than reporting a wrong path.
+- **The Root Directory cannot be `.meith/app`.** Vercel resolves it against
+  the *checkout*, before install, and `.meith/app` does not exist until
+  `forum-web` has run. Framework detection then runs against a directory that
+  is not there. Materializing during a postinstall step does not help either:
+  detection has already happened by then.
+- **`.next` cannot be moved after the build.** `required-server-files.json`
+  records the app directory and the paths every traced file was recorded
+  relative to, so relocating the directory invalidates them. That failure
+  arrives at request time on the deployed board, not at build time in CI,
+  which makes it strictly worse than the problem it would be fixing.
+
+So the app moves, not the output. Nothing about the
+[board-config seam](./architecture.md#the-board-config-seam) changes — every
+path `forum-web` writes is computed from the materialization directory rather
+than assumed, so at depth zero the generated tsconfig's `paths` simply name
+`./community.config.ts` where at depth two they named `../../community.config.ts`.
+Three things that used to be able to rely on the depth are now told the answer
+instead:
+
+- **`FORUM_WORKSPACE_ROOT` is always passed on** by `forum-web`, defaulting to
+  the invoking workspace's own root. At depth two it equals what the copied
+  `next.config.mjs` computes for itself, so nothing changes; at depth zero it
+  is what stops that file resolving a workspace root two directories *above*
+  the board. `boards/stock`'s own value still wins, exactly as before.
+- **`outputFileTracingIncludes`' glob prefix** is `.` rather than the empty
+  string when `next.config.mjs` already sits at the workspace root — an empty
+  prefix produces a leading `/`, which reads as an absolute path and silently
+  matches nothing.
+- **`globals.css`'s Tailwind `@source` roots are rebased on every
+  materialization**, not only when `FORUM_WORKSPACE_ROOT` was set externally.
+  At depth two the rebase reproduces the file's own paths byte for byte; at
+  depth zero it is what keeps `themes/`, `plugins/`, `examples/` and
+  `packages/ui/src` pointing inside the board instead of two directories above
+  it.
+
+**Depth zero puts framework-owned names beside the board's own files**, which
+`.meith/app` never did, so ownership there is decided per *file* rather than per
+top-level name. `.meith/app` is replaced wholesale on every run and that is
+still exactly what happens at depth two; at depth zero, `rm -rf public/` would
+take a board's own `public/ads.txt` with it. Instead, `--at-root` expands the
+shipped entries file by file and, for each file it is about to write, treats it
+as its own when either the record in `.meith/materialized.json` says it wrote
+that file before, or what is on disk is byte for byte what it would write
+anyway. Everything else is the board's: never removed, never overwritten, and
+any collision stops the build listing every file involved. `tsconfig.json` and
+`next-env.d.ts` are the exception and have to be — they are generated rather
+than copied, so there is no shipped file to compare against and nothing to
+distinguish a board's own from a stale one this bin wrote. Both are replaced
+without asking, which means a board cannot keep its own compiler options at
+the root of an `--at-root` workspace. Files the record
+names and this run will not write — the framework stopped shipping them — are
+removed, and only those. Nothing the board added is ever in the record, which is
+why removal is driven from the record and not from the directory.
+
+The byte-comparison is what makes a fresh checkout work. A clone has no record,
+so without it every committed framework file would read as the board's and fail
+the deploy; with it, a file identical to the one being written is simply
+written again. A *modified* copy still fails, which is right — that edit would
+otherwise be silently discarded on every build.
+
+It leaves one narrow hole, open deliberately. A board file that happens to be
+byte-identical to a shipped one is indistinguishable from a materialized copy,
+so it is recorded as this bin's own; if a later release stops shipping that
+name, the stale-removal pass deletes the board's file. That needs exact
+byte-identity with a file the framework ships and then drops, and closing it
+would mean giving up the fresh-checkout case that makes deploys work at all.
+
+**`app/` and `src/` are the framework's alone, and a scaffolded board
+gitignores them as a unit.** Per-file ownership means a route dropped into
+`app/` is *preserved* rather than refused — and then never committed, so it
+works locally and is absent from a deploy built out of the checkout. Neither
+git nor Next can catch that, so `forum-web` warns at materialization time,
+naming every file it finds under those directories that is not its own. A
+board extends the forum through plugins and themes, which `community.config.ts`
+names and git tracks.
+
+**A board can therefore own files under `public/`.** `robots.txt`,
+`sitemap.xml` and the board's branding are routes rather than files here, but
+`ads.txt`, `.well-known/` and domain-verification files are not, and they have
+to live somewhere. The Vercel target's `.gitignore` lists `public/` file by
+file (`MATERIALIZED_PUBLIC`) instead of as a directory for exactly that reason,
+so a board's own additions there are tracked normally. The other nine names the
+framework owns outright and they are ignored as a unit. The self-host target's
+`.gitignore` lists none of them — nothing there ever materializes at the root,
+and listing them would only untrack a board's own `src/`. Neither does its
+`.dockerignore`: that file governs `COPY . .`, and a board that grows a
+top-level `src/` or `public/` needs it in the image.
+`scripts/workspace-check.mjs` fails if `MATERIALIZED_AT_ROOT` and `forum-web`'s
+own `APP_ENTRIES` ever disagree — the drift would otherwise show up as a
+framework file committed into somebody's board.
+
+**Framework detection is a manifest read, not a resolution.** Vercel looks for
+`next` in the root `package.json`'s `dependencies` or `devDependencies` and
+reports "No Next.js version detected" when it is absent — setting
+`"framework": "nextjs"` selects the preset but does not answer that question.
+A scaffolded board did not declare `next`: it never needed to, because a hoisted
+`node_modules` puts `@meith/web`'s own copy at the workspace root where the
+materialized app's bare `next` imports resolve to it anyway. `boards/stock`
+declares `next`, `react` and `react-dom` directly for the opposite reason — this
+monorepo's pnpm install is not hoisted, so a workspace member only sees what it
+declares itself (see [The stock board](./architecture.md#the-stock-board)).
+Neither of those is about detection. The scaffold now declares `next`, and only
+`next`, at the version `@meith/web` builds with: `react` and `react-dom` still
+arrive by hoisting, and every pin that does not have to exist is a pin that can
+drift.
+
+That version is a literal a release does not move, so
+`scripts/workspace-check.mjs` holds it in step instead: every workspace manifest
+that pins `next`, `react` or `react-dom` must pin what `@meith/web` pins, and so
+must `create-meith`'s `NEXT_VERSION`. Upgrading Next in `apps/community` and
+nowhere else now fails the check rather than shipping a scaffold that installs
+one version of the framework and builds with another.
+
+**The Vercel target turns the mode on; nothing else does.** `scaffold()`'s
+`target: 'vercel'` tree is where the flag lives — `vercel.json`'s `buildCommand`
+(`community migrate && forum-web build --at-root`) is what Vercel actually runs,
+and the same tree's `dev`, `build` and `start` scripts carry it too, so a board
+built locally and a board built on the platform materialize to the same place
+rather than quietly disagreeing. The self-host target is untouched: its scripts,
+its `.meith/app` artefact and its standalone tree are exactly what they were.
+`pnpm vercel-template:gen:check` ties the generated `templates/vercel/` tree back
+to `scaffold()`, and `scripts/workspace-check.mjs` ties `scaffold()`'s
+`NEXT_VERSION` back to `@meith/web`'s — so the `next` version the deploy form
+installs cannot drift from the one the board is built with, in either link.
+
+**What a board deployed this way still is.** `--at-root` changes where the app
+is materialized and nothing else: same sources, same seam, same
+`output: 'standalone'`, same fixture-mode build with no database. `forum-web
+start` works there too — the standalone tree lands at `<root>/.next/standalone`
+rather than nested — but a board on Vercel never runs it, since the platform
+serves the traced output itself.
+
 ## The commands
 
 | Command | What it does |

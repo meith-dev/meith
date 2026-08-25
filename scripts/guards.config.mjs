@@ -356,7 +356,7 @@ export const GUARDS = [
     pattern:
       /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[^'"]*community\.(?:config|plugins|demo\.plugins)['"]/,
     allow:
-      /^apps\/community\/community\.(?:config|plugins)\.ts$|^boards\/stock\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$/,
+      /^apps\/community\/community\.(?:config|plugins)\.ts$|^boards\/stock\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$|^templates\/[^/]+\/community\.(?:config|plugins)\.ts$/,
     probe: {
       violates: "import forumConfig from '../../community.config'",
       clean: "import forumConfig from '@board/config'",

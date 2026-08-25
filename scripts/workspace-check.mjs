@@ -148,6 +148,132 @@ if (lockfile === null) {
   }
 }
 
+const FRAMEWORK_PINS = ['next', 'react', 'react-dom']
+const boardManifest = byName.get('@meith/web')?.manifest ?? {}
+const frameworkVersions = new Map(
+  FRAMEWORK_PINS.map((name) => [name, boardManifest.dependencies?.[name]]),
+)
+
+for (const [name, version] of frameworkVersions) {
+  if (typeof version !== 'string') {
+    problems.push(
+      `apps/community/package.json no longer pins "${name}" — update workspace-check.mjs, ` +
+        'which reads it as the one version every other manifest and the scaffold must agree with',
+    )
+  }
+}
+
+for (const { dir, manifest } of byName.values()) {
+  if (manifest.name === '@meith/web') continue
+  for (const field of ['dependencies', 'devDependencies']) {
+    for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+      if (!frameworkVersions.has(name)) continue
+      const expected = frameworkVersions.get(name)
+      if (range === expected) continue
+      problems.push(
+        `${dir}/package.json pins ${field}."${name}" at ${range}; @meith/web pins ${expected}. ` +
+          "A board materializes @meith/web's own app and builds it — two versions of the " +
+          'framework in one install is the resolution that produces them',
+      )
+    }
+  }
+}
+
+function stringList(source, pattern, file, label) {
+  const match = pattern.exec(source)
+  if (match === null) {
+    problems.push(`${file} no longer declares ${label} — update workspace-check.mjs with it`)
+    return null
+  }
+  return [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1])
+}
+
+const scaffoldSource = await readFile(join(ROOT, 'packages/create-meith/src/scaffold.ts'), 'utf8')
+const forumWebSource = await readFile(join(ROOT, 'apps/community/bin/forum-web.mjs'), 'utf8')
+
+const scaffoldNext = /export const NEXT_VERSION = '([^']+)'/.exec(scaffoldSource)
+if (scaffoldNext === null) {
+  problems.push(
+    'packages/create-meith/src/scaffold.ts no longer declares NEXT_VERSION — ' +
+      'update workspace-check.mjs with it',
+  )
+} else if (scaffoldNext[1] !== frameworkVersions.get('next')) {
+  problems.push(
+    `packages/create-meith/src/scaffold.ts scaffolds next@${scaffoldNext[1]}; @meith/web pins ` +
+      `${frameworkVersions.get('next')}. A scaffolded board declares next only so Vercel's ` +
+      'framework detection can read it out of the manifest — declaring a different one from ' +
+      'the app it builds is worse than declaring none',
+  )
+}
+
+const scaffoldEntries = stringList(
+  scaffoldSource,
+  /export const MATERIALIZED_AT_ROOT = \[([\s\S]*?)\]/,
+  'packages/create-meith/src/scaffold.ts',
+  'MATERIALIZED_AT_ROOT',
+)
+const appEntries = stringList(
+  forumWebSource,
+  /const APP_ENTRIES = \[([\s\S]*?)\]/,
+  'apps/community/bin/forum-web.mjs',
+  'APP_ENTRIES',
+)
+const generatedEntries = stringList(
+  forumWebSource,
+  /const GENERATED_ENTRIES = \[([\s\S]*?)\]/,
+  'apps/community/bin/forum-web.mjs',
+  'GENERATED_ENTRIES',
+)
+
+if (scaffoldEntries !== null && appEntries !== null && generatedEntries !== null) {
+  const materialized = [...appEntries, ...generatedEntries]
+  const missing = materialized.filter((entry) => !scaffoldEntries.includes(entry))
+  const extra = scaffoldEntries.filter((entry) => !materialized.includes(entry))
+  for (const entry of missing) {
+    problems.push(
+      `forum-web materializes "${entry}" into a board's root under --at-root and ` +
+        'MATERIALIZED_AT_ROOT (packages/create-meith/src/scaffold.ts) does not list it — ' +
+        "a scaffolded board's .gitignore would leave it untracked-but-not-ignored",
+    )
+  }
+  for (const entry of extra) {
+    problems.push(
+      `MATERIALIZED_AT_ROOT lists "${entry}" and forum-web no longer materializes it — ` +
+        "a scaffolded board's .gitignore would hide a file the board itself owns",
+    )
+  }
+}
+
+const publicEntries = stringList(
+  scaffoldSource,
+  /export const MATERIALIZED_PUBLIC = \[([\s\S]*?)\]/,
+  'packages/create-meith/src/scaffold.ts',
+  'MATERIALIZED_PUBLIC',
+)
+
+if (publicEntries !== null) {
+  const shipped = []
+  const walk = async (dir, prefix) => {
+    for (const item of await readdir(dir, { withFileTypes: true })) {
+      const rel = prefix === '' ? item.name : `${prefix}/${item.name}`
+      if (item.isDirectory()) await walk(join(dir, item.name), rel)
+      else shipped.push(rel)
+    }
+  }
+  await walk(join(ROOT, 'apps/community/public'), '')
+
+  const missing = shipped.filter((entry) => !publicEntries.includes(entry))
+  const extra = publicEntries.filter((entry) => !shipped.includes(entry))
+  for (const entry of [...missing, ...extra]) {
+    problems.push(
+      `MATERIALIZED_PUBLIC (packages/create-meith/src/scaffold.ts) and apps/community/public ` +
+        `disagree about "${entry}". A scaffolded board gitignores public/ file by file so that ` +
+        'it can keep its own files there; a name missing from that list only shows up as ' +
+        'untracked noise after a build, but the list is what makes the directory shared',
+    )
+  }
+}
+
 if (problems.length > 0) {
   console.error('✗ workspace integrity:\n')
   for (const problem of problems) console.error(`  - ${problem}`)
@@ -157,5 +283,6 @@ if (problems.length > 0) {
 
 console.log(
   `✓ workspace integrity: ${byName.size} packages, every workspace: dependency resolves ` +
-    'and matches the lockfile',
+    `and matches the lockfile, every ${FRAMEWORK_PINS.join('/')} pin agrees with @meith/web, ` +
+    "and create-meith's scaffold ignores exactly what forum-web --at-root materializes",
 )

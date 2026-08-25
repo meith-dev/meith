@@ -137,6 +137,7 @@ describe('boardEject', () => {
       '@meith/web',
       '@meith/cli',
       '@meith/theme-default',
+      'next',
       '@meith/plugin-dues',
       '@meith/plugin-reference',
     ])
@@ -154,6 +155,7 @@ describe('boardEject', () => {
       '@meith/web',
       '@meith/cli',
       '@meith/theme-default',
+      'next',
     ])
   })
 
