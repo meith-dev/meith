@@ -77,14 +77,10 @@ export function requirePromotionRules(): PostgresPromotionRepository {
   return repository
 }
 
-export async function previewPromotions(limit = 500): Promise<PromotionRunResult | null> {
+export async function previewPromotions(): Promise<PromotionRunResult | null> {
   if (getContainer().dataSource !== 'postgres') return null
 
-  const service = new PromotionService({
-    promotions: new PostgresPromotionRepository(getDb()),
-    guards: defaultPromotionGuards(),
-  })
-  return service.preview(limit)
+  return promotionService().preview()
 }
 
 export function promotionService(): PromotionService {

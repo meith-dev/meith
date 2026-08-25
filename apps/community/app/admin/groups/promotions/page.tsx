@@ -101,6 +101,12 @@ export default async function AdminPromotionsPage() {
           {translator.t('adminGroups.examined', { count: result.examined })}
         </p>
 
+        {result.complete ? null : (
+          <p className={PANEL_NOTE}>
+            {translator.t('adminGroups.previewCapped', { count: result.examined })}
+          </p>
+        )}
+
         {result.outcomes.length === 0 ? (
           <p className={PANEL_NOTE}>
             {stored.length === 0

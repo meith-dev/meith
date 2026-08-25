@@ -216,11 +216,13 @@ const envSchema = z
       }
 
       if (!value.TICK_SECRET && !value.CRON_SECRET) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['TICK_SECRET'],
-          message: 'is required in production',
-        })
+        for (const name of ['TICK_SECRET', 'CRON_SECRET'] as const) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [name],
+            message: 'is required in production unless the other one is set',
+          })
+        }
       }
 
       if (value.FILESTORE_DRIVER === 'local' && value.VERCEL) {
