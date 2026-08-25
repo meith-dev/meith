@@ -15,7 +15,8 @@ export async function GET() {
     `Source: ${site.repository}`,
     `Documentation: ${site.url}/docs`,
     `Licence: ${licence.spdx} — ${licence.name}, in ${licence.file} in the repository ` +
-      `above. It incorporates the GNU GPL v3, which is in ${licence.incorporates}.`,
+      'above. It is permissive: no copyleft and no linking obligation, only the copyright ' +
+      'and permission notice carried with copies.',
     '',
     'This file is the published documentation, concatenated. Each document below',
     'is the exact contents of a file under `docs/` in the repository above, which',

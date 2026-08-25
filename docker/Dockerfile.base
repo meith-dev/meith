@@ -34,7 +34,7 @@ LABEL org.opencontainers.image.title="Meith board base" \
       org.opencontainers.image.url="https://meith.dev" \
       org.opencontainers.image.source="https://github.com/meith-dev/meith" \
       org.opencontainers.image.version=$MEITH_VERSION \
-      org.opencontainers.image.licenses="LGPL-3.0-or-later"
+      org.opencontainers.image.licenses="MIT"
 
 # Written here rather than COPYed in from a build context: the base image's
 # entire content is these three packages at this exact version, resolved

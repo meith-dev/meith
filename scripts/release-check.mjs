@@ -38,7 +38,7 @@ for (const { dir, manifest } of published) {
     }
   }
 
-  if (manifest.license !== 'LGPL-3.0-or-later') {
+  if (manifest.license !== 'MIT') {
     problems.push(`${dir} is published without the repository licence`)
   }
   if (manifest.repository?.directory !== dir) {

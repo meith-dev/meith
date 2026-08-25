@@ -51,8 +51,7 @@ const ALLOWED = new Map([
 
   ['README.md', 'the front page'],
   ['AGENTS.md', 'coding agents read it from the root by convention'],
-  ['LICENSE.md', 'LGPL-3.0-or-later'],
-  ['COPYING', 'the GPL text the LGPL incorporates by reference'],
+  ['LICENSE.md', 'MIT'],
 ])
 
 const entries = await readdir(ROOT)
