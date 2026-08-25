@@ -136,7 +136,7 @@ And the values those drivers need:
 | `S3_PUBLIC_BASE_URL` | Where objects are *served* from, which is not always where the API lives — R2 serves from an `r2.dev` address or a custom domain, not from `S3_ENDPOINT`. Set it to that, or to a CDN in front of the bucket, or public URLs point somewhere a browser cannot fetch. |
 | `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default. |
 | `RESEND_API_KEY` | Set by Resend's Vercel integration when you add it. The board reads this name and needs neither of the next two. |
-| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. Set both and they win over `RESEND_API_KEY`. |
+| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. Both override `RESEND_API_KEY`. Set `MAIL_DRIVER=http` alongside them — only `RESEND_API_KEY` turns the driver on by itself. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
 | `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. This is the name Vercel Cron can send — see [the tick](#3-the-tick-replaces-the-worker). |
@@ -144,16 +144,21 @@ And the values those drivers need:
 
 Generate each secret with `openssl rand -hex 32`.
 
-Four of the five drivers derive themselves and only need setting to
+Three of the five drivers derive themselves and only need setting to
 override the derivation: a `DATABASE_URL` implies `DATA_SOURCE=postgres`
-and `QUEUE_DRIVER=postgres`, a `REDIS_URL` implies `CACHE_DRIVER=redis`,
-and a mail token with a `MAIL_FROM` beside it implies `MAIL_DRIVER=http`.
-`FILESTORE_DRIVER` is the one that stays explicit, deliberately: the board
-uses an object store because you named one, never because a token happened
-to be in the environment. A missing store then fails loudly at boot instead
-of quietly writing uploads to a disk that is about to disappear. Setting
-all five by hand, as the table above does, is still the clearest thing to
-do on a project you configure yourself.
+and `QUEUE_DRIVER=postgres`, and a `RESEND_API_KEY` with a `MAIL_FROM`
+beside it implies `MAIL_DRIVER=http`.
+
+`CACHE_DRIVER` and `FILESTORE_DRIVER` stay explicit, deliberately. Each
+turns on an external service the board then depends on for every request,
+and neither should switch on merely because a variable is present: the
+board caches in Redis and puts uploads in an object store because you said
+so. A store you meant to configure and did not then fails loudly at boot,
+rather than quietly caching inside one instance or writing uploads to a
+disk that is about to disappear.
+
+Setting all five by hand, as the table above does, is still the clearest
+thing to do on a project you configure yourself.
 
 ### Blob or a bucket
 
@@ -226,6 +231,12 @@ a provider baked into the board. The driver stays what it was: any provider
 accepting a bearer token and that JSON shape works, by setting
 `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`, which override
 `RESEND_API_KEY`.
+
+Only `RESEND_API_KEY` flips `MAIL_DRIVER` to `http` on its own, and only
+with a `MAIL_FROM` beside it. Configuring the generic pair by hand leaves
+`MAIL_DRIVER` alone, so set it to `http` yourself — a board that had those
+two variables set and `MAIL_DRIVER` unset was not sending mail before, and
+an upgrade is not the moment to start.
 
 `smtp` can work and is worse here. It opens a raw TCP connection on a port
 the platform may not allow out: port **25 is refused outright by the

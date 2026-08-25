@@ -1,12 +1,15 @@
-import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+
+import { BlobFileStore, type BlobLike } from '@meith/drivers'
 
 import {
   bundleName,
   contentTypeFor,
+  drainStoreToDirectory,
   formatBytes,
   parseManifest,
   postgresClientEnvironment,
@@ -14,6 +17,7 @@ import {
   resolveUploadsMode,
   restoreDatabaseUrl,
   restoreLimits,
+  uploadDirectoryToStore,
   validateArchiveListing,
 } from './backup'
 
@@ -284,5 +288,141 @@ describe('validateArchiveListing', () => {
         new Set(['-', 'd']),
       ).map((member) => member.name),
     ).toEqual(['.', 'avatar.png'])
+  })
+})
+
+describe('carrying a Blob store out and putting it back', () => {
+  const TOKEN = 'vercel_blob_rw_store123_secretsecret'
+
+  function fakeBlob(seed: ReadonlyMap<string, string> = new Map()): BlobLike & {
+    objects: Map<string, Uint8Array>
+  } {
+    const objects = new Map<string, Uint8Array>()
+    for (const [key, body] of seed) objects.set(key, new TextEncoder().encode(body))
+
+    return {
+      objects,
+      put(pathname, body) {
+        objects.set(pathname, new Uint8Array(body))
+        return Promise.resolve({ pathname })
+      },
+      get(pathname) {
+        const body = objects.get(pathname)
+        if (body === undefined) return Promise.resolve(null)
+        return Promise.resolve({
+          stream: new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(body)
+              controller.close()
+            },
+          }),
+        })
+      },
+      del(pathname) {
+        objects.delete(pathname)
+        return Promise.resolve()
+      },
+      list(options) {
+        const all = [...objects.keys()].sort()
+        const start = options.cursor === undefined ? 0 : Number(options.cursor)
+        const page = all.slice(start, start + 2)
+        const next = start + 2
+
+        return Promise.resolve({
+          blobs: page.map((pathname) => ({ pathname })),
+          hasMore: next < all.length,
+          cursor: next < all.length ? String(next) : undefined,
+        })
+      },
+    }
+  }
+
+  let scratch: string
+
+  beforeEach(async () => {
+    scratch = await mkdtemp(path.join(tmpdir(), 'meith-blob-roundtrip-'))
+  })
+
+  afterEach(async () => {
+    await rm(scratch, { recursive: true, force: true })
+  })
+
+  const CONTENT = new Map([
+    ['attachments/a1/source', 'the first attachment'],
+    ['attachments/a2/source', 'the second attachment'],
+    ['attachments/a2/thumb', 'a thumbnail'],
+    ['avatars/ab/deadbeef.png', 'avatar bytes'],
+    ['logos/board.svg', '<svg/>'],
+  ])
+
+  it('pulls every object out, across more than one page', async () => {
+    const store = new BlobFileStore({ token: TOKEN }, fakeBlob(CONTENT))
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+
+    const pulled = await drainStoreToDirectory(store, dir)
+
+    expect(pulled).toBe(CONTENT.size)
+    for (const [key, body] of CONTENT) {
+      expect(await readFile(path.join(dir, key), 'utf8')).toBe(body)
+    }
+  })
+
+  it('round-trips into a second store with the keys unchanged', async () => {
+    const source = fakeBlob(CONTENT)
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+    await drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, source), dir)
+
+    const destination = fakeBlob()
+    const pushed = await uploadDirectoryToStore(
+      new BlobFileStore({ token: TOKEN }, destination),
+      dir,
+    )
+
+    expect(pushed).toBe(CONTENT.size)
+    expect([...destination.objects.keys()].sort()).toEqual([...CONTENT.keys()].sort())
+    for (const [key, body] of CONTENT) {
+      expect(new TextDecoder().decode(destination.objects.get(key))).toBe(body)
+    }
+  })
+
+  it('restores into a bucket just as readily, which is the way off Vercel', async () => {
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+    await drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, fakeBlob(CONTENT)), dir)
+
+    const bucket = new Map<string, Uint8Array>()
+    const pushed = await uploadDirectoryToStore(
+      {
+        put: (key, body, options) => {
+          bucket.set(key, body)
+          return Promise.resolve({ key, size: body.byteLength, contentType: options.contentType })
+        },
+      },
+      dir,
+    )
+
+    expect(pushed).toBe(CONTENT.size)
+    expect([...bucket.keys()].sort()).toEqual([...CONTENT.keys()].sort())
+  })
+
+  it('refuses to write an object whose key escapes the staging directory', async () => {
+    const escaping = fakeBlob(new Map([['safe.txt', 'kept']]))
+    escaping.list = () =>
+      Promise.resolve({
+        blobs: [{ pathname: '../escaped.txt' }, { pathname: 'safe.txt' }],
+        hasMore: false,
+      })
+    escaping.objects.set('../escaped.txt', new TextEncoder().encode('should not land'))
+
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+
+    const pulled = await drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, escaping), dir)
+
+    expect(pulled).toBe(1)
+    expect(await readdir(dir)).toEqual(['safe.txt'])
+    await expect(stat(path.join(scratch, 'escaped.txt'))).rejects.toThrow()
   })
 })

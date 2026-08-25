@@ -754,6 +754,7 @@ describe('the Vercel target', () => {
     const prompted = url.searchParams.get('env')?.split(',') ?? []
 
     expect(prompted).toEqual([
+      'CACHE_DRIVER',
       'FILESTORE_DRIVER',
       'DIRECT_DATABASE_URL',
       'REDIS_URL',
@@ -771,7 +772,6 @@ describe('the Vercel target', () => {
       'S3_BUCKET',
       'DATA_SOURCE',
       'QUEUE_DRIVER',
-      'CACHE_DRIVER',
       'MAIL_DRIVER',
     ]) {
       expect(prompted).not.toContain(published)

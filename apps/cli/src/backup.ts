@@ -384,43 +384,14 @@ async function stageLocalUploads(stage: string): Promise<'included' | 'skipped'>
   return 'included'
 }
 
-async function stageS3Uploads(stage: string): Promise<'included' | 'skipped'> {
-  const store = S3FileStore.fromEnv(env)
-  const dir = path.join(stage, 'uploads')
-  await mkdir(dir, { recursive: true })
-
-  let pulled = 0
-  for await (const key of store.listKeys()) {
-    const target = path.resolve(dir, key)
-    if (target !== dir && !target.startsWith(dir + path.sep)) {
-      console.warn(`Skipping object with an unsafe key: ${key}`)
-      continue
-    }
-    const body = await store.get(key)
-    if (body === undefined) continue
-    await mkdir(path.dirname(target), { recursive: true })
-    await writeFile(target, body)
-    pulled++
-  }
-
-  if (pulled === 0) {
-    console.log(`The ${env.S3_BUCKET} bucket is empty; the bundle carries no uploads.`)
-    await rm(dir, { recursive: true, force: true })
-    return 'skipped'
-  }
-
-  await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', dir, '.'])
-  await rm(dir, { recursive: true, force: true })
-  console.log(`Pulled ${pulled} object(s) from ${env.S3_BUCKET}.`)
-  return 'included'
+export interface ListableStore {
+  listKeys(): AsyncGenerator<string>
+  get(key: string): Promise<Uint8Array | undefined>
 }
 
-async function stageBlobUploads(stage: string): Promise<'included' | 'skipped'> {
-  const store = BlobFileStore.fromEnv(env)
-  const dir = path.join(stage, 'uploads')
-  await mkdir(dir, { recursive: true })
-
+export async function drainStoreToDirectory(store: ListableStore, dir: string): Promise<number> {
   let pulled = 0
+
   for await (const key of store.listKeys()) {
     const target = path.resolve(dir, key)
     if (target !== dir && !target.startsWith(dir + path.sep)) {
@@ -434,15 +405,46 @@ async function stageBlobUploads(stage: string): Promise<'included' | 'skipped'> 
     pulled++
   }
 
+  return pulled
+}
+
+export async function uploadDirectoryToStore(
+  store: { put: FileStore['put'] },
+  dir: string,
+): Promise<number> {
+  let pushed = 0
+
+  for (const file of await walk(dir)) {
+    const key = path.relative(dir, file).split(path.sep).join('/')
+    await store.put(key, await readFile(file), {
+      contentType: contentTypeFor(key),
+      visibility: 'public',
+    })
+    pushed++
+  }
+
+  return pushed
+}
+
+async function stageObjectStoreUploads(
+  stage: string,
+  store: ListableStore,
+  origin: string,
+): Promise<'included' | 'skipped'> {
+  const dir = path.join(stage, 'uploads')
+  await mkdir(dir, { recursive: true })
+
+  const pulled = await drainStoreToDirectory(store, dir)
+
   if (pulled === 0) {
-    console.log('The Blob store is empty; the bundle carries no uploads.')
+    console.log(`${origin} is empty; the bundle carries no uploads.`)
     await rm(dir, { recursive: true, force: true })
     return 'skipped'
   }
 
   await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', dir, '.'])
   await rm(dir, { recursive: true, force: true })
-  console.log(`Pulled ${pulled} object(s) from the Blob store.`)
+  console.log(`Pulled ${pulled} object(s) from ${origin}.`)
   return 'included'
 }
 
@@ -451,9 +453,13 @@ async function stageUploads(stage: string, mode: UploadsMode): Promise<'included
 
   switch (env.FILESTORE_DRIVER) {
     case 's3':
-      return await stageS3Uploads(stage)
+      return await stageObjectStoreUploads(
+        stage,
+        S3FileStore.fromEnv(env),
+        `The ${env.S3_BUCKET} bucket`,
+      )
     case 'blob':
-      return await stageBlobUploads(stage)
+      return await stageObjectStoreUploads(stage, BlobFileStore.fromEnv(env), 'The Blob store')
     case 'local':
       return await stageLocalUploads(stage)
   }
@@ -582,15 +588,7 @@ async function pushUploadsToStore(
   await mkdir(dir, { recursive: true })
   await run('tar', ['xzf', path.join(stage, 'uploads.tar.gz'), '-C', dir])
 
-  let pushed = 0
-  for (const file of await walk(dir)) {
-    const key = path.relative(dir, file).split(path.sep).join('/')
-    await store.put(key, await readFile(file), {
-      contentType: contentTypeFor(key),
-      visibility: 'public',
-    })
-    pushed++
-  }
+  const pushed = await uploadDirectoryToStore(store, dir)
   console.log(`Uploaded ${pushed} object(s) to ${destination}.`)
 }
 

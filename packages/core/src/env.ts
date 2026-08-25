@@ -286,33 +286,26 @@ function formatIssues(error: z.ZodError): string {
   ].join('\n')
 }
 
-function cacheDriverFor(source: NodeJS.ProcessEnv, dataSource: string): string {
-  if (source.CACHE_DRIVER) return source.CACHE_DRIVER
-  if (source.REDIS_URL) return 'redis'
-  return dataSource === 'postgres' ? 'next' : 'memory'
-}
-
 function withDerivedDefaults(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const hasDb = Boolean(source.DATABASE_URL)
   const dataSource = source.DATA_SOURCE ?? (hasDb ? 'postgres' : 'fixture')
 
-  const mailToken = source.MAIL_HTTP_TOKEN ?? source.RESEND_API_KEY
-  const mailEndpoint =
-    source.MAIL_HTTP_ENDPOINT ??
-    (source.RESEND_API_KEY === undefined ? undefined : RESEND_EMAILS_ENDPOINT)
+  const resendKey = source.RESEND_API_KEY
 
   return {
     ...source,
     DATA_SOURCE: dataSource,
     QUEUE_DRIVER: source.QUEUE_DRIVER ?? (dataSource === 'postgres' ? 'postgres' : 'memory'),
-    CACHE_DRIVER: cacheDriverFor(source, dataSource),
-    ...(mailToken === undefined ? {} : { MAIL_HTTP_TOKEN: mailToken }),
-    ...(mailEndpoint === undefined ? {} : { MAIL_HTTP_ENDPOINT: mailEndpoint }),
+    CACHE_DRIVER: source.CACHE_DRIVER ?? (dataSource === 'postgres' ? 'next' : 'memory'),
+    ...(resendKey === undefined
+      ? {}
+      : {
+          MAIL_HTTP_TOKEN: source.MAIL_HTTP_TOKEN ?? resendKey,
+          MAIL_HTTP_ENDPOINT: source.MAIL_HTTP_ENDPOINT ?? RESEND_EMAILS_ENDPOINT,
+        }),
     MAIL_DRIVER:
       source.MAIL_DRIVER ??
-      (mailToken !== undefined && mailEndpoint !== undefined && source.MAIL_FROM !== undefined
-        ? 'http'
-        : undefined),
+      (resendKey !== undefined && source.MAIL_FROM !== undefined ? 'http' : undefined),
   }
 }
 

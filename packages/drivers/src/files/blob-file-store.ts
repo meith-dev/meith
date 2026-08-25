@@ -24,6 +24,7 @@ export interface BlobPutOptions {
 export interface BlobReadOptions {
   readonly access: typeof BLOB_ACCESS
   readonly token: string
+  readonly useCache: boolean
 }
 
 export interface BlobListOptions {
@@ -38,7 +39,7 @@ export interface BlobListPage {
 }
 
 export interface BlobLike {
-  put(pathname: string, body: Uint8Array, options: BlobPutOptions): Promise<unknown>
+  put(pathname: string, body: Buffer, options: BlobPutOptions): Promise<unknown>
   get(
     pathname: string,
     options: BlobReadOptions,
@@ -79,7 +80,7 @@ export class BlobFileStore implements FileStore {
     this.storeId = storeIdFrom(config.token)
     this.load =
       blob === undefined
-        ? async () => (await import('@vercel/blob')) as unknown as BlobLike
+        ? async () => (await import('@vercel/blob')) satisfies BlobLike
         : () => Promise.resolve(blob)
   }
 
@@ -102,7 +103,7 @@ export class BlobFileStore implements FileStore {
     assertUsableKey(key)
 
     const blob = await this.blob()
-    await blob.put(key, body, {
+    await blob.put(key, Buffer.from(body.buffer, body.byteOffset, body.byteLength), {
       access: BLOB_ACCESS,
       token: this.config.token,
       contentType: options.contentType,
@@ -118,7 +119,11 @@ export class BlobFileStore implements FileStore {
 
     const blob = await this.blob()
     try {
-      const found = await blob.get(key, { access: BLOB_ACCESS, token: this.config.token })
+      const found = await blob.get(key, {
+        access: BLOB_ACCESS,
+        token: this.config.token,
+        useCache: false,
+      })
       if (found === null || found.stream === null) return undefined
       return new Uint8Array(await new Response(found.stream).arrayBuffer())
     } catch (error) {

@@ -273,12 +273,31 @@ project publishes it without anybody typing it. That is the whole of its
 appeal, and it is why the Vercel template defaults to it: four secrets
 that each had exactly one correct value became none.
 
-The SDK it talks to is loaded only when this driver is selected, so a
-board on any other platform never evaluates it. Objects are written with
-**private** access — an object URL is not a public link — and member
-content is served by the board through `files.get()`, which is where
-permissions are checked. `signedUrl()` returns nothing rather than
-handing back a URL it has not actually signed.
+`@vercel/blob` is reached through a dynamic `import()`, so a board on any
+other platform never *evaluates* it — no cold-start cost, no client
+constructed, nothing on a code path it does not take. It is still an
+ordinary dependency and is still *present*: the specifier is static, so it
+is traced into the server bundle and inlined into the CLI and worker
+bundles the same way `@aws-sdk/client-s3` is. It is listed in
+`serverExternalPackages` for that reason. Deferring evaluation is what this
+buys; it does not keep the package off disk, and an optional dependency
+would trade a clear `ConfigurationError` for a raw `MODULE_NOT_FOUND`.
+
+Objects are written with **private** access — an object URL is not a public
+link — and member content is served by the board through `files.get()`,
+which is where permissions are checked.
+
+`signedUrl()` returns `undefined`, which is a **deliberate omission rather
+than a limitation of the platform**. The SDK can sign: `issueSignedToken()`
+followed by `presignUrl({ operation: 'get', … })` produces a time-limited
+URL. Both are network calls to Vercel's control plane, and `FileStore.url()`
+and `signedUrl()` have no callers outside the driver contract — every
+attachment, avatar, logo and badge is streamed by a board route calling
+`files.get()`. Adding a two-step signing round-trip to satisfy a method
+nothing invokes would be untested code on a live path, so the driver
+declines instead, which the port explicitly permits. `url()` still returns
+the store's own object URL, built the way the SDK builds it; it simply
+requires authentication that nothing asks for.
 
 The catch is portability, and it is the reason `s3` stays the documented
 default everywhere else. A Blob store is reachable only through Vercel's

@@ -328,25 +328,15 @@ describe('a mail key injected under the provider name', () => {
   it('does not override an explicit MAIL_DRIVER', () => {
     expect(parseEnv({ ...withKey, MAIL_DRIVER: 'log' }).MAIL_DRIVER).toBe('log')
   })
-})
 
-describe('the cache driver follows the cache URL', () => {
-  it('selects redis when a REDIS_URL is present', () => {
-    const env = parseEnv({
-      NODE_ENV: 'development',
-      DATABASE_URL: 'postgres://u:p@localhost:5432/forum',
-      REDIS_URL: 'redis://localhost:6379',
-    })
-    expect(env.CACHE_DRIVER).toBe('redis')
-  })
+  it('leaves a board that configured the generic pair itself on its old default', () => {
+    const { RESEND_API_KEY: _key, ...generic } = withKey
+    const configured = {
+      ...generic,
+      MAIL_HTTP_ENDPOINT: 'https://api.other.example/send',
+      MAIL_HTTP_TOKEN: 'other-token',
+    }
 
-  it('leaves an explicit CACHE_DRIVER alone', () => {
-    const env = parseEnv({
-      NODE_ENV: 'development',
-      DATABASE_URL: 'postgres://u:p@localhost:5432/forum',
-      REDIS_URL: 'redis://localhost:6379',
-      CACHE_DRIVER: 'next',
-    })
-    expect(env.CACHE_DRIVER).toBe('next')
+    expect(parseEnv(configured).MAIL_DRIVER).toBe('log')
   })
 })
