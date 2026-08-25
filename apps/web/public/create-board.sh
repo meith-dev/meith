@@ -396,11 +396,14 @@ jobs:
             echo
             echo "Paste this into the MEITH_IMAGE variable on the Coolify resource:"
             echo
-            echo "    $IMAGE:latest"
-            echo
-            echo "Once you want a pin that only moves when you say so:"
-            echo
             echo "    $IMAGE:${{ github.sha }}"
+            echo
+            echo "This tag names this run's build and nothing else, ever. $IMAGE:latest"
+            echo "also pushed, as a convenience for a quick manual pull; it moves on"
+            echo "every push to main, so any later Coolify redeploy — for any reason,"
+            echo "not necessarily this one — pulls whatever main most recently built,"
+            echo "including a commit still mid-feature. Prefer the sha above for the"
+            echo "value you actually set on the resource."
             echo
             echo "## One-time: make the package public"
             echo
@@ -552,10 +555,13 @@ one value only you know:
    `TICK_SECRET` and the database password, generated on the first deploy
    and never typed in. The one thing Coolify cannot generate is the image
    step 1 just pushed: set `MEITH_IMAGE` in the resource's own environment
-   to the value that run's Summary printed — `ghcr.io/<you>/__MEITH_BOARD_NAME__:latest`
-   (or a commit sha, once you want a pin that only moves when you say so —
-   `docker-compose.yml` refuses to start without this set, with a message saying
-   why).
+   to the value that run's Summary printed — `ghcr.io/<you>/__MEITH_BOARD_NAME__:${{ github.sha }}`,
+   a pin that only ever names that one build (`docker-compose.yml` refuses
+   to start without this set, with a message saying why). The same run also
+   pushes `ghcr.io/<you>/__MEITH_BOARD_NAME__:latest` as a convenience for a quick manual
+   pull, but it moves on every push to `main` — set it on the resource and a
+   later, unrelated redeploy can pull whatever `main` most recently built,
+   commit still mid-feature included.
 
 3. **Deploy, then `/install` on your own domain.** Coolify issues the
    certificate; the installer from there is the one

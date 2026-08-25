@@ -415,10 +415,16 @@ the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)
 describes instead: a small loop against `/api/system/tick`, needing nothing
 this image does not already expose.
 
-Building nowhere but a laptop is still available: `docker build -t <board> .`
-in the scaffolded repository works on any machine with Docker, exactly like
-["Building somewhere else"](#building-somewhere-else) above, for an operator
-who would rather not use GitHub Actions for the build at all.
+Building nowhere but a laptop is still available, exactly like ["Building
+somewhere else"](#building-somewhere-else) above, for an operator who would
+rather not use GitHub Actions for the build at all — `MEITH_VERSION` has no
+default, so a bare `docker build -t <board> .` fails; the value is the
+scaffolded repository's own `@meith/web` dependency in `package.json`, the
+same one `.github/workflows/build.yml` reads:
+
+```sh
+docker build --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t <board> .
+```
 
 ## Running the tick without a second set of credentials
 

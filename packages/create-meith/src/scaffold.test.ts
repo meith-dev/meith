@@ -269,6 +269,15 @@ describe('the deploy kit', () => {
     expect(buildWorkflow).toMatch(/pkgs\/container/)
   })
 
+  it('leads the Summary with the sha tag, not the floating latest one', () => {
+    const summaryStep = buildWorkflow.slice(buildWorkflow.indexOf('name: Summary'))
+    const shaIndex = summaryStep.indexOf('github.sha')
+    const latestIndex = summaryStep.indexOf('$IMAGE:latest')
+    expect(shaIndex).toBeGreaterThan(-1)
+    expect(latestIndex).toBeGreaterThan(-1)
+    expect(shaIndex).toBeLessThan(latestIndex)
+  })
+
   it('mounts the uploads volume into both processes that write to it', () => {
     expect(compose).toMatch(/uploads:\/app\/\.uploads/g)
     expect([...compose.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
@@ -282,6 +291,15 @@ describe('the deploy kit', () => {
     expect(readme).toContain('MEITH_IMAGE')
     expect(readme).toContain('docker build --build-arg MEITH_VERSION=')
     expect(readme).toMatch(/-t my-board \.\s*```/)
+  })
+
+  it('leads the README deploy step with the sha tag, not the floating latest one', () => {
+    const readme = files.get('README.md')!
+    const shaIndex = readme.indexOf('github.sha')
+    const latestIndex = readme.indexOf(':latest')
+    expect(shaIndex).toBeGreaterThan(-1)
+    expect(latestIndex).toBeGreaterThan(-1)
+    expect(shaIndex).toBeLessThan(latestIndex)
   })
 
   it('tells the operator upgrading is one package.json edit, not a second pin to keep in sync', () => {
@@ -386,6 +404,16 @@ describe('the CLI', () => {
   it('accepts a repository override, so a fork documents itself', async () => {
     await inTemp(async (dir) => {
       await run(['my-board', '--repo', 'https://example.test/fork'], '1.0.0')
+      const readme = await readFile(join(dir, 'my-board/README.md'), 'utf8')
+      expect(readme).toContain('https://example.test/fork')
+    })
+  })
+
+  it('accepts --repo before the name too, rather than mistaking the URL for it', async () => {
+    await inTemp(async (dir) => {
+      const result = await run(['--repo', 'https://example.test/fork', 'my-board'], '1.0.0')
+      expect(result.code).toBe(0)
+
       const readme = await readFile(join(dir, 'my-board/README.md'), 'utf8')
       expect(readme).toContain('https://example.test/fork')
     })

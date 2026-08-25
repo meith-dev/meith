@@ -331,10 +331,15 @@ set `MEITH_IMAGE` to the image step 2 just pushed, then redeploy.
   `DATABASE_URL`, mail settings, all of it. Only where the image comes
   from changes.
 
-Once the redeploy is live, the board is an ordinary workspace: installing
-the plugin that started this is `pnpm add` and a line in
-`community.plugins.ts`, the same as [the plugin API](./plugin-api.md#writing-a-plugin)
-describes, followed by a commit, a push, and the same redeploy.
+Once the redeploy is live, the board is an ordinary workspace — a single
+`package.json`, not a pnpm monorepo, so it is `npm install` from here, not
+`pnpm add`: `forum-web`'s own startup check (`apps/community/bin/forum-web.mjs`)
+requires a hoisted `node_modules`, which pnpm's default isolated linker does
+not produce. Installing the plugin that started this is `npm install
+<package>` and a line in `community.plugins.ts` — the same concept [the
+plugin API](./plugin-api.md#writing-a-plugin) describes for this
+repository's own pnpm checkout, just without its workspace machinery —
+followed by a commit, a push, and the same redeploy.
 
 ## Listing by pull request
 
