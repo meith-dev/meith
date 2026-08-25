@@ -108,7 +108,7 @@ Edit the last line to your real domain — it is the only line you type.
 |---|---|
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed — and hex, see the note below. The compose file has a well-known default, so set your own. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
-| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick from outside](./operating.md#driving-the-tick-from-outside). Compose refuses to start without it too. |
+| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick over HTTP](./monitoring.md#driving-the-tick-over-http). Compose refuses to start without it too. |
 | `PORT` | Optional. The Compose default is `127.0.0.1:3000`, so the TLS proxy is the only route in. Setting this to `3000` deliberately binds every interface and publishes a plaintext route alongside HTTPS; Docker writes its own iptables rules, so `ufw` may not stop it. |
 | `APP_URL` | The board's public origin. The compose file otherwise defaults it to `http://localhost:3000`, which is suitable only for local access; every link in every password-reset and confirmation e-mail is built from it. It must be your real origin, not a placeholder. |
 
@@ -245,9 +245,7 @@ Put a CDN or a second load balancer in front of Caddy and the chain grows
 by one: set `TRUSTED_PROXY_HOPS=2`. Whatever the number, it must match
 reality — too high and a visitor can forge their address by sending a
 forwarding header of their own, walking past `ADMIN_IP_ALLOWLIST` and the
-login lockout.
-[Visitor addresses and proxies](./operating.md#visitor-addresses-and-proxies)
-has the table. If you expose the board's port directly with nothing in
+login lockout. If you expose the board's port directly with nothing in
 front — do not, but if you do — set `TRUSTED_PROXY_HOPS=0` so the header
 is ignored outright.
 
@@ -287,7 +285,7 @@ written once:
   the provider list. `/admin/settings?group=mail` changes it afterwards
   with no redeploy; the `MAIL_*` variables in the `.env` beside this
   stack override both.
-- **[Running a board](./operating.md)** — the operator handbook:
+- **[Operations](./operating.md)** — the operator handbook:
   backups, the CLI, permissions, spam, and the failures that actually
   happen.
 
@@ -303,7 +301,7 @@ docker compose up -d --build
 `migrate` runs first and the others wait for it, so the schema is never
 behind the code. **Take a backup first** — migrations are forward-only
 and recovery is by restore; see
-[backup and restore](./operating.md#backup-and-restore).
+[backup and restore](./operating.md#backup).
 
 That applies **core migrations only**. Plugin migrations run through
 `community upgrade` — see
@@ -465,7 +463,7 @@ it is two things doing one job.
 | Password reset says "check your inbox" and nothing arrives | Mail is not configured, or the provider is refusing it. `/admin/settings?group=mail` → **Send a test message to me** answers which, and prints the provider's own refusal. |
 | Mail arrives, but its links point at the wrong host | `APP_URL` in `.env` is wrong — fix it there and redeploy. |
 
-[Running a board § Troubleshooting](./operating.md#troubleshooting)
+[Operations § Troubleshooting](./operating.md#troubleshooting)
 covers the failures that are about the board rather than the deployment.
 
 ## What you are taking on
@@ -476,7 +474,7 @@ it:
 - **Backups are yours.** Nobody else is taking one. `community backup`
   bundles the database *and* the uploads; the cron and the offsite copy
   are still yours to build. See
-  [backup and restore](./operating.md#backup-and-restore), and the
+  [backup and restore](./operating.md#backup), and the
   [disaster-recovery runbook](./disaster-recovery.md) for the day they
   are all you have.
 - **Certificates are yours.** Caddy makes it a solved problem, but it is
@@ -493,19 +491,23 @@ In exchange: no platform limits, no per-seat pricing, no vendor reading
 your members' posts, and a board you can move to another machine with a
 `pg_dump` and a `tar`.
 
-## Why not serverless
+## Why a server, and not functions
 
-The question comes up, so: a board needs a process that outlives a
-request, and that is the one thing a function cannot be given at any
-price.
+You can run this board on functions, and [Running on
+Vercel](./vercel.md) is that route written out: the driver set, the build
+command that carries the migration, the cron job that stands in for the
+worker, and how to leave again.
 
-Everything else has a workaround with a bill attached — a per-minute
-schedule is a plan feature, a disk that survives restarts is an object
-store and a second vendor. But the tick is bounded by the function
-timeout, a large import cannot hold a function open, and migrations stop
-being part of the deploy — so between the code going live and you running
-the command, new code is talking to an old schema.
-
-You can run this board on a function, and this project does not test it,
-ship a configuration for it, or answer for it. Your own server does all
-three by existing, which is why it is the only route documented here.
+A server is still the recommended default, and the reason is that
+everything this page gives you for free becomes configuration and a
+second bill there. A process that outlives a request is what a worker
+*is*; without one, the tick is an HTTP endpoint somebody else's scheduler
+has to call, at a cadence their plan decides. A disk that survives a
+restart becomes an object store. A shared cache becomes a managed Redis.
+The migration stops being a one-shot job beside the board and becomes
+part of the build, which trades the deploy window for a different one
+rather than closing it. None of that is unworkable — it is documented
+because it works — but it is four vendors and a longer list of things to
+get right, in exchange for not owning a machine. One machine, one
+database, one `pg_dump` that is the whole board is the simpler answer,
+and it is the one most boards should take.

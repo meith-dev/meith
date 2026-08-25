@@ -19,7 +19,7 @@
     {
       "id": "getting-started",
       "title": "Getting started",
-      "blurb": "From a rented server to a board of your own: the guided route with Coolify, and the by-hand route for people who already run a proxy."
+      "blurb": "From a rented server to a board of your own: the guided route with Coolify, the by-hand route for people who already run a proxy, and the platform route for people who would rather not have a server at all."
     },
     {
       "id": "using",
@@ -68,6 +68,15 @@
       "section": "getting-started",
       "title": "Deploying by hand",
       "blurb": "The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "vercel",
+      "file": "vercel.md",
+      "section": "getting-started",
+      "title": "Running on Vercel",
+      "blurb": "The board on functions: the driver set, the build command that carries the migration, the cron job that replaces the worker, what previews and rollbacks do to your schema — and how to leave again.",
       "generated": false,
       "primary": false
     },

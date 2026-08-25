@@ -189,6 +189,25 @@ not the workspace root, because unlike `outputFileTracingRoot` and
 `turbopack.root` this option resolves its globs against the config file's
 own directory.
 
+**That store path spells the version out, so a check holds it in step.** A
+pnpm store entry is named for its version, and the glob has to name the
+directory exactly — there is nothing to derive it from at config load, because
+`next.config.mjs` is read from places where `@swc/helpers` does not resolve at
+all: pnpm's strict linking puts nothing at the workspace root, so neither the
+materialized copy at `.meith/app` nor the one `forum-web build --at-root`
+leaves at the root can resolve the package whose version the glob needs. A
+derivation there would fall back to a glob matching nothing, which is the
+failure this works around in the first place. So the literal stays, and
+`scripts/workspace-check.mjs` refuses a tree where it disagrees with the
+`@swc/helpers` pin in any manifest that declares one — naming both sides, the
+same way it holds `next`, `react` and `react-dom` to `@meith/web`. Without it
+a bumped pin leaves the glob matching an entry that is no longer there and
+nothing fails until a request reaches the standalone server, which is the
+worst place to learn it. The check reads both configs that carry the literal
+(`apps/community` and `apps/web`) and fails just as loudly if either stops
+carrying one at all. The second, unversioned glob beside it covers the hoisted
+layout npm installs, where no `.pnpm` directory exists for the first to match.
+
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
 materialized app's source imports every `@meith/*` package it needs by bare
@@ -417,8 +436,8 @@ serves the traced output itself.
 `pnpm verify` is the one that matters. It runs, in order: the workspace and
 root checks, `release:check`, the guards and their probes, the message-catalog
 check, the slot checks,
-the generated-document checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
-`api:docs`, `perf:docs`, `docs:index`, `site:docs`), lint,
+the generated-document and documentation checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
+`api:docs`, `perf:docs`, `docs:index`, `docs:links`, `site:docs`), lint,
 dependency-cruiser, all three typecheck projects, and the full test suite.
 It is a superset of what CI's `static` job runs, so if it passes locally,
 that job will pass too. CI's other jobs build the image and drive a
@@ -822,6 +841,7 @@ repository that nothing else reads:
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
+| `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](#documentation-links). |
 
 Three of those gates read the working tree rather than the index, so a
 directory a tool leaves behind is a directory they scan. `root:check` walks
@@ -834,6 +854,37 @@ plus `.meith` — the app `forum-web` materializes into a board workspace — an
 agent. Without those two, a local build or a parallel agent run makes every
 guard fire against copies of the repository instead of the repository. A new
 tool that writes into the tree belongs in both that list and `.gitignore`.
+
+## Documentation links
+
+The site publishes `docs/` directly, so a heading renamed in one document
+silently breaks every anchor pointing at it from the others. `docs:links:check`
+resolves each one: file targets, same-document anchors, cross-document anchors,
+links that leave `docs/`, `README.md` anchors against the manifest sections the
+site builds the index from, and the `doc`/`anchor` pairs in
+`apps/web/src/content/site.ts`.
+
+It imports the site's own `slugify` from `apps/web/src/markdown/slug.ts` rather
+than reimplementing it, so the gate and the published page cannot disagree
+about what a heading's anchor is. The rules that follow from that are worth
+knowing when a link fails: a document's leading `# H1` is the page title and
+gets no anchor of its own, repeated headings are numbered `-1`, `-2` in
+document order, and anything inside a fenced code block is not a heading.
+The site content is imported too, not scraped, so reordering a field or
+rewrapping that file cannot quietly stop it being checked.
+
+Three things it does not see, all of which fail open rather than shut — a
+link it cannot parse is a link it does not check: nested brackets in link text
+(`[a [b] c](./x.md)`), angle-bracket destinations (`[a](<./x y.md>)`), and
+four-space-indented code blocks, which are not masked the way fenced ones are.
+None appears in `docs/` today.
+
+Against the way that class of bug usually lands, the check counts what it read
+before it reports success: fewer documents than the manifest publishes is a
+failure, because every published document is a file under `docs/`. That catches
+a scan whose *shape* changed — a glob that stopped matching, a filter that
+matched too much. A path that simply moved already fails louder, when the
+directory read or the manifest parse throws.
 
 ## The board plugin manifests
 

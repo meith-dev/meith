@@ -125,6 +125,11 @@ jobs:
       - name: Documentation index is complete
         run: pnpm docs:index:check
 
+      # Every internal link and anchor under docs/ resolves, using the site's
+      # own slugifier so the gate and the published page agree by construction.
+      - name: Documentation links resolve
+        run: pnpm docs:links:check
+
       # The site publishes docs/*.md and holds no copy of any of them, so the one
       # way that arrangement rots is silent: a document is added and nobody names
       # it in the manifest, so the site simply never mentions it. This fails on

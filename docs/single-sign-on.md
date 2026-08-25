@@ -276,8 +276,8 @@ cannot be triggered by another site.
 
 Between the button and the provider there is a page that says where the
 member is being sent, then follows itself immediately. That hop is not
-decoration: the board's [content policy](./operating.md#the-content-security-policy)
-carries `form-action 'self'`, so a browser refuses to let a form submission
+decoration: the board's content policy carries `form-action 'self'`, so a
+browser refuses to let a form submission
 end anywhere but this board — including through a redirect. Handing off from
 a page keeps that restriction intact, and leaves a plain link behind for any
 browser that does not follow the refresh.
