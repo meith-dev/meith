@@ -210,7 +210,7 @@ provider API for mail:
 ```
 DATA_SOURCE=postgres
 DATABASE_URL=postgres://…@pooler.…:6543/board   # transaction-mode pooler
-DIRECT_DATABASE_URL=postgres://…@db.…:5432/board # session mode, migrations only
+DIRECT_DATABASE_URL=postgres://…@db.…:5432/board # session mode, for the two session locks
 
 QUEUE_DRIVER=postgres
 CACHE_DRIVER=redis
