@@ -66,7 +66,14 @@ export class S3FileStore implements FileStore {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
-      ...(config.endpoint === undefined ? {} : { endpoint: config.endpoint, forcePathStyle: true }),
+      ...(config.endpoint === undefined
+        ? {}
+        : ({
+            endpoint: config.endpoint,
+            forcePathStyle: true,
+            requestChecksumCalculation: 'WHEN_REQUIRED',
+            responseChecksumValidation: 'WHEN_REQUIRED',
+          } as const)),
     })
 
     this.sender = sender ?? this.signingClient
@@ -78,6 +85,7 @@ export class S3FileStore implements FileStore {
     S3_ACCESS_KEY_ID?: string | undefined
     S3_SECRET_ACCESS_KEY?: string | undefined
     S3_ENDPOINT?: string | undefined
+    S3_PUBLIC_BASE_URL?: string | undefined
   }): S3FileStore {
     const missing = (
       ['S3_BUCKET', 'S3_REGION', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const
@@ -95,6 +103,7 @@ export class S3FileStore implements FileStore {
       accessKeyId: env.S3_ACCESS_KEY_ID as string,
       secretAccessKey: env.S3_SECRET_ACCESS_KEY as string,
       endpoint: env.S3_ENDPOINT,
+      publicBaseUrl: env.S3_PUBLIC_BASE_URL,
     })
   }
 
@@ -180,11 +189,14 @@ export class S3FileStore implements FileStore {
   url(key: string): string {
     assertUsableKey(key)
 
-    const base =
-      this.config.publicBaseUrl ??
-      this.config.endpoint ??
-      `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com`
+    if (this.config.publicBaseUrl !== undefined) {
+      return `${this.config.publicBaseUrl.replace(/\/+$/, '')}/${key}`
+    }
 
-    return `${base.replace(/\/+$/, '')}/${key}`
+    if (this.config.endpoint !== undefined) {
+      return `${this.config.endpoint.replace(/\/+$/, '')}/${this.config.bucket}/${key}`
+    }
+
+    return `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}`
   }
 }

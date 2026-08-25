@@ -175,6 +175,133 @@ or put a transaction-mode pooler in front —
 pooler string and the `DIRECT_DATABASE_URL` companion that migrations
 need.
 
+## Running the board on serverless functions
+
+A serverless platform is this page taken to its limit. Every rule above —
+hold no state in the process, put nothing on the local disk, let any
+instance answer any request — stops being advice and becomes the only way
+the board runs at all. An instance is created for a request, may be frozen
+between requests, and is destroyed without warning; it has a writable
+`/tmp` that nothing else can read and no background process of its own.
+
+So there is exactly one supported driver set, and it is the one where no
+driver keeps anything in the instance:
+
+| Driver | Value | Why nothing else works |
+|---|---|---|
+| `DATA_SOURCE` | `postgres` | `fixture` is a read-only sample board with no write side. |
+| `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. The environment already refuses it in production. |
+| `CACHE_DRIVER` | `redis` | `next` and `memory` cache inside the process. With instances created and destroyed constantly, a per-process cache is close to no cache, and each one serves its own stale copy for up to a minute. |
+| `FILESTORE_DRIVER` | `s3` | `local` writes to a disk that no other instance can read and that is discarded with the instance. On Vercel the environment refuses it outright rather than losing uploads quietly. |
+| `MAIL_DRIVER` | `http` | Reaches the provider over ordinary HTTPS on 443, which is the one outbound path a function can rely on. |
+
+Nothing runs the queue on its own. There is no worker container here, so
+the scheduled work a worker would do has to be driven from outside by the
+platform's scheduler, calling `/api/system/tick` with `TICK_SECRET` as a
+bearer token — [scheduled tasks](./operating.md#scheduled-tasks) covers
+the call. Without it, mail sits in the queue and scheduled tasks never
+run.
+
+### The environment
+
+The full set for a board on functions, with an S3-compatible bucket and a
+provider API for mail:
+
+```
+DATA_SOURCE=postgres
+DATABASE_URL=postgres://…@pooler.…:6543/board   # transaction-mode pooler
+DIRECT_DATABASE_URL=postgres://…@db.…:5432/board # session mode, migrations only
+
+QUEUE_DRIVER=postgres
+CACHE_DRIVER=redis
+REDIS_URL=rediss://default:…@cache.…:6379
+
+FILESTORE_DRIVER=s3
+S3_BUCKET=board-uploads
+S3_REGION=auto                                   # `auto` for R2; the real region for AWS
+S3_ACCESS_KEY_ID=…
+S3_SECRET_ACCESS_KEY=…
+S3_ENDPOINT=https://….r2.cloudflarestorage.com   # omit for AWS S3
+S3_PUBLIC_BASE_URL=https://files.example         # where objects are *served* from
+
+MAIL_DRIVER=http
+MAIL_FROM=board@example.com
+MAIL_HTTP_ENDPOINT=https://api.provider.example/emails
+MAIL_HTTP_TOKEN=…
+
+APP_URL=https://board.example
+AUTH_SECRET=…                                    # 32+ characters of entropy
+TICK_SECRET=…                                    # 32+ characters of entropy
+```
+
+`DATABASE_URL` is the pooled string and `DIRECT_DATABASE_URL` the direct
+one, for the reason [the database under more
+instances](#the-database-under-more-instances) gives: functions multiply
+connections faster than anything else, and migrations cannot run through a
+transaction pooler. The board never holds a session open across
+statements, never uses `LISTEN`/`NOTIFY`, and asks the driver for no named
+prepared statements, so a transaction-mode pooler is safe for everything
+except migrations.
+
+### What each driver does under a function
+
+**Uploads.** The S3 client is built once per instance and signs each
+request itself, so there is no connection to keep warm. `S3_ENDPOINT`
+switches it to path-style addressing for anything S3-compatible and turns
+off the flexible-checksum headers the AWS SDK adds by default, which
+Cloudflare R2 rejects. The board sends no ACL on a write — R2 refuses
+requests that carry one — and uploads each object in a single request
+rather than a multipart one, so the object never has to be assembled from
+parts. That last point has a cost worth knowing: the whole file is held in
+the instance's memory while it is processed and sent, so the function's
+memory limit, not the bucket, is what caps an upload's size.
+
+`S3_PUBLIC_BASE_URL` matters more here than on a server. R2 does not serve
+objects from the API endpoint that `S3_ENDPOINT` points at; it serves them
+from an `r2.dev` address or a custom domain. Set it to whichever of those
+the bucket uses, or to a CDN in front of the bucket, and public URLs will
+point somewhere a browser can actually fetch. Left unset with a custom
+endpoint, the board falls back to path-style URLs against the API endpoint
+— correct in shape, and correct in practice only for a store like MinIO
+that serves objects from the same host it takes API calls on.
+
+**Cache.** One Redis connection is opened per instance, lazily, on the
+first cache read — not one per request. A `rediss://` URL turns on TLS,
+which every managed provider requires. The consequence to plan for is that
+connections scale with *concurrent instances*, and the platform decides
+how many of those exist: a traffic spike that creates two hundred
+instances wants two hundred connections, and a managed Redis plan with a
+connection cap will start refusing them. Pick a plan whose cap is above
+the concurrency the board is allowed to reach, or put a connection proxy
+in front. A dropped connection reconnects on its own with exponential
+backoff, so an instance that was frozen and thawed recovers without
+intervention.
+
+**Queue.** Jobs live in Postgres and each is claimed by exactly one
+worker through `FOR UPDATE SKIP LOCKED`, in a single statement that needs
+no transaction held open across calls. Enqueuing from one instance and
+claiming from another is the normal case rather than an edge one.
+
+**Mail.** `http` posts the message as JSON to `MAIL_HTTP_ENDPOINT` with
+`MAIL_HTTP_TOKEN` as a bearer token and gives up after ten seconds, which
+fits inside a function's timeout. Prefer it. `smtp` can work, but it opens
+a raw TCP connection on a port the platform may not allow out: 25 is
+blocked everywhere and the environment refuses it on Vercel; 465 is often
+blocked; 587 with `MAIL_SMTP_SECURITY=starttls` is the one that usually
+survives. A connection is also negotiated from scratch for every message,
+because there is no long-lived process to pool one in, which makes each
+send slow in a place where slow costs money.
+
+**Images.** Attachment and avatar processing runs in WebAssembly, and the
+`.wasm` files are loaded from `node_modules` at runtime rather than
+imported. What keeps them in a deployment is `serverExternalPackages` in
+`apps/community/next.config.mjs`: the `@jsquash` packages are listed
+there, so Next traces the packages whole and their `.wasm` files travel
+with the build. Removing one of those entries would leave image handling
+working locally and failing in production, which is why
+`apps/community/src/server/wasm-tracing.test.ts` asserts every codec the
+board loads is listed.
+
 ## How the cache stays coherent
 
 For the operator who wants to know what they are trusting: every global
