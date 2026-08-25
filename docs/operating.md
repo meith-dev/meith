@@ -243,6 +243,8 @@ Use `--save` only when you want the CLI to store the pair in board settings. Rea
 
 Do not add a second web instance while using process-local cache invalidation. Configure the shared Redis-compatible cache first and follow [Scaling out](./scaling.md). PostgreSQL remains the durable source of truth.
 
+A board deployed to serverless functions has no choice about any of this — every instance is short-lived and disk-less, so the drivers must all be the shared ones. [Running the board on serverless functions](./scaling.md#running-the-board-on-serverless-functions) gives the driver set and the full environment.
+
 ## Composer recovery
 
 Signed-in members writing a new thread or reply get two layers of protection.

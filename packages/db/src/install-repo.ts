@@ -50,17 +50,28 @@ export async function markInstalled(db: Database, version: string): Promise<bool
   return rows.length > 0
 }
 
+export async function tryInstallLock<T>(
+  sql: ReturnType<typeof postgres>,
+  body: () => Promise<T>,
+): Promise<T | null> {
+  const rows = await sql`
+    select pg_try_advisory_lock(${INSTALL_LOCK_KEY}::bigint) as locked
+  `
+
+  if (rows[0]?.locked !== true) return null
+
+  try {
+    return await body()
+  } finally {
+    await sql`select pg_advisory_unlock(${INSTALL_LOCK_KEY}::bigint)`.catch(() => undefined)
+  }
+}
+
 export async function withInstallLock<T>(url: string, body: () => Promise<T>): Promise<T | null> {
   const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} })
 
   try {
-    const rows = await client`
-      select pg_try_advisory_lock(${INSTALL_LOCK_KEY}::bigint) as locked
-    `
-
-    if (rows[0]?.locked !== true) return null
-
-    return await body()
+    return await tryInstallLock(client, body)
   } finally {
     await client.end({ timeout: 5 })
   }
