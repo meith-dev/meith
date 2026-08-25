@@ -44,13 +44,13 @@ export const GUARDS = [
       'instead of at boot. apps/community/bin/ is allowed too: forum-web.mjs, like the ' +
       'bins under apps/cli/, runs as an operator-invoked script outside the ' +
       'request/response cycle, not application code — see FORUM_WORKSPACE_ROOT / ' +
-      'FORUM_ALIASES_FROM there. e2e/ is allowed for the same reason as ' +
+      'FORUM_ALIASES_FROM there. e2e/support/ is allowed for the same reason as ' +
       'packages/testkit/: the harness builds and spawns the board under test, so it ' +
       'passes an environment through to a child process rather than reading config.',
     files: /\.(ts|tsx|mjs)$/,
     pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
     allow:
-      /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|apps\/community\/bin\/|e2e\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
+      /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|apps\/community\/bin\/|e2e\/support\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
     probe: {
       violates: 'const url = process.env.DATABASE_URL',
       clean: "import { env } from '@meith/core'\nconst url = env.DATABASE_URL",
