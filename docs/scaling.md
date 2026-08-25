@@ -224,7 +224,7 @@ S3_ENDPOINT=https://….r2.cloudflarestorage.com   # omit for AWS S3
 S3_PUBLIC_BASE_URL=https://files.example         # where objects are *served* from
                                                  # …or, on Vercel only:
 # FILESTORE_DRIVER=blob
-# BLOB_READ_WRITE_TOKEN=…                        # published by the Blob store itself
+# BLOB_STORE_ID=…                                # published by the Blob store itself
 
 MAIL_DRIVER=http
 MAIL_FROM=board@example.com
@@ -268,10 +268,14 @@ as well.
 ### What each driver does under a function
 
 **Uploads, in a Vercel Blob store.** `FILESTORE_DRIVER=blob` needs one
-variable, `BLOB_READ_WRITE_TOKEN`, and a Blob store attached to the
-project publishes it without anybody typing it. That is the whole of its
-appeal, and it is why the Vercel template defaults to it: four secrets
-that each had exactly one correct value became none.
+variable, `BLOB_STORE_ID`, and a Blob store attached to the project
+publishes it without anybody typing it — the SDK authenticates with the
+deployment's own OIDC identity, so there is no token in it at all. That is
+the whole of its appeal, and it is why the Vercel template defaults to it:
+four secrets that each had exactly one correct value became none. Reaching
+the same store from *off* the platform needs a read-write token you create
+yourself; [Running on Vercel](./vercel.md#how-the-blob-store-authenticates)
+has the whole of it.
 
 `@vercel/blob` is reached through a dynamic `import()`, so a board on any
 other platform never *evaluates* it — no cold-start cost, no client

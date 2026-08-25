@@ -749,19 +749,11 @@ describe('the Vercel target', () => {
     expect(readme).toMatch(/does not set up/)
   })
 
-  it('prompts for what the stores do not publish, and not for what they do', () => {
+  it('prompts for the two values nothing else can supply, and for nothing else', () => {
     const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
     const prompted = url.searchParams.get('env')?.split(',') ?? []
 
-    expect(prompted).toEqual([
-      'CACHE_DRIVER',
-      'FILESTORE_DRIVER',
-      'DIRECT_DATABASE_URL',
-      'REDIS_URL',
-      'AUTH_SECRET',
-      'CRON_SECRET',
-      'MAIL_FROM',
-    ])
+    expect(prompted).toEqual(['AUTH_SECRET', 'CRON_SECRET'])
 
     for (const published of [
       'DATABASE_URL',
@@ -776,6 +768,38 @@ describe('the Vercel target', () => {
     ]) {
       expect(prompted).not.toContain(published)
     }
+  })
+
+  it('no longer asks for the four values the linked stores already answer', () => {
+    const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
+    const prompted = url.searchParams.get('env')?.split(',') ?? []
+
+    for (const derived of [
+      'CACHE_DRIVER',
+      'FILESTORE_DRIVER',
+      'DIRECT_DATABASE_URL',
+      'REDIS_URL',
+    ]) {
+      expect(prompted).not.toContain(derived)
+    }
+  })
+
+  it('asks for no sender address on a form that cannot yet send', () => {
+    const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
+    const readme = files.get('README.md')!
+
+    expect(url.searchParams.get('env')?.split(',') ?? []).not.toContain('MAIL_FROM')
+    expect(url.searchParams.get('envDescription')).not.toContain('address')
+    expect(readme).toMatch(/Add `MAIL_FROM` to the project's environment settings/)
+  })
+
+  it('says where each derived value comes from, so a failed derivation is findable', () => {
+    const readme = files.get('README.md')!
+
+    expect(readme).toContain('DATABASE_URL_UNPOOLED')
+    expect(readme).toContain('POSTGRES_URL_NON_POOLING')
+    expect(readme).toContain('KV_URL')
+    expect(readme).toMatch(/refuses to boot rather than guess/)
   })
 
   it('tells the operator how to carry the uploads out, because nothing else will', () => {

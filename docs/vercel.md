@@ -127,14 +127,15 @@ And the values those drivers need:
 | Variable | What it is |
 |---|---|
 | `DATABASE_URL` | The **pooled** (transaction-mode) connection string. Every ordinary request goes through it. |
-| `DIRECT_DATABASE_URL` | The **direct** (session-mode) string. Required here, not optional — see below. |
-| `REDIS_URL` | The cache. `rediss://` for TLS, which every managed provider requires. |
-| `BLOB_READ_WRITE_TOKEN` | Under `FILESTORE_DRIVER=blob`: the Blob store's token. A Blob store attached to the project publishes it under exactly this name, so there is nothing to copy. |
+| `DIRECT_DATABASE_URL` | The **direct** (session-mode) string. Required here, not optional — see below. Derived from the database integration's own variables when you leave it unset; see [what the board looks for](#what-the-board-looks-for-and-in-what-order). |
+| `REDIS_URL` | The cache. `rediss://` for TLS, which every managed provider requires. Derived from the cache integration's own variables when you leave it unset; see [what the board looks for](#what-the-board-looks-for-and-in-what-order). |
+| `BLOB_STORE_ID` | Under `FILESTORE_DRIVER=blob`: the store's id, and on a linked store the whole credential. A Blob store attached to the project publishes it under exactly this name, so there is nothing to copy — see [how the Blob store authenticates](#how-the-blob-store-authenticates). |
+| `BLOB_READ_WRITE_TOKEN` | The other way into the same store, created by you on the store itself. Needed only where there is no deployment identity to borrow — a `community backup` run on your own machine. |
 | `S3_BUCKET`, `S3_REGION` | Under `FILESTORE_DRIVER=s3`: the bucket and its region. `auto` is the region for R2; the real one for AWS. |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | The bucket's credentials. |
 | `S3_ENDPOINT` | The API endpoint for a non-AWS bucket (R2, Spaces, MinIO). Omit for AWS S3. |
 | `S3_PUBLIC_BASE_URL` | Where objects are *served* from, which is not always where the API lives — R2 serves from an `r2.dev` address or a custom domain, not from `S3_ENDPOINT`. Set it to that, or to a CDN in front of the bucket, or public URLs point somewhere a browser cannot fetch. |
-| `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default. |
+| `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default, and nothing derives it. Set it when you add the mail provider, not before — until then there is no verified domain for it to be at. |
 | `RESEND_API_KEY` | Set by Resend's Vercel integration when you add it. The board reads this name and needs neither of the next two. |
 | `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. **Set them as a pair**, with `MAIL_DRIVER=http`: setting either one on its own stands the Resend bridge down entirely, so that a key issued for Resend is never presented to an endpoint someone else chose. Only `RESEND_API_KEY` turns the driver on by itself. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
@@ -144,27 +145,105 @@ And the values those drivers need:
 
 Generate each secret with `openssl rand -hex 32`.
 
-Three of the five drivers derive themselves and only need setting to
-override the derivation: a `DATABASE_URL` implies `DATA_SOURCE=postgres`
-and `QUEUE_DRIVER=postgres`, and a `RESEND_API_KEY` with a `MAIL_FROM`
-beside it implies `MAIL_DRIVER=http`.
+On Vercel, all five drivers derive themselves, and setting one only
+overrides the derivation: a `DATABASE_URL` implies `DATA_SOURCE=postgres`
+and `QUEUE_DRIVER=postgres`; a Redis connection string implies
+`CACHE_DRIVER=redis`; a Blob store's read-write token implies
+`FILESTORE_DRIVER=blob`; and a `RESEND_API_KEY` with a `MAIL_FROM` beside
+it implies `MAIL_DRIVER=http`. `DIRECT_DATABASE_URL` and `REDIS_URL`
+derive too, from the variables the linked stores publish under their own
+names. That is what leaves the template's Deploy Button asking for two
+fields — `AUTH_SECRET` and `CRON_SECRET` — rather than seven.
 
-`CACHE_DRIVER` and `FILESTORE_DRIVER` stay explicit, deliberately. Each
-turns on an external service the board then depends on for every request,
-and neither switches on merely because a variable is present: the board
-caches in Redis and puts uploads in an object store because you said so.
+Two rules hold over all of it:
 
-Leaving them unset fails in two different ways, and only one of them is
-loud. Unset `FILESTORE_DRIVER` is `local`, which this platform **refuses
-outright** — the board will not boot rather than write uploads to a disk
-that is about to disappear. Unset `CACHE_DRIVER` is `next`, and nothing
-refuses it: the board caches inside each instance and serves whatever that
-instance last saw for up to a minute, however many instances are running.
-A blank field on a deploy form arrives as an empty value and is treated as
-unset, so the cache is the one to check twice — it will not tell you.
+- **The store derivations are scoped to this platform**, not to the mere
+  presence of a variable. A board hosted anywhere else behaves exactly as
+  it did before: an unset `CACHE_DRIVER` is still `next`, an unset
+  `FILESTORE_DRIVER` is still `local`, and neither `DIRECT_DATABASE_URL`
+  nor `REDIS_URL` acquires a value — even if some of the names below
+  happen to be set in its environment. Only `DATA_SOURCE`, `QUEUE_DRIVER`
+  and the Resend bridge derive everywhere, and those are unchanged.
+- **Explicit configuration wins.** A derivation fires only where the
+  variable is unset. Setting all five by hand, as the table above does,
+  remains the clearest thing to do on a project you configure yourself,
+  and a blank field on a deploy form arrives as an empty value, which
+  counts as unset.
 
-Setting all five by hand, as the table above does, is still the clearest
-thing to do on a project you configure yourself.
+Neither the cache nor the object store falls back any more. Both used to:
+`FILESTORE_DRIVER` fell back to `local`, which this platform already
+refused outright, and `CACHE_DRIVER` fell back to `next`, which nothing
+refused — the board cached inside each instance and served whatever that
+instance last saw, for up to a minute, however many instances were
+running. That quiet second failure is the reason the deploy form used to
+ask for both. Now neither is asked for, and a derivation that cannot
+resolve **refuses to boot** rather than choose one of them.
+
+### What the board looks for, and in what order
+
+The names an integration publishes are its own, and they change. So each
+derivation searches an ordered list of candidates and takes the first that
+is both **present** and **the right shape** — a `redis://` or `rediss://`
+URL for the cache, a `postgres://` or `postgresql://` URL for the
+database. A candidate of the wrong shape is passed over and then named in
+the refusal, so a variable holding the wrong kind of value never reaches a
+driver.
+
+| Derived | Candidates, in order | Where that comes from |
+|---|---|---|
+| `REDIS_URL` | `KV_URL`, then `UPSTASH_REDIS_URL` | **`KV_URL` confirmed** against a real project with the Upstash integration linked. `UPSTASH_REDIS_URL` is **unconfirmed** — a fallback for Upstash's own naming outside the KV alias set, never observed, kept because it costs nothing. |
+| `DIRECT_DATABASE_URL` | `DATABASE_URL_UNPOOLED`, then `POSTGRES_URL_NON_POOLING` | **Both confirmed** against a real project with Neon linked, and both unpooled. `DATABASE_URL_UNPOOLED` leads because it is the name that pairs with the `DATABASE_URL` the board serves from. |
+| `CACHE_DRIVER=redis` | whatever `REDIS_URL` resolved to, derived or set | — |
+| `FILESTORE_DRIVER=blob` | `BLOB_STORE_ID`, then `BLOB_READ_WRITE_TOKEN` | **Confirmed:** a linked store publishes `BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLIC_KEY`, and **no token** — the token is something you create. Either name is enough to select the driver; see [how the Blob store authenticates](#how-the-blob-store-authenticates). |
+
+`REDIS_URL` is published by nothing: the Upstash set is `KV_URL`,
+`KV_REST_API_URL`, `KV_REST_API_TOKEN` and `KV_REST_API_READ_ONLY_TOKEN`,
+and `KV_URL` is the only one of them that speaks the Redis protocol.
+`KV_REST_API_URL` is deliberately **not** a candidate: it is an HTTPS REST
+endpoint, and a Redis client handed it fails at connect time in a way that
+reads like a network fault rather than the configuration error it is.
+
+`POSTGRES_URL` and `POSTGRES_PRISMA_URL` are deliberately not candidates
+either. Both are **pooled**, and a transaction-mode pooler cannot hold the
+session-level advisory lock migrations and the installer take — the whole
+reason `DIRECT_DATABASE_URL` exists. `POSTGRES_URL_NO_SSL` is pooled as
+well.
+
+`BLOB_WEBHOOK_PUBLIC_KEY` is not a candidate. It is published beside the
+store id, but it verifies webhooks the board does not receive, and it opens
+nothing.
+
+The lists live in `packages/core/src/env.ts` as
+`VERCEL_REDIS_URL_SOURCES`, `VERCEL_DIRECT_DATABASE_URL_SOURCES`,
+`VERCEL_BLOB_TOKEN_SOURCES` and `VERCEL_BLOB_STORE_MARKERS`. If your
+provider publishes a name that is not on one of them, the shortest fix is
+to set `REDIS_URL` or `DIRECT_DATABASE_URL` yourself — the derivation
+stands aside for anything already set — and the durable one is to add the
+name to the list.
+
+### When a derivation cannot resolve
+
+It refuses to boot, and names every variable it looked at. The board does
+not fall back to `local` file storage or the `next` cache in place of a
+derivation: uploads on a disk that is discarded with the instance, and a
+cache each instance keeps to itself, are the outcomes the deploy form's
+old questions existed to prevent.
+
+| The refusal names | What happened | What to do |
+|---|---|---|
+| `CACHE_DRIVER` | No Redis connection string was found under any candidate name, and `CACHE_DRIVER` is unset. | Link a Redis store, or set `REDIS_URL` yourself. `CACHE_DRIVER=next` is available and honest — it says you accept a per-instance cache. |
+| `REDIS_URL` | `CACHE_DRIVER=redis` is set explicitly and no connection string resolved. | The same, minus the `next` option: you asked for Redis. |
+| `FILESTORE_DRIVER` | Neither `BLOB_STORE_ID` nor `BLOB_READ_WRITE_TOKEN` is present, and `FILESTORE_DRIVER` is unset. | Attach a Blob store, or set `FILESTORE_DRIVER=s3` and its four companions. |
+| `DIRECT_DATABASE_URL` | A `DATABASE_URL` is set, but no unpooled string resolved. | Link the database, or set `DIRECT_DATABASE_URL` yourself — to the same value as `DATABASE_URL` if that one is already the direct string. |
+
+A board with no `DATABASE_URL` at all is a fixture board, and no direct
+string is asked of it.
+
+These refusals are runtime rules. `next build` is exempt from them, as it
+is from the production rules above, because a build serves no request —
+but `community migrate` runs in the same build command and is not exempt,
+so on Vercel a missing store stops the deploy rather than shipping a board
+that will refuse on its first request.
 
 ### Blob or a bucket
 
@@ -172,7 +251,8 @@ Both work, and the board is the same either way. The difference is what
 happens on the day you leave.
 
 A **Vercel Blob store** is the cheapest thing to set up: attach one to the
-project, and `BLOB_READ_WRITE_TOKEN` appears by itself. That replaces four
+project, and `BLOB_STORE_ID` appears by itself — see [how the Blob store
+authenticates](#how-the-blob-store-authenticates). That replaces four
 values that each had exactly one correct setting and each of which was a
 typo away from a board that booted and then failed at the first upload. It
 is what the one-click template in `templates/vercel` defaults to, and what
@@ -195,6 +275,67 @@ expect to move, or if you already have object storage.
 
 You can change your mind later, in either direction, with a backup and a
 restore — that is exactly what the exit below does.
+
+### How the Blob store authenticates
+
+A Blob store attached through the integration publishes **`BLOB_STORE_ID`**
+and `BLOB_WEBHOOK_PUBLIC_KEY`. It does **not** publish a read-write token,
+and that is deliberate rather than an omission: `@vercel/blob` resolves a
+credential in this order, and the store id is the second half of the path it
+prefers.
+
+1. An explicitly passed `token` — a read-write token.
+2. **OIDC**: the deployment's own identity token, taken from the
+   `x-vercel-oidc-token` request header or `VERCEL_OIDC_TOKEN`, combined with
+   a store id from `BLOB_STORE_ID`.
+3. `BLOB_READ_WRITE_TOKEN` from the environment.
+4. Otherwise it throws *No blob credentials found*.
+
+So the board builds its store from `BLOB_STORE_ID` and **passes no token**,
+which lets the SDK reach step 2. Passing a token — which this board used to
+do on every call — takes step 1 and makes OIDC unreachable, which is why a
+store attached through the integration could not be used at all before this.
+
+Two consequences worth knowing:
+
+- **A read-write token still works, and still wins where you mean it to.**
+  Set `BLOB_READ_WRITE_TOKEN` and the board uses it. Set both, and the board
+  prefers the store id — matching what the SDK itself would do if handed
+  nothing — unless the token names a *different* store than `BLOB_STORE_ID`,
+  in which case the token wins, because naming another store is a deliberate
+  act and quietly writing to the linked one instead would be a data error.
+- **Off the platform there is no identity to borrow.** A command run on your
+  own machine — `community backup` against a Blob store is the case that
+  matters — has no OIDC token, so it needs `BLOB_READ_WRITE_TOKEN`. Create
+  one on the store under **Storage**. The deployment never needs it.
+- **A token that names no store is refused at boot**, whether or not
+  `BLOB_STORE_ID` is set beside it. A read-write token reads
+  `vercel_blob_rw_<store>_<secret>` and the board takes the store out of the
+  middle of it, so a truncated, stale or wrong-kind value has no store to
+  name. The board will not quietly fall back to the store id and write
+  somewhere the operator did not ask for, and it will not carry the bad value
+  as far as the first upload: the environment refuses it by name, next to
+  every other configuration error, and says the store id alone would have
+  done. Remove the variable or fix it.
+
+Two things here are **reasoned from the SDK's source and not confirmed
+against a live deploy**, because nobody has run this yet:
+
+- **Whether `VERCEL_OIDC_TOKEN` exists during a build.** The board is
+  careful not to need it there: nothing in the environment rules asks for an
+  OIDC token, and `community migrate` — which runs in the build command and
+  validates the environment — touches no object storage. Selecting the
+  driver needs `BLOB_STORE_ID`, which is an ordinary project variable
+  present at build. A build should therefore not be able to fail on a
+  credential that only exists at request time.
+- **Whether OIDC can be turned off for a project.** If it can, a board would
+  select `blob` from the store id and then fail on its first upload. That is
+  a setting this board cannot see, so it cannot refuse at boot on account of
+  it. What it does instead is refuse *clearly* at that first upload: the
+  SDK's *No blob credentials found* is replaced with a message naming the
+  store, saying that OIDC produced nothing — either off for the project, or
+  running outside a deployment — and pointing at `BLOB_READ_WRITE_TOKEN` as
+  the fix that works in both places.
 
 ### Why both database strings
 
@@ -230,7 +371,8 @@ and no configuration: add Resend to the project from Vercel's marketplace,
 and the integration sets `RESEND_API_KEY`. The board reads that name, fills
 in Resend's endpoint for you, and sends — the only thing left to set is
 `MAIL_FROM`, at a domain you have verified in Resend, which nothing can
-guess on your behalf.
+guess on your behalf. It belongs to this step rather than to the deploy:
+before a provider exists there is no verified domain for it to be at.
 
 That bridge is one injected variable name mapped onto the generic pair, not
 a provider baked into the board. The driver stays what it was: any provider
@@ -555,9 +697,16 @@ store over the network:
 DATABASE_URL=…            # the pooled string
 DIRECT_DATABASE_URL=…     # the direct string, for the dump
 FILESTORE_DRIVER=blob
-BLOB_READ_WRITE_TOKEN=…   # copy it out of the project's environment settings
+BLOB_READ_WRITE_TOKEN=…   # create one on the store — see below
 community backup --uploads include
 ```
+
+That token is the one value here you make by hand. On the deployment the
+board reaches the store with `BLOB_STORE_ID` and the deployment's OIDC
+identity, and a command on your own machine has no such identity — so open
+the store under **Storage**, create a read-write token, and use it for the
+backup. [How the Blob store authenticates](#how-the-blob-store-authenticates)
+has the whole of it.
 
 Copy the bundle somewhere that is none of the four vendors.
 
@@ -638,8 +787,12 @@ restore run against a destination that keeps the objects.
 | The build fails on `maxDuration` | Fluid Compute is off and the plan caps functions below 300 seconds — see [above](#maxduration-is-checked-at-build-time). |
 | The build fails inside `community migrate` | The migration itself failed, and the `&&` stopped the build on purpose. Its error is in the build log, and nothing was deployed. |
 | `community migrate` hangs with no output | It is waiting for the advisory lock, or `DIRECT_DATABASE_URL` names the pooler rather than the direct string. See [Operations](./operating.md#migration-does-not-complete). |
-| The board refuses to boot with a `FILESTORE_DRIVER` error | `local` is refused on Vercel outright. Set `blob`, or `s3` and its companions. |
-| The build fails naming `BLOB_READ_WRITE_TOKEN` | `FILESTORE_DRIVER=blob` is set but no Blob store is attached to the project, or it was attached after this build's environment was read. Attach one under **Storage**, then redeploy. |
+| The board refuses to boot with a `FILESTORE_DRIVER` error | Either `local` was set explicitly, which Vercel refuses outright, or nothing published an object store to derive from — [when a derivation cannot resolve](#when-a-derivation-cannot-resolve). The message names what it looked at. |
+| The build fails naming `CACHE_DRIVER` or `REDIS_URL` | No Redis connection string resolved: no store is linked, it was linked after this build's environment was read, or it publishes a name not on the candidate list. `community migrate` runs in the build command and applies the same rules the running board does. |
+| The build fails naming `DIRECT_DATABASE_URL` | `DATABASE_URL` is set but no unpooled string was published beside it. Set `DIRECT_DATABASE_URL` — to the same value, if `DATABASE_URL` is already the direct string. |
+| The build fails naming `BLOB_STORE_ID` and `BLOB_READ_WRITE_TOKEN` | `FILESTORE_DRIVER=blob` is set but no Blob store is attached to the project, or it was attached after this build's environment was read. Attach one under **Storage**, then redeploy. |
+| The board boots, then an upload fails saying the store was reached with no usable credential | The board is on the OIDC path and the platform supplied no identity token — OIDC is off for the project, or this is running off the platform, as a local `community backup` is. Create a read-write token on the store and set `BLOB_READ_WRITE_TOKEN`. |
+| A refusal names a variable your store does publish, under another name | The candidate list does not have that name. Set `REDIS_URL` or `DIRECT_DATABASE_URL` directly — an explicit value stands the derivation down — and [add the name to the list](#what-the-board-looks-for-and-in-what-order). |
 | The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the build log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. `MAIL_FROM` must be set too, at a domain the provider has verified. |
 | Mail is rejected with a sender error | `MAIL_FROM` is at a domain the provider has not verified. Verify it in the provider's dashboard; nothing on this side can work around it. |
 | Production migrated and nobody deployed anything | A preview or branch build did it, because the database variables reach every environment — [scope them to Production](#every-build-migrates-previews-included). The migration has applied and does not come back off. |

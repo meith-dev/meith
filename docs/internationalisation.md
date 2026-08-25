@@ -279,14 +279,46 @@ A handful of the counts are noise rather than copy: `view/feed.ts` and
 prose to the counter, and `view/setting-groups.ts` holds the group labels the
 catalog mirrors. They sit in the baseline at a fixed number and stay there.
 
-`packages/core/src/env.ts` and `packages/drivers/src/files/s3-file-store.ts`
-are noise of the same sort, and the only two entries here that have gone up.
+`packages/core/src/env.ts`, `packages/drivers/src/files/blob-file-store.ts`
+and `packages/drivers/src/files/keys.ts` are noise of the same sort. `env.ts`
+is the only entry here that has gone up.
 Environment parsing runs once, at boot, before there is a request, a board or
 a member — so there is no locale to pick and no `Translator` to take one. A
 configuration that would fail silently says so there or nowhere: refusing
 `FILESTORE_DRIVER=local` on a platform with an ephemeral disk, or SMTP on port
 25 where the egress is blocked and every message would hang until the function
-timed out. The file store's count is not copy at all — `url()` builds an object
+timed out.
+
+That entry went from 27 to 55 when the Vercel template stopped asking an
+operator for values its linked integrations already publish. `env.ts` now
+derives `CACHE_DRIVER`, `FILESTORE_DRIVER`, `REDIS_URL` and
+`DIRECT_DATABASE_URL` from those, and refuses to boot when it cannot — naming
+every variable it searched, because that name is the only clue an operator has
+when their store publishes something this board has never heard of. Five
+refusals and one malformed-credential message account for the whole raise: the
+counter charges per quoted fragment, so a message wrapped over eight lines is
+eight strings and not eight messages. Each one is read in a deploy log, by the
+person who started the deploy, in the same language as the log around it. See
+[Running on Vercel](./vercel.md#when-a-derivation-cannot-resolve) for what each
+refusal means.
+
+`packages/drivers/src/files/blob-file-store.ts` went from 5 to 13 for the
+same reason, one layer down. A Vercel Blob store attached to a project
+publishes a store id and no token, so the driver has two credential shapes to
+tell apart and a first-upload failure to explain when the platform supplies
+neither — all of it thrown as `ConfigurationError` from a driver constructed
+at boot, and read by whoever ran the deploy or the backup.
+
+One of that file's counted strings is not copy in any sense and must not be
+edited as though it were: `BLOB_NO_CREDENTIALS` is the literal sentence
+`@vercel/blob` throws when it can find no credential, and the driver matches
+on it to replace that error with one that names the store and the cause. It
+is a sentinel for somebody else's string, and translating or rephrasing it
+would silently stop the match. A test asserts the same literal is still
+present in the installed SDK, so a reword upstream fails the build rather
+than passing quietly.
+
+The file store's count is not copy at all — `url()` builds an object
 URL per storage shape, and the counter reads the template's fragments as prose.
 Neither surface has ever rendered to a member.
 

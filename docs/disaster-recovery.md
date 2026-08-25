@@ -117,9 +117,16 @@ Vercel:
 DATABASE_URL=…            # the pooled string
 DIRECT_DATABASE_URL=…     # the direct string, for the dump
 FILESTORE_DRIVER=blob
-BLOB_READ_WRITE_TOKEN=…   # copied from the project's environment settings
+BLOB_READ_WRITE_TOKEN=…   # created on the store; see below
 community backup
 ```
+
+That token is the one value you make by hand. A Blob store attached to a
+Vercel project publishes `BLOB_STORE_ID` and no token, because on the
+deployment the SDK authenticates with the deployment's own OIDC identity —
+which a command on your own machine does not have. Open the store under
+**Storage**, create a read-write token, and use it here. See
+[Running on Vercel](./vercel.md#how-the-blob-store-authenticates).
 
 Read the last line it prints. `the database dump and the uploads` means
 the objects are in the bundle; `the database dump, no uploads` means the

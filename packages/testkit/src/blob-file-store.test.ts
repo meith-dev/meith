@@ -1,10 +1,30 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
-import { BlobFileStore, type BlobLike } from '@meith/drivers/files/blob-file-store'
+import {
+  BLOB_NO_CREDENTIALS,
+  BlobFileStore,
+  type BlobLike,
+} from '@meith/drivers/files/blob-file-store'
 
 import { fileStoreContract } from './driver-contracts'
 
 const TOKEN = 'vercel_blob_rw_store123_secretsecret'
+
+const STORE_ID = 'store_store123'
+
+class FakeNoCredentialsError extends Error {
+  constructor() {
+    super(
+      `Vercel Blob: ${BLOB_NO_CREDENTIALS}. Pass a \`token\` option, set ` +
+        'BLOB_READ_WRITE_TOKEN, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with ' +
+        '`storeId` or `BLOB_STORE_ID`.',
+    )
+  }
+}
 
 class FakeBlobNotFoundError extends Error {
   constructor() {
@@ -12,16 +32,27 @@ class FakeBlobNotFoundError extends Error {
   }
 }
 
-function fakeBlob(): BlobLike & { objects: Map<string, Uint8Array>; tokens: string[] } {
+function fakeBlob(): BlobLike & {
+  objects: Map<string, Uint8Array>
+  tokens: (string | undefined)[]
+  storeIds: (string | undefined)[]
+} {
   const objects = new Map<string, Uint8Array>()
-  const tokens: string[] = []
+  const tokens: (string | undefined)[] = []
+  const storeIds: (string | undefined)[] = []
+
+  function seen(options: { token?: string | undefined; storeId?: string | undefined }): void {
+    tokens.push(options.token)
+    storeIds.push(options.storeId)
+  }
 
   return {
     objects,
     tokens,
+    storeIds,
 
     put(pathname, body, options) {
-      tokens.push(options.token)
+      seen(options)
       if (objects.has(pathname) && !options.allowOverwrite) {
         return Promise.reject(new Error('blob already exists'))
       }
@@ -30,7 +61,7 @@ function fakeBlob(): BlobLike & { objects: Map<string, Uint8Array>; tokens: stri
     },
 
     get(pathname, options) {
-      tokens.push(options.token)
+      seen(options)
       const body = objects.get(pathname)
       if (body === undefined) return Promise.reject(new FakeBlobNotFoundError())
 
@@ -45,13 +76,13 @@ function fakeBlob(): BlobLike & { objects: Map<string, Uint8Array>; tokens: stri
     },
 
     del(pathname, options) {
-      tokens.push(options.token)
+      seen(options)
       objects.delete(pathname)
       return Promise.resolve()
     },
 
     list(options) {
-      tokens.push(options.token)
+      seen(options)
       const all = [...objects.keys()].sort()
       const start = options.cursor === undefined ? 0 : Number(options.cursor)
       const page = all.slice(start, start + 2)
@@ -176,5 +207,202 @@ describe('BlobFileStore specifics', () => {
     it('builds when the environment is complete', () => {
       expect(() => BlobFileStore.fromEnv({ BLOB_READ_WRITE_TOKEN: TOKEN })).not.toThrow()
     })
+  })
+})
+
+describe('the two credential shapes a Vercel Blob store comes in', () => {
+  const body = new TextEncoder().encode('attachment bytes')
+
+  it('sends the read-write token when that is what it was built with', async () => {
+    const blob = fakeBlob()
+    const store = new BlobFileStore({ token: TOKEN }, blob)
+
+    await store.put('a.png', body, { contentType: 'image/png', visibility: 'private' })
+
+    expect(blob.tokens).toEqual([TOKEN])
+    expect(blob.storeIds).toEqual([undefined])
+  })
+
+  it('sends the store id as published and no token, so the SDK resolves OIDC itself', async () => {
+    const blob = fakeBlob()
+    const store = new BlobFileStore({ storeId: STORE_ID }, blob)
+
+    await store.put('a.png', body, { contentType: 'image/png', visibility: 'private' })
+    await store.get('a.png')
+    await store.delete('a.png')
+    for await (const _key of store.listKeys()) break
+
+    expect(blob.tokens).toEqual([undefined, undefined, undefined, undefined])
+    expect(blob.storeIds).toEqual([STORE_ID, STORE_ID, STORE_ID, STORE_ID])
+  })
+
+  it('strips the store_ prefix, as the SDK does before it signs anything', () => {
+    const bare = new BlobFileStore({ storeId: 'store123' }, fakeBlob())
+    const prefixed = new BlobFileStore({ storeId: STORE_ID }, fakeBlob())
+
+    expect(prefixed.url('a.png')).toBe(bare.url('a.png'))
+  })
+
+  it('builds the same object URL from a store id as from a token', () => {
+    const fromToken = new BlobFileStore({ token: TOKEN }, fakeBlob())
+    const fromStoreId = new BlobFileStore({ storeId: STORE_ID }, fakeBlob())
+
+    expect(fromStoreId.url('a/b.png')).toBe(fromToken.url('a/b.png'))
+  })
+
+  it('explains a missing OIDC token rather than passing the SDK error through', async () => {
+    const blob = fakeBlob()
+    blob.put = () => Promise.reject(new FakeNoCredentialsError())
+    const store = new BlobFileStore({ storeId: STORE_ID }, blob)
+
+    await expect(
+      store.put('a.png', body, { contentType: 'image/png', visibility: 'private' }),
+    ).rejects.toThrow(/OIDC is turned off for this project, or this is running outside a Vercel/)
+  })
+
+  it('names the escape hatch that works in both places', async () => {
+    const blob = fakeBlob()
+    blob.list = () => Promise.reject(new FakeNoCredentialsError())
+    const store = new BlobFileStore({ storeId: STORE_ID }, blob)
+
+    await expect(async () => {
+      for await (const _key of store.listKeys()) break
+    }).rejects.toThrow(/BLOB_READ_WRITE_TOKEN/)
+  })
+
+  it('leaves every other failure alone', async () => {
+    const blob = fakeBlob()
+    blob.put = () => Promise.reject(new Error('rate limited'))
+    const store = new BlobFileStore({ storeId: STORE_ID }, blob)
+
+    await expect(
+      store.put('a.png', body, { contentType: 'image/png', visibility: 'private' }),
+    ).rejects.toThrow(/rate limited/)
+  })
+})
+
+describe('fromEnv, against what the integration actually publishes', () => {
+  it('builds from the store id alone, which is the shape a linked store gives', () => {
+    const store = BlobFileStore.fromEnv({ BLOB_STORE_ID: STORE_ID })
+    expect(store.url('a.png')).toContain('store123.')
+  })
+
+  it('names both ways in when neither is set', () => {
+    expect(() => BlobFileStore.fromEnv({})).toThrow(/BLOB_STORE_ID or BLOB_READ_WRITE_TOKEN/)
+  })
+
+  it('prefers OIDC when both name the same store, as the SDK would with no token passed', async () => {
+    const blob = fakeBlob()
+    const store = BlobFileStore.fromEnv({ BLOB_STORE_ID: STORE_ID, BLOB_READ_WRITE_TOKEN: TOKEN })
+    Object.assign(store as unknown as { loading: Promise<BlobLike> }, {
+      loading: Promise.resolve(blob),
+    })
+
+    await store.delete('a.png')
+
+    expect(blob.tokens).toEqual([undefined])
+    expect(blob.storeIds).toEqual([STORE_ID])
+  })
+
+  it('uses the token when it names a different store, because that was chosen on purpose', async () => {
+    const blob = fakeBlob()
+    const store = BlobFileStore.fromEnv({
+      BLOB_STORE_ID: 'store_elsewhere',
+      BLOB_READ_WRITE_TOKEN: TOKEN,
+    })
+    Object.assign(store as unknown as { loading: Promise<BlobLike> }, {
+      loading: Promise.resolve(blob),
+    })
+
+    await store.delete('a.png')
+
+    expect(blob.tokens).toEqual([TOKEN])
+    expect(store.url('a.png')).toContain('store123.')
+  })
+
+  it('still refuses a token that is not a Blob read-write token', () => {
+    expect(() => BlobFileStore.fromEnv({ BLOB_READ_WRITE_TOKEN: 'nope' })).toThrow(
+      /vercel_blob_rw_/,
+    )
+  })
+})
+
+describe('the sentence the SDK throws, which the driver matches on', () => {
+  it('is still in the installed @vercel/blob, so a reword cannot pass unnoticed', () => {
+    const from = createRequire(
+      new URL('../../drivers/src/files/blob-file-store.ts', import.meta.url),
+    )
+    const dist = dirname(from.resolve('@vercel/blob'))
+    const sources = readdirSync(dist)
+      .filter((entry) => entry.endsWith('.js'))
+      .map((entry) => readFileSync(join(dist, entry), 'utf8'))
+
+    expect(sources.some((source) => source.includes(BLOB_NO_CREDENTIALS))).toBe(true)
+  })
+
+  it('is matched loosely enough to survive the prefix the SDK puts in front of it', () => {
+    expect(new FakeNoCredentialsError().message).toContain(BLOB_NO_CREDENTIALS)
+  })
+})
+
+describe('a token that names no store', () => {
+  const store = () => BlobFileStore.fromEnv({ BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_' })
+
+  it('is refused rather than taken for one', () => {
+    expect(store).toThrow(/vercel_blob_rw_/)
+  })
+
+  it('is refused even with a store id beside it, because it was typed on purpose', () => {
+    expect(() =>
+      BlobFileStore.fromEnv({ BLOB_STORE_ID: STORE_ID, BLOB_READ_WRITE_TOKEN: 'garbage' }),
+    ).toThrow(/vercel_blob_rw_/)
+  })
+})
+
+describe('a store id with whitespace around it', () => {
+  it('names the same store as the trimmed one', () => {
+    const padded = new BlobFileStore({ storeId: `  ${STORE_ID}  ` }, fakeBlob())
+    expect(padded.url('a.png')).toBe(
+      new BlobFileStore({ storeId: STORE_ID }, fakeBlob()).url('a.png'),
+    )
+  })
+
+  it('is trimmed before the SDK ever sees it', async () => {
+    const blob = fakeBlob()
+    const store = new BlobFileStore({ storeId: `  ${STORE_ID}  ` }, blob)
+
+    await store.delete('a.png')
+
+    expect(blob.storeIds).toEqual([STORE_ID])
+  })
+
+  it('still matches a token for the same store, rather than falling to the token path', async () => {
+    const blob = fakeBlob()
+    const store = BlobFileStore.fromEnv({
+      BLOB_STORE_ID: `  ${STORE_ID}  `,
+      BLOB_READ_WRITE_TOKEN: TOKEN,
+    })
+    Object.assign(store as unknown as { loading: Promise<BlobLike> }, {
+      loading: Promise.resolve(blob),
+    })
+
+    await store.delete('a.png')
+
+    expect(blob.tokens).toEqual([undefined])
+  })
+})
+
+describe('the OIDC explanation', () => {
+  it('is not offered on the token path, which never asked OIDC for anything', async () => {
+    const blob = fakeBlob()
+    blob.put = () => Promise.reject(new FakeNoCredentialsError())
+    const store = new BlobFileStore({ token: TOKEN }, blob)
+
+    await expect(
+      store.put('a.png', new TextEncoder().encode('x'), {
+        contentType: 'image/png',
+        visibility: 'private',
+      }),
+    ).rejects.toThrow(BLOB_NO_CREDENTIALS)
   })
 })
