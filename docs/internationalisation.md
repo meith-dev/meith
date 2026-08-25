@@ -286,7 +286,22 @@ a member — so there is no locale to pick and no `Translator` to take one. A
 configuration that would fail silently says so there or nowhere: refusing
 `FILESTORE_DRIVER=local` on a platform with an ephemeral disk, or SMTP on port
 25 where the egress is blocked and every message would hang until the function
-timed out. The file store's count is not copy at all — `url()` builds an object
+timed out.
+
+That entry went from 27 to 51 when the Vercel template stopped asking an
+operator for values its linked integrations already publish. `env.ts` now
+derives `CACHE_DRIVER`, `FILESTORE_DRIVER`, `REDIS_URL` and
+`DIRECT_DATABASE_URL` from those, and refuses to boot when it cannot — naming
+every variable it searched, because that name is the only clue an operator has
+when their store publishes something this board has never heard of. Five
+refusals account for the whole raise: the counter charges per quoted fragment,
+so a message wrapped over eight lines is eight strings and not eight messages.
+Each one is read in a deploy log, by the person who started the deploy, in the
+same language as the log around it. See
+[Running on Vercel](./vercel.md#when-a-derivation-cannot-resolve) for what each
+refusal means.
+
+The file store's count is not copy at all — `url()` builds an object
 URL per storage shape, and the counter reads the template's fragments as prose.
 Neither surface has ever rendered to a member.
 
