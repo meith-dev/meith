@@ -4,6 +4,8 @@ import { MAX_TRUSTED_PROXY_HOPS } from './client-address'
 
 const nonEmpty = z.string().min(1)
 
+export const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails'
+
 const databaseUrl = z
   .string()
   .refine((value) => value.startsWith('postgres://') || value.startsWith('postgresql://'), {
@@ -46,7 +48,7 @@ const envSchema = z
 
     QUEUE_DRIVER: z.enum(['memory', 'postgres']),
     CACHE_DRIVER: z.enum(['memory', 'next', 'redis']),
-    FILESTORE_DRIVER: z.enum(['local', 's3']).default('local'),
+    FILESTORE_DRIVER: z.enum(['local', 's3', 'blob']).default('local'),
     MAIL_DRIVER: z.enum(['log', 'http', 'smtp']).default('log'),
 
     REDIS_URL: redisUrl.optional(),
@@ -62,9 +64,13 @@ const envSchema = z
     S3_ENDPOINT: z.string().url().optional(),
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
+    BLOB_READ_WRITE_TOKEN: nonEmpty.optional(),
+
     MAIL_FROM: z.string().email().optional(),
     MAIL_HTTP_ENDPOINT: z.string().url().optional(),
     MAIL_HTTP_TOKEN: nonEmpty.optional(),
+
+    RESEND_API_KEY: nonEmpty.optional(),
 
     MAIL_SMTP_HOST: nonEmpty.optional(),
     MAIL_SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
@@ -139,6 +145,16 @@ const envSchema = z
           })
         }
       }
+    }
+
+    if (value.FILESTORE_DRIVER === 'blob' && !value.BLOB_READ_WRITE_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['BLOB_READ_WRITE_TOKEN'],
+        message:
+          'is required when FILESTORE_DRIVER=blob — a Vercel Blob store attached ' +
+          'to the project publishes it under exactly this name',
+      })
     }
 
     if (value.MAIL_DRIVER === 'http') {
@@ -233,9 +249,11 @@ const envSchema = z
           message:
             "cannot be 'local' on Vercel — the filesystem is per-instance and " +
             'ephemeral, so uploads are lost as soon as another instance serves ' +
-            'the request. Set FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, ' +
-            'S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY (S3_ENDPOINT too for R2, ' +
-            'MinIO or Spaces).',
+            'the request. Set FILESTORE_DRIVER=blob, which needs only the ' +
+            'BLOB_READ_WRITE_TOKEN a Vercel Blob store publishes by itself, or ' +
+            'FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID and ' +
+            'S3_SECRET_ACCESS_KEY (S3_ENDPOINT too for R2, MinIO or Spaces) to ' +
+            'keep the uploads somewhere you can move them from.',
         })
       }
 
@@ -268,15 +286,33 @@ function formatIssues(error: z.ZodError): string {
   ].join('\n')
 }
 
+function cacheDriverFor(source: NodeJS.ProcessEnv, dataSource: string): string {
+  if (source.CACHE_DRIVER) return source.CACHE_DRIVER
+  if (source.REDIS_URL) return 'redis'
+  return dataSource === 'postgres' ? 'next' : 'memory'
+}
+
 function withDerivedDefaults(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const hasDb = Boolean(source.DATABASE_URL)
   const dataSource = source.DATA_SOURCE ?? (hasDb ? 'postgres' : 'fixture')
+
+  const mailToken = source.MAIL_HTTP_TOKEN ?? source.RESEND_API_KEY
+  const mailEndpoint =
+    source.MAIL_HTTP_ENDPOINT ??
+    (source.RESEND_API_KEY === undefined ? undefined : RESEND_EMAILS_ENDPOINT)
 
   return {
     ...source,
     DATA_SOURCE: dataSource,
     QUEUE_DRIVER: source.QUEUE_DRIVER ?? (dataSource === 'postgres' ? 'postgres' : 'memory'),
-    CACHE_DRIVER: source.CACHE_DRIVER ?? (dataSource === 'postgres' ? 'next' : 'memory'),
+    CACHE_DRIVER: cacheDriverFor(source, dataSource),
+    ...(mailToken === undefined ? {} : { MAIL_HTTP_TOKEN: mailToken }),
+    ...(mailEndpoint === undefined ? {} : { MAIL_HTTP_ENDPOINT: mailEndpoint }),
+    MAIL_DRIVER:
+      source.MAIL_DRIVER ??
+      (mailToken !== undefined && mailEndpoint !== undefined && source.MAIL_FROM !== undefined
+        ? 'http'
+        : undefined),
   }
 }
 

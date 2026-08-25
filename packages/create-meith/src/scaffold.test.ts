@@ -649,13 +649,9 @@ describe('the Vercel target', () => {
       'REDIS_URL',
       'AUTH_SECRET',
       'CRON_SECRET',
-      'S3_BUCKET',
-      'S3_REGION',
-      'S3_ACCESS_KEY_ID',
-      'S3_SECRET_ACCESS_KEY',
+      'BLOB_READ_WRITE_TOKEN',
       'MAIL_FROM',
-      'MAIL_HTTP_ENDPOINT',
-      'MAIL_HTTP_TOKEN',
+      'RESEND_API_KEY',
       'APP_URL',
     ]) {
       expect(env).toMatch(new RegExp(`^${key}=$`, 'm'))
@@ -668,17 +664,31 @@ describe('the Vercel target', () => {
       'DATA_SOURCE=postgres',
       'QUEUE_DRIVER=postgres',
       'CACHE_DRIVER=redis',
-      'FILESTORE_DRIVER=s3',
+      'FILESTORE_DRIVER=blob',
       'MAIL_DRIVER=http',
     ]) {
       expect(env).toMatch(new RegExp(`^${line}$`, 'm'))
     }
   })
 
-  it('offers the two optional S3 variables commented out rather than missing', () => {
+  it('keeps the portable bucket documented, commented out, beside the blob store', () => {
     const env = files.get('.env.example')!
-    expect(env).toMatch(/^# S3_ENDPOINT=$/m)
-    expect(env).toMatch(/^# S3_PUBLIC_BASE_URL=$/m)
+    for (const key of [
+      'S3_BUCKET',
+      'S3_REGION',
+      'S3_ACCESS_KEY_ID',
+      'S3_SECRET_ACCESS_KEY',
+      'S3_ENDPOINT',
+      'S3_PUBLIC_BASE_URL',
+    ]) {
+      expect(env).toMatch(new RegExp(`^# ${key}=$`, 'm'))
+    }
+  })
+
+  it('offers the generic mail pair commented out, under the injected key', () => {
+    const env = files.get('.env.example')!
+    expect(env).toMatch(/^# MAIL_HTTP_ENDPOINT=$/m)
+    expect(env).toMatch(/^# MAIL_HTTP_TOKEN=$/m)
   })
 
   it('makes the direct URL required here, where the self-host template offers it', () => {
@@ -709,25 +719,72 @@ describe('the Vercel target', () => {
     expect(readme).toContain(encodeURIComponent(DEFAULT_TEMPLATE_REPOSITORY_URL))
   })
 
-  it('asks the marketplace for the Postgres and Redis stores the board needs', () => {
+  it('asks the marketplace for the database, the cache and the object store', () => {
     const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
     const stores = JSON.parse(url.searchParams.get('stores') ?? '[]')
 
-    expect(stores.map((store: { integrationSlug: string }) => store.integrationSlug)).toEqual([
-      'neon',
-      'upstash',
+    expect(stores).toEqual([
+      { type: 'integration', integrationSlug: 'neon', productSlug: 'neon', protocol: 'storage' },
+      {
+        type: 'integration',
+        integrationSlug: 'upstash',
+        productSlug: 'upstash-kv',
+        protocol: 'storage',
+      },
+      { type: 'blob' },
     ])
     expect(url.searchParams.get('repository-url')).toBe(DEFAULT_TEMPLATE_REPOSITORY_URL)
+  })
+
+  it('keeps the button on the parameter this template already deploys with', () => {
+    const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
+    expect(url.searchParams.get('products')).toBeNull()
+  })
+
+  it('says plainly that mail is a step after the deploy, not part of it', () => {
+    const readme = files.get('README.md')!
+
+    expect(readme).toContain('## Mail, in one click')
+    expect(readme).toContain('RESEND_API_KEY')
+    expect(readme).toMatch(/does not set up/)
   })
 
   it('prompts for what the stores do not publish, and not for what they do', () => {
     const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
     const prompted = url.searchParams.get('env')?.split(',') ?? []
 
-    expect(prompted).toContain('AUTH_SECRET')
-    expect(prompted).toContain('CRON_SECRET')
-    expect(prompted).toContain('DIRECT_DATABASE_URL')
-    expect(prompted).not.toContain('DATABASE_URL')
+    expect(prompted).toEqual([
+      'FILESTORE_DRIVER',
+      'DIRECT_DATABASE_URL',
+      'REDIS_URL',
+      'AUTH_SECRET',
+      'CRON_SECRET',
+      'MAIL_FROM',
+    ])
+
+    for (const published of [
+      'DATABASE_URL',
+      'BLOB_READ_WRITE_TOKEN',
+      'RESEND_API_KEY',
+      'MAIL_HTTP_ENDPOINT',
+      'MAIL_HTTP_TOKEN',
+      'S3_BUCKET',
+      'DATA_SOURCE',
+      'QUEUE_DRIVER',
+      'CACHE_DRIVER',
+      'MAIL_DRIVER',
+    ]) {
+      expect(prompted).not.toContain(published)
+    }
+  })
+
+  it('tells the operator how to carry the uploads out, because nothing else will', () => {
+    const readme = files.get('README.md')!
+
+    expect(readme).toContain('## Leaving Vercel')
+    expect(readme).toContain('community -- backup')
+    expect(readme).toContain('BLOB_READ_WRITE_TOKEN')
+    expect(readme).toMatch(/\*\*by\s+default\*\*/)
   })
 
   it('points the button at a fork when the scaffold is told about one', () => {

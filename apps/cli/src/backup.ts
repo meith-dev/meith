@@ -14,9 +14,9 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { ConfigurationError, env, ValidationError } from '@meith/core'
+import { ConfigurationError, env, type FileStore, ValidationError } from '@meith/core'
 import { migrationUrl, runMigrations } from '@meith/db'
-import { S3FileStore } from '@meith/drivers'
+import { BlobFileStore, S3FileStore } from '@meith/drivers'
 
 import { optional, parseFlags } from './args'
 import { requirePostgres } from './context'
@@ -24,17 +24,19 @@ import { CODE_VERSION } from './upgrade'
 
 export type UploadsMode = 'include' | 'skip'
 
+export type FilestoreDriver = 'local' | 's3' | 'blob'
+
 export interface BackupManifest {
   readonly format: 1
   readonly createdAt: string
   readonly version: string
-  readonly filestore: 'local' | 's3'
+  readonly filestore: FilestoreDriver
   readonly uploads: 'included' | 'skipped'
   readonly bucket?: string
 }
 
-export function resolveUploadsMode(driver: 'local' | 's3', flag: string | undefined): UploadsMode {
-  if (flag === undefined) return driver === 'local' ? 'include' : 'skip'
+export function resolveUploadsMode(driver: FilestoreDriver, flag: string | undefined): UploadsMode {
+  if (flag === undefined) return driver === 's3' ? 'skip' : 'include'
   if (flag === 'include' || flag === 'skip') return flag
   throw new ValidationError(`--uploads must be "include" or "skip", got "${flag}".`)
 }
@@ -67,7 +69,11 @@ export function parseManifest(raw: string): BackupManifest {
   if (typeof manifest.createdAt !== 'string' || typeof manifest.version !== 'string') {
     throw new ValidationError('The bundle manifest is missing createdAt or version.')
   }
-  if (manifest.filestore !== 'local' && manifest.filestore !== 's3') {
+  if (
+    manifest.filestore !== 'local' &&
+    manifest.filestore !== 's3' &&
+    manifest.filestore !== 'blob'
+  ) {
     throw new ValidationError('The bundle manifest does not name a known file driver.')
   }
 
@@ -409,6 +415,50 @@ async function stageS3Uploads(stage: string): Promise<'included' | 'skipped'> {
   return 'included'
 }
 
+async function stageBlobUploads(stage: string): Promise<'included' | 'skipped'> {
+  const store = BlobFileStore.fromEnv(env)
+  const dir = path.join(stage, 'uploads')
+  await mkdir(dir, { recursive: true })
+
+  let pulled = 0
+  for await (const key of store.listKeys()) {
+    const target = path.resolve(dir, key)
+    if (target !== dir && !target.startsWith(dir + path.sep)) {
+      console.warn(`Skipping object with an unsafe key: ${key}`)
+      continue
+    }
+    const body = await store.get(key)
+    if (body === undefined) continue
+    await mkdir(path.dirname(target), { recursive: true })
+    await writeFile(target, body)
+    pulled++
+  }
+
+  if (pulled === 0) {
+    console.log('The Blob store is empty; the bundle carries no uploads.')
+    await rm(dir, { recursive: true, force: true })
+    return 'skipped'
+  }
+
+  await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', dir, '.'])
+  await rm(dir, { recursive: true, force: true })
+  console.log(`Pulled ${pulled} object(s) from the Blob store.`)
+  return 'included'
+}
+
+async function stageUploads(stage: string, mode: UploadsMode): Promise<'included' | 'skipped'> {
+  if (mode === 'skip') return 'skipped'
+
+  switch (env.FILESTORE_DRIVER) {
+    case 's3':
+      return await stageS3Uploads(stage)
+    case 'blob':
+      return await stageBlobUploads(stage)
+    case 'local':
+      return await stageLocalUploads(stage)
+  }
+}
+
 export async function backupCommand(args: readonly string[]): Promise<number> {
   const { flags } = parseFlags(args)
   requirePostgres()
@@ -434,12 +484,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
       databaseEnvironment,
     )
 
-    const uploads =
-      mode === 'skip'
-        ? 'skipped'
-        : env.FILESTORE_DRIVER === 's3'
-          ? await stageS3Uploads(stage)
-          : await stageLocalUploads(stage)
+    const uploads = await stageUploads(stage, mode)
 
     const manifest: BackupManifest = {
       format: 1,
@@ -526,13 +571,17 @@ async function extractUploads(stage: string, dir: string, limits: RestoreLimits)
   console.log(`Restored the uploads into ${dir}.`)
 }
 
-async function pushUploadsToS3(stage: string, limits: RestoreLimits): Promise<void> {
+async function pushUploadsToStore(
+  stage: string,
+  limits: RestoreLimits,
+  store: { put: FileStore['put'] },
+  destination: string,
+): Promise<void> {
   await validateUploadsArchive(stage, limits)
   const dir = path.join(stage, 'uploads-extract')
   await mkdir(dir, { recursive: true })
   await run('tar', ['xzf', path.join(stage, 'uploads.tar.gz'), '-C', dir])
 
-  const store = S3FileStore.fromEnv(env)
   let pushed = 0
   for (const file of await walk(dir)) {
     const key = path.relative(dir, file).split(path.sep).join('/')
@@ -542,7 +591,7 @@ async function pushUploadsToS3(stage: string, limits: RestoreLimits): Promise<vo
     })
     pushed++
   }
-  console.log(`Uploaded ${pushed} object(s) to ${env.S3_BUCKET}.`)
+  console.log(`Uploaded ${pushed} object(s) to ${destination}.`)
 }
 
 const RESTORE_USAGE =
@@ -652,7 +701,9 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
     if (manifest.uploads === 'included' && flags.get('skip-uploads') !== 'true') {
       const uploadsDir = optional(flags, 'uploads-dir')
       if (env.FILESTORE_DRIVER === 's3' && uploadsDir === undefined) {
-        await pushUploadsToS3(stage, limits)
+        await pushUploadsToStore(stage, limits, S3FileStore.fromEnv(env), `${env.S3_BUCKET}`)
+      } else if (env.FILESTORE_DRIVER === 'blob' && uploadsDir === undefined) {
+        await pushUploadsToStore(stage, limits, BlobFileStore.fromEnv(env), 'the Blob store')
       } else {
         await extractUploads(stage, uploadsDir ?? env.UPLOADS_DIR, limits)
       }
@@ -662,7 +713,11 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
           ? `This bundle carries no uploads — they live in the S3 bucket${
               manifest.bucket === undefined ? '' : ` (${manifest.bucket})`
             }.`
-          : 'This bundle carries no uploads.',
+          : manifest.filestore === 'blob'
+            ? 'This bundle carries no uploads, and a Vercel Blob store is not ' +
+              'something you can copy out by hand. Take another backup with ' +
+              '--uploads include while the old board still exists.'
+            : 'This bundle carries no uploads.',
       )
     }
 

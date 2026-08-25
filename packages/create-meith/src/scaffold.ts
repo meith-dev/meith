@@ -199,10 +199,20 @@ function vercelEnvExample(name: string): string {
 # its own stale copy for up to a minute. FILESTORE_DRIVER=local writes to a disk
 # no other instance can read and that is discarded with the instance — on Vercel
 # the board refuses it outright rather than losing uploads quietly.
+#
+# Only FILESTORE_DRIVER is asked for at deploy time. The other four are derived
+# from what the stores publish: a DATABASE_URL means postgres for the data
+# source and the queue, a REDIS_URL means the shared cache, and a RESEND_API_KEY
+# with a MAIL_FROM beside it means mail over the provider's HTTPS API.
+# Setting one here overrides the derivation, which is what this file is for when
+# you copy it to .env.local. FILESTORE_DRIVER stays explicit on purpose — the
+# board picks an object store because you named one, never because a token
+# happened to be in the environment, so a missing store fails loudly at boot
+# instead of quietly writing uploads to a disk that is about to disappear.
 DATA_SOURCE=postgres
 QUEUE_DRIVER=postgres
 CACHE_DRIVER=redis
-FILESTORE_DRIVER=s3
+FILESTORE_DRIVER=blob
 MAIL_DRIVER=http
 
 ${ENV_REQUIRED_HEADING}
@@ -237,19 +247,29 @@ ${ENV_TICK_SECRET_PROSE}
 CRON_SECRET=
 # TICK_SECRET=
 
-# Uploads, in any S3-compatible bucket. The first four are required whenever
-# FILESTORE_DRIVER=s3, and boot fails naming any that are missing. S3_ENDPOINT
-# is for anything that is not AWS — R2, MinIO, Spaces — and switches the client
-# to path-style addressing; set S3_REGION=auto for R2. S3_PUBLIC_BASE_URL is the
-# host objects are *served* from when that is not the API endpoint: an r2.dev
-# domain, a custom domain, or a CDN in front of the bucket.
+# Uploads, in the Vercel Blob store the Deploy Button provisions. The store
+# publishes this variable into the project by itself, so there is nothing to
+# type and nothing to mistype — but the board still needs FILESTORE_DRIVER=blob
+# above before it will use it. Every object is written with private access: an
+# object URL is not a public link, and member content is served by the board,
+# which is where permissions are checked.
 #
 # An upload is held whole in the instance's memory on the way in and on the way
-# out, so the function's memory limit, not the bucket, is what caps a file.
-S3_BUCKET=
-S3_REGION=
-S3_ACCESS_KEY_ID=
-S3_SECRET_ACCESS_KEY=
+# out, so the function's memory limit, not the store, is what caps a file.
+BLOB_READ_WRITE_TOKEN=
+
+# Uploads in an S3-compatible bucket instead — AWS, R2, MinIO, Spaces. This is
+# the portable option, and the one every other deployment of this board uses:
+# a bucket is a thing you hold, and it is not the only way to get the objects
+# out of it. Set FILESTORE_DRIVER=s3 above and the first four below; boot fails
+# naming any that are missing. S3_ENDPOINT is for anything that is not AWS and
+# switches the client to path-style addressing; set S3_REGION=auto for R2.
+# S3_PUBLIC_BASE_URL is the host objects are *served* from when that is not the
+# API endpoint.
+# S3_BUCKET=
+# S3_REGION=
+# S3_ACCESS_KEY_ID=
+# S3_SECRET_ACCESS_KEY=
 # S3_ENDPOINT=
 # S3_PUBLIC_BASE_URL=
 
@@ -257,9 +277,26 @@ S3_SECRET_ACCESS_KEY=
 # function can rely on. SMTP on port 25 is blocked by serverless egress and the
 # board refuses it on Vercel; 587 with STARTTLS may work, but an API does not
 # depend on the platform's egress rules staying as they are.
+#
+# MAIL_FROM is yours to decide and the one mail value the button asks for: it
+# must be an address at a domain the provider has verified for you, and no
+# default is right. Send from an unverified sender and the provider rejects
+# every message.
 MAIL_FROM=
-MAIL_HTTP_ENDPOINT=
-MAIL_HTTP_TOKEN=
+
+# Add the Resend integration to the project from Vercel's marketplace and it
+# publishes its key under this name, which the board reads: with RESEND_API_KEY
+# set, and MAIL_FROM beside it, the board sends over Resend's HTTPS API and
+# needs neither of the two variables below. The mail driver itself is a plain
+# JSON-over-HTTPS sender and is not Resend-specific — this is one injected name
+# bridged to the generic pair, not a provider baked into the board.
+RESEND_API_KEY=
+
+# Any other provider with the same shape — a bearer token and an endpoint that
+# accepts {from, to, subject, text, html, reply_to}. Set these two and they win
+# over RESEND_API_KEY.
+# MAIL_HTTP_ENDPOINT=
+# MAIL_HTTP_TOKEN=
 
 ${ENV_OPTIONAL_HEADING}
 
@@ -282,31 +319,20 @@ const SELF_HOST_DEPLOY_KIT = [
   'docker-healthcheck.sh',
 ] as const
 
-const VERCEL_FIXED_DRIVERS = [
+const VERCEL_DERIVED_DRIVERS = [
   'DATA_SOURCE=postgres',
   'QUEUE_DRIVER=postgres',
   'CACHE_DRIVER=redis',
-  'FILESTORE_DRIVER=s3',
   'MAIL_DRIVER=http',
 ] as const
 
 export const VERCEL_PROMPTED_ENV = [
-  'DATA_SOURCE',
-  'QUEUE_DRIVER',
-  'CACHE_DRIVER',
   'FILESTORE_DRIVER',
-  'MAIL_DRIVER',
   'DIRECT_DATABASE_URL',
   'REDIS_URL',
   'AUTH_SECRET',
   'CRON_SECRET',
-  'S3_BUCKET',
-  'S3_REGION',
-  'S3_ACCESS_KEY_ID',
-  'S3_SECRET_ACCESS_KEY',
   'MAIL_FROM',
-  'MAIL_HTTP_ENDPOINT',
-  'MAIL_HTTP_TOKEN',
 ] as const
 
 export const VERCEL_MARKETPLACE_STORES = [
@@ -317,6 +343,7 @@ export const VERCEL_MARKETPLACE_STORES = [
     productSlug: 'upstash-kv',
     protocol: 'storage',
   },
+  { type: 'blob' },
 ] as const
 
 export function deployButtonUrl(templateRepositoryUrl: string): string {
@@ -327,7 +354,7 @@ export function deployButtonUrl(templateRepositoryUrl: string): string {
     ['env', VERCEL_PROMPTED_ENV.join(',')],
     [
       'envDescription',
-      'Five fixed driver values, two secrets to generate, the direct database URL, the cache URL, and your own bucket and mail API.',
+      'FILESTORE_DRIVER=blob, two secrets to generate, the direct database URL, the cache URL, and the verified address the board sends from.',
     ],
     ['envLink', `${templateRepositoryUrl}/blob/main/.env.example`],
     ['stores', JSON.stringify(VERCEL_MARKETPLACE_STORES)],
@@ -1010,16 +1037,19 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
   pooled connection string as \`DATABASE_URL\` and the direct one as
   \`DATABASE_URL_UNPOOLED\`.
 - **An Upstash Redis store**, attached the same way, for the shared cache.
+  It publishes its own connection variable.
+- **A Vercel Blob store** for uploads, which publishes \`BLOB_READ_WRITE_TOKEN\`
+  into the project by itself. This is the one value that used to be four hand-
+  typed \`S3_*\` secrets.
 - **A Vercel project** carrying \`vercel.json\` — the build command
   \`${VERCEL_BUILD_COMMAND}\`,
   which applies the schema before it builds, materializes the board's app at
   the project root so the artefact lands where Vercel reads it, and the cron
   entry that drives the tick.
 
-Two things it cannot provision, because they are accounts only you can hold: an
-**S3-compatible bucket** for uploads, and a **mail provider's HTTPS API**. Have
-both to hand before you start; the board boots without mail and delivers
-nothing, silently.
+**Mail is the one thing the button does not set up**, and it takes one click
+after the deploy — see *Mail, in one click* below. The board boots and runs
+without it, and delivers nothing, silently, until it is done.
 
 ## What to type into the deploy form
 
@@ -1036,12 +1066,20 @@ cannot be told to send another. Note that this floor is stricter than the 16
 characters Vercel's own cron documentation suggests — a value generated by
 following those instructions is refused here, and the fix is a longer secret.
 
-**Five driver values**, fixed. This is the one combination that works on
-functions, for the reasons \`.env.example\` gives beside each of them:
+**One driver value**: \`FILESTORE_DRIVER=blob\`. The other four drivers derive
+themselves from the connection strings the stores publish — a \`DATABASE_URL\`
+means \`DATA_SOURCE=postgres\` and \`QUEUE_DRIVER=postgres\`, a \`REDIS_URL\` means
+\`CACHE_DRIVER=redis\`, and a \`RESEND_API_KEY\` with a \`MAIL_FROM\` beside it means
+\`MAIL_DRIVER=http\`:
 
 \`\`\`ini
-${VERCEL_FIXED_DRIVERS.join('\n')}
+${VERCEL_DERIVED_DRIVERS.join('\n')}
 \`\`\`
+
+The object store is the one that stays explicit, and deliberately: the board
+uses an object store because you named one, never because a token happened to
+be in the environment. A missing store then fails loudly at boot instead of
+quietly writing uploads to a disk that is about to disappear.
 
 **Two connection strings copied from the stores the button just created.**
 \`DIRECT_DATABASE_URL\` takes Neon's \`DATABASE_URL_UNPOOLED\` — migrations and the
@@ -1049,11 +1087,45 @@ first-run installer each hold a session-level advisory lock, which a
 transaction-mode pooler cannot hold. \`REDIS_URL\` takes whatever variable the
 Upstash store published.
 
-**Your bucket and your mail API**: \`S3_BUCKET\`, \`S3_REGION\`,
-\`S3_ACCESS_KEY_ID\`, \`S3_SECRET_ACCESS_KEY\`, and \`MAIL_FROM\`,
-\`MAIL_HTTP_ENDPOINT\`, \`MAIL_HTTP_TOKEN\`. Add \`S3_ENDPOINT\` for a bucket that is
-not AWS (set \`S3_REGION=auto\` for R2), and \`S3_PUBLIC_BASE_URL\` when objects
-are served from somewhere other than the API endpoint.
+**The address the board sends from**: \`MAIL_FROM\`. This is the only mail value
+you ever type. It has to be an address at a domain your mail provider has
+verified for you, so no default is right and the board cannot guess it — see
+*Mail, in one click* below. If you do not have one yet, put in the address you
+intend to use and finish verifying it afterwards; nothing else waits on it.
+
+That is six fields. If you would rather keep uploads somewhere you hold
+yourself — see *Leaving Vercel* below for why that matters — set
+\`FILESTORE_DRIVER=s3\` instead and add \`S3_BUCKET\`, \`S3_REGION\`,
+\`S3_ACCESS_KEY_ID\` and \`S3_SECRET_ACCESS_KEY\` in the project's environment
+settings, with \`S3_ENDPOINT\` for a bucket that is not AWS (\`S3_REGION=auto\` for
+R2). The same board runs either way.
+
+## Mail, in one click
+
+A board that cannot send mail cannot reset a password, so do this before you
+invite anybody.
+
+1. Open your project on Vercel, go to **Storage → Marketplace** (or
+   **Integrations**), and add **Resend**. It creates a Resend account linked to
+   the project and connects your sending domain.
+2. Verify that domain in the Resend dashboard if you have not already. Resend
+   refuses to send from an address at a domain it has not verified.
+3. Redeploy, or let the next push redeploy.
+
+That is all. The integration publishes its key into the project as
+\`RESEND_API_KEY\`, and the board reads that name: with it set, and \`MAIL_FROM\`
+already in place, mail sends over Resend's HTTPS API with nothing further to
+configure.
+
+The board is not tied to Resend. Its mail driver is a plain JSON-over-HTTPS
+sender that posts \`{from, to, subject, text, html, reply_to}\` with a bearer
+token — Resend's \`POST /emails\` happens to be exactly that shape, which is why
+it needs no adapter. Any provider with the same shape works: set
+\`MAIL_HTTP_ENDPOINT\` and \`MAIL_HTTP_TOKEN\` in the project's environment
+settings and they win over \`RESEND_API_KEY\`.
+
+Check it worked: sign in as the administrator and use the test button on
+**/admin → Settings → Mail**.
 
 ## First run: \`/install\`
 
@@ -1118,6 +1190,50 @@ them the same without anybody having to know the number.
 Migrations are forward-only. Recovery is by restore, so take a backup first —
 there is no down migration to undo a destructive one.
 
+## Leaving Vercel
+
+A board must stay movable, and the Blob store is the one part of this shape that
+is not portable: Neon and Upstash hand out ordinary Postgres and Redis strings
+that any host accepts, but a Vercel Blob store is reachable only through Vercel's
+own API and there is no bucket to sync out of it. **The uploads are the thing you
+have to carry out deliberately, and \`community backup\` is how.**
+
+Under \`FILESTORE_DRIVER=blob\`, \`community backup\` includes the uploads **by
+default** — it walks the Blob store, pulls every object, and puts them in the
+bundle beside the database dump. This is the opposite of the \`s3\` default, which
+skips them, because a bucket has its own backup story you can drive yourself and
+a Blob store does not:
+
+\`\`\`sh
+DATABASE_URL=…            # Neon's pooled string
+DIRECT_DATABASE_URL=…     # Neon's DATABASE_URL_UNPOOLED
+FILESTORE_DRIVER=blob
+BLOB_READ_WRITE_TOKEN=…   # copy it out of the project's environment settings
+npm run community -- backup
+\`\`\`
+
+Run that from a checkout of this repository, with those four values in the
+environment — the CLI talks to Neon and to the Blob store over the network, so
+it does not have to run on Vercel. The bundle it writes holds the dump *and*
+every object. Check the last line it prints: if it says *no uploads*, the
+uploads are not in the bundle and restoring it gives a board whose posts have
+broken images.
+
+Restoring puts them wherever the *restoring* board's \`FILESTORE_DRIVER\` points,
+so the same bundle moves the board either onward or away:
+
+\`\`\`sh
+# onto a self-hosted board with a bucket
+FILESTORE_DRIVER=s3 S3_BUCKET=… RESTORE_DATABASE_URL=… npm run community -- restore bundle.tar.gz
+
+# onto a board that keeps uploads on its own disk
+RESTORE_DATABASE_URL=… npm run community -- restore bundle.tar.gz --uploads-dir ./uploads
+\`\`\`
+
+Take one before you need it. A Blob store deleted with the Vercel project takes
+the attachments with it, and there is no second copy anywhere unless you made
+one.
+
 ## Somewhere other than Vercel
 
 Everything above is one deployment shape.
@@ -1125,7 +1241,8 @@ Everything above is one deployment shape.
 same board as containers you run yourself, and \`npx create-meith <name>\`
 scaffolds that shape instead — a Dockerfile, a compose file and a workflow that
 builds the image. [docs/scaling.md](${repositoryUrl}/blob/main/docs/scaling.md)
-explains why the five drivers above are what they are.
+explains why the drivers above are what they are, and why an S3-compatible
+bucket is the portable choice for uploads everywhere but here.
 `
 }
 

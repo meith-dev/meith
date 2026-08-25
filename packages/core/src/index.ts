@@ -31,6 +31,7 @@ export {
   isProduction,
   isTest,
   parseEnv,
+  RESEND_EMAILS_ENDPOINT,
   readPluginEnv,
   resetEnvForTests,
 } from './env'

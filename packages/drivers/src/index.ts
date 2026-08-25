@@ -1,6 +1,11 @@
 export { MemoryCache } from './cache/memory-cache'
 export { NextCacheDriver } from './cache/next-cache'
 export { RedisCacheDriver, type RedisCacheOptions } from './cache/redis-cache'
+export {
+  BlobFileStore,
+  type BlobFileStoreConfig,
+  type BlobLike,
+} from './files/blob-file-store'
 export { LocalFileStore } from './files/local-file-store'
 export { S3FileStore, type S3FileStoreConfig, type S3Like } from './files/s3-file-store'
 export {

@@ -254,3 +254,99 @@ describe('observability', () => {
     ).not.toThrow()
   })
 })
+
+describe('the object store on a platform with no disk', () => {
+  const serverless = {
+    ...base,
+    VERCEL: '1',
+    DATA_SOURCE: 'postgres',
+    QUEUE_DRIVER: 'postgres',
+  } satisfies NodeJS.ProcessEnv
+
+  it('accepts blob with the token a Blob store publishes', () => {
+    const env = parseEnv({
+      ...serverless,
+      FILESTORE_DRIVER: 'blob',
+      BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_store123_secret',
+    })
+    expect(env.FILESTORE_DRIVER).toBe('blob')
+  })
+
+  it('refuses blob without that token, naming it', () => {
+    expect(() => parseEnv({ ...serverless, FILESTORE_DRIVER: 'blob' })).toThrow(
+      /BLOB_READ_WRITE_TOKEN/,
+    )
+  })
+
+  it('offers blob first when local is refused on Vercel', () => {
+    expect(() => parseEnv({ ...serverless, FILESTORE_DRIVER: 'local' })).toThrow(
+      /FILESTORE_DRIVER=blob/,
+    )
+  })
+
+  it('leaves blob unselected when only the token is present', () => {
+    const env = parseEnv({
+      ...base,
+      NODE_ENV: 'development',
+      BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_store123_secret',
+    })
+    expect(env.FILESTORE_DRIVER).toBe('local')
+  })
+})
+
+describe('a mail key injected under the provider name', () => {
+  const withKey = {
+    ...base,
+    DATA_SOURCE: 'postgres',
+    QUEUE_DRIVER: 'postgres',
+    MAIL_FROM: 'board@example.com',
+    RESEND_API_KEY: 're_abc123',
+  } satisfies NodeJS.ProcessEnv
+
+  it('carries RESEND_API_KEY into the generic token and endpoint', () => {
+    const env = parseEnv(withKey)
+    expect(env.MAIL_DRIVER).toBe('http')
+    expect(env.MAIL_HTTP_TOKEN).toBe('re_abc123')
+    expect(env.MAIL_HTTP_ENDPOINT).toBe('https://api.resend.com/emails')
+  })
+
+  it('lets an explicit endpoint and token win, so another provider still works', () => {
+    const env = parseEnv({
+      ...withKey,
+      MAIL_HTTP_ENDPOINT: 'https://api.other.example/send',
+      MAIL_HTTP_TOKEN: 'other-token',
+    })
+    expect(env.MAIL_HTTP_ENDPOINT).toBe('https://api.other.example/send')
+    expect(env.MAIL_HTTP_TOKEN).toBe('other-token')
+  })
+
+  it('leaves mail alone until a sender is verified and named', () => {
+    const { MAIL_FROM: _from, ...withoutSender } = withKey
+    expect(parseEnv(withoutSender).MAIL_DRIVER).toBe('log')
+  })
+
+  it('does not override an explicit MAIL_DRIVER', () => {
+    expect(parseEnv({ ...withKey, MAIL_DRIVER: 'log' }).MAIL_DRIVER).toBe('log')
+  })
+})
+
+describe('the cache driver follows the cache URL', () => {
+  it('selects redis when a REDIS_URL is present', () => {
+    const env = parseEnv({
+      NODE_ENV: 'development',
+      DATABASE_URL: 'postgres://u:p@localhost:5432/forum',
+      REDIS_URL: 'redis://localhost:6379',
+    })
+    expect(env.CACHE_DRIVER).toBe('redis')
+  })
+
+  it('leaves an explicit CACHE_DRIVER alone', () => {
+    const env = parseEnv({
+      NODE_ENV: 'development',
+      DATABASE_URL: 'postgres://u:p@localhost:5432/forum',
+      REDIS_URL: 'redis://localhost:6379',
+      CACHE_DRIVER: 'next',
+    })
+    expect(env.CACHE_DRIVER).toBe('next')
+  })
+})

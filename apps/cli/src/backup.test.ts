@@ -113,6 +113,11 @@ describe('resolveUploadsMode', () => {
     expect(resolveUploadsMode('s3', 'include')).toBe('include')
   })
 
+  it('carries the Blob store unless told otherwise, because nothing else will', () => {
+    expect(resolveUploadsMode('blob', undefined)).toBe('include')
+    expect(resolveUploadsMode('blob', 'skip')).toBe('skip')
+  })
+
   it('names the flag on a value it does not know', () => {
     expect(() => resolveUploadsMode('local', 'sometimes')).toThrow(/--uploads/)
   })
@@ -142,6 +147,17 @@ describe('parseManifest', () => {
   it('keeps the bucket when one is recorded', () => {
     const withBucket = { ...manifest, filestore: 's3', uploads: 'skipped', bucket: 'board' }
     expect(parseManifest(JSON.stringify(withBucket)).bucket).toBe('board')
+  })
+
+  it('reads a bundle taken from a Blob store', () => {
+    const fromBlob = { ...manifest, filestore: 'blob' }
+    expect(parseManifest(JSON.stringify(fromBlob)).filestore).toBe('blob')
+  })
+
+  it('refuses a file driver it cannot restore into', () => {
+    expect(() => parseManifest(JSON.stringify({ ...manifest, filestore: 'gdrive' }))).toThrow(
+      /file driver/,
+    )
   })
 
   it('refuses a format this build does not restore', () => {

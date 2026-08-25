@@ -191,7 +191,7 @@ driver keeps anything in the instance:
 | `DATA_SOURCE` | `postgres` | `fixture` is a read-only sample board with no write side. |
 | `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. The environment already refuses it in production. |
 | `CACHE_DRIVER` | `redis` | `next` and `memory` cache inside the process. With instances created and destroyed constantly, a per-process cache is close to no cache, and each one serves its own stale copy for up to a minute. |
-| `FILESTORE_DRIVER` | `s3` | `local` writes to a disk that no other instance can read and that is discarded with the instance. On Vercel the environment refuses it outright rather than losing uploads quietly. |
+| `FILESTORE_DRIVER` | `s3` or `blob` | `local` writes to a disk that no other instance can read and that is discarded with the instance. On Vercel the environment refuses it outright rather than losing uploads quietly. `s3` is any S3-compatible bucket and is the portable choice; `blob` is a Vercel Blob store, which costs no configuration on Vercel and cannot be read from anywhere else. |
 | `MAIL_DRIVER` | `http` | Reaches the provider over ordinary HTTPS on 443, which is the one outbound path a function can rely on. |
 
 Nothing runs the queue on its own. There is no worker container here, so
@@ -222,6 +222,9 @@ S3_ACCESS_KEY_ID=…
 S3_SECRET_ACCESS_KEY=…
 S3_ENDPOINT=https://….r2.cloudflarestorage.com   # omit for AWS S3
 S3_PUBLIC_BASE_URL=https://files.example         # where objects are *served* from
+                                                 # …or, on Vercel only:
+# FILESTORE_DRIVER=blob
+# BLOB_READ_WRITE_TOKEN=…                        # published by the Blob store itself
 
 MAIL_DRIVER=http
 MAIL_FROM=board@example.com
@@ -264,8 +267,32 @@ as well.
 
 ### What each driver does under a function
 
-**Uploads.** The S3 client is built once per instance and signs each
-request itself, so there is no connection to keep warm. `S3_ENDPOINT`
+**Uploads, in a Vercel Blob store.** `FILESTORE_DRIVER=blob` needs one
+variable, `BLOB_READ_WRITE_TOKEN`, and a Blob store attached to the
+project publishes it without anybody typing it. That is the whole of its
+appeal, and it is why the Vercel template defaults to it: four secrets
+that each had exactly one correct value became none.
+
+The SDK it talks to is loaded only when this driver is selected, so a
+board on any other platform never evaluates it. Objects are written with
+**private** access — an object URL is not a public link — and member
+content is served by the board through `files.get()`, which is where
+permissions are checked. `signedUrl()` returns nothing rather than
+handing back a URL it has not actually signed.
+
+The catch is portability, and it is the reason `s3` stays the documented
+default everywhere else. A Blob store is reachable only through Vercel's
+API: there is no bucket to point `rclone` or `aws s3 sync` at, and
+deleting the Vercel project deletes the attachments with it. So under
+`blob`, `community backup` carries the uploads **by default** — the
+opposite of the `s3` default, which skips them because a bucket has its
+own backup story. [Disaster recovery](./disaster-recovery.md#4-the-uploads-when-they-lived-elsewhere)
+has the commands, and running one before you need it is the whole of the
+exit plan.
+
+**Uploads, in an S3-compatible bucket.** The S3 client is built once per
+instance and signs each request itself, so there is no connection to keep
+warm. `S3_ENDPOINT`
 switches it to path-style addressing for anything S3-compatible and turns
 off the flexible-checksum headers the AWS SDK adds by default, which
 Cloudflare R2 rejects. The board sends no ACL on a write — R2 refuses
