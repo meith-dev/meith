@@ -772,15 +772,25 @@ jobs:
         if: always()
         run: docker compose -f compose.coolify.yml down -v
 
-  # Sharded across four runners. Serially this suite took eighteen minutes and
-  # the dev server — which compiles each route on first request and holds the
-  # compiler for the whole run — hit its memory ceiling around the fourteenth
-  # and restarted, failing whichever test was mid-flight. A quarter of the
-  # suite finishes long before that, and the four run at once.
+  # Sharded across four runners. Each shard is a whole runner with its own
+  # PGlite database and servers, so nothing is shared between them. Playwright
+  # splits by file, and every spec seeds what it needs, so the split is safe in
+  # any order.
   #
-  # Each shard is a whole runner with its own PGlite database and servers, so
-  # nothing is shared between them. Playwright splits by file, and every spec
-  # seeds what it needs, so the split is safe in any order.
+  # The suite runs against a **built** server, not `next dev`. `pnpm test:e2e`
+  # builds first and then runs Playwright, which is also what a developer runs.
+  # The build costs about seventy-five seconds per shard and pays for itself
+  # several times over: `next dev` compiled each route on first request and held
+  # every route for the life of the run, reaching 7.1 GB across the two servers
+  # on a 16 GB runner that also hosts Chromium and two databases. It hit that
+  # ceiling and restarted, failing whichever test was mid-flight — which is what
+  # made this shard chronically and inexplicably red. A built server compiles
+  # nothing at request time and sits flat at 0.58 GB, and a shard that took
+  # 7.9 minutes takes 2.6. See docs/development.md, "The browser suite runs
+  # against a built server".
+  #
+  # `.next-e2e` is deliberately not cached between runs: a build restored from a
+  # previous run is the stale-cache problem, and a cold build is cheap enough.
   e2e:
     name: No-JS and accessibility browser checks
     runs-on: ubuntu-latest

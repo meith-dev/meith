@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { STAFF } from './support/config'
+import { E2E_BASE_URL as BOARD, STAFF } from './support/config'
 import { enterAdminPanel, signUp } from './support/session'
 
 async function filterPatterns(page: Page): Promise<string[]> {
@@ -195,7 +195,7 @@ test('saving the board address takes the warning off the settings screen, withou
   const alert = page.getByText('This board does not know its own address')
   await expect(alert, 'the e2e board runs with no APP_URL, so the alert is up').toBeVisible()
 
-  await page.getByLabel('Board address').fill('http://127.0.0.1:3001')
+  await page.getByLabel('Board address').fill(BOARD)
   await page.getByRole('button', { name: 'Save settings' }).click()
 
   await expect(alert).toHaveCount(0, { timeout: 15_000 })

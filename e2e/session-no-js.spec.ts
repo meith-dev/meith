@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { PASSWORD, signUp } from './support/session'
+import { PASSWORD, signedHeaders, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -83,12 +83,13 @@ test('a remembered visitor is resumed by opening the board, and never by a subre
   await expect(page).toHaveURL('/')
 
   const context = page.context()
-  const remembered = (await context.cookies()).filter((c) => !/session/.test(c.name))
-  await context.clearCookies()
-  await context.addCookies(remembered)
+  await context.clearCookies({ name: /session/ })
 
   const forged = await page.request.get('/auth/resume?next=/usercp', {
-    headers: { 'sec-fetch-mode': 'no-cors', 'sec-fetch-dest': 'image' },
+    headers: await signedHeaders(page, {
+      'sec-fetch-mode': 'no-cors',
+      'sec-fetch-dest': 'image',
+    }),
     maxRedirects: 0,
   })
   expect(forged.status()).toBe(403)

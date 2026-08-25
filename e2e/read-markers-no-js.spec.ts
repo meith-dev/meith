@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { signUp } from './support/session'
+import { signedHeaders, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -148,14 +148,17 @@ test('marking a forum that is not there is a redirect, not an error', async ({ b
       '/api/read/forum/abc',
       '/api/read/thread/999999',
     ]) {
-      const response = await page.request.post(url, { maxRedirects: 0, headers: SAME_ORIGIN })
+      const response = await page.request.post(url, {
+        maxRedirects: 0,
+        headers: await signedHeaders(page, SAME_ORIGIN),
+      })
       expect(response.status(), url).toBe(303)
       expect(new URL(response.headers().location ?? '', BOARD).pathname, url).toBe('/')
     }
 
     const category = await page.request.post('/api/read/forum/10', {
       maxRedirects: 0,
-      headers: SAME_ORIGIN,
+      headers: await signedHeaders(page, SAME_ORIGIN),
     })
     expect(category.status()).toBe(303)
     expect(

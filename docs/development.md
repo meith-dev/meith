@@ -678,17 +678,21 @@ pays that route's first compile every run, and it is scripting-on, so
 its button does nothing until the page has hydrated. It is exposed to a
 dev-server stall in a way a no-JS spec is not.
 
-**The board project retries once on CI, and says so.** A retried test is
-reported by `e2e/support/flaky-notice.ts`, which prints a GitHub Actions
-warning naming every test that failed and then passed. A retry is
-containment, not a fix: it converts a human blindly re-running the job into
-a machine retrying one test and leaving a record. **Green with a flaky
-warning is not the same as green.** If the same spec is named repeatedly,
-that is a signal to come back here, not to raise its timeout.
+**The board project no longer retries.** It retried once on CI while the
+dev server was the mechanism; the built server below removes that
+mechanism, and the retry came out with it, as it was always meant to. A
+retry is containment, and containment for a cause that no longer exists is
+a standing mask over the next real one. The suite is deterministic now, so
+a browser test that fails twice out of ten runs is a signal — usually a
+genuine race in the test or the product, of the kind the `removeRow` fix
+above turned out to be — and it should be read rather than retried.
 
-The retry is scaffolding with a scheduled end, not a standing policy. It
-contains a mechanism that the move to a built server below removes
-outright, and it comes out in the same change that makes that move.
+`e2e/support/flaky-notice.ts` stays wired up. With no retries configured it
+never fires, but the moment anyone reaches for `--retries=1` to triage a
+suspected flake it prints a GitHub Actions warning naming every test that
+failed and then passed, so **green with a flaky warning is never mistaken
+for green**. That is worth keeping as a standing property rather than
+deleting alongside the setting it was introduced with.
 
 Two things worth knowing before changing anything in this area:
 
@@ -701,28 +705,83 @@ Two things worth knowing before changing anything in this area:
   that argues for turning it off needs a `.next` directory restored from a
   previous run, and CI never caches `.next-e2e`.
 
-**The standing fix is to stop testing against `next dev`.** Retrying
-contains the symptom; only a built server removes the mechanism, because a
-built server compiles nothing at request time and so has nothing to hold.
-Measured on the same machine, at the same half the cores, against shard 1:
+### The browser suite runs against a built server
+
+**The suite no longer drives `next dev`.** That was the mechanism above, and
+a built server removes it rather than containing it: it compiles nothing at
+request time, so it has nothing to hold. Measured on the same four-core
+machine, at the same half the cores, against shard 1:
 
 | | `next dev` | built server |
 |---|---|---|
-| Board server memory | grows to 7.5 GB, 10.1 GB with the install server | flat at **0.3 GB** |
-| Shard wall-clock | 7.9 min | **2.2 min**, plus a 42 s build |
-| The ban test | 14.3 s | **3.6 s** |
+| Server memory, both servers | 10.1 GB — 7.1 GB once the cache default was restored | flat at **0.58 GB** |
+| Shard 1 wall-clock | 7.9 min | **2.6 min**, plus the build |
+| The ban test | 14.3 s | **4.9 s** |
 
-The build needs no database — every route is server-rendered on demand, so
-nothing is prerendered. Two things stop it being a drop-in, and both are
-why it is a change of its own rather than a flake fix:
+Ten consecutive runs of shard 1, pinned to half the cores on a machine
+running other work, were green — the same shard whose failures started all
+of this.
 
-- `output: 'standalone'` makes `next start` print a warning and serve
-  anyway; a real switch should run the standalone server or build the
-  suite without that option.
-- `account-security-no-js.spec.ts` reads a password-reset token straight
-  off the page, which `auth-actions.ts` only returns when `NODE_ENV` is
-  `development`. A built server is production, so that spec needs another
-  way to reach the token.
+`pnpm test:e2e` builds first and then runs Playwright. The build is
+`e2e/support/board-build.ts`; it needs no database, because every route is
+`ƒ (Dynamic)` and nothing is prerendered. A cold build takes about 75 s and
+an unchanged rebuild about 12 s, so running the suite twice in a row does
+not pay for the build twice.
+
+**Both servers are one build.** `FORUM_DIST_DIR` gave the board and the
+install server separate `next dev` compile caches; a built server has no
+compile cache, so the two now run the same `server.js` from the same
+`.next-e2e/standalone` tree and differ only in `PORT`, `DATABASE_URL` and
+`UPLOADS_DIR`. Running `npx playwright test` directly skips the build and
+serves whatever was built last.
+
+**Running the standalone output, not `next start`.** `output: 'standalone'`
+makes `next start` warn and serve anyway. The suite instead does what
+`forum-web start` does (`apps/community/bin/forum-web.mjs`): run
+`node .next-e2e/standalone/apps/community/server.js`. Next does not copy
+`static` or `public` into that tree, so `board-build.ts` stages both
+afterwards for the same reason and in the same way `forum-web build` does —
+see [Consuming the board from a
+workspace](#consuming-the-board-from-a-workspace). The generated `server.js`
+bakes its own config in and reads `PORT` and `HOSTNAME` from the
+environment.
+
+**A built server is production, and three harness assumptions broke on
+that.** None of them was a product bug, and none was fixed by loosening the
+product:
+
+- `account-security-no-js.spec.ts` read the password-reset token straight
+  off the page, which `auth-actions.ts` returns only when `NODE_ENV` is
+  `development` — correctly, and that stays. The spec now reads the token
+  out of the **e-mail**, which is how a member actually receives it:
+  `MAIL_DRIVER=http` points the board at `e2e/support/fake-mail.ts`, a fake
+  provider endpoint beside the Stripe and marketplace fakes, and
+  `e2e/support/mailbox.ts` reads its inbox back. This tests more than the
+  page ever did — the reset mail is now exercised end to end.
+- Mail carries a link only when the board knows its own address, and the
+  e2e board deliberately has none: `admin-panel-live.spec.ts` asserts the
+  "does not know its own address" warning, and `passkeys.spec.ts` reaches
+  the board as `localhost` because Chrome refuses an IP for a passkey.
+  Seeding `board.url`, or setting `APP_URL`, breaks both. So the one test
+  that needs an address sets it through the panel and puts it back — the
+  suite is `workers: 1`, `fullyParallel: false`, so that is serial and safe.
+- In production the session cookies are `__Host-` prefixed and `Secure`.
+  Chromium sends those over `http://127.0.0.1` because loopback is a secure
+  context, but Playwright's `page.request` will not — so a route reached
+  that way saw an anonymous visitor. `signedHeaders()` in
+  `e2e/support/session.ts` attaches the context's cookies to those calls.
+  For the same reason a `__Host-` cookie cannot be round-tripped back
+  through `addCookies`; clear the one you mean with
+  `clearCookies({ name })` instead.
+
+**A known pre-existing order dependency.** Run serially in one process,
+`admin-tabs-no-js.spec.ts` leaves something behind that makes
+`formatting-no-js.spec.ts`'s server-side highlighting and
+`formatting.spec.ts`'s attachment rendering fail. It is **not** caused by
+the built server — it reproduces identically against `next dev` — and CI
+does not see it, because Playwright shards by file and those specs land in
+shard 1 and shard 2. It is recorded here rather than fixed, because it is a
+different bug from this one.
 
 ## The site's screenshots
 
