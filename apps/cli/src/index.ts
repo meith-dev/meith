@@ -93,8 +93,9 @@ const commands: Command[] = [
       '',
       'Migrates over DIRECT_DATABASE_URL when it is set, and over DATABASE_URL when it',
       'is not. On a managed database point DIRECT_DATABASE_URL at the direct',
-      '(non-pooler) connection string: a transaction-mode pooler cannot hold the',
-      'session-level lock, and routes DDL through a connection it may swap underneath.',
+      '(non-pooler) connection string: a transaction-mode pooler hands the connection',
+      'back as soon as the lock statement ends, so the lock is left on a backend that',
+      'goes to somebody else and the run is no longer serialised against other runs.',
     ].join('\n'),
     async run() {
       const { assertEnv } = await import('@meith/core')

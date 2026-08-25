@@ -240,26 +240,96 @@ This does not remove the window the previous section describes — it
 turns it around. The migration runs during the build, while the previous
 deployment is still serving, so between the migration and the cutover it
 is the **old** code talking to the **new** schema. For a release that
-only adds things, that is safe. For one that removes or renames, the
-same two-step rule applies and in the same order: ship code that
-tolerates both shapes, let that build migrate, then ship the code that
-assumes the new shape.
+only adds things, that is safe.
 
-Overlapping builds are safe. Two deploys triggered close together, or a
-deploy and a rollback, queue on an advisory lock, and the second finds
-nothing left to do — see
-[Migrations](./operating.md#two-migrations-at-once). A rollback re-runs
-the older build, so it re-runs `community migrate`, which applies
-nothing: migrations are forward-only, and rolling the code back does not
-roll the schema back. [Downgrades](#downgrades) still applies.
+For one that removes or renames, the two-step rule still holds, but the
+freedom to order its steps does not survive the move. The previous
+section could sequence them however it liked because the migration was a
+separate operator action, run at a moment of your choosing; welding the
+migration to a build spends exactly that degree of freedom. What is left
+is a single invariant:
+
+> A release's migration must be tolerated by the release *before* it,
+> because that is the code serving while this release's build migrates.
+
+So the destructive migration cannot travel in the same release as the
+tolerant code. That release's build would run the migration while the
+**pre**-tolerant release is still live — which is precisely the breakage
+the two-step exists to prevent. The two steps have to be two deploys:
+
+1. **Release A** ships code that tolerates both the old and the new
+   shape, and carries no destructive migration. Its build migrates
+   nothing that matters, and it goes live.
+2. **Release B** carries the destructive migration *and* the code that
+   assumes the new shape. B's build is safe only because A is already
+   live and serving — A's tolerant code is what meets the new schema
+   during B's build.
+
+Shipping A and B as one release is the mistake this rule is for.
+
+The `&&` guards one direction only. It stops new code reaching an old
+schema; it does nothing about the reverse. If `community migrate`
+succeeds and `forum-web build` then fails, the deployment aborts with the
+migration already applied and the previous release still serving, and it
+stays that way until some later build succeeds. The window this section
+opened with stops being a window and becomes the board's steady state.
+
+The instinct at that point is to roll back, and rolling back does
+nothing: the old code is already what is serving, and no rollback undoes
+a migration. Fix the build and deploy forward. Until it lands the board
+is running the previous release against the new schema — the tolerated
+case for a release that only adds things, and the broken one for a
+migration that has just dropped something the live code still reads.
+
+Overlapping builds are safe. Two deploys triggered close together queue
+on an advisory lock, and the second finds nothing left to do — see
+[Migrations](./operating.md#two-migrations-at-once).
+
+A rollback is not one of them. The instant rollback these platforms offer
+— promoting a previous deployment, re-pointing an alias at an artefact
+that was built already — runs no build, so it never calls `community
+migrate`. There is nothing to queue on the lock and nothing that could
+undo the schema. Rolling back the other way, by redeploying an older
+commit, does build and does run `community migrate`, which then applies
+nothing, because migrations are forward-only.
+
+Either route puts the old code back and leaves the schema where it is, so
+a rollback is only safe while the older code tolerates the newer schema.
+[Downgrades](#downgrades) still applies.
 
 Nothing here widens [how far you can jump](#how-far-you-can-jump). A
 build-time migration is the same migration set under the same two-major
 limit, and a board further behind still upgrades in stages.
 
+### Every build migrates, previews included
+
+The build command is the build command. It runs for every deployment the
+platform builds — the pull-request preview, the branch deployment, the
+redeploy of an old commit — and each of those runs `community migrate`
+against whatever database that deployment's own environment variables
+name.
+
+This is where the pattern cuts. These platforms commonly default a new
+variable to *every* environment, which points preview and branch builds
+at the production database; the first preview build of an unmerged branch
+then migrates production, from a schema nobody has reviewed, with no
+deploy of that branch ever having happened. Nothing in the build command
+can detect this, because from the migration's point of view it is an
+ordinary run against an ordinary `DATABASE_URL`.
+
+Scope `DATABASE_URL` and `DIRECT_DATABASE_URL` to production, and give
+preview and branch environments a database of their own — a separate
+instance, or a branch of the managed one where the provider offers that.
+Check the scoping before the first preview build rather than after: by
+the time it is visible the migration has applied, and a migration does
+not come back off.
+
+### The connection previews and production both need
+
 Such a platform's database is usually a managed one, which means
 `DATABASE_URL` is a transaction-mode pooler string that cannot hold the
-lock. Set `DIRECT_DATABASE_URL` to the direct string as well — see
+lock. Set `DIRECT_DATABASE_URL` to the direct string as well, in every
+environment that builds — see
 [connection pooling](./operating.md#connection-pooling).
 
 ---
