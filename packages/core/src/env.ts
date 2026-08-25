@@ -358,8 +358,7 @@ const POSTGRES_SHAPE = 'a postgres:// or postgresql:// URL'
 const cacheDriverRefusal = (redis: Resolution): string =>
   'cannot be derived on Vercel: no Redis connection string was found. ' +
   `${searchReport(redis, REDIS_SHAPE)} KV_REST_API_URL is deliberately not among ` +
-  'them: it is an HTTPS REST endpoint, not a Redis connection string, and a Redis ' +
-  'client given it fails at connect time as though the network were broken. Attach ' +
+  'them: it is an HTTPS REST endpoint, not a Redis connection string. Attach ' +
   'a Redis store to the project, or copy its redis:// or rediss:// string into ' +
   'REDIS_URL, which is read before any of the names above. Set CACHE_DRIVER=next to ' +
   'cache inside each instance instead, knowing that every instance then serves its ' +
