@@ -18,7 +18,7 @@ machine is gone:
 | Artifact | Without it |
 |---|---|
 | The database dump — the `community backup` bundle carries it | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
-| The uploads — in the same bundle on local disk, or the S3 bucket | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./scaling.md#what-already-scales) skips this step entirely: the bucket never lived on the machine. |
+| The uploads — in the same bundle on local disk, or the S3 bucket, or a Vercel Blob store | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./scaling.md#what-already-scales) skips this step entirely: the bucket never lived on the machine. A board on a Vercel Blob store cannot skip it — the store has no second copy and no way to sync one out, so the bundle is it. |
 | The environment — your `.env`, or the secrets the panel generated | The board boots with new secrets, but `AUTH_SECRET` seals members' two-factor secrets: lose it and every enrolled authenticator app is stranded, and every unsubscribe link in already-sent mail dies. Sessions survive either way — they are random tokens stored hashed in the database. |
 
 The code is not on the list. It is in git, pinned by the release tag the
@@ -103,6 +103,34 @@ the S3 driver configured pushes them back up. This asymmetry is most of
 the argument for
 [moving uploads to object storage](./scaling.md#migrating-a-single-instance-board)
 on a calm day.
+
+On a **Vercel Blob store** the asymmetry runs the other way, and it is the
+one case where the backup is the only copy. A Blob store is reachable only
+through Vercel's API — there is no bucket to sync, no credential to hand a
+second tool, and deleting the Vercel project deletes the attachments with
+it. So `community backup` includes the uploads by default under
+`FILESTORE_DRIVER=blob`, and the command runs from anywhere with the
+project's variables in the environment rather than having to run on
+Vercel:
+
+```sh
+DATABASE_URL=…            # the pooled string
+DIRECT_DATABASE_URL=…     # the direct string, for the dump
+FILESTORE_DRIVER=blob
+BLOB_READ_WRITE_TOKEN=…   # copied from the project's environment settings
+community backup
+```
+
+Read the last line it prints. `the database dump and the uploads` means
+the objects are in the bundle; `the database dump, no uploads` means the
+store was empty or `--uploads skip` was passed, and restoring that bundle
+gives a board whose posts have broken images.
+
+Restoring puts the objects wherever the *restoring* board's
+`FILESTORE_DRIVER` points, so one bundle moves a board off Vercel as
+easily as back onto it: `FILESTORE_DRIVER=s3` with the `S3_*` variables
+pushes every object into a bucket, and `--uploads-dir` writes them to a
+disk instead.
 
 ### 5. Boot and verify
 

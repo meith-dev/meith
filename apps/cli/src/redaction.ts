@@ -7,8 +7,10 @@ export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
   'DIRECT_DATABASE_URL',
   'MAIL_HTTP_TOKEN',
   'MAIL_SMTP_PASSWORD',
+  'RESEND_API_KEY',
   'REDIS_URL',
   'S3_SECRET_ACCESS_KEY',
+  'BLOB_READ_WRITE_TOKEN',
 ])
 
 export const NOT_SECRET_DESPITE_THE_NAME: ReadonlySet<string> = new Set([

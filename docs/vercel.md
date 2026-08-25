@@ -58,7 +58,7 @@ Usage-based, and spread across four bills rather than one:
 | Vercel | Serving the board, and the cron scheduler | The per-minute tick needs a paid plan — see [the tick](#3-the-tick-replaces-the-worker) |
 | Managed PostgreSQL | Everything durable: posts, members, sessions, the queue | Needs both a pooled and a direct connection string |
 | Managed Redis | The shared cache, and nothing else | Losing it costs a warm cache, not data |
-| S3-compatible object storage | Avatars and attachments | Any S3-compatible bucket: R2, S3, Spaces, MinIO |
+| Object storage | Avatars and attachments | A Vercel Blob store, which is on the Vercel bill and provisions itself, or any S3-compatible bucket: R2, S3, Spaces, MinIO |
 
 Some providers bundle two of these, which makes it three bills rather than
 four. None of them bundle all of it. A single rented server running the
@@ -73,7 +73,7 @@ not the money.
 | **A board repository** | A scaffolded board of your own, not a clone of this repository — the same workspace [Quickstart § 2](./quickstart.md#2-create-your-board) creates. It depends on the published `@meith/web` and `@meith/cli` packages, which is what puts the `forum-web` and `community` commands in the build. |
 | **A managed PostgreSQL** | With both connection strings: the transaction-mode pooler and the direct one. Both are needed, for the reason under [the environment](#2-the-environment). |
 | **A managed Redis** | Reachable over TLS (`rediss://`). |
-| **An S3-compatible bucket** | And a key pair for it. |
+| **Somewhere to put uploads** | Either a Vercel Blob store, which costs nothing to set up, or an S3-compatible bucket and a key pair for it. The choice has consequences for [leaving](#leaving-vercel); read that first. |
 | **A mail provider with an HTTP API** | SMTP is possible and worse here; see [mail](#mail). |
 | **A domain** | Pointed at Vercel per their instructions. |
 
@@ -119,7 +119,7 @@ each is in [Scaling out](./scaling.md).
 | `DATA_SOURCE` | `postgres` | `fixture` is a read-only sample board with no write side. |
 | `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. The environment refuses it in production. |
 | `CACHE_DRIVER` | `redis` | `next` and `memory` cache inside the process. With instances created and destroyed constantly, a per-process cache is close to no cache. |
-| `FILESTORE_DRIVER` | `s3` | `local` writes to a disk no other instance can read and that is discarded with the instance. On Vercel the environment **refuses `local` outright** rather than losing uploads quietly. |
+| `FILESTORE_DRIVER` | `blob` or `s3` | `local` writes to a disk no other instance can read and that is discarded with the instance. On Vercel the environment **refuses `local` outright** rather than losing uploads quietly. `blob` is a Vercel Blob store and needs no configuration beyond the token the store publishes; `s3` is any S3-compatible bucket and is the portable one. See [choosing between them](#blob-or-a-bucket). |
 | `MAIL_DRIVER` | `http` | Reaches the provider over ordinary HTTPS on 443, the one outbound path a function can rely on. |
 
 And the values those drivers need:
@@ -129,17 +129,72 @@ And the values those drivers need:
 | `DATABASE_URL` | The **pooled** (transaction-mode) connection string. Every ordinary request goes through it. |
 | `DIRECT_DATABASE_URL` | The **direct** (session-mode) string. Required here, not optional — see below. |
 | `REDIS_URL` | The cache. `rediss://` for TLS, which every managed provider requires. |
-| `S3_BUCKET`, `S3_REGION` | The bucket and its region. `auto` is the region for R2; the real one for AWS. |
+| `BLOB_READ_WRITE_TOKEN` | Under `FILESTORE_DRIVER=blob`: the Blob store's token. A Blob store attached to the project publishes it under exactly this name, so there is nothing to copy. |
+| `S3_BUCKET`, `S3_REGION` | Under `FILESTORE_DRIVER=s3`: the bucket and its region. `auto` is the region for R2; the real one for AWS. |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | The bucket's credentials. |
 | `S3_ENDPOINT` | The API endpoint for a non-AWS bucket (R2, Spaces, MinIO). Omit for AWS S3. |
 | `S3_PUBLIC_BASE_URL` | Where objects are *served* from, which is not always where the API lives — R2 serves from an `r2.dev` address or a custom domain, not from `S3_ENDPOINT`. Set it to that, or to a CDN in front of the bucket, or public URLs point somewhere a browser cannot fetch. |
-| `MAIL_FROM`, `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | The sender address, the provider's API endpoint, and its token. |
+| `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default. |
+| `RESEND_API_KEY` | Set by Resend's Vercel integration when you add it. The board reads this name and needs neither of the next two. |
+| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. **Set them as a pair**, with `MAIL_DRIVER=http`: setting either one on its own stands the Resend bridge down entirely, so that a key issued for Resend is never presented to an endpoint someone else chose. Only `RESEND_API_KEY` turns the driver on by itself. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
 | `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. This is the name Vercel Cron can send — see [the tick](#3-the-tick-replaces-the-worker). |
 | `TICK_SECRET` | The same guard under the other name. Strictly speaking `CRON_SECRET` alone protects the endpoint, but set this too: the installer's preflight looks only at `TICK_SECRET` and warns without it, and it is what any other scheduler — or the board you eventually move to — presents. Generate a separate value; it need not match. |
 
 Generate each secret with `openssl rand -hex 32`.
+
+Three of the five drivers derive themselves and only need setting to
+override the derivation: a `DATABASE_URL` implies `DATA_SOURCE=postgres`
+and `QUEUE_DRIVER=postgres`, and a `RESEND_API_KEY` with a `MAIL_FROM`
+beside it implies `MAIL_DRIVER=http`.
+
+`CACHE_DRIVER` and `FILESTORE_DRIVER` stay explicit, deliberately. Each
+turns on an external service the board then depends on for every request,
+and neither switches on merely because a variable is present: the board
+caches in Redis and puts uploads in an object store because you said so.
+
+Leaving them unset fails in two different ways, and only one of them is
+loud. Unset `FILESTORE_DRIVER` is `local`, which this platform **refuses
+outright** — the board will not boot rather than write uploads to a disk
+that is about to disappear. Unset `CACHE_DRIVER` is `next`, and nothing
+refuses it: the board caches inside each instance and serves whatever that
+instance last saw for up to a minute, however many instances are running.
+A blank field on a deploy form arrives as an empty value and is treated as
+unset, so the cache is the one to check twice — it will not tell you.
+
+Setting all five by hand, as the table above does, is still the clearest
+thing to do on a project you configure yourself.
+
+### Blob or a bucket
+
+Both work, and the board is the same either way. The difference is what
+happens on the day you leave.
+
+A **Vercel Blob store** is the cheapest thing to set up: attach one to the
+project, and `BLOB_READ_WRITE_TOKEN` appears by itself. That replaces four
+values that each had exactly one correct setting and each of which was a
+typo away from a board that booted and then failed at the first upload. It
+is what the one-click template in `templates/vercel` defaults to, and what
+its Deploy Button provisions for you. Objects are written with **private** access — an object URL is not a
+public link — and member content is served by the board, which is where
+permissions are checked.
+
+What you give up is portability. A Blob store is reachable only through
+Vercel's API: there is no bucket to point `rclone` or `aws s3 sync` at, no
+credential you can hand a second tool, and deleting the Vercel project
+deletes the attachments with it. It is the one piece of genuinely
+Vercel-shaped state this route has, and the whole of
+[Leaving Vercel](#leaving-vercel) is written around getting it out.
+
+An **S3-compatible bucket** is the portable one, and it stays the
+documented default everywhere else in this project. You hold the bucket,
+it outlives the Vercel project, and moving the board is a matter of
+pointing the new deployment at the same credentials. Choose it if you
+expect to move, or if you already have object storage.
+
+You can change your mind later, in either direction, with a backup and a
+restore — that is exactly what the exit below does.
 
 ### Why both database strings
 
@@ -168,6 +223,35 @@ the full account.
 `MAIL_DRIVER=http` posts the message as JSON to `MAIL_HTTP_ENDPOINT` with
 `MAIL_HTTP_TOKEN` as a bearer token, and gives up after ten seconds, which
 fits inside a function's timeout. Prefer it.
+
+The body it posts is `{from, to, subject, text, html, reply_to}`, which is
+**Resend's `POST /emails` contract exactly**. So Resend needs no adapter
+and no configuration: add Resend to the project from Vercel's marketplace,
+and the integration sets `RESEND_API_KEY`. The board reads that name, fills
+in Resend's endpoint for you, and sends — the only thing left to set is
+`MAIL_FROM`, at a domain you have verified in Resend, which nothing can
+guess on your behalf.
+
+That bridge is one injected variable name mapped onto the generic pair, not
+a provider baked into the board. The driver stays what it was: any provider
+accepting a bearer token and that JSON shape works, by setting
+`MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`, which override
+`RESEND_API_KEY`.
+
+Only `RESEND_API_KEY` flips `MAIL_DRIVER` to `http` on its own, and only
+with a `MAIL_FROM` beside it. Configuring the generic pair by hand leaves
+`MAIL_DRIVER` alone, so set it to `http` yourself — a board that had those
+two variables set and `MAIL_DRIVER` unset was not sending mail before, and
+an upgrade is not the moment to start.
+
+Set that pair **together**. Touching either half stands the bridge down
+completely: the board will not combine `RESEND_API_KEY` with an endpoint
+you supplied, nor point a token you supplied at Resend. That matters most
+when moving away from Resend, where the integration has already set
+`RESEND_API_KEY` and the obvious move is to change the endpoint and forget
+the key — which would otherwise send a live Resend credential to the new
+provider as its bearer token. Boot then fails naming `MAIL_HTTP_TOKEN`
+rather than leaking it. Remove `RESEND_API_KEY` once you have moved.
 
 `smtp` can work and is worse here. It opens a raw TCP connection on a port
 the platform may not allow out: port **25 is refused outright by the
@@ -415,10 +499,23 @@ is a community's record of itself, and a route that cannot be walked back
 is not a route this project would document. Nothing above puts your board
 somewhere you cannot get it out of, and here is the whole exit.
 
-Everything durable is in PostgreSQL, and everything else is objects in a
-bucket you own. There is no Vercel-shaped state anywhere in a Meith board:
-no platform database, no proprietary format, no export request to file with
-anybody.
+Everything durable is in PostgreSQL, in no proprietary format, with no
+export request to file with anybody. Neon and Upstash hand out ordinary
+Postgres and Redis connection strings that any host accepts.
+
+**The uploads are the one thing you have to carry out deliberately**, and
+how much care that takes depends on the choice made under
+[blob or a bucket](#blob-or-a-bucket):
+
+- On **`s3`**, the objects are already in a bucket you own. It outlives the
+  Vercel project and you can copy it with any S3 tool you like.
+- On **`blob`**, they are in a Vercel Blob store, and that *is*
+  Vercel-shaped state. There is no bucket to sync, no credential to hand a
+  second tool, and deleting the Vercel project deletes the attachments with
+  it. The backup bundle is the only copy you will ever have.
+
+Either way the command below produces one bundle holding both halves, and
+the rest of this section is identical.
 
 ### 1. Take a bundle that carries both halves
 
@@ -429,12 +526,38 @@ in front of it:
 community backup --uploads include
 ```
 
-That runs `pg_dump` over `DIRECT_DATABASE_URL` when it is set, and — this
-is the part that matters on this route — pulls **every object out of the S3
-bucket** into the same bundle. With `FILESTORE_DRIVER=s3` the default is to
-*skip* the bucket, on the reasoning that a bucket has its own backup story,
-so `--uploads include` is not optional here. It is the difference between a
-bundle you can restore and a board whose posts have broken images.
+That runs `pg_dump` over `DIRECT_DATABASE_URL` when it is set, and pulls
+**every object out of the object store** into the same bundle.
+
+The `--uploads include` flag is what forces that, and whether you need to
+type it depends on the driver:
+
+| Driver | Default | Why |
+|---|---|---|
+| `s3` | *skips* the bucket | A bucket has its own backup story and is yours already, so the bundle does not duplicate it. `--uploads include` is **not optional here** if the bundle is meant to stand alone. |
+| `blob` | *includes* the store | A Blob store has no backup story you can drive yourself, so a bundle that skipped it would be a bundle that silently lost the attachments. |
+| `local` | *includes* the directory | Same reasoning. |
+
+Passing `--uploads include` is correct and harmless under all three, so
+pass it and stop having to remember which one you are on.
+
+**Read the last line the command prints.** `the database dump and the
+uploads` means the objects are in the bundle. `the database dump, no
+uploads` means they are not, and restoring that bundle gives a board whose
+posts have broken images — which on `blob` is unrecoverable, because there
+is nowhere else the objects still exist.
+
+This runs from anywhere; it does not have to run on Vercel. Put the
+project's variables in front of it and it talks to Neon and to the Blob
+store over the network:
+
+```sh
+DATABASE_URL=…            # the pooled string
+DIRECT_DATABASE_URL=…     # the direct string, for the dump
+FILESTORE_DRIVER=blob
+BLOB_READ_WRITE_TOKEN=…   # copy it out of the project's environment settings
+community backup --uploads include
+```
 
 Copy the bundle somewhere that is none of the four vendors.
 
@@ -469,9 +592,12 @@ RESTORE_DATABASE_URL=postgres://… community restore <bundle.tar.gz>
 
 `community restore` refuses to run without `RESTORE_DATABASE_URL` and
 writes only there, so a restore can never be aimed at a live board by
-accident. It puts the uploads back where the destination's own
-`FILESTORE_DRIVER` says they go — the local volume on a Compose deployment,
-or a bucket if you keep using one.
+accident. It puts the uploads back where the **destination's** own
+`FILESTORE_DRIVER` says they go, whatever they came from — the local volume
+on a Compose deployment, a bucket if you set `FILESTORE_DRIVER=s3` and the
+`S3_*` values, or `--uploads-dir` to write them to a directory you name.
+Objects taken out of a Blob store go into a bucket or onto a disk with no
+conversion step: the keys are the same on either side.
 
 It applies any migrations the bundle predates on its way through, so there
 is no separate migration step to remember. Bring up the rest of the stack,
@@ -492,9 +618,18 @@ That container presents `TICK_SECRET`, not `CRON_SECRET` — so make sure
 you were already advised to set on Vercel. `CRON_SECRET` stops being needed
 the moment the cron job is gone.
 
-That is the whole move: a dump, the bucket, and a guide that was already
+That is the whole move: a dump, the objects, and a guide that was already
 written. **The board stays yours** — which is the only condition under
 which running it on somebody else's functions is a reasonable thing to do.
+
+One caveat, stated plainly because it is the only part of this route that
+does not survive neglect: on `blob`, that bundle is the sole copy of the
+attachments. A bucket sits there whether or not you ever think about it
+again; a Blob store goes when the project goes. If you are on `blob`, take
+a backup on a schedule rather than on the day you leave — see
+[Disaster recovery](./disaster-recovery.md#4-the-uploads-when-they-lived-elsewhere)
+— or move to `s3` while the board is still up, which is the same backup and
+restore run against a destination that keeps the objects.
 
 ## When it goes wrong
 
@@ -503,14 +638,17 @@ which running it on somebody else's functions is a reasonable thing to do.
 | The build fails on `maxDuration` | Fluid Compute is off and the plan caps functions below 300 seconds — see [above](#maxduration-is-checked-at-build-time). |
 | The build fails inside `community migrate` | The migration itself failed, and the `&&` stopped the build on purpose. Its error is in the build log, and nothing was deployed. |
 | `community migrate` hangs with no output | It is waiting for the advisory lock, or `DIRECT_DATABASE_URL` names the pooler rather than the direct string. See [Operations](./operating.md#migration-does-not-complete). |
-| The board refuses to boot with a `FILESTORE_DRIVER` error | `local` is refused on Vercel outright. Set `s3` and its companions. |
+| The board refuses to boot with a `FILESTORE_DRIVER` error | `local` is refused on Vercel outright. Set `blob`, or `s3` and its companions. |
+| The build fails naming `BLOB_READ_WRITE_TOKEN` | `FILESTORE_DRIVER=blob` is set but no Blob store is attached to the project, or it was attached after this build's environment was read. Attach one under **Storage**, then redeploy. |
+| The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the build log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. `MAIL_FROM` must be set too, at a domain the provider has verified. |
+| Mail is rejected with a sender error | `MAIL_FROM` is at a domain the provider has not verified. Verify it in the provider's dashboard; nothing on this side can work around it. |
 | Production migrated and nobody deployed anything | A preview or branch build did it, because the database variables reach every environment — [scope them to Production](#every-build-migrates-previews-included). The migration has applied and does not come back off. |
 | A rollback did not fix the schema | It never could. Rollback runs no build and so runs no migration — [above](#rollback-does-not-un-migrate). Deploy forward. |
 | Nothing happens on a schedule | The cron job is not reaching `/api/system/tick`, or the secret is wrong — a wrong secret gets a plain `404`, because the endpoint does not admit it exists. Check `/admin/system`. |
 | Notifications arrive a day late | The tick is running at the Hobby cadence — [the cadence caveat](#the-cadence-caveat-stated-plainly). |
-| Uploads 404 from the browser | `S3_PUBLIC_BASE_URL` is unset or wrong. R2 does not serve objects from the API endpoint `S3_ENDPOINT` names. |
+| Uploads 404 from the browser | On `s3`, `S3_PUBLIC_BASE_URL` is unset or wrong — R2 does not serve objects from the API endpoint `S3_ENDPOINT` names. On `blob` this does not arise: the board serves the bytes itself. |
 | Mail is queued and never sent | Either the tick is not running — `queue.drain` is what sends it — or `MAIL_DRIVER=smtp` is hanging on a blocked port. Use `http`. |
-| An upload fails on a large file | The function's memory limit, not the bucket. Lower the board's attachment limit. |
+| An upload fails on a large file | The function's memory limit, not the store. Lower the board's attachment limit. |
 | `community restore` says the target already holds tables | The destination's `migrate` container has already run, so the database is not empty. Bring up Postgres alone into a fresh volume — [leaving, step 2](#2-stand-up-the-destination). Nothing was written; it refused before touching anything. |
 
 [Operations § Troubleshooting](./operating.md#troubleshooting) covers the
