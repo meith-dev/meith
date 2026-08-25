@@ -200,25 +200,24 @@ function vercelEnvExample(name: string): string {
 # no other instance can read and that is discarded with the instance — on Vercel
 # the board refuses it outright rather than losing uploads quietly.
 #
-# CACHE_DRIVER and FILESTORE_DRIVER are asked for at deploy time. The other
-# three derive themselves: a DATABASE_URL means postgres for the data source and
-# the queue, and a RESEND_API_KEY with a MAIL_FROM beside it means mail over the
-# provider's HTTPS API. Setting one here overrides the derivation, which is what
-# this file is for when you copy it to .env.local.
+# The deploy form asks for none of them. On Vercel the board works each one out
+# from what the linked stores publish: a DATABASE_URL means postgres for the
+# data source and the queue, a Redis connection string means CACHE_DRIVER=redis,
+# a Blob store's read-write token means FILESTORE_DRIVER=blob, and a
+# RESEND_API_KEY with a MAIL_FROM beside it means mail over the provider's HTTPS
+# API. Setting one here overrides the derivation, which is what this file is for
+# when you copy it to .env.local.
 #
-# The two that stay explicit stay that way on purpose: each turns on an external
-# service the board then depends on for every request, and neither is switched on
-# by a variable that merely happens to be present. The board caches in Redis and
-# puts uploads in an object store because you said so.
+# Every one of those derivations is scoped to Vercel, and each fires only from a
+# value that is unambiguously the thing itself — a redis:// or rediss:// URL, a
+# read-write token. A board you run anywhere else is untouched by all of it and
+# still takes these values from this file, exactly as it did before.
 #
-# What happens if you leave one blank differs, and the difference is the reason
-# the form asks for both. Leave FILESTORE_DRIVER blank and the board refuses to
-# boot at all: the default is local, and local on this platform means uploads
-# written to a disk that is about to disappear. Leave CACHE_DRIVER blank and
-# nothing complains — the board falls back to caching inside each instance and
-# serves whatever that instance last saw, for up to a minute, however many
-# instances there are. That one degrades quietly, which is exactly why it is
-# worth typing rather than leaving to a default.
+# A derivation that cannot resolve is a configuration error, not an invitation
+# to pick something safe-looking. On Vercel, with the cache or the object store
+# missing, the board refuses to boot and names every variable it looked at. It
+# will not quietly cache inside the instance, and it will not quietly write
+# uploads to a disk that is about to disappear.
 DATA_SOURCE=postgres
 QUEUE_DRIVER=postgres
 CACHE_DRIVER=redis
@@ -232,16 +231,20 @@ DATABASE_URL=
 
 ${ENV_DIRECT_DATABASE_URL_PROSE}
 #
-# On Vercel this is not optional. DATABASE_URL here is the pooler string, the
-# build runs \`community migrate\` against it, and /install takes the second of
-# those two session locks on first run. Neon publishes the direct string as
-# DATABASE_URL_UNPOOLED; copy that value into this variable.
+# On Vercel this is not optional, and it is no longer yours to copy. DATABASE_URL
+# here is the pooler string, the build runs \`community migrate\` against it, and
+# /install takes the second of those two session locks on first run. Left blank,
+# the board reads Neon's own direct string — \`DATABASE_URL_UNPOOLED\` first, then
+# \`POSTGRES_URL_NON_POOLING\` — and refuses to boot if neither is there, naming
+# both. Never \`POSTGRES_URL\`: that one is pooled.
 DIRECT_DATABASE_URL=
 
 # The shared cache — a Redis or Valkey endpoint, \`rediss://\` for TLS. Redis
 # holds cache entries and nothing else: losing it costs the board a warm cache,
-# not data, and signs nobody out. A store provisioned with the board publishes
-# its own connection variable; copy that value into this one.
+# not data, and signs nobody out. Left blank on Vercel, the board reads the
+# Upstash store's own \`KV_URL\`, which is the one variable it publishes that
+# speaks the Redis protocol — \`KV_REST_API_URL\` is an HTTPS endpoint and is
+# never used for this. A name we do not know goes here by hand.
 REDIS_URL=
 
 ${ENV_AUTH_SECRET_PROSE}
@@ -288,10 +291,10 @@ BLOB_READ_WRITE_TOKEN=
 # board refuses it on Vercel; 587 with STARTTLS may work, but an API does not
 # depend on the platform's egress rules staying as they are.
 #
-# MAIL_FROM is yours to decide and the one mail value the button asks for: it
-# must be an address at a domain the provider has verified for you, and no
-# default is right. Send from an unverified sender and the provider rejects
-# every message.
+# MAIL_FROM is yours to decide, and it belongs to the step that adds Resend
+# rather than to the deploy: it must be an address at a domain the provider has
+# verified for you, no default is right, and until a provider is added the board
+# cannot send from any address at all. Set it alongside the integration.
 MAIL_FROM=
 
 # Add the Resend integration to the project from Vercel's marketplace and it
@@ -335,23 +338,15 @@ const SELF_HOST_DEPLOY_KIT = [
   'docker-healthcheck.sh',
 ] as const
 
-const VERCEL_TYPED_DRIVERS = ['CACHE_DRIVER=redis', 'FILESTORE_DRIVER=blob'] as const
-
 const VERCEL_DERIVED_DRIVERS = [
   'DATA_SOURCE=postgres',
   'QUEUE_DRIVER=postgres',
+  'CACHE_DRIVER=redis',
+  'FILESTORE_DRIVER=blob',
   'MAIL_DRIVER=http',
 ] as const
 
-export const VERCEL_PROMPTED_ENV = [
-  'CACHE_DRIVER',
-  'FILESTORE_DRIVER',
-  'DIRECT_DATABASE_URL',
-  'REDIS_URL',
-  'AUTH_SECRET',
-  'CRON_SECRET',
-  'MAIL_FROM',
-] as const
+export const VERCEL_PROMPTED_ENV = ['AUTH_SECRET', 'CRON_SECRET'] as const
 
 export const VERCEL_MARKETPLACE_STORES = [
   { type: 'integration', integrationSlug: 'neon', productSlug: 'neon', protocol: 'storage' },
@@ -372,7 +367,7 @@ export function deployButtonUrl(templateRepositoryUrl: string): string {
     ['env', VERCEL_PROMPTED_ENV.join(',')],
     [
       'envDescription',
-      'Two driver values, two secrets to generate, the direct database URL, the cache URL, and the verified address the board sends from.',
+      'Two secrets, generated rather than chosen — 32 characters or more each. Everything else the board reads from the database, cache and blob store this form links.',
     ],
     ['envLink', `${templateRepositoryUrl}/blob/main/.env.example`],
     ['stores', JSON.stringify(VERCEL_MARKETPLACE_STORES)],
@@ -1054,8 +1049,9 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
 - **A Neon Postgres database**, attached to the project. Neon publishes the
   pooled connection string as \`DATABASE_URL\` and the direct one as
   \`DATABASE_URL_UNPOOLED\`.
-- **An Upstash Redis store**, attached the same way, for the shared cache.
-  It publishes its own connection variable.
+- **An Upstash Redis store**, attached the same way, for the shared cache. It
+  publishes \`KV_URL\`, which the board reads as \`REDIS_URL\` — \`KV_REST_API_URL\`
+  beside it is an HTTPS endpoint and is not used for this.
 - **A Vercel Blob store** for uploads, which publishes \`BLOB_READ_WRITE_TOKEN\`
   into the project by itself. This is the one value that used to be four hand-
   typed \`S3_*\` secrets.
@@ -1066,8 +1062,11 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
   entry that drives the tick.
 
 **Mail is the one thing the button does not set up**, and it takes one click
-after the deploy — see *Mail, in one click* below. The board boots and runs
-without it, and delivers nothing, silently, until it is done.
+after the deploy — see *Mail, in one click* below. That is also where the
+address the board sends from goes: it has to be at a domain your provider has
+verified, which cannot be true of any domain before a provider exists. The
+board boots and runs without mail, and delivers nothing, silently, until it is
+done.
 
 ## What to type into the deploy form
 
@@ -1080,54 +1079,43 @@ openssl rand -hex 32   # CRON_SECRET
 \`\`\`
 
 \`CRON_SECRET\` is the name Vercel Cron sends, as \`Authorization: Bearer\`, and it
-cannot be told to send another. Note that this floor is stricter than the 16
+cannot be told to send another — the caller is the platform, so this one has to
+be an environment variable both ends can read, and cannot be something the
+board makes up for itself. Note that this floor is stricter than the 16
 characters Vercel's own cron documentation suggests — a value generated by
 following those instructions is refused here, and the fix is a longer secret.
 
-**Two driver values**, and they are the two that turn on an external service
-the board then needs for every request:
+\`AUTH_SECRET\` seals members' two-factor secrets and signs the unsubscribe links
+in outgoing mail. It stays in the environment deliberately: a copy of the
+database is then not enough to forge either.
 
-\`\`\`ini
-${VERCEL_TYPED_DRIVERS.join('\n')}
-\`\`\`
-
-Neither is inferred, deliberately: the board caches in Redis and puts uploads
-in an object store because you said so, never because a connection string or a
-token happened to be present.
-
-Leaving them blank fails differently, which is why the form asks for both.
-Blank \`FILESTORE_DRIVER\` means \`local\`, and the board **refuses to boot** on
-this platform rather than write uploads to a disk that is about to disappear.
-Blank \`CACHE_DRIVER\` complains about nothing: the board falls back to caching
-inside each instance, and every instance then serves whatever it last saw for
-up to a minute. That one degrades quietly, so type it.
-
-The remaining three drivers do derive themselves, and the form does not ask:
-a \`DATABASE_URL\` means \`DATA_SOURCE=postgres\` and \`QUEUE_DRIVER=postgres\`, and
-a \`RESEND_API_KEY\` with a \`MAIL_FROM\` beside it means \`MAIL_DRIVER=http\`:
+**That is the whole form.** Everything else the board works out from the stores
+this button just linked to the project:
 
 \`\`\`ini
 ${VERCEL_DERIVED_DRIVERS.join('\n')}
 \`\`\`
 
-**Two connection strings copied from the stores the button just created.**
-\`DIRECT_DATABASE_URL\` takes Neon's \`DATABASE_URL_UNPOOLED\` — migrations and the
-first-run installer each hold a session-level advisory lock, which a
-transaction-mode pooler cannot hold. \`REDIS_URL\` takes whatever variable the
-Upstash store published.
+\`DIRECT_DATABASE_URL\` comes from Neon's own \`DATABASE_URL_UNPOOLED\`, or
+\`POSTGRES_URL_NON_POOLING\` if that one is absent — migrations and the first-run
+installer each hold a session-level advisory lock, which the pooled
+\`DATABASE_URL\` cannot hold. \`REDIS_URL\` comes from Upstash's \`KV_URL\`, the one
+variable it publishes that speaks the Redis protocol.
 
-**The address the board sends from**: \`MAIL_FROM\`. This is the only mail value
-you ever type. It has to be an address at a domain your mail provider has
-verified for you, so no default is right and the board cannot guess it — see
-*Mail, in one click* below. If you do not have one yet, put in the address you
-intend to use and finish verifying it afterwards; nothing else waits on it.
+Every one of those derivations is scoped to this platform, fires only where you
+have not set the variable yourself, and **refuses to boot rather than guess**.
+If a store is missing, or publishes a name this board does not know, the deploy
+stops with a message naming every variable it looked at — it will not fall back
+to caching inside each instance, or to uploads on a disk that is discarded with
+the instance. When the name is one we do not know, set \`REDIS_URL\` or
+\`DIRECT_DATABASE_URL\` in the project's environment settings and the derivation
+stands aside.
 
-That is seven fields. If you would rather keep uploads somewhere you hold
-yourself — see *Leaving Vercel* below for why that matters — set
-\`FILESTORE_DRIVER=s3\` instead and add \`S3_BUCKET\`, \`S3_REGION\`,
-\`S3_ACCESS_KEY_ID\` and \`S3_SECRET_ACCESS_KEY\` in the project's environment
-settings, with \`S3_ENDPOINT\` for a bucket that is not AWS (\`S3_REGION=auto\` for
-R2). The same board runs either way.
+If you would rather keep uploads somewhere you hold yourself — see *Leaving
+Vercel* below for why that matters — set \`FILESTORE_DRIVER=s3\` and add
+\`S3_BUCKET\`, \`S3_REGION\`, \`S3_ACCESS_KEY_ID\` and \`S3_SECRET_ACCESS_KEY\` in the
+project's environment settings, with \`S3_ENDPOINT\` for a bucket that is not AWS
+(\`S3_REGION=auto\` for R2). The same board runs either way.
 
 ## Mail, in one click
 
@@ -1139,11 +1127,15 @@ invite anybody.
    the project and connects your sending domain.
 2. Verify that domain in the Resend dashboard if you have not already. Resend
    refuses to send from an address at a domain it has not verified.
-3. Redeploy, or let the next push redeploy.
+3. Add \`MAIL_FROM\` to the project's environment settings — an address at that
+   verified domain, and the only mail value you ever type. The deploy form does
+   not ask for it, because a sender address is not something you can know
+   before there is a provider to verify it.
+4. Redeploy, or let the next push redeploy.
 
 That is all. The integration publishes its key into the project as
 \`RESEND_API_KEY\`, and the board reads that name: with it set, and \`MAIL_FROM\`
-already in place, mail sends over Resend's HTTPS API with nothing further to
+beside it, mail sends over Resend's HTTPS API with nothing further to
 configure.
 
 The board is not tied to Resend. Its mail driver is a plain JSON-over-HTTPS

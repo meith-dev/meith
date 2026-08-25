@@ -6,19 +6,32 @@ const nonEmpty = z.string().min(1)
 
 export const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails'
 
-const databaseUrl = z
-  .string()
-  .refine((value) => value.startsWith('postgres://') || value.startsWith('postgresql://'), {
-    message: 'must be a postgres:// or postgresql:// connection string',
-  })
+const isPostgresUrl = (value: string): boolean =>
+  value.startsWith('postgres://') || value.startsWith('postgresql://')
+
+const isRedisUrl = (value: string): boolean =>
+  value.startsWith('redis://') || value.startsWith('rediss://')
+
+const databaseUrl = z.string().refine(isPostgresUrl, {
+  message: 'must be a postgres:// or postgresql:// connection string',
+})
 
 const secret = z.string().min(32, 'must be at least 32 characters of high-entropy random data')
 
-const redisUrl = z
-  .string()
-  .refine((value) => value.startsWith('redis://') || value.startsWith('rediss://'), {
-    message: 'must be a redis:// or rediss:// connection string',
-  })
+const redisUrl = z.string().refine(isRedisUrl, {
+  message: 'must be a redis:// or rediss:// connection string',
+})
+
+export const VERCEL_REDIS_URL_SOURCES = ['KV_URL', 'UPSTASH_REDIS_URL'] as const
+
+export const VERCEL_DIRECT_DATABASE_URL_SOURCES = [
+  'DATABASE_URL_UNPOOLED',
+  'POSTGRES_URL_NON_POOLING',
+] as const
+
+export const VERCEL_BLOB_TOKEN_SOURCES = ['BLOB_READ_WRITE_TOKEN'] as const
+
+export const VERCEL_BLOB_STORE_MARKERS = ['BLOB_STORE_ID', 'BLOB_WEBHOOK_PUBLIC_KEY'] as const
 
 const flag = z
   .enum(['0', '1', 'true', 'false'], { message: 'must be one of 0, 1, true or false' })
@@ -273,11 +286,7 @@ const envSchema = z
 
 export type Env = z.infer<typeof envSchema>
 
-function formatIssues(error: z.ZodError): string {
-  const lines = error.issues.map((issue) => {
-    const name = issue.path.join('.') || '(root)'
-    return `  - ${name}: ${issue.message}`
-  })
+function formatProblems(lines: readonly string[]): string {
   return [
     'Invalid environment configuration.',
     ...lines,
@@ -286,24 +295,175 @@ function formatIssues(error: z.ZodError): string {
   ].join('\n')
 }
 
-function withDerivedDefaults(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+function formatIssues(error: z.ZodError): string {
+  return formatProblems(
+    error.issues.map((issue) => {
+      const name = issue.path.join('.') || '(root)'
+      return `  - ${name}: ${issue.message}`
+    }),
+  )
+}
+
+interface Refusal {
+  readonly variable: string
+  readonly message: string
+}
+
+function formatRefusals(refusals: readonly Refusal[]): string {
+  return formatProblems(refusals.map(({ variable, message }) => `  - ${variable}: ${message}`))
+}
+
+interface Resolution {
+  readonly value?: string
+  readonly searched: readonly string[]
+  readonly wrongShape: readonly string[]
+}
+
+function resolve(
+  source: NodeJS.ProcessEnv,
+  names: readonly string[],
+  usable: (value: string) => boolean,
+): Resolution {
+  const wrongShape: string[] = []
+
+  for (const name of names) {
+    const value = source[name]
+    if (value === undefined) continue
+    if (usable(value)) return { value, searched: names, wrongShape }
+    wrongShape.push(name)
+  }
+
+  return { searched: names, wrongShape }
+}
+
+function searchReport({ searched, wrongShape }: Resolution, shape: string): string {
+  const looked = `Looked at ${searched.join(', ')}`
+
+  if (wrongShape.length === 0) {
+    return searched.length === 1
+      ? `${looked}, which is not set.`
+      : `${looked} — none of them is set.`
+  }
+
+  const set = wrongShape.join(', ')
+  return wrongShape.length === 1
+    ? `${looked} — ${set} is set but does not hold ${shape}.`
+    : `${looked} — ${set} are set but neither holds ${shape}.`
+}
+
+const REDIS_SHAPE = 'a redis:// or rediss:// URL'
+
+const POSTGRES_SHAPE = 'a postgres:// or postgresql:// URL'
+
+const cacheDriverRefusal = (redis: Resolution): string =>
+  'cannot be derived on Vercel: no Redis connection string was found. ' +
+  `${searchReport(redis, REDIS_SHAPE)} KV_REST_API_URL is deliberately not among ` +
+  'them: it is an HTTPS REST endpoint, not a Redis connection string, and a Redis ' +
+  'client given it fails at connect time as though the network were broken. Attach ' +
+  'a Redis store to the project, or copy its redis:// or rediss:// string into ' +
+  'REDIS_URL, which is read before any of the names above. Set CACHE_DRIVER=next to ' +
+  'cache inside each instance instead, knowing that every instance then serves its ' +
+  'own copy for up to a minute.'
+
+const redisUrlRefusal = (redis: Resolution): string =>
+  'is required when CACHE_DRIVER=redis and cannot be derived on Vercel. ' +
+  `${searchReport(redis, REDIS_SHAPE)} Attach a Redis store to the project, or set ` +
+  'REDIS_URL yourself.'
+
+const S3_INSTEAD =
+  'Or set FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID and ' +
+  'S3_SECRET_ACCESS_KEY. FILESTORE_DRIVER=local is not the answer here: it writes ' +
+  'uploads to an instance filesystem that is discarded with the instance.'
+
+const filestoreDriverRefusal = (blob: Resolution, linked: boolean): string =>
+  (linked
+    ? 'cannot be derived on Vercel: a Blob store is attached to the ' +
+      `project — ${VERCEL_BLOB_STORE_MARKERS.join(' or ')} is set — but no ` +
+      `read-write token is published with it. ${searchReport(blob, 'a token')} ` +
+      'Create a read-write token on the store (Storage, then the store, then its ' +
+      'tokens), add it to the project as BLOB_READ_WRITE_TOKEN, and redeploy: the ' +
+      'store id alone cannot write an upload, and a board that took it for one ' +
+      'would boot and then fail on the first attachment. '
+    : 'cannot be derived on Vercel: no object store was found. ' +
+      `${searchReport(blob, 'a token')} A Vercel Blob store attached to the project ` +
+      'publishes that name into it. Attach one. ') + S3_INSTEAD
+
+const directDatabaseUrlRefusal = (direct: Resolution): string =>
+  'cannot be derived on Vercel. ' +
+  `${searchReport(direct, POSTGRES_SHAPE)} Neon publishes the direct string under ` +
+  'both of those names; POSTGRES_URL and POSTGRES_PRISMA_URL are the pooled ones and ' +
+  'cannot stand in for it, because a transaction-mode pooler cannot hold the ' +
+  'session-level advisory lock migrations and the installer take. Attach the ' +
+  'database to the project, or set DIRECT_DATABASE_URL yourself. If DATABASE_URL is ' +
+  'already the direct (non-pooler) string, set this to that same value.'
+
+interface Derived {
+  readonly env: NodeJS.ProcessEnv
+  readonly refusals: readonly Refusal[]
+}
+
+function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
   const hasDb = Boolean(source.DATABASE_URL)
   const dataSource = source.DATA_SOURCE ?? (hasDb ? 'postgres' : 'fixture')
 
   const ownMailApi = source.MAIL_HTTP_ENDPOINT !== undefined || source.MAIL_HTTP_TOKEN !== undefined
   const bridgedKey = ownMailApi ? undefined : source.RESEND_API_KEY
 
+  const onVercel = Boolean(source.VERCEL) && source.NEXT_PHASE !== 'phase-production-build'
+  const refusals: Refusal[] = []
+
+  const redis = resolve(source, VERCEL_REDIS_URL_SOURCES, isRedisUrl)
+  const redisUrl = source.REDIS_URL ?? (onVercel ? redis.value : undefined)
+
+  let cacheDriver = source.CACHE_DRIVER
+  if (onVercel && cacheDriver === undefined) {
+    if (redisUrl === undefined) {
+      refusals.push({ variable: 'CACHE_DRIVER', message: cacheDriverRefusal(redis) })
+    } else {
+      cacheDriver = 'redis'
+    }
+  }
+  if (onVercel && cacheDriver === 'redis' && redisUrl === undefined) {
+    refusals.push({ variable: 'REDIS_URL', message: redisUrlRefusal(redis) })
+  }
+
+  let filestoreDriver = source.FILESTORE_DRIVER
+  if (onVercel && filestoreDriver === undefined) {
+    const blob = resolve(source, VERCEL_BLOB_TOKEN_SOURCES, () => true)
+    if (blob.value === undefined) {
+      const linked = VERCEL_BLOB_STORE_MARKERS.some((name) => source[name] !== undefined)
+      refusals.push({ variable: 'FILESTORE_DRIVER', message: filestoreDriverRefusal(blob, linked) })
+    } else {
+      filestoreDriver = 'blob'
+    }
+  }
+
+  let directDatabaseUrl = source.DIRECT_DATABASE_URL
+  if (onVercel && hasDb && directDatabaseUrl === undefined) {
+    const direct = resolve(source, VERCEL_DIRECT_DATABASE_URL_SOURCES, isPostgresUrl)
+    directDatabaseUrl = direct.value
+    if (directDatabaseUrl === undefined) {
+      refusals.push({ variable: 'DIRECT_DATABASE_URL', message: directDatabaseUrlRefusal(direct) })
+    }
+  }
+
   return {
-    ...source,
-    DATA_SOURCE: dataSource,
-    QUEUE_DRIVER: source.QUEUE_DRIVER ?? (dataSource === 'postgres' ? 'postgres' : 'memory'),
-    CACHE_DRIVER: source.CACHE_DRIVER ?? (dataSource === 'postgres' ? 'next' : 'memory'),
-    ...(bridgedKey === undefined
-      ? {}
-      : { MAIL_HTTP_TOKEN: bridgedKey, MAIL_HTTP_ENDPOINT: RESEND_EMAILS_ENDPOINT }),
-    MAIL_DRIVER:
-      source.MAIL_DRIVER ??
-      (bridgedKey !== undefined && source.MAIL_FROM !== undefined ? 'http' : undefined),
+    env: {
+      ...source,
+      DATA_SOURCE: dataSource,
+      QUEUE_DRIVER: source.QUEUE_DRIVER ?? (dataSource === 'postgres' ? 'postgres' : 'memory'),
+      CACHE_DRIVER: cacheDriver ?? (dataSource === 'postgres' ? 'next' : 'memory'),
+      FILESTORE_DRIVER: filestoreDriver,
+      ...(redisUrl === undefined ? {} : { REDIS_URL: redisUrl }),
+      ...(directDatabaseUrl === undefined ? {} : { DIRECT_DATABASE_URL: directDatabaseUrl }),
+      ...(bridgedKey === undefined
+        ? {}
+        : { MAIL_HTTP_TOKEN: bridgedKey, MAIL_HTTP_ENDPOINT: RESEND_EMAILS_ENDPOINT }),
+      MAIL_DRIVER:
+        source.MAIL_DRIVER ??
+        (bridgedKey !== undefined && source.MAIL_FROM !== undefined ? 'http' : undefined),
+    },
+    refusals,
   }
 }
 
@@ -320,8 +480,14 @@ function withoutEmptyValues(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 }
 
 function load(rawSource: NodeJS.ProcessEnv, options: LoadOptions = {}): Env {
-  const source = withDerivedDefaults(withoutEmptyValues(rawSource))
-  if (options.ignoreBuildPhase) delete source.NEXT_PHASE
+  const given = withoutEmptyValues(rawSource)
+  if (options.ignoreBuildPhase) delete given.NEXT_PHASE
+
+  const { env: source, refusals } = withDerivedDefaults(given)
+
+  if (refusals.length > 0) {
+    throw new Error(formatRefusals(refusals))
+  }
 
   const parsed = envSchema.safeParse(source)
 
