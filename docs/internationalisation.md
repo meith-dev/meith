@@ -279,8 +279,9 @@ A handful of the counts are noise rather than copy: `view/feed.ts` and
 prose to the counter, and `view/setting-groups.ts` holds the group labels the
 catalog mirrors. They sit in the baseline at a fixed number and stay there.
 
-`packages/core/src/env.ts` and `packages/drivers/src/files/s3-file-store.ts`
-are noise of the same sort, and the only two entries here that have gone up.
+`packages/core/src/env.ts`, `packages/drivers/src/files/blob-file-store.ts`
+and `packages/drivers/src/files/keys.ts` are noise of the same sort. `env.ts`
+is the only entry here that has gone up.
 Environment parsing runs once, at boot, before there is a request, a board or
 a member — so there is no locale to pick and no `Translator` to take one. A
 configuration that would fail silently says so there or nowhere: refusing
