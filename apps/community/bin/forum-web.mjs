@@ -46,8 +46,14 @@
  * whose contents are already byte for byte what it would write. Everything
  * else is the board's: never removed, never overwritten, and a collision
  * stops the build naming every file involved. A board can therefore keep
- * `public/ads.txt` beside the shipped `public/sw.js`. See
- * docs/development.md, "Consuming the board from a workspace".
+ * `public/ads.txt` beside the shipped `public/sw.js`.
+ *
+ * `GENERATED_ENTRIES` are the exception, and have to be: `tsconfig.json` and
+ * `next-env.d.ts` are written from scratch rather than copied, so there is no
+ * shipped file to compare a board's own against and nothing to tell one apart
+ * from a stale one this bin wrote. Both are replaced without asking, so a
+ * board cannot keep its own compiler options at the root of an `--at-root`
+ * workspace. See docs/development.md, "Consuming the board from a workspace".
  *
  * This assumes a *hoisted* `node_modules` (npm, yarn classic, or pnpm with
  * `node-linker=hoisted`) — see docs/development.md for why.
@@ -122,6 +128,7 @@ function fail(message) {
 }
 
 const GENERATED_ENTRIES = ['tsconfig.json', 'next-env.d.ts']
+const SHARED_ENTRIES = ['public']
 const GLOBALS_CSS = 'src/styles/globals.css'
 const MATERIALIZED_RECORD = join(workspaceRoot, '.meith', 'materialized.json')
 
@@ -213,7 +220,9 @@ function pruneEmptyDirectories(rel) {
  * for byte what it would write anyway — the second case being a checkout
  * that committed a materialized file, where no record exists and refusing
  * would fail the deploy over a file identical to the one being written.
- * Anything else is the board's, and the board's is never overwritten.
+ * Anything else is the board's, and the board's is never overwritten —
+ * except `GENERATED_ENTRIES`, which are written rather than copied and so
+ * can satisfy neither test; those are replaced unconditionally.
  */
 function claimRootFiles(intended) {
   const owned = new Set(readMaterializedRecord())
@@ -248,7 +257,7 @@ function removeStaleRootFiles(intended) {
   const keeping = new Set(intended)
   for (const rel of readMaterializedRecord()) {
     if (keeping.has(rel)) continue
-    rmSync(absoluteRootPath(rel), { force: true })
+    rmSync(absoluteRootPath(rel), { recursive: true, force: true })
     pruneEmptyDirectories(rel)
   }
 }
@@ -256,6 +265,40 @@ function removeStaleRootFiles(intended) {
 function recordRootFiles(intended) {
   mkdirSync(dirname(MATERIALIZED_RECORD), { recursive: true })
   writeFileSync(MATERIALIZED_RECORD, `${JSON.stringify({ files: intended }, null, 2)}\n`)
+}
+
+/**
+ * Files the board itself put under a directory the framework owns outright.
+ * Nothing here removes them — ownership is per file, so they simply survive —
+ * but a scaffolded board gitignores those directories as a unit, so a route
+ * added under `app/` works locally, is never committed, and is absent from a
+ * deploy built out of the checkout. Warned about rather than refused: the
+ * file is the author's to keep, and this is the only moment anything looks at
+ * it. `public/` is excluded because that one is shared on purpose.
+ */
+function warnAboutStrayBoardFiles(intended) {
+  const written = new Set(intended)
+  const owned = APP_ENTRIES.filter((entry) => !SHARED_ENTRIES.includes(entry))
+  const strays = []
+
+  for (const entry of owned) {
+    const dir = join(workspaceRoot, entry)
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) continue
+    for (const rel of walkFiles(dir, entry, [])) {
+      if (!written.has(rel)) strays.push(rel)
+    }
+  }
+
+  if (strays.length === 0) return
+
+  console.warn(
+    `forum-web: ${strays.length} file(s) here are not @meith/web's, under a directory that is:\n` +
+      `${strays.map((rel) => `  ${rel}`).join('\n')}\n` +
+      'They are left exactly as they are. A scaffolded board gitignores these directories as ' +
+      'a unit, though, so nothing above is committed, and a deploy that builds from the ' +
+      'checkout will not see it. A board extends the forum through plugins and themes ' +
+      '(docs/plugin-api.md, docs/theme-api.md), not by adding files here.',
+  )
 }
 
 function toPosixRelative(from, to) {
@@ -391,7 +434,10 @@ function materialize() {
     '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n',
   )
 
-  if (rootFiles) recordRootFiles(rootFiles)
+  if (rootFiles) {
+    recordRootFiles(rootFiles)
+    warnAboutStrayBoardFiles(rootFiles)
+  }
 }
 
 /**

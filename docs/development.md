@@ -312,7 +312,12 @@ shipped entries file by file and, for each file it is about to write, treats it
 as its own when either the record in `.meith/materialized.json` says it wrote
 that file before, or what is on disk is byte for byte what it would write
 anyway. Everything else is the board's: never removed, never overwritten, and
-any collision stops the build listing every file involved. Files the record
+any collision stops the build listing every file involved. `tsconfig.json` and
+`next-env.d.ts` are the exception and have to be — they are generated rather
+than copied, so there is no shipped file to compare against and nothing to
+distinguish a board's own from a stale one this bin wrote. Both are replaced
+without asking, which means a board cannot keep its own compiler options at
+the root of an `--at-root` workspace. Files the record
 names and this run will not write — the framework stopped shipping them — are
 removed, and only those. Nothing the board added is ever in the record, which is
 why removal is driven from the record and not from the directory.
@@ -322,6 +327,22 @@ so without it every committed framework file would read as the board's and fail
 the deploy; with it, a file identical to the one being written is simply
 written again. A *modified* copy still fails, which is right — that edit would
 otherwise be silently discarded on every build.
+
+It leaves one narrow hole, open deliberately. A board file that happens to be
+byte-identical to a shipped one is indistinguishable from a materialized copy,
+so it is recorded as this bin's own; if a later release stops shipping that
+name, the stale-removal pass deletes the board's file. That needs exact
+byte-identity with a file the framework ships and then drops, and closing it
+would mean giving up the fresh-checkout case that makes deploys work at all.
+
+**`app/` and `src/` are the framework's alone, and a scaffolded board
+gitignores them as a unit.** Per-file ownership means a route dropped into
+`app/` is *preserved* rather than refused — and then never committed, so it
+works locally and is absent from a deploy built out of the checkout. Neither
+git nor Next can catch that, so `forum-web` warns at materialization time,
+naming every file it finds under those directories that is not its own. A
+board extends the forum through plugins and themes, which `community.config.ts`
+names and git tracks.
 
 **A board can therefore own files under `public/`.** `robots.txt`,
 `sitemap.xml` and the board's branding are routes rather than files here, but

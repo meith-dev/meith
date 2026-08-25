@@ -56,9 +56,21 @@ const AT_ROOT_IGNORES = `# What \`forum-web ${AT_ROOT_FLAG}\` writes into this d
 # public/ is listed file by file rather than as a directory, because that one
 # is shared: forum-web decides what it owns per file, so this board's own
 # public/ads.txt, public/.well-known/... or domain-verification file sits
-# beside the framework's and is tracked normally. The rest of these names the
-# framework owns outright — a build refuses rather than overwriting a file it
-# did not write, and names it.
+# beside the framework's and is tracked normally.
+#
+# app/ and src/ are ignored WHOLESALE, and that has a consequence worth
+# knowing before you go looking for it: a file you add under either is left
+# alone by the build and still never committed, so it works locally and is
+# simply absent from the deploy, which builds from what git has. Extend the
+# board with a plugin or a theme instead — the forum loads those from
+# community.config.ts, and they are yours to commit. forum-web prints a
+# warning naming any file of yours it finds there.
+#
+# For the rest, a build refuses rather than overwriting a file it did not
+# write, and names it. The two exceptions are tsconfig.json and
+# next-env.d.ts: forum-web generates those from scratch every run rather than
+# copying them, so it cannot tell one of yours from a stale one of its own
+# and replaces them without asking.
 ${AT_ROOT_IGNORE_PATHS}`
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
