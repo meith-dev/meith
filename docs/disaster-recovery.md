@@ -3,7 +3,7 @@
 This page is the runbook for the bad day: the server is gone — seized,
 dead, deleted, or unreachable in a way that is not coming back — and the
 board has to exist again somewhere else.
-[Backup and restore](./operating.md#backup-and-restore) is the everyday
+[Backup and restore](./operating.md#backup) is the everyday
 half of this story: what to take, how to take it, and how to restore one
 piece. This page is the order of operations when *everything* has to be
 restored at once, written to be followed under stress. Read it once on a
@@ -18,7 +18,7 @@ machine is gone:
 | Artifact | Without it |
 |---|---|
 | The database dump — the `community backup` bundle carries it | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
-| The uploads — in the same bundle on local disk, or the S3 bucket | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./operating.md#where-uploads-go) skips this step entirely: the bucket never lived on the machine. |
+| The uploads — in the same bundle on local disk, or the S3 bucket | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./scaling.md#what-already-scales) skips this step entirely: the bucket never lived on the machine. |
 | The environment — your `.env`, or the secrets the panel generated | The board boots with new secrets, but `AUTH_SECRET` seals members' two-factor secrets: lose it and every enrolled authenticator app is stranded, and every unsubscribe link in already-sent mail dies. Sessions survive either way — they are random tokens stored hashed in the database. |
 
 The code is not on the list. It is in git, pinned by the release tag the
@@ -74,7 +74,7 @@ RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/comm
 ```
 
 The fresh Postgres container created an empty `community` database, which
-is exactly what [`community restore`](./operating.md#restoring) insists
+is exactly what [`community restore`](./operating.md#restore) insists
 on. One command puts back the dump *and* the uploads — `docker compose
 run` mounts the same uploads volume the board serves from — and applies
 any migrations the bundle predates; on a bundle taken from the same
@@ -92,7 +92,7 @@ docker run --rm -v docker_uploads:/u -v "$PWD":/backup alpine \
 (`docker volume ls` for the real volume name — Compose prefixes it with
 the project directory. A `--format=custom` dump goes through
 `pg_restore --no-owner --no-privileges` —
-[Restoring](./operating.md#restoring) has the variants.)
+[Restore](./operating.md#restore) covers the command.)
 
 ### 4. The uploads, when they lived elsewhere
 
@@ -101,7 +101,7 @@ works and move on — unless the bucket is gone too, in which case a bundle
 taken with `--uploads include` holds every object, and restoring it with
 the S3 driver configured pushes them back up. This asymmetry is most of
 the argument for
-[moving uploads to object storage](./operating.md#moving-a-board-from-local-disk-to-s3)
+[moving uploads to object storage](./scaling.md#migrating-a-single-instance-board)
 on a calm day.
 
 ### 5. Boot and verify
@@ -111,7 +111,7 @@ docker compose up -d --build
 ```
 
 Then the same three checks a
-[restore rehearsal](./operating.md#rehearse-it) uses, plus two this
+[restore rehearsal](#rehearse-it-and-write-the-number-down) uses, plus two this
 situation adds:
 
 1. `select count(*) from posts;` — the content is there.
@@ -140,10 +140,10 @@ step from hours into minutes.
 ### 7. Resume the backups
 
 The new machine has no cron, and the recovery you just finished consumed
-a backup rather than producing one. Re-create the schedule from
-[taking one](./operating.md#taking-one), run it once by hand, and copy
-the result off the machine — the next disaster does not care how recent
-the last one was.
+a backup rather than producing one. Re-create the schedule you had,
+using the command in [Backup](./operating.md#backup), run it once by
+hand, and copy the result off the machine — the next disaster does not
+care how recent the last one was.
 
 ## Partial losses are smaller pages
 
@@ -160,7 +160,7 @@ answer than this runbook:
 
 ## Rehearse it, and write the number down
 
-The [backup page's advice](./operating.md#rehearse-it) — a backup nobody
+The [backup page's advice](./operating.md#backup) — a backup nobody
 has restored is a file, not a backup — applies to this whole page: a
 runbook nobody has run is a hope, not a plan. Once, on a scratch server
 or a laptop, run steps 1 through 5 against last week's real backups and

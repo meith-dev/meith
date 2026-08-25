@@ -334,7 +334,7 @@ done, a new account can usually only mail the address you signed up
 with — and SES additionally starts in a sandbox that needs a support
 request to leave. The installer says which caveat belongs to which
 provider; free tiers and deliverability are compared in
-[Running a board § Mail](./operating.md#mail).
+[Operations § Mail](./operating.md#mail).
 
 ### The installer proves it before writing anything
 
@@ -368,7 +368,7 @@ problem into a board nobody can join.
 > needs to be. `MAIL_DRIVER` and its companions still exist and still win
 > outright when set — for deployments configured wholly from files, at
 > the cost of a redeploy to rotate a key. See
-> [Running a board § Mail](./operating.md#mail).
+> [Operations § Mail](./operating.md#mail).
 
 ## 6. Set up backups
 
@@ -379,9 +379,9 @@ possible time. The board's own `community backup` takes both in one
 bundle; schedule it as a command on the `web` resource and copy the
 bundle off the machine.
 
-[Backup and restore](./operating.md#backup-and-restore) has the command,
-the schedule, and the restore. A backup nobody has restored is a file,
-not a backup.
+[Backup](./operating.md#backup) has the command and
+[Restore](./operating.md#restore) the way back. A backup nobody has
+restored is a file, not a backup.
 
 ## If the install fails halfway
 
@@ -409,7 +409,7 @@ can fix and retry:
   database — restore the empty database, or drop and recreate it — and
   start again. If the only thing missing is administrator access on a
   board that otherwise works, do not reinstall: use the
-  [operator CLI](./operating.md#the-operator-cli) —
+  [operator CLI](./operating.md#account-recovery) —
   `community user:promote`.
 
 ## When something else goes wrong
@@ -425,7 +425,7 @@ can fix and retry:
 | Nothing happens on a schedule | The `worker` container is not running, so nothing is calling `/api/system/tick` — see `/admin/system`. |
 | The board is on a newer version than you deployed | `MEITH_IMAGE` is still on the mutable `:latest` tag, and a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. Move `MEITH_IMAGE` to a commit-sha tag instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it again on its own. |
 
-[Running a board § Troubleshooting](./operating.md#troubleshooting)
+[Operations § Troubleshooting](./operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.
 
 ## Next
@@ -440,7 +440,7 @@ people doing those jobs.
 | Hand the queue to the moderators | [The moderator's guide](./moderation-guide.md) |
 | Take memberships online | [The memberships guide](./membership-guide.md) |
 | Browse and install a plugin or theme somebody else built | [The marketplace](./marketplace.md) |
-| Run the server day to day | [Running a board](./operating.md) |
+| Run the server day to day | [Operations](./operating.md) |
 | Take it from one version to the next | [Upgrading a board](./upgrading.md) |
 | Deploy it without a panel | [Deploying by hand](./self-hosting.md) |
 | Deploy it without a server | [Running on Vercel](./vercel.md) |

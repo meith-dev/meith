@@ -80,8 +80,8 @@ plan has one of three shapes:
 - **Name** and an optional **description** — what members read on the card.
 - **Group it grants** — a group marked **may be granted by plugins** under
   **Admin → Groups**. The group's permissions, badge and colour are the
-  product; see [Groups a plugin may
-  grant](./operating.md#groups-a-plugin-may-grant). Staff and
+  product; see [Timed group
+  grants](./plugin-api.md#timed-group-grants). Staff and
   power-carrying groups refuse the tick, on purpose.
 - **Price**, in minor units of its **currency** — for a euro plan, `2500`
   is €25.00. The screen warns you about the trap: a decimal here is
@@ -230,7 +230,7 @@ invoices and receipts.
 ## What is the operator's job, not yours
 
 The plugin is code on the server, so its installation is the operator's,
-per [Running a board](./operating.md#plugins) and the plugin's own
+per [Operations](./operating.md#plugins) and the plugin's own
 [README](https://github.com/meith-dev/meith/tree/main/plugins/dues):
 
 - **Installing and enabling the plugin**, and running its migrations
@@ -269,4 +269,4 @@ the panel.
 If the shop says payments are not set up, or the Status screen is not
 green, that shorter list is where the fix lives — send it to the operator. What
 plugins can and cannot do on a board, and what "enabled" means, is
-[Administering one](./operating.md#administering-one).
+[Operations § Plugins](./operating.md#plugins).
