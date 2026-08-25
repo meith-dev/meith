@@ -10,7 +10,7 @@ hand to whoever set the board up.
 Two jobs have guides of their own: keeping threads civil is
 [The moderator's guide](./moderation-guide.md), and taking the money is
 [The memberships guide](./membership-guide.md). The full operator
-handbook is [Running a board](./operating.md) — this guide covers the
+handbook is [Operations](./operating.md) — this guide covers the
 day-to-day subset and links there for the detail.
 
 ## The admin panel
@@ -79,8 +79,6 @@ Three things to know before you drag:
   moving a forum under a *different* parent does, because it changes who
   can see what.
 
-The detail is in [Running a board § The forum tree](./operating.md#the-forum-tree).
-
 ### A private forum for the organisers
 
 Most boards want one forum only the people running the place can read —
@@ -105,8 +103,7 @@ Two things worth knowing before you touch the permissions screen:
 > In the forum permissions matrix, **an empty cell means "inherit"** —
 > it is not the same as "no". Each cell shows what it currently resolves
 > to and where that answer came from, so read what is there before
-> changing it, and set only the cells you mean. The full explanation is
-> in [Running a board § Permissions](./operating.md#permissions).
+> changing it, and set only the cells you mean.
 
 Administrators see the forum whatever the matrix says — the bypass
 exists so a board can always be repaired, and every use of it is
@@ -114,8 +111,8 @@ recorded in the admin log.
 
 A related trick: a forum where members can post but only see their *own*
 threads — applications, welfare matters, anything written to the
-organisers rather than to the room — is one permission, described in
-[Running a board § A "your threads only" forum](./operating.md#a-your-threads-only-forum).
+organisers rather than to the room — is one permission on that forum's
+permissions screen.
 
 ## Making the board look like yours
 
@@ -184,8 +181,7 @@ If your community has a crest and two colours — a sports club, say —
 the shipped **clubhouse** theme is built for exactly that: set the main
 colour and the trim colour on the theme screen and everything else
 stays neutral. With no logo uploaded it draws a crest from the board's
-name. See
-[Running a board § A board in its own colours](./operating.md#a-board-in-its-own-colours).
+name.
 
 > [!NOTE]
 > *Configuring* a theme is yours; *installing* a new one is not. A theme
@@ -221,8 +217,7 @@ the community's main site, the fixtures list, an events calendar.
 Each item can be shown to everyone, only signed-out visitors, only
 signed-in members, or only staff — and, more narrowly, only to members
 of groups you tick. Items can be nested one level deep into sub-menus by
-dragging. The detail, including what each field does, is in
-[Running a board § The navigation menu](./operating.md#the-navigation-menu).
+dragging.
 
 ### Mass mail
 
@@ -231,21 +226,19 @@ to everybody, or to one group — the Committee group from earlier, say.
 Either way it reaches only accounts that are active, not closed, and
 have a verified address, and the screen shows the size of each audience
 beside it, so the figure next to a group is how many messages choosing
-it will queue. See
-[Running a board § Who a mass mail reaches](./operating.md#who-a-mass-mail-reaches).
+it will queue.
 
 Mass mail is queued and delivered in the background, so it needs the
 board's mail working and its background worker running — if a mass mail
 sits unsent, that is one for the technical person, and
-[Running a board § Mail](./operating.md#mail) is their page.
+[Operations § Mail](./operating.md#mail) is their page.
 
 ### Closing for maintenance
 
 **Board offline**, under **`/admin/settings?group=board`**, replaces
 every board page with a message of your choosing until you switch it
 back. Signing in and the admin panel stay reachable, so you can always
-turn it off again. See
-[Running a board § Taking the board offline](./operating.md#taking-the-board-offline).
+turn it off again.
 
 ## Welcoming and managing members
 
@@ -258,8 +251,7 @@ decide how people join:
   the Register link goes, and the registration page says the board is
   not taking new members. Existing members sign in as before, so it is
   the switch to reach for during a spam wave, or for a board that is
-  meant to be invitation-only. See
-  [Running a board § Closing registration](./operating.md#closing-registration).
+  meant to be invitation-only.
 - **Activation method** — what a new account must do before it can sign
   in: nothing, follow an e-mailed confirmation link, wait for an
   administrator's approval, or both.
@@ -269,7 +261,7 @@ decide how people join:
 > board nobody can join — the links are minted and never delivered. The
 > registration settings screen warns loudly while this is true. If you
 > see that warning, mail is the thing to fix first — see
-> [Running a board § Activation and mail](./operating.md#activation-and-mail).
+> [Operations § Mail](./operating.md#mail).
 
 Registration questions and the other anti-spam controls live at
 **Admin → Anti-spam**.
@@ -321,10 +313,12 @@ edited on the member's screen under **Admin → Users**.
 
 Making somebody a moderator of one forum does not need a group at all:
 open the forum under **Admin → Forums** and appoint them there, ticking
-exactly the rights they should hold — edit, delete, approve, move, and
-so on, optionally cascading to the forums beneath. What each checkbox
-grants is spelled out in
-[Running a board § What an appointment grants](./operating.md#what-an-appointment-grants).
+exactly the rights they should hold, optionally cascading to the forums
+beneath. Approving content, editing, deleting, restoring, locking,
+pinning, moving, merging and splitting are each a separate grant: ticking
+*Delete posts* does not give the undo, so tick *Restore posts* too if
+you mean both. A moderator sees exactly what they hold, forum by forum,
+under **`/modcp/forums`**.
 
 Promotions that members *earn* — a "Veteran" group at 500 posts — can be
 automated under **Admin → Groups → Promotions**; the screen previews
@@ -338,8 +332,7 @@ An enabled rule also runs on its own, hourly, and pressing the button
 does not disturb that. The hourly task works through the membership
 10,000 members at a time and keeps its own place between runs, so on a
 board bigger than that a newly earned promotion arrives within a few
-runs rather than on the very next one. See
-[Running a board § Promotions](./operating.md#promotions).
+runs rather than on the very next one.
 
 ### When somebody steps back
 
@@ -370,11 +363,11 @@ the page they need:
 
 | Job | Their page |
 |---|---|
-| Backups — and proving a backup restores | [Running a board § Backup and restore](./operating.md#backup-and-restore) |
+| Backups — and proving a backup restores | [Operations § Backup](./operating.md#backup) |
 | Upgrading to a new version | [Upgrading a board](./upgrading.md) |
-| Setting up or changing how mail is sent | [Running a board § Mail](./operating.md#mail) |
-| Installing a theme or a plugin | [Running a board § Themes](./operating.md#themes), [The plugin API](./plugin-api.md) |
-| Recovering lost administrator access | [Running a board § The operator CLI](./operating.md#the-operator-cli) |
+| Setting up or changing how mail is sent | [Operations § Mail](./operating.md#mail) |
+| Installing a theme or a plugin | [The theme API](./theme-api.md), [The plugin API](./plugin-api.md) |
+| Recovering lost administrator access | [Operations § Account recovery](./operating.md#account-recovery) |
 
 Deciding *what* to install is yours, even when installing it is not.
 **Admin → Plugins → Browse** and **Admin → Themes → Browse** read a

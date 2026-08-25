@@ -95,6 +95,23 @@ The standard deployment requires a PostgreSQL password, `AUTH_SECRET`, `TICK_SEC
 
 Use `community --help` for the exact commands supported by the installed release.
 
+## The operator CLI
+
+`community` is the operator CLI, and every maintenance command on this page is one of its subcommands. How you reach it depends on the deployment:
+
+| Deployment | Invocation |
+|---|---|
+| Compose — the supported stack, and the by-hand one | `docker compose run --rm web community <command>` |
+| A platform that only builds and serves | `community <command>`, from a checkout of the board repository with the production environment in front of it — see [Running on Vercel](./vercel.md) |
+
+`--rm` stops the one-shot containers accumulating. Add `-T` when the command reads standard input, as creating a user does under [Account recovery](#account-recovery).
+
+There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `community migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
+
+The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. It is also the only route for the commands that have no admin-panel equivalent: `backup`, `restore`, `migrate` and `upgrade`.
+
+`community --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
+
 ## Mail
 
 The worker sends queued mail, so web and worker need the same mail configuration. The standard Compose file forwards the supported HTTP and SMTP environment values.
