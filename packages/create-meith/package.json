@@ -1,6 +1,6 @@
 {
   "name": "create-meith",
-  "version": "0.17.2",
+  "version": "0.18.0",
   "description": "Scaffold a Meith board — npx create-meith <name> writes a workspace that depends on @meith/web and @meith/cli.",
   "license": "MIT",
   "repository": {

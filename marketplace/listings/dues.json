@@ -5,7 +5,7 @@
   "name": "Dues",
   "description": "Paid memberships through Stripe.",
   "screenshots": ["dues-light.png"],
-  "version": "0.17.2",
+  "version": "0.18.0",
   "apiVersion": 0,
   "meith": ">=0.16 <1",
   "repository": "https://github.com/meith-dev/meith",
