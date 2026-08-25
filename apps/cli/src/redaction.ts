@@ -1,6 +1,7 @@
 export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
   'AUTH_SECRET',
   'TICK_SECRET',
+  'CRON_SECRET',
   'METRICS_TOKEN',
   'DATABASE_URL',
   'DIRECT_DATABASE_URL',

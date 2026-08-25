@@ -131,6 +131,23 @@ describe('production rules', () => {
     expect(() => parseEnv({ ...base, TICK_SECRET: undefined })).toThrow(/TICK_SECRET/)
   })
 
+  it('takes CRON_SECRET instead, for a host whose cron can only send that name', () => {
+    const env = parseEnv({ ...base, TICK_SECRET: undefined, CRON_SECRET: 'c'.repeat(32) })
+
+    expect(env.CRON_SECRET).toBe('c'.repeat(32))
+    expect(env.TICK_SECRET).toBeUndefined()
+  })
+
+  it('still refuses to run the tick unprotected when neither secret is set', () => {
+    expect(() => parseEnv({ ...base, TICK_SECRET: undefined, CRON_SECRET: undefined })).toThrow(
+      /TICK_SECRET/,
+    )
+  })
+
+  it('holds CRON_SECRET to the same length as every other secret', () => {
+    expect(() => parseEnv({ ...base, CRON_SECRET: 'short' })).toThrow(/CRON_SECRET/)
+  })
+
   it('does not apply them during `next build`, which has no runtime secrets', () => {
     const env = parseEnv({
       NODE_ENV: 'production',

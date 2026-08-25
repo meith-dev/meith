@@ -248,6 +248,13 @@ export const counterRecountState = pgTable('counter_recount_state', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const promotionScanState = pgTable('promotion_scan_state', {
+  id: text('id').primaryKey(),
+  cursor: integer('cursor').notNull().default(0),
+  passes: integer('passes').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const massMails = pgTable('mass_mails', {
   id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
   subject: text('subject').notNull(),

@@ -18,7 +18,7 @@ export interface TaskWorkers {
   backfillPostRenders(batchSize: number): Promise<number>
   reindexSearch(batchSize: number): Promise<number>
   refreshMarketplaceCatalog(): Promise<{ ok: boolean; listingCount: number; notified: number }>
-  applyPromotions(batchSize: number): Promise<number>
+  applyPromotions(batchSize: number, signal: AbortSignal): Promise<number>
   expireBans(batchSize: number): Promise<number>
   expireGroupMemberships(batchSize: number): Promise<number>
   expireWarnings(batchSize: number): Promise<number>
@@ -246,12 +246,16 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
       description:
         'Moves users into groups whose promotion criteria they now meet. ' +
         'Evaluates current post counts and registration age rather than tracking ' +
-        'thresholds crossed, so a missed run catches up on the next tick.',
+        'thresholds crossed, so a missed run catches up on the next tick, and reads' +
+        ' at most ten thousand members per run, resuming from where the last run' +
+        ' stopped and stopping early when its budget is spent, so one run costs the' +
+        ' same whatever the size of the board, and a board larger than one page' +
+        ' takes more than one run to walk end to end.',
       descriptionKey: 'adminSystem.task.promotionsApply.description',
-      intervalSeconds: 21_600,
+      intervalSeconds: 3_600,
       maxDurationSeconds: 60,
-      async run() {
-        const promoted = await workers.applyPromotions(500)
+      async run({ signal }) {
+        const promoted = await workers.applyPromotions(10_000, signal)
         return { detail: { promoted } }
       },
     },

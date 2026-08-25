@@ -6,7 +6,7 @@ import { type PromotionGuards, PromotionService } from '@meith/groups'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPromotionRepository } from './promotion-repo'
-import { cacheVersions, groupPromotions, usergroups, users } from './schema'
+import { cacheVersions, groupPromotions, promotionScanState, usergroups, users } from './schema'
 
 const REGISTERED = 2
 const ADMINS = 3
@@ -42,6 +42,7 @@ beforeEach(async () => {
   await db.delete(groupPromotions)
   await db.delete(users)
   await db.delete(cacheVersions)
+  await db.delete(promotionScanState)
 })
 
 async function addUser(
@@ -249,6 +250,146 @@ describe('rules', () => {
 
     const [outcome] = (await service().preview()).outcomes
     expect(outcome?.ruleTitle).toBe('First')
+  })
+})
+
+describe('the per-tick bound on the background scan', () => {
+  it('examines at most one page of members per run', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    const result = await service().advance(2)
+
+    expect(result.examined).toBe(2)
+    expect(result.outcomes.map((o) => o.userId)).toEqual([1, 2])
+    expect(await groupOf(3)).toBe(REGISTERED)
+  })
+
+  it('resumes on the next run where the last one stopped', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    await service().advance(2)
+    const second = await service().advance(2)
+
+    expect(second.outcomes.map((o) => o.userId)).toEqual([3, 4])
+    expect(await groupOf(3)).toBe(VETERAN)
+    expect(await groupOf(5)).toBe(REGISTERED)
+  })
+
+  it('reaches every member across enough runs, then starts the next pass over', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    for (let run = 0; run < 3; run++) await service().advance(2)
+
+    for (let id = 1; id <= 5; id++) expect(await groupOf(id)).toBe(VETERAN)
+    expect(await repo.scanCursor()).toBe(0)
+  })
+
+  it('rewinds to the start once a page comes back short of the bound', async () => {
+    await addRule()
+    for (let id = 1; id <= 3; id++) await addUser(id)
+
+    await service().advance(2)
+    expect(await repo.scanCursor()).toBe(2)
+
+    await service().advance(2)
+    expect(await repo.scanCursor()).toBe(0)
+  })
+
+  it('reads its page in smaller chunks, so it can be stopped between them', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    const result = await service().advance(10, { page: 2 })
+
+    expect(result.examined).toBe(5)
+    expect(result.complete).toBe(true)
+    expect(await repo.scanCursor()).toBe(0)
+    for (let id = 1; id <= 5; id++) expect(await groupOf(id)).toBe(VETERAN)
+  })
+
+  it('stops when its budget is spent and keeps the ground it covered', async () => {
+    await addRule()
+    for (let id = 1; id <= 6; id++) await addUser(id, { postCount: 150 })
+
+    const controller = new AbortController()
+    const spent = new PromotionService({
+      guards: GUARDS,
+      promotions: {
+        listRules: () => repo.listRules(),
+        applyPromotions: (outcomes) => repo.applyPromotions(outcomes),
+        scanCursor: () => repo.scanCursor(),
+        advanceScanCursor: (afterUserId) => repo.advanceScanCursor(afterUserId),
+        async candidates(afterUserId, limit) {
+          const rows = await repo.candidates(afterUserId, limit)
+          controller.abort()
+          return rows
+        },
+      },
+    })
+
+    const result = await spent.advance(6, { signal: controller.signal, page: 2 })
+
+    expect(result.examined).toBe(2)
+    expect(result.complete).toBe(false)
+    expect(await repo.scanCursor()).toBe(2)
+    expect(await groupOf(1)).toBe(VETERAN)
+    expect(await groupOf(3)).toBe(REGISTERED)
+  })
+})
+
+describe('the organiser screen and the background scan', () => {
+  it('previews the whole membership, whatever the background scan has reached', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    await service().advance(2)
+    const preview = await service().preview(2)
+
+    expect(preview.examined).toBe(5)
+    expect(preview.applied).toBe(false)
+    expect(preview.complete).toBe(true)
+    expect(preview.outcomes.map((o) => o.userId)).toEqual([3, 4, 5])
+  })
+
+  it('leaves the background cursor exactly where it was, for both preview and apply', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    await service().advance(2)
+    expect(await repo.scanCursor()).toBe(2)
+
+    await service().preview(2)
+    expect(await repo.scanCursor()).toBe(2)
+
+    await service().apply(2)
+    expect(await repo.scanCursor()).toBe(2)
+  })
+
+  it('promotes everyone the preview listed when the button is pressed', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    await service().advance(2)
+
+    const preview = await service().preview(2)
+    const applied = await service().apply(2)
+
+    expect(applied.outcomes).toEqual(preview.outcomes)
+    for (let id = 1; id <= 5; id++) expect(await groupOf(id)).toBe(VETERAN)
+  })
+
+  it('says so when it stops short of the whole membership', async () => {
+    await addRule()
+    for (let id = 1; id <= 5; id++) await addUser(id, { postCount: 150 })
+
+    const capped = await service().preview(2, 4)
+
+    expect(capped.examined).toBe(4)
+    expect(capped.complete).toBe(false)
+    expect(await groupOf(5)).toBe(REGISTERED)
   })
 })
 

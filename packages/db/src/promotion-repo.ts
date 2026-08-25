@@ -13,8 +13,10 @@ import { promotionRuleProblem } from '@meith/groups'
 import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
-import { groupPromotions, users } from './schema'
+import { groupPromotions, promotionScanState, users } from './schema'
 import { keptDisplayGroupSql } from './staff-groups'
+
+const SCAN_STATE_ID = 'default'
 
 function optionalNumber(value: number | null): number | undefined {
   return value === null ? undefined : value
@@ -118,6 +120,28 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
       .limit(limit)
 
     return rows
+  }
+
+  async scanCursor(): Promise<number> {
+    const rows = await this.db
+      .select({ cursor: promotionScanState.cursor })
+      .from(promotionScanState)
+      .where(eq(promotionScanState.id, SCAN_STATE_ID))
+
+    return Number(rows[0]?.cursor ?? 0)
+  }
+
+  async advanceScanCursor(afterUserId: number): Promise<void> {
+    const completedPass = afterUserId === 0
+
+    await this.db.execute(sql`
+      insert into promotion_scan_state (id, cursor, passes, updated_at)
+      values (${SCAN_STATE_ID}, ${afterUserId}, ${completedPass ? 1 : 0}, now())
+      on conflict (id) do update
+        set cursor = ${afterUserId},
+            passes = promotion_scan_state.passes + ${completedPass ? 1 : 0},
+            updated_at = now()
+    `)
   }
 
   async applyPromotions(outcomes: readonly PromotionOutcome[]): Promise<void> {

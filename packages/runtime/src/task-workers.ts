@@ -175,8 +175,8 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       },
     })),
 
-    async applyPromotions(batchSize) {
-      const result = await promotions.apply(batchSize)
+    async applyPromotions(batchSize, signal) {
+      const result = await promotions.advance(batchSize, { signal })
       return result.outcomes.length
     },
 

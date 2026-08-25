@@ -8,6 +8,10 @@ export {
 } from './promotion'
 export { type PromotionRuleInput, promotionRuleProblem } from './promotion-rules'
 export {
+  PROMOTION_ADVANCE_PAGE,
+  PROMOTION_REVIEW_CEILING,
+  PROMOTION_REVIEW_PAGE,
+  type PromotionAdvanceOptions,
   type PromotionRunResult,
   PromotionService,
   type PromotionServiceDeps,

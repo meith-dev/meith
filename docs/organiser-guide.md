@@ -328,7 +328,17 @@ grants is spelled out in
 
 Promotions that members *earn* — a "Veteran" group at 500 posts — can be
 automated under **Admin → Groups → Promotions**; the screen previews
-exactly who a rule would move before you enable it. See
+exactly who a rule would move before you enable it, and the button under
+that preview promotes exactly the members it lists. The preview reads
+the whole membership rather than a sample, which is not a cheap screen
+on a large board: it stops after 50,000 members and says on the page
+that it stopped, rather than keeping you waiting past that.
+
+An enabled rule also runs on its own, hourly, and pressing the button
+does not disturb that. The hourly task works through the membership
+10,000 members at a time and keeps its own place between runs, so on a
+board bigger than that a newly earned promotion arrives within a few
+runs rather than on the very next one. See
 [Running a board § Promotions](./operating.md#promotions).
 
 ### When somebody steps back
