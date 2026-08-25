@@ -18,6 +18,7 @@ import {
 
 import { NextCacheDriver } from './cache/next-cache'
 import { RedisCacheDriver } from './cache/redis-cache'
+import { BlobFileStore } from './files/blob-file-store'
 import { LocalFileStore } from './files/local-file-store'
 import { S3FileStore } from './files/s3-file-store'
 import { ConfiguredMailDriver } from './mail'
@@ -55,6 +56,8 @@ function buildFiles(): FileStore {
       return new LocalFileStore(env.UPLOADS_DIR)
     case 's3':
       return S3FileStore.fromEnv(env)
+    case 'blob':
+      return BlobFileStore.fromEnv(env)
   }
 }
 

@@ -12,9 +12,10 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./files/blob-file-store": "./src/files/blob-file-store.ts",
+    "./files/s3-file-store": "./src/files/s3-file-store.ts",
     "./highlighting": "./src/highlighting/index.ts",
-    "./images": "./src/images/index.ts",
-    "./files/s3-file-store": "./src/files/s3-file-store.ts"
+    "./images": "./src/images/index.ts"
   },
   "files": [
     "src",
@@ -36,6 +37,7 @@
     "@meith/i18n": "workspace:*",
     "@meith/settings": "workspace:*",
     "@types/nodemailer": "^8.0.1",
+    "@vercel/blob": "2.8.0",
     "drizzle-orm": "^0.45.2",
     "nodemailer": "^9.0.5",
     "redis": "^6.2.1",

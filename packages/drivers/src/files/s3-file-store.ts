@@ -14,6 +14,8 @@ import {
   type StoredFile,
 } from '@meith/core'
 
+import { assertUsableKey, encodeKeyPath } from './keys'
+
 export interface S3FileStoreConfig {
   readonly bucket: string
   readonly region: string
@@ -25,22 +27,6 @@ export interface S3FileStoreConfig {
 
 export interface S3Like {
   send(command: unknown): Promise<unknown>
-}
-
-function assertUsableKey(key: string): void {
-  if (key === '' || key.trim() !== key) {
-    throw new ConfigurationError(`Invalid object key: ${JSON.stringify(key)}`)
-  }
-  if (key.startsWith('/') || key.includes('//')) {
-    throw new ConfigurationError(`Object key must not contain empty segments: ${key}`)
-  }
-  if (key.split('/').some((segment) => segment === '..' || segment === '.')) {
-    throw new ConfigurationError(`Object key must not contain relative segments: ${key}`)
-  }
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting control characters is the point
-  if (/[\u0000-\u001f\u007f]/.test(key)) {
-    throw new ConfigurationError('Object key must not contain control characters.')
-  }
 }
 
 function isNotFound(error: unknown): boolean {
@@ -188,7 +174,7 @@ export class S3FileStore implements FileStore {
   url(key: string): string {
     assertUsableKey(key)
 
-    const path = key.replace(/[^/]+/g, (segment) => encodeURIComponent(segment))
+    const path = encodeKeyPath(key)
 
     if (this.config.publicBaseUrl !== undefined) {
       return `${this.config.publicBaseUrl.replace(/\/+$/, '')}/${path}`

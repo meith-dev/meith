@@ -50,6 +50,7 @@ const nextConfig = {
   serverExternalPackages: [
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
+    '@vercel/blob',
     'postgres',
     '@jsquash/jpeg',
     '@jsquash/png',
