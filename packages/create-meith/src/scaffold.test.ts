@@ -10,6 +10,9 @@ import {
   DEFAULT_REPOSITORY_URL,
   DEFAULT_TEMPLATE_REPOSITORY_URL,
   deployButtonUrl,
+  MATERIALIZED_AT_ROOT,
+  MATERIALIZED_PUBLIC,
+  NEXT_VERSION,
   nextSteps,
   scaffold,
   validateName,
@@ -60,6 +63,11 @@ describe('what the scaffold writes', () => {
     expect(manifest.name).toBe('my-board')
     expect(manifest.dependencies['@meith/web']).toBe('1.2.3')
     expect(manifest.dependencies['@meith/theme-default']).toBe('1.2.3')
+  })
+
+  it('declares next itself, at the version @meith/web builds with', () => {
+    const manifest = JSON.parse(files.get('package.json')!)
+    expect(manifest.dependencies.next).toBe(NEXT_VERSION)
   })
 
   it("ships an .npmrc that keeps every install here exact, not only the scaffold's own pins", () => {
@@ -135,6 +143,20 @@ describe('what the scaffold writes', () => {
     const ignore = files.get('.gitignore')!
     for (const entry of ['node_modules', '.next', '.env', '.env.local']) {
       expect(ignore.split('\n')).toContain(entry)
+    }
+  })
+
+  it("keeps a board's own top-level directories in the image and in git", () => {
+    const dockerignore = files.get('.dockerignore')!.split('\n')
+    const gitignore = files.get('.gitignore')!.split('\n')
+
+    for (const entry of MATERIALIZED_AT_ROOT) {
+      expect(dockerignore).not.toContain(`/${entry}`)
+      expect(gitignore).not.toContain(`/${entry}`)
+    }
+    for (const entry of ['src', 'public']) {
+      expect(dockerignore).not.toContain(entry)
+      expect(gitignore).not.toContain(entry)
     }
   })
 
@@ -313,13 +335,17 @@ describe('the deploy kit', () => {
     expect(shaIndex).toBeLessThan(latestIndex)
   })
 
-  it('tells the operator upgrading is one package.json edit, not a second pin to keep in sync', () => {
+  it('re-pins next from the package just installed, never from a number typed by hand', () => {
     const readme = files.get('README.md')!
     expect(readme).toMatch(
       /npm install --save-exact @meith\/web@latest @meith\/cli@latest @meith\/theme-default@latest/,
     )
     expect(readme).toMatch(/build argument/i)
-    expect(readme).not.toMatch(/bump/i)
+    expect(readme).toContain(
+      'npm install --save-exact next@$(node -p ' +
+        '"require(\'./node_modules/@meith/web/package.json\').dependencies.next")',
+    )
+    expect(readme).not.toMatch(/next@\d/)
   })
 
   it('documents --save-exact, so the upgrade it tells the operator to run never writes a caret range', () => {
@@ -496,8 +522,8 @@ describe('the published bin, run the way npx actually runs it', () => {
 })
 
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
-  'package.json': '17a26812ce37a757aed272f27c1f4b648e0e2ceee0122804e80a43ae84e33a5a',
-  '.npmrc': 'ca0cc3b9e18f7eb4c0d84cd301f46bc558dc5010e7c747c0edf2e12651c37c09',
+  'package.json': 'fbe57f89349df4dee13155fdbe939e57ef35a551291762776be18d9acb6ab4b3',
+  '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
   'community.config.ts': 'ca17c18b40a9e89af83ff5b2277a76f0d7852ed38fec02cdeba9112c6c76c5b7',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
   'community.plugins.ts': '4143635aeb85cd6a402f4e0a65748489676581c7505cbb24ed7b54bd39116a7d',
@@ -509,7 +535,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/workflows/build.yml': 'd2ba5b4f04e76d8df51a39ef8daae352c7299a2b335e984ca2767615c20476d4',
   'docker-compose.yml': '0b8550942309a84d5f559a7cbc5b148554989ca78e56213b1cb7211c2b737d9c',
-  'README.md': 'c49e345440f06ef8a2232e3605a31bb5970a247f394bed27c598af544303c088',
+  'README.md': 'd4cf1a50cfa090c940ba5b167d8d139ae63c0c45c4ca4e3ff5fcbfe2a324042c',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
@@ -552,15 +578,53 @@ describe('the Vercel target', () => {
 
   it('leaves the board itself identical to the self-host tree, byte for byte', () => {
     const selfHost = scaffold(OPTIONS)
-    for (const path of ['package.json', '.npmrc', 'community.config.ts', 'community.plugins.ts']) {
+    for (const path of ['.npmrc', 'community.config.ts', 'community.plugins.ts']) {
       expect(files.get(path)).toBe(selfHost.get(path))
     }
+  })
+
+  it('differs from the self-host manifest in the materialization flag and nothing else', () => {
+    const manifest = JSON.parse(files.get('package.json')!)
+    const selfHost = JSON.parse(scaffold(OPTIONS).get('package.json')!)
+
+    expect(manifest.dependencies).toEqual(selfHost.dependencies)
+    expect(manifest.scripts).toEqual({
+      dev: 'forum-web dev --at-root',
+      build: 'forum-web build --at-root',
+      start: 'forum-web start --at-root',
+      community: 'community',
+    })
+  })
+
+  it('materializes at the board root in every script, so local and deployed agree', () => {
+    const { scripts } = JSON.parse(files.get('package.json')!)
+    for (const command of ['dev', 'build', 'start']) {
+      expect(scripts[command]).toContain('--at-root')
+    }
+  })
+
+  it('ignores every name that materialization writes into the board root', () => {
+    const gitignore = files.get('.gitignore')!.split('\n')
+    for (const entry of MATERIALIZED_AT_ROOT) {
+      if (entry === 'public') continue
+      expect(gitignore).toContain(`/${entry}`)
+    }
+  })
+
+  it('ignores public file by file, so a board can keep its own files there', () => {
+    const gitignore = files.get('.gitignore')!.split('\n')
+
+    expect(gitignore).not.toContain('/public')
+    for (const file of MATERIALIZED_PUBLIC) {
+      expect(gitignore).toContain(`/public/${file}`)
+    }
+    expect(gitignore).not.toContain('/public/ads.txt')
   })
 
   it('parses as JSON and carries the cron path and the build command', () => {
     const config = JSON.parse(files.get('vercel.json')!)
 
-    expect(config.buildCommand).toBe('community migrate && forum-web build')
+    expect(config.buildCommand).toBe('community migrate && forum-web build --at-root')
     expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '* * * * *' }])
   })
 
@@ -571,9 +635,9 @@ describe('the Vercel target', () => {
     )
   })
 
-  it('names the framework, because nothing in the board manifest depends on next', () => {
+  it('both names the framework and declares next, because the preset needs each', () => {
     const manifest = JSON.parse(files.get('package.json')!)
-    expect(manifest.dependencies.next).toBeUndefined()
+    expect(manifest.dependencies.next).toBe(NEXT_VERSION)
     expect(JSON.parse(files.get('vercel.json')!).framework).toBe('nextjs')
   })
 

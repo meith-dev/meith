@@ -7,3 +7,42 @@ node_modules
 .env*.local
 *.log
 .DS_Store
+
+# What `forum-web --at-root` writes into this directory: @meith/web's own
+# Next app, materialized here rather than into .meith/app so that the build
+# artefact lands at ./.next, where Vercel's Next.js builder reads it. Every
+# path here belongs to the framework and is rewritten on every build.
+#
+# public/ is listed file by file rather than as a directory, because that one
+# is shared: forum-web decides what it owns per file, so this board's own
+# public/ads.txt, public/.well-known/... or domain-verification file sits
+# beside the framework's and is tracked normally.
+#
+# app/ and src/ are ignored WHOLESALE, and that has a consequence worth
+# knowing before you go looking for it: a file you add under either is left
+# alone by the build and still never committed, so it works locally and is
+# simply absent from the deploy, which builds from what git has. Extend the
+# board with a plugin or a theme instead — the forum loads those from
+# community.config.ts, and they are yours to commit. forum-web prints a
+# warning naming any file of yours it finds there.
+#
+# For the rest, a build refuses rather than overwriting a file it did not
+# write, and names it. The two exceptions are tsconfig.json and
+# next-env.d.ts: forum-web generates those from scratch every run rather than
+# copying them, so it cannot tell one of yours from a stale one of its own
+# and replaces them without asking.
+/app
+/src
+/public/placeholder-logo.png
+/public/placeholder-logo.svg
+/public/placeholder-user.jpg
+/public/placeholder.jpg
+/public/placeholder.svg
+/public/sw.js
+/next.config.mjs
+/postcss.config.mjs
+/components.json
+/instrumentation.ts
+/proxy.ts
+/tsconfig.json
+/next-env.d.ts

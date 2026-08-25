@@ -80,6 +80,6 @@ describe('the committed template tree', () => {
     const config = JSON.parse(await readFile(join(ROOT, OUTPUT_DIR, 'vercel.json'), 'utf8'))
 
     expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '* * * * *' }])
-    expect(config.buildCommand).toBe('community migrate && forum-web build')
+    expect(config.buildCommand).toBe('community migrate && forum-web build --at-root')
   })
 })

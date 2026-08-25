@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "community migrate && forum-web build",
+  "buildCommand": "community migrate && forum-web build --at-root",
   "crons": [
     {
       "path": "/api/system/tick",

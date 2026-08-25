@@ -13,8 +13,10 @@ A forum, built on [Meith](https://github.com/meith-dev/meith), running as Vercel
   `DATABASE_URL_UNPOOLED`.
 - **An Upstash Redis store**, attached the same way, for the shared cache.
 - **A Vercel project** carrying `vercel.json` — the build command
-  `community migrate && forum-web build`, which applies the schema before it builds, and the
-  cron entry that drives the tick.
+  `community migrate && forum-web build --at-root`,
+  which applies the schema before it builds, materializes the board's app at
+  the project root so the artefact lands where Vercel reads it, and the cron
+  entry that drives the tick.
 
 Two things it cannot provision, because they are accounts only you can hold: an
 **S3-compatible bucket** for uploads, and a **mail provider's HTTPS API**. Have
@@ -103,13 +105,21 @@ each retry into another attempt against whatever it is failing against.
 
 ```sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
-git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+git commit -am "Upgrade Meith and the Next.js version it builds with"
 git push
 ```
 
 Vercel rebuilds on the push, and the build command applies the new migrations
 before it builds. `--save-exact` matters and `.npmrc` already sets it for
 everything else installed here.
+
+The second command is not optional. This board pins `next` itself — Vercel
+reads that pin to pick its Next.js builder — and nothing bumps it for you.
+Upgrading only the `@meith/*` packages leaves two versions of Next
+installed, the board built with one and the platform configured for the
+other. Reading the version out of the freshly installed `@meith/web` keeps
+them the same without anybody having to know the number.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —
 there is no down migration to undo a destructive one.

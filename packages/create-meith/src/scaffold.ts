@@ -12,11 +12,66 @@ export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
 
 export const DEFAULT_TEMPLATE_REPOSITORY_URL = 'https://github.com/meith-dev/vercel-template'
 
-export const VERCEL_BUILD_COMMAND = 'community migrate && forum-web build'
+export const NEXT_VERSION = '16.3.1'
+
+export const AT_ROOT_FLAG = '--at-root'
+
+export const MATERIALIZED_AT_ROOT = [
+  'app',
+  'src',
+  'public',
+  'next.config.mjs',
+  'postcss.config.mjs',
+  'components.json',
+  'instrumentation.ts',
+  'proxy.ts',
+  'tsconfig.json',
+  'next-env.d.ts',
+]
+
+export const VERCEL_BUILD_COMMAND = `community migrate && forum-web build ${AT_ROOT_FLAG}`
 
 export const TICK_PATH = '/api/system/tick'
 
 export const TICK_SCHEDULE = '* * * * *'
+
+export const MATERIALIZED_PUBLIC = [
+  'placeholder-logo.png',
+  'placeholder-logo.svg',
+  'placeholder-user.jpg',
+  'placeholder.jpg',
+  'placeholder.svg',
+  'sw.js',
+]
+
+const AT_ROOT_IGNORE_PATHS = MATERIALIZED_AT_ROOT.flatMap((entry) =>
+  entry === 'public' ? MATERIALIZED_PUBLIC.map((file) => `/public/${file}`) : [`/${entry}`],
+).join('\n')
+
+const AT_ROOT_IGNORES = `# What \`forum-web ${AT_ROOT_FLAG}\` writes into this directory: @meith/web's own
+# Next app, materialized here rather than into .meith/app so that the build
+# artefact lands at ./.next, where Vercel's Next.js builder reads it. Every
+# path here belongs to the framework and is rewritten on every build.
+#
+# public/ is listed file by file rather than as a directory, because that one
+# is shared: forum-web decides what it owns per file, so this board's own
+# public/ads.txt, public/.well-known/... or domain-verification file sits
+# beside the framework's and is tracked normally.
+#
+# app/ and src/ are ignored WHOLESALE, and that has a consequence worth
+# knowing before you go looking for it: a file you add under either is left
+# alone by the build and still never committed, so it works locally and is
+# simply absent from the deploy, which builds from what git has. Extend the
+# board with a plugin or a theme instead — the forum loads those from
+# community.config.ts, and they are yours to commit. forum-web prints a
+# warning naming any file of yours it finds there.
+#
+# For the rest, a build refuses rather than overwriting a file it did not
+# write, and names it. The two exceptions are tsconfig.json and
+# next-env.d.ts: forum-web generates those from scratch every run rather than
+# copying them, so it cannot tell one of yours from a stale one of its own
+# and replaces them without asking.
+${AT_ROOT_IGNORE_PATHS}`
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,213}$/
 
@@ -297,6 +352,7 @@ function vercelJson(): string {
 export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> {
   const { name, version, repositoryUrl } = options
   const target = options.target ?? 'self-host'
+  const atRootFlag = target === 'vercel' ? ` ${AT_ROOT_FLAG}` : ''
   const files = new Map<string, string>()
 
   files.set(
@@ -308,15 +364,16 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
         private: true,
         type: 'module',
         scripts: {
-          dev: 'forum-web dev',
-          build: 'forum-web build',
-          start: 'forum-web start',
+          dev: `forum-web dev${atRootFlag}`,
+          build: `forum-web build${atRootFlag}`,
+          start: `forum-web start${atRootFlag}`,
           community: 'community',
         },
         dependencies: {
           '@meith/web': version,
           '@meith/cli': version,
           '@meith/theme-default': version,
+          next: NEXT_VERSION,
         },
         engines: { node: '>=22' },
       },
@@ -330,7 +387,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
     `# Every @meith/* dependency here is an exact version, not a range — see
 # README.md, "Upgrading", for why a range breaks the build. This makes that
 # the default for any \`npm install\` run in this project from here on,
-# including a plugin installed by hand later, not only the three packages
+# including a plugin installed by hand later, not only the four packages
 # the scaffold pinned itself.
 save-exact=true
 `,
@@ -856,11 +913,20 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 
 \`\`\`sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
-git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+git commit -am "Upgrade Meith and the Next.js version it builds with"
 git push
 \`\`\`
 
-That one \`package.json\` change is the whole pin: \`Dockerfile\`'s own
+The second command is not optional. This board pins \`next\` itself, and
+nothing bumps it for you: upgrading only the \`@meith/*\` packages leaves the
+board's own pin on the old Next while \`@meith/web\` depends on the new one,
+which npm resolves by installing both — the build then runs on one version
+while everything reading \`package.json\` sees the other. Reading the version
+out of the freshly installed \`@meith/web\` is what keeps the two the same
+without anybody having to know the number.
+
+That \`package.json\` change is the whole pin: \`Dockerfile\`'s own
 \`FROM\` line takes the version as a build argument, and
 \`.github/workflows/build.yml\` reads it straight out of \`package.json\`'s
 own \`@meith/web\` dependency when it rebuilds — nothing in \`Dockerfile\`
@@ -918,6 +984,8 @@ function vercelTree(
 .env*.local
 *.log
 .DS_Store
+
+${AT_ROOT_IGNORES}
 `,
   )
 
@@ -943,8 +1011,10 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
   \`DATABASE_URL_UNPOOLED\`.
 - **An Upstash Redis store**, attached the same way, for the shared cache.
 - **A Vercel project** carrying \`vercel.json\` — the build command
-  \`${VERCEL_BUILD_COMMAND}\`, which applies the schema before it builds, and the
-  cron entry that drives the tick.
+  \`${VERCEL_BUILD_COMMAND}\`,
+  which applies the schema before it builds, materializes the board's app at
+  the project root so the artefact lands where Vercel reads it, and the cron
+  entry that drives the tick.
 
 Two things it cannot provision, because they are accounts only you can hold: an
 **S3-compatible bucket** for uploads, and a **mail provider's HTTPS API**. Have
@@ -1029,13 +1099,21 @@ each retry into another attempt against whatever it is failing against.
 
 \`\`\`sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
-git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+git commit -am "Upgrade Meith and the Next.js version it builds with"
 git push
 \`\`\`
 
 Vercel rebuilds on the push, and the build command applies the new migrations
 before it builds. \`--save-exact\` matters and \`.npmrc\` already sets it for
 everything else installed here.
+
+The second command is not optional. This board pins \`next\` itself — Vercel
+reads that pin to pick its Next.js builder — and nothing bumps it for you.
+Upgrading only the \`@meith/*\` packages leaves two versions of Next
+installed, the board built with one and the platform configured for the
+other. Reading the version out of the freshly installed \`@meith/web\` keeps
+them the same without anybody having to know the number.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —
 there is no down migration to undo a destructive one.
