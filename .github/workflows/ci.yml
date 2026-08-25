@@ -164,10 +164,17 @@ jobs:
           command -v redis-server >/dev/null 2>&1 \
             || (sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server)
 
-      - name: Unit and integration tests
-        run: pnpm test
-
-      - name: Coverage gate
+      # One run of the suite, not two. `pnpm test:coverage` is `pnpm test` plus
+      # V8 coverage and the thresholds in vitest.config.ts: `--coverage` changes
+      # what is *measured*, never what is collected, so both commands run the
+      # same files and the same tests. V8 coverage is gathered through the
+      # inspector rather than by rewriting sources, so it cannot decide a
+      # result either. Running both cost this job a second full suite — very
+      # nearly five minutes of an under-twelve-minute job — for no gate the
+      # coverage run does not already carry. `pnpm test` stays a script, and
+      # the `migrations` job below still runs it against real Postgres.
+      # docs/development.md, "Coverage", is the reference.
+      - name: Unit and integration tests, with the coverage gate
         run: pnpm test:coverage
 
       - name: Upload coverage report
