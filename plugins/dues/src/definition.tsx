@@ -50,9 +50,11 @@ import { GoPage, ManagePage, PlansPage, ReturnPage } from './ui/pages'
 export function createDues(input: DuesConfigInput = {}): PluginDefinition {
   const staticConfig = parseDuesConfig(input)
 
-  // Resolved fresh per call: `currency` and `graceDays` are settings, so a
-  // request made after an operator edits them must see the new value, not
-  // one baked in when the plugin was registered.
+  /**
+   * Resolved fresh per call: `currency` and `graceDays` are settings, so a
+   * request made after an operator edits them must see the new value, not
+   * one baked in when the plugin was registered.
+   */
   const configFor = (context: PluginRuntimeContext): DuesConfig =>
     resolveDuesConfig(staticConfig, context.settings)
 
@@ -94,10 +96,6 @@ export function createDues(input: DuesConfigInput = {}): PluginDefinition {
         type: 'number',
         env: 'DUES_GRACE_DAYS',
         default: DEFAULT_GRACE_DAYS,
-        // PluginSetting has no descriptionArgs — unlike the definition's own
-        // description, a setting's is translated with no interpolation — so
-        // the range is spelled out in the catalog text itself, and MIN/MAX
-        // below only need to stay in sync with the words there by hand.
         description: en['dues.definition.setting.graceDays.description'],
         descriptionKey: 'dues.definition.setting.graceDays.description',
       },

@@ -26,12 +26,11 @@ function boardHosts(): readonly string[] {
   }
 }
 
+/** currency defaults to 'usd'; the e2e suite sets DUES_CURRENCY=gbp on the settings env override, matching the '£' assertions in its specs. */
 const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
     messages: duesMessages,
-    // currency defaults to 'usd'; the e2e suite sets DUES_CURRENCY=gbp on
-    // the settings env override, matching the '£' assertions in its specs.
     plugin: createDues({
       plans: [
         {
@@ -60,12 +59,11 @@ const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   },
 ]
 
+/** currency defaults to 'usd'; the demo deployment sets DUES_CURRENCY=eur so the shop and the demo seed (packages/demo/src/dues.ts) agree. */
 const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   {
     key: 'dues',
     messages: duesMessages,
-    // currency defaults to 'usd'; the demo deployment sets DUES_CURRENCY=eur
-    // so the shop and the demo seed (packages/demo/src/dues.ts) agree.
     plugin: createDues({
       extraRedirectHosts: boardHosts(),
     }),

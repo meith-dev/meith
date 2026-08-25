@@ -19,16 +19,18 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// Mirrors KEY_PATTERN in packages/plugin-kit/src/plugin.ts. definePlugin()
-// is the real authority — a manifest key that does not match the plugin's
-// own declared key fails loudly in defineForumConfig() — this copy exists
-// so a bad manifest fails before a build does, with a message that names
-// board.plugins.json instead of a file the operator never opened.
+/**
+ * Mirrors KEY_PATTERN in packages/plugin-kit/src/plugin.ts. definePlugin() is the real
+ * authority — a manifest key that does not match the plugin's own declared key fails
+ * loudly in defineForumConfig() — this copy exists so a bad manifest fails before a
+ * build does, with a message that names board.plugins.json instead of a file the
+ * operator never opened.
+ */
 export const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 
 /**
  * A legal PLUGIN_KEY_PATTERN key does not guarantee toIdentifier(key) below produces a
- * valid TypeScript binding name. See docs/plugin-api.md, "The board plugin manifests".
+ * valid TypeScript binding name. See docs/development.md, "The board plugin manifests".
  */
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 

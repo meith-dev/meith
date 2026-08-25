@@ -84,10 +84,6 @@ describe('parseDuesConfig', () => {
   })
 
   it('the period cap is checked against the longest possible grace window, not the current one', () => {
-    // 2 * 366 = 732 is the grant cap; MAX_GRACE_DAYS (30) is always added,
-    // regardless of what `grace_days` is set to today — a seed plan is
-    // validated once, at registration, long before any request has
-    // resolved the setting that could make a too-long pass briefly legal.
     expect(() =>
       parseDuesConfig(
         config({ plans: [{ ...FIXED, billing: { mode: 'fixed', period: 'P703D' } }] }),

@@ -170,7 +170,24 @@ purpose: `next.config.mjs` computes its own workspace root as two
 directories up from itself (for `.env` loading and `outputFileTracingRoot`),
 and materializing at that exact depth keeps that computation correct without
 touching the file, whether it runs in place inside this monorepo or copied
-into somebody else's workspace.
+into somebody else's workspace. `next.config.mjs` points `turbopack.root` at
+the same workspace root for the same reason — left unset, Turbopack infers a
+project root by walking up for a lockfile and otherwise stops at this app's
+own directory, and its transform pool (postcss, for instance) then cannot
+see the invoking workspace's `node_modules` at all, failing with "Cannot
+find module" for a dependency plain Node resolution finds without trouble.
+
+`outputFileTracingIncludes` works around a narrower gap in the standalone
+build: Next's output-file tracer only follows the CJS half of `@swc/helpers`'
+dual package and misses the `esm/` variant next's own require-hook resolves
+at runtime, so the standalone tree would otherwise ship a `@swc/helpers`
+directory missing its esm half. Next resolves that package through its own
+nested pnpm store entry — a symlink into the real `@swc+helpers` store
+entry — so that symlink target is what has to be traced in, not the app's
+own copy. The glob is written relative to `next.config.mjs`'s own directory,
+not the workspace root, because unlike `outputFileTracingRoot` and
+`turbopack.root` this option resolves its globs against the config file's
+own directory.
 
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
@@ -189,6 +206,11 @@ tsconfig carries no such alias map — only the seam itself — so every other
 `@meith/*` specifier resolves the ordinary way once this package is
 installed, and needs the same source-compilation treatment or the build
 fails with "Unknown module type" on a `.ts` file inside `node_modules`.
+`@meith/web` itself is in that list for the same reason, even though
+`apps/community` never imports its own package by name inside this
+monorepo — a materialized workspace's `community.config.ts` reaches it
+through the `@meith/web/config` subpath, which is real only once npm has
+resolved this package into another workspace's `node_modules`.
 
 **Fixture mode covers `forum-web dev` and `forum-web build`,** not
 `forum-web start`. A production process refuses `QUEUE_DRIVER=memory` —

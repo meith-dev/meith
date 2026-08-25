@@ -162,8 +162,6 @@ describe('refreshCatalog', () => {
       expect.objectContaining({ key: 'dues', version: '0.17.0' }),
     )
 
-    // The next tick sees the same feed and the same installed version again —
-    // this is the daily task running again before the operator has updated.
     const second = await run()
     expect(second.notified).toBe(0)
     expect(notifyUpdate).toHaveBeenCalledTimes(1)

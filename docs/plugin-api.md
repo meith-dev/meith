@@ -818,6 +818,11 @@ settings: [
   next source in the same order as everything else; a plugin that needs a
   bounded number clamps it itself when reading `context.settings` — see
   `plugins/dues`'s grace-period setting for the pattern.
+- **A setting has no `descriptionArgs`** — unlike a plugin's own top-level
+  description, a setting's `description`/`descriptionKey` is translated with
+  no interpolation. A bound worth stating (a grace period's allowed range, a
+  number's units) belongs in the catalog text itself, kept in sync by hand
+  with whatever constant actually enforces it.
 
 ## Migrations
 

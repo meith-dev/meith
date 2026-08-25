@@ -409,6 +409,14 @@ upgrade is that one line in `package.json`, never a second pin to remember
 in `Dockerfile` too; `create-meith`'s own generated README documents the
 exact commands.
 
+The scaffolded `Dockerfile` runs its build as `RUN DATA_SOURCE=fixture npx
+forum-web build`, scoping fixture mode to that one command rather than
+declaring it `ENV` — this Dockerfile has no later, separate runtime stage to
+reset a build-only `ENV` in, so an `ENV DATA_SOURCE=fixture` would leak into
+every container started from the image, silently forcing fixture mode (and
+the in-memory queue driver it implies) in production regardless of the
+`DATABASE_URL` an operator supplies at `docker run` time.
+
 `@meith/worker` is not published, so a scaffolded board's image carries no
 compiled worker binary — its `docker-compose.yml`'s own `worker` service drives
 the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)

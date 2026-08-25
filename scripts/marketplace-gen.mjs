@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Validates marketplace/listings/*.json against marketplace/schema.json and
-// the rules a JSON Schema cannot express, then emits the merged feed and its
-// screenshots into apps/web's public assets. See docs/marketplace.md.
+/**
+ * Validates marketplace/listings/*.json against marketplace/schema.json and
+ * the rules a JSON Schema cannot express, then emits the merged feed and its
+ * screenshots into apps/web's public assets. See docs/marketplace.md.
+ */
 import { mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 
@@ -45,9 +47,11 @@ export const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x
  */
 export const MAX_SCREENSHOT_BYTES = 5_000_000
 
-// Kept in the order marketplace/schema.json declares `required`;
-// marketplace-gen.test.ts asserts the two lists stay equal so the schema
-// document and this generator cannot silently drift apart.
+/**
+ * Kept in the order marketplace/schema.json declares `required`;
+ * marketplace-gen.test.ts asserts the two lists stay equal so the schema
+ * document and this generator cannot silently drift apart.
+ */
 export const REQUIRED_FIELDS = [
   'key',
   'kind',
@@ -62,9 +66,11 @@ export const REQUIRED_FIELDS = [
   'licence',
 ]
 
-// A comparator is `>=`, `<=`, `>`, `<` or `=` (default `=`) against a
-// version of one to three numeric parts. Comparators separated by spaces are
-// ANDed — enough to write ">=0.16 <1" and nothing more elaborate than that.
+/**
+ * A comparator is `>=`, `<=`, `>`, `<` or `=` (default `=`) against a version
+ * of one to three numeric parts. Comparators separated by spaces are ANDed —
+ * enough to write ">=0.16 <1" and nothing more elaborate than that.
+ */
 const COMPARATOR_PATTERN = /^(>=|<=|>|<|=)?\d+(\.\d+){0,2}$/
 
 export function isValidRange(range) {
@@ -329,11 +335,13 @@ export async function findExtraneousPublishedFiles(files, publicMarketplaceDirAb
   return onDisk.filter((relPath) => !allowed.has(relPath)).sort()
 }
 
+/**
+ * The schema document itself only needs to parse here — the generator's own
+ * checks above are what actually gets enforced (see this file's own header).
+ */
 async function main() {
   const check = process.argv.includes('--check')
 
-  // The schema document itself must at least parse — the generator's own
-  // checks are what actually gets enforced (see the file's top comment).
   JSON.parse(await readFile(join(ROOT, SCHEMA_FILE), 'utf8'))
 
   const listingsDirAbs = join(ROOT, LISTINGS_DIR)

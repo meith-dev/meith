@@ -270,8 +270,6 @@ describe('collectListings and checkScreenshotsExist against a temp fixture', () 
       join(listingsDir, 'ghost.json'),
       JSON.stringify({ ...VALID_ENTRY, key: 'ghost', screenshots: ['missing.png'] }),
     )
-    // 'ghost''s own screenshot is deliberately never written to screenshotsDir.
-
     const { problems, files } = await collectListings(listingsDir)
     expect(problems).toEqual([
       'broken.json: field "version" ("not-a-version") must be semver (major.minor.patch) — the listed package\'s own version, not the repository release version',

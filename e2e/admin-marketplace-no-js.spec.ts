@@ -13,9 +13,11 @@ async function pointFeedAt(page: import('@playwright/test').Page, url: string): 
   await page.getByRole('button', { name: 'Save settings', exact: true }).click()
 }
 
-// Order matters: the cached feed is one row shared by the whole suite (see
-// docs/development.md, "the suite shares one database"), so the "nothing
-// fetched yet" case has to run before anything else in this file refreshes it.
+/**
+ * Order matters in this file: the cached feed is one row shared by the whole
+ * suite (see docs/development.md, "The suite shares one database"), so this
+ * "nothing fetched yet" case has to run before anything else here refreshes it.
+ */
 test('a board that has never fetched says so plainly, with nothing to show yet', async ({
   page,
 }) => {
@@ -35,16 +37,17 @@ test('the Browse tab renders the seeded catalog with correct statuses, screensho
 
   await page.goto('/admin/plugins/browse')
 
-  // The tab bar links back to the installed list and marks Browse current.
   await expect(page.locator('[aria-current="page"]').filter({ hasText: 'Browse' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: 'Installed', exact: true })).toHaveAttribute(
     'href',
     '/admin/plugins',
   )
 
-  // The screenshot request fires as soon as the refreshed page's <img> tags
-  // parse, so the listener has to be armed before the click that navigates
-  // there — registering it after the page has already loaded would miss it.
+  /**
+   * The screenshot request fires as soon as the refreshed page's <img> tags
+   * parse, so the listener has to be armed before the click that navigates
+   * there — registering it after the page has already loaded would miss it.
+   */
   const [screenshotResponse] = await Promise.all([
     page.waitForResponse((response) =>
       response.url().includes('/admin/api/marketplace/screenshot'),
@@ -67,16 +70,17 @@ test('the Browse tab renders the seeded catalog with correct statuses, screensho
     'href',
     'https://www.meith.dev/docs/marketplace',
   )
-  // This dev server is not the stock image (BOARD_PLUGINS_MANIFEST is unset
-  // here, the same as a graduated board), so the graduation signpost stays
-  // absent — see apps/community/src/server/marketplace-admin.test.ts for the
-  // case where it is set.
+  /**
+   * This dev server is not the stock image (BOARD_PLUGINS_MANIFEST is unset
+   * here, the same as a graduated board), so the graduation signpost stays
+   * absent — see apps/community/src/server/marketplace-admin.test.ts for the
+   * case where it is set.
+   */
   await expect(greeter.getByRole('link', { name: /moving to a custom board/i })).toHaveCount(0)
 
   const futureThing = page.locator('li').filter({ hasText: 'Future Thing' }).first()
   await expect(futureThing.getByText('Incompatible')).toBeVisible()
   await expect(futureThing.getByText(/this board runs major 0/)).toBeVisible()
-  // An incompatible entry never gets an install affordance.
   await expect(futureThing.getByText('community plugin:add')).toHaveCount(0)
 
   await page.goto('/admin/themes/browse')
@@ -96,7 +100,6 @@ test('an installed plugin update notifies administrators exactly once', async ({
   const rows = page.locator('li').filter({ hasText: 'Dues has a new version' })
   await expect(rows).toHaveCount(1)
 
-  // Refreshing again finds the same version already notified — no second row.
   await page.goto('/admin/plugins/browse')
   await page.getByRole('button', { name: 'Refresh', exact: true }).click()
   await expect(page.getByText('Catalog refreshed.')).toBeVisible()
@@ -116,15 +119,16 @@ test('a later-unreachable catalog host keeps showing the last good fetch, plus a
   await expect(page.getByText('Catalog refreshed.')).toBeVisible()
   await expect(page.locator('li').filter({ hasText: 'Dues' })).toBeVisible()
 
-  // Port 1 answers nothing; the fetch fails fast rather than hanging the spec.
-  // https:// only because the setting itself requires it — nothing here ever
-  // completes a real TLS handshake.
+  /**
+   * Port 1 answers nothing; the fetch fails fast rather than hanging the
+   * spec. https:// only because the setting itself requires it — nothing
+   * here ever completes a real TLS handshake.
+   */
   await pointFeedAt(page, 'https://127.0.0.1:1/v1.json')
   await page.goto('/admin/plugins/browse')
   await page.getByRole('button', { name: 'Refresh', exact: true }).click()
 
   await expect(page.getByText(/could not be loaded/)).toBeVisible()
-  // The last successful fetch is still what the page shows — nothing else degrades.
   await expect(page.locator('li').filter({ hasText: 'Dues' })).toBeVisible()
 })
 

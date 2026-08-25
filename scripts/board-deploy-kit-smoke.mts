@@ -94,7 +94,8 @@ async function scaffoldBoard(parentDir: string): Promise<string> {
  * resolved against packed tarballs rather than the real registry — see the
  * module comment for why. Tagged as the exact reference the scaffolded
  * Dockerfile's own FROM line names, so that unmodified Dockerfile resolves
- * it from the local image cache.
+ * it from the local image cache. Excludes `PLUGIN` — it is not part of the
+ * framework image the base stub stands in for.
  */
 function buildStandInBaseImage(
   boardDir: string,
@@ -104,7 +105,7 @@ function buildStandInBaseImage(
   const dependencies: Record<string, string> = {}
   const overrides: Record<string, string> = {}
   for (const [name, tarball] of tarballs) {
-    if (name === PLUGIN) continue // not part of the framework image
+    if (name === PLUGIN) continue
     const ref = fileRef(vendorDir, tarball)
     if ((ROOTS as readonly string[]).includes(name)) dependencies[name] = ref
     else overrides[name] = ref
@@ -190,6 +191,15 @@ async function waitForResponse(url: string, attempts: number): Promise<Response>
   throw new Error(`board-deploy-kit-smoke: ${url} never answered: ${String(lastError)}`)
 }
 
+/**
+ * The container needs to reach the GitHub Actions Postgres service, which is
+ * bound to the *runner's* 127.0.0.1:5432 — on the default bridge network, a
+ * container's own 127.0.0.1 is itself, not the runner. `--network host` (the
+ * same fix the site-image CI job uses) puts it on the runner's network
+ * directly, so it also replaces the `-p` mapping: the app binds `PORT` on
+ * the host interface itself, so `PORT` is passed in rather than fixed at the
+ * image's own default of 3000.
+ */
 async function bootAndRender(tag: string, containerName: string) {
   stopAndRemove(containerName)
   run(
@@ -199,14 +209,6 @@ async function bootAndRender(tag: string, containerName: string) {
       '-d',
       '--name',
       containerName,
-      // The container needs to reach the GitHub Actions Postgres service,
-      // which is bound to the *runner's* 127.0.0.1:5432 — on the default
-      // bridge network, a container's own 127.0.0.1 is itself, not the
-      // runner. --network host (the same fix the site-image job above
-      // already uses) puts it on the runner's network directly, so it also
-      // replaces the -p mapping: the app binds PORT on the host interface
-      // itself, so PORT is passed in rather than fixed at the image's own
-      // default of 3000.
       '--network',
       'host',
       '-e',
@@ -239,6 +241,7 @@ async function bootAndRender(tag: string, containerName: string) {
   }
 }
 
+/** Same reachability fix as `bootAndRender` above. */
 function runMigrate(tag: string) {
   console.log('== COMMUNITY_ROLE=migrate ==')
   run(
@@ -246,8 +249,6 @@ function runMigrate(tag: string) {
     [
       'run',
       '--rm',
-      // Same reachability fix as bootAndRender above: the container needs
-      // the runner's own network to see the Postgres service on 127.0.0.1.
       '--network',
       'host',
       '-e',

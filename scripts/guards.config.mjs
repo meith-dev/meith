@@ -41,12 +41,12 @@ export const GUARDS = [
     why:
       'process.env may only be read in packages/core/src/env.ts. A stray read is a ' +
       'config value that is never validated and blows up at request time in prod ' +
-      'instead of at boot.',
+      'instead of at boot. apps/community/bin/ is allowed too: forum-web.mjs, like the ' +
+      'bins under apps/cli/, runs as an operator-invoked script outside the ' +
+      'request/response cycle, not application code — see FORUM_WORKSPACE_ROOT / ' +
+      'FORUM_ALIASES_FROM there.',
     files: /\.(ts|tsx|mjs)$/,
     pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
-    // apps/community/bin/: forum-web.mjs, like the bins under apps/cli/, runs
-    // as an operator-invoked script outside the request/response cycle, not
-    // application code — see FORUM_WORKSPACE_ROOT / FORUM_ALIASES_FROM there.
     allow:
       /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|apps\/community\/bin\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
     probe: {

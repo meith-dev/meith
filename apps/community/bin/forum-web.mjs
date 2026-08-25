@@ -65,21 +65,16 @@ const packageRoot = join(here, '..')
 const workspaceRoot = process.cwd()
 const appDir = join(workspaceRoot, '.meith', 'app')
 
-// `next dev|build` runs with `.meith/app` as its own cwd (see `run()` below),
-// so a relative FORUM_WORKSPACE_ROOT / FORUM_ALIASES_FROM — the shape
-// boards/stock/package.json's scripts write, relative to *this* process's
-// own cwd (the board's own directory) — would resolve against the wrong
-// directory if left for next.config.mjs to resolve itself. Rewriting them to
-// absolute paths here, before spawning, means both env vars mean the same
-// thing regardless of which process reads them.
 for (const name of ['FORUM_WORKSPACE_ROOT', 'FORUM_ALIASES_FROM']) {
   if (process.env[name]) process.env[name] = resolve(workspaceRoot, process.env[name])
 }
 
-// Files this package ships (see its `files` allowlist) that belong inside
-// the materialized app. Board files (community.config.ts, board.plugins.json,
-// community.plugins.ts) are never copied — they are read in place, from the
-// workspace, through the generated tsconfig instead.
+/**
+ * Files this package ships (see its `files` allowlist) that belong inside the
+ * materialized app. Board files (community.config.ts, board.plugins.json,
+ * community.plugins.ts) are never copied — they are read in place, from the
+ * workspace, through the generated tsconfig instead.
+ */
 const APP_ENTRIES = [
   'app',
   'src',
@@ -137,7 +132,10 @@ function rewriteGlobalsCssSourcePaths() {
  * materialized app's own generated tsconfig, rebased to be relative to
  * `.meith/app` — the same aliases apps/community's own tsconfig.json
  * hand-maintains for exactly this reason. Unset (the default, and the only
- * path a real external board ever takes), this is a no-op.
+ * path a real external board ever takes), this is a no-op. `@board/config`
+ * and `@board/plugins` are excluded from the copy — they are this
+ * workspace's own seam, wired below to *this* board's files, never to
+ * whatever apps/community's own tsconfig happens to alias them to.
  */
 function monorepoAliases() {
   const configFile = process.env.FORUM_ALIASES_FROM
@@ -149,15 +147,20 @@ function monorepoAliases() {
 
   const aliases = {}
   for (const [alias, targets] of Object.entries(paths)) {
-    // `@board/config`/`@board/plugins` are this workspace's own seam, wired
-    // below to *this* board's files — never to whatever apps/community's own
-    // tsconfig happens to alias them to.
     if (alias === '@board/config' || alias === '@board/plugins') continue
     aliases[alias] = targets.map((target) => toPosixRelative(appDir, join(sourceDir, target)))
   }
   return aliases
 }
 
+/**
+ * Replaces each shipped entry (`APP_ENTRIES`) but never `rm -rf`s the whole
+ * `.meith/app` directory: `.next` lives there too once a build has run, and
+ * `forum-web start` needs that build still on disk after this same function
+ * re-materializes the sources ahead of launching the standalone server. The
+ * `next-env.d.ts` it writes only needs to exist, not be complete — next
+ * regenerates it with the right content on first run.
+ */
 function materialize() {
   const boardConfig = join(workspaceRoot, 'community.config.ts')
   const boardPlugins = join(workspaceRoot, 'community.plugins.ts')
@@ -169,10 +172,6 @@ function materialize() {
     )
   }
 
-  // Replace each shipped entry, but never `rm -rf` the whole directory:
-  // `.next` lives here too once a build has run, and `forum-web start` needs
-  // that build still on disk after this same function re-materializes the
-  // sources ahead of launching the standalone server.
   mkdirSync(appDir, { recursive: true })
 
   for (const entry of APP_ENTRIES) {
@@ -214,20 +213,20 @@ function materialize() {
 
   writeFileSync(join(appDir, 'tsconfig.json'), `${JSON.stringify(tsconfig, null, 2)}\n`)
 
-  // next dev/build reads its own next-env.d.ts if present; an empty one is
-  // enough, and next regenerates it with the right content on first run.
   writeFileSync(
     join(appDir, 'next-env.d.ts'),
     '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n',
   )
 }
 
+/**
+ * Resolved from this package's own directory rather than the workspace root:
+ * `next` is `@meith/web`'s dependency, not necessarily the workspace
+ * manifest's, and resolving from here finds it either way — hoisted to the
+ * workspace root (npm, yarn classic) or nested under this package's own
+ * `node_modules` (pnpm's default, non-hoisted layout).
+ */
 function resolveNextBin() {
-  // Resolved from this package's own directory rather than the workspace
-  // root: `next` is @meith/web's dependency, not necessarily the workspace
-  // manifest's, and resolving from here finds it either way — hoisted to
-  // the workspace root (npm, yarn classic) or nested under this package's
-  // own node_modules (pnpm's default, non-hoisted layout).
   const require = createRequire(join(packageRoot, 'package.json'))
   try {
     return require.resolve('next/dist/bin/next')

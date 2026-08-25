@@ -35,6 +35,15 @@ function run(command: string, args: readonly string[], cwd: string) {
  * absolute path. Throws if a package in the closure is still `private` —
  * see the message below for why that is a defect in the closure itself
  * rather than something this function can work around.
+ *
+ * A dependency counts as workspace-internal by whether it names a workspace
+ * package, not by a `@meith/` naming convention — MEI-81 added `@meith/cli`'s
+ * dependency on the bare-named `create-meith`, which this used to silently
+ * drop from the closure (never packed, never overridden), so `npm install`
+ * fell through to the real registry looking for a version of `create-meith`
+ * that has never been published from a local checkout. Any real third-party
+ * dependency (react, zod, …) is absent from `byName` and correctly still
+ * resolves from the real registry.
  */
 export async function packClosure(
   tarballDir: string,
@@ -53,15 +62,6 @@ export async function packClosure(
     if (entry === undefined) throw new Error(`packClosure: no workspace package named ${name}`)
     for (const field of ['dependencies', 'peerDependencies'] as const) {
       for (const dep of Object.keys(entry.manifest[field] ?? {})) {
-        // A workspace-internal dependency by whether it names a workspace
-        // package, not by a `@meith/` naming convention — MEI-81 added
-        // `@meith/cli`'s dependency on the bare-named `create-meith`, which
-        // this used to silently drop from the closure (never packed, never
-        // overridden), so `npm install` fell through to the real registry
-        // looking for a version of `create-meith` that has never been
-        // published from a local checkout. Any real third-party dependency
-        // (react, zod, …) is absent from `byName` and correctly still
-        // resolves from the real registry.
         if (byName.has(dep)) queue.push(dep)
       }
     }

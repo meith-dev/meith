@@ -158,9 +158,6 @@ describe('missingTarballContents', () => {
   })
 
   it('flags the exact failure mode this exists for — a files entry with nothing packed under it', () => {
-    // "app" is promised by the files allowlist, but the tarball never
-    // received anything under it — the Next app directory going missing
-    // without anything else about the package looking wrong.
     const problems = missingTarballContents(webManifest, [
       'package.json',
       'bin/forum-web.mjs',
@@ -173,8 +170,6 @@ describe('missingTarballContents', () => {
   })
 
   it('flags a bin target that files coverage alone would not catch', () => {
-    // Everything under bin/ is present, but not the exact file the bin entry
-    // points at — a rename on one side and not the other.
     const problems = missingTarballContents(webManifest, [
       'package.json',
       'bin/forum-web-old.mjs',

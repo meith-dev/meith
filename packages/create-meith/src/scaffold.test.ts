@@ -132,10 +132,12 @@ describe('what the scaffold writes', () => {
   })
 })
 
-// MEI-77: the deploy kit — a scaffolded board must work for someone with
-// nothing but a GitHub account and a Coolify server, with every file
-// complete and no placeholder needing hand-finishing except the board name
-// (already templated above).
+/**
+ * MEI-77: the deploy kit — a scaffolded board must work for someone with
+ * nothing but a GitHub account and a Coolify server, with every file
+ * complete and no placeholder needing hand-finishing except the board name
+ * (already templated above).
+ */
 describe('the deploy kit', () => {
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
@@ -162,8 +164,6 @@ describe('the deploy kit', () => {
   it('installs only its own delta on top of the base image', () => {
     expect(dockerfile).toContain('COPY package.json ./')
     expect(dockerfile).toContain('RUN npm install')
-    // Not a monorepo pnpm install — a real external board's node_modules is
-    // hoisted, and the base image primes it with npm for the same reason.
     expect(dockerfile).not.toContain('pnpm install')
   })
 
@@ -171,13 +171,8 @@ describe('the deploy kit', () => {
     expect(dockerfile).toContain('npx forum-web build')
   })
 
+  /** See docs/self-hosting.md for why this Dockerfile scopes DATA_SOURCE to the RUN command. */
   it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
-    // This Dockerfile has no separate runtime stage to reset a build-only
-    // ENV in (see "Two stages, not three" in its own header comment) — an
-    // `ENV DATA_SOURCE=fixture` declaration would leak into every container
-    // started from this image, silently forcing fixture mode (and the
-    // in-memory queue driver it implies) in production regardless of the
-    // DATABASE_URL an operator supplies at `docker run` time.
     expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
     expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
   })
