@@ -314,8 +314,8 @@ edited on the member's screen under **Admin → Users**.
 Making somebody a moderator of one forum does not need a group at all:
 open the forum under **Admin → Forums** and appoint them there, ticking
 exactly the rights they should hold, optionally cascading to the forums
-beneath. Approving content, deleting, restoring, locking, pinning,
-moving, merging and splitting are each a separate grant: ticking
+beneath. Approving content, editing, deleting, restoring, locking,
+pinning, moving, merging and splitting are each a separate grant: ticking
 *Delete posts* does not give the undo, so tick *Restore posts* too if
 you mean both. A moderator sees exactly what they hold, forum by forum,
 under **`/modcp/forums`**.

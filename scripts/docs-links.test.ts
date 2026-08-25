@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import * as siteContent from '../apps/web/src/content/site'
 import { slugify } from '../apps/web/src/markdown/slug'
 import {
   checkDocReferences,
@@ -180,6 +181,18 @@ describe('checkDocument', () => {
     expect(problem?.reason).toContain('does not exist in the repository')
   })
 
+  it('reports an anchor into a document the scan missed, rather than skipping it', async () => {
+    const markdown = '# A\n\n[go](./operating.md#backup)\n'
+    const set = await docset({ 'a.md': markdown, 'operating.md': '# Operations\n\n## Backup\n' })
+    const partial: Docset = {
+      ...set,
+      anchorsByFile: new Map([['a.md', set.anchorsByFile.get('a.md') ?? new Set<string>()]]),
+    }
+    const [problem] = await checkDocument('a.md', markdown, partial)
+
+    expect(problem?.reason).toContain('was not scanned')
+  })
+
   it('leaves external links alone', async () => {
     const markdown = '# A\n\n[go](https://example.com/x#y)\n'
     const set = await docset({ 'a.md': markdown })
@@ -223,6 +236,15 @@ describe('dedupeReferences', () => {
 
     expect(references).toHaveLength(2)
     expect(dedupeReferences(references)).toHaveLength(1)
+  })
+
+  it('reports paths that exist in the source, not the synthesized default namespace', () => {
+    const references = dedupeReferences(collectDocReferences(siteContent))
+    expect(references.every((reference) => !reference.path.startsWith('site.default.'))).toBe(true)
+  })
+
+  it('finds every doc reference the site content carries', () => {
+    expect(dedupeReferences(collectDocReferences(siteContent))).toHaveLength(12)
   })
 
   it('keeps two genuinely different places that name the same document', () => {

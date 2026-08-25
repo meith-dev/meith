@@ -417,7 +417,7 @@ serves the traced output itself.
 `pnpm verify` is the one that matters. It runs, in order: the workspace and
 root checks, `release:check`, the guards and their probes, the message-catalog
 check, the slot checks,
-the generated-document checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
+the generated-document and documentation checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
 `api:docs`, `perf:docs`, `docs:index`, `docs:links`, `site:docs`), lint,
 dependency-cruiser, all three typecheck projects, and the full test suite.
 It is a superset of what CI's `static` job runs, so if it passes locally,
@@ -802,6 +802,13 @@ link it cannot parse is a link it does not check: nested brackets in link text
 (`[a [b] c](./x.md)`), angle-bracket destinations (`[a](<./x y.md>)`), and
 four-space-indented code blocks, which are not masked the way fenced ones are.
 None appears in `docs/` today.
+
+Against the way that class of bug usually lands, the check counts what it read
+before it reports success: fewer documents than the manifest publishes is a
+failure, because every published document is a file under `docs/`. That catches
+a scan whose *shape* changed — a glob that stopped matching, a filter that
+matched too much. A path that simply moved already fails louder, when the
+directory read or the manifest parse throws.
 
 ## The board plugin manifests
 

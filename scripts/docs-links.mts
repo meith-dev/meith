@@ -221,7 +221,17 @@ export async function checkDocument(file: string, markdown: string, set: Docset)
     }
 
     const anchors = set.anchorsByFile.get(target)
-    if (anchors && !anchors.has(anchor)) {
+    if (anchors === undefined) {
+      add(
+        line,
+        href,
+        `docs/${target} exists but was not scanned, so "#${anchor}" could not be checked. ` +
+          'Every document under docs/ should be in the scan — this is the gate being wrong, ' +
+          'not the link.',
+      )
+      continue
+    }
+    if (!anchors.has(anchor)) {
       add(
         line,
         href,
@@ -265,13 +275,17 @@ export function collectDocReferences(
 export function dedupeReferences(references: readonly DocReference[]): DocReference[] {
   const seen = new Set<string>()
 
-  return references.filter((reference) => {
-    const where = reference.path.replace(/^site\.default\./, 'site.')
-    const key = `${where}|${reference.doc}|${reference.anchor}`
-    if (seen.has(key)) return false
+  const kept: DocReference[] = []
+
+  for (const reference of references) {
+    const path = reference.path.replace(/^site\.default\./, 'site.')
+    const key = `${path}|${reference.doc}|${reference.anchor}`
+    if (seen.has(key)) continue
     seen.add(key)
-    return true
-  })
+    kept.push({ ...reference, path })
+  }
+
+  return kept
 }
 
 export function checkDocReferences(references: readonly DocReference[], set: Docset): Problem[] {
@@ -335,16 +349,19 @@ async function main() {
     0,
   )
 
-  for (const [what, count] of [
-    ['documents under docs/', files.length],
-    ['links inside them', scanned],
-    [`doc references in ${CONTENT}`, references.length],
-  ] as const) {
-    if (count > 0) continue
+  const floors: readonly (readonly [string, number, number])[] = [
+    ['documents under docs/', files.length, manifest.documents.length],
+    ['links inside them', scanned, 1],
+    [`doc references in ${CONTENT}`, references.length, 1],
+  ]
+
+  for (const [what, found, least] of floors) {
+    if (found >= least) continue
     console.error(
-      `\n✖ ${WHERE} found no ${what}, which means it checked nothing.\n\n` +
-        '  A gate that inspects an empty set passes for as long as it is wrong.\n' +
-        '  Something moved: fix the path rather than the expectation.\n',
+      `\n✖ ${WHERE} found ${found} ${what}, and expected at least ${least}.\n\n` +
+        '  Every document the manifest publishes is a file under docs/, so a scan\n' +
+        '  smaller than the manifest means the scan is wrong, not the docset. Fix\n' +
+        '  what it reads rather than what it expects.\n',
     )
     process.exit(1)
   }

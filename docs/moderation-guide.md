@@ -19,9 +19,10 @@ Moderation happens in two places:
 
 What you may do is not one switch. You are appointed to forums, one at a
 time, and each appointment carries exactly the rights the organisers
-ticked — approving content, deleting, restoring, locking, pinning,
-moving, merging and splitting are separate grants. The rules are the
-administrator's to set.
+ticked — approving content, editing, deleting, restoring, locking,
+pinning, moving, merging and splitting are separate grants. The rules
+are the administrator's to set — see
+[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships).
 
 **My forums** (**`/modcp/forums`**) is the page to trust: it lists every
 forum you are appointed to and exactly what you may do in each. If a

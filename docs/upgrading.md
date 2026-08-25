@@ -545,7 +545,9 @@ delete quietly got the undo too. Restoring now needs *Restore posts*.
 Nobody loses an undo they were using: a one-off migration granted
 *Restore posts* to every existing appointment that held *Delete posts*.
 **New appointments get exactly what is ticked** — tick both boxes if you
-mean both.
+mean both. See
+[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships)
+for the nine grants an appointment carries.
 
 #### Three dead moderator checkboxes are gone
 
