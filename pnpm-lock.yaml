@@ -964,13 +964,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@electric-sql/pglite@0.5.5)(@opentelemetry/api@1.9.1)(mysql2@3.23.3(@types/node@26.2.0))(postgres@3.4.9)
-    devDependencies:
-      '@electric-sql/pglite':
-        specifier: ^0.5.5
-        version: 0.5.5
-      '@electric-sql/pglite-socket':
-        specifier: ^0.2.8
-        version: 0.2.8(@electric-sql/pglite-age@0.0.5(@electric-sql/pglite@0.5.5))(@electric-sql/pglite-pg_hashids@0.0.5(@electric-sql/pglite@0.5.5))(@electric-sql/pglite-pg_ivm@0.0.5(@electric-sql/pglite@0.5.5))(@electric-sql/pglite-pg_textsearch@0.0.6(@electric-sql/pglite@0.5.5))(@electric-sql/pglite-pg_uuidv7@0.0.5(@electric-sql/pglite@0.5.5))(@electric-sql/pglite-pgtap@0.0.5(@electric-sql/pglite@0.5.5))(@electric-sql/pglite-pgvector@0.0.5(@electric-sql/pglite@0.5.5))(@electric-sql/pglite@0.5.5)
 
   packages/theme-kit:
     dependencies:
