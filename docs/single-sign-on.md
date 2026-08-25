@@ -145,7 +145,7 @@ community user:2fa-clear --user ada
 
 It does the same work — clears the factor, ends every session, writes the
 same entry — from a shell on the host. See
-[the operator CLI](./operating.md#account-recovery) for how to reach it on
+[the operator CLI](./operating.md#the-operator-cli) for how to reach it on
 your deployment.
 
 ### What signing in looks like

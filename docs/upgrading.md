@@ -19,7 +19,7 @@ serves — so `upgrade` is what carries plugin migrations and records the
 version. The admin panel shows a notice until you run it.
 
 `community` is the operator CLI;
-[Running a board § The operator CLI](./operating.md#the-operator-cli) has
+[Operations § The operator CLI](./operating.md#the-operator-cli) has
 the invocation for each deployment.
 
 ## Take a backup first
@@ -545,8 +545,7 @@ delete quietly got the undo too. Restoring now needs *Restore posts*.
 Nobody loses an undo they were using: a one-off migration granted
 *Restore posts* to every existing appointment that held *Delete posts*.
 **New appointments get exactly what is ticked** — tick both boxes if you
-mean both. See
-[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships).
+mean both.
 
 #### Three dead moderator checkboxes are gone
 

@@ -10,7 +10,7 @@ hand to whoever set the board up.
 Two jobs have guides of their own: keeping threads civil is
 [The moderator's guide](./moderation-guide.md), and taking the money is
 [The memberships guide](./membership-guide.md). The full operator
-handbook is [Running a board](./operating.md) — this guide covers the
+handbook is [Operations](./operating.md) — this guide covers the
 day-to-day subset and links there for the detail.
 
 ## The admin panel
@@ -231,7 +231,7 @@ it will queue.
 Mass mail is queued and delivered in the background, so it needs the
 board's mail working and its background worker running — if a mass mail
 sits unsent, that is one for the technical person, and
-[Running a board § Mail](./operating.md#mail) is their page.
+[Operations § Mail](./operating.md#mail) is their page.
 
 ### Closing for maintenance
 
@@ -261,7 +261,7 @@ decide how people join:
 > board nobody can join — the links are minted and never delivered. The
 > registration settings screen warns loudly while this is true. If you
 > see that warning, mail is the thing to fix first — see
-> [Running a board § Mail](./operating.md#mail).
+> [Operations § Mail](./operating.md#mail).
 
 Registration questions and the other anti-spam controls live at
 **Admin → Anti-spam**.
@@ -313,9 +313,12 @@ edited on the member's screen under **Admin → Users**.
 
 Making somebody a moderator of one forum does not need a group at all:
 open the forum under **Admin → Forums** and appoint them there, ticking
-exactly the rights they should hold — edit, delete, approve, move, and
-so on, optionally cascading to the forums beneath. Each checkbox is
-named for the act it permits, and the screen groups them accordingly.
+exactly the rights they should hold, optionally cascading to the forums
+beneath. Approving content, deleting, restoring, locking, pinning,
+moving, merging and splitting are each a separate grant: ticking
+*Delete posts* does not give the undo, so tick *Restore posts* too if
+you mean both. A moderator sees exactly what they hold, forum by forum,
+under **`/modcp/forums`**.
 
 Promotions that members *earn* — a "Veteran" group at 500 posts — can be
 automated under **Admin → Groups → Promotions**; the screen previews
@@ -360,11 +363,11 @@ the page they need:
 
 | Job | Their page |
 |---|---|
-| Backups — and proving a backup restores | [Running a board § Backup and restore](./operating.md#backup) |
+| Backups — and proving a backup restores | [Operations § Backup](./operating.md#backup) |
 | Upgrading to a new version | [Upgrading a board](./upgrading.md) |
-| Setting up or changing how mail is sent | [Running a board § Mail](./operating.md#mail) |
+| Setting up or changing how mail is sent | [Operations § Mail](./operating.md#mail) |
 | Installing a theme or a plugin | [The theme API](./theme-api.md), [The plugin API](./plugin-api.md) |
-| Recovering lost administrator access | [Running a board § Account recovery](./operating.md#account-recovery) |
+| Recovering lost administrator access | [Operations § Account recovery](./operating.md#account-recovery) |
 
 Deciding *what* to install is yours, even when installing it is not.
 **Admin → Plugins → Browse** and **Admin → Themes → Browse** read a

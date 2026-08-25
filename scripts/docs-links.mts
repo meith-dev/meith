@@ -2,12 +2,14 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, normalize, relative } from 'node:path'
 
+import * as siteContent from '../apps/web/src/content/site'
 import { createSlugger } from '../apps/web/src/markdown/slug'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const DOCS = join(ROOT, 'docs')
 const MANIFEST = 'apps/web/content/docs.manifest.json'
-const CAPABILITIES = 'apps/web/src/content/site.ts'
+const CONTENT = 'apps/web/src/content/site.ts'
+const WHERE = 'scripts/docs-links.mts'
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t]*$/
@@ -16,11 +18,16 @@ const INLINE_LINK = /\[[^\]]*\]\(\s*([^)\s]+?)(?:\s+"[^"]*")?\s*\)/g
 const REFERENCE = /^ {0,3}\[[^\]]+\]:[ \t]+(\S+)/gm
 const HTML_HREF = /<a\b[^>]*\bhref="([^"]+)"/g
 const CODE_SPAN = /`[^`\n]*`/g
-const CAPABILITY = /doc:\s*'([^']+)',\s*\n\s*anchor:\s*(?:'([^']+)'|null)/g
 
 export interface DocLink {
   readonly href: string
   readonly line: number
+}
+
+export interface DocReference {
+  readonly doc: string
+  readonly anchor: string | null
+  readonly path: string
 }
 
 export interface Problem {
@@ -226,30 +233,70 @@ export async function checkDocument(file: string, markdown: string, set: Docset)
   return problems
 }
 
-export function checkCapabilities(source: string, set: Docset): Problem[] {
+export function collectDocReferences(
+  value: unknown,
+  path = 'site',
+  found: DocReference[] = [],
+): DocReference[] {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      collectDocReferences(item, `${path}[${index}]`, found)
+    })
+    return found
+  }
+  if (value === null || typeof value !== 'object') return found
+
+  const record = value as Record<string, unknown>
+  if (typeof record.doc === 'string') {
+    found.push({
+      doc: record.doc,
+      anchor: typeof record.anchor === 'string' ? record.anchor : null,
+      path,
+    })
+  }
+
+  for (const [key, nested] of Object.entries(record)) {
+    collectDocReferences(nested, `${path}.${key}`, found)
+  }
+
+  return found
+}
+
+export function dedupeReferences(references: readonly DocReference[]): DocReference[] {
+  const seen = new Set<string>()
+
+  return references.filter((reference) => {
+    const where = reference.path.replace(/^site\.default\./, 'site.')
+    const key = `${where}|${reference.doc}|${reference.anchor}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+export function checkDocReferences(references: readonly DocReference[], set: Docset): Problem[] {
   const problems: Problem[] = []
 
-  for (const match of source.matchAll(CAPABILITY)) {
-    const [, slug = '', anchor] = match
-    const file = set.fileBySlug.get(slug)
+  for (const { doc, anchor, path } of references) {
+    const file = set.fileBySlug.get(doc)
 
     if (!file) {
       problems.push({
-        source: CAPABILITIES,
+        source: `${CONTENT} (${path})`,
         line: null,
-        href: `/docs/${slug}`,
-        reason: `${MANIFEST} publishes no document with the slug "${slug}".`,
+        href: `/docs/${doc}`,
+        reason: `${MANIFEST} publishes no document with the slug "${doc}".`,
       })
       continue
     }
-    if (anchor === undefined) continue
+    if (anchor === null) continue
 
     const anchors = set.anchorsByFile.get(file) ?? new Set<string>()
     if (!anchors.has(anchor)) {
       problems.push({
-        source: CAPABILITIES,
+        source: `${CONTENT} (${path})`,
         line: null,
-        href: `/docs/${slug}#${anchor}`,
+        href: `/docs/${doc}#${anchor}`,
         reason: `no heading in docs/${file} slugifies to "${anchor}". ${nearest(anchor, anchors)}`,
       })
     }
@@ -282,11 +329,31 @@ async function main() {
     root: ROOT,
   }
 
+  const references = dedupeReferences(collectDocReferences(siteContent))
+  const scanned = files.reduce(
+    (total, file) => total + documentLinks(sources.get(file) ?? '').length,
+    0,
+  )
+
+  for (const [what, count] of [
+    ['documents under docs/', files.length],
+    ['links inside them', scanned],
+    [`doc references in ${CONTENT}`, references.length],
+  ] as const) {
+    if (count > 0) continue
+    console.error(
+      `\n✖ ${WHERE} found no ${what}, which means it checked nothing.\n\n` +
+        '  A gate that inspects an empty set passes for as long as it is wrong.\n' +
+        '  Something moved: fix the path rather than the expectation.\n',
+    )
+    process.exit(1)
+  }
+
   const problems: Problem[] = []
   for (const file of files) {
     problems.push(...(await checkDocument(file, sources.get(file) ?? '', set)))
   }
-  problems.push(...checkCapabilities(await readFile(join(ROOT, CAPABILITIES), 'utf8'), set))
+  problems.push(...checkDocReferences(references, set))
 
   if (problems.length > 0) {
     console.error('\n✖ documentation links point at things that are not there.\n')

@@ -6,9 +6,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { slugify } from '../apps/web/src/markdown/slug'
 import {
-  checkCapabilities,
+  checkDocReferences,
   checkDocument,
+  collectDocReferences,
   type Docset,
+  dedupeReferences,
   documentLinks,
   headingAnchors,
   isExternal,
@@ -185,24 +187,77 @@ describe('checkDocument', () => {
   })
 })
 
-describe('checkCapabilities', () => {
-  it('catches a capability anchor with no heading behind it', async () => {
+describe('collectDocReferences', () => {
+  it('finds a doc reference wherever it sits in the content graph', () => {
+    const content = {
+      capabilities: [{ doc: 'operating', anchor: 'backup' }],
+      footer: { links: [{ label: 'Upgrades', doc: 'upgrading' }] },
+    }
+
+    expect(collectDocReferences(content)).toEqual([
+      { doc: 'operating', anchor: 'backup', path: 'site.capabilities[0]' },
+      { doc: 'upgrading', anchor: null, path: 'site.footer.links[0]' },
+    ])
+  })
+
+  it('does not care what order the fields are written in', () => {
+    const reordered = { capabilities: [{ anchor: 'backup', link: 'x', doc: 'operating' }] }
+    expect(collectDocReferences(reordered)[0]).toEqual({
+      doc: 'operating',
+      anchor: 'backup',
+      path: 'site.capabilities[0]',
+    })
+  })
+
+  it('treats a missing anchor as no anchor', () => {
+    expect(collectDocReferences({ links: [{ doc: 'quickstart' }] })[0]?.anchor).toBe(null)
+  })
+})
+
+describe('dedupeReferences', () => {
+  it('collapses the synthesized default namespace against the named exports', () => {
+    const references = collectDocReferences({
+      capabilities: [{ doc: 'operating', anchor: null }],
+      default: { capabilities: [{ doc: 'operating', anchor: null }] },
+    })
+
+    expect(references).toHaveLength(2)
+    expect(dedupeReferences(references)).toHaveLength(1)
+  })
+
+  it('keeps two genuinely different places that name the same document', () => {
+    const references = collectDocReferences({
+      header: { links: [{ doc: 'operating' }] },
+      footer: { links: [{ doc: 'operating' }] },
+    })
+
+    expect(dedupeReferences(references)).toHaveLength(2)
+  })
+})
+
+describe('checkDocReferences', () => {
+  it('catches an anchor with no heading behind it', async () => {
     const set = await docset({ 'operating.md': '# Operations\n\n## Backup\n' })
-    const source = "  {\n    doc: 'operating',\n    anchor: 'permissions',\n  },\n"
-    const [problem] = checkCapabilities(source, set)
+    const [problem] = checkDocReferences(
+      [{ doc: 'operating', anchor: 'permissions', path: 'site.capabilities[0]' }],
+      set,
+    )
 
     expect(problem?.href).toBe('/docs/operating#permissions')
+    expect(problem?.source).toContain('site.capabilities[0]')
     expect(problem?.reason).toContain('no heading in docs/operating.md')
   })
 
-  it('accepts a capability anchor that resolves', async () => {
+  it('accepts an anchor that resolves', async () => {
     const set = await docset({ 'operating.md': '# Operations\n\n## Backup\n' })
-    expect(checkCapabilities("    doc: 'operating',\n    anchor: 'backup',\n", set)).toEqual([])
+    expect(checkDocReferences([{ doc: 'operating', anchor: 'backup', path: 'site' }], set)).toEqual(
+      [],
+    )
   })
 
-  it('catches a capability pointing at an unpublished slug', async () => {
+  it('catches a reference to an unpublished slug, anchor or not', async () => {
     const set = await docset({ 'operating.md': '# Operations\n' })
-    const [problem] = checkCapabilities("    doc: 'ghost',\n    anchor: null,\n", set)
+    const [problem] = checkDocReferences([{ doc: 'ghost', anchor: null, path: 'site' }], set)
 
     expect(problem?.reason).toContain('publishes no document with the slug "ghost"')
   })

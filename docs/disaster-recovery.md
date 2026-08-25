@@ -140,10 +140,10 @@ step from hours into minutes.
 ### 7. Resume the backups
 
 The new machine has no cron, and the recovery you just finished consumed
-a backup rather than producing one. Re-create the schedule from
-[taking one](./operating.md#backup), run it once by hand, and copy
-the result off the machine — the next disaster does not care how recent
-the last one was.
+a backup rather than producing one. Re-create the schedule you had,
+using the command in [Backup](./operating.md#backup), run it once by
+hand, and copy the result off the machine — the next disaster does not
+care how recent the last one was.
 
 ## Partial losses are smaller pages
 

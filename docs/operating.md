@@ -102,9 +102,11 @@ Use `community --help` for the exact commands supported by the installed release
 | Deployment | Invocation |
 |---|---|
 | Compose — the supported stack, and the by-hand one | `docker compose run --rm web community <command>` |
-| A platform that only builds and serves | the build command, ahead of the build — see [Migrations](#migrations) |
+| A platform that only builds and serves | `community <command>`, from a checkout of the board repository with the production environment in front of it — see [Running on Vercel](./vercel.md) |
 
 `--rm` stops the one-shot containers accumulating. Add `-T` when the command reads standard input, as creating a user does under [Account recovery](#account-recovery).
+
+There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `community migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
 The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. It is also the only route for the commands that have no admin-panel equivalent: `backup`, `restore`, `migrate` and `upgrade`.
 

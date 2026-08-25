@@ -285,7 +285,7 @@ written once:
   the provider list. `/admin/settings?group=mail` changes it afterwards
   with no redeploy; the `MAIL_*` variables in the `.env` beside this
   stack override both.
-- **[Running a board](./operating.md)** — the operator handbook:
+- **[Operations](./operating.md)** — the operator handbook:
   backups, the CLI, permissions, spam, and the failures that actually
   happen.
 
@@ -463,7 +463,7 @@ it is two things doing one job.
 | Password reset says "check your inbox" and nothing arrives | Mail is not configured, or the provider is refusing it. `/admin/settings?group=mail` → **Send a test message to me** answers which, and prints the provider's own refusal. |
 | Mail arrives, but its links point at the wrong host | `APP_URL` in `.env` is wrong — fix it there and redeploy. |
 
-[Running a board § Troubleshooting](./operating.md#troubleshooting)
+[Operations § Troubleshooting](./operating.md#troubleshooting)
 covers the failures that are about the board rather than the deployment.
 
 ## What you are taking on

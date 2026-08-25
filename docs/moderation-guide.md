@@ -4,7 +4,7 @@ For the volunteers who approve first posts, handle reports, and keep
 threads tidy. Everything here is done in a browser. The board's
 settings, permissions and machinery belong to whoever administers it —
 that side is [The organiser's guide](./organiser-guide.md) and
-[Running a board](./operating.md) — and this page says when to hand
+[Operations](./operating.md) — and this page says when to hand
 something over rather than pretending you can reach it.
 
 ## What you can do, and where
@@ -21,8 +21,7 @@ What you may do is not one switch. You are appointed to forums, one at a
 time, and each appointment carries exactly the rights the organisers
 ticked — approving content, deleting, restoring, locking, pinning,
 moving, merging and splitting are separate grants. The rules are the
-administrator's to set — see
-[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships).
+administrator's to set.
 
 **My forums** (**`/modcp/forums`**) is the page to trust: it lists every
 forum you are appointed to and exactly what you may do in each. If a
