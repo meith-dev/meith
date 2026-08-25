@@ -14,6 +14,7 @@ export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
 export const NOT_SECRET_DESPITE_THE_NAME: ReadonlySet<string> = new Set([
   'MAIL_HTTP_ENDPOINT',
   'S3_ENDPOINT',
+  'S3_PUBLIC_BASE_URL',
   'APP_URL',
   'S3_ACCESS_KEY_ID',
   'MAIL_SMTP_USERNAME',

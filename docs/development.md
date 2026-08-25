@@ -354,12 +354,28 @@ asserting on real SQL — all of it runs against PGlite, a real Postgres
 compiled to WebAssembly, booted in-process per suite with the checked-in
 migration SQL applied.
 
-Two suites are the exception — the `*.pg.test.ts` files, which need a real
-Postgres *server*. `packages/db/src/client.pg.test.ts` is there because
-PGlite bypasses the client driver and has accepted writes every real server
-rejected; `packages/db/src/migrate.pg.test.ts` is there because PGlite
-serves one backend and the thing under test is two connections contending
-for a lock. Both skip unless `TEST_DATABASE_URL` is set:
+The `*.pg.test.ts` files are the exception — they need a real Postgres
+*server*. `packages/db/src/client.pg.test.ts` is there because PGlite
+bypasses the client driver and has accepted writes every real server
+rejected; `packages/db/src/migrate.pg.test.ts` and
+`packages/db/src/install-repo.pg.test.ts` are there because PGlite serves
+one backend and the thing under test is two connections contending for a
+session-level lock.
+
+`packages/testkit/src/postgres-queue-pooled.pg.test.ts` is there for the
+same reason one step further out, and it is worth knowing why a fake will
+not do. Standing a wire server in front of a single PGlite instance funnels
+every client's protocol messages into one backend, which owns exactly one
+unnamed prepared statement — the statement `prepare: false` makes the board
+use. Two connections issuing parameterised queries at once interleave their
+Parse and Bind, one overwrites the other's unnamed statement, and Postgres
+answers `08P01: bind message supplies N parameters, but prepared statement
+"" requires 0`. That says nothing about the queue: it is the fake sharing
+the one piece of session state separate connections must never share, which
+is the opposite of what a transaction pooler does. Only a real server gives
+each connection its own backend.
+
+They all skip unless `TEST_DATABASE_URL` is set:
 
 ```sh
 docker compose -f docker/compose.dev.yml up -d

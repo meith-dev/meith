@@ -60,6 +60,7 @@ const envSchema = z
     S3_ACCESS_KEY_ID: nonEmpty.optional(),
     S3_SECRET_ACCESS_KEY: nonEmpty.optional(),
     S3_ENDPOINT: z.string().url().optional(),
+    S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
     MAIL_FROM: z.string().email().optional(),
     MAIL_HTTP_ENDPOINT: z.string().url().optional(),
@@ -235,6 +236,18 @@ const envSchema = z
             'the request. Set FILESTORE_DRIVER=s3 with S3_BUCKET, S3_REGION, ' +
             'S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY (S3_ENDPOINT too for R2, ' +
             'MinIO or Spaces).',
+        })
+      }
+
+      if (value.MAIL_DRIVER === 'smtp' && value.VERCEL && value.MAIL_SMTP_PORT === 25) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['MAIL_SMTP_PORT'],
+          message:
+            'cannot be 25 on Vercel — serverless egress blocks the plain SMTP ' +
+            'port, so every message would hang until the function timed out. ' +
+            'Use 587 with MAIL_SMTP_SECURITY=starttls, or MAIL_DRIVER=http, ' +
+            'which reaches a provider over ordinary HTTPS.',
         })
       }
     }

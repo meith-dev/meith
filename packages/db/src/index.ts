@@ -146,6 +146,7 @@ export {
   INSTALL_LOCK_KEY,
   isInstalled,
   markInstalled,
+  tryInstallLock,
   withInstallLock,
 } from './install-repo'
 export {
