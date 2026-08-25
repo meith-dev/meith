@@ -514,6 +514,18 @@ repository that nothing else reads:
 | `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 
+Three of those gates read the working tree rather than the index, so a
+directory a tool leaves behind is a directory they scan. `root:check` walks
+the root and tolerates an unregistered entry only when git ignores that entry
+itself — ignoring a subdirectory of it is not enough. `guards` and
+`i18n:check` share the walker in `scripts/repo-files.mjs`, which skips build
+and tooling output by name: `node_modules`, `dist`, `coverage` and their kind,
+plus `.meith` — the app `forum-web` materializes into a board workspace — and
+`.claude`, where an agent run keeps a full checkout of this repository per
+agent. Without those two, a local build or a parallel agent run makes every
+guard fire against copies of the repository instead of the repository. A new
+tool that writes into the tree belongs in both that list and `.gitignore`.
+
 ## The board plugin manifests
 
 This repository carries two boards, and each has its own

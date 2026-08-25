@@ -10,11 +10,11 @@
       "screenshots": [
         "/marketplace/screenshots/clubhouse-light.png"
       ],
-      "version": "0.17.1",
+      "version": "0.17.2",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "default",
@@ -25,11 +25,11 @@
       "screenshots": [
         "/marketplace/screenshots/default-light.png"
       ],
-      "version": "0.17.1",
+      "version": "0.17.2",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "dues",
@@ -40,11 +40,11 @@
       "screenshots": [
         "/marketplace/screenshots/dues-light.png"
       ],
-      "version": "0.17.1",
+      "version": "0.17.2",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "midnight",
@@ -55,11 +55,11 @@
       "screenshots": [
         "/marketplace/screenshots/midnight-light.png"
       ],
-      "version": "0.17.1",
+      "version": "0.17.2",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "phasebook",
@@ -70,11 +70,11 @@
       "screenshots": [
         "/marketplace/screenshots/phasebook-light.png"
       ],
-      "version": "0.17.1",
+      "version": "0.17.2",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     },
     {
       "key": "raidframe",
@@ -85,11 +85,11 @@
       "screenshots": [
         "/marketplace/screenshots/raidframe-light.png"
       ],
-      "version": "0.17.1",
+      "version": "0.17.2",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
-      "licence": "LGPL-3.0-or-later"
+      "licence": "MIT"
     }
   ]
 }

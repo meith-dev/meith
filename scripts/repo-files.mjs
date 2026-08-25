@@ -14,6 +14,8 @@ const SKIP_DIRS = new Set([
   'coverage',
   'v0_plans',
   'user_read_only_context',
+  '.claude',
+  '.meith',
 ])
 
 async function walk(dir, out = []) {

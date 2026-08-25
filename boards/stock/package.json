@@ -1,8 +1,8 @@
 {
   "name": "@meith/board-stock",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "description": "The stock board: a create-meith-shaped workspace consuming @meith/web and @meith/cli, built by docker/Dockerfile into the official image. Not published.",
-  "license": "LGPL-3.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/meith-dev/meith.git",

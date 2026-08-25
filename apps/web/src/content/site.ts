@@ -12,11 +12,9 @@ export const site = {
 } as const
 
 export const licence = {
-  spdx: 'LGPL-3.0-or-later',
-  short: 'LGPL-3.0',
-  name: 'GNU Lesser General Public License v3',
+  spdx: 'MIT',
+  name: 'MIT License',
   file: 'LICENSE.md',
-  incorporates: 'COPYING',
 } as const
 
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
@@ -321,8 +319,8 @@ export const openSource = {
   eyebrow: 'Open source',
   heading: 'Yours to run, and yours to keep.',
   body:
-    'Free software under the GNU Lesser General Public License v3, on a machine your community ' +
-    'rents, at a domain it owns. No company in the middle, nobody who can price it later or ' +
+    'Open source under the MIT licence, on a machine your community rents, at a domain it ' +
+    'owns. No company in the middle, nobody who can price it later or ' +
     'switch it off — and when the people running it change, the board is handed over whole, ' +
     'not rebuilt from scratch.',
   emphasis:
