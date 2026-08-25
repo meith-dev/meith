@@ -616,6 +616,95 @@ control-panel page threw a `ForbiddenError` on a visit its layout had
 already answered with the sign-in form, and every spec asserting on that
 form passed over the top of it.
 
+### A red browser shard is often not about your change
+
+The shard `No-JS and accessibility browser checks (1)` failed seven times
+across five pull requests in one afternoon, passing on re-run every time
+with no code change — once on a documentation-only branch that touches no
+code at all. If a browser shard goes red and the diff cannot explain it,
+the first move is to read this section rather than to reach for the
+locator.
+
+**The mechanism is the dev server's memory, not the assertion.** The suite
+drives `next dev`, which compiles each route on first request and holds
+every route it has compiled for the life of the run. Measured locally on a
+four-core machine, the pair of dev servers reaches **10.1 GB** of resident
+memory by the end of shard 1. A CI runner has 16 GB and is also hosting
+Chromium, two PGlite databases and a second dev server. The shard finishes
+within a couple of gigabytes of the ceiling, and the late tests visibly
+slow down as it approaches — which is what `ci.yml` already describes when
+it explains why the suite is sharded at all.
+
+Under that pressure a test fails for reasons its own code cannot explain:
+a compile stalls, or the dev server restarts and serves a route it has not
+finished rebuilding. The failure lands on **whichever test is in flight**,
+so the reported spec varies between runs. Reproduced locally by pinning the
+suite to half the machine's cores, shard 1 produced `1 failed, 55 passed`
+— the same shape CI reports, with a different victim than CI's.
+
+**What this is not.** `admin-panel-live.spec.ts` was blamed for a long time
+because it is a frequent victim, and one measurement seemed to convict it:
+the ban test takes twelve seconds against a fifteen-second assertion
+timeout. Those are two different budgets. Twelve seconds is the whole
+test — a registration in a second browser context, an administrator sign-in,
+the panel's password proof, and two routes compiled for the first time. The
+assertion the failure names, `Banned until`, resolves in **355 ms** idle and
+under a second at half CPU. It has never been close to its timeout, and no
+change to that locator or that budget would have prevented a single one of
+those seven failures.
+
+That test is a frequent victim rather than a culprit for a structural
+reason: it is the first test in shard 1 to reach `/admin/users/[id]`, so it
+pays that route's first compile every run, and it is scripting-on, so
+its button does nothing until the page has hydrated. It is exposed to a
+dev-server stall in a way a no-JS spec is not.
+
+**The board project retries once on CI, and says so.** A retried test is
+reported by `e2e/support/flaky-notice.ts`, which prints a GitHub Actions
+warning naming every test that failed and then passed. A retry is
+containment, not a fix: it converts a human blindly re-running the job into
+a machine retrying one test and leaving a record. **Green with a flaky
+warning is not the same as green.** If the same spec is named repeatedly,
+that is a signal to come back here, not to raise its timeout.
+
+The retry is scaffolding with a scheduled end, not a standing policy. It
+contains a mechanism that the move to a built server below removes
+outright, and it comes out in the same change that makes that move.
+
+Two things worth knowing before changing anything in this area:
+
+- `DATABASE_POOL_MAX` is `1` for the suite, so making a server action's
+  queries concurrent with `Promise.all` does not make them parallel — they
+  serialise on the single connection.
+- `experimental.turbopackFileSystemCacheForDev` is left at Next's default,
+  which is on. Turning it off keeps Turbopack's whole dev cache in memory,
+  which pushes the shard towards the ceiling above. The stale-cache problem
+  that argues for turning it off needs a `.next` directory restored from a
+  previous run, and CI never caches `.next-e2e`.
+
+**The standing fix is to stop testing against `next dev`.** Retrying
+contains the symptom; only a built server removes the mechanism, because a
+built server compiles nothing at request time and so has nothing to hold.
+Measured on the same machine, at the same half the cores, against shard 1:
+
+| | `next dev` | built server |
+|---|---|---|
+| Board server memory | grows to 7.5 GB, 10.1 GB with the install server | flat at **0.3 GB** |
+| Shard wall-clock | 7.9 min | **2.2 min**, plus a 42 s build |
+| The ban test | 14.3 s | **3.6 s** |
+
+The build needs no database — every route is server-rendered on demand, so
+nothing is prerendered. Two things stop it being a drop-in, and both are
+why it is a change of its own rather than a flake fix:
+
+- `output: 'standalone'` makes `next start` print a warning and serve
+  anyway; a real switch should run the standalone server or build the
+  suite without that option.
+- `account-security-no-js.spec.ts` reads a password-reset token straight
+  off the page, which `auth-actions.ts` only returns when `NODE_ENV` is
+  `development`. A built server is production, so that spec needs another
+  way to reach the token.
+
 ## The site's screenshots
 
 Every image on meith.dev is a screenshot of a real board rather than an
