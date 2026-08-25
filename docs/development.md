@@ -430,7 +430,7 @@ serves the traced output itself.
 | `pnpm typecheck` | The workspace. `typecheck:app` and `typecheck:site` cover the two Next projects. |
 | `pnpm lint` | Biome: formatting, lint rules and import order, in one pass. `pnpm format` writes the fixes. |
 | `pnpm verify` | **The full static gate.** Run it before opening a pull request — see below. |
-| `pnpm test:e2e` | Playwright: the no-JavaScript paths, the staff panels, and the accessibility checks. It starts its own database and dev servers — nothing to install. |
+| `pnpm test:e2e` | Playwright: the no-JavaScript paths, the staff panels, and the accessibility checks. It builds the board and runs the standalone output against its own databases — nothing to install. `pnpm test:e2e:build` is the build on its own. |
 | `pnpm site:shots` | Re-photographs meith.dev's screenshots against the demo board. Deliberate, never on CI — see [the site's screenshots](#the-sites-screenshots). |
 
 `pnpm verify` is the one that matters. It runs, in order: the workspace and
@@ -572,11 +572,11 @@ coverage floor when runtime behavior is introduced.
 ## The browser suite
 
 `pnpm test:e2e` starts everything it needs: a PGlite serving the Postgres
-wire protocol, a `next dev` server against it, and a second empty database
-and server for `/install`. There is nothing to install and nothing to leave
-running.
+wire protocol, a built server running the standalone output against it, and
+a second empty database and server for `/install`. There is nothing to
+install and nothing to leave running.
 
-**Most specs run with JavaScript disabled** — 31 of the 42 spec files. That
+**Most specs run with JavaScript disabled** — 33 of the 48 spec files. That
 is the point rather than a flourish: this board's claim is that a native
 `<form>` does the work and the islands are optional, so a suite that tested
 only the enhanced path would prove the opposite. The JS-on specs are the
@@ -770,9 +770,8 @@ product:
   context, but Playwright's `page.request` will not — so a route reached
   that way saw an anonymous visitor. `signedHeaders()` in
   `e2e/support/session.ts` attaches the context's cookies to those calls.
-  For the same reason a `__Host-` cookie cannot be round-tripped back
-  through `addCookies`; clear the one you mean with
-  `clearCookies({ name })` instead.
+  To drop one such cookie, prefer `clearCookies({ name })` over reading the
+  jar, clearing it and adding the rest back: it does that filtering for you.
 
 **A known pre-existing order dependency.** Run serially in one process,
 `admin-tabs-no-js.spec.ts` leaves something behind that makes
