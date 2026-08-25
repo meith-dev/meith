@@ -28,6 +28,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 
+import { assertBoardAssetsServe } from './board-smoke-assets.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -296,6 +297,10 @@ async function main() {
       if (!response.ok) throw new Error(`board-eject-smoke: / answered ${response.status}`)
       const body = await response.text()
       if (!body.includes('<main')) throw new Error('board-eject-smoke: / did not render <main>')
+
+      console.log('== confirming static assets and /sw.js actually serve after graduation ==')
+      await assertBoardAssetsServe(`http://127.0.0.1:${PORT}`, body)
+      console.log('== static assets and /sw.js served correctly ==')
 
       console.log('== confirming the seeded thread survived unchanged ==')
       const threadResponse = await fetch(`http://127.0.0.1:${PORT}/thread/${seededThread}`)

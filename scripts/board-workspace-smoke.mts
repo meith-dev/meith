@@ -26,12 +26,22 @@
  * production build needs no database" (docs/development.md).
  *
  * Needs a reachable, empty Postgres named by DATABASE_URL.
+ *
+ * `main()` resolving is not the same claim as this process exiting on its
+ * own — confirmed against a real CI run, where the checks above all passed
+ * and printed their success lines in under two minutes, and the process
+ * then sat with nothing left to do for over an hour until the run was
+ * cancelled externally. Something in this dependency chain (`tsx`'s own
+ * loader is a documented cause of exactly this) can leave a handle open
+ * that Node's own idle-exit never clears, so the entry point below calls
+ * `process.exit()` itself rather than trusting the event loop to empty.
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { assertBoardAssetsServe } from './board-smoke-assets.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -146,23 +156,6 @@ async function main() {
     })
 
     console.log('== forum-web start ==')
-    // Two things this has to defend against, both confirmed against a real
-    // CI run of this exact script (the smoke test itself passed in under two
-    // minutes; the *process* then sat for over an hour until the run was
-    // cancelled — see the PR for the log):
-    //
-    // `forum-web start` is itself a wrapper (apps/community/bin/forum-web.mjs)
-    // that spawns the real `node server.js` as *its own* child with
-    // `stdio: 'inherit'`. Killing the wrapper does not kill that grandchild —
-    // Linux does not cascade a signal to orphaned children — so `detached:
-    // true` plus signalling the whole process group (`-server.pid`) is what
-    // actually reaches the standalone server, not just its wrapper.
-    //
-    // Even with the server fully dead, nothing here calls `process.exit()`,
-    // and something in this dependency chain (`tsx`'s own loader is a
-    // documented culprit) can leave the process waiting on a handle that
-    // never clears on its own. `main()` completing is not the same claim as
-    // the process exiting, so the caller forces the latter explicitly.
     const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start'], {
       cwd: boardDir,
       detached: true,
@@ -180,20 +173,28 @@ async function main() {
     server.stdout?.on('data', (chunk) => process.stdout.write(chunk))
     server.stderr?.on('data', (chunk) => process.stderr.write(chunk))
 
+    /**
+     * `forum-web start` is itself a wrapper (apps/community/bin/forum-web.mjs)
+     * that spawns the real `node server.js` as *its own* child with
+     * `stdio: 'inherit'`. Killing the wrapper does not kill that
+     * grandchild — Linux does not cascade a signal to orphaned children —
+     * so `detached: true` on the spawn above plus signalling the whole
+     * process group (`-server.pid`) here is what actually reaches the
+     * standalone server, not just its wrapper. Confirmed against a real CI
+     * run: the smoke test itself passed in under two minutes, but the
+     * process then sat for over an hour until the run was cancelled — see
+     * the PR for the log.
+     */
     function stopServer() {
       if (server.pid === undefined) return
       try {
         process.kill(-server.pid, 'SIGTERM')
-      } catch {
-        // Already gone.
-      }
+      } catch {}
       setTimeout(() => {
         if (server.pid === undefined) return
         try {
           process.kill(-server.pid, 'SIGKILL')
-        } catch {
-          // Already gone.
-        }
+        } catch {}
       }, 5000).unref()
     }
 
@@ -208,6 +209,10 @@ async function main() {
         throw new Error('board-workspace-smoke: / answered but did not render <main>')
       }
       console.log('== the materialized, standalone board rendered / ==')
+
+      console.log('== confirming static assets and /sw.js actually serve ==')
+      await assertBoardAssetsServe(`http://127.0.0.1:${PORT}`, body)
+      console.log('== static assets and /sw.js served correctly ==')
     } finally {
       stopServer()
     }
@@ -217,14 +222,6 @@ async function main() {
   }
 }
 
-// `main()` resolving is not the same claim as this process exiting on its
-// own — confirmed against a real CI run, where the checks above all passed
-// and printed their success lines in under two minutes, and the process
-// then sat with nothing left to do for over an hour until the run was
-// cancelled externally. Something in this dependency chain (`tsx`'s own
-// loader is a documented cause of exactly this) can leave a handle open
-// that Node's own idle-exit never clears, so this calls `process.exit()`
-// itself rather than trusting the event loop to empty.
 try {
   await main()
   console.log('✓ board-workspace-smoke: a scaffolded, externally-installed board builds and boots')

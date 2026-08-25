@@ -2,9 +2,35 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CODE_VERSION } from './upgrade'
+
+/**
+ * MEI-90's own case: a bind-mounted target the container cannot write into
+ * behaves exactly like a real EACCES, without needing an actual permission
+ * failure on disk (this suite, like CI, may run as root, which bypasses
+ * filesystem permission bits entirely). `writeFailure.path` targets one
+ * write; every other call passes straight through to the real writeFile.
+ */
+const writeFailure: { path: string | undefined } = { path: undefined }
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  return {
+    ...actual,
+    writeFile: async (path: string, contents: string, encoding: BufferEncoding) => {
+      if (writeFailure.path !== undefined && path === writeFailure.path) {
+        const error = new Error(
+          `EACCES: permission denied, open '${path}'`,
+        ) as NodeJS.ErrnoException
+        error.code = 'EACCES'
+        throw error
+      }
+      return actual.writeFile(path, contents, encoding)
+    },
+  }
+})
 
 let manifestDir: string
 let manifestPath: string
@@ -24,6 +50,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   delete process.env.BOARD_PLUGINS_MANIFEST
+  writeFailure.path = undefined
 })
 
 const { boardEject } = await import('./board-eject')
@@ -67,7 +94,6 @@ describe('boardEject', () => {
     expect(manifest.dependencies['@meith/theme-default']).toBe(CODE_VERSION)
     expect(manifest.version).not.toBe('latest')
 
-    // The deploy kit rides along, unmodified — same machinery create-meith uses.
     await expect(readFile(join(target, 'Dockerfile'), 'utf8')).resolves.toContain(
       // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
       'ghcr.io/meith-dev/meith-base:${MEITH_VERSION}',
@@ -90,6 +116,45 @@ describe('boardEject', () => {
     expect(written).toEqual({
       plugins: [{ key: 'dues', package: '@meith/plugin-dues', enabled: true }],
     })
+  })
+
+  it('adds each manifest plugin to package.json dependencies, pinned to the exact code version (MEI-89)', async () => {
+    await writeManifest([
+      { key: 'dues', package: '@meith/plugin-dues', enabled: true },
+      { key: 'reference', package: '@meith/plugin-reference', enabled: false },
+    ])
+    const target = join(targetParent, 'my-board')
+
+    await boardEject([target])
+
+    const written = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
+    expect(written.dependencies['@meith/plugin-dues']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/plugin-reference']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/web']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/cli']).toBe(CODE_VERSION)
+    expect(written.dependencies['@meith/theme-default']).toBe(CODE_VERSION)
+    expect(Object.keys(written.dependencies)).toEqual([
+      '@meith/web',
+      '@meith/cli',
+      '@meith/theme-default',
+      '@meith/plugin-dues',
+      '@meith/plugin-reference',
+    ])
+  })
+
+  it('does not duplicate a manifest plugin package that scaffold() already pins', async () => {
+    await writeManifest([{ key: 'web', package: '@meith/web', enabled: true }])
+    const target = join(targetParent, 'my-board')
+
+    await boardEject([target])
+
+    const written = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
+    expect(written.dependencies['@meith/web']).toBe(CODE_VERSION)
+    expect(Object.keys(written.dependencies)).toEqual([
+      '@meith/web',
+      '@meith/cli',
+      '@meith/theme-default',
+    ])
   })
 
   it('renders an empty community.plugins.ts with no showcase wiring when the manifest is empty', async () => {
@@ -144,5 +209,70 @@ describe('boardEject', () => {
     expect(output).toContain('uploads')
     expect(output).toContain('environment variable')
     expect(output).toMatch(/GitHub/i)
+  })
+
+  it('refuses a key whose repeated hyphen would break the generated import (MEI-87)', async () => {
+    await writeManifest([{ key: 'foo--bar', package: '@meith/plugin-dues', enabled: true }])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(
+      /"foo--bar" is a valid plugin key, but the identifier/,
+    )
+  })
+
+  it('refuses a trailing-hyphen key for the same reason', async () => {
+    await writeManifest([{ key: 'foo-', package: '@meith/plugin-dues', enabled: true }])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(/"foo-" is a valid plugin key, but/)
+  })
+
+  it('refuses two keys that collide on the same generated identifier', async () => {
+    await writeManifest([
+      { key: 'foo-1', package: '@meith/plugin-dues', enabled: true },
+      { key: 'foo1', package: '@meith/plugin-widget', enabled: true },
+    ])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(
+      /"foo1" and "foo-1" both generate the identifier "foo1"/,
+    )
+  })
+
+  it('refuses a non-boolean "enabled"', async () => {
+    await writeManifest([{ key: 'dues', package: '@meith/plugin-dues', enabled: 'false' }])
+    const target = join(targetParent, 'my-board')
+
+    await expect(boardEject([target])).rejects.toThrow(/non-boolean "enabled"/)
+  })
+
+  it('accepts a target directory that already exists and is empty, the shape a bind mount leaves behind (MEI-90)', async () => {
+    const target = join(targetParent, 'my-board')
+    await mkdir(target, { recursive: true })
+
+    expect(await boardEject([target])).toBe(0)
+
+    const manifest = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
+    expect(manifest.name).toBe('my-board')
+  })
+
+  it('turns a permission-denied write into an actionable error instead of a bare stack (MEI-90)', async () => {
+    const target = join(targetParent, 'my-board')
+    await mkdir(target, { recursive: true })
+    writeFailure.path = join(target, 'package.json')
+
+    let caught: unknown
+    try {
+      await boardEject([target])
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).toBeInstanceOf(Error)
+    const message = (caught as Error).message
+    expect(message).toMatch(/could not write to .*: permission denied/)
+    expect(message).toContain(target)
+    expect(message).toContain('needs write access')
+    expect(message).toContain('docs/marketplace.md')
   })
 })

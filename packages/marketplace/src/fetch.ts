@@ -22,11 +22,53 @@ export interface FetchFeedOptions {
   readonly fetchImpl?: typeof fetch
 }
 
+/** See `docs/marketplace.md#outbound-fetches-do-not-follow-redirects`. */
+export async function readCappedBody(
+  response: Response,
+  maxBytes: number,
+): Promise<Uint8Array | null> {
+  const declaredLength = response.headers.get('content-length')
+  if (declaredLength !== null) {
+    const declared = Number(declaredLength)
+    if (Number.isFinite(declared) && declared > maxBytes) return null
+  }
+
+  if (response.body === null) {
+    const buffer = await response.arrayBuffer()
+    return buffer.byteLength > maxBytes ? null : new Uint8Array(buffer)
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+
+  const combined = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    combined.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return combined
+}
+
 /**
  * Fetches and JSON-parses a marketplace feed. Never throws: an unreachable
- * host, a non-200 response, an oversized body or invalid JSON are all
- * reported as `{ ok: false, error }` — the board with no outbound network is
- * meant to fail quietly here, not crash the task that called this.
+ * host, a non-200 response (a redirect included — see
+ * `docs/marketplace.md#outbound-fetches-do-not-follow-redirects`), an
+ * oversized body or invalid JSON are all reported as `{ ok: false, error }`
+ * — the board with no outbound network is meant to fail quietly here, not
+ * crash the task that called this.
  */
 export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<FetchFeedResult> {
   const fetchImpl = options.fetchImpl ?? fetch
@@ -39,6 +81,7 @@ export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<F
       response = await fetchImpl(options.url, {
         signal: controller.signal,
         headers: { accept: 'application/json' },
+        redirect: 'manual',
       })
     } catch (error) {
       return { ok: false, body: null, error: `could not reach ${options.url}: ${String(error)}` }
@@ -48,8 +91,8 @@ export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<F
       return { ok: false, body: null, error: `${options.url} answered ${response.status}` }
     }
 
-    const text = await response.text()
-    if (text.length > MAX_BODY_BYTES) {
+    const bytes = await readCappedBody(response, MAX_BODY_BYTES)
+    if (bytes === null) {
       return {
         ok: false,
         body: null,
@@ -58,7 +101,7 @@ export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<F
     }
 
     try {
-      return { ok: true, body: JSON.parse(text), error: null }
+      return { ok: true, body: JSON.parse(new TextDecoder().decode(bytes)), error: null }
     } catch {
       return { ok: false, body: null, error: `${options.url} did not answer valid JSON` }
     }

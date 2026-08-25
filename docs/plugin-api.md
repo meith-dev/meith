@@ -42,28 +42,41 @@ export { greeter as plugin } from './definition'
 export { greeterMessages as messages } from './messages'
 ```
 
-Installing one is then `pnpm add`, `community plugin:add <package>`, and a
-rebuild and redeploy:
+Installing one in this checkout is then `pnpm add`, `community
+plugin:add <package>`, and a rebuild and redeploy. This repository carries
+two boards — `apps/community`, the in-repo dev target, and `boards/stock`,
+the workspace `docker/Dockerfile` builds the official image from (see
+`docs/architecture.md`, "The board-config seam") — and their two
+`board.plugins.json` files are required to stay identical
+(`tests/boards-stock.test.ts` is the drift guard `pnpm verify` runs), so the
+package has to land as a dependency of both, and `plugin:add` writes both
+manifests:
 
 ```sh
 pnpm add @meith/plugin-greeter --filter @meith/web
+pnpm add @meith/plugin-greeter --filter @meith/board-stock
 community plugin:add @meith/plugin-greeter
 ```
 
 `plugin:add` infers the manifest key from a `@scope/plugin-<key>` package
 name (pass `--key` when it does not fit that shape, or `--disabled` to
-install it switched off) and writes `board.plugins.json`:
+install it switched off) and writes both `board.plugins.json` files:
 
 ```json
 { "plugins": [{ "key": "greeter", "package": "@meith/plugin-greeter", "enabled": true }] }
 ```
 
 then runs `pnpm board:gen` for you, which writes the import and the list
-entry into `community.plugins.ts`. `community plugin:remove <key>` is the
-reverse. Neither command takes plugin configuration — the manifest has no
-field for it, on purpose, and `plugin:add` refuses an attempt to pass any:
-a plugin that needs arguments is not manifest-installable until its
-configuration moves into its own settings, the way `plugins/dues`'s did.
+entry into both `community.plugins.ts` files. `community plugin:remove <key>`
+is the reverse, on both boards. If the generator refuses one board's manifest
+— the package is not yet a dependency there, most often, or the two manifests
+already disagree before the command ran — neither `board.plugins.json` file
+is touched: `plugin:add`/`plugin:remove` roll every board back together, so a
+failed attempt never leaves one manifest edited and the other not. Neither
+command takes plugin configuration — the manifest has no field for it, on
+purpose, and `plugin:add` refuses an attempt to pass any: a plugin that needs
+arguments is not manifest-installable until its configuration moves into its
+own settings, the way `plugins/dues`'s did.
 
 **The escape hatch is still real code, and it is honest about being one.**
 A plugin that cannot yet fit the manifest — it takes constructor
@@ -77,11 +90,27 @@ extension point. Nothing about `community.plugins.ts` being generated
 changes what runs — it changes how the manifest-installable, common case
 gets there without hand-editing TypeScript.
 
-`pnpm board:gen:check`, wired into `pnpm verify`, fails when the manifest
-and `community.plugins.ts` disagree — run `pnpm board:gen` and commit the
-result. `board.plugins.json` refuses a duplicate key, a key `definePlugin`
-would refuse, and a package `apps/community` does not depend on, naming
-`pnpm add <package> --filter @meith/web` as the fix for the last one.
+`pnpm board:gen:check`, wired into `pnpm verify`, fails when either board's
+manifest and its `community.plugins.ts` disagree — run `pnpm board:gen` and
+commit the result — and `tests/boards-stock.test.ts` fails when the two
+`board.plugins.json` files disagree with each other. Each `board.plugins.json`
+refuses: a duplicate key; a key `definePlugin` would refuse; a key that is
+legal but whose camelCase identifier collides with another entry's, or is
+not itself a valid identifier (a repeated or trailing hyphen, most often —
+`foo--bar` and `foo-` are both legal plugin keys and both make
+`community.plugins.ts` un-generatable without this check); a non-boolean
+`enabled`; a `package` that is not a valid npm package name; and a package
+its own board does not depend on, naming the fix — `pnpm add <package>
+--filter @meith/web` for `apps/community`, `pnpm add <package> --filter
+@meith/board-stock` for `boards/stock` — against whichever board actually
+lacks it. `apps/cli/src/board-eject.ts` renders the same shape of
+`community.plugins.ts` for an ejected board and carries its own copy of the
+key/identifier/`enabled`/package-name checks (not the dependency check — an
+ejected build has no such list to check against); the two `toIdentifier`
+implementations are pinned to agree by a test in `board-eject.test.ts`
+rather than shared, for the reason `plugin-manifest.ts`'s shelling out to
+the generator is: a plain script and a workspace TypeScript package cannot
+share a module without one of them changing what it is.
 
 > [!TIP]
 > **[`examples/hello-plugin`](https://github.com/meith-dev/meith/tree/main/examples/hello-plugin)
@@ -776,6 +805,11 @@ settings: [
   named problem on the plugin's screen rather than a save that refuses
   everything else, so a board mid-setup can still be configured a field at
   a time.
+- **A `select`'s option values are matched case-insensitively and
+  trimmed**, so a stray `DUES_CURRENCY=EUR` or a trailing space from
+  copy-pasting an environment value still finds the option `'eur'`
+  declares — the resolved value is always the option's own declared
+  casing, never the raw input. Declare option values lowercase.
 - **A `select` whose stored value is no longer among its options** — an
   older version of the plugin declared more — resolves to the default
   instead of handing the plugin a value it never declared.
@@ -784,6 +818,11 @@ settings: [
   next source in the same order as everything else; a plugin that needs a
   bounded number clamps it itself when reading `context.settings` — see
   `plugins/dues`'s grace-period setting for the pattern.
+- **A setting has no `descriptionArgs`** — unlike a plugin's own top-level
+  description, a setting's `description`/`descriptionKey` is translated with
+  no interpolation. A bound worth stating (a grace period's allowed range, a
+  number's units) belongs in the catalog text itself, kept in sync by hand
+  with whatever constant actually enforces it.
 
 ## Migrations
 

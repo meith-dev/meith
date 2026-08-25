@@ -92,8 +92,6 @@ describe('computeListingStatus', () => {
   })
 
   it('stays "active" for a currently-running theme even when the catalog listing is stale', () => {
-    // Themes carry no compiled version to compare (defineTheme has none), so
-    // `installed.version` is always null for one — see the module comment.
     const result = computeListingStatus(
       {
         kind: 'theme',

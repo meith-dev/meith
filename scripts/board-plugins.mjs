@@ -19,12 +19,27 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// Mirrors KEY_PATTERN in packages/plugin-kit/src/plugin.ts. definePlugin()
-// is the real authority — a manifest key that does not match the plugin's
-// own declared key fails loudly in defineForumConfig() — this copy exists
-// so a bad manifest fails before a build does, with a message that names
-// board.plugins.json instead of a file the operator never opened.
+/**
+ * Mirrors KEY_PATTERN in packages/plugin-kit/src/plugin.ts. definePlugin() is the real
+ * authority — a manifest key that does not match the plugin's own declared key fails
+ * loudly in defineForumConfig() — this copy exists so a bad manifest fails before a
+ * build does, with a message that names board.plugins.json instead of a file the
+ * operator never opened.
+ */
 export const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
+
+/**
+ * A legal PLUGIN_KEY_PATTERN key does not guarantee toIdentifier(key) below produces a
+ * valid TypeScript binding name. See docs/development.md, "The board plugin manifests".
+ */
+const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
+
+/**
+ * Narrower than the full npm registry grammar (scopes, dots, tildes) — this only needs
+ * to keep entry.package from becoming anything other than an import specifier once
+ * renderPluginsModule interpolates it.
+ */
+const NPM_PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
 
 export const HEADER = `// GENERATED FILE — do not edit.
 //
@@ -55,6 +70,7 @@ export const HEADER = `// GENERATED FILE — do not edit.
 export function validateManifest(plugins, dependencies, manifestFile, options = {}) {
   const { packageLabel = 'apps/community', filterName = '@meith/web' } = options
   const seen = new Set()
+  const identifiers = new Map()
 
   for (const entry of plugins) {
     if (typeof entry.key !== 'string' || typeof entry.package !== 'string') {
@@ -76,6 +92,41 @@ export function validateManifest(plugins, dependencies, manifestFile, options = 
       )
     }
 
+    if (entry.enabled !== undefined && typeof entry.enabled !== 'boolean') {
+      throw new Error(
+        `${manifestFile}: "${entry.key}" has a non-boolean "enabled" ` +
+          `(${JSON.stringify(entry.enabled)}). Omit the field to enable the plugin, or set it ` +
+          'to true or false.',
+      )
+    }
+
+    if (!NPM_PACKAGE_NAME_PATTERN.test(entry.package) || entry.package.length > 214) {
+      throw new Error(
+        `${manifestFile}: "${entry.package}" (key "${entry.key}") is not a valid npm package ` +
+          'name.',
+      )
+    }
+
+    const identifier = toIdentifier(entry.key)
+    if (!IDENTIFIER_PATTERN.test(identifier)) {
+      throw new Error(
+        `${manifestFile}: "${entry.key}" is a valid plugin key, but the identifier ` +
+          `community.plugins.ts would bind for it, "${identifier}", is not a valid TypeScript ` +
+          'identifier. Each hyphen must be followed by exactly one lower-case letter or digit, ' +
+          'and a key cannot end in a hyphen.',
+      )
+    }
+
+    const collidingKey = identifiers.get(identifier)
+    if (collidingKey !== undefined) {
+      throw new Error(
+        `${manifestFile}: "${entry.key}" and "${collidingKey}" both generate the identifier ` +
+          `"${identifier}" for community.plugins.ts. Rename one of the keys so the generated ` +
+          'imports do not collide.',
+      )
+    }
+    identifiers.set(identifier, entry.key)
+
     if (!dependencies.has(entry.package)) {
       throw new Error(
         `${manifestFile}: "${entry.package}" (key "${entry.key}") is not a dependency of ` +
@@ -85,7 +136,7 @@ export function validateManifest(plugins, dependencies, manifestFile, options = 
   }
 }
 
-function toIdentifier(key) {
+export function toIdentifier(key) {
   return key.replace(/-([a-z0-9])/g, (_match, char) => char.toUpperCase())
 }
 

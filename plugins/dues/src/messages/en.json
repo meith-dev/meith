@@ -123,7 +123,7 @@
   "dues.admin.plans.subscription": "a subscription — renews itself",
   "dues.admin.plans.takeOffSale": "Take it off sale",
   "dues.admin.plans.thePlans": "The plans",
-  "dues.admin.plans.tooLong": "A pass plus its grace window cannot reach past two years ({days} days) — that is the board’s cap on a plugin grant. Sell lifetime instead.",
+  "dues.admin.plans.tooLong": "A pass plus the longest possible grace window ({days} days) cannot reach past two years — that is the board’s cap on a plugin grant, checked against the grace setting’s maximum, not whatever it is set to today. Sell lifetime instead.",
   "dues.admin.plans.unit": "…counted in",
   "dues.admin.plans.updated": "{key} is updated. Existing memberships and running subscriptions keep what they bought; the change is for the next buyer.",
   "dues.admin.plans.weeks": "weeks",

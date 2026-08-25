@@ -70,12 +70,24 @@ export function entitlementDeps(services: DuesServices): EntitlementDeps {
   }
 }
 
+const LOOPBACK_HOSTNAMES = new Set(['127.0.0.1', 'localhost', '[::1]'])
+
+/** docs/membership-guide.md#origin-for-stripe-redirects */
+function isLoopbackHost(host: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(`http://${host}`)
+  } catch {
+    return false
+  }
+  return LOOPBACK_HOSTNAMES.has(parsed.hostname.toLowerCase())
+}
+
+/** docs/membership-guide.md#origin-for-stripe-redirects */
 export function requestOrigin(request: PluginRequest): string {
   if (request.boardUrl !== '') return request.boardUrl
-  const host = request.headers['x-forwarded-host'] ?? request.headers.host ?? 'localhost'
-  const loopback = host.startsWith('127.0.0.1') || host.startsWith('localhost')
-  const proto = request.headers['x-forwarded-proto'] ?? (loopback ? 'http' : 'https')
-  return `${proto}://${host}`
+  const host = request.headers.host ?? ''
+  return isLoopbackHost(host) ? `http://${host}` : ''
 }
 
 function back(query: Record<string, string>): PluginResponse {
@@ -200,6 +212,9 @@ export async function handleCheckout(
   if (services.stripe === null) return back({ error: 'unconfigured' })
   const stripe = services.stripe
 
+  const origin = requestOrigin(request)
+  if (origin === '') return back({ error: 'unconfigured' })
+
   try {
     let customerId = await findStripeCustomer(services.context.data, buyerId)
     if (customerId === null) {
@@ -210,7 +225,6 @@ export async function handleCheckout(
       customerId = customer.id
     }
 
-    const origin = requestOrigin(request)
     const productName =
       recipientName === null ? plan.name : `${plan.name} — a gift for ${recipientName}`
 
@@ -339,13 +353,16 @@ export async function handlePortal(
   if (userId === null) return backToManage({ error: 'sign-in' })
   if (services.stripe === null) return backToManage({ error: 'unconfigured' })
 
+  const origin = requestOrigin(request)
+  if (origin === '') return backToManage({ error: 'unconfigured' })
+
   const customerId = await findStripeCustomer(services.context.data, userId)
   if (customerId === null) return backToManage({ error: 'no-customer' })
 
   try {
     const portal = await services.stripe.createBillingPortalSession({
       customer: customerId,
-      returnUrl: `${requestOrigin(request)}/plugins/dues/manage`,
+      returnUrl: `${origin}/plugins/dues/manage`,
     })
     return offsite(portal.url)
   } catch (error) {

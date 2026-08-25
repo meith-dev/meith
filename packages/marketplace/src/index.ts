@@ -1,6 +1,11 @@
 export { MEITH_VERSION, PLUGIN_API_MAJOR, THEME_API_MAJOR } from './build-info'
 export { type CachedMarketplace, EMPTY_CACHE, type MarketplaceCacheRepository } from './cache'
-export { type FetchFeedOptions, type FetchFeedResult, fetchMarketplaceFeed } from './fetch'
+export {
+  type FetchFeedOptions,
+  type FetchFeedResult,
+  fetchMarketplaceFeed,
+  readCappedBody,
+} from './fetch'
 export {
   compareSemver,
   parseMeithRange,

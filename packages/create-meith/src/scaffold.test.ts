@@ -31,6 +31,7 @@ describe('what the scaffold writes', () => {
       '.env.example',
       '.github/workflows/build.yml',
       '.gitignore',
+      '.npmrc',
       'Dockerfile',
       'README.md',
       'board.plugins.json',
@@ -54,6 +55,10 @@ describe('what the scaffold writes', () => {
     expect(manifest.dependencies['@meith/theme-default']).toBe('1.2.3')
   })
 
+  it("ships an .npmrc that keeps every install here exact, not only the scaffold's own pins", () => {
+    expect(files.get('.npmrc')).toMatch(/^save-exact=true$/m)
+  })
+
   it('gives the project the three scripts an operator needs', () => {
     const manifest = JSON.parse(files.get('package.json')!)
     expect(Object.keys(manifest.scripts).sort()).toEqual(['build', 'community', 'dev', 'start'])
@@ -64,6 +69,14 @@ describe('what the scaffold writes', () => {
     expect(readme).toMatch(/tick/i)
     expect(readme).toMatch(/worker/i)
     expect(readme).toMatch(/task:run/)
+  })
+
+  it('only documents operator commands through the script the scaffold actually defines', () => {
+    const manifest = JSON.parse(files.get('package.json')!)
+    const readme = files.get('README.md')!
+    expect(readme).not.toContain('npm run forum')
+    expect((readme.match(/npm run community --/g) ?? []).length).toBeGreaterThanOrEqual(4)
+    expect(manifest.scripts.community).toBeDefined()
   })
 
   it('names every required secret in the env template, with no value', () => {
@@ -119,10 +132,12 @@ describe('what the scaffold writes', () => {
   })
 })
 
-// MEI-77: the deploy kit — a scaffolded board must work for someone with
-// nothing but a GitHub account and a Coolify server, with every file
-// complete and no placeholder needing hand-finishing except the board name
-// (already templated above).
+/**
+ * MEI-77: the deploy kit — a scaffolded board must work for someone with
+ * nothing but a GitHub account and a Coolify server, with every file
+ * complete and no placeholder needing hand-finishing except the board name
+ * (already templated above).
+ */
 describe('the deploy kit', () => {
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
@@ -149,8 +164,6 @@ describe('the deploy kit', () => {
   it('installs only its own delta on top of the base image', () => {
     expect(dockerfile).toContain('COPY package.json ./')
     expect(dockerfile).toContain('RUN npm install')
-    // Not a monorepo pnpm install — a real external board's node_modules is
-    // hoisted, and the base image primes it with npm for the same reason.
     expect(dockerfile).not.toContain('pnpm install')
   })
 
@@ -158,13 +171,8 @@ describe('the deploy kit', () => {
     expect(dockerfile).toContain('npx forum-web build')
   })
 
+  /** See docs/self-hosting.md for why this Dockerfile scopes DATA_SOURCE to the RUN command. */
   it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
-    // This Dockerfile has no separate runtime stage to reset a build-only
-    // ENV in (see "Two stages, not three" in its own header comment) — an
-    // `ENV DATA_SOURCE=fixture` declaration would leak into every container
-    // started from this image, silently forcing fixture mode (and the
-    // in-memory queue driver it implies) in production regardless of the
-    // DATABASE_URL an operator supplies at `docker run` time.
     expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
     expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
   })
@@ -256,6 +264,15 @@ describe('the deploy kit', () => {
     expect(buildWorkflow).toMatch(/pkgs\/container/)
   })
 
+  it('leads the Summary with the sha tag, not the floating latest one', () => {
+    const summaryStep = buildWorkflow.slice(buildWorkflow.indexOf('name: Summary'))
+    const shaIndex = summaryStep.indexOf('github.sha')
+    const latestIndex = summaryStep.indexOf('$IMAGE:latest')
+    expect(shaIndex).toBeGreaterThan(-1)
+    expect(latestIndex).toBeGreaterThan(-1)
+    expect(shaIndex).toBeLessThan(latestIndex)
+  })
+
   it('mounts the uploads volume into both processes that write to it', () => {
     expect(compose).toMatch(/uploads:\/app\/\.uploads/g)
     expect([...compose.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
@@ -271,11 +288,38 @@ describe('the deploy kit', () => {
     expect(readme).toMatch(/-t my-board \.\s*```/)
   })
 
+  it('leads the README deploy step with the sha tag, not the floating latest one', () => {
+    const readme = files.get('README.md')!
+    const shaIndex = readme.indexOf('github.sha')
+    const latestIndex = readme.indexOf(':latest')
+    expect(shaIndex).toBeGreaterThan(-1)
+    expect(latestIndex).toBeGreaterThan(-1)
+    expect(shaIndex).toBeLessThan(latestIndex)
+  })
+
   it('tells the operator upgrading is one package.json edit, not a second pin to keep in sync', () => {
     const readme = files.get('README.md')!
-    expect(readme).toMatch(/npm install @meith\/web@latest @meith\/cli@latest/)
+    expect(readme).toMatch(
+      /npm install --save-exact @meith\/web@latest @meith\/cli@latest @meith\/theme-default@latest/,
+    )
     expect(readme).toMatch(/build argument/i)
     expect(readme).not.toMatch(/bump/i)
+  })
+
+  it('documents --save-exact, so the upgrade it tells the operator to run never writes a caret range', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/--save-exact/)
+    expect(readme).toMatch(/not a legal Docker image tag|invalid reference format/)
+  })
+
+  it('refuses to build from anything but an exact @meith/web version, not only a documented --save-exact', () => {
+    expect(buildWorkflow).toContain(
+      'if ! echo "$MEITH_VERSION" | grep -Eq \'^[0-9]+\\.[0-9]+\\.[0-9]+$\'; then',
+    )
+    expect(buildWorkflow).toMatch(/::error::.*not an exact X\.Y\.Z version/)
+    expect(buildWorkflow.indexOf('grep -Eq')).toBeLessThan(
+      buildWorkflow.indexOf('docker build --build-arg MEITH_VERSION'),
+    )
   })
 })
 
@@ -314,6 +358,7 @@ describe('the CLI', () => {
         '.env.example',
         '.github',
         '.gitignore',
+        '.npmrc',
         'Dockerfile',
         'README.md',
         'board.plugins.json',
@@ -354,6 +399,16 @@ describe('the CLI', () => {
   it('accepts a repository override, so a fork documents itself', async () => {
     await inTemp(async (dir) => {
       await run(['my-board', '--repo', 'https://example.test/fork'], '1.0.0')
+      const readme = await readFile(join(dir, 'my-board/README.md'), 'utf8')
+      expect(readme).toContain('https://example.test/fork')
+    })
+  })
+
+  it('accepts --repo before the name too, rather than mistaking the URL for it', async () => {
+    await inTemp(async (dir) => {
+      const result = await run(['--repo', 'https://example.test/fork', 'my-board'], '1.0.0')
+      expect(result.code).toBe(0)
+
       const readme = await readFile(join(dir, 'my-board/README.md'), 'utf8')
       expect(readme).toContain('https://example.test/fork')
     })

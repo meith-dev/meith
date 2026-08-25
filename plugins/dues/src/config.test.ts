@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { resolvePluginSettings } from '@meith/plugin-kit'
+
 import {
   DEFAULT_CURRENCY,
   DEFAULT_GRACE_DAYS,
@@ -8,6 +10,7 @@ import {
   parseDuesConfig,
   resolveDuesConfig,
 } from './config'
+import { dues } from './definition'
 
 const FIXED = {
   key: 'pass-90',
@@ -81,10 +84,6 @@ describe('parseDuesConfig', () => {
   })
 
   it('the period cap is checked against the longest possible grace window, not the current one', () => {
-    // 2 * 366 = 732 is the grant cap; MAX_GRACE_DAYS (30) is always added,
-    // regardless of what `grace_days` is set to today — a seed plan is
-    // validated once, at registration, long before any request has
-    // resolved the setting that could make a too-long pass briefly legal.
     expect(() =>
       parseDuesConfig(
         config({ plans: [{ ...FIXED, billing: { mode: 'fixed', period: 'P703D' } }] }),
@@ -144,5 +143,29 @@ describe('resolveDuesConfig', () => {
     expect(resolveDuesConfig(staticConfig, { currency: 'not-a-code' }).currency).toBe(
       DEFAULT_CURRENCY,
     )
+  })
+})
+
+describe('DUES_CURRENCY through the real settings pipeline', () => {
+  const staticConfig = parseDuesConfig({ label: 'Supporters' })
+  const none = new Map<string, string>()
+
+  function envFor(value: string) {
+    return (name: string) => (name === 'DUES_CURRENCY' ? value : undefined)
+  }
+
+  it('an upper-case ISO code still resolves, not the default', () => {
+    const settings = resolvePluginSettings(dues, none, envFor('EUR'))
+    expect(resolveDuesConfig(staticConfig, settings).currency).toBe('eur')
+  })
+
+  it('tolerates surrounding whitespace', () => {
+    const settings = resolvePluginSettings(dues, none, envFor(' eur '))
+    expect(resolveDuesConfig(staticConfig, settings).currency).toBe('eur')
+  })
+
+  it('a genuinely invalid code still falls back to the default', () => {
+    const settings = resolvePluginSettings(dues, none, envFor('XYZ'))
+    expect(resolveDuesConfig(staticConfig, settings).currency).toBe(DEFAULT_CURRENCY)
   })
 })

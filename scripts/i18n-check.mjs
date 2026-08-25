@@ -195,7 +195,7 @@ if (orphans.length > 0) {
 }
 
 const PROSE_SURFACE =
-  /^(apps\/community\/(app|src)\/|themes\/[^/]+\/src\/|plugins\/[^/]+\/src\/|packages\/(?!i18n\/|testkit\/)[^/]+\/src\/).*\.tsx?$/
+  /^(apps\/community\/(app|src)\/|themes\/[^/]+\/src\/|plugins\/[^/]+\/src\/|packages\/(?!i18n\/|testkit\/|create-meith\/)[^/]+\/src\/).*\.tsx?$/
 
 const PROSE_EXEMPT = /\.(test|type-test|fixture)\.tsx?$|\.d\.ts$/
 

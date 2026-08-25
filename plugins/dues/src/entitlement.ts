@@ -187,26 +187,22 @@ function settledPeriodEnd(
       existing !== null && existing.currentPeriodEnd > now ? existing.currentPeriodEnd : now
     if (isLifetime(base)) return LIFETIME_END
     const parsed =
+      parseStoredPeriod(order) ??
       (plan?.periodSpec !== null && plan?.periodSpec !== undefined
         ? parsePeriod(plan.periodSpec)
-        : null) ?? parseStoredPeriod(order)
+        : null) ??
+      FALLBACK_PERIOD
     return addPeriod(base, parsed)
   }
 
   return addBillingInterval(now, plan?.billingInterval ?? 'month')
 }
 
+/** @see plugins/dues/README.md#changing-and-retiring-one */
+const FALLBACK_PERIOD = { years: 0, months: 0, weeks: 0, days: 30 }
+
 function parseStoredPeriod(order: OrderRow) {
-  const fallback = { years: 0, months: 0, weeks: 0, days: 30 }
-  if (order.periodSpec === null) return fallback
-  const match = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/.exec(order.periodSpec)
-  if (match === null) return fallback
-  return {
-    years: Number(match[1] ?? 0),
-    months: Number(match[2] ?? 0),
-    weeks: Number(match[3] ?? 0),
-    days: Number(match[4] ?? 0),
-  }
+  return order.periodSpec === null ? null : parsePeriod(order.periodSpec)
 }
 
 export async function applyInternalEvent(

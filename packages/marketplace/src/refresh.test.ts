@@ -27,10 +27,18 @@ function feedBody(listings: readonly MarketplaceListing[]) {
 }
 
 function fakeFetch(body: unknown, ok = true): typeof fetch {
+  const text = JSON.stringify(body)
   return vi.fn().mockResolvedValue({
     ok,
     status: ok ? 200 : 500,
-    text: async () => JSON.stringify(body),
+    headers: new Headers(),
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(text))
+        controller.close()
+      },
+    }),
+    arrayBuffer: async () => new TextEncoder().encode(text).buffer,
   }) as unknown as typeof fetch
 }
 
@@ -47,6 +55,7 @@ function fakeRepository(): MarketplaceCacheRepository & {
       errorAt: null,
     } as CachedMarketplace,
     notifiedSet: new Set<string>(),
+    claimQueue: Promise.resolve() as Promise<unknown>,
   }
 
   return {
@@ -65,11 +74,16 @@ function fakeRepository(): MarketplaceCacheRepository & {
     async saveError({ message, at }) {
       state.saved = { ...state.saved, error: message, errorAt: at }
     },
-    async hasNotified(key, version) {
-      return state.notifiedSet.has(`${key}@${version}`)
-    },
-    async markNotified(key, version) {
-      state.notifiedSet.add(`${key}@${version}`)
+    async claimNotified(key, version) {
+      const marker = `${key}@${version}`
+      const claim = state.claimQueue.then(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1))
+        if (state.notifiedSet.has(marker)) return false
+        state.notifiedSet.add(marker)
+        return true
+      })
+      state.claimQueue = claim.catch(() => undefined)
+      return claim
     },
   }
 }
@@ -148,8 +162,6 @@ describe('refreshCatalog', () => {
       expect.objectContaining({ key: 'dues', version: '0.17.0' }),
     )
 
-    // The next tick sees the same feed and the same installed version again —
-    // this is the daily task running again before the operator has updated.
     const second = await run()
     expect(second.notified).toBe(0)
     expect(notifyUpdate).toHaveBeenCalledTimes(1)
@@ -195,6 +207,26 @@ describe('refreshCatalog', () => {
 
     expect(result.notified).toBe(0)
     expect(notifyUpdate).not.toHaveBeenCalled()
+  })
+
+  it('notifies exactly once when two refreshes race on the same newly-seen version', async () => {
+    const repository = fakeRepository()
+    const notifyUpdate = vi.fn().mockResolvedValue(undefined)
+
+    const run = () =>
+      refreshCatalog({
+        url: 'https://meith.dev/marketplace/v1.json',
+        repository,
+        build: BUILD,
+        resolveInstalled: () => ({ enabled: true, version: '0.16.0' }),
+        notifyUpdate,
+        fetchImpl: fakeFetch(feedBody([duesListing('0.17.0')])),
+      })
+
+    const [first, second] = await Promise.all([run(), run()])
+
+    expect(first.notified + second.notified).toBe(1)
+    expect(notifyUpdate).toHaveBeenCalledTimes(1)
   })
 
   it('never notifies for an incompatible update', async () => {

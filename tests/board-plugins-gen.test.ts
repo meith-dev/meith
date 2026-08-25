@@ -126,4 +126,60 @@ describe('validateManifest', () => {
       'is not a dependency of boards/stock. Run `pnpm add @meith/plugin-widget --filter @meith/board-stock`',
     )
   })
+
+  it('refuses a key whose repeated hyphen makes toIdentifier produce an invalid identifier (MEI-87, was a raw Biome parse error)', () => {
+    const wideDeps = new Set(['@meith/plugin-dues'])
+    expect(() =>
+      validateManifest(
+        [{ key: 'foo--bar', package: '@meith/plugin-dues', enabled: true }],
+        wideDeps,
+        MANIFEST_FILE,
+      ),
+    ).toThrow(/"foo--bar" is a valid plugin key, but the identifier .* is not a valid/)
+  })
+
+  it('refuses a key with a trailing hyphen, for the same reason', () => {
+    const wideDeps = new Set(['@meith/plugin-dues'])
+    expect(() =>
+      validateManifest(
+        [{ key: 'foo-', package: '@meith/plugin-dues', enabled: true }],
+        wideDeps,
+        MANIFEST_FILE,
+      ),
+    ).toThrow(/"foo-" is a valid plugin key, but the identifier community\.plugins\.ts would/)
+  })
+
+  it('refuses two keys that collide on the same identifier ("foo-1" and "foo1" both become "foo1", MEI-87, was a Biome noRedeclare error)', () => {
+    const wideDeps = new Set(['@meith/plugin-dues', '@meith/plugin-widget'])
+    expect(() =>
+      validateManifest(
+        [
+          { key: 'foo-1', package: '@meith/plugin-dues', enabled: true },
+          { key: 'foo1', package: '@meith/plugin-widget', enabled: true },
+        ],
+        wideDeps,
+        MANIFEST_FILE,
+      ),
+    ).toThrow(/"foo1" and "foo-1" both generate the identifier "foo1"/)
+  })
+
+  it('refuses a non-boolean "enabled"', () => {
+    expect(() => validateManifest([{ ...ENTRY, enabled: 'false' }], deps, MANIFEST_FILE)).toThrow(
+      /non-boolean "enabled"/,
+    )
+    expect(() => validateManifest([{ ...ENTRY, enabled: 0 }], deps, MANIFEST_FILE)).toThrow(
+      /non-boolean "enabled"/,
+    )
+  })
+
+  it('refuses a package name that is not valid npm grammar, before it ever reaches an import specifier', () => {
+    const badDeps = new Set(["@meith/plugin-dues'; alert(1); //"])
+    expect(() =>
+      validateManifest(
+        [{ ...ENTRY, package: "@meith/plugin-dues'; alert(1); //" }],
+        badDeps,
+        MANIFEST_FILE,
+      ),
+    ).toThrow(/is not a valid npm package name/)
+  })
 })

@@ -41,12 +41,12 @@ export const GUARDS = [
     why:
       'process.env may only be read in packages/core/src/env.ts. A stray read is a ' +
       'config value that is never validated and blows up at request time in prod ' +
-      'instead of at boot.',
+      'instead of at boot. apps/community/bin/ is allowed too: forum-web.mjs, like the ' +
+      'bins under apps/cli/, runs as an operator-invoked script outside the ' +
+      'request/response cycle, not application code — see FORUM_WORKSPACE_ROOT / ' +
+      'FORUM_ALIASES_FROM there.',
     files: /\.(ts|tsx|mjs)$/,
     pattern: /process\.env(?!\.NEXT_RUNTIME\b)/,
-    // apps/community/bin/: forum-web.mjs, like the bins under apps/cli/, runs
-    // as an operator-invoked script outside the request/response cycle, not
-    // application code — see FORUM_WORKSPACE_ROOT / FORUM_ALIASES_FROM there.
     allow:
       /^(packages\/core\/src\/env\.ts|scripts\/|apps\/(cli|worker)\/|apps\/community\/bin\/|.*\.config\.(ts|mts|mjs|js|cjs)$|.*\.test\.ts|packages\/testkit\/)/,
     probe: {
@@ -340,35 +340,35 @@ export const GUARDS = [
   {
     id: 'no-relative-board-config-import',
     why:
-      'community.config.ts and community.plugins.ts are reached through one seam — ' +
-      '@board/config and @board/plugins (tsconfig path aliases in tsconfig.base.json ' +
-      'and apps/community/tsconfig.json) — never a relative path into apps/community. ' +
-      'For a board to become an external workspace later, every consumer must resolve ' +
-      'board config through a name a consuming workspace can supply, not through a ' +
-      "relative path that assumes today's directory layout. The two files may still " +
-      'import each other by relative path (community.config.ts pulls in ' +
-      "community.plugins.ts); that is the seam's own definition, not a caller reaching " +
-      'around it.',
+      'community.config.ts, community.plugins.ts, and community.demo.plugins.ts are ' +
+      'reached through one seam — @board/config and @board/plugins (tsconfig path ' +
+      'aliases in tsconfig.base.json and apps/community/tsconfig.json) — never a ' +
+      'relative path into apps/community, at any depth or through any intermediate ' +
+      'directory. For a board to become an external workspace later, every consumer ' +
+      'must resolve board config through a name a consuming workspace can supply, not ' +
+      "through a relative path that assumes today's directory layout. The board files " +
+      'may still import each other by relative path (community.config.ts pulls in ' +
+      'community.plugins.ts, which pulls in community.demo.plugins.ts); that is the ' +
+      "seam's own definition, not a caller reaching around it — see " +
+      'docs/architecture.md, "The board-config seam", and see docs/plugin-api.md for ' +
+      'why community.demo.plugins.ts exists at all.',
     files: /\.(ts|tsx)$/,
     pattern:
-      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[./]*community(?:\/community)?\.(?:config|plugins)['"]/,
-    // packages/create-meith/src/scaffold.ts is allowed for the same reason
-    // community.config.ts/community.plugins.ts are: its match is template
-    // text for an *external* workspace's own community.config.ts, relative
-    // to that workspace's own community.plugins.ts — the seam this guard
-    // protects is apps/community's, not a scaffolded board's. boards/stock's
-    // own community.config.ts is exactly such a board, in-repo — see
-    // docs/architecture.md, "The board-config seam".
+      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[^'"]*community\.(?:config|plugins|demo\.plugins)['"]/,
     allow:
       /^apps\/community\/community\.(?:config|plugins)\.ts$|^boards\/stock\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$/,
     probe: {
       violates: "import forumConfig from '../../community.config'",
       clean: "import forumConfig from '@board/config'",
     },
+    alsoViolates: [
+      "import { showcasePlugins } from '../../community.demo.plugins'",
+      "import forumConfig from '../apps/community/community.config'",
+      "import { installedPluginDefinitions } from '../../boards/stock/community.plugins'",
+    ],
     alsoClean: [
       "await import('@board/plugins')",
       "vi.mock('@board/config', () => ({ default: {} }))",
-      "import { showcasePlugins } from './community.demo.plugins'",
     ],
   },
 ]

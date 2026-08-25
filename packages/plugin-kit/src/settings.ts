@@ -47,6 +47,20 @@ export function parsePluginSetting(setting: PluginSetting, raw: string): PluginS
   return raw
 }
 
+/**
+ * Matches a candidate select value against a setting's declared options —
+ * trimmed and case-insensitively — and returns the *option's own* casing.
+ * See "Settings" in docs/plugin-api.md.
+ */
+function matchSelectOption(
+  options: readonly { readonly value: string }[],
+  candidate: PluginSettingValue | null,
+): string | undefined {
+  if (typeof candidate !== 'string') return undefined
+  const normalised = candidate.trim().toLowerCase()
+  return options.find((option) => option.value.toLowerCase() === normalised)?.value
+}
+
 function resolveOne(
   plugin: PluginDefinition,
   setting: PluginSetting,
@@ -74,9 +88,14 @@ function resolveOne(
     source = 'default'
   }
 
-  if (type === 'select' && !(setting.options ?? []).some((option) => option.value === value)) {
-    value = setting.default
-    source = 'default'
+  if (type === 'select') {
+    const matched = matchSelectOption(setting.options ?? [], value)
+    if (matched === undefined) {
+      value = setting.default
+      source = 'default'
+    } else {
+      value = matched
+    }
   }
 
   const problem =

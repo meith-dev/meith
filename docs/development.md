@@ -137,6 +137,8 @@ the app on every invocation:
 1. Copy the package's own Next app sources (or, for `community`, `apps/cli`'s
    sources) into `.meith/app/` (`.meith/cli/` for the CLI) inside the
    invoking workspace — gitignored, rebuilt every run, never a merge target.
+   `public/` travels with them, so `/sw.js` and the placeholder assets it
+   references are served from the materialized app too.
 2. Write a fresh `tsconfig.json` there whose `paths` point `@board/config`
    and `@board/plugins` at *that workspace's own* `community.config.ts` /
    `community.plugins.ts`. A tsconfig path alias is a compiler/bundler alias,
@@ -148,12 +150,44 @@ the app on every invocation:
 3. Run `next dev|build|start` (`forum-web`) or `tsx` against the materialized
    entry point (`community`) with that directory as the working root.
 
+**`forum-web build` stages `.next/static` and `public/` into the standalone
+tree**, right after `next build` finishes. `next.config.mjs` sets
+`output: 'standalone'`, and Next's own standalone output deliberately
+excludes both directories — they have to be copied in alongside the traced
+`server.js` for it to serve `/_next/static/*` and anything under `public/`
+(Next's bundled docs, under `node_modules/next/dist/docs`, say so under
+"output"). `forum-web start` only execs that already-staged tree; it does not
+re-stage anything itself, so a board's own Dockerfile — which runs `build`
+and `start` in the same image, not across a stage boundary — gets a
+self-contained standalone tree for free. The official image (`docker/Dockerfile`)
+is built differently: its runtime stage is a separate, slimmer image than the
+one `forum-web build` ran in, so it copies `.next/static` and `public/` in on
+its own, directly from the build stage, rather than relying on `forum-web`'s
+staged copy to survive a COPY it does not control.
+
 `.meith/app/` sits exactly two directories below the workspace root on
 purpose: `next.config.mjs` computes its own workspace root as two
 directories up from itself (for `.env` loading and `outputFileTracingRoot`),
 and materializing at that exact depth keeps that computation correct without
 touching the file, whether it runs in place inside this monorepo or copied
-into somebody else's workspace.
+into somebody else's workspace. `next.config.mjs` points `turbopack.root` at
+the same workspace root for the same reason — left unset, Turbopack infers a
+project root by walking up for a lockfile and otherwise stops at this app's
+own directory, and its transform pool (postcss, for instance) then cannot
+see the invoking workspace's `node_modules` at all, failing with "Cannot
+find module" for a dependency plain Node resolution finds without trouble.
+
+`outputFileTracingIncludes` works around a narrower gap in the standalone
+build: Next's output-file tracer only follows the CJS half of `@swc/helpers`'
+dual package and misses the `esm/` variant next's own require-hook resolves
+at runtime, so the standalone tree would otherwise ship a `@swc/helpers`
+directory missing its esm half. Next resolves that package through its own
+nested pnpm store entry — a symlink into the real `@swc+helpers` store
+entry — so that symlink target is what has to be traced in, not the app's
+own copy. The glob is written relative to `next.config.mjs`'s own directory,
+not the workspace root, because unlike `outputFileTracingRoot` and
+`turbopack.root` this option resolves its globs against the config file's
+own directory.
 
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
@@ -172,6 +206,11 @@ tsconfig carries no such alias map — only the seam itself — so every other
 `@meith/*` specifier resolves the ordinary way once this package is
 installed, and needs the same source-compilation treatment or the build
 fails with "Unknown module type" on a `.ts` file inside `node_modules`.
+`@meith/web` itself is in that list for the same reason, even though
+`apps/community` never imports its own package by name inside this
+monorepo — a materialized workspace's `community.config.ts` reaches it
+through the `@meith/web/config` subpath, which is real only once npm has
+resolved this package into another workspace's `node_modules`.
 
 **Fixture mode covers `forum-web dev` and `forum-web build`,** not
 `forum-web start`. A production process refuses `QUEUE_DRIVER=memory` —
@@ -208,6 +247,11 @@ this closure is on the real npm registry yet), scaffolds a board with
 `create-meith`, installs it with `overrides` pointing every packed name at
 its tarball, runs `forum-web build`, applies migrations and boots the
 standalone server against a real, disposable Postgres, and asks it for `/`.
+It also pulls a real `/_next/static/*` reference out of the rendered HTML and
+fetches it, and fetches `/sw.js`, so a standalone build that renders `/` but
+serves neither its own script/style bundles nor its service worker fails the
+smoke rather than passing it (`scripts/board-smoke-assets.mts`, shared with
+`board-deploy-kit-smoke.mts` and `board-eject-smoke.mts`).
 
 ## The commands
 
@@ -467,8 +511,38 @@ repository that nothing else reads:
 | `slots:check` | The server/client boundary in theme slots, in both directions. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
-| `board:gen:check` | `apps/community/community.plugins.ts` out of step with `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin). |
+| `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
+
+## The board plugin manifests
+
+This repository carries two boards, and each has its own
+`board.plugins.json` and generated `community.plugins.ts`: `apps/community`,
+the in-repo dev target, and `boards/stock`, the workspace
+`docker/Dockerfile` builds the official image from. `tests/boards-stock.test.ts`
+requires the two manifests to stay identical, so a plugin installed into one
+and not the other fails `pnpm verify`.
+
+`scripts/boards.json` is the one place that list of boards is written down.
+Both `scripts/board-plugins-gen.mjs` (`pnpm board:gen`) and
+`apps/cli/src/plugin-manifest.ts` (`community plugin:add` / `plugin:remove`)
+read it, so a board added there is picked up by both without a second list
+to keep in step. Installing a plugin in this checkout means adding the
+dependency to both boards — see
+[the plugin API](./plugin-api.md#writing-a-plugin).
+
+`MEITH_BOARD_PLUGINS_ROOT` overrides the directory those manifests,
+`package.json` files and generated files are read from and written to; the
+generator inherits it from the CLI when the CLI shells out. Only the tests
+set it, pointing at a throwaway fixture tree so a real add-and-remove round
+trip never edits this checkout's own boards. Unset — which is what any real
+run leaves it — both fall back to the repository root.
+
+`plugin:add`/`plugin:remove` only know how to rewrite a manifest shaped
+`{ "plugins": [...] }` — a hand-edited `board.plugins.json` carrying any
+other top-level field is refused rather than silently rewritten without it,
+since a rewrite that dropped a field nobody named would be a worse surprise
+than a refusal that does.
 
 ## The generated documents
 

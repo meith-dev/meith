@@ -18,6 +18,7 @@
     "bin",
     "app",
     "src",
+    "public",
     "next.config.mjs",
     "postcss.config.mjs",
     "components.json",

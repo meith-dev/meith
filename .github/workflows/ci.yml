@@ -48,6 +48,24 @@ jobs:
       - name: One version everywhere
         run: pnpm release:check
 
+      # create-meith is the one published package with a dist step — see
+      # docs/release.md, "They ship TypeScript source, deliberately". The
+      # dry run below packs it with `pnpm pack`, which only sees what is
+      # already on disk, so the build has to run first — release.yml's `npm`
+      # job orders these the same way, immediately before npm-publish.mjs.
+      - name: Build create-meith
+        run: pnpm --filter create-meith build
+
+      # docs/release.md documents this as the gate that catches, before a
+      # release ever runs, a `files` allowlist or `bin` path that has rotted:
+      # every publishable package is packed with `pnpm pack` and its tarball
+      # checked against its own manifest, with nothing published and the
+      # registry never contacted. board-workspace below packs only the
+      # @meith/web / @meith/cli / @meith/theme-default closure, so this is
+      # the only coverage for every other publishable package.
+      - name: Release dry run — every publishable tarball matches its manifest
+        run: node scripts/npm-publish.mjs --dry-run
+
       # The root is an interface: every entry in it is registered with the
       # reason it must live there, and a new file fails until it is either
       # foldered or registered. scripts/root-check.mjs is the registry.
@@ -215,6 +233,42 @@ jobs:
 
       - name: Build the image
         run: docker build -f docker/Dockerfile -t forum:ci .
+
+      # MEI-90: docs/marketplace.md documents `board:eject` as a bind-mounted,
+      # non-root `docker run`/`docker compose run` invocation — this is what
+      # proves that invocation against the real image this job just built,
+      # not board-eject-smoke.mts's stand-in (that script runs `community
+      # board:eject` from the checkout, never through the image at all, which
+      # is exactly how MEI-90's bug went uncaught). Needs no database and no
+      # network, so it runs here rather than in its own job.
+      - name: board:eject through the image, the documented way (MEI-90)
+        run: |
+          mkdir eject-out
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$PWD/eject-out:/data/my-board" \
+            forum:ci community board:eject /data/my-board
+
+          test -f eject-out/package.json \
+            || { echo "::error::eject wrote nothing to the bind-mounted host directory"; exit 1; }
+
+          grep -q '"name": "my-board"' eject-out/package.json \
+            || { echo "::error::package.json is not the ejected workspace"; exit 1; }
+
+          if grep -q '"@meith/web": "latest"' eject-out/package.json; then
+            echo "::error::ejected package.json pins @meith/web to latest, never latest"
+            exit 1
+          fi
+
+          owner=$(stat -c '%u' eject-out/package.json)
+          test "$owner" = "$(id -u)" \
+            || { echo "::error::ejected files are owned by uid $owner, not the invoking user $(id -u)"; exit 1; }
+
+          if docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$PWD/eject-out:/data/my-board" \
+            forum:ci community board:eject /data/my-board; then
+            echo "::error::eject re-ran against a non-empty bind-mounted directory instead of refusing"
+            exit 1
+          fi
 
       # COMMUNITY_ROLE=migrate, not `node node_modules/.bin/drizzle-kit` — drizzle-kit
       # is a development tool and is not in the pruned standalone node_modules,

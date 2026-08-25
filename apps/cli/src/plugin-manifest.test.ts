@@ -110,7 +110,9 @@ describe('pluginAdd', () => {
       plugins: [{ key: 'dues', package: '@meith/plugin-dues', enabled: true }],
     })
 
-    await expect(pluginAdd(['@meith/plugin-dues'])).rejects.toThrow(/already in board.plugins.json/)
+    await expect(pluginAdd(['@meith/plugin-dues'])).rejects.toThrow(
+      /already in apps\/community\/board\.plugins\.json/,
+    )
     expect(execCalls).toHaveLength(0)
   })
 
@@ -119,6 +121,19 @@ describe('pluginAdd', () => {
       /does not take plugin configuration/,
     )
     expect(readManifestState().plugins).toEqual([])
+    expect(execCalls).toHaveLength(0)
+  })
+
+  it('names MEI-74 as the path forward, not just a code comment', async () => {
+    await expect(pluginAdd(['@meith/plugin-dues', '--currency', 'gbp'])).rejects.toThrow(/MEI-74/)
+  })
+
+  it('refuses a manifest carrying a field plugin:add cannot preserve', async () => {
+    state.manifest = JSON.stringify({ plugins: [], schemaVersion: 2 })
+
+    await expect(pluginAdd(['@meith/plugin-dues'])).rejects.toThrow(
+      /has a field plugin:add\/plugin:remove do not know how to carry forward: schemaVersion/,
+    )
     expect(execCalls).toHaveLength(0)
   })
 

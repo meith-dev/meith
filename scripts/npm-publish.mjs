@@ -6,9 +6,17 @@ import { join } from 'node:path'
 
 import { ROOT, workspacePackages } from './workspace-packages.mjs'
 
-// Dependencies before dependents, among only the packages that are
-// themselves publishing. Throws on a dependency cycle rather than returning
-// one, since there is no ordering to hand back.
+export const DEPENDENCY_FIELDS = ['dependencies', 'peerDependencies', 'optionalDependencies']
+
+export function workspaceDependencyNames(manifest) {
+  return DEPENDENCY_FIELDS.flatMap((field) => Object.keys(manifest[field] ?? {}))
+}
+
+/**
+ * Dependencies before dependents, among only the packages that are
+ * themselves publishing. Throws on a dependency cycle rather than returning
+ * one, since there is no ordering to hand back.
+ */
 export function orderByDependency(packages) {
   const names = new Set(packages.map((entry) => entry.name))
   const ordered = []
@@ -17,7 +25,7 @@ export function orderByDependency(packages) {
   while (remaining.size > 0) {
     const ready = [...remaining.values()]
       .filter((entry) =>
-        Object.keys(entry.manifest.dependencies ?? {}).every(
+        workspaceDependencyNames(entry.manifest).every(
           (dep) => !names.has(dep) || !remaining.has(dep),
         ),
       )
@@ -33,10 +41,16 @@ export function orderByDependency(packages) {
   return ordered
 }
 
-// The path each non-negated `files` entry requires the tarball to contain
-// something under — the entry itself for a bare filename ("next.config.mjs"),
-// or the directory name for "app", "src", "bin". A "!exclude/**" entry is a
-// carve-out, not a requirement, and is dropped.
+export function heldBackDependency(manifest, names, staysAbsent) {
+  return workspaceDependencyNames(manifest).find((dep) => names.has(dep) && staysAbsent.has(dep))
+}
+
+/**
+ * The path each non-negated `files` entry requires the tarball to contain
+ * something under — the entry itself for a bare filename ("next.config.mjs"),
+ * or the directory name for "app", "src", "bin". A "!exclude/**" entry is a
+ * carve-out, not a requirement, and is dropped.
+ */
 export function requiredTarballPrefixes(manifest) {
   const files = Array.isArray(manifest.files) ? manifest.files : []
   const prefixes = new Set()
@@ -47,18 +61,22 @@ export function requiredTarballPrefixes(manifest) {
   return [...prefixes].sort()
 }
 
-// A package's `bin` targets, normalised to the path they have inside the
-// tarball ("./bin/forum-web.mjs" -> "bin/forum-web.mjs").
+/**
+ * A package's `bin` targets, normalised to the path they have inside the
+ * tarball ("./bin/forum-web.mjs" -> "bin/forum-web.mjs").
+ */
 export function binTargets(manifest) {
   return Object.values(manifest.bin ?? {}).map((target) => target.replace(/^\.\//, ''))
 }
 
-// `tarballEntries` are paths relative to the tarball's own package/ root —
-// see tarballEntriesFrom. Checks both directions a packed tarball can betray
-// its manifest: something the files allowlist promises is missing (the case
-// this exists for is @meith/web's app/ directory, silently empty or excluded
-// and never noticed until a materialized build fails outside this repo), and
-// a bin target that is not actually a file the tarball ships.
+/**
+ * `tarballEntries` are paths relative to the tarball's own package/ root —
+ * see tarballEntriesFrom. Checks both directions a packed tarball can betray
+ * its manifest: something the files allowlist promises is missing (the case
+ * this exists for is @meith/web's app/ directory, silently empty or excluded
+ * and never noticed until a materialized build fails outside this repo), and
+ * a bin target that is not actually a file the tarball ships.
+ */
 export function missingTarballContents(manifest, tarballEntries) {
   const problems = []
   const set = new Set(tarballEntries)
@@ -81,10 +99,12 @@ export function missingTarballContents(manifest, tarballEntries) {
   return problems
 }
 
-// The files inside a tarball packed by `pnpm pack`, with the `package/` root
-// stripped and directory entries dropped — comparable directly against
-// `files` allowlist entries and `bin` targets, which are written the same
-// way in package.json.
+/**
+ * The files inside a tarball packed by `pnpm pack`, with the `package/` root
+ * stripped and directory entries dropped — comparable directly against
+ * `files` allowlist entries and `bin` targets, which are written the same
+ * way in package.json.
+ */
 export function tarballEntriesFrom(tarballPath) {
   const list = spawnSync('tar', ['-tzf', tarballPath], { encoding: 'utf8' })
   if (list.status !== 0) {
@@ -179,9 +199,7 @@ async function main() {
     }
     if (staysAbsent.has(name)) continue
 
-    const missing = Object.keys(manifest.dependencies ?? {}).find(
-      (dep) => names.has(dep) && staysAbsent.has(dep),
-    )
+    const missing = heldBackDependency(manifest, names, staysAbsent)
     if (missing) {
       heldBack.set(name, missing)
       staysAbsent.add(name)
@@ -223,11 +241,16 @@ async function main() {
 
     console.log(`- ${dryRun ? 'would publish' : 'publishing'} ${name}@${version}`)
 
-    const publish = spawnSync(
-      'npm',
-      ['publish', tarball, '--access', 'public', ...(dryRun ? ['--dry-run'] : [])],
-      { cwd: join(ROOT, dir), stdio: 'inherit' },
-    )
+    if (dryRun) {
+      await rm(tarball, { force: true })
+      published += 1
+      continue
+    }
+
+    const publish = spawnSync('npm', ['publish', tarball, '--access', 'public'], {
+      cwd: join(ROOT, dir),
+      stdio: 'inherit',
+    })
     await rm(tarball, { force: true })
 
     if (publish.status !== 0) {

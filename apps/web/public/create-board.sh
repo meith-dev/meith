@@ -45,6 +45,16 @@ cat > "$BOARD_NAME/package.json" <<'MEITH_SCAFFOLD_EOF'
 }
 MEITH_SCAFFOLD_EOF
 
+mkdir -p "$(dirname -- "$BOARD_NAME/.npmrc")"
+cat > "$BOARD_NAME/.npmrc" <<'MEITH_SCAFFOLD_EOF'
+# Every @meith/* dependency here is an exact version, not a range — see
+# README.md, "Upgrading", for why a range breaks the build. This makes that
+# the default for any `npm install` run in this project from here on,
+# including a plugin installed by hand later, not only the three packages
+# the scaffold pinned itself.
+save-exact=true
+MEITH_SCAFFOLD_EOF
+
 mkdir -p "$(dirname -- "$BOARD_NAME/community.config.ts")"
 cat > "$BOARD_NAME/community.config.ts" <<'MEITH_SCAFFOLD_EOF'
 /**
@@ -367,6 +377,10 @@ jobs:
         run: |
           IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']")
+          if ! echo "$MEITH_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::@meith/web in package.json is '$MEITH_VERSION', not an exact X.Y.Z version — that is not a legal Docker image tag. Upgrade with \`npm install --save-exact\` (see README.md, Upgrading) so this dependency always resolves to one."
+            exit 1
+          fi
           docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
@@ -382,11 +396,14 @@ jobs:
             echo
             echo "Paste this into the MEITH_IMAGE variable on the Coolify resource:"
             echo
-            echo "    $IMAGE:latest"
-            echo
-            echo "Once you want a pin that only moves when you say so:"
-            echo
             echo "    $IMAGE:${{ github.sha }}"
+            echo
+            echo "This tag names this run's build and nothing else, ever. $IMAGE:latest"
+            echo "also pushed, as a convenience for a quick manual pull; it moves on"
+            echo "every push to main, so any later Coolify redeploy — for any reason,"
+            echo "not necessarily this one — pulls whatever main most recently built,"
+            echo "including a commit still mid-feature. Prefer the sha above for the"
+            echo "value you actually set on the resource."
             echo
             echo "## One-time: make the package public"
             echo
@@ -538,10 +555,13 @@ one value only you know:
    `TICK_SECRET` and the database password, generated on the first deploy
    and never typed in. The one thing Coolify cannot generate is the image
    step 1 just pushed: set `MEITH_IMAGE` in the resource's own environment
-   to the value that run's Summary printed — `ghcr.io/<you>/__MEITH_BOARD_NAME__:latest`
-   (or a commit sha, once you want a pin that only moves when you say so —
-   `docker-compose.yml` refuses to start without this set, with a message saying
-   why).
+   to the value that run's Summary printed — `ghcr.io/<you>/__MEITH_BOARD_NAME__:${{ github.sha }}`,
+   a pin that only ever names that one build (`docker-compose.yml` refuses
+   to start without this set, with a message saying why). The same run also
+   pushes `ghcr.io/<you>/__MEITH_BOARD_NAME__:latest` as a convenience for a quick manual
+   pull, but it moves on every push to `main` — set it on the resource and a
+   later, unrelated redeploy can pull whatever `main` most recently built,
+   commit still mid-feature included.
 
 3. **Deploy, then `/install` on your own domain.** Coolify issues the
    certificate; the installer from there is the one
@@ -591,8 +611,8 @@ With no `DATABASE_URL`, the board runs on deterministic in-memory sample data �
 enough to click through every reading surface. Posting needs a database:
 
 ```sh
-npm run forum -- migrate
-npm run forum -- user:create --admin
+npm run community -- migrate
+echo "<password>" | npm run community -- user:create --username <name> --email <address> --group administrators
 ```
 
 ## Configuring
@@ -603,14 +623,14 @@ npm run forum -- user:create --admin
 - **`/admin`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **`npm run forum -- --help`** — the operator CLI. Everything the panel does
+- **`npm run community -- --help`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
 
 ## Upgrading
 
 ```sh
-npm install @meith/web@latest @meith/cli@latest
-git commit -am "Upgrade @meith/web and @meith/cli"
+npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
+git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
 git push
 ```
 
@@ -618,8 +638,15 @@ That one `package.json` change is the whole pin: `Dockerfile`'s own
 `FROM` line takes the version as a build argument, and
 `.github/workflows/build.yml` reads it straight out of `package.json`'s
 own `@meith/web` dependency when it rebuilds — nothing in `Dockerfile`
-itself to keep in sync by hand. Once the rebuilt image is deployed, run
-`npm run forum -- upgrade` against it for the plugin migrations — see
+itself to keep in sync by hand. `--save-exact` matters: npm's default
+`save-prefix` is `^`, and a caret range is not a legal Docker image tag —
+without it, this exact command would write `"^0.18.0"` and the next build
+would fail with `invalid reference format` instead of building. This
+project's own `.npmrc` sets `save-exact=true` for the same reason, so an
+`npm install` of anything else here — a plugin, say — stays pinned too; the
+build workflow also refuses to build from anything but an exact version, as
+a second line of defense. Once the rebuilt image is deployed, run
+`npm run community -- upgrade` against it for the plugin migrations — see
 [the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/operating.md#the-operator-cli)
 for running it against this deployment.
 
@@ -639,7 +666,7 @@ if command -v git >/dev/null 2>&1 \
   GIT_READY=1
 fi
 
-echo "Created $BOARD_NAME — 13 files."
+echo "Created $BOARD_NAME — 14 files."
 echo
 echo "  cd $BOARD_NAME"
 echo "  npm install"

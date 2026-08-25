@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   binTargets,
+  heldBackDependency,
   missingTarballContents,
   orderByDependency,
   requiredTarballPrefixes,
@@ -17,6 +18,28 @@ describe('orderByDependency', () => {
   it('puts a dependency before the dependent that names it', () => {
     const ordered = orderByDependency([
       { name: '@meith/web', manifest: { dependencies: { '@meith/core': 'workspace:*' } } },
+      { name: '@meith/core', manifest: {} },
+    ])
+    expect(ordered.map((entry) => entry.name)).toEqual(['@meith/core', '@meith/web'])
+  })
+
+  it('puts a workspace-internal peerDependency before the dependent that names it, the pattern themes and plugins use for react', () => {
+    const ordered = orderByDependency([
+      {
+        name: '@meith/theme-clubhouse',
+        manifest: { peerDependencies: { '@meith/theme-kit': 'workspace:^' } },
+      },
+      { name: '@meith/theme-kit', manifest: {} },
+    ])
+    expect(ordered.map((entry) => entry.name)).toEqual([
+      '@meith/theme-kit',
+      '@meith/theme-clubhouse',
+    ])
+  })
+
+  it('puts a workspace-internal optionalDependency before the dependent that names it', () => {
+    const ordered = orderByDependency([
+      { name: '@meith/web', manifest: { optionalDependencies: { '@meith/core': 'workspace:*' } } },
       { name: '@meith/core', manifest: {} },
     ])
     expect(ordered.map((entry) => entry.name)).toEqual(['@meith/core', '@meith/web'])
@@ -44,6 +67,46 @@ describe('orderByDependency', () => {
         { name: '@meith/b', manifest: { dependencies: { '@meith/a': 'workspace:*' } } },
       ]),
     ).toThrowError(/dependency cycle among @meith\/a, @meith\/b/)
+  })
+})
+
+describe('heldBackDependency', () => {
+  const names = new Set(['@meith/theme-kit', '@meith/theme-clubhouse', '@meith/core'])
+
+  it('is undefined when nothing the package depends on stayed absent', () => {
+    const staysAbsent = new Set()
+    expect(
+      heldBackDependency({ dependencies: { '@meith/core': 'workspace:*' } }, names, staysAbsent),
+    ).toBeUndefined()
+  })
+
+  it('finds a workspace-internal peerDependency that stayed off the registry, holding the dependent back too', () => {
+    const staysAbsent = new Set(['@meith/theme-kit'])
+    expect(
+      heldBackDependency(
+        { peerDependencies: { '@meith/theme-kit': 'workspace:^' } },
+        names,
+        staysAbsent,
+      ),
+    ).toBe('@meith/theme-kit')
+  })
+
+  it('finds a workspace-internal optionalDependency that stayed off the registry', () => {
+    const staysAbsent = new Set(['@meith/core'])
+    expect(
+      heldBackDependency(
+        { optionalDependencies: { '@meith/core': 'workspace:*' } },
+        names,
+        staysAbsent,
+      ),
+    ).toBe('@meith/core')
+  })
+
+  it('ignores a peerDependency that is external, even if the name is otherwise unresolvable', () => {
+    const staysAbsent = new Set(['react'])
+    expect(
+      heldBackDependency({ peerDependencies: { react: '19.2.0' } }, names, staysAbsent),
+    ).toBeUndefined()
   })
 })
 
@@ -95,9 +158,6 @@ describe('missingTarballContents', () => {
   })
 
   it('flags the exact failure mode this exists for — a files entry with nothing packed under it', () => {
-    // "app" is promised by the files allowlist, but the tarball never
-    // received anything under it — the Next app directory going missing
-    // without anything else about the package looking wrong.
     const problems = missingTarballContents(webManifest, [
       'package.json',
       'bin/forum-web.mjs',
@@ -110,8 +170,6 @@ describe('missingTarballContents', () => {
   })
 
   it('flags a bin target that files coverage alone would not catch', () => {
-    // Everything under bin/ is present, but not the exact file the bin entry
-    // points at — a rename on one side and not the other.
     const problems = missingTarballContents(webManifest, [
       'package.json',
       'bin/forum-web-old.mjs',

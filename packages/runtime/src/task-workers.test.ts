@@ -316,11 +316,11 @@ describe('the marketplace catalog refresh', () => {
       async saveError({ message }: { message: string }) {
         saved = { ...saved, error: message }
       },
-      async hasNotified(key: string, version: string) {
-        return notified.has(`${key}@${version}`)
-      },
-      async markNotified(key: string, version: string) {
-        notified.add(`${key}@${version}`)
+      async claimNotified(key: string, version: string) {
+        const marker = `${key}@${version}`
+        if (notified.has(marker)) return false
+        notified.add(marker)
+        return true
       },
       get savedFeed() {
         return saved
@@ -333,7 +333,13 @@ describe('the marketplace catalog refresh', () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => feed([listing()]),
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(feed([listing()])))
+          controller.close()
+        },
+      }),
     }) as unknown as typeof fetch
     vi.stubGlobal('fetch', fetchImpl)
 
@@ -355,11 +361,17 @@ describe('the marketplace catalog refresh', () => {
 
   it('notifies exactly once for a plugin update, through the wired notifier', async () => {
     const repository = fakeRepository()
-    const fetchImpl = vi.fn().mockResolvedValue({
+    const fetchImpl = vi.fn().mockImplementation(async () => ({
       ok: true,
       status: 200,
-      text: async () => feed([listing({ version: '0.17.0' })]),
-    }) as unknown as typeof fetch
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(feed([listing({ version: '0.17.0' })])))
+          controller.close()
+        },
+      }),
+    })) as unknown as typeof fetch
     vi.stubGlobal('fetch', fetchImpl)
 
     const notifyUpdate = vi.fn().mockResolvedValue(undefined)

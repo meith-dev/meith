@@ -92,7 +92,24 @@ RUN pnpm --filter @meith/worker build
 # all there is on that machine — and "everything you should not need a browser
 # for" is worth nothing if promoting a user needs the repository and a
 # toolchain.
-RUN pnpm --filter @meith/cli build
+#
+# MEI-99: plain `esbuild ... src/index.ts` (the package's own `build` script)
+# auto-discovers the nearest tsconfig.json by walking up from src/index.ts,
+# which finds this repository's root tsconfig.json — extending
+# tsconfig.base.json, whose `@board/*` aliases point at apps/community — long
+# before it would ever reach boards/stock. Left alone, that compiles
+# `community upgrade` and `community plugin:purge` (apps/cli/src/index.ts)
+# against apps/community's plugin registry while this same image's web app
+# (built just above, from boards/stock) serves boards/stock's. `pnpm
+# board:cli-tsconfig` (scripts/board-cli-tsconfig.mjs) writes a throwaway
+# tsconfig at boards/stock/.meith/tsconfig.cli.json — gitignored, regenerated
+# every build, never a merge target — carrying every tsconfig.base.json alias
+# except `@board/*`, which it points at boards/stock's own community.config.ts
+# / community.plugins.ts instead. `--tsconfig` then makes esbuild use exactly
+# that file instead of auto-discovering the wrong one. See docs/architecture.md,
+# "The stock board".
+RUN pnpm board:cli-tsconfig
+RUN pnpm --filter @meith/cli build --tsconfig=/repo/boards/stock/.meith/tsconfig.cli.json
 
 # ---------------------------------------------------------------------------
 # runtime: standalone output only.

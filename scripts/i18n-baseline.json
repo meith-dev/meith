@@ -66,8 +66,6 @@
   "packages/core/src/metrics.ts": 1,
   "packages/core/src/permissions.ts": 53,
   "packages/core/src/tracing.ts": 2,
-  "packages/create-meith/src/cli.ts": 9,
-  "packages/create-meith/src/scaffold.ts": 5,
   "packages/db/src/admin-session-repo.ts": 1,
   "packages/db/src/attachment-repo.ts": 1,
   "packages/db/src/client.ts": 4,

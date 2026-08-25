@@ -70,7 +70,9 @@ history behind it, and a checkout a visitor can actually go through. See
      defaults to, what the ledger shows, and the fallback when a Stripe
      event carries no currency of its own) and the days a lapsed renewal
      keeps access. `DUES_CURRENCY` and `DUES_GRACE_DAYS` override them from
-     the environment, on the same rule as the keys below.
+     the environment, on the same rule as the keys below. `DUES_CURRENCY` is
+     matched case-insensitively and trimmed — `EUR` and `eur` both select
+     the same option — but write it lower-case.
    - **`DUES_STRIPE_SECRET_KEY`** and **`DUES_STRIPE_WEBHOOK_SECRET`** — set
      in the environment, or filled in here. Environment wins, and the
      screen says which source is in force.
@@ -101,9 +103,12 @@ A plan is made and edited in the panel. It has a permanent key, a name, a
 description, the group it grants, a price in minor units, its own three-letter
 currency, and one of three billing shapes:
 
-- **A pass** — one payment for a fixed stretch, one day to two years
-  (including the grace window; the board caps a plugin grant at two years,
-  and a pass respects the cap rather than pretending otherwise).
+- **A pass** — one payment for a fixed stretch, one day to two years minus
+  the longest possible grace window: the board caps a plugin grant at two
+  years, checked against the grace setting's maximum (30 days) rather than
+  whatever it is set to today, since grace can be raised after the plan
+  already exists — and a pass respects the cap rather than pretending
+  otherwise.
 - **A subscription** — renews monthly or yearly until cancelled. It bills
   against a real Stripe price: leave the box empty and the plugin mints a
   product and price to match the form, or paste a `price_…` id made in the
@@ -123,6 +128,13 @@ subscriptions keep billing what they signed up for, and only the next buyer
 sees the new number. Plans are never deleted — **archiving** takes one off
 sale while everyone who holds it keeps it. The plan key is permanent because
 it is how orders, memberships and the ledger refer to the plan forever.
+
+A pass's length is part of that snapshot, and settlement reads it from the
+order, not from the plan row — an edit made while a buyer is mid-checkout
+grants what they paid for, never the edited length. Money already worked
+this way (the exact-match rule above); the length just needed to match it.
+The plan's own length is a fallback only, for an order that genuinely
+predates carrying one of its own.
 
 ## How it decides things
 

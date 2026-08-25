@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
 
+import { readCappedBody } from '@meith/marketplace'
+
 import { requireAdmin } from '@/server/admin'
 import { marketplaceScreenshotUrl } from '@/server/marketplace-admin'
 
@@ -46,13 +48,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     const upstream = await fetch(url, {
       signal: controller.signal,
       headers: { accept: 'image/png' },
+      redirect: 'manual',
     })
     if (!upstream.ok) return fail(502, 'The catalog host did not answer with the screenshot.')
 
-    const bytes = await upstream.arrayBuffer()
-    if (bytes.byteLength > MAX_BYTES) return fail(502, 'The screenshot was larger than expected.')
+    const bytes = await readCappedBody(upstream, MAX_BYTES)
+    if (bytes === null) return fail(502, 'The screenshot was larger than expected.')
 
-    return new Response(bytes, {
+    return new Response(bytes.buffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'image/png',
         'X-Content-Type-Options': 'nosniff',

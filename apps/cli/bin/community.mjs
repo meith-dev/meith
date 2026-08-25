@@ -92,11 +92,13 @@ function materialize() {
   return join(srcTarget, 'index.ts')
 }
 
+/**
+ * Resolved from this package's own directory — `tsx` is `@meith/cli`'s
+ * dependency, found either hoisted to the workspace root or nested under
+ * this package's own `node_modules`, the same reasoning as forum-web's
+ * `resolveNextBin()`.
+ */
 function resolveTsx() {
-  // Resolved from this package's own directory — `tsx` is @meith/cli's
-  // dependency, found either hoisted to the workspace root or nested under
-  // this package's own node_modules, the same reasoning as forum-web's
-  // resolveNextBin().
   const require = createRequire(join(packageRoot, 'package.json'))
   try {
     return require.resolve('tsx/cli')

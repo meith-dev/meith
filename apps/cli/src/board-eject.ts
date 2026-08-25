@@ -17,8 +17,12 @@ import { CODE_VERSION } from './upgrade'
  * bundled `dist/cli.cjs` does not sit at that same distance — Docker's own
  * `COPY apps/cli/dist/ ./apps/cli/` drops the `dist` segment.
  */
-const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
-const DEFAULT_MANIFEST_PATH = join(ROOT, 'boards/stock/board.plugins.json')
+function defaultManifestPath(): string {
+  return join(
+    fileURLToPath(new URL('../../../', import.meta.url)),
+    'boards/stock/board.plugins.json',
+  )
+}
 
 interface ManifestEntry {
   readonly key: string
@@ -31,7 +35,81 @@ interface Manifest {
 }
 
 function manifestPath(): string {
-  return process.env.BOARD_PLUGINS_MANIFEST ?? DEFAULT_MANIFEST_PATH
+  return process.env.BOARD_PLUGINS_MANIFEST ?? defaultManifestPath()
+}
+
+/**
+ * Duplicated from scripts/board-plugins.mjs's own PLUGIN_KEY_PATTERN, IDENTIFIER_PATTERN
+ * and NPM_PACKAGE_NAME_PATTERN rather than imported — see docs/plugin-api.md, "The board
+ * plugin manifests" — and pinned to agree with it by board-eject.test.ts.
+ */
+const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
+const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
+const NPM_PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
+
+/**
+ * The same shape of refusal scripts/board-plugins.mjs's validateManifest makes for
+ * apps/community and boards/stock, minus the dependency check — a deployed image
+ * carries no package.json listing what it was actually built with. A manifest that
+ * gets this far already passed that check once, when plugin:add wrote it; this is
+ * defense against a manifest hand-edited after the fact, not the primary gate.
+ */
+export function validateEjectManifest(plugins: readonly ManifestEntry[], path: string): void {
+  const seen = new Set<string>()
+  const identifiers = new Map<string, string>()
+
+  for (const entry of plugins) {
+    if (typeof entry.key !== 'string' || typeof entry.package !== 'string') {
+      throw new ValidationError(
+        `${path}: every entry needs a string "key" and "package". Got ${JSON.stringify(entry)}.`,
+      )
+    }
+
+    if (seen.has(entry.key)) {
+      throw new ValidationError(`${path}: "${entry.key}" is listed twice.`)
+    }
+    seen.add(entry.key)
+
+    if (!PLUGIN_KEY_PATTERN.test(entry.key)) {
+      throw new ValidationError(
+        `${path}: "${entry.key}" is not a valid plugin key. definePlugin requires lower-case ` +
+          'letters, digits and hyphens, starting with a letter, 2-40 characters long.',
+      )
+    }
+
+    if (entry.enabled !== undefined && typeof entry.enabled !== 'boolean') {
+      throw new ValidationError(
+        `${path}: "${entry.key}" has a non-boolean "enabled" (${JSON.stringify(entry.enabled)}). ` +
+          'Omit the field to enable the plugin, or set it to true or false.',
+      )
+    }
+
+    if (!NPM_PACKAGE_NAME_PATTERN.test(entry.package) || entry.package.length > 214) {
+      throw new ValidationError(
+        `${path}: "${entry.package}" (key "${entry.key}") is not a valid npm package name.`,
+      )
+    }
+
+    const identifier = toIdentifier(entry.key)
+    if (!IDENTIFIER_PATTERN.test(identifier)) {
+      throw new ValidationError(
+        `${path}: "${entry.key}" is a valid plugin key, but the identifier ` +
+          `community.plugins.ts would bind for it, "${identifier}", is not a valid TypeScript ` +
+          'identifier. Each hyphen must be followed by exactly one lower-case letter or digit, ' +
+          'and a key cannot end in a hyphen.',
+      )
+    }
+
+    const collidingKey = identifiers.get(identifier)
+    if (collidingKey !== undefined) {
+      throw new ValidationError(
+        `${path}: "${entry.key}" and "${collidingKey}" both generate the identifier ` +
+          `"${identifier}" for community.plugins.ts. Rename one of the keys so the generated ` +
+          'imports do not collide.',
+      )
+    }
+    identifiers.set(identifier, entry.key)
+  }
 }
 
 /**
@@ -63,6 +141,7 @@ async function readManifest(): Promise<Manifest> {
   if (!Array.isArray(parsed.plugins)) {
     throw new ValidationError(`${path} must have a "plugins" array.`)
   }
+  validateEjectManifest(parsed.plugins, path)
   return { plugins: parsed.plugins }
 }
 
@@ -75,8 +154,31 @@ async function isEmptyOrMissing(target: string): Promise<boolean> {
   }
 }
 
-function toIdentifier(key: string): string {
+export function toIdentifier(key: string): string {
   return key.replace(/-([a-z0-9])/g, (_match, char) => char.toUpperCase())
+}
+
+interface EjectedPackageJson {
+  dependencies: Record<string, string>
+  [key: string]: unknown
+}
+
+/**
+ * Every manifest entry's package pinned into the scaffolded package.json's
+ * dependencies, at this exact running version — see docs/marketplace.md,
+ * "1. Eject", for why never `latest`, and for the collision policy this
+ * implements: a package scaffold() already pins is left exactly where it
+ * is, never duplicated or reordered, because both pins are always this
+ * same CODE_VERSION.
+ */
+function mergePluginDependencies(packageJson: string, plugins: readonly ManifestEntry[]): string {
+  const parsed = JSON.parse(packageJson) as EjectedPackageJson
+  for (const entry of plugins) {
+    if (!(entry.package in parsed.dependencies)) {
+      parsed.dependencies[entry.package] = CODE_VERSION
+    }
+  }
+  return `${JSON.stringify(parsed, null, 2)}\n`
 }
 
 /**
@@ -122,6 +224,30 @@ export function installedPluginDefinitions() {
 `
 }
 
+function isFsPermissionError(error: unknown): error is NodeJS.ErrnoException {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code
+  return code === 'EACCES' || code === 'EPERM'
+}
+
+/**
+ * Turns an EACCES/EPERM from the write loop below into this instead of a
+ * bare Node stack trace — see docs/marketplace.md, "1. Eject", for the
+ * bind-mount ownership rule this message is naming. Anything else passes
+ * through unchanged.
+ */
+function translateWriteError(error: unknown, target: string, path: string): never {
+  if (isFsPermissionError(error)) {
+    throw new ValidationError(
+      `board:eject could not write to ${path}: permission denied. The account running this ` +
+        `command needs write access to ${target} — inside the official image that account is ` +
+        'a fixed, non-root user, so a bind-mounted target directory has to already be owned by ' +
+        '(or writable by) that same account before eject runs. See docs/marketplace.md, ' +
+        '"Moving to a custom board", for the exact invocation.',
+    )
+  }
+  throw error
+}
+
 export async function boardEject(args: readonly string[]): Promise<number> {
   const positional = args.filter((arg) => !arg.startsWith('-'))
   const [dir] = positional
@@ -150,13 +276,22 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   const files = new Map(
     scaffold({ name, version: CODE_VERSION, repositoryUrl: DEFAULT_REPOSITORY_URL }),
   )
+  const packageJson = files.get('package.json')
+  if (packageJson === undefined) {
+    throw new Error('scaffold() did not emit package.json')
+  }
+  files.set('package.json', mergePluginDependencies(packageJson, manifest.plugins))
   files.set('board.plugins.json', `${JSON.stringify({ plugins: manifest.plugins }, null, 2)}\n`)
   files.set('community.plugins.ts', renderInstalledPluginsModule(manifest.plugins))
 
   for (const [relative, contents] of files) {
     const path = join(target, relative)
-    await mkdir(dirname(path), { recursive: true })
-    await writeFile(path, contents, 'utf8')
+    try {
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, contents, 'utf8')
+    } catch (error) {
+      translateWriteError(error, target, path)
+    }
   }
 
   console.log(`Ejected ${files.size} files to ${target}, pinned to meith ${CODE_VERSION}.`)

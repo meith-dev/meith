@@ -31,7 +31,15 @@ async function initGit(target: string): Promise<boolean> {
 }
 
 export async function run(argv: readonly string[], version: string): Promise<CliResult> {
-  const positional = argv.filter((arg) => !arg.startsWith('-'))
+  const positional: string[] = []
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] as string
+    if (arg === '--repo') {
+      i++
+      continue
+    }
+    if (!arg.startsWith('-')) positional.push(arg)
+  }
   const name = positional[0] ?? ''
 
   if (argv.includes('--help') || argv.includes('-h')) {

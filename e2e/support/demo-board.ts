@@ -1,9 +1,10 @@
 import { createServer } from 'node:net'
 
+import { installedPluginDefinitions } from '@board/plugins'
+
 import { closeDb, getDb } from '@meith/db'
 import { demoResetTask } from '@meith/demo'
 
-import { installedPluginDefinitions } from '../../apps/community/community.plugins'
 import { DEMO_DATABASE_URL, DEMO_DB_PORT, DEMO_READY_PORT } from './config'
 import { startDatabase } from './database'
 

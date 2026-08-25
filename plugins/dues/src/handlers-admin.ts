@@ -275,7 +275,7 @@ export async function handleAdminPlanCreate(
   services: DuesServices,
   request: PluginRequest,
 ): Promise<PluginResponse> {
-  const parsed = parsePlanForm(request.form ?? {}, services.config.graceDays)
+  const parsed = parsePlanForm(request.form ?? {})
   if (!parsed.ok) return toAdmin('plans', { error: parsed.error })
   const plan = parsed.plan
 
@@ -321,10 +321,7 @@ export async function handleAdminPlanUpdate(
   const existing = id === null ? null : await planRowById(services.context.data, id)
   if (existing === null) return toAdmin('plans', { error: 'no-such-plan' })
 
-  const parsed = parsePlanForm(
-    { ...request.form, key: existing.key, mode: existing.mode },
-    services.config.graceDays,
-  )
+  const parsed = parsePlanForm({ ...request.form, key: existing.key, mode: existing.mode })
   if (!parsed.ok) return toAdmin('plans', { error: parsed.error })
   const plan = parsed.plan
 

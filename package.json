@@ -42,6 +42,7 @@
     "plugin:docs:check": "node scripts/plugin-hook-docs.mjs --check",
     "board:gen": "node scripts/board-plugins-gen.mjs",
     "board:gen:check": "node scripts/board-plugins-gen.mjs --check",
+    "board:cli-tsconfig": "node scripts/board-cli-tsconfig.mjs",
     "hooks:wired": "node scripts/hook-callsites.mjs",
     "api:docs": "tsx scripts/api-docs.mts",
     "api:docs:check": "tsx scripts/api-docs.mts --check",

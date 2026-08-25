@@ -47,6 +47,11 @@ The version is also written in places npm never reads:
   (`plugins/dues`, `plugins/reference`) — what `/admin/plugins` shows, and
   the only one of these an operator ever sees.
 - The exact image tag the Coolify compose file pins.
+- The `version` field of every listing in `marketplace/listings/` whose
+  `package` names a workspace package — Dues and the five bundled themes,
+  see [the marketplace](./marketplace.md#what-is-in-a-listing). A
+  third-party listing is explicitly exempt: it tracks its own package's
+  release, not this repository's.
 
 Nothing fails at runtime if these drift, but the drift is visible: the
 plugin version once sat at `0.1.0` through two releases, so a board that
@@ -70,6 +75,16 @@ in the same run that moves the version, and the release commit carries the
 fresh documents. Before that, a bump left them at the previous version and
 CI failed at `api:docs:check` or `board-installer:gen:check` on the
 release commit.
+
+The six first-party marketplace listings are a third case: `release-check`
+enforces their `version` field directly (listed above), but the merged
+feed at `apps/web/public/marketplace/v1.json` is a generated mirror of
+those listings, and its own staleness is `pnpm marketplace:gen:check`'s
+job, not `release-check`'s — the same relationship `api:docs:check` has to
+`docs/openapi.json`. `pnpm release:bump` moves the six listings and
+regenerates the feed (`pnpm marketplace:gen`) in the same run, so the
+release commit carries a feed that already matches them; see
+[the marketplace § What is seeded today](./marketplace.md#what-is-seeded-today).
 
 The image additionally carries the version as `MEITH_VERSION` (an
 environment variable and OCI labels, stamped by the workflow). A local
@@ -120,8 +135,9 @@ broken promise, which is why the workflow drafts rather than publishes.
 2. **Run the "Cut a release" workflow** — Actions → *Cut a release* → the
    version, `major.minor.patch` with no leading `v`. It bumps every place
    the version is written (`pnpm release:bump` — the manifests, the source
-   constants, the plugin manifests, the compose pin) and regenerates the
-   one document that stamps the version, `docs/openapi.json`, proves
+   constants, the plugin manifests, the compose pin, the six first-party
+   marketplace listings) and regenerates every document that stamps the
+   version, `docs/openapi.json` and the marketplace feed among them, proves
    coherence with `release-check --tag`, commits `chore(release): vX.Y.Z`
    to `main`, pushes the tag, and thereby starts the Release workflow. A
    version that would not move the tree forward is refused before anything
@@ -286,18 +302,43 @@ follow-up work — see [Consuming the board from a
 workspace](./development.md#consuming-the-board-from-a-workspace).
 
 `scripts/npm-publish.mjs` is the mechanism: dependencies before
-dependents, a version already on the registry skipped rather than failed,
-and `--dry-run` packs everything locally — every tarball is also checked
+dependents — a `dependencies`, `peerDependencies` or `optionalDependencies`
+edge, so a workspace-internal peer (the pattern themes and plugins already
+use for react) orders and holds back exactly like a plain dependency would
+— a version already on the registry skipped rather than failed, and
+`--dry-run` packs everything locally — every tarball is also checked
 against its own manifest before anything would be published: every
 non-excluded entry in `files` must have put something in the tarball, and
 every `bin` target must be a real file in it. That is what catches, before
 a release ever runs, the failure mode a bare version bump cannot: a
 `files` allowlist that still names a directory nothing is written into any
-more (the Next app directory, `app/`, under `@meith/web`, is the one worth
-being paranoid about — nothing exercises it externally except a board
-actually built from the published tarball). Each package is packed by
+more. Under `@meith/web`, the Next app directory `app/` and `public/` are
+the two worth being paranoid about: nothing exercises either externally
+except a board actually built from the published tarball, and a `public/`
+left out of the allowlist costs web push its service worker without
+failing anything inside this repository. Each package is packed by
 `pnpm` — which rewrites the `workspace:` ranges into real ones — and
 published by the `npm` CLI, which is what implements trusted publishing.
+
+A dry run stops at the packing and the tarball check: it never reaches
+the registry. That is what makes it a gate a pull request can run at all
+— the tree between releases carries a version that is already published,
+so asking `npm publish --dry-run` about it would be told, correctly, that
+the version cannot be published over, on every package, every time.
+Nothing is lost by stopping earlier, because the failure this catches is
+a local disagreement between a manifest and the tarball its own `files`
+allowlist produces.
+
+CI's `static` job runs the dry run on every push and pull request
+(`.github/workflows/ci.yml`), building `create-meith`'s `dist` first —
+release.yml's `npm` job orders the same two steps the same way, since the
+dry run packs `create-meith` from disk and only `pnpm build` writes its
+`dist/bin.mjs`. That is the only packing coverage for a package outside
+the `board-workspace` job's closure (`@meith/web`, `@meith/cli`,
+`@meith/theme-default` and what they depend on): a `files`-allowlist or
+`bin`-path rot in, say, a theme or a domain package now fails on the pull
+request that caused it, rather than mid-release after both architecture
+image builds have already pushed tags.
 
 ### The npm surface is a compatibility commitment
 
@@ -310,16 +351,20 @@ policy that already backs `apiVersion` for themes and plugins
 [plugin API versioning](./plugin-api.md#versioning)): a minor may add
 capability, only a major may remove or rename it, and a package built
 against one major keeps working against every release on that major.
-`@meith/web` and `@meith/cli` are not exempt from [the version
-policy](#the-version-policy) just because they are new to npm — a
-scaffolded board pins them to an exact version rather than a range
-(deliberately: `create-meith`'s scaffold upgrades by `npm install
-@meith/web@latest @meith/cli@latest`, an explicit act, never a silent
-range resolution on a board process holding a database migration), while a
-theme or plugin's `workspace:^` on `@meith/theme-kit` / `@meith/plugin-kit`
-is the same policy stated as a version range instead. Same guarantee,
-different mechanism for the different risk: a board upgrade runs
-migrations, a theme or plugin upgrade does not.
+`@meith/web`, `@meith/cli` and `@meith/theme-default` are not exempt from
+[the version policy](#the-version-policy) just because they are new to npm
+— a scaffolded board pins all three to an exact version rather than a
+range (deliberately: `create-meith`'s scaffold upgrades by `npm install
+--save-exact @meith/web@latest @meith/cli@latest
+@meith/theme-default@latest`, an explicit act, never a silent range
+resolution on a board process holding a database migration — the
+scaffolded `.npmrc` sets `save-exact=true` so the same holds even for an
+install run by hand, and the generated `build.yml` refuses to build from
+anything but an exact version regardless), while a theme or plugin's
+`workspace:^` on `@meith/theme-kit` / `@meith/plugin-kit` is the same
+policy stated as a version range instead. Same guarantee, different
+mechanism for the different risk: a board upgrade runs migrations, a theme
+or plugin upgrade does not.
 
 ### How the workflow authenticates
 
@@ -446,10 +491,13 @@ build step there — immediately before `node scripts/npm-publish.mjs`.
 
 A published package may not depend on a private one — that would be an
 `npm install` that resolves for nobody. `release-check` enforces the
-closure: publishing a package means deleting its `private: true`, and the
-check then names everything that decision drags with it. That is how
-`@meith/core` and `@meith/ui` entered the set — the kits and themes stand
-on them — and it is the friction that keeps the set deliberate.
+closure across `dependencies`, `peerDependencies` and
+`optionalDependencies` alike, so a workspace-internal peer is exactly as
+disqualifying as a plain dependency: publishing a package means deleting
+its `private: true`, and the check then names everything that decision
+drags with it. That is how `@meith/core` and `@meith/ui` entered the set
+— the kits and themes stand on them — and it is the friction that keeps
+the set deliberate.
 
 Dependency ranges between published packages are `workspace:^`, so a
 published manifest says `^X.Y.Z` — the release line again. A plugin

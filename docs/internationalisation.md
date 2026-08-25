@@ -262,6 +262,18 @@ any file that gains one. A file not listed must hold none at all, so new code
 starts translated. When you finish extracting a file, run `pnpm i18n:baseline`
 to bank it; the numbers only ever go down.
 
+The ratchet only measures surfaces that render to a board member: the board
+app, the built-in themes, plugins, and the `src/` of every other package
+except `@meith/i18n` and `@meith/testkit` themselves. It does not measure a
+program that talks to a terminal instead of a browser. The operator CLI under
+`apps/cli/` was never on that list, and `packages/create-meith/` is the same
+kind of program: `npx create-meith` runs on a developer's machine before a
+board, a database, or a member's language preference exist, and it ships as a
+standalone `npx` package with no dependency on `@meith/i18n` — pulling one in
+just to translate `--help` text would mean publishing the whole catalog
+alongside it for a tool that has no reader to serve it to. Terminal copy in
+both places stays English on purpose, the same way a stack trace does.
+
 A handful of the counts are noise rather than copy: `view/feed.ts` and
 `view/sso-hand-off.ts` build XML and HTML documents whose fragments read like
 prose to the counter, and `view/setting-groups.ts` holds the group labels the
