@@ -740,9 +740,11 @@ makes `next start` warn and serve anyway. The suite instead does what
 `forum-web start` does (`apps/community/bin/forum-web.mjs`): run
 `node .next-e2e/standalone/apps/community/server.js`. Next does not copy
 `static` or `public` into that tree, so `board-build.ts` stages both
-afterwards, exactly as `stageStandaloneAssets` does for a real board. The
-generated `server.js` bakes its own config in and reads `PORT` and
-`HOSTNAME` from the environment.
+afterwards for the same reason and in the same way `forum-web build` does —
+see [Consuming the board from a
+workspace](#consuming-the-board-from-a-workspace). The generated `server.js`
+bakes its own config in and reads `PORT` and `HOSTNAME` from the
+environment.
 
 **A built server is production, and three harness assumptions broke on
 that.** None of them was a product bug, and none was fixed by loosening the
