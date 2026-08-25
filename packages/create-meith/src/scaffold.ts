@@ -157,6 +157,15 @@ export function installedPluginDefinitions() {
 # processes in front of it, does not need one.
 DATABASE_URL=
 
+# The other half of that pair: the DIRECT (non-pooler) string, used only by
+# \`community migrate\` and \`community backup\`. Migrations hold a session-level
+# advisory lock so that two deploys landing together queue instead of both
+# applying the same migration, and a transaction-mode pooler can hold neither
+# that lock nor a run of DDL on one connection. Set both and each gets the
+# connection it needs; set only DATABASE_URL and migrations use it too, which is
+# right for a Postgres you run yourself.
+# DIRECT_DATABASE_URL=
+
 # Session and token signing. No default, deliberately: a shipped default is a
 # board every reader of the source can sign a session for.
 #

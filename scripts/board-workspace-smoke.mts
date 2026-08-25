@@ -155,6 +155,19 @@ async function main() {
       },
     })
 
+    console.log('== community migrate over DIRECT_DATABASE_URL, with DATABASE_URL unreachable ==')
+    run(join(boardDir, 'node_modules/.bin/community'), ['migrate'], {
+      cwd: boardDir,
+      env: {
+        ...process.env,
+        DATABASE_URL: 'postgres://nobody@127.0.0.1:1/unreachable',
+        DIRECT_DATABASE_URL: DATABASE_URL,
+        DATA_SOURCE: 'postgres',
+        AUTH_SECRET,
+        TICK_SECRET,
+      },
+    })
+
     console.log('== forum-web start ==')
     const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start'], {
       cwd: boardDir,

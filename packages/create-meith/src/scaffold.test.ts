@@ -90,6 +90,15 @@ describe('what the scaffold writes', () => {
     expect(files.get('.env.example')).toMatch(/POOLER/)
   })
 
+  it('offers the direct URL beside it, commented out, as the one migrations take', () => {
+    const env = files.get('.env.example')!
+
+    expect(env).toMatch(/^# DIRECT_DATABASE_URL=$/m)
+    expect(env.indexOf('DIRECT_DATABASE_URL')).toBeGreaterThan(env.indexOf('DATABASE_URL='))
+    expect(env).toMatch(/community migrate/)
+    expect(env).toMatch(/advisory lock/)
+  })
+
   it('generates a working secret-generation command', async () => {
     const { execFile } = await import('node:child_process')
     const { promisify } = await import('node:util')

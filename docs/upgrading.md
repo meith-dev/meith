@@ -219,6 +219,49 @@ For a board with real traffic:
 
 Release notes say which kind each release is.
 
+## When the build runs the migration
+
+On a platform that only builds and serves, there is nowhere to run a
+one-shot migration job, so the migration goes in the build command,
+ahead of the build:
+
+```sh
+community migrate && forum-web build
+```
+
+The `&&` is the whole mechanism. A migration that fails exits non-zero,
+the build never starts, and the deployment fails carrying the
+migration's own error rather than shipping new code onto an old schema.
+There is deliberately no `forum-web build --migrate`: keeping them two
+commands is what makes a failed deploy attributable to the step that
+actually failed.
+
+This does not remove the window the previous section describes — it
+turns it around. The migration runs during the build, while the previous
+deployment is still serving, so between the migration and the cutover it
+is the **old** code talking to the **new** schema. For a release that
+only adds things, that is safe. For one that removes or renames, the
+same two-step rule applies and in the same order: ship code that
+tolerates both shapes, let that build migrate, then ship the code that
+assumes the new shape.
+
+Overlapping builds are safe. Two deploys triggered close together, or a
+deploy and a rollback, queue on an advisory lock, and the second finds
+nothing left to do — see
+[Migrations](./operating.md#two-migrations-at-once). A rollback re-runs
+the older build, so it re-runs `community migrate`, which applies
+nothing: migrations are forward-only, and rolling the code back does not
+roll the schema back. [Downgrades](#downgrades) still applies.
+
+Nothing here widens [how far you can jump](#how-far-you-can-jump). A
+build-time migration is the same migration set under the same two-major
+limit, and a board further behind still upgrades in stages.
+
+Such a platform's database is usually a managed one, which means
+`DATABASE_URL` is a transaction-mode pooler string that cannot hold the
+lock. Set `DIRECT_DATABASE_URL` to the direct string as well — see
+[connection pooling](./operating.md#connection-pooling).
+
 ---
 
 ## What recent releases changed
