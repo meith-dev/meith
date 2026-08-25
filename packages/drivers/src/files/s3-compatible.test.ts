@@ -91,6 +91,13 @@ describe('S3FileStore.url', () => {
     expect(store.url('avatars/a.png')).toBe('https://files.example/avatars/a.png')
   })
 
+  it('percent-encodes the key, as the signed URL already does', () => {
+    const store = new S3FileStore({ ...CONFIG, endpoint: R2_ENDPOINT })
+
+    expect(store.url('avatars/a b#c?d.png')).toBe(`${R2_ENDPOINT}/board/avatars/a%20b%23c%3Fd.png`)
+    expect(store.url('avatars/nested/a.png')).toBe(`${R2_ENDPOINT}/board/avatars/nested/a.png`)
+  })
+
   it('carries S3_PUBLIC_BASE_URL through fromEnv', () => {
     const store = S3FileStore.fromEnv({
       S3_BUCKET: 'board',

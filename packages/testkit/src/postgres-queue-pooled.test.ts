@@ -7,18 +7,19 @@ import { createIsolatedDb, jobs } from '@meith/db'
 import { migrationScript } from '@meith/db/pglite.fixture'
 import { PostgresQueue } from '@meith/drivers'
 
-const PORT = 55_432
+import { freePort } from './free-port'
 
 type Connection = ReturnType<typeof createIsolatedDb>
 
 describe('PostgresQueue over a real wire connection', () => {
   let engine: PGlite
   let server: PGLiteSocketServer
+  let port: number
   const connections: Connection[] = []
 
   function connect(): Connection {
     const connection = createIsolatedDb(
-      `postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`,
+      `postgres://postgres:postgres@127.0.0.1:${port}/postgres`,
       1,
     )
     connections.push(connection)
@@ -29,9 +30,11 @@ describe('PostgresQueue over a real wire connection', () => {
     engine = new PGlite()
     await engine.exec(migrationScript())
 
+    port = await freePort()
+
     server = new PGLiteSocketServer({
       db: engine,
-      port: PORT,
+      port,
       host: '127.0.0.1',
       maxConnections: 6,
     })

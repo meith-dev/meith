@@ -276,6 +276,18 @@ parts. That last point has a cost worth knowing: the whole file is held in
 the instance's memory while it is processed and sent, so the function's
 memory limit, not the bucket, is what caps an upload's size.
 
+Reading has the same ceiling. `FileStore.get()` hands back the whole
+object as a `Uint8Array` and the download route buffers all of it before
+it answers, so nothing is streamed on the way out either. A file small
+enough to upload is small enough to serve, but the memory limit is what
+decides both, and an attachment that was uploaded on a larger function
+will exhaust a smaller one on the way back down.
+
+`PutFileOptions.visibility` is accepted and ignored: the board sends no
+ACL, so an object is public only if the bucket it lands in is. Serving
+uploads from a public bucket is a decision made on the bucket, not per
+file.
+
 `S3_PUBLIC_BASE_URL` matters more here than on a server. R2 does not serve
 objects from the API endpoint that `S3_ENDPOINT` points at; it serves them
 from an `r2.dev` address or a custom domain. Set it to whichever of those
@@ -283,7 +295,9 @@ the bucket uses, or to a CDN in front of the bucket, and public URLs will
 point somewhere a browser can actually fetch. Left unset with a custom
 endpoint, the board falls back to path-style URLs against the API endpoint
 — correct in shape, and correct in practice only for a store like MinIO
-that serves objects from the same host it takes API calls on.
+that serves objects from the same host it takes API calls on. It holds
+nothing secret, so `forum env` prints it in full rather than redacting it
+alongside the S3 credentials.
 
 **Cache.** One Redis connection is opened per instance, lazily, on the
 first cache read — not one per request. A `rediss://` URL turns on TLS,

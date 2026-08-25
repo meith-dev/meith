@@ -72,7 +72,6 @@ export class S3FileStore implements FileStore {
             endpoint: config.endpoint,
             forcePathStyle: true,
             requestChecksumCalculation: 'WHEN_REQUIRED',
-            responseChecksumValidation: 'WHEN_REQUIRED',
           } as const)),
     })
 
@@ -189,14 +188,16 @@ export class S3FileStore implements FileStore {
   url(key: string): string {
     assertUsableKey(key)
 
+    const path = key.replace(/[^/]+/g, (segment) => encodeURIComponent(segment))
+
     if (this.config.publicBaseUrl !== undefined) {
-      return `${this.config.publicBaseUrl.replace(/\/+$/, '')}/${key}`
+      return `${this.config.publicBaseUrl.replace(/\/+$/, '')}/${path}`
     }
 
     if (this.config.endpoint !== undefined) {
-      return `${this.config.endpoint.replace(/\/+$/, '')}/${this.config.bucket}/${key}`
+      return `${this.config.endpoint.replace(/\/+$/, '')}/${this.config.bucket}/${path}`
     }
 
-    return `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}`
+    return `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${path}`
   }
 }
