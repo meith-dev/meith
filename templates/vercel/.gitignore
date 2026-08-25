@@ -11,14 +11,22 @@ node_modules
 # What `forum-web --at-root` writes into this directory: @meith/web's own
 # Next app, materialized here rather than into .meith/app so that the build
 # artefact lands at ./.next, where Vercel's Next.js builder reads it. Every
-# name here belongs to the framework, is rewritten on every build, and is
-# never a merge target — the board's own files are the ones NOT listed. If
-# this board grows a directory of its own under one of these names, drop that
-# line: forum-web refuses to overwrite a file it did not write, so the build
-# would stop and say so, but git would already have stopped tracking it.
+# path here belongs to the framework and is rewritten on every build.
+#
+# public/ is listed file by file rather than as a directory, because that one
+# is shared: forum-web decides what it owns per file, so this board's own
+# public/ads.txt, public/.well-known/... or domain-verification file sits
+# beside the framework's and is tracked normally. The rest of these names the
+# framework owns outright — a build refuses rather than overwriting a file it
+# did not write, and names it.
 /app
 /src
-/public
+/public/placeholder-logo.png
+/public/placeholder-logo.svg
+/public/placeholder-user.jpg
+/public/placeholder.jpg
+/public/placeholder.svg
+/public/sw.js
 /next.config.mjs
 /postcss.config.mjs
 /components.json

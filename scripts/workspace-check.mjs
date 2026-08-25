@@ -244,6 +244,36 @@ if (scaffoldEntries !== null && appEntries !== null && generatedEntries !== null
   }
 }
 
+const publicEntries = stringList(
+  scaffoldSource,
+  /export const MATERIALIZED_PUBLIC = \[([\s\S]*?)\]/,
+  'packages/create-meith/src/scaffold.ts',
+  'MATERIALIZED_PUBLIC',
+)
+
+if (publicEntries !== null) {
+  const shipped = []
+  const walk = async (dir, prefix) => {
+    for (const item of await readdir(dir, { withFileTypes: true })) {
+      const rel = prefix === '' ? item.name : `${prefix}/${item.name}`
+      if (item.isDirectory()) await walk(join(dir, item.name), rel)
+      else shipped.push(rel)
+    }
+  }
+  await walk(join(ROOT, 'apps/community/public'), '')
+
+  const missing = shipped.filter((entry) => !publicEntries.includes(entry))
+  const extra = publicEntries.filter((entry) => !shipped.includes(entry))
+  for (const entry of [...missing, ...extra]) {
+    problems.push(
+      `MATERIALIZED_PUBLIC (packages/create-meith/src/scaffold.ts) and apps/community/public ` +
+        `disagree about "${entry}". A scaffolded board gitignores public/ file by file so that ` +
+        'it can keep its own files there; a name missing from that list only shows up as ' +
+        'untracked noise after a build, but the list is what makes the directory shared',
+    )
+  }
+}
+
 if (problems.length > 0) {
   console.error('✗ workspace integrity:\n')
   for (const problem of problems) console.error(`  - ${problem}`)

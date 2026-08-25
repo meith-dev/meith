@@ -161,6 +161,33 @@ first, and `web` and `worker` wait for it, so the new code never serves
 against the old schema. That covers **core migrations only** — plugin
 migrations still go through `community upgrade`.
 
+**A board scaffolded by `create-meith`** — one with its own `package.json`
+depending on `@meith/web`, whether it deploys as a container or to Vercel —
+upgrades by moving that manifest, since nothing else names the version:
+
+```sh
+npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+```
+
+The second command matters as much as the first. Such a board pins `next`
+itself — a Vercel deployment needs it in the manifest, because that is where
+the platform reads the framework version it builds with
+([Building where Vercel looks](./development.md#building-where-vercel-looks)) —
+and no release moves that pin for you. Bump only the `@meith/*` packages and
+npm resolves the mismatch by installing *two* copies of Next: the board's
+pinned one at the root, and the one `@meith/web` now depends on nested under
+it. `forum-web` runs whichever Next `@meith/web` resolves, while everything
+reading `package.json` — Vercel's builder included — sees the other. Reading
+the version straight out of the freshly installed `@meith/web` is what keeps
+the two the same without anybody having to know the number.
+
+Inside this repository the same coherence is a check rather than a
+convention: `scripts/workspace-check.mjs` refuses a tree where any manifest,
+or `create-meith`'s own scaffold, pins a different `next` from `@meith/web`.
+It cannot reach a board outside the repository, which is why that board's
+README carries the second command too.
+
 ## When a release moves Postgres
 
 The compose files pin the database image, and a release can move that pin

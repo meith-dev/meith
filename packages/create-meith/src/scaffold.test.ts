@@ -11,6 +11,7 @@ import {
   DEFAULT_TEMPLATE_REPOSITORY_URL,
   deployButtonUrl,
   MATERIALIZED_AT_ROOT,
+  MATERIALIZED_PUBLIC,
   NEXT_VERSION,
   nextSteps,
   scaffold,
@@ -145,17 +146,18 @@ describe('what the scaffold writes', () => {
     }
   })
 
-  it('keeps a stray at-root materialization out of the image it builds', () => {
+  it("keeps a board's own top-level directories in the image and in git", () => {
     const dockerignore = files.get('.dockerignore')!.split('\n')
-    for (const entry of MATERIALIZED_AT_ROOT) {
-      expect(dockerignore).toContain(`/${entry}`)
-    }
-  })
-
-  it('does not gitignore those names here, where nothing ever materializes at the root', () => {
     const gitignore = files.get('.gitignore')!.split('\n')
-    expect(gitignore).not.toContain('/src')
-    expect(gitignore).not.toContain('src')
+
+    for (const entry of MATERIALIZED_AT_ROOT) {
+      expect(dockerignore).not.toContain(`/${entry}`)
+      expect(gitignore).not.toContain(`/${entry}`)
+    }
+    for (const entry of ['src', 'public']) {
+      expect(dockerignore).not.toContain(entry)
+      expect(gitignore).not.toContain(entry)
+    }
   })
 
   it('produces the same tree twice', () => {
@@ -333,13 +335,17 @@ describe('the deploy kit', () => {
     expect(shaIndex).toBeLessThan(latestIndex)
   })
 
-  it('tells the operator upgrading is one package.json edit, not a second pin to keep in sync', () => {
+  it('re-pins next from the package just installed, never from a number typed by hand', () => {
     const readme = files.get('README.md')!
     expect(readme).toMatch(
       /npm install --save-exact @meith\/web@latest @meith\/cli@latest @meith\/theme-default@latest/,
     )
     expect(readme).toMatch(/build argument/i)
-    expect(readme).not.toMatch(/bump/i)
+    expect(readme).toContain(
+      'npm install --save-exact next@$(node -p ' +
+        '"require(\'./node_modules/@meith/web/package.json\').dependencies.next")',
+    )
+    expect(readme).not.toMatch(/next@\d/)
   })
 
   it('documents --save-exact, so the upgrade it tells the operator to run never writes a caret range', () => {
@@ -517,7 +523,7 @@ describe('the published bin, run the way npx actually runs it', () => {
 
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'package.json': 'fbe57f89349df4dee13155fdbe939e57ef35a551291762776be18d9acb6ab4b3',
-  '.npmrc': 'ca0cc3b9e18f7eb4c0d84cd301f46bc558dc5010e7c747c0edf2e12651c37c09',
+  '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
   'community.config.ts': 'ca17c18b40a9e89af83ff5b2277a76f0d7852ed38fec02cdeba9112c6c76c5b7',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
   'community.plugins.ts': '4143635aeb85cd6a402f4e0a65748489676581c7505cbb24ed7b54bd39116a7d',
@@ -526,10 +532,10 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   Dockerfile: '4ca25de5a3412632bdb22ea9c7e0e135c4eec84710b656845b83b64b3f9d3992',
   'docker-entrypoint.sh': 'c54686c6239ce194747e898658e5811b58f52e5f95f6a45c3a6984957ff449a2',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
-  '.dockerignore': '17d11d8322ebf2791469a879e91c167ab32dbdf161161946a64eb4192784a2fc',
+  '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/workflows/build.yml': 'd2ba5b4f04e76d8df51a39ef8daae352c7299a2b335e984ca2767615c20476d4',
   'docker-compose.yml': '0b8550942309a84d5f559a7cbc5b148554989ca78e56213b1cb7211c2b737d9c',
-  'README.md': 'c49e345440f06ef8a2232e3605a31bb5970a247f394bed27c598af544303c088',
+  'README.md': 'd4cf1a50cfa090c940ba5b167d8d139ae63c0c45c4ca4e3ff5fcbfe2a324042c',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
@@ -600,8 +606,19 @@ describe('the Vercel target', () => {
   it('ignores every name that materialization writes into the board root', () => {
     const gitignore = files.get('.gitignore')!.split('\n')
     for (const entry of MATERIALIZED_AT_ROOT) {
+      if (entry === 'public') continue
       expect(gitignore).toContain(`/${entry}`)
     }
+  })
+
+  it('ignores public file by file, so a board can keep its own files there', () => {
+    const gitignore = files.get('.gitignore')!.split('\n')
+
+    expect(gitignore).not.toContain('/public')
+    for (const file of MATERIALIZED_PUBLIC) {
+      expect(gitignore).toContain(`/public/${file}`)
+    }
+    expect(gitignore).not.toContain('/public/ads.txt')
   })
 
   it('parses as JSON and carries the cron path and the build command', () => {

@@ -51,7 +51,7 @@ cat > "$BOARD_NAME/.npmrc" <<'MEITH_SCAFFOLD_EOF'
 # Every @meith/* dependency here is an exact version, not a range — see
 # README.md, "Upgrading", for why a range breaks the build. This makes that
 # the default for any `npm install` run in this project from here on,
-# including a plugin installed by hand later, not only the three packages
+# including a plugin installed by hand later, not only the four packages
 # the scaffold pinned itself.
 save-exact=true
 MEITH_SCAFFOLD_EOF
@@ -350,16 +350,6 @@ node_modules
 .env
 .env.local
 *.log
-/app
-/src
-/public
-/next.config.mjs
-/postcss.config.mjs
-/components.json
-/instrumentation.ts
-/proxy.ts
-/tsconfig.json
-/next-env.d.ts
 MEITH_SCAFFOLD_EOF
 
 mkdir -p "$(dirname -- "$BOARD_NAME/.github/workflows/build.yml")"
@@ -651,11 +641,20 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 
 ```sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
-git commit -am "Upgrade @meith/web, @meith/cli and @meith/theme-default"
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+git commit -am "Upgrade Meith and the Next.js version it builds with"
 git push
 ```
 
-That one `package.json` change is the whole pin: `Dockerfile`'s own
+The second command is not optional. This board pins `next` itself, and
+nothing bumps it for you: upgrading only the `@meith/*` packages leaves the
+board's own pin on the old Next while `@meith/web` depends on the new one,
+which npm resolves by installing both — the build then runs on one version
+while everything reading `package.json` sees the other. Reading the version
+out of the freshly installed `@meith/web` is what keeps the two the same
+without anybody having to know the number.
+
+That `package.json` change is the whole pin: `Dockerfile`'s own
 `FROM` line takes the version as a build argument, and
 `.github/workflows/build.yml` reads it straight out of `package.json`'s
 own `@meith/web` dependency when it rebuilds — nothing in `Dockerfile`
