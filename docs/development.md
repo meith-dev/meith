@@ -433,18 +433,42 @@ serves the traced output itself.
 | `pnpm test:e2e` | Playwright: the no-JavaScript paths, the staff panels, and the accessibility checks. It builds the board and runs the standalone output against its own databases — nothing to install. `pnpm test:e2e:build` is the build on its own. |
 | `pnpm site:shots` | Re-photographs meith.dev's screenshots against the demo board. Deliberate, never on CI — see [the site's screenshots](#the-sites-screenshots). |
 
-`pnpm verify` is the one that matters. It runs, in order: the workspace and
-root checks, `release:check`, the guards and their probes, the message-catalog
-check, the slot checks,
-the generated-document and documentation checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
-`api:docs`, `perf:docs`, `docs:index`, `docs:links`, `site:docs`), lint,
-dependency-cruiser, all three typecheck projects, and the full test suite.
-It covers every gate in CI's `static` job but two. That job also packs every
-publishable package and checks each tarball against its manifest
-(`node scripts/npm-publish.mjs --dry-run`), and it runs the suite exactly once,
-under coverage — so the thresholds are judged there and not by `pnpm verify`.
-Run `pnpm test:coverage` yourself before a pull request that moves what is
-covered. CI's other jobs build the image and drive a browser.
+`pnpm verify` is the one that matters. It runs, in order: the workspace check
+and the verify/CI parity check, the root and release checks, the guards and
+their probes, the message-catalog check, the slot checks, the generated-document
+and documentation checks (`theme:docs`, `plugin:docs`, `board:gen`,
+`hooks:wired`, `api:docs`, `perf:docs`, `docs:index`, `docs:links`,
+`site:docs`, `marketplace:gen`, `board-installer:gen`, `vercel-template:gen`),
+lint, dependency-cruiser, all three typecheck projects, and the full test suite.
+
+**`pnpm verify` and CI's `static` job hold to each other, in both directions,
+but not symmetrically.**
+
+- *Every gate `verify` runs, `static` runs too.* That is enforced rather than
+  remembered: `pnpm ci:parity:check` reads the `verify` script and the `static`
+  job out of `.github/workflows/ci.yml` and fails, naming them, on any gate that
+  is chained in one and run by neither a step nor a named exception in the
+  other. It is itself one of the gates in both, so the check that guards the
+  gates is a gate that runs. There is exactly one exception, written out by name
+  in `EXCEPTIONS` in `scripts/ci-parity.mjs` with its reason: `verify` ends on
+  `pnpm test`, and `static` runs the same suite as `pnpm test:coverage` — a
+  superset — while the `migrations` job runs `pnpm test` again against real
+  Postgres. The check fails if that stops being true, so the exception cannot
+  outlive it. `tests/ci-parity.test.ts` holds the check to the cases that would
+  otherwise let it pass on nothing: a `verify` that parses to no gates, a job
+  that runs no script, a gate that appears only in a comment, and a `verify`
+  segment it cannot read.
+- *`static` runs more than `verify` does, on purpose.* It builds `create-meith`
+  and packs every publishable package to check each tarball against its manifest
+  (`node scripts/npm-publish.mjs --dry-run`), installs Redis for the cache
+  driver contract, and runs the suite under coverage — so the thresholds are
+  judged there and not by `pnpm verify`. Run `pnpm test:coverage` yourself
+  before a pull request that moves what is covered. Those are steps that need
+  CI's machine rather than gates a developer is expected to reproduce, and
+  nothing requires them to appear in `verify`.
+
+CI's other jobs build the image, drive a browser, and run the migrations
+against real Postgres.
 
 ## Formatting and lint
 
@@ -840,6 +864,7 @@ repository that nothing else reads:
 | Script | What it catches |
 |---|---|
 | `workspace:check` | A package directory with sources and no `package.json`, or a manifest the lockfile has not seen. Both pass every other gate and fail `pnpm install --frozen-lockfile`, which is CI's first step. |
+| `ci:parity:check` | A gate chained in `pnpm verify` that runs in no step of `ci.yml`'s `static` job — the shape of defect that let six gates pass for a developer and merge green on a pull request. See [the commands](#the-commands). |
 | `root:check` | A new file at the repository root. The root is an interface — every entry is registered with the reason it must live there. |
 | `release:check` | A version written anywhere that disagrees with the release version, or a published package depending on a private one. See [Releasing](./release.md). |
 | `guards` | Textual invariants — the things a grep can prove and a type cannot. `guards:probe` proves each guard still fires. |
@@ -848,6 +873,7 @@ repository that nothing else reads:
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](./plugin-api.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
+| `marketplace:gen:check`, `board-installer:gen:check`, `vercel-template:gen:check` | A published artifact generated from something in this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and `templates/vercel/`, which is generated from `create-meith`'s `scaffold()` and is what people actually deploy from. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 | `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](#documentation-links). |
 
