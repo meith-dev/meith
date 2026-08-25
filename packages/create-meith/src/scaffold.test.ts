@@ -6,7 +6,14 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { run } from './cli'
-import { DEFAULT_REPOSITORY_URL, nextSteps, scaffold, validateName } from './scaffold'
+import {
+  DEFAULT_REPOSITORY_URL,
+  DEFAULT_TEMPLATE_REPOSITORY_URL,
+  deployButtonUrl,
+  nextSteps,
+  scaffold,
+  validateName,
+} from './scaffold'
 
 const OPTIONS = { name: 'my-board', version: '1.2.3', repositoryUrl: DEFAULT_REPOSITORY_URL }
 
@@ -485,5 +492,226 @@ describe('the published bin, run the way npx actually runs it', () => {
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+})
+
+const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
+  'package.json': '17a26812ce37a757aed272f27c1f4b648e0e2ceee0122804e80a43ae84e33a5a',
+  '.npmrc': 'ca0cc3b9e18f7eb4c0d84cd301f46bc558dc5010e7c747c0edf2e12651c37c09',
+  'community.config.ts': 'ca17c18b40a9e89af83ff5b2277a76f0d7852ed38fec02cdeba9112c6c76c5b7',
+  'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
+  'community.plugins.ts': '4143635aeb85cd6a402f4e0a65748489676581c7505cbb24ed7b54bd39116a7d',
+  '.env.example': 'f697a7335c4240186230fdeda2b0e95f8480a4d2df6d852fab6c10894547a617',
+  '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
+  Dockerfile: '4ca25de5a3412632bdb22ea9c7e0e135c4eec84710b656845b83b64b3f9d3992',
+  'docker-entrypoint.sh': 'c54686c6239ce194747e898658e5811b58f52e5f95f6a45c3a6984957ff449a2',
+  'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
+  '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
+  '.github/workflows/build.yml': 'd2ba5b4f04e76d8df51a39ef8daae352c7299a2b335e984ca2767615c20476d4',
+  'docker-compose.yml': '0b8550942309a84d5f559a7cbc5b148554989ca78e56213b1cb7211c2b737d9c',
+  'README.md': 'c49e345440f06ef8a2232e3605a31bb5970a247f394bed27c598af544303c088',
+}
+
+const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
+
+describe('the default target, against the tree it produced before a second target existed', () => {
+  it('is byte-identical file by file — a name that fails here is the file that drifted', async () => {
+    const { createHash } = await import('node:crypto')
+
+    const digests = Object.fromEntries(
+      [...scaffold(OPTIONS)].map(([path, content]) => [
+        path,
+        createHash('sha256').update(content).digest('hex'),
+      ]),
+    )
+
+    expect(digests).toEqual(SELF_HOST_TREE_DIGESTS)
+  })
+
+  it('is what an absent target means, so every existing caller keeps its output', () => {
+    expect([...scaffold({ ...OPTIONS, target: 'self-host' })]).toEqual([...scaffold(OPTIONS)])
+  })
+})
+
+describe('the Vercel target', () => {
+  const files = scaffold(VERCEL_OPTIONS)
+
+  it('writes the board, its platform configuration, and nothing that builds a container', () => {
+    expect([...files.keys()].sort()).toEqual([
+      '.env.example',
+      '.gitignore',
+      '.npmrc',
+      'README.md',
+      'board.plugins.json',
+      'community.config.ts',
+      'community.plugins.ts',
+      'package.json',
+      'vercel.json',
+    ])
+  })
+
+  it('leaves the board itself identical to the self-host tree, byte for byte', () => {
+    const selfHost = scaffold(OPTIONS)
+    for (const path of ['package.json', '.npmrc', 'community.config.ts', 'community.plugins.ts']) {
+      expect(files.get(path)).toBe(selfHost.get(path))
+    }
+  })
+
+  it('parses as JSON and carries the cron path and the build command', () => {
+    const config = JSON.parse(files.get('vercel.json')!)
+
+    expect(config.buildCommand).toBe('community migrate && forum-web build')
+    expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '* * * * *' }])
+  })
+
+  it('applies the schema before it builds, in one command', () => {
+    const { buildCommand } = JSON.parse(files.get('vercel.json')!)
+    expect(buildCommand.indexOf('community migrate')).toBeLessThan(
+      buildCommand.indexOf('forum-web build'),
+    )
+  })
+
+  it('names the framework, because nothing in the board manifest depends on next', () => {
+    const manifest = JSON.parse(files.get('package.json')!)
+    expect(manifest.dependencies.next).toBeUndefined()
+    expect(JSON.parse(files.get('vercel.json')!).framework).toBe('nextjs')
+  })
+
+  it('names every variable the canonical serverless set needs', () => {
+    const env = files.get('.env.example')!
+    for (const key of [
+      'DATABASE_URL',
+      'DIRECT_DATABASE_URL',
+      'REDIS_URL',
+      'AUTH_SECRET',
+      'CRON_SECRET',
+      'S3_BUCKET',
+      'S3_REGION',
+      'S3_ACCESS_KEY_ID',
+      'S3_SECRET_ACCESS_KEY',
+      'MAIL_FROM',
+      'MAIL_HTTP_ENDPOINT',
+      'MAIL_HTTP_TOKEN',
+      'APP_URL',
+    ]) {
+      expect(env).toMatch(new RegExp(`^${key}=$`, 'm'))
+    }
+  })
+
+  it('fixes the five drivers rather than leaving them to be chosen', () => {
+    const env = files.get('.env.example')!
+    for (const line of [
+      'DATA_SOURCE=postgres',
+      'QUEUE_DRIVER=postgres',
+      'CACHE_DRIVER=redis',
+      'FILESTORE_DRIVER=s3',
+      'MAIL_DRIVER=http',
+    ]) {
+      expect(env).toMatch(new RegExp(`^${line}$`, 'm'))
+    }
+  })
+
+  it('offers the two optional S3 variables commented out rather than missing', () => {
+    const env = files.get('.env.example')!
+    expect(env).toMatch(/^# S3_ENDPOINT=$/m)
+    expect(env).toMatch(/^# S3_PUBLIC_BASE_URL=$/m)
+  })
+
+  it('makes the direct URL required here, where the self-host template offers it', () => {
+    expect(files.get('.env.example')).toMatch(/^DIRECT_DATABASE_URL=$/m)
+    expect(scaffold(OPTIONS).get('.env.example')).toMatch(/^# DIRECT_DATABASE_URL=$/m)
+  })
+
+  it('extends the guidance the self-host template already carries rather than restating it', () => {
+    const selfHost = scaffold(OPTIONS).get('.env.example')!
+    const vercel = files.get('.env.example')!
+    const shared = 'If it is a managed database that offers a TRANSACTION-MODE POOLER string'
+
+    expect(selfHost).toContain(shared)
+    expect(vercel).toContain(shared)
+  })
+
+  it('leaves no SMTP guidance behind, on a platform that blocks the plain SMTP port', () => {
+    expect(files.get('.env.example')).not.toContain('MAIL_SMTP_PORT=465')
+  })
+
+  it('ignores the platform CLI directory as well as the build output', () => {
+    expect(files.get('.gitignore')!.split('\n')).toContain('.vercel')
+  })
+
+  it('leads the README with a Deploy Button pointing at the template repository', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toContain('https://vercel.com/new/clone?')
+    expect(readme).toContain(encodeURIComponent(DEFAULT_TEMPLATE_REPOSITORY_URL))
+  })
+
+  it('asks the marketplace for the Postgres and Redis stores the board needs', () => {
+    const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
+    const stores = JSON.parse(url.searchParams.get('stores') ?? '[]')
+
+    expect(stores.map((store: { integrationSlug: string }) => store.integrationSlug)).toEqual([
+      'neon',
+      'upstash',
+    ])
+    expect(url.searchParams.get('repository-url')).toBe(DEFAULT_TEMPLATE_REPOSITORY_URL)
+  })
+
+  it('prompts for what the stores do not publish, and not for what they do', () => {
+    const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
+    const prompted = url.searchParams.get('env')?.split(',') ?? []
+
+    expect(prompted).toContain('AUTH_SECRET')
+    expect(prompted).toContain('CRON_SECRET')
+    expect(prompted).toContain('DIRECT_DATABASE_URL')
+    expect(prompted).not.toContain('DATABASE_URL')
+  })
+
+  it('points the button at a fork when the scaffold is told about one', () => {
+    const readme = scaffold({
+      ...VERCEL_OPTIONS,
+      templateRepositoryUrl: 'https://example.test/template',
+    }).get('README.md')!
+
+    expect(readme).toContain(encodeURIComponent('https://example.test/template'))
+    expect(readme).not.toContain(encodeURIComponent(DEFAULT_TEMPLATE_REPOSITORY_URL))
+  })
+
+  it('tells the reader that /install creates the board and its first administrator', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toContain('/install')
+    expect(readme).toMatch(/first administrator/)
+    expect(readme).toMatch(/404/)
+  })
+
+  it('generates both secrets the way the documentation does', () => {
+    const readme = files.get('README.md')!
+    expect((readme.match(/openssl rand -hex 32/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect(readme).toMatch(/AUTH_SECRET/)
+    expect(readme).toMatch(/CRON_SECRET/)
+  })
+
+  it('warns that a per-minute schedule needs a paid plan, before the operator deploys', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/paid plan/)
+    expect(readme).toMatch(/once a day/)
+    expect(readme).toMatch(/TICK_SECRET/)
+  })
+
+  it('warns that maxDuration is checked at build time, so Hobby fails rather than clamps', () => {
+    const readme = files.get('README.md')!
+    expect(readme).toMatch(/maxDuration = 300/)
+    expect(readme).toMatch(/when the project builds, not when the\n {2}function runs/)
+    expect(readme).toMatch(/Fluid Compute/)
+    expect(readme).toMatch(/fails the\n {2}deployment/)
+  })
+
+  it('tells no Coolify or GHCR story, which would contradict the one it does tell', () => {
+    const readme = files.get('README.md')!
+    expect(readme).not.toMatch(/coolify/i)
+    expect(readme).not.toMatch(/ghcr\.io/)
+  })
+
+  it('produces the same tree twice', () => {
+    expect([...scaffold(VERCEL_OPTIONS)]).toEqual([...scaffold(VERCEL_OPTIONS)])
   })
 })

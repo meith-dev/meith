@@ -13,6 +13,7 @@
       "!**/dist",
       "!**/drizzle",
       "!apps/*/public",
+      "!templates",
       "!docs/openapi.json",
       "!docs/perf-indexes.json",
       "!docs/perf-load.json",
