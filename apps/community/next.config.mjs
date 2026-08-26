@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,21 +22,36 @@ if (process.env.NODE_ENV !== 'production' && loadedEnvFiles.length > 0) {
   console.log(`- Environments: ${loadedEnvFiles.join(', ')} (${workspaceRoot})`)
 }
 
+const serverExternalPackages = [
+  '@aws-sdk/client-s3',
+  '@aws-sdk/s3-request-presigner',
+  '@vercel/blob',
+  'postgres',
+  '@jsquash/jpeg',
+  '@jsquash/png',
+  '@jsquash/resize',
+  'nodemailer',
+]
+
+const frameworkPackages = ['next', 'react', 'react-dom']
+
+const boardDependencyPackages = []
+const boardManifestFile = path.join(workspaceRoot, 'package.json')
+if (existsSync(boardManifestFile)) {
+  const boardManifest = JSON.parse(readFileSync(boardManifestFile, 'utf8'))
+  for (const name of Object.keys(boardManifest.dependencies ?? {})) {
+    if (frameworkPackages.includes(name)) continue
+    if (serverExternalPackages.includes(name)) continue
+    boardDependencyPackages.push(name)
+  }
+}
+
 const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   poweredByHeader: false,
   distDir: process.env.FORUM_DIST_DIR ?? '.next',
 
-  serverExternalPackages: [
-    '@aws-sdk/client-s3',
-    '@aws-sdk/s3-request-presigner',
-    '@vercel/blob',
-    'postgres',
-    '@jsquash/jpeg',
-    '@jsquash/png',
-    '@jsquash/resize',
-    'nodemailer',
-  ],
+  serverExternalPackages,
   outputFileTracingRoot: workspaceRoot,
   turbopack: {
     root: workspaceRoot,
@@ -98,7 +113,8 @@ const nextConfig = {
     '@meith/ui',
     '@meith/upgrade',
     '@meith/web',
-  ],
+    ...boardDependencyPackages,
+  ].filter((name, index, list) => list.indexOf(name) === index),
   async headers() {
     return [
       {

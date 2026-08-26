@@ -291,6 +291,19 @@ serves neither its own script/style bundles nor its service worker fails the
 smoke rather than passing it (`scripts/board-smoke-assets.mts`, shared with
 `board-deploy-kit-smoke.mts` and `board-eject-smoke.mts`).
 
+**`scripts/extension-workspace-smoke.mts`** (`pnpm extension:workspace:smoke`,
+wired into CI as the `extension-workspace` job) is the same proof for the
+extension scaffolds: it packs the `@meith/plugin-kit` and `@meith/theme-kit`
+closures alongside the board closure, scaffolds a plugin and a theme with
+`create-meith --plugin`/`--theme`, packs each the way `npm publish` would,
+then installs, tests and typechecks both against the packed kits — not the
+workspace aliases — and finally scaffolds a board, installs both extension
+tarballs into it, registers them in `board.plugins.json`,
+`community.plugins.ts` and `community.config.ts`, and runs `forum-web build`
+in fixture mode. A kit whose `files` allowlist rotted, a scaffold that only
+compiles against `workspace:*`, or an extension a real board cannot build
+with fails here, before an author finds out.
+
 Answering 200 is not the same as working, and two checks in that same file
 exist because a board did both while being unusable. The rendered `/` must not
 contain the theme's own message keys as text, which is what a board whose
