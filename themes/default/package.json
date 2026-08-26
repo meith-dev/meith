@@ -1,6 +1,6 @@
 {
   "name": "@meith/theme-default",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Meith's default theme — every slot and every token, and the reference for what a complete theme fills.",
   "license": "MIT",
   "repository": {
