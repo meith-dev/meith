@@ -57,6 +57,10 @@ const ALLOWED = new Map([
     '.claude',
     'Claude Code reads settings.json and hooks/ from this path only — the guardrails every session in this repository loads. Everything else under it is ignored by git',
   ],
+  [
+    '.githooks',
+    'core.hooksPath points here, set by the prepare script — the guardrail that applies to every tool and every person, not only to an agent that reads AGENTS.md',
+  ],
 
   ['README.md', 'the front page'],
   ['AGENTS.md', 'coding agents read it from the root by convention'],

@@ -552,27 +552,40 @@ Four kinds of comment are not, and are the only exceptions:
   [the plugin hook reference](../reference/plugin-hooks.md). There the comment
   *is* the published document, and deleting it deletes a page.
 
-### The hook that enforces it
+### How it is enforced
 
-`.claude/settings.json` registers a `PostToolUse` hook —
-`.claude/hooks/no-inline-comments.mjs` — that runs after every file write a
-Claude Code session makes. It counts the comments in the file it just wrote,
-counts the ones in the same file at `HEAD`, and rejects the write if the set
-grew, naming each comment added. Comparing against `HEAD` rather than a
-checked-in baseline is what lets it stay quiet on the comments already in the
-tree while refusing every new one, with no list to maintain.
+Three layers, none of them CI, in the order they catch something.
 
-`scripts/comment-scan.mjs` does the scanning, and
+**`pnpm comments:check`** lists every comment your change adds, comparing the
+working tree against `HEAD`. Run it before you finish. Comparing against
+`HEAD` rather than a checked-in list of allowed comments is what lets all
+three layers stay quiet about the comments already in the tree while refusing
+every new one, with nothing to maintain.
+
+**The git `pre-commit` hook** — `.githooks/pre-commit` — runs the same check
+over the staged tree and refuses the commit. `core.hooksPath` is set to
+`.githooks` by the `prepare` script, so `pnpm install` arms it once and it
+applies to every commit made in the repository afterwards, by any agent and by
+any person. This is the layer that does not care what wrote the code:
+`git commit --no-verify` is the deliberate way past it, and it leaves a
+visible choice behind rather than an accident.
+
+**A `PostToolUse` hook**, `.claude/hooks/no-inline-comments.mjs`, registered in
+`.claude/settings.json`, runs after every file write a Claude Code session
+makes and rejects the write, naming each comment added. It is the fastest
+feedback of the three because it fires before the code is even staged, but it
+only covers that one tool — which is why it is not the layer the rule rests
+on.
+
+`scripts/comment-scan.mjs` does the scanning for all three, and
 `scripts/comment-scan.test.ts` is why it can be trusted: a scanner that reads
 `https://` inside a string as a comment, or misses one after a regular
-expression, would either block honest work or wave through the thing it
-exists to catch. Both directions are covered there.
+expression, would either block honest work or wave through the thing it exists
+to catch. Both directions are covered there.
 
-This is a guardrail for sessions in this repository, not a gate on the
-branch. Nothing in `pnpm verify` or CI checks for comments, so a comment
-committed by any other route lands unopposed. It is deliberate — the rule is
-about how the codebase is written, and the enforcement sits where the writing
-happens.
+Nothing in `pnpm verify` or CI checks for comments. That is deliberate: the
+rule is about how the codebase is written, so the enforcement sits where the
+writing and the committing happen, not on the branch.
 
 ## Formatting and lint
 

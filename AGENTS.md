@@ -1,5 +1,12 @@
 # Agent Guide
 
+**This file is the contract for every coding agent working in this repository
+— Claude Code, Codex, or anything else — and for people.** Codex reads
+`AGENTS.md` by name; `CLAUDE.md` is a symlink to this file so Claude Code
+loads the same text rather than a copy that drifts. The rules below are not
+advisory: the ones that can be checked are checked, by a git `pre-commit`
+hook that runs whatever produced the change.
+
 Meith: community forum software. A pnpm workspace — the board (`apps/community`),
 meith.dev (`apps/web`), the worker and the operator CLI in `apps/`; domain
 packages in `packages/`; `themes/`, `plugins/`, `examples/`. The deployment
@@ -17,9 +24,10 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else �
   `@satisfies`, `/// <reference>`), and the prose in the six files a generated
   reference is built from — `packages/theme-kit/src/{slots,api,view-models}.ts`
   and `packages/plugin-kit/src/{hooks,payloads,regions}.ts`, where the comment
-  *is* the published document. A `PostToolUse` hook in `.claude/settings.json`
-  rejects a write that adds any other comment;
-  `docs/contributing/development.md` explains it.
+  *is* the published document. Run `pnpm comments:check` before you finish: it
+  lists every comment your change added, and it is the same check the git
+  `pre-commit` hook runs, so a commit carrying one is refused whoever or
+  whatever wrote it. `docs/contributing/development.md` explains both.
 - **Update the docs with every change.** Behavior described in `docs/` changes
   in the same commit that changes the behavior. A new document is registered in
   `apps/web/content/docs.manifest.json` and linked from `docs/README.md`.
