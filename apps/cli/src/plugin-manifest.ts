@@ -25,7 +25,7 @@ function generatorScript(): string {
  * Every board's board.plugins.json is edited together, from the one list in
  * scripts/boards.json that scripts/board-plugins-gen.mjs reads too. That file
  * and the MEITH_BOARD_PLUGINS_ROOT override are described in
- * docs/development.md, "The board plugin manifests".
+ * docs/contributing/development.md, "The board plugin manifests".
  */
 interface Board {
   readonly manifestFile: string

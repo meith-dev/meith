@@ -331,7 +331,7 @@ export const SETTING_DEFINITIONS = [
     description:
       'Minimum seconds between searches per user. Replaces the per-group ' +
       'searchfloodtime permission, which could not obey the numeric ' +
-      'combination rule — see docs/mybb-parity.md.',
+      'combination rule — see docs/reference/mybb-parity.md.',
     schema: z.number().int().min(0).max(3600),
     default: 30,
     ui: { min: 0, max: 3600 },

@@ -8,6 +8,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
     documents: documentsInSection(section.id).map((doc) => ({
       slug: doc.slug,
       title: doc.title,
+      group: doc.group,
     })),
   }))
 

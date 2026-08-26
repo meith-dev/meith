@@ -5,7 +5,7 @@
  * theme, same env-gated showcase themes, same env-gated demo/test plugins —
  * so the image docker/Dockerfile builds from this workspace behaves exactly
  * like the one previously built straight from apps/community. See
- * docs/architecture.md, "The board-config seam".
+ * docs/reference/architecture.md, "The board-config seam".
  *
  * `defineForumConfig` is imported through `@meith/web/config` rather than
  * `@meith/core` directly: that subpath is the seam a board outside this

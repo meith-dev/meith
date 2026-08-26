@@ -37,361 +37,386 @@ export const origin = {
   body:
     'There is no clean way out of a Facebook group, a Discord server or a Slack. Most ' +
     'communities start fresh, run both for a season, and move what was worth keeping. A MyBB ' +
-    'board imports whole.',
+    'or phpBB board imports whole — working passwords included.',
   link: 'How the move works',
 } as const
 
 export const segments: readonly [Segment, ...Segment[]] = [
   {
-    slug: 'clubs',
-    theme: 'clubhouse',
-    boardCaption: "A club's board, in the Clubhouse theme.",
-    name: 'Sports clubs',
-    lowerName: 'sports clubs',
-    chooserLine: 'Fixtures, notices, subs and a committee room, for any club run by volunteers.',
+    slug: 'open-source',
+    theme: 'midnight',
+    boardCaption: "A project's board in Midnight — a terminal, for a community that lives in one.",
+    name: 'Open-source projects',
+    lowerName: 'open-source projects',
+    chooserLine:
+      'A support forum your project owns: answers with URLs worth pinning, pages that render ' +
+      'without JavaScript, and an archive no platform can sunset.',
     meta: {
-      title: 'Meith for sports clubs — fixtures, notices and membership in one place',
+      title: 'Meith for open-source projects — a discussions forum you own',
       description:
-        'A place of your own for your club: fixtures that stay put, notices that reach the ' +
-        'whole club, a private committee room, and membership taken online through Stripe. ' +
-        'Free and open source, on your own server, with no per-member pricing.',
+        'Give your project a support forum on its own domain: server-rendered threads any ' +
+        'search engine can index, answers people can link for years, an MIT engine you can ' +
+        'read, and a REST API for the bots you already run.',
     },
     hero: {
-      badge: 'For GAA clubs, soccer clubs, and everything run by a committee',
-      headline: { before: 'The fixture changed.', emphasis: 'Did everybody see it?' },
+      badge: 'For maintainers, and the communities around their code',
+      headline: {
+        before: 'Your best answers deserve',
+        emphasis: 'better than a chat scrollback.',
+      },
       lede:
-        'Between the WhatsApp group, the Facebook page and the members who are on neither, a ' +
-        'club spends half its energy telling people the same thing three times. Meith gives ' +
-        'your club one place everybody can reach — fixtures that stay put, notices that ' +
-        'arrive, a committee room nobody else can read, and the subs taken online.',
+        'A question answered in chat is answered again next week. Meith gives a project a ' +
+        'real forum: threads with URLs worth pinning in an issue, search that reaches back ' +
+        'years, pages that render as plain HTML so everything is fast and indexable — on ' +
+        'your own domain, under the MIT licence, run by you.',
     },
     losses: [
       {
-        complaint: 'I sent it three times and they still went to the wrong pitch.',
+        complaint: 'We answer the same question every release.',
         answer:
-          'A notice stays in the forum you put it in, is still there on Saturday morning, and ' +
-          'can go out by email to the whole club at once.',
+          'A thread has a URL. Answer once, link it from the release notes, and search puts ' +
+          'the thread that settles it ahead of a passing mention of it.',
+      },
+      {
+        complaint: 'Our community lives on a platform we cannot export.',
+        answer:
+          'The board is PostgreSQL on a server you rent: back it up, move it, or take it ' +
+          'apart with the operator CLI whenever you like. Nothing lives anywhere else.',
+      },
+      {
+        complaint: "Contributors will not make an account on somebody else's service.",
+        answer:
+          "Reading needs no account at all, and sign-in is your board's own — passwords, " +
+          'passkeys, or GitHub as a federated provider.',
+      },
+      {
+        complaint: 'A forum is one more service to babysit.',
+        answer:
+          'Four containers with health checks, backups as CLI commands, and versioned ' +
+          'upgrades with the procedure written down. An evening a month, not a pager.',
+      },
+    ],
+    feature: {
+      eyebrow: 'Server-first',
+      heading: 'Readable by everyone, indexable by everything.',
+      lede:
+        'Every thread is server-rendered HTML: quick on a bad connection, legible to ' +
+        'crawlers, working with JavaScript switched off. The performance budgets are ' +
+        'measured against a board with years of history, and a release that breaks one is ' +
+        'never published. For the bots and dashboards a project inevitably grows, the REST ' +
+        'API covers anything an administrator can do by hand.',
+      links: [
+        { label: 'The measured budgets', doc: 'performance' },
+        { label: 'Read the licence', href: licenceHref },
+      ],
+    },
+    closing: {
+      heading: 'Give the project a place answers accumulate.',
+      body:
+        "Scaffold it, run it in fixture mode over a coffee, and put it on the project's own " +
+        'domain. Read the source first — it is MIT, like yours.',
+    },
+  },
+
+  {
+    slug: 'legacy-forums',
+    theme: 'default',
+    boardCaption: 'A freshly imported board, in the default theme.',
+    name: 'MyBB & phpBB boards',
+    lowerName: 'MyBB and phpBB boards',
+    chooserLine:
+      'The way out of a PHP forum nobody wants to maintain: members, posts and working ' +
+      'passwords, imported whole.',
+    meta: {
+      title: 'Meith for MyBB and phpBB boards — import the whole board, passwords included',
+      description:
+        'Move a MyBB or phpBB board to a modern TypeScript engine: the importer carries ' +
+        'members, content, private messages, attachments, polls, warnings and bans, keeps ' +
+        'passwords working, and redirects the old URLs.',
+    },
+    hero: {
+      badge: 'For the operator of a board that outlived its software',
+      headline: {
+        before: 'Twenty years of threads.',
+        emphasis: 'One import.',
+      },
+      lede:
+        'The community is fine; the PHP underneath it is the problem. The importer moves ' +
+        'members, content, private messages, attachments, avatars, subscriptions, polls, ' +
+        'reputation, warnings and bans — with working passwords, and redirects from the old ' +
+        'URLs so years of inbound links keep landing.',
+    },
+    losses: [
+      {
+        complaint: 'Nobody dares touch the server, so nothing gets upgraded.',
+        answer:
+          'A Meith board is a small repository pinning one exact engine version. An upgrade ' +
+          'is a version bump with the procedure written down, and nothing moves underneath ' +
+          'you between them.',
+      },
+      {
+        complaint: 'A migration means every member resets their password.',
+        answer:
+          'Not this one: imported members sign in with the password they already had. The ' +
+          'move is invisible on the login page.',
+      },
+      {
+        complaint: 'Our search results all point at the old URLs.',
+        answer:
+          'The importer sets up redirects from the old paths, so the link somebody posted in ' +
+          '2009 still lands on the same thread.',
+      },
+      {
+        complaint: 'The old board does things the new one will not.',
+        answer:
+          'Where behaviour deliberately differs, it is written down — a parity page per ' +
+          'source lists every decision, so you can read the trade before making it.',
+      },
+    ],
+    feature: {
+      eyebrow: 'The importer',
+      heading: 'Bring it across whole, then retire the ladder.',
+      lede:
+        'Point the importer at a MyBB or phpBB database and it carries the lot: the ' +
+        'coverage table in the migration guide lists exactly what moves from each source, ' +
+        'and what to do after it finishes. Run it against a copy first and browse the ' +
+        'result — the old board keeps running until you point the domain.',
+      links: [
+        { label: 'The migration procedure', doc: 'migrating' },
+        { label: 'The parity decisions', doc: 'mybb-parity' },
+      ],
+    },
+    closing: {
+      heading: 'Retire the PHP. Keep the community.',
+      body:
+        'Import a copy of the database this weekend and click around the result. Nothing ' +
+        'about the old board changes until you decide it does.',
+    },
+  },
+
+  {
+    slug: 'product-communities',
+    theme: 'phasebook',
+    boardCaption: 'A customer community in Phasebook — the social shape everybody already knows.',
+    name: 'Product & SaaS communities',
+    lowerName: 'product and SaaS communities',
+    chooserLine:
+      'A support community on your domain, behind your identity provider, wearing your ' +
+      'brand — with no per-member pricing.',
+    meta: {
+      title: 'Meith for product communities — a support forum without per-member pricing',
+      description:
+        'Run your customer community on infrastructure you already operate: federated ' +
+        'sign-in against your identity provider, themes that carry your brand, typed ' +
+        'plugins for your integrations, and a bill that never scales with sign-ups.',
+    },
+    hero: {
+      badge: 'For the team that owns the community roadmap',
+      headline: {
+        before: 'Community platforms charge per member.',
+        emphasis: 'Your server does not.',
+      },
+      lede:
+        'Hosted community platforms price the thing you are trying to grow. Meith runs on ' +
+        'infrastructure your team already knows: sign-in federates against GitHub, Google ' +
+        'or your own identity server, the theme carries your brand, and the bill follows ' +
+        'the machine rather than the member count.',
+    },
+    losses: [
+      {
+        complaint: 'The platform bill scales with sign-ups.',
+        answer:
+          'The bill here follows the server. Two hundred thousand members cost what two ' +
+          'hundred do, and growth stops being a pricing event.',
+      },
+      {
+        complaint: 'Customers need yet another password.',
+        answer:
+          'Federated sign-in meets them where they already are — GitHub, Google, or your ' +
+          'own identity server — with passkeys and two-factor for the accounts that want ' +
+          'them.',
+      },
+      {
+        complaint: 'The community looks like the platform, not like us.',
+        answer:
+          'A theme fills documented slots with your brand, and changes how the board looks ' +
+          'and nothing else — so a redesign can never cost you the board.',
+      },
+      {
+        complaint: 'Custom integrations mean a professional-services quote.',
+        answer:
+          'A plugin is a typed TypeScript package your own team writes against documented ' +
+          'hooks. One that misbehaves fails alone, and the board carries on without it.',
+      },
+    ],
+    feature: {
+      eyebrow: 'Sign-in',
+      heading: 'Your customers, your identity provider, your data.',
+      lede:
+        'Members sign in the way the rest of your product signs in: passwords with ' +
+        'two-factor, passkeys, or federated against the provider you already run. Every ' +
+        'thread, member and message sits in your PostgreSQL — searchable through the API, ' +
+        'answerable to your retention policy, and never a data-processing addendum away.',
+      links: [
+        { label: 'How sign-in works', doc: 'single-sign-on' },
+        { label: 'How themes work', doc: 'themes' },
+      ],
+    },
+    closing: {
+      heading: 'Own the community you are building.',
+      body:
+        'Scaffold a board, put your theme on it, and point staging at your identity ' +
+        'provider — the whole evaluation runs on one machine.',
+    },
+  },
+
+  {
+    slug: 'agencies',
+    theme: 'raidframe',
+    boardCaption: "A client's clan board in Raidframe — one engine, very different boards.",
+    name: 'Agencies & dev shops',
+    lowerName: 'agencies and dev shops',
+    chooserLine:
+      'One engine, a board per client: each a small config repo you can theme, deploy, ' +
+      'upgrade — and hand over whole.',
+    meta: {
+      title: 'Meith for agencies — a forum engine you can hand to clients',
+      description:
+        'Build community sites for clients on one engine: every board a small repository ' +
+        'with a deploy kit, themes per brand, versioned upgrades — and a handover that is a ' +
+        'repository transfer, not a hostage negotiation.',
+    },
+    hero: {
+      badge: 'For the shop that builds it, ships it, and hands it over',
+      headline: {
+        before: 'Every client board,',
+        emphasis: 'a repository you can hand over.',
+      },
+      lede:
+        'A Meith board is a config repo pinning one exact engine version, with a Dockerfile, ' +
+        'a compose file and a CI workflow already in it. Scaffold, theme to the brand, ' +
+        'deploy — and when the engagement ends, the client keeps a repository and a ' +
+        'database. The board was always theirs.',
+    },
+    losses: [
+      {
+        complaint: 'Every community build starts from zero.',
+        answer:
+          'npx create-meith writes the workspace, the deploy kit and the CI workflow. The ' +
+          'first day of a new board is theming, not plumbing.',
+      },
+      {
+        complaint: 'Handover is where projects go to die.',
+        answer:
+          'The deliverable is a repository and a database, and the day-to-day runs from the ' +
+          'browser — organisers manage forums, members and settings without you on retainer.',
+      },
+      {
+        complaint: 'Each client wants a different look.',
+        answer:
+          'Five shipped themes set the range — a clubhouse, a terminal, a game HUD — and ' +
+          'the slot contract is documented and versioned for the ones you build yourself.',
+      },
+      {
+        complaint: 'Maintaining five boards means five snowflakes.',
+        answer:
+          'Each board pins its exact version, so an upgrade is a reviewable version-bump ' +
+          'diff, board by board, on your schedule. Nothing updates underneath a client.',
+      },
+    ],
+    feature: {
+      eyebrow: 'The board repository',
+      heading: 'Configuration is code, so boards fit your workflow.',
+      lede:
+        'What a board is made of — engine version, themes, plugins — is pinned in typed ' +
+        'config the compiler checks, so it reviews, diffs and reverts like everything else ' +
+        'you ship. What the community does lives in its database and its admin panel, so a ' +
+        'deploy can never delete a forum and a client can never break the build.',
+      links: [
+        { label: 'Configuration in code', doc: 'configuration' },
+        { label: 'The marketplace', doc: 'marketplace' },
+      ],
+    },
+    closing: {
+      heading: 'Add forums to what you can ship.',
+      body:
+        'Scaffold one this afternoon and walk the whole route — theme, deploy, handover — ' +
+        'before any client is watching.',
+    },
+  },
+
+  {
+    slug: 'communities',
+    theme: 'clubhouse',
+    boardCaption: "A club's board, in the Clubhouse theme.",
+    name: 'Clubs & communities',
+    lowerName: 'clubs and communities',
+    chooserLine:
+      'The volunteer-run version: clubs, associations, clans and groups that need one place ' +
+      'everybody can reach.',
+    meta: {
+      title: 'Meith for clubs and communities — one place everybody can reach',
+      description:
+        'A board for the community you already have: announcements that stay put, private ' +
+        'rooms for the committee, memberships taken through Stripe, and a handover that ' +
+        'survives the volunteers changing.',
+    },
+    hero: {
+      badge: 'For clubs, associations, clans, and every group run by volunteers',
+      headline: {
+        before: 'The group chat forgets.',
+        emphasis: 'Your board will not.',
+      },
+      lede:
+        'One technical member sets it up in an evening; everybody else just gets a link. ' +
+        'Announcements stay where they are put, decisions are findable years later, the ' +
+        "committee's room is private, and the subs are taken online. When the person who " +
+        'set it up moves on, the board is handed over whole.',
+    },
+    losses: [
+      {
+        complaint: 'I sent it three times and half of them still missed it.',
+        answer:
+          'A notice stays in the forum you put it in, is still there on Saturday morning, ' +
+          'and can go out by email to the whole community at once.',
+      },
+      {
+        complaint: 'Half our members are not on Facebook, and never will be.',
+        answer:
+          'Your board is a link — no account with any company, no app to install, and ' +
+          'nobody shut out for refusing a platform.',
       },
       {
         complaint: 'The subs are a spreadsheet and a shoebox.',
         answer:
-          "A member pays, the members' area opens for them, and the whole thing lapses on its " +
-          'own when the year is up.',
-      },
-      {
-        complaint: "Half the club isn't on Facebook, and never will be.",
-        answer:
-          'Your board is a link — no account with any company, no app, and no parent shut out ' +
-          'of the juvenile section.',
+          "A member pays through Stripe, the members' area opens for them, and the whole " +
+          'thing lapses on its own when the year is up.',
       },
       {
         complaint: 'Nobody can find the minutes from March.',
         answer:
-          'Every decision is a thread in a forum only the committee can see, and search goes ' +
-          'back through all of it.',
+          'Every decision is a thread in a forum only the committee can see, and search ' +
+          'goes back through all of it.',
       },
     ],
     feature: {
       eyebrow: 'Membership',
       heading: 'Take the subs online, and stop chasing them.',
       lede:
-        'Dues comes with the software: membership sold through Stripe as a subscription, a pass ' +
-        'or a lifetime, with the plans set in your own panel. Paying opens the members-only ' +
-        'forum by itself, and the money is between your club and Stripe — no cut, and no ' +
-        'per-member fee at any point.',
+        'Dues comes with the software: membership sold through Stripe as a subscription, a ' +
+        'pass or a lifetime, with the plans set in your own panel. Paying opens the ' +
+        'members-only forum by itself, and the money is between your community and Stripe — ' +
+        'no cut, and no per-member fee at any point.',
       links: [
         { label: 'The memberships guide', doc: 'membership-guide' },
-        { label: 'How plugins work', doc: 'plugin-api' },
-      ],
-    },
-    closing: {
-      heading: 'Give your club one place everybody can reach.',
-      body:
-        'At your own address, on a machine of your own, in about half an hour. Have a look at ' +
-        'a real board first — and read the source before you run it.',
-    },
-  },
-
-  {
-    slug: 'neighbourhoods',
-    theme: 'default',
-    boardCaption: "A residents' association's board, in the default theme.",
-    name: "Residents' associations",
-    lowerName: "residents' associations",
-    chooserLine:
-      'A noticeboard the whole road can reach, including the neighbours who avoid Facebook.',
-    meta: {
-      title: "Meith for residents' associations — a noticeboard the whole road can reach",
-      description:
-        'A noticeboard your neighbourhood owns: collections and roadworks that do not scroll ' +
-        'away, readable without an account of any kind, with a private committee room for the ' +
-        'accounts. Free and open source, and it outlives the committee that set it up.',
-    },
-    hero: {
-      badge: "For residents' associations, tenants' groups and neighbourhood committees",
-      headline: { before: 'Not everyone is on the app.', emphasis: 'They still live here.' },
-      lede:
-        "A residents' association does not get to choose its members — everybody on the road " +
-        'is one, whether they use Facebook or not. Meith gives your neighbourhood a ' +
-        'noticeboard anybody can reach with a link: collections and roadworks that do not ' +
-        'scroll away, a committee room for the accounts, and nothing ranked by an algorithm.',
-    },
-    losses: [
-      {
-        complaint: "It's on Facebook, and half the road won't go near it.",
-        answer:
-          'Anybody can read the public forums with no account of any kind, and joining takes an ' +
-          'email address rather than a Facebook account.',
-      },
-      {
-        complaint: "The bin notice was three days ago. It's gone.",
-        answer:
-          'A notice stays where you put it until somebody moves it — nothing is ranked, and ' +
-          'nothing hides behind “see more”.',
-      },
-      {
-        complaint: 'Somebody asks the same question every spring.',
-        answer:
-          'Search reaches back through every thread, so the answer about the management company ' +
-          'from two years ago is still the answer.',
-      },
-      {
-        complaint: 'Who actually owns that group?',
-        answer:
-          'The board belongs to the association — your domain, your database, handed on with ' +
-          'the rest of the paperwork.',
-      },
-    ],
-    feature: {
-      eyebrow: 'The thing nobody thinks about until it happens',
-      heading: 'It outlives the committee that set it up.',
-      lede:
-        "Every residents' group has heard the story: the person who made the group moves away, " +
-        "and eleven years of the road's business goes with them. A Meith board cannot go that " +
-        "way, because none of it sits inside anybody's personal account — it is a domain the " +
-        'association pays for and a database it holds, handed over with a password.',
-      links: [
         { label: "The organiser's guide", doc: 'organiser-guide' },
-        { label: 'Read the licence', href: licenceHref },
       ],
     },
     closing: {
-      heading: 'Give the road a noticeboard of its own.',
+      heading: 'Give your community somewhere to keep things.',
       body:
-        'At an address the association owns, on a machine it rents, in about half an hour. ' +
-        'Have a look at a real board first.',
-    },
-  },
-
-  {
-    slug: 'discord-and-slack',
-    theme: 'midnight',
-    boardCaption: "A community's board, in the Midnight theme.",
-    name: 'Discord & Slack communities',
-    lowerName: 'Discord & Slack communities',
-    chooserLine: 'Keep the server. Give the good answers somewhere they will still be next year.',
-    meta: {
-      title: 'Meith for Discord and Slack communities — an archive that outlives the chat',
-      description:
-        'Keep your server and stop losing the good threads. Permanent URLs, search that goes ' +
-        'back years, no message limit, and public threads a search engine can actually read. ' +
-        'Free, open source, and run alongside the chat rather than instead of it.',
-    },
-    hero: {
-      badge: 'For communities that already live in chat',
-      headline: { before: 'Keep the server.', emphasis: 'Stop losing the good threads.' },
-      lede:
-        'Nobody is asking you to leave Discord. But the answer somebody wrote out in full on ' +
-        'Tuesday is unfindable by Thursday, Slack quietly swallows everything past its message ' +
-        'limit, and none of it is reachable from a search engine. Meith is where the things ' +
-        'worth keeping go — and the chat carries on exactly as it is.',
-    },
-    losses: [
-      {
-        complaint: "Somebody answered this last month. I can't find it.",
-        answer:
-          'Board search returns the thread that is about your question, ranked ahead of a ' +
-          'passing mention of it, however far back it goes.',
-      },
-      {
-        complaint: 'We hit the message limit and lost two years.',
-        answer:
-          'Nothing expires and nothing sits behind a plan — the archive is rows in a database ' +
-          'on a machine you rent.',
-      },
-      {
-        complaint: 'The same five questions, every week, forever.',
-        answer:
-          'Write the answer once, in a thread with an address you can paste, and newcomers find ' +
-          'it themselves.',
-      },
-      {
-        complaint: 'None of it is on the open web.',
-        answer:
-          'Every public thread has a permanent URL, renders as plain HTML, and turns up in a ' +
-          'search engine.',
-      },
-    ],
-    feature: {
-      eyebrow: 'The reason to bother',
-      heading: 'An archive that is actually findable.',
-      lede:
-        'This is the whole trade. Chat is unbeatable for the conversation happening right now ' +
-        'and hopeless at everything after it; a board is the exact opposite. Running both is ' +
-        'not a compromise — it is the two halves of what a community actually needs, and only ' +
-        'one of those halves can be found by somebody who has not already joined.',
-      links: [
-        { label: 'How search holds up', doc: 'performance' },
-        { label: 'The API and the CLI', doc: 'rest-api' },
-      ],
-    },
-    closing: {
-      heading: 'Give the good answers somewhere to live.',
-      body:
-        'On a machine of your own, at your own address, in about half an hour. Have a look at a ' +
-        'real board first — and read the source before you run it.',
-    },
-  },
-
-  {
-    slug: 'facebook-groups',
-    theme: 'phasebook',
-    boardCaption: "A group's board, in the Phasebook theme.",
-    name: 'Facebook groups',
-    lowerName: 'Facebook groups',
-    chooserLine:
-      'Facebook owns the reach, the members and the archive — and can close it tomorrow.',
-    meta: {
-      title: 'Meith for Facebook groups — own the group you built',
-      description:
-        'No feed deciding who sees your posts, no ads between them, no account required to ' +
-        'take part, and no group that can vanish overnight. Your domain, your database, your ' +
-        'members. Free and open source, on your own server.',
-    },
-    hero: {
-      badge: "For groups that would rather not be somebody's product",
-      headline: { before: 'You built the group.', emphasis: 'Facebook owns it.' },
-      lede:
-        'Your posts reach whoever the feed decides. Your members read ads between them. ' +
-        'Anybody who has deleted their account cannot take part at all, and if the group is ' +
-        'ever removed you lose the lot at once — the members, the archive, and every way of ' +
-        'telling anybody where you went. A place of your own has none of those problems.',
-    },
-    losses: [
-      {
-        complaint: 'Only a fraction of the group ever sees a post.',
-        answer:
-          'There is no feed and nothing is ranked — everybody in the group can see it, and it ' +
-          'can go out by email as well.',
-      },
-      {
-        complaint: "People who left Facebook can't be in the group.",
-        answer:
-          'Anybody can read the public forums with no account of any kind, and joining takes an ' +
-          'email address.',
-      },
-      {
-        complaint: 'If the group goes, everything goes.',
-        answer:
-          'Your board is your domain and your database on a machine you rent — backups are one ' +
-          'command, and nobody else can switch it off.',
-      },
-      {
-        complaint: 'Try finding a post from last spring.',
-        answer:
-          'Threads stay in the forums you organised, and search reaches back through the whole ' +
-          'archive.',
-      },
-    ],
-    feature: {
-      eyebrow: 'What you actually get back',
-      heading: 'The group, and the list, are yours.',
-      lede:
-        'The thing a Facebook group never gives you is a way to reach your own members: you ' +
-        'cannot export them, you cannot email them, and if the group goes you have no way of ' +
-        'telling anybody where you went. Here they join with an email address and the board ' +
-        'sends notices to it. None of which is really a feature — it is the absence of a ' +
-        'landlord.',
-      links: [
-        { label: "The organiser's guide", doc: 'organiser-guide' },
-        { label: 'Read the licence', href: licenceHref },
-      ],
-    },
-    closing: {
-      heading: 'Own the group you built.',
-      body:
-        'At your own address, on a machine of your own, in about half an hour. Have a look at ' +
-        'a real board first.',
-    },
-  },
-
-  {
-    slug: 'gaming',
-    theme: 'raidframe',
-    boardCaption: "A clan's board, in the Raidframe theme.",
-    name: 'Gaming clans',
-    lowerName: 'gaming clans',
-    chooserLine: 'Rosters, builds and recruitment that do not scroll up the channel.',
-    meta: {
-      title: 'Meith for gaming clans — rosters, builds and recruitment that stay put',
-      description:
-        'A place for the things that need to still be true next week: the roster, the rules, ' +
-        'the build guides, and recruitment somebody can read before they apply. A private ' +
-        "officers' forum for the rest. Free, open source, and it runs alongside your Discord.",
-    },
-    hero: {
-      badge: 'For clans, guilds and squads',
-      headline: { before: 'The raid is Tuesday.', emphasis: 'Where is that written down?' },
-      lede:
-        'Pins fill up. The recruitment post scrolls away. The build that carried you through ' +
-        'the last tier is somewhere up a channel nobody can search. Meith gives your clan a ' +
-        'place for the things that need to still be true next week — and your Discord carries ' +
-        'on doing what it is good at.',
-    },
-    losses: [
-      {
-        complaint: "It's in the pins. There are ninety pins.",
-        answer:
-          'The roster is a thread in a forum called Raid nights, and it does not move because ' +
-          'somebody said something else.',
-      },
-      {
-        complaint: "Applicants can't see anything until they join.",
-        answer:
-          'Your public forums are readable by anybody with the link — no account, no invite, ' +
-          'and nothing taken on trust.',
-      },
-      {
-        complaint: 'That build guide is three months up the channel.',
-        answer:
-          'Threads stay where they were put, with the date on them, so a guide is still there ' +
-          'when the next tier lands.',
-      },
-      {
-        complaint: "The officers need somewhere that isn't a group DM.",
-        answer:
-          'A private forum only officers can see, with the reasoning still there for whoever ' +
-          'takes over.',
-      },
-    ],
-    feature: {
-      eyebrow: 'Recruitment',
-      heading: 'People can read the place before they join it.',
-      lede:
-        'This is the thing a private server cannot do at any setting. An invite link shows a ' +
-        'prospective member nothing at all: they either join blind or they do not join. A board ' +
-        'lets them read the rules, the schedule and a month of real activity first — and when ' +
-        'an officer stands down, none of it leaves with them.',
-      links: [
-        { label: 'How permissions work', doc: 'operating' },
-        { label: 'What plugins can do', doc: 'plugin-api' },
-      ],
-    },
-    closing: {
-      heading: 'Give the clan somewhere the roster stays put.',
-      body:
-        'On a machine of your own, at your own address, in about half an hour. Have a look at a ' +
-        'real board first.',
+        'Set up by one person in an evening, run from a browser by the people who run ' +
+        'everything else. Have a look at a real board first.',
     },
   },
 ]

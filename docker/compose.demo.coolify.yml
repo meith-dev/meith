@@ -20,7 +20,7 @@
 #    finished board rather than an empty one with `/install` open on it.
 #
 # Requires Coolify v4.0.0-beta.411 or newer, as the other two files do.
-# See docs/demo-mode.md.
+# See docs/guides/operations/demo-mode.md.
 
 services:
   postgres:
@@ -106,7 +106,7 @@ services:
       - DEMO_RESET_MINUTES=${DEMO_RESET_MINUTES:-60}
       - SHOWCASE_THEMES=1
       # The Dues plugin, against the fake Stripe this board serves itself at
-      # /demo/stripe. See docs/demo-mode.md. DUES_CURRENCY matches the demo
+      # /demo/stripe. See docs/guides/operations/demo-mode.md. DUES_CURRENCY matches the demo
       # seed's own currency (packages/demo/src/dues.ts), which is independent
       # of this setting and always writes its history in eur.
       - DUES_CURRENCY=eur

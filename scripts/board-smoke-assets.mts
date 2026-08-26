@@ -2,7 +2,7 @@
  * Shared by every board boot smoke (scripts/board-workspace-smoke.mts,
  * scripts/board-deploy-kit-smoke.mts, scripts/board-eject-smoke.mts): proving
  * `/` renders is not proof the standalone build actually serves its own
- * assets (docs/development.md, "forum-web build stages .next/static and
+ * assets (docs/contributing/development.md, "forum-web build stages .next/static and
  * public/ into the standalone tree"; MEI-86 shipped without either, and every
  * one of these smokes still passed on `<main>` alone). This asserts a real
  * `/_next/static/*` asset referenced from the rendered HTML answers 200, and

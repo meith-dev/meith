@@ -1,7 +1,7 @@
 /**
  * The view models slots are handed, and the rule they all obey.
  *
- * These types are the **public API for themes**. Per docs/nextjs-conventions.md
+ * These types are the **public API for themes**. Per docs/contributing/nextjs-conventions.md
  * adding a field is a minor change; renaming or removing one needs a deprecation
  * cycle. The theme-kit slot contract freezes them.
  *

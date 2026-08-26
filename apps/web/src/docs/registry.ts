@@ -14,6 +14,7 @@ export interface DocEntry {
   readonly blurb: string
   readonly generated: boolean
   readonly primary: boolean
+  readonly group?: string
 }
 
 export interface InternalDoc {

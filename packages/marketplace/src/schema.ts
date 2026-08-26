@@ -2,7 +2,7 @@
  * The shape of a listing on the wire — mirroring `marketplace/schema.json`
  * and `scripts/marketplace-gen.mjs`, which this package never imports (a
  * board-side consumer and the generator that produces the feed it consumes
- * are deliberately separate concerns; see docs/marketplace.md). One
+ * are deliberately separate concerns; see docs/customization/marketplace.md). One
  * difference is load-bearing: `marketplace/schema.json` validates a
  * *listing file* before it is merged, where `screenshots` is a bare
  * filename. What a board actually fetches is the *emitted* feed at

@@ -72,7 +72,7 @@ export function entitlementDeps(services: DuesServices): EntitlementDeps {
 
 const LOOPBACK_HOSTNAMES = new Set(['127.0.0.1', 'localhost', '[::1]'])
 
-/** docs/membership-guide.md#origin-for-stripe-redirects */
+/** docs/guides/community/membership-guide.md#origin-for-stripe-redirects */
 function isLoopbackHost(host: string): boolean {
   let parsed: URL
   try {
@@ -83,7 +83,7 @@ function isLoopbackHost(host: string): boolean {
   return LOOPBACK_HOSTNAMES.has(parsed.hostname.toLowerCase())
 }
 
-/** docs/membership-guide.md#origin-for-stripe-redirects */
+/** docs/guides/community/membership-guide.md#origin-for-stripe-redirects */
 export function requestOrigin(request: PluginRequest): string {
   if (request.boardUrl !== '') return request.boardUrl
   const host = request.headers.host ?? ''

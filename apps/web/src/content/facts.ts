@@ -76,7 +76,7 @@ async function read(file: string): Promise<string> {
 }
 
 async function themeFacts(): Promise<ThemeFacts> {
-  const file = 'theme-slots.md'
+  const file = 'reference/theme-slots.md'
   const source = await read(file)
   const [, version = '', slots = '', stable = '', provisional = '', deprecated = ''] = capture(
     file,
@@ -95,7 +95,7 @@ async function themeFacts(): Promise<ThemeFacts> {
 }
 
 async function pluginFacts(): Promise<PluginFacts> {
-  const file = 'plugin-hooks.md'
+  const file = 'reference/plugin-hooks.md'
   const source = await read(file)
   const [, hooks = '', filters = '', events = '', regions = '', wired = ''] = capture(
     file,
@@ -114,7 +114,7 @@ async function pluginFacts(): Promise<PluginFacts> {
 }
 
 async function apiFacts(): Promise<ApiFacts> {
-  const file = 'rest-api.md'
+  const file = 'reference/api.md'
   const source = await read(file)
   const [, endpoints = '', scopes = '', basePath = ''] = capture(
     file,
@@ -127,7 +127,7 @@ async function apiFacts(): Promise<ApiFacts> {
 }
 
 async function performanceFacts(): Promise<PerformanceFacts> {
-  const file = 'performance.md'
+  const file = 'reference/performance.md'
   const source = await read(file)
 
   const row = (label: string, expected: string) =>
@@ -193,7 +193,7 @@ export function findScenario(performance: PerformanceFacts, page: string): Scena
   const scenario = performance.scenarios.find((entry) => entry.page === page)
   if (!scenario) {
     throw new Error(
-      `docs/performance.md no longer measures “${page}”, which the landing page shows.\n` +
+      `docs/reference/performance.md no longer measures “${page}”, which the landing page shows.\n` +
         `It measures: ${performance.scenarios.map((entry) => entry.page).join(', ')}.\n` +
         'Name a scenario that exists, in apps/web/src/content/site.ts.',
     )

@@ -2,7 +2,7 @@
 /**
  * Validates marketplace/listings/*.json against marketplace/schema.json and
  * the rules a JSON Schema cannot express, then emits the merged feed and its
- * screenshots into apps/web's public assets. See docs/marketplace.md.
+ * screenshots into apps/web's public assets. See docs/customization/marketplace.md.
  */
 import { mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
@@ -100,7 +100,7 @@ export function validateEntry(file, entry) {
     if (!REQUIRED_FIELDS.includes(field)) {
       problems.push(
         `${file}: field "${field}" is not part of the marketplace schema — extend it only ` +
-          'with maintainer sign-off (see docs/marketplace.md), not by adding a field here',
+          'with maintainer sign-off (see docs/customization/marketplace.md), not by adding a field here',
       )
     }
   }
@@ -217,7 +217,7 @@ export function compareKeys(a, b) {
  * — a bare `localeCompare` call follows the runtime's own `LANG`/ICU
  * collation, which disagrees across machines on `[a-z0-9-]` strings, so a
  * feed generated on one machine would not byte-match one generated on
- * another from the same listings. docs/marketplace.md promises byte-
+ * another from the same listings. docs/customization/marketplace.md promises byte-
  * identical output; only a locale-independent comparator can keep that
  * promise across machines rather than only on one.
  */

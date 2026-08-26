@@ -2,11 +2,11 @@
 /**
  * `community` — the bin that makes `@meith/cli` runnable against an external
  * board workspace, on the same footing as `forum-web` (see
- * apps/community/bin/forum-web.mjs and docs/development.md).
+ * apps/community/bin/forum-web.mjs and docs/contributing/development.md).
  *
  * `apps/cli/src/index.ts` reaches the board-config seam with a *dynamic*
  * `await import('@board/plugins')` (never a static one — see
- * docs/architecture.md), so unlike the release image's own bundled CLI —
+ * docs/reference/architecture.md), so unlike the release image's own bundled CLI —
  * which bakes in whichever board it was built next to — this one resolves
  * that seam at the moment it actually runs, against whichever workspace it
  * was invoked from. So the same materialize-then-run trick as `forum-web`

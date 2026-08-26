@@ -10,7 +10,7 @@ name**.
 What a paying member gets is whatever the group carries: forum access, a
 badge, a name colour. Dues never makes a permission decision — it decides who
 is in a group and until when, through the board's own
-[timed-grant capability](../../docs/plugin-api.md#timed-group-grants), and
+[timed-grant capability](../../docs/customization/plugins.md#timed-group-grants), and
 every guarantee that capability makes applies here. The load-bearing one:
 **a grant always expires on its own.** If this plugin is removed, its tasks
 stop, or Stripe closes the account, every sold membership drains away at its
@@ -33,7 +33,7 @@ answers for the board is not.
 **Try it before you read any of this**: [demo.meith.dev](https://demo.meith.dev)
 runs this plugin against a Stripe that is not Stripe — a shop with a year of
 history behind it, and a checkout a visitor can actually go through. See
-[demo mode](../../docs/demo-mode.md#the-shop-and-a-stripe-that-is-not-stripe).
+[demo mode](../../docs/guides/operations/demo-mode.md#the-shop-and-a-stripe-that-is-not-stripe).
 
 ## Setting up a board
 

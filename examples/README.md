@@ -12,10 +12,10 @@ of the product.
 | [`iris-theme`](./iris-theme) | `@meith/example-theme-iris` | The most common theme there is: the default board recoloured (one brand group of tokens, violet) plus a single slot override (`Footer`) where the markup genuinely disagrees. |
 
 The policy documents are the place to start before copying either:
-[docs/plugin-api.md](../docs/plugin-api.md) and
-[docs/theme-api.md](../docs/theme-api.md). The generated references —
-[docs/plugin-hooks.md](../docs/plugin-hooks.md) and
-[docs/theme-slots.md](../docs/theme-slots.md) — list every hook and slot.
+[docs/customization/plugins.md](../docs/customization/plugins.md) and
+[docs/customization/themes.md](../docs/customization/themes.md). The generated references —
+[docs/reference/plugin-hooks.md](../docs/reference/plugin-hooks.md) and
+[docs/reference/theme-slots.md](../docs/reference/theme-slots.md) — list every hook and slot.
 
 ## Installing one
 

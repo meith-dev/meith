@@ -162,7 +162,7 @@ export function upgradeNotice(plan: UpgradePlan, state: UpgradeState): string | 
     return (
       `This board is at ${plan.refusal.from} and the running code is ${plan.refusal.to} — ` +
       `${plan.refusal.span} majors apart, and upgrades are supported across ` +
-      `${SUPPORTED_MAJOR_SPAN}. Upgrade in stages; see docs/upgrading.md.`
+      `${SUPPORTED_MAJOR_SPAN}. Upgrade in stages; see docs/guides/operations/upgrading.md.`
     )
   }
   if (plan.orderFailure?.kind === 'cycle') {

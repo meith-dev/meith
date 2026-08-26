@@ -152,7 +152,7 @@ export function checkParity({ scripts, workflow, job = JOB, exceptions = EXCEPTI
       [
         ...missing.map((gate) => `pnpm ${gate}`),
         'add a step for each, or name it in EXCEPTIONS in scripts/ci-parity.mjs with the reason ' +
-          'it is covered elsewhere — see docs/development.md, "The commands"',
+          'it is covered elsewhere — see docs/contributing/development.md, "The commands"',
       ],
     )
   }

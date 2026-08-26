@@ -9,6 +9,7 @@ import { ClosingBand } from '../../../src/components/site-bands'
 import { findSegment, origin, segmentHref, segments } from '../../../src/content/segments'
 import { site, themeShots } from '../../../src/content/site'
 import { docHref, quickstartHref } from '../../../src/docs/registry'
+import { ogImage } from '../../../src/og/card'
 
 export function generateStaticParams() {
   return segments.map((segment) => ({ segment: segment.slug }))
@@ -37,6 +38,7 @@ export async function generateMetadata({
       title: segment.meta.title,
       description: segment.meta.description,
       url: `${site.url}${canonical}`,
+      images: ogImage(`/for/og/${segment.slug}`, segment.meta.title),
     },
     twitter: {
       card: 'summary_large_image',

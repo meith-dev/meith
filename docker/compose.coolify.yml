@@ -19,7 +19,7 @@
 # not built here, and the pin is an **exact version** that only a release
 # commit moves. No deploy path resolves "the newest anything": a version
 # change always has a commit on the `release` branch behind it. See
-# docs/release.md.
+# docs/contributing/release.md.
 #
 # The caveat: Coolify re-reads this file from the branch head every time it
 # deploys the resource — and on a compose resource that includes the panel's
@@ -29,12 +29,12 @@
 # Docker-level restarts — a crash, a host reboot — re-create the version
 # already running. To make the panel's buttons inert too, pin the version on
 # the resource itself: set MEITH_IMAGE in its environment and it wins over
-# this file — see docs/upgrading.md § Under Coolify. MEITH_IMAGE is also what
+# this file — see docs/guides/operations/upgrading.md § Under Coolify. MEITH_IMAGE is also what
 # CI sets to run this file against the image it just built, and what an
 # operator sets to pin by digest.
 #
 # Requires Coolify v4.0.0-beta.411 or newer — magic variables in a compose file
-# from a Git source arrived in that release. See docs/quickstart.md.
+# from a Git source arrived in that release. See docs/getting-started/deployment/coolify.md.
 
 services:
   postgres:
@@ -127,7 +127,7 @@ services:
       # Left unset, mail is configured on the board itself — the installer asks
       # on first run and /admin/settings?group=mail changes it afterwards, with
       # no redeploy. Set MAIL_DRIVER here and this file wins instead.
-      # See docs/operating.md § Mail.
+      # See docs/guides/operations/operating.md § Mail.
       - MAIL_DRIVER=${MAIL_DRIVER:-log}
       - MAIL_HTTP_ENDPOINT=${MAIL_HTTP_ENDPOINT:-}
       - MAIL_HTTP_TOKEN=${MAIL_HTTP_TOKEN:-}

@@ -72,7 +72,7 @@ ENV NODE_ENV=production
 ENV DATA_SOURCE=fixture
 
 # MEI-76: built through `boards/stock` — the same create-meith-shaped
-# workspace shape a custom board has (docs/architecture.md, "The board-config
+# workspace shape a custom board has (docs/reference/architecture.md, "The board-config
 # seam") — via `forum-web build`, rather than `pnpm --filter @meith/web build`
 # against apps/community directly. Graduating from the official image to a
 # custom board is then a source swap, not a migration.
@@ -106,7 +106,7 @@ RUN pnpm --filter @meith/worker build
 # every build, never a merge target — carrying every tsconfig.base.json alias
 # except `@board/*`, which it points at boards/stock's own community.config.ts
 # / community.plugins.ts instead. `--tsconfig` then makes esbuild use exactly
-# that file instead of auto-discovering the wrong one. See docs/architecture.md,
+# that file instead of auto-discovering the wrong one. See docs/reference/architecture.md,
 # "The stock board".
 RUN pnpm board:cli-tsconfig
 RUN pnpm --filter @meith/cli build --tsconfig=/repo/boards/stock/.meith/tsconfig.cli.json
@@ -117,7 +117,7 @@ RUN pnpm --filter @meith/cli build --tsconfig=/repo/boards/stock/.meith/tsconfig
 FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS runtime
 WORKDIR /app
 
-# Stamped by the release workflow (see docs/release.md); a local build leaves
+# Stamped by the release workflow (see docs/contributing/release.md); a local build leaves
 # both at defaults, so 0.0.0-dev in a log means "built from a checkout".
 ARG MEITH_VERSION=0.0.0-dev
 ARG MEITH_COMMIT=unknown
@@ -170,7 +170,7 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/worker/dist/ ./apps/worker/
 # takes arguments and exits.
 COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
 
-# docs/operating.md documents every operator command as `community <cmd>` —
+# docs/guides/operations/operating.md documents every operator command as `community <cmd>` —
 # and until this line, nothing in this image put a `community` binary on
 # PATH to make that real (this is a runtime-only stage with no `pnpm
 # install`, so no bin symlink is ever created here). CI's own working

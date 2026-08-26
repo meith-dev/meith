@@ -1,6 +1,6 @@
 # Cutting a release, from the Actions tab: give it a version and it bumps
 # every place the version is written, commits that to main, and tags it —
-# which starts the Release workflow. docs/release.md § How a release happens
+# which starts the Release workflow. docs/contributing/release.md § How a release happens
 # is the narrative, including the one-time deploy-key setup this depends on.
 
 name: Cut a release

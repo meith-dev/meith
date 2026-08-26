@@ -12,7 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
  * `FORUM_WORKSPACE_ROOT` is set for the first by that board's own scripts
  * and passed on by `forum-web` in every case, so this fallback only applies
  * when the file is read outside that bin entirely (see
- * docs/architecture.md, "The stock board"; docs/development.md, "Consuming
+ * docs/reference/architecture.md, "The stock board"; docs/contributing/development.md, "Consuming
  * the board from a workspace").
  */
 const workspaceRoot = process.env.FORUM_WORKSPACE_ROOT
@@ -21,7 +21,7 @@ const workspaceRoot = process.env.FORUM_WORKSPACE_ROOT
 
 /**
  * The relative equivalent of `workspaceRoot`, for `outputFileTracingIncludes`
- * below — see docs/development.md, "Consuming the board from a workspace",
+ * below — see docs/contributing/development.md, "Consuming the board from a workspace",
  * for why that option needs a path relative to this file rather than an
  * absolute one. It is `.` rather than the empty string when this file already
  * sits at the workspace root, which is what `forum-web build --at-root`
@@ -58,11 +58,11 @@ const nextConfig = {
     'nodemailer',
   ],
   outputFileTracingRoot: workspaceRoot,
-  /** See docs/development.md, "Consuming the board from a workspace", for why this is set. */
+  /** See docs/contributing/development.md, "Consuming the board from a workspace", for why this is set. */
   turbopack: {
     root: workspaceRoot,
   },
-  /** Works around a gap in Next's own tracing — see docs/development.md, "Consuming the board from a workspace". */
+  /** Works around a gap in Next's own tracing — see docs/contributing/development.md, "Consuming the board from a workspace". */
   outputFileTracingIncludes: {
     '/**': [
       `${upToWorkspaceRoot}/node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers/**/*`,
@@ -74,8 +74,8 @@ const nextConfig = {
   },
   /**
    * Every `@meith/*` package this app's dependency graph reaches, not just the
-   * ones apps/community imports directly — see docs/development.md,
-   * "Consuming the board from a workspace", and docs/release.md, "They ship
+   * ones apps/community imports directly — see docs/contributing/development.md,
+   * "Consuming the board from a workspace", and docs/contributing/release.md, "They ship
    * TypeScript source, deliberately".
    */
   transpilePackages: [

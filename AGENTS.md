@@ -24,10 +24,10 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else â€
 - **Biome is the formatter and the linter**, configured in `biome.json`.
   `pnpm lint` checks; `pnpm format` writes. A suppression is a
   `biome-ignore lint/<group>/<rule>: <reason>` on the line above, never a
-  blanket disable. `docs/development.md` explains the rules that carry an
+  blanket disable. `docs/contributing/development.md` explains the rules that carry an
   invariant.
 - **Versions never move in a feature change.** Releases move them
-  (`docs/release.md`); `pnpm release:check` will object.
+  (`docs/contributing/release.md`); `pnpm release:check` will object.
 - **The root is a registry.** A new root file goes in a folder, or is added to
   `scripts/root-check.mjs` with the reason it must live there.
 
@@ -36,4 +36,4 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else â€
 - `pnpm verify` â€” everything CI's static job runs.
 - `pnpm test:e2e` â€” the browser suite; self-contained, mostly JavaScript-off.
 - `pnpm dev` â€” the board on :3000 with no database (fixture mode);
-  `docs/development.md` for the Postgres-backed setup.
+  `docs/contributing/development.md` for the Postgres-backed setup.

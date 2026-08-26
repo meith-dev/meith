@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 /**
  * The integration test for MEI-75 — does `forum-web` actually make `@meith/web`
- * consumable by an external workspace? See docs/development.md, "Consuming
+ * consumable by an external workspace? See docs/contributing/development.md, "Consuming
  * the board from a workspace", for the mechanism this proves.
  *
  * Nothing here is a mock: every package `@meith/web`, `@meith/cli` and
@@ -23,7 +23,7 @@
  * check here uses a real, disposable Postgres — exactly the substitution the
  * `image` CI job already makes for the identical reason. The *build* step
  * still runs with no `DATABASE_URL`, i.e. fixture mode, matching "a
- * production build needs no database" (docs/development.md).
+ * production build needs no database" (docs/contributing/development.md).
  *
  * Needs a reachable, empty Postgres named by DATABASE_URL.
  *

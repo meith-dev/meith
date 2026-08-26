@@ -467,7 +467,7 @@ save-exact=true
  *
  * Adding a theme is: \`npm install\` it, add a line here, redeploy. Adding a
  * plugin is the same, through board.plugins.json and community.plugins.ts —
- * see docs/plugin-api.md.
+ * see docs/customization/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
 import {
@@ -506,7 +506,7 @@ export default defineForumConfig({
  * The board's installed-plugin list.
  *
  * Inside the Meith monorepo this file is generated from board.plugins.json
- * by \`pnpm board:gen\` (see docs/plugin-api.md) — that generator is
+ * by \`pnpm board:gen\` (see docs/customization/plugins.md) — that generator is
  * repository tooling, not something this workspace carries, so this file
  * starts as a plain, valid file with the same shape instead. Add a plugin by
  * importing its \`plugin\`/\`messages\` exports and adding an entry:
@@ -556,7 +556,7 @@ export function installedPluginDefinitions() {
 #
 # FROM the published framework base image — deps + framework layers only,
 # locked to this exact release (see the meith repository's
-# docs/self-hosting.md, "Custom boards", and docker/Dockerfile.base for what
+# docs/getting-started/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
 # it is and is not). This board's own Dockerfile only ever installs its own
 # delta on top of it — a new plugin's own dependency, typically nothing more
 # — which is what keeps a rebuild after \`npm install some-plugin\` a matter
@@ -566,12 +566,12 @@ export function installedPluginDefinitions() {
 # to Next's own standalone output. The migrate role below runs \`community
 # migrate\`, and \`community\` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
-# docs/development.md, "Consuming the board from a workspace") — it needs
+# docs/contributing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
 # traced as reachable from the web server alone. The tick itself is driven
 # by docker-compose.yml's own \`worker\` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
-# not published (see the meith repository's docs/release.md).
+# not published (see the meith repository's docs/contributing/release.md).
 ARG MEITH_VERSION
 FROM ghcr.io/meith-dev/meith-base:\${MEITH_VERSION} AS deps
 WORKDIR /board
@@ -596,7 +596,7 @@ ENV NODE_ENV=production
 # persists into every container started from this image afterward, and this
 # Dockerfile has no later stage to reset it in (see "Two stages, not three"
 # above). The build needs neither a database nor a production secret (see
-# the meith repository's docs/development.md, "Fixture mode"), but baking
+# the meith repository's docs/contributing/development.md, "Fixture mode"), but baking
 # DATA_SOURCE=fixture into the image itself would silently force fixture
 # mode — and with it the in-memory queue driver — at runtime too, no matter
 # what DATABASE_URL an operator supplies to \`docker run\`.
@@ -838,9 +838,9 @@ services:
         condition: service_completed_successfully
 
   # @meith/worker is not published (see the meith repository's
-  # docs/release.md), so there is no compiled worker binary a scaffolded
+  # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
   # board can run — this drives the tick the alternative way the meith
-  # repository documents in docs/self-hosting.md, "Running the tick without
+  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
   # a second set of credentials": a small loop calling /api/system/tick.
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
@@ -911,7 +911,7 @@ one value only you know:
 
 3. **Deploy, then \`/install\` on your own domain.** Coolify issues the
    certificate; the installer from there is the one
-   [docs/quickstart.md](${repositoryUrl}/blob/main/docs/quickstart.md#4-run-the-installer)
+   [docs/getting-started/deployment/coolify.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
    walks through, screen for screen. It seals itself when it finishes, and
    \`/install\` answers 404 from then on — run it **against the database you
    are going to keep**. Every push to \`main\` after this rebuilds the
@@ -929,7 +929,7 @@ rather not use GitHub Actions for the build — push the result wherever
 docker build --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t ${name} .
 \`\`\`
 
-**Without a panel**: [docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md)
+**Without a panel**: [docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md)
 is the same four containers by hand — your own \`.env\`, a reverse proxy you
 already run, no Coolify. \`Dockerfile\` and \`docker-compose.yml\` here are this
 board's own version of exactly that shape.
@@ -1002,7 +1002,7 @@ project's own \`.npmrc\` sets \`save-exact=true\` for the same reason, so an
 build workflow also refuses to build from anything but an exact version, as
 a second line of defense. Once the rebuilt image is deployed, run
 \`npm run community -- upgrade\` against it for the plugin migrations — see
-[the operator CLI](${repositoryUrl}/blob/main/docs/operating.md#the-operator-cli)
+[the operator CLI](${repositoryUrl}/blob/main/docs/guides/operations/operating.md#the-operator-cli)
 for running it against this deployment.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —
@@ -1192,7 +1192,7 @@ the board's name and address and for the first administrator's username, email
 and password, creates the board and that account, and then **seals itself**:
 \`/install\` answers 404 from then on. Run it against the database you intend to
 keep — the screens are the ones
-[docs/quickstart.md](${repositoryUrl}/blob/main/docs/quickstart.md#4-run-the-installer)
+[docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md#6-install-it)
 walks through.
 
 ## The tick
@@ -1308,10 +1308,10 @@ one.
 ## Somewhere other than Vercel
 
 Everything above is one deployment shape.
-[docs/self-hosting.md](${repositoryUrl}/blob/main/docs/self-hosting.md) is the
+[docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md) is the
 same board as containers you run yourself, and \`npx create-meith <name>\`
 scaffolds that shape instead — a Dockerfile, a compose file and a workflow that
-builds the image. [docs/scaling.md](${repositoryUrl}/blob/main/docs/scaling.md)
+builds the image. [docs/guides/operations/scaling.md](${repositoryUrl}/blob/main/docs/guides/operations/scaling.md)
 explains why the drivers above are what they are, and why an S3-compatible
 bucket is the portable choice for uploads everywhere but here.
 `

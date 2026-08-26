@@ -19,342 +19,379 @@
     {
       "id": "getting-started",
       "title": "Getting started",
-      "blurb": "From a rented server to a board of your own: the guided route with Coolify, the by-hand route for people who already run a proxy, and the platform route for people who would rather not have a server at all."
+      "blurb": "What Meith is, a board running on your machine in about a minute, and the routes onto a server of your own."
     },
     {
-      "id": "using",
-      "title": "Using your board",
-      "blurb": "For the people who run the community rather than the server — the committee, the moderators and the treasurer. Everything here happens in a browser."
+      "id": "guides",
+      "title": "Configuration & guides",
+      "blurb": "The board repository and its boundary with the admin panel, the move from MyBB or phpBB, and the guides for the people who run the community and the people who mind the server."
     },
     {
-      "id": "running",
-      "title": "Running the server",
-      "blurb": "For whoever minds the machine: configuration, the CLI, upgrades, mail, backups, sign-in, and the rest of the operator's craft."
+      "id": "customization",
+      "title": "Customization",
+      "blurb": "The contracts a board is extended through: themes filling documented slots, plugins on typed hooks with crash isolation, and the marketplace they ship in."
     },
     {
-      "id": "scaling",
-      "title": "Scaling out",
-      "blurb": "For the board that has outgrown one web container: the shared Redis cache, what already scales, and the migration from a single-instance deployment."
+      "id": "reference",
+      "title": "Reference",
+      "blurb": "The generated references — every endpoint, slot, hook and measurement — plus the architecture and the migration appendices."
     },
     {
-      "id": "extending",
-      "title": "Themes, plugins and the API",
-      "blurb": "For the member who codes: the frozen theme contract, what a plugin may do, and every endpoint the board answers."
-    },
-    {
-      "id": "migrating",
-      "title": "Moving from MyBB or phpBB",
-      "blurb": "The procedure for importing a MyBB or phpBB board, and where a Meith board deliberately behaves differently from MyBB."
-    },
-    {
-      "id": "development",
+      "id": "contributing",
       "title": "Working on Meith",
-      "blurb": "Running Meith on your own machine, the workspace layout, and the conventions the codebase holds to."
+      "blurb": "Running Meith on your own machine, the workspace layout, and the checks a pull request passes."
     }
   ],
   "documents": [
     {
-      "slug": "quickstart",
-      "file": "quickstart.md",
+      "slug": "introduction",
+      "file": "getting-started/introduction.md",
       "section": "getting-started",
-      "title": "Quickstart",
-      "blurb": "From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw.",
-      "generated": false,
-      "primary": true
-    },
-    {
-      "slug": "self-hosting",
-      "file": "self-hosting.md",
-      "section": "getting-started",
-      "title": "Deploying by hand",
-      "blurb": "The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should take the Quickstart instead.",
+      "title": "Introduction",
+      "blurb": "The philosophy: server-first pages that work with JavaScript off, a board pinned in a small repository, and a server of your own. Start here to see whether Meith thinks like you do.",
       "generated": false,
       "primary": false
     },
     {
+      "slug": "quickstart",
+      "file": "getting-started/quickstart.md",
+      "section": "getting-started",
+      "title": "Quickstart",
+      "blurb": "npx create-meith, and a minute later a board is running on your machine in fixture mode — no database, no Docker, no account with anybody.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "deployment",
+      "file": "getting-started/deployment/index.md",
+      "section": "getting-started",
+      "title": "Deployment",
+      "blurb": "The four-service production shape every route deploys, and the chooser: Coolify guided, Compose by hand, or Vercel without a server.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "coolify",
+      "file": "getting-started/deployment/coolify.md",
+      "section": "getting-started",
+      "title": "Deploying with Coolify",
+      "blurb": "From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw.",
+      "generated": false,
+      "primary": false,
+      "group": "Deployment routes"
+    },
+    {
+      "slug": "docker-compose",
+      "file": "getting-started/deployment/docker-compose.md",
+      "section": "getting-started",
+      "title": "Docker Compose by hand",
+      "blurb": "The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should deploy with Coolify instead.",
+      "generated": false,
+      "primary": false,
+      "group": "Deployment routes"
+    },
+    {
       "slug": "vercel",
-      "file": "vercel.md",
+      "file": "getting-started/deployment/vercel.md",
       "section": "getting-started",
       "title": "Running on Vercel",
       "blurb": "The board on functions: the driver set, the build command that carries the migration, the cron job that replaces the worker, what previews and rollbacks do to your schema — and how to leave again.",
+      "generated": false,
+      "primary": false,
+      "group": "Deployment routes"
+    },
+    {
+      "slug": "configuration",
+      "file": "guides/configuration.md",
+      "section": "guides",
+      "title": "Configuration in code",
+      "blurb": "What the board repository pins — the engine version, the themes, the plugins — and the deliberate line between it and everything organisers run from the browser.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "migrating",
+      "file": "guides/migrating.md",
+      "section": "guides",
+      "title": "Migrating from MyBB or phpBB",
+      "blurb": "The full procedure: what to check first, the import command for each source, what does and does not come across, and what to do after it finishes.",
       "generated": false,
       "primary": false
     },
     {
       "slug": "organiser-guide",
-      "file": "organiser-guide.md",
-      "section": "using",
+      "file": "guides/community/organiser-guide.md",
+      "section": "guides",
       "title": "The organiser's guide",
       "blurb": "Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over.",
       "generated": false,
-      "primary": true
+      "primary": false,
+      "group": "Running your community"
     },
     {
       "slug": "moderation-guide",
-      "file": "moderation-guide.md",
-      "section": "using",
+      "file": "guides/community/moderation-guide.md",
+      "section": "guides",
       "title": "The moderator's guide",
       "blurb": "For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives.",
       "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "formatting",
-      "file": "formatting.md",
-      "section": "using",
-      "title": "Writing a post",
-      "blurb": "The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "forums",
-      "file": "forums.md",
-      "section": "using",
-      "title": "Forums and permissions",
-      "blurb": "The board's shape and who may do what inside it: the forum tree, a forum's options, how a permission resolves, the matrix, and what a moderator appointment grants.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "groups",
-      "file": "groups.md",
-      "section": "using",
-      "title": "Groups and promotions",
-      "blurb": "What a group carries: board-wide permissions, the daily allowances, colours and badges, display groups, the groups a plugin may grant, and the rules that promote members automatically.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "antispam",
-      "file": "antispam.md",
-      "section": "using",
-      "title": "Spam controls and rate limits",
-      "blurb": "The registration challenge, the limits on pages nobody has signed in to, the three login counters, and the hourly allowances — what each is worth and what it costs a real visitor.",
-      "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Running your community"
     },
     {
       "slug": "membership-guide",
-      "file": "membership-guide.md",
-      "section": "using",
+      "file": "guides/community/membership-guide.md",
+      "section": "guides",
       "title": "The memberships guide",
       "blurb": "Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
+      "slug": "formatting",
+      "file": "guides/community/formatting.md",
+      "section": "guides",
+      "title": "Writing a post",
+      "blurb": "The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
+      "slug": "forums",
+      "file": "guides/community/forums.md",
+      "section": "guides",
+      "title": "Forums and permissions",
+      "blurb": "The board's shape and who may do what inside it: the forum tree, a forum's options, how a permission resolves, the matrix, and what a moderator appointment grants.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
+      "slug": "groups",
+      "file": "guides/community/groups.md",
+      "section": "guides",
+      "title": "Groups and promotions",
+      "blurb": "What a group carries: board-wide permissions, the daily allowances, colours and badges, display groups, the groups a plugin may grant, and the rules that promote members automatically.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
+      "slug": "antispam",
+      "file": "guides/community/antispam.md",
+      "section": "guides",
+      "title": "Spam controls and rate limits",
+      "blurb": "The registration challenge, the limits on pages nobody has signed in to, the three login counters, and the hourly allowances — what each is worth and what it costs a real visitor.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
     },
     {
       "slug": "operating",
-      "file": "operating.md",
-      "section": "running",
+      "file": "guides/operations/operating.md",
+      "section": "guides",
       "title": "Operations",
       "blurb": "Routine checks, configuration, maintenance commands, backups, recovery, and troubleshooting for a running board.",
       "generated": false,
-      "primary": true
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "monitoring",
-      "file": "monitoring.md",
-      "section": "running",
+      "file": "guides/operations/monitoring.md",
+      "section": "guides",
       "title": "Monitoring & alerting",
       "blurb": "Liveness versus readiness, the optional Prometheus metrics endpoint and what to alert on, distributed tracing, and shipping logs.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "upgrading",
-      "file": "upgrading.md",
-      "section": "running",
+      "file": "guides/operations/upgrading.md",
+      "section": "guides",
       "title": "Upgrading a board",
       "blurb": "Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "disaster-recovery",
-      "file": "disaster-recovery.md",
-      "section": "running",
+      "file": "guides/operations/disaster-recovery.md",
+      "section": "guides",
       "title": "Disaster recovery",
       "blurb": "The runbook for the day the server is gone: what recovery consumes, the order of operations from provisioning to DNS, and the rehearsal that turns it from a hope into a plan.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "single-sign-on",
-      "file": "single-sign-on.md",
-      "section": "running",
+      "file": "guides/operations/single-sign-on.md",
+      "section": "guides",
       "title": "Signing in",
       "blurb": "Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "internationalisation",
-      "file": "internationalisation.md",
-      "section": "running",
+      "file": "guides/operations/internationalisation.md",
+      "section": "guides",
       "title": "Languages",
       "blurb": "How a page picks its language, how to add one, and how a theme or plugin ships its own words.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "web-push",
-      "file": "web-push.md",
-      "section": "running",
+      "file": "guides/operations/web-push.md",
+      "section": "guides",
       "title": "Web push",
       "blurb": "Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on.",
       "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "performance",
-      "file": "performance.md",
-      "section": "running",
-      "title": "Performance",
-      "blurb": "The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board.",
-      "generated": true,
-      "primary": false
-    },
-    {
-      "slug": "demo-mode",
-      "file": "demo-mode.md",
-      "section": "running",
-      "title": "Demo mode",
-      "blurb": "The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself.",
-      "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Operating the server"
     },
     {
       "slug": "scaling",
-      "file": "scaling.md",
-      "section": "scaling",
+      "file": "guides/operations/scaling.md",
+      "section": "guides",
       "title": "Scaling out",
       "blurb": "Running more than one web container: the Redis cache that keeps them coherent, what already scales, and the step-by-step migration from a single-instance board.",
       "generated": false,
-      "primary": true
+      "primary": false,
+      "group": "Operating the server"
     },
     {
-      "slug": "theme-api",
-      "file": "theme-api.md",
-      "section": "extending",
-      "title": "The theme API",
+      "slug": "demo-mode",
+      "file": "guides/operations/demo-mode.md",
+      "section": "guides",
+      "title": "Demo mode",
+      "blurb": "The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself.",
+      "generated": false,
+      "primary": false,
+      "group": "Operating the server"
+    },
+    {
+      "slug": "themes",
+      "file": "customization/themes.md",
+      "section": "customization",
+      "title": "Themes",
       "blurb": "How to write a theme, what a theme may do, and what the API freeze covers.",
       "generated": false,
       "primary": true
     },
     {
-      "slug": "theme-slots",
-      "file": "theme-slots.md",
-      "section": "extending",
-      "title": "Theme slots and view models",
-      "blurb": "Every slot and every view model, generated from the slot registry.",
-      "generated": true,
-      "primary": false
-    },
-    {
-      "slug": "plugin-api",
-      "file": "plugin-api.md",
-      "section": "extending",
-      "title": "The plugin API",
+      "slug": "plugins",
+      "file": "customization/plugins.md",
+      "section": "customization",
+      "title": "Plugins",
       "blurb": "What a plugin is, what it may and may not do, and how a failure is contained.",
       "generated": false,
       "primary": false
     },
     {
-      "slug": "plugin-hooks",
-      "file": "plugin-hooks.md",
-      "section": "extending",
-      "title": "Plugin hooks",
-      "blurb": "Every hook and payload, generated from the hook registry.",
-      "generated": true,
-      "primary": false
-    },
-    {
       "slug": "marketplace",
-      "file": "marketplace.md",
-      "section": "extending",
+      "file": "customization/marketplace.md",
+      "section": "customization",
       "title": "The marketplace",
       "blurb": "The curated, reviewed feed of plugins and themes: the listing schema, the review bar, the trust it does and does not extend, and how to submit or remove one.",
       "generated": false,
       "primary": false
     },
     {
-      "slug": "rest-api",
-      "file": "rest-api.md",
-      "section": "extending",
+      "slug": "api",
+      "file": "reference/api.md",
+      "section": "reference",
       "title": "REST API v1",
       "blurb": "Every endpoint, scope and rate limit, generated from the route registry.",
+      "generated": true,
+      "primary": true
+    },
+    {
+      "slug": "theme-slots",
+      "file": "reference/theme-slots.md",
+      "section": "reference",
+      "title": "Theme slots and view models",
+      "blurb": "Every slot and every view model, generated from the slot registry.",
       "generated": true,
       "primary": false
     },
     {
-      "slug": "migrating",
-      "file": "migrating.md",
-      "section": "migrating",
-      "title": "Migrating from MyBB or phpBB",
-      "blurb": "The full procedure: what to check first, the import command for each source, what does and does not come across, and what to do after it finishes.",
-      "generated": false,
-      "primary": true
-    },
-    {
-      "slug": "mybb-parity",
-      "file": "mybb-parity.md",
-      "section": "migrating",
-      "title": "MyBB parity decisions",
-      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move.",
-      "generated": false,
+      "slug": "plugin-hooks",
+      "file": "reference/plugin-hooks.md",
+      "section": "reference",
+      "title": "Plugin hooks",
+      "blurb": "Every hook and payload, generated from the hook registry.",
+      "generated": true,
       "primary": false
     },
     {
-      "slug": "phpbb-parity",
-      "file": "phpbb-parity.md",
-      "section": "migrating",
-      "title": "phpBB parity decisions",
-      "blurb": "Where a Meith board imported from phpBB behaves differently from the one it came from — the ACL, warnings, bans, announcements and polls, and a couple of places phpBB's own model already matches Meith's.",
-      "generated": false,
+      "slug": "performance",
+      "file": "reference/performance.md",
+      "section": "reference",
+      "title": "Performance",
+      "blurb": "The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board.",
+      "generated": true,
       "primary": false
-    },
-    {
-      "slug": "development",
-      "file": "development.md",
-      "section": "development",
-      "title": "Development",
-      "blurb": "Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request.",
-      "generated": false,
-      "primary": true
     },
     {
       "slug": "architecture",
-      "file": "architecture.md",
-      "section": "development",
+      "file": "reference/architecture.md",
+      "section": "reference",
       "title": "Architecture",
       "blurb": "How Meith fits together: the processes, the layers, the path a request takes, and the extension seams.",
       "generated": false,
       "primary": false
     },
     {
-      "slug": "nextjs-conventions",
-      "file": "nextjs-conventions.md",
-      "section": "development",
-      "title": "Next.js conventions",
-      "blurb": "Server components, Server Actions, caching, forms and errors — the decisions that would otherwise be re-litigated in every pull request.",
+      "slug": "mybb-parity",
+      "file": "reference/mybb-parity.md",
+      "section": "reference",
+      "title": "MyBB parity decisions",
+      "blurb": "Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Migration appendices"
     },
     {
-      "slug": "release",
-      "file": "release.md",
-      "section": "development",
-      "title": "Releasing",
-      "blurb": "How a version is cut, what each release publishes — the image, the branch, the npm packages — and the version policy behind the numbers.",
+      "slug": "phpbb-parity",
+      "file": "reference/phpbb-parity.md",
+      "section": "reference",
+      "title": "phpBB parity decisions",
+      "blurb": "Where a Meith board imported from phpBB behaves differently from the one it came from — the ACL, warnings, bans, announcements and polls, and a couple of places phpBB's own model already matches Meith's.",
       "generated": false,
-      "primary": false
+      "primary": false,
+      "group": "Migration appendices"
+    },
+    {
+      "slug": "development",
+      "file": "contributing/development.md",
+      "section": "contributing",
+      "title": "Development",
+      "blurb": "Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request.",
+      "generated": false,
+      "primary": true
     }
   ],
   "internal": [
     {
       "file": "README.md",
       "reason": "The index for people reading the repository. On the site, /docs is the index."
+    },
+    {
+      "file": "contributing/nextjs-conventions.md",
+      "reason": "Framework conventions enforced inside this repository, read from Development — not documentation a board needs."
+    },
+    {
+      "file": "contributing/release.md",
+      "reason": "The maintainers' release procedure. A board follows Upgrading; only this repository cuts releases."
     }
   ]
 }

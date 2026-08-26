@@ -13,7 +13,7 @@
 #  - **web**: `/api/ready` reports whether *this board* can do its job — reach
 #    the database and keep the scheduler moving — not just whether this
 #    process bound the port. `/api/health` still exists for pure liveness; see
-#    docs/monitoring.md for why the container healthcheck uses the other one.
+#    docs/guides/operations/monitoring.md for why the container healthcheck uses the other one.
 #  - **worker**: the scheduler process is alive, and — `--ready`, running the
 #    bundled worker binary as a one-shot process instead of its loop — the
 #    same database-and-scheduler check `/api/ready` runs also passes.

@@ -6,67 +6,70 @@ This directory is the source for [meith.dev/docs](https://www.meith.dev/docs). C
 
 | If you want to… | Read… |
 |---|---|
-| Install a new board | [Quickstart](./quickstart.md) |
-| Run an existing board from the browser | [Organiser guide](./organiser-guide.md) |
-| Moderate posts and members | [Moderator guide](./moderation-guide.md) |
-| Manage paid memberships | [Memberships guide](./membership-guide.md) |
-| Maintain the server | [Operations](./operating.md) |
-| Contribute code | [Development](./development.md) |
+| See what Meith is | [Introduction](./getting-started/introduction.md) |
+| Run a board on your machine | [Quickstart](./getting-started/quickstart.md) |
+| Put a board on your own server | [Deployment](./getting-started/deployment/index.md) |
+| Build a theme or plugin | [Themes](./customization/themes.md) · [Plugins](./customization/plugins.md) |
+| Run an existing board from the browser | [Organiser guide](./guides/community/organiser-guide.md) |
+| Contribute code | [Development](./contributing/development.md) |
 
-## Install and evaluate
+## Getting started
 
-- [Quickstart](./quickstart.md) — deploy with Coolify on your own server.
-- [Deploying by hand](./self-hosting.md) — use Docker Compose with a reverse proxy you operate.
-- [Running on Vercel](./vercel.md) — deploy onto functions instead of a server: the four-step Deploy Button route, then the quirks worth knowing — the cron tick, build-time migrations, and how to leave.
-- [Demo mode](./demo-mode.md) — run a public board that resets itself.
+- [Introduction](./getting-started/introduction.md) — the philosophy: server-first, code-first, self-hosted.
+- [Quickstart](./getting-started/quickstart.md) — a board on your machine in about a minute, no database required.
+- [Deployment](./getting-started/deployment/index.md) — the four-service production shape and the route chooser.
+  - [Coolify](./getting-started/deployment/coolify.md) — the guided route: deploy on your own server from a browser.
+  - [Docker Compose by hand](./getting-started/deployment/docker-compose.md) — a `.env` you write and a reverse proxy you operate.
+  - [Vercel](./getting-started/deployment/vercel.md) — the board on functions, and how to leave again.
 
-## Administer a community
+## Configuration & guides
 
-These guides use the browser interface; they do not require shell access.
+- [Configuration in code](./guides/configuration.md) — the board repository: what is pinned in code, what stays in the admin panel.
+- [Migrating from MyBB or phpBB](./guides/migrating.md) — the importer moves members, content, private messages, attachments, subscriptions, polls, reputation, warnings and bans, with working passwords and redirects from the old URLs.
 
-- [Organiser guide](./organiser-guide.md) — board settings, forums, groups, members, and handover.
-- [Moderator guide](./moderation-guide.md) — approval, reports, thread maintenance, warnings, and bans.
-- [Memberships guide](./membership-guide.md) — Stripe plans, discounts, gifts, the membership desk, and the ledger.
-- [Writing a post](./formatting.md) — the composer's toolbar and its Markdown: highlighted code, spoilers, mentions, link previews, and inline attachments.
+Running your community — browser only, no shell access:
 
-Reference, for when a guide says "one permission on that forum's screen" and you want to know which:
+- [Organiser guide](./guides/community/organiser-guide.md) — board settings, forums, groups, members, and handover.
+- [Moderator guide](./guides/community/moderation-guide.md) — approval, reports, thread maintenance, warnings, and bans.
+- [Memberships guide](./guides/community/membership-guide.md) — Stripe plans, discounts, gifts, the membership desk, and the ledger.
+- [Writing a post](./guides/community/formatting.md) — the composer's toolbar and its Markdown.
+- [Forums and permissions](./guides/community/forums.md) — the forum tree and the per-forum permission matrix.
+- [Groups and promotions](./guides/community/groups.md) — what a group carries board-wide.
+- [Spam controls and rate limits](./guides/community/antispam.md) — the registration challenge and every threshold.
 
-- [Forums and permissions](./forums.md) — the forum tree, a forum's options, how a permission resolves, reading the matrix, and what a moderator appointment grants.
-- [Groups and promotions](./groups.md) — what a group carries board-wide, the daily allowances, colours and badges, the groups a plugin may grant, and automatic promotions.
-- [Spam controls and rate limits](./antispam.md) — the registration challenge, the pre-authentication limits, the three login counters, and the hourly allowances.
+Operating the server:
 
-## Operate a board
+- [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, and troubleshooting.
+- [Monitoring & alerting](./guides/operations/monitoring.md) — liveness versus readiness, metrics, tracing, and logs.
+- [Upgrading](./guides/operations/upgrading.md) — move between released versions safely.
+- [Disaster recovery](./guides/operations/disaster-recovery.md) — restore a board when the original server is unavailable.
+- [Signing in](./guides/operations/single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.
+- [Languages](./guides/operations/internationalisation.md) — locale selection and translation packages.
+- [Web push](./guides/operations/web-push.md) — browser notifications and installable-board metadata.
+- [Scaling out](./guides/operations/scaling.md) — add web instances and a shared cache.
+- [Demo mode](./guides/operations/demo-mode.md) — run a public board that resets itself.
 
-- [Operations](./operating.md) — health checks, configuration, CLI commands, mail, backups, and troubleshooting.
-- [Monitoring & alerting](./monitoring.md) — liveness versus readiness, the optional metrics endpoint, tracing, and shipping logs.
-- [Upgrading](./upgrading.md) — move between released versions safely.
-- [Disaster recovery](./disaster-recovery.md) — restore a board when the original server is unavailable.
-- [Signing in](./single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.
-- [Languages](./internationalisation.md) — locale selection and translation packages.
-- [Web push](./web-push.md) — browser notifications and installable-board metadata.
-- [Scaling out](./scaling.md) — add web instances and a shared cache.
-- [Performance](./performance.md) — generated performance budgets and recorded results.
+## Customization
 
-## Extend Meith
+- [Themes](./customization/themes.md) — theme slots, view models, and packaging.
+- [Plugins](./customization/plugins.md) — plugin boundaries, typed hooks, lifecycle, and crash isolation.
+- [The marketplace](./customization/marketplace.md) — the curated feed of plugins and themes, and the listing-by-PR process.
 
-- [Theme API](./theme-api.md) — create and package a theme.
-- [Theme slot reference](./theme-slots.md) — generated slot and view-model reference.
-- [Plugin API](./plugin-api.md) — plugin boundaries, lifecycle, and packaging.
-- [Plugin hook reference](./plugin-hooks.md) — generated hook and payload reference.
-- [The marketplace](./marketplace.md) — the curated feed of plugins and themes, the listing-by-PR process, and the review bar.
-- [REST API v1](./rest-api.md) — generated routes, scopes, request bodies, and responses.
-- `openapi.json` — machine-readable OpenAPI document generated alongside the REST reference.
+## Reference
 
-## Migrate from MyBB or phpBB
+- [REST API v1](./reference/api.md) — generated routes, scopes, request bodies, and responses.
+- `reference/openapi.json` — machine-readable OpenAPI document generated alongside the REST reference.
+- [Theme slot reference](./reference/theme-slots.md) — generated slot and view-model reference.
+- [Plugin hook reference](./reference/plugin-hooks.md) — generated hook and payload reference.
+- [Architecture](./reference/architecture.md) — processes, package boundaries, and request flow.
+- [Performance](./reference/performance.md) — generated performance budgets and recorded results.
+- [MyBB parity decisions](./reference/mybb-parity.md) and [phpBB parity decisions](./reference/phpbb-parity.md) — intentional product differences from the board you are leaving; appendices to [Migrating](./guides/migrating.md).
 
-The importer moves members, content, private messages, attachments, avatars, subscriptions, polls, reputation, warnings, bans and buddy lists from MyBB or phpBB, with working passwords and redirects from the old URLs. [Migrating from MyBB or phpBB](./migrating.md) is the full procedure, with the per-source coverage table and what to do after it finishes. Also read [MyBB parity decisions](./mybb-parity.md) or [phpBB parity decisions](./phpbb-parity.md) — each lists intentional product differences from the board you are leaving.
+## Contributing
 
-## Contribute
-
-- [Development](./development.md) — local setup, tests, and pull-request checks.
-- [Architecture](./architecture.md) — processes, package boundaries, and request flow.
-- [Next.js conventions](./nextjs-conventions.md) — application-layer patterns enforced in this repository.
-- [Releasing](./release.md) — versioning and release outputs.
+- [Development](./contributing/development.md) — local setup, tests, and pull-request checks.
+- [Next.js conventions](./contributing/nextjs-conventions.md) — application-layer patterns enforced in this repository.
+- [Releasing](./contributing/release.md) — versioning and release outputs.
 
 ## Generated references
 
@@ -74,9 +77,9 @@ Do not edit generated files directly.
 
 | File | Command |
 |---|---|
-| `theme-slots.md` | `pnpm theme:docs` |
-| `plugin-hooks.md` | `pnpm plugin:docs` |
-| `rest-api.md`, `openapi.json` | `pnpm api:docs` |
-| `performance.md` | `pnpm perf:docs` |
+| `reference/theme-slots.md` | `pnpm theme:docs` |
+| `reference/plugin-hooks.md` | `pnpm plugin:docs` |
+| `reference/api.md`, `reference/openapi.json` | `pnpm api:docs` |
+| `reference/performance.md` | `pnpm perf:docs` |
 
 `pnpm verify` checks that generated references and both documentation indexes are current. When adding a document, add it to `apps/web/content/docs.manifest.json`, link it here, and run `pnpm site:docs`.

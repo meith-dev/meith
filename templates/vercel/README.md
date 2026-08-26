@@ -135,7 +135,7 @@ the board's name and address and for the first administrator's username, email
 and password, creates the board and that account, and then **seals itself**:
 `/install` answers 404 from then on. Run it against the database you intend to
 keep — the screens are the ones
-[docs/quickstart.md](https://github.com/meith-dev/meith/blob/main/docs/quickstart.md#4-run-the-installer)
+[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md#6-install-it)
 walks through.
 
 ## The tick
@@ -251,9 +251,9 @@ one.
 ## Somewhere other than Vercel
 
 Everything above is one deployment shape.
-[docs/self-hosting.md](https://github.com/meith-dev/meith/blob/main/docs/self-hosting.md) is the
+[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md) is the
 same board as containers you run yourself, and `npx create-meith <name>`
 scaffolds that shape instead — a Dockerfile, a compose file and a workflow that
-builds the image. [docs/scaling.md](https://github.com/meith-dev/meith/blob/main/docs/scaling.md)
+builds the image. [docs/guides/operations/scaling.md](https://github.com/meith-dev/meith/blob/main/docs/guides/operations/scaling.md)
 explains why the drivers above are what they are, and why an S3-compatible
 bucket is the portable choice for uploads everywhere but here.
