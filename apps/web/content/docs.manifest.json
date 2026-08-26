@@ -319,6 +319,15 @@
       "group": "Operating the server"
     },
     {
+      "slug": "first-plugin",
+      "file": "customization/first-plugin.md",
+      "section": "customization",
+      "title": "Write your first plugin",
+      "blurb": "The walkthrough from an empty directory to a plugin running inside a board and listed on the marketplace: scaffold, change a hook, test it, install it, publish it.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "themes",
       "file": "customization/themes.md",
       "section": "customization",
