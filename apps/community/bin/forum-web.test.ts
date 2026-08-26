@@ -9,6 +9,8 @@ import { afterAll, describe, expect, it } from 'vitest'
 // @ts-expect-error forum-web.mjs ships untyped, imported directly for its pure export
 import { rebaseGlobalsCssSources } from './forum-web.mjs'
 
+const ALL_PRESENT = () => true
+
 describe('rebaseGlobalsCssSources', () => {
   it('rebases every @source line against the real workspace root', () => {
     const css = [
@@ -25,7 +27,7 @@ describe('rebaseGlobalsCssSources', () => {
     const cssDir = '/repo/boards/stock/.meith/app/src/styles'
     const workspaceRoot = '/repo'
 
-    const rewritten = rebaseGlobalsCssSources(css, cssDir, workspaceRoot)
+    const rewritten = rebaseGlobalsCssSources(css, cssDir, workspaceRoot, ALL_PRESENT)
 
     expect(rewritten).toContain('@source "../../../../../../themes";')
     expect(rewritten).toContain('@source "../../../../../../plugins";')
@@ -49,12 +51,22 @@ describe('rebaseGlobalsCssSources', () => {
 
   it('leaves the shipped globals.css byte for byte alone at the default depth', () => {
     expect(
-      rebaseGlobalsCssSources(shippedGlobalsCss, '/board/.meith/app/src/styles', '/board'),
+      rebaseGlobalsCssSources(
+        shippedGlobalsCss,
+        '/board/.meith/app/src/styles',
+        '/board',
+        ALL_PRESENT,
+      ),
     ).toBe(shippedGlobalsCss)
   })
 
   it('rebases every shipped @source against the board root at depth zero', () => {
-    const rewritten = rebaseGlobalsCssSources(shippedGlobalsCss, '/board/src/styles', '/board')
+    const rewritten = rebaseGlobalsCssSources(
+      shippedGlobalsCss,
+      '/board/src/styles',
+      '/board',
+      ALL_PRESENT,
+    )
     const sources = [...rewritten.matchAll(/@source "([^"]+)";/g)].map((match) => match[1])
 
     expect(sources.length).toBeGreaterThan(0)
@@ -65,9 +77,83 @@ describe('rebaseGlobalsCssSources', () => {
 
   it('is a no-op for a file with no @source lines', () => {
     const css = '@import "tailwindcss";\n.foo { color: red; }\n'
-    expect(rebaseGlobalsCssSources(css, '/repo/boards/stock/.meith/app/src/styles', '/repo')).toBe(
-      css,
-    )
+    expect(
+      rebaseGlobalsCssSources(
+        css,
+        '/repo/boards/stock/.meith/app/src/styles',
+        '/repo',
+        ALL_PRESENT,
+      ),
+    ).toBe(css)
+  })
+
+  /**
+   * MEI-131. A scaffolded board has none of the directories these sources
+   * name — the same code is installed under `node_modules/@meith` — and
+   * Tailwind emits no utilities for a source it cannot scan while still
+   * exiting 0, so the failure is a board that serves an unstyled page rather
+   * than a build that stops.
+   */
+  describe('in a board, where none of those directories exist', () => {
+    const inBoard = (path: string) => path.includes('node_modules')
+
+    function sourcesFor(cssDir: string): string[] {
+      const rewritten = rebaseGlobalsCssSources(shippedGlobalsCss, cssDir, '/board', inBoard)
+      return [...rewritten.matchAll(/@source "([^"]+)";/g)].map((match) => match[1]!)
+    }
+
+    it('scans the installed packages, which is where that code actually is', () => {
+      expect(sourcesFor('/board/src/styles')).toEqual(['../../node_modules/@meith'])
+    })
+
+    it('names no directory that is not there, at either materialization depth', () => {
+      for (const sources of [
+        sourcesFor('/board/src/styles'),
+        sourcesFor('/board/.meith/app/src/styles'),
+      ]) {
+        for (const source of sources) expect(source).toContain('node_modules/@meith')
+      }
+    })
+
+    it('leaves the rest of the stylesheet untouched', () => {
+      const rewritten = rebaseGlobalsCssSources(
+        shippedGlobalsCss,
+        '/board/src/styles',
+        '/board',
+        inBoard,
+      )
+
+      expect(rewritten).toContain('@import "tailwindcss";')
+      expect(rewritten.replace(/@source "[^"]+";\n/g, '')).toBe(
+        shippedGlobalsCss.replace(/@source "[^"]+";\n/g, ''),
+      )
+    })
+
+    it('keeps a source that is really there, so a hybrid layout loses nothing', () => {
+      const present = (path: string) =>
+        path.includes('node_modules') || path.endsWith('/board/themes')
+      const rewritten = rebaseGlobalsCssSources(
+        shippedGlobalsCss,
+        '/board/src/styles',
+        '/board',
+        present,
+      )
+      const sources = [...rewritten.matchAll(/@source "([^"]+)";/g)].map((match) => match[1])
+
+      expect(sources).toContain('../../themes')
+      expect(sources).toContain('../../node_modules/@meith')
+    })
+
+    it('adds nothing when the packages are not installed either', () => {
+      const rewritten = rebaseGlobalsCssSources(
+        shippedGlobalsCss,
+        '/board/src/styles',
+        '/board',
+        () => false,
+      )
+
+      expect(rewritten).not.toContain('@source')
+    })
   })
 })
 

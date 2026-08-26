@@ -306,10 +306,52 @@ function toPosixRelative(from, to) {
   return rel.startsWith('.') ? rel : `./${rel}`
 }
 
-export function rebaseGlobalsCssSources(css, cssDir, workspaceRootOverride) {
-  return css.replace(/@source "((?:\.\.\/)+)([^"]+)";/g, (_match, _dots, tail) => {
-    const target = join(workspaceRootOverride, ...tail.split('/'))
-    return `@source "${toPosixRelative(cssDir, target)}";`
+const SOURCE_LINE = /[ \t]*@source "((?:\.\.\/)+)([^"]+)";\n?/g
+const BOARD_PACKAGES = ['node_modules', '@meith']
+
+/**
+ * MEI-131: every `@source` in globals.css names a directory of *this*
+ * repository — `themes`, `plugins`, `packages/ui/src`. Rebasing them onto the
+ * board's workspace root is right for the one in-repo consumer (boards/stock,
+ * whose FORUM_WORKSPACE_ROOT is this repo) and wrong for every scaffolded
+ * board, where none of those directories exist: the same code is installed
+ * under `node_modules/@meith` instead. Tailwind does not fail on a `@source`
+ * that resolves to nothing — it builds green and emits no utilities for
+ * anything it could not scan — so a board deployed this way served a page
+ * with no styling at all.
+ *
+ * A source whose target is really there is kept and rebased as before. One
+ * that is not is dropped in favour of a single source over the installed
+ * packages, which covers the themes, `@meith/ui` and the plugins together.
+ * Tailwind ignores `node_modules` when detecting sources itself, but honours
+ * it when named here, and follows the symlinks a pnpm install leaves — both
+ * confirmed against the version this app pins.
+ */
+export function rebaseGlobalsCssSources(css, cssDir, workspaceRoot, exists = existsSync) {
+  const rebased = []
+  let missing = false
+
+  for (const [, , tail] of css.matchAll(SOURCE_LINE)) {
+    const target = join(workspaceRoot, ...tail.split('/'))
+    if (exists(target)) rebased.push(toPosixRelative(cssDir, target))
+    else missing = true
+  }
+
+  if (!missing) {
+    return css.replace(SOURCE_LINE, (_match, _dots, tail) => {
+      const target = join(workspaceRoot, ...tail.split('/'))
+      return `@source "${toPosixRelative(cssDir, target)}";\n`
+    })
+  }
+
+  const packages = join(workspaceRoot, ...BOARD_PACKAGES)
+  if (exists(packages)) rebased.push(toPosixRelative(cssDir, packages))
+
+  let written = false
+  return css.replace(SOURCE_LINE, () => {
+    if (written) return ''
+    written = true
+    return rebased.map((source) => `@source "${source}";`).join('\n') + '\n'
   })
 }
 
