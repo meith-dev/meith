@@ -719,11 +719,11 @@ describe('the Vercel target', () => {
     expect(readme).toContain(encodeURIComponent(DEFAULT_TEMPLATE_REPOSITORY_URL))
   })
 
-  it('asks the marketplace for the database, the cache and the object store', () => {
+  it('asks the marketplace for the database, the cache, the object store and mail', () => {
     const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
-    const stores = JSON.parse(url.searchParams.get('stores') ?? '[]')
+    const products = JSON.parse(url.searchParams.get('products') ?? '[]')
 
-    expect(stores).toEqual([
+    expect(products).toEqual([
       { type: 'integration', integrationSlug: 'neon', productSlug: 'neon', protocol: 'storage' },
       {
         type: 'integration',
@@ -732,21 +732,28 @@ describe('the Vercel target', () => {
         protocol: 'storage',
       },
       { type: 'blob' },
+      {
+        type: 'integration',
+        integrationSlug: 'resend',
+        productSlug: 'resend-email',
+        protocol: 'messaging',
+      },
     ])
     expect(url.searchParams.get('repository-url')).toBe(DEFAULT_TEMPLATE_REPOSITORY_URL)
   })
 
-  it('keeps the button on the parameter this template already deploys with', () => {
+  it('carries every product in one parameter, and not the undocumented one', () => {
     const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
-    expect(url.searchParams.get('products')).toBeNull()
+    expect(url.searchParams.get('stores')).toBeNull()
   })
 
-  it('says plainly that mail is a step after the deploy, not part of it', () => {
+  it('provisions mail with the deploy, and leaves only the sender address after', () => {
     const readme = files.get('README.md')!
 
-    expect(readme).toContain('## Mail, in one click')
+    expect(readme).toContain('## Mail, after the deploy')
     expect(readme).toContain('RESEND_API_KEY')
-    expect(readme).toMatch(/does not set up/)
+    expect(readme).toContain('MAIL_FROM')
+    expect(readme).not.toMatch(/Mail is the one thing the button does not set up/)
   })
 
   it('prompts for the two values nothing else can supply, and for nothing else', () => {
