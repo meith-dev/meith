@@ -131,6 +131,7 @@ export async function submitReply(
       heldAsNewMember: await holdsNewMember({
         actor,
         postCount: profile.postCount,
+        target: scope,
         settings,
       }),
       requiresApproval: scope.forum.requiresPostApproval === true,

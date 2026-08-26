@@ -16,7 +16,7 @@ import {
   type RateLimitOutcome,
   subjectFor,
 } from '@meith/antispam'
-import type { Actor, NumericGlobalPermission } from '@meith/authorization'
+import type { Actor, NumericGlobalPermission, Target } from '@meith/authorization'
 import { env, logger } from '@meith/core'
 import { getDb, PostgresCaptchaQuestionRepository, PostgresRateLimitBucketStore } from '@meith/db'
 import type { SettingsSnapshot } from '@meith/settings'
@@ -280,29 +280,42 @@ export async function verifyChallenge(form: FormData): Promise<ChallengeVerdict>
   }
 }
 
+const FIRST_POST_UNRESOLVED = 'could not resolve first-post moderation'
+
+function bypassesModeration(actor: Actor, target: Target): boolean {
+  try {
+    return getContainer().authorizer.can(actor, 'content.viewUnapproved', target)
+  } catch (error) {
+    logger().warn({ err: String(error), stage: 'bypass', held: true }, FIRST_POST_UNRESOLVED)
+    return false
+  }
+}
+
 export async function holdsNewMember(input: {
   readonly actor: Actor
   readonly postCount: number
+  readonly target: Target
   readonly settings?: SettingsSnapshot
 }): Promise<boolean> {
+  let threshold = 0
   try {
     const settings = input.settings ?? (await getSettings())
-    const threshold = Number(settings.get('antispam.moderate_first_posts') ?? 0)
-    if (threshold <= 0) return false
-
-    const { authorizer } = getContainer()
-    return holdsForReview(
-      {
-        userId: input.actor.userId,
-        postCount: input.postCount,
-        bypassesModeration: authorizer.can(input.actor, 'content.viewUnapproved'),
-      },
-      { threshold },
-    )
+    threshold = Number(settings.get('antispam.moderate_first_posts') ?? 0)
   } catch (error) {
-    logger().warn({ err: String(error) }, 'could not resolve first-post moderation')
+    logger().warn({ err: String(error), stage: 'threshold', held: false }, FIRST_POST_UNRESOLVED)
     return false
   }
+
+  if (threshold <= 0) return false
+
+  return holdsForReview(
+    {
+      userId: input.actor.userId,
+      postCount: input.postCount,
+      bypassesModeration: bypassesModeration(input.actor, input.target),
+    },
+    { threshold },
+  )
 }
 
 export function antispamAvailable(): boolean {

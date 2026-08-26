@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
+import type { PromotionCandidate, PromotionRule } from '@meith/groups'
+import { evaluatePromotions } from '@meith/groups'
 import type { MarketplaceFeed } from '@meith/marketplace'
 
 import { buildEventRegistry } from './event-handlers'
+import { SEED_GROUP } from './groups'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
 
 const NOT_ABORTED = new AbortController().signal
@@ -401,5 +404,60 @@ describe('the marketplace catalog refresh', () => {
 
     expect(workers.refreshMarketplaceCatalog).toBeUndefined()
     expect('refreshMarketplaceCatalog' in workers).toBe(false)
+  })
+})
+
+describe('the guards a real board promotes under', () => {
+  const CUSTOM_GROUP = 42
+
+  function candidate(primaryGroupId: number | null): PromotionCandidate {
+    return {
+      userId: 1,
+      primaryGroupId,
+      postCount: 500,
+      reputation: 0,
+      registeredAt: new Date('2020-01-01T00:00:00Z'),
+    }
+  }
+
+  function ruleInto(toPrimaryGroupId: number): PromotionRule {
+    return {
+      id: 1,
+      title: 'Veteran',
+      enabled: true,
+      displayOrder: 0,
+      toPrimaryGroupId,
+      minPostCount: 100,
+    }
+  }
+
+  it('promotes a registered member into a group the operator made', () => {
+    const outcomes = evaluatePromotions(
+      [ruleInto(CUSTOM_GROUP)],
+      [candidate(SEED_GROUP.registered)],
+      defaultPromotionGuards(),
+    )
+
+    expect(outcomes.map((outcome) => outcome.toPrimaryGroupId)).toEqual([CUSTOM_GROUP])
+  })
+
+  it('still refuses a move down a rank it can see', () => {
+    const outcomes = evaluatePromotions(
+      [ruleInto(SEED_GROUP.guest)],
+      [candidate(SEED_GROUP.registered)],
+      defaultPromotionGuards(),
+    )
+
+    expect(outcomes).toEqual([])
+  })
+
+  it('still leaves a protected group alone', () => {
+    const outcomes = evaluatePromotions(
+      [ruleInto(CUSTOM_GROUP)],
+      [candidate(SEED_GROUP.administrators)],
+      defaultPromotionGuards(),
+    )
+
+    expect(outcomes).toEqual([])
   })
 })
