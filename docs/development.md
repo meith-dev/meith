@@ -632,8 +632,15 @@ coverage floor when runtime behavior is introduced.
 
 `pnpm test:e2e` starts everything it needs: a PGlite serving the Postgres
 wire protocol, a built server running the standalone output against it, and
-a second empty database and server for `/install`. There is nothing to
-install and nothing to leave running.
+a second database and server for `/install`. There is nothing to install
+and nothing to leave running.
+
+That second database carries the schema and no rows, which is the state a
+board is actually in when someone opens `/install`: migrations run before
+the board serves anything — from the container entrypoint, or from the
+deploy build command — and the installer checks the schema rather than
+applying it. A genuinely empty database would fail its first step, and
+correctly so.
 
 **Most specs run with JavaScript disabled** — 33 of the 48 spec files. That
 is the point rather than a flourish: this board's claim is that a native
