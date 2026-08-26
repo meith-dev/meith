@@ -290,6 +290,24 @@ colours emit `gname-<id>` styled from an inline `<style>`, none of which are
 Tailwind's to generate — a gate that failed on those would be failing correct
 boards.
 
+**All of it runs twice, once at each materialization depth.** The first board
+is built and booted the way a self-hoster gets it, at `.meith/app`; a second
+board is scaffolded, installed from the same packed tarballs and built with
+`--at-root`, the way Vercel deploys it. That second board exists because every
+board bug found so far — the unregistered theme catalog, the Tailwind scan
+roots resolving to nothing, the installer that could not finish — shipped
+through the depth-zero path while the depth-two smoke stayed green, and
+`rebaseGlobalsCssSources` genuinely computes a different path at each depth
+rather than the same one twice.
+
+Two things it does not prove, worth saying so nobody reads more into a green
+run than is there. The second board boots through the standalone server,
+because `output: 'standalone'` is skipped only when `VERCEL` is set and CI is
+not Vercel; Vercel packages its own functions instead. And it is a fresh
+board rather than the first one rebuilt, so nothing here says the two depths
+can coexist in one workspace — no board does that, and a smoke that failed on
+it would be failing something no user can reach.
+
 ### Building where Vercel looks
 
 `forum-web build --at-root` materializes into the workspace root itself

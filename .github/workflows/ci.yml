@@ -395,7 +395,9 @@ jobs:
   # package `@meith/web`'s own dependency closure newly requires (none of
   # them are on the real npm registry yet), scaffolds a board exactly as a
   # user would, installs it from the packed tarballs, and builds and boots
-  # the result. See docs/development.md, "Consuming the board from a
+  # the result — twice, once at each materialization depth, because Vercel
+  # deploys through `--at-root` and every board bug found so far shipped
+  # through that one. See docs/development.md, "Consuming the board from a
   # workspace", and scripts/board-workspace-smoke.mts for the mechanism and
   # why the boot check runs against Postgres rather than fixture mode.
   board-workspace:
@@ -424,7 +426,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Pack, scaffold, install, build and boot
+      - name: Pack, scaffold, install, build and boot at both depths
         run: pnpm board:workspace:smoke
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_workspace_smoke
