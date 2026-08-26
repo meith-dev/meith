@@ -43,7 +43,7 @@ if (process.env.NODE_ENV !== 'production' && loadedEnvFiles.length > 0) {
 }
 
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   poweredByHeader: false,
   distDir: process.env.FORUM_DIST_DIR ?? '.next',
 
