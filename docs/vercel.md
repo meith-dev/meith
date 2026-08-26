@@ -361,12 +361,11 @@ then come back for the four things specific to this route:
   contend for the same migration lock, and the function timeout bounds how
   long a migration is allowed to take. The step reads the table names out
   of the schema definitions, which are ordinary imported code, because the
-  migration `.sql` files are not in the function at all: nothing imports
-  them, so nothing traces them in, and `outputFileTracingIncludes` cannot
-  put them back while `next build` defaults to Turbopack, for which Next
-  skips trace collection entirely. If that step does report missing tables,
-  run `community migrate` against the same database and reload — do not
-  reach for `MIGRATIONS_DIR`, which cannot help when the files are absent.
+  migration `.sql` files are not in the function: nothing imports them, so
+  nothing traces them in, and nothing lists them in
+  `outputFileTracingIncludes` either. If that step does report missing
+  tables, run `community migrate` against the same database and reload —
+  `MIGRATIONS_DIR` cannot help when the files are absent.
 - **The installer takes the same session-level advisory lock migrations
   do**, so it needs `DIRECT_DATABASE_URL` for the same reason. Run against
   a pooler, it can report itself permanently in flight.
