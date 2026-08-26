@@ -6,6 +6,7 @@ export {
   type BlobFileStoreConfig,
   type BlobLike,
 } from './files/blob-file-store'
+export { unusableKeyReason } from './files/keys'
 export { LocalFileStore } from './files/local-file-store'
 export { S3FileStore, type S3FileStoreConfig, type S3Like } from './files/s3-file-store'
 export {

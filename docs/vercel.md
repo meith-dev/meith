@@ -788,6 +788,14 @@ uploads` means they are not, and restoring that bundle gives a board whose
 posts have broken images — which on `blob` is unrecoverable, because there
 is nowhere else the objects still exist.
 
+**And check the exit code.** An object whose key the board cannot use is
+skipped rather than allowed to stop the run, so `community backup` can
+exit **2**: the bundle was written, it names the objects it is missing in
+its manifest, and on `blob` those objects are gone once the project is.
+Read the list before you delete anything —
+[When a bundle is incomplete](./operating.md#when-a-bundle-is-incomplete)
+explains what to do about it.
+
 This runs from anywhere; it does not have to run on Vercel. Put the
 project's variables in front of it and it talks to Neon and to the Blob
 store over the network:

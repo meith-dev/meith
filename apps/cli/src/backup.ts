@@ -16,7 +16,7 @@ import path from 'node:path'
 
 import { ConfigurationError, env, type FileStore, ValidationError } from '@meith/core'
 import { migrationUrl, runMigrations } from '@meith/db'
-import { BlobFileStore, S3FileStore } from '@meith/drivers'
+import { BlobFileStore, S3FileStore, unusableKeyReason } from '@meith/drivers'
 
 import { optional, parseFlags } from './args'
 import { requirePostgres } from './context'
@@ -33,7 +33,10 @@ export interface BackupManifest {
   readonly filestore: FilestoreDriver
   readonly uploads: 'included' | 'skipped'
   readonly bucket?: string
+  readonly skippedKeys?: readonly string[]
 }
+
+const INCOMPLETE_BUNDLE_EXIT_CODE = 2
 
 export function resolveUploadsMode(driver: FilestoreDriver, flag: string | undefined): UploadsMode {
   if (flag === undefined) return driver === 's3' ? 'skip' : 'include'
@@ -77,6 +80,14 @@ export function parseManifest(raw: string): BackupManifest {
     throw new ValidationError('The bundle manifest does not name a known file driver.')
   }
 
+  const skippedKeys = manifest.skippedKeys
+  if (
+    skippedKeys !== undefined &&
+    (!Array.isArray(skippedKeys) || skippedKeys.some((key) => typeof key !== 'string'))
+  ) {
+    throw new ValidationError('The bundle manifest lists skipped objects in a form it cannot read.')
+  }
+
   return {
     format: 1,
     createdAt: manifest.createdAt,
@@ -84,6 +95,7 @@ export function parseManifest(raw: string): BackupManifest {
     filestore: manifest.filestore,
     uploads: manifest.uploads,
     ...(typeof manifest.bucket === 'string' ? { bucket: manifest.bucket } : {}),
+    ...(skippedKeys === undefined || skippedKeys.length === 0 ? {} : { skippedKeys }),
   }
 }
 
@@ -370,18 +382,35 @@ export async function reserveBackupDestination(destination: string): Promise<voi
   await file.close()
 }
 
-async function stageLocalUploads(stage: string): Promise<'included' | 'skipped'> {
+interface StagedUploads {
+  readonly uploads: 'included' | 'skipped'
+  readonly skippedKeys: readonly string[]
+}
+
+const SKIPPED_KEYS_LISTED = 10
+
+export function skippedKeyLines(keys: readonly string[]): readonly string[] {
+  const shown = keys.slice(0, SKIPPED_KEYS_LISTED)
+  return [
+    ...shown.map((key) => `  ${JSON.stringify(key)}`),
+    ...(keys.length > shown.length
+      ? [`  …and ${keys.length - shown.length} more, listed in the bundle's manifest.json.`]
+      : []),
+  ]
+}
+
+async function stageLocalUploads(stage: string): Promise<StagedUploads> {
   const exists = await stat(env.UPLOADS_DIR).then(
     (info) => info.isDirectory(),
     () => false,
   )
   if (!exists) {
     console.log(`No uploads directory at ${env.UPLOADS_DIR}; the bundle carries none.`)
-    return 'skipped'
+    return { uploads: 'skipped', skippedKeys: [] }
   }
 
   await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', env.UPLOADS_DIR, '.'])
-  return 'included'
+  return { uploads: 'included', skippedKeys: [] }
 }
 
 export interface ListableStore {
@@ -389,13 +418,29 @@ export interface ListableStore {
   get(key: string): Promise<Uint8Array | undefined>
 }
 
-export async function drainStoreToDirectory(store: ListableStore, dir: string): Promise<number> {
+export interface DrainedStore {
+  readonly pulled: number
+  readonly skipped: readonly string[]
+}
+
+export async function drainStoreToDirectory(
+  store: ListableStore,
+  dir: string,
+): Promise<DrainedStore> {
   let pulled = 0
+  const skipped: string[] = []
 
   for await (const key of store.listKeys()) {
     const target = path.resolve(dir, key)
     if (target !== dir && !target.startsWith(dir + path.sep)) {
-      console.warn(`Skipping object with an unsafe key: ${key}`)
+      console.warn(`Skipping the object at ${JSON.stringify(key)}: its key escapes ${dir}.`)
+      skipped.push(key)
+      continue
+    }
+    const unusable = unusableKeyReason(key)
+    if (unusable !== undefined) {
+      console.warn(`Skipping the object at ${JSON.stringify(key)}: its key ${unusable}.`)
+      skipped.push(key)
       continue
     }
     const body = await store.get(key)
@@ -405,7 +450,7 @@ export async function drainStoreToDirectory(store: ListableStore, dir: string): 
     pulled++
   }
 
-  return pulled
+  return { pulled, skipped }
 }
 
 export async function uploadDirectoryToStore(
@@ -430,26 +475,26 @@ async function stageObjectStoreUploads(
   stage: string,
   store: ListableStore,
   origin: string,
-): Promise<'included' | 'skipped'> {
+): Promise<StagedUploads> {
   const dir = path.join(stage, 'uploads')
   await mkdir(dir, { recursive: true })
 
-  const pulled = await drainStoreToDirectory(store, dir)
+  const { pulled, skipped } = await drainStoreToDirectory(store, dir)
 
   if (pulled === 0) {
     console.log(`Found no objects in ${origin}; the bundle carries no uploads.`)
     await rm(dir, { recursive: true, force: true })
-    return 'skipped'
+    return { uploads: 'skipped', skippedKeys: skipped }
   }
 
   await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', dir, '.'])
   await rm(dir, { recursive: true, force: true })
   console.log(`Pulled ${pulled} object(s) from ${origin}.`)
-  return 'included'
+  return { uploads: 'included', skippedKeys: skipped }
 }
 
-async function stageUploads(stage: string, mode: UploadsMode): Promise<'included' | 'skipped'> {
-  if (mode === 'skip') return 'skipped'
+async function stageUploads(stage: string, mode: UploadsMode): Promise<StagedUploads> {
+  if (mode === 'skip') return { uploads: 'skipped', skippedKeys: [] }
 
   switch (env.FILESTORE_DRIVER) {
     case 's3':
@@ -490,7 +535,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
       databaseEnvironment,
     )
 
-    const uploads = await stageUploads(stage, mode)
+    const { uploads, skippedKeys } = await stageUploads(stage, mode)
 
     const manifest: BackupManifest = {
       format: 1,
@@ -499,6 +544,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
       filestore: env.FILESTORE_DRIVER,
       uploads,
       ...(env.S3_BUCKET === undefined ? {} : { bucket: env.S3_BUCKET }),
+      ...(skippedKeys.length === 0 ? {} : { skippedKeys }),
     }
     await writeFile(path.join(stage, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 
@@ -529,7 +575,19 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
         'thing most likely to fail.',
     )
     destinationCreated = false
-    return 0
+    if (skippedKeys.length === 0) return 0
+
+    console.warn(
+      `\nThis bundle is missing ${skippedKeys.length} object(s) whose keys nothing can read:`,
+    )
+    for (const line of skippedKeyLines(skippedKeys)) console.warn(line)
+    console.warn(
+      'The bundle itself is sound and restores normally — posts referring to those ' +
+        'objects will have broken images. The manifest carries the list, so the ' +
+        `restore says so too. Exiting ${INCOMPLETE_BUNDLE_EXIT_CODE} rather than 0 so a ` +
+        'scheduled backup does not record this run as a clean one.',
+    )
+    return INCOMPLETE_BUNDLE_EXIT_CODE
   } finally {
     if (destinationCreated) await rm(out, { force: true })
     await rm(stage, { recursive: true, force: true })
@@ -716,6 +774,18 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
               'something you can copy out by hand. Take another backup with ' +
               '--uploads include while the old board still exists.'
             : 'This bundle carries no uploads.',
+      )
+    }
+
+    if (manifest.skippedKeys !== undefined) {
+      console.warn(
+        `\nThe backup that made this bundle could not read ${manifest.skippedKeys.length} ` +
+          'object(s), so they are not here:',
+      )
+      for (const line of skippedKeyLines(manifest.skippedKeys)) console.warn(line)
+      console.warn(
+        'Posts referring to them have broken images. Those keys were unusable in the ' +
+          'source store, so another backup of the same board would skip them again.',
       )
     }
 

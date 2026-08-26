@@ -147,6 +147,24 @@ Follow the usage printed by the installed release. Include uploads when they use
 
 A useful policy records frequency, retention, off-server location, access ownership, and the last successful restore rehearsal. A backup is not proven until it restores into an empty target.
 
+### When a bundle is incomplete
+
+On `s3` and `blob` the uploads are pulled object by object out of the store, and an object whose key the board cannot use — one that would escape the staging directory, one holding a `.` or `..` segment, an empty segment, surrounding whitespace, or a control character — cannot be written into the bundle. Such a key is not something the board itself produces; it arrives when something else writes into the same bucket or store, or when a key is mangled in a migration between them.
+
+`community backup` **skips that object and finishes the run**. The alternative — stopping — was the old behaviour, and it meant one malformed key out of ten thousand produced no backup at all, on the day the operator most needed one. A bundle missing one attachment is worth having; a bundle that does not exist is not.
+
+Skipping quietly would be its own failure, so a run that skips anything reports it three times over, and each one is aimed at a different reader:
+
+| Where | Who reads it | Why it alone is not enough |
+|---|---|---|
+| A warning naming each key as it is skipped, and a summary before the command exits | Whoever is watching the run | Scrolls away, and nobody is watching a nightly job |
+| `skippedKeys` in the bundle's `manifest.json`, which `restore` prints back | Whoever restores, possibly a different person months later | Discovered at restore time — too late to fetch the object another way |
+| **Exit code 2**, after the bundle has been written | A scheduler, a CI job, a `&&` in a shell script | Says nothing about *which* objects, and is gone once the run is over |
+
+The exit codes are: **0** the bundle is complete; **2** the bundle was written and is missing objects it names; anything else the backup failed and there is no bundle. A job that treats non-zero as failure will therefore raise this run, which is the intent — but a `2` is not a reason to discard the bundle, because it is the most complete copy that can be made. Do not retry it expecting a different result either: the keys are unusable in the store, so the next run skips exactly the same objects.
+
+The repair is in the store, not in the backup. Rename or remove the offending objects — the manifest names them — and the next run carries them.
+
 ## Restore
 
 Restore only into a new, empty database. Stop traffic and review the installed command first:
@@ -156,6 +174,8 @@ docker compose run --rm web community restore --help
 ```
 
 After restore, apply migrations for the selected release, start web and worker, and verify sign-in, recent threads, uploads, mail, and scheduled tasks before changing DNS. See [Disaster recovery](./disaster-recovery.md) for the complete runbook.
+
+A bundle whose manifest records skipped objects — see [When a bundle is incomplete](#when-a-bundle-is-incomplete) — restores normally, and the restore names those objects as it finishes. Posts referring to them have broken images, and no other copy of them exists; the restore still exits 0, because the restore did everything it was given.
 
 ## Upgrade
 
