@@ -221,6 +221,7 @@ export { PostgresReportRepository } from './report-repo'
 export { PostgresReputationRepository } from './reputation-repo'
 export { resultRows } from './result-rows'
 export * from './schema'
+export { expectedTables, missingTables } from './schema-state'
 export {
   indexedSubjectSql,
   PostgresSearchRepository,
