@@ -359,7 +359,7 @@ const VERCEL_DERIVED_DRIVERS = [
 
 export const VERCEL_PROMPTED_ENV = ['AUTH_SECRET', 'CRON_SECRET'] as const
 
-export const VERCEL_MARKETPLACE_STORES = [
+export const VERCEL_MARKETPLACE_PRODUCTS = [
   { type: 'integration', integrationSlug: 'neon', productSlug: 'neon', protocol: 'storage' },
   {
     type: 'integration',
@@ -368,6 +368,12 @@ export const VERCEL_MARKETPLACE_STORES = [
     protocol: 'storage',
   },
   { type: 'blob' },
+  {
+    type: 'integration',
+    integrationSlug: 'resend',
+    productSlug: 'resend-email',
+    protocol: 'messaging',
+  },
 ] as const
 
 export function deployButtonUrl(templateRepositoryUrl: string): string {
@@ -378,10 +384,10 @@ export function deployButtonUrl(templateRepositoryUrl: string): string {
     ['env', VERCEL_PROMPTED_ENV.join(',')],
     [
       'envDescription',
-      'Two secrets, generated rather than chosen — 32 characters or more each. Everything else the board reads from the database, cache and blob store this form links.',
+      'Two secrets, generated rather than chosen — 32 characters or more each. Everything else the board reads from the database, cache, blob store and mail provider this form links.',
     ],
     ['envLink', `${templateRepositoryUrl}/blob/main/.env.example`],
-    ['stores', JSON.stringify(VERCEL_MARKETPLACE_STORES)],
+    ['products', JSON.stringify(VERCEL_MARKETPLACE_PRODUCTS)],
     ['skippable-integrations', '1'],
   ])
 
@@ -1068,18 +1074,19 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
   Vercel's SDK, which authenticates with the deployment's own OIDC identity, so
   there is no token to copy. This is what used to be four hand-typed \`S3_*\`
   secrets.
+- **A Resend mail account**, attached the same way, which publishes
+  \`RESEND_API_KEY\`. The board reads that name directly: its mail driver already
+  speaks Resend's request shape, so there is nothing to adapt.
 - **A Vercel project** carrying \`vercel.json\` — the build command
   \`${VERCEL_BUILD_COMMAND}\`,
   which applies the schema before it builds, materializes the board's app at
   the project root so the artefact lands where Vercel reads it, and the cron
   entry that drives the tick.
 
-**Mail is the one thing the button does not set up**, and it takes one click
-after the deploy — see *Mail, in one click* below. That is also where the
-address the board sends from goes: it has to be at a domain your provider has
-verified, which cannot be true of any domain before a provider exists. The
-board boots and runs without mail, and delivers nothing, silently, until it is
-done.
+**Mail needs one thing after the deploy**: the address the board sends from.
+It has to be at a domain Resend has verified, and no form can ask for that
+before the account exists — see *Mail, after the deploy* below. The board boots
+and runs without it, and delivers nothing, silently, until it is done.
 
 ## What to type into the deploy form
 
@@ -1130,26 +1137,22 @@ Vercel* below for why that matters — set \`FILESTORE_DRIVER=s3\` and add
 project's environment settings, with \`S3_ENDPOINT\` for a bucket that is not AWS
 (\`S3_REGION=auto\` for R2). The same board runs either way.
 
-## Mail, in one click
+## Mail, after the deploy
 
 A board that cannot send mail cannot reset a password, so do this before you
-invite anybody.
+invite anybody. The deploy form already added Resend and published its key; two
+steps remain, and neither could have been answered on the form.
 
-1. Open your project on Vercel, go to **Storage → Marketplace** (or
-   **Integrations**), and add **Resend**. It creates a Resend account linked to
-   the project and connects your sending domain.
-2. Verify that domain in the Resend dashboard if you have not already. Resend
-   refuses to send from an address at a domain it has not verified.
-3. Add \`MAIL_FROM\` to the project's environment settings — an address at that
-   verified domain, and the only mail value you ever type. The deploy form does
-   not ask for it, because a sender address is not something you can know
-   before there is a provider to verify it.
-4. Redeploy, or let the next push redeploy.
+1. Verify your sending domain in the Resend dashboard if you have not already.
+   Resend refuses to send from an address at a domain it has not verified.
+2. Add \`MAIL_FROM\` to the project's environment settings — an address at that
+   verified domain, and the only mail value you ever type.
+3. Redeploy, or let the next push redeploy.
 
-That is all. The integration publishes its key into the project as
-\`RESEND_API_KEY\`, and the board reads that name: with it set, and \`MAIL_FROM\`
-beside it, mail sends over Resend's HTTPS API with nothing further to
-configure.
+That is all. The integration published its key into the project as
+\`RESEND_API_KEY\` when you deployed, and the board reads that name: with it set,
+and \`MAIL_FROM\` beside it, mail sends over Resend's HTTPS API with nothing
+further to configure.
 
 The board is not tied to Resend. Its mail driver is a plain JSON-over-HTTPS
 sender that posts \`{from, to, subject, text, html, reply_to}\` with a bearer

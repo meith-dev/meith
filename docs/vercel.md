@@ -136,7 +136,7 @@ And the values those drivers need:
 | `S3_ENDPOINT` | The API endpoint for a non-AWS bucket (R2, Spaces, MinIO). Omit for AWS S3. |
 | `S3_PUBLIC_BASE_URL` | Where objects are *served* from, which is not always where the API lives — R2 serves from an `r2.dev` address or a custom domain, not from `S3_ENDPOINT`. Set it to that, or to a CDN in front of the bucket, or public URLs point somewhere a browser cannot fetch. |
 | `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default, and nothing derives it. Set it when you add the mail provider, not before — until then there is no verified domain for it to be at. |
-| `RESEND_API_KEY` | Set by Resend's Vercel integration when you add it. The board reads this name and needs neither of the next two. |
+| `RESEND_API_KEY` | Set by Resend's Vercel integration, which the Deploy Button adds. The board reads this name and needs neither of the next two. |
 | `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. **Set them as a pair**, with `MAIL_DRIVER=http`: setting either one on its own stands the Resend bridge down entirely, so that a key issued for Resend is never presented to an endpoint someone else chose. Only `RESEND_API_KEY` turns the driver on by itself. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
@@ -367,8 +367,8 @@ fits inside a function's timeout. Prefer it.
 
 The body it posts is `{from, to, subject, text, html, reply_to}`, which is
 **Resend's `POST /emails` contract exactly**. So Resend needs no adapter
-and no configuration: add Resend to the project from Vercel's marketplace,
-and the integration sets `RESEND_API_KEY`. The board reads that name, fills
+and no configuration: the Deploy Button adds Resend alongside the database,
+cache and blob store, and the integration sets `RESEND_API_KEY`. The board reads that name, fills
 in Resend's endpoint for you, and sends — the only thing left to set is
 `MAIL_FROM`, at a domain you have verified in Resend, which nothing can
 guess on your behalf. It belongs to this step rather than to the deploy:
