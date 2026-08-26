@@ -62,8 +62,8 @@ export function evaluatePromotions(
   now: Date = new Date(),
 ): PromotionOutcome[] {
   const protectedIds = new Set(guards.protectedGroupIds)
-  const rankOf = (groupId: number | null): number =>
-    groupId === null ? 0 : (guards.rank?.get(groupId) ?? 0)
+  const rankOf = (groupId: number | null): number | undefined =>
+    groupId === null ? undefined : guards.rank?.get(groupId)
 
   const active = [...rules]
     .filter((r) => r.enabled)
@@ -79,7 +79,9 @@ export function evaluatePromotions(
 
       if (user.primaryGroupId === rule.toPrimaryGroupId) break
 
-      if (rankOf(rule.toPrimaryGroupId) < rankOf(user.primaryGroupId)) break
+      const to = rankOf(rule.toPrimaryGroupId)
+      const from = rankOf(user.primaryGroupId)
+      if (to !== undefined && from !== undefined && to < from) break
 
       outcomes.push({
         userId: user.userId,

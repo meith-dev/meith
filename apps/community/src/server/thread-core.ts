@@ -126,7 +126,12 @@ export async function submitThread(
       message: draft.body,
       prefixId: draft.prefixId,
       subscribe: input.subscribe ?? false,
-      heldAsNewMember: await holdsNewMember({ actor, postCount: profile.postCount, settings }),
+      heldAsNewMember: await holdsNewMember({
+        actor,
+        postCount: profile.postCount,
+        target: scope,
+        settings,
+      }),
       requiresApproval: scope.forum.requiresThreadApproval === true,
       ...(input.poll === undefined
         ? {}
