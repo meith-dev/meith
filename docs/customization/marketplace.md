@@ -408,15 +408,15 @@ the feed itself.
 
 ## What is seeded today
 
-Six first-party listings: **Dues** and the five themes described in
-[Development](../contributing/development.md#the-workspace) — default, midnight,
-phasebook, raidframe and clubhouse. Their `version` and `licence` fields
+Seven first-party listings: **Dues**, **Calendar** and the five themes
+described in [Development](../contributing/development.md#the-workspace) — default,
+midnight, phasebook, raidframe and clubhouse. Their `version` and `licence` fields
 are read from each package's own `package.json`, and `pnpm release:check`
 enforces the `version` field directly: for every listing whose `package`
 names a workspace package, the listing's `version` must equal that
 package's manifest version, the same lockstep [the release
 process](../contributing/release.md#one-version-everywhere) holds every other published
-package to. `pnpm release:bump` moves the six listings and runs `pnpm
+package to. `pnpm release:bump` moves the listings and runs `pnpm
 marketplace:gen` in the same pass, so a release always lands with a feed
 that already matches them. A third-party listing's `package` does not
 resolve to a workspace package, so the check leaves it alone — it tracks

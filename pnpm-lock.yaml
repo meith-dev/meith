@@ -1026,6 +1026,19 @@ importers:
 
   packages/upgrade: {}
 
+  plugins/calendar:
+    dependencies:
+      '@meith/plugin-kit':
+        specifier: workspace:^
+        version: link:../../packages/plugin-kit
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+
   plugins/dues:
     dependencies:
       '@meith/plugin-kit':
