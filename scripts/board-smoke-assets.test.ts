@@ -102,6 +102,30 @@ describe('the classes a served stylesheet has no rule for', () => {
     expect(classesInMarkup('<i class="group peer group/row dark">x</i>')).toEqual([])
   })
 
+  /**
+   * The shapes that turned a correct board red: a class attribute is HTML, so
+   * `[&_svg]:shrink-0` arrives as `[&amp;_svg]:shrink-0` and each quote in
+   * `[class*='size-']` as `&#x27;`. Read raw, they name a selector that cannot
+   * exist in any stylesheet.
+   */
+  it('decodes the entities an arbitrary variant is written with', () => {
+    expect(classesInMarkup('<i class="[&amp;_svg]:shrink-0">x</i>')).toEqual(['[&_svg]:shrink-0'])
+  })
+
+  it('decodes numeric character references too', () => {
+    expect(
+      classesInMarkup(`<i class="[&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4">x</i>`),
+    ).toEqual(["[&_svg:not([class*='size-'])]:size-4"])
+  })
+
+  it('finds the rule Tailwind emits for a decoded arbitrary variant', () => {
+    const html = '<i class="[&amp;:not(:first-child)]:border-l">x</i>'
+    const css =
+      '.\\[\\&\\:not\\(\\:first-child\\)\\]\\:border-l:not(:first-child){border-left-width:1px}'
+
+    expect(unstyledClasses(html, css)).toEqual([])
+  })
+
   it('reads every class attribute on the page, not just the first', () => {
     expect(classesInMarkup('<a class="one">x</a><b class="two three">y</b>')).toEqual([
       'one',

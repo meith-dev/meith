@@ -82,11 +82,37 @@ function isMarker(className: string): boolean {
   return head !== undefined && MARKER_CLASSES.has(head)
 }
 
+const NAMED_ENTITIES: Readonly<Record<string, string>> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: '\u00a0',
+}
+
+/**
+ * A class attribute is HTML, so Tailwind's arbitrary variants reach it
+ * encoded: `[&_svg]:shrink-0` is written `[&amp;_svg]:shrink-0`, and
+ * `[class*='size-']` carries `&#x27;` for each quote. Comparing those bytes
+ * against a stylesheet looks for a selector that could never exist, which
+ * reports a correctly built board as unstyled.
+ */
+function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (entity, body: string) => {
+    if (body.startsWith('#x') || body.startsWith('#X')) {
+      return String.fromCodePoint(Number.parseInt(body.slice(2), 16))
+    }
+    if (body.startsWith('#')) return String.fromCodePoint(Number.parseInt(body.slice(1), 10))
+    return NAMED_ENTITIES[body.toLowerCase()] ?? entity
+  })
+}
+
 export function classesInMarkup(html: string): string[] {
   const found = new Set<string>()
 
   for (const match of html.matchAll(CLASS_ATTRIBUTE)) {
-    for (const className of (match[1] ?? '').split(/\s+/)) {
+    for (const className of decodeEntities(match[1] ?? '').split(/\s+/)) {
       if (className !== '' && !isMarker(className)) found.add(className)
     }
   }
