@@ -434,6 +434,24 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/board_workspace_smoke
 
+  extension-workspace:
+    name: Scaffolded extensions build against packed kits and load into a board
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Pack the kits, scaffold a plugin and a theme, prove them, install them into a board
+        run: pnpm extension:workspace:smoke
+
   # MEI-77: the scaffold's own deploy kit — Dockerfile, compose.yml,
   # .github/workflows/build.yml — proves it actually builds and boots, not
   # just that its strings look right (scaffold.test.ts covers that half).

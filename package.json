@@ -59,6 +59,7 @@
     "extension:gen": "tsx scripts/extension-scaffold-gen.mts",
     "extension:gen:check": "tsx scripts/extension-scaffold-gen.mts --check",
     "board:workspace:smoke": "tsx scripts/board-workspace-smoke.mts",
+    "extension:workspace:smoke": "tsx scripts/extension-workspace-smoke.mts",
     "published:board:smoke": "tsx scripts/published-board-smoke.mts",
     "board:deploy-kit:smoke": "tsx scripts/board-deploy-kit-smoke.mts",
     "board:eject:smoke": "tsx scripts/board-eject-smoke.mts",

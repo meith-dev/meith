@@ -42,6 +42,13 @@ export { greeter as plugin } from './definition'
 export { greeterMessages as messages } from './messages'
 ```
 
+A plugin ships TypeScript source, the way every `@meith/*` package does:
+the board build compiles every dependency named in the board's own
+`package.json` from source (they join Next's `transpilePackages`), so
+there is no build step to ship and no compiled artifact to keep in sync.
+`scripts/extension-workspace-smoke.mts` proves this path end to end
+against a scaffolded plugin.
+
 Installing one in this checkout is then `pnpm add`, `community
 plugin:add <package>`, and a rebuild and redeploy. This repository carries
 two boards — `apps/community`, the in-repo dev target, and `boards/stock`,

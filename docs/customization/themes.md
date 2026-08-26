@@ -28,7 +28,10 @@ export const acmeTheme = defineTheme({
 ```
 
 Register it in `community.config.ts`, and set `defaultTheme` to its key if it
-should be the board's default.
+should be the board's default. A theme ships TypeScript source like every
+`@meith/*` package: a board build compiles every dependency in the board's
+own `package.json` from source, so an installed theme needs no build step of
+its own.
 
 Three shipped themes are worth reading before you write one:
 
