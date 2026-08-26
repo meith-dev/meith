@@ -4,6 +4,7 @@ import { SiteFooter } from '../src/components/site-footer'
 import { SiteHeader } from '../src/components/site-header'
 import { chromeColour } from '../src/content/chrome'
 import { site } from '../src/content/site'
+import { ogImage } from '../src/og/card'
 import { THEME_STORAGE_KEY } from '../src/theme-storage'
 
 import '../src/styles/globals.css'
@@ -11,7 +12,7 @@ import '../src/styles/globals.css'
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} — a forum for your community, on a server of your own`,
+    default: `${site.name} — the fast, code-first forum engine`,
     template: `%s — ${site.name}`,
   },
   description: site.description,
@@ -22,10 +23,22 @@ export const metadata: Metadata = {
     title: site.name,
     description: site.tagline,
     url: site.url,
+    images: ogImage('/og', `${site.name} — ${site.tagline}`),
   },
-  twitter: { card: 'summary_large_image', title: site.name, description: site.tagline },
+  /*
+   * Only the card type: with no twitter:title/description/image of its own,
+   * every crawler falls back to the OpenGraph tags, which each page already
+   * gets right — including the per-document and per-segment cards.
+   */
+  twitter: { card: 'summary_large_image' },
   alternates: { canonical: '/' },
-  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon', sizes: '180x180', type: 'image/png' }],
+  },
 }
 
 export const viewport: Viewport = {

@@ -8,6 +8,7 @@ import { TableOfContents } from '../../../src/components/table-of-contents'
 import { site } from '../../../src/content/site'
 import { loadDocument } from '../../../src/docs/load'
 import { docHref, documents, findSection, neighbours } from '../../../src/docs/registry'
+import { ogImage } from '../../../src/og/card'
 
 export const dynamicParams = false
 
@@ -33,6 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: document.entry.title,
       description: document.entry.blurb,
       url: `/docs/${document.entry.slug}`,
+      images: ogImage(`/docs/og/${document.entry.slug}`, document.entry.title),
     },
   }
 }

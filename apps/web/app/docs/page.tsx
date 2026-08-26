@@ -3,12 +3,22 @@ import Link from 'next/link'
 
 import { site } from '../../src/content/site'
 import { docHref, documentsInSection, internalDocuments, sections } from '../../src/docs/registry'
+import { ogImage } from '../../src/og/card'
 
 export const metadata: Metadata = {
   title: 'Documentation',
   description:
     'Get a board running, configure it in code, operate it, build themes and plugins, and read the generated references.',
   alternates: { canonical: '/docs' },
+  openGraph: {
+    type: 'website',
+    siteName: site.name,
+    title: `${site.name} documentation`,
+    description:
+      'Get a board running, configure it in code, operate it, build themes and plugins, and read the generated references.',
+    url: '/docs',
+    images: ogImage('/docs/og/index', `${site.name} documentation`),
+  },
 }
 
 export default function DocsIndexPage() {

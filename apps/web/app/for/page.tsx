@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { SegmentCards } from '../../src/components/segment-cards'
 import { chooser, site } from '../../src/content/site'
 import { quickstartHref } from '../../src/docs/registry'
+import { ogImage } from '../../src/og/card'
 
 /*
  * The hub the header points at, and the parent of every segment page. It is
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     title: `Who ${site.name} is for`,
     description: site.tagline,
     url: `${site.url}/for`,
+    images: ogImage('/for/og/index', `Who ${site.name} is for`),
   },
 }
 
