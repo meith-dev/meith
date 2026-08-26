@@ -625,7 +625,15 @@ describe('the Vercel target', () => {
     const config = JSON.parse(files.get('vercel.json')!)
 
     expect(config.buildCommand).toBe('community migrate && forum-web build --at-root')
-    expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '* * * * *' }])
+    expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '0 3 * * *' }])
+  })
+
+  it('schedules the tick no more than daily, which is all a Hobby plan deploys', () => {
+    const config = JSON.parse(files.get('vercel.json')!)
+    const [minute, hour] = config.crons[0].schedule.split(' ')
+
+    expect(minute).not.toBe('*')
+    expect(hour).not.toBe('*')
   })
 
   it('applies the schema before it builds, in one command', () => {

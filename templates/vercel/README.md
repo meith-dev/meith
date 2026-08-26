@@ -129,21 +129,29 @@ walks through.
 
 ## The tick
 
-`vercel.json` asks Vercel to call `/api/system/tick` on `* * * * *`. That
+`vercel.json` asks Vercel to call `/api/system/tick` on `0 3 * * *`. That
 route is how bans expire, digests send, mail leaves the outbox and the queue
 drains; nothing here runs it on its own, because there is no worker process on
 a function platform. Two things about it are worth knowing **before** you
 deploy rather than after:
 
-- **A per-minute schedule needs a paid plan.** Hobby allows a couple of cron
-  jobs and runs each of them roughly once a day, at an hour Vercel chooses;
-  only paid plans accept an arbitrary cron expression. A board ticking daily
-  still loses nothing — tasks are written so a missed run delays work rather
-  than dropping it — but "as it happens" notifications become a daily digest in
-  all but name. To keep a minute-by-minute tick on Hobby, drive
-  `/api/system/tick` from something else that can call a URL on a schedule — a
-  GitHub Actions workflow, a systemd timer, an uptime pinger — presenting
-  `TICK_SECRET` instead.
+- **This ships a daily schedule, because Hobby refuses anything faster.** A
+  Hobby plan rejects a cron expression that would run more than once a day —
+  the deployment fails outright rather than being slowed down — so
+  `vercel.json` carries `0 3 * * *` and deploys anywhere. On a
+  paid plan, edit it to `* * * * *` and the board ticks every minute.
+
+  A daily tick loses nothing permanently: tasks are written so a missed run
+  delays work rather than dropping it, and a password reset is sent as the
+  request is handled rather than waiting for a tick. What it does delay is
+  everything the tick drives — a new post is not findable in search, and a
+  notification is not sent, until the next run.
+
+  **To keep a fast tick without paying**, drive `/api/system/tick` from anything
+  that can call a URL on a schedule — a GitHub Actions workflow, a systemd
+  timer, an uptime pinger — presenting `TICK_SECRET` instead of
+  `CRON_SECRET`. The endpoint accepts either, so the Vercel cron and an
+  outside scheduler can both drive it.
 - **`maxDuration = 300` is validated when the project builds, not when the
   function runs.** A plan that does not allow 300 seconds therefore **fails the
   deployment** rather than clamping the request. With Fluid Compute — the

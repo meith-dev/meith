@@ -79,7 +79,7 @@ describe('the committed template tree', () => {
   it('carries a vercel.json that parses, with the cron entry and the build command', async () => {
     const config = JSON.parse(await readFile(join(ROOT, OUTPUT_DIR, 'vercel.json'), 'utf8'))
 
-    expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '* * * * *' }])
+    expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '0 3 * * *' }])
     expect(config.buildCommand).toBe('community migrate && forum-web build --at-root')
   })
 })

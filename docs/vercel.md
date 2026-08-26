@@ -55,7 +55,7 @@ Usage-based, and spread across four bills rather than one:
 
 | Service | What it is | Notes |
 |---|---|---|
-| Vercel | Serving the board, and the cron scheduler | The per-minute tick needs a paid plan — see [the tick](#3-the-tick-replaces-the-worker) |
+| Vercel | Serving the board, and the cron scheduler | A tick faster than daily needs a paid plan — see [the tick](#3-the-tick-replaces-the-worker) |
 | Managed PostgreSQL | Everything durable: posts, members, sessions, the queue | Needs both a pooled and a direct connection string |
 | Managed Redis | The shared cache, and nothing else | Losing it costs a warm cache, not data |
 | Object storage | Avatars and attachments | A Vercel Blob store, which is on the Vercel bill and provisions itself, or any S3-compatible bucket: R2, S3, Spaces, MinIO |
@@ -419,7 +419,7 @@ Declare the schedule in `vercel.json` at the root of the project:
 
 ```json
 {
-  "crons": [{ "path": "/api/system/tick", "schedule": "* * * * *" }]
+  "crons": [{ "path": "/api/system/tick", "schedule": "0 3 * * *" }]
 }
 ```
 
@@ -439,10 +439,14 @@ Vercel will send. Setting both is fine.
 
 ### The cadence caveat, stated plainly
 
-**Per-minute cron is a paid-plan feature.** Vercel documents that its Hobby
-plan allows a couple of cron jobs and runs each of them roughly once a day,
-at an hour Vercel picks; only paid plans accept an arbitrary cron
-expression. A board driven by Hobby cron therefore ticks daily.
+**A Hobby plan refuses a schedule faster than daily, and refuses it at
+deploy time.** It does not accept the expression and run it less often: the
+deployment fails, with the cron expression named in the error. Only a paid
+plan accepts an arbitrary one.
+
+That is why the template ships `0 3 * * *` — a daily tick deploys on every
+plan. On a paid plan, change it to `* * * * *` and the board ticks every
+minute.
 
 Nothing is lost at a sparse cadence. Every task carries its own interval
 and is skipped when it is not due, and tasks are written so that a missed
@@ -457,8 +461,12 @@ member actually notices:
 | `subscriptions.instant` | Tells "as it happens" subscribers about new posts |
 
 At a daily tick, "notify me as it happens" becomes a daily digest in all
-but name, and queued mail waits for the same tick. Say that out loud before
-promising a community instant notifications on a Hobby plan.
+but name, a new post is not findable in search until the next run, and
+queued mail waits for the same tick. Say that out loud before promising a
+community instant notifications on a Hobby plan.
+
+A password reset is **not** among them: that mail is sent while the request
+is handled, so nobody is locked out of an account by a sparse tick.
 
 A board that wants a minute-by-minute tick without paying Vercel for it
 drives the endpoint from anything else that can call a URL on a schedule —

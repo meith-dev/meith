@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/system/tick",
-      "schedule": "* * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
