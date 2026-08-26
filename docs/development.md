@@ -152,7 +152,13 @@ the app on every invocation:
 
 **`forum-web build` stages `.next/static` and `public/` into the standalone
 tree**, right after `next build` finishes. `next.config.mjs` sets
-`output: 'standalone'`, and Next's own standalone output deliberately
+`output: 'standalone'` everywhere the board has to serve itself — which is
+everywhere except Vercel, where Vercel packages the build into its own
+functions and never runs `forum-web start`. Asking for standalone there
+breaks the build outright: standalone makes Vercel's builder read
+`.next/next-server.js.nft.json`, and Next skips the tracing that writes it
+whenever the bundler is Turbopack, which is the default for `next build` in
+Next 16. Next's own standalone output deliberately
 excludes both directories — they have to be copied in alongside the traced
 `server.js` for it to serve `/_next/static/*` and anything under `public/`
 (Next's bundled docs, under `node_modules/next/dist/docs`, say so under
