@@ -1,6 +1,11 @@
 import { definePlugin } from '@meith/plugin-kit'
 
-import { handleAddOrganiser, handleCreateEvent, handleRemoveOrganiser } from './handlers'
+import {
+  handleAddOrganiser,
+  handleCreateEvent,
+  handleEventIcs,
+  handleRemoveOrganiser,
+} from './handlers'
 import en from './messages/en.json'
 import { CALENDAR_MIGRATIONS } from './schema'
 import { OrganisersPage } from './ui/admin'
@@ -68,6 +73,12 @@ export const calendarPlugin = definePlugin({
       access: 'member',
       rateLimit: ADD_RATE_LIMIT,
       handler: handleCreateEvent,
+    },
+    {
+      path: 'events/ics',
+      method: 'GET',
+      access: 'anonymous',
+      handler: handleEventIcs,
     },
     {
       path: 'organisers/add',

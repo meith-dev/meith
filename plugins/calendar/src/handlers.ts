@@ -2,7 +2,8 @@ import type { PluginRequest, PluginResponse, PluginRuntimeContext } from '@meith
 
 import { mayAdd, resolveCalendarConfig } from './access'
 import { readDraft } from './events'
-import { addOrganiser, createEvent, organiserIds, removeOrganiser } from './store'
+import { ICS_CONTENT_TYPE, toIcs } from './ics'
+import { addOrganiser, createEvent, eventById, organiserIds, removeOrganiser } from './store'
 
 export const CALENDAR_PATH = '/plugins/calendar'
 
@@ -35,6 +36,23 @@ export async function handleCreateEvent(
 
   await createEvent(context.data, draft, request.viewer.userId)
   return seeCalendar()
+}
+
+export async function handleEventIcs(
+  request: PluginRequest,
+  context: PluginRuntimeContext,
+): Promise<PluginResponse> {
+  const id = request.query.id?.trim() ?? ''
+  if (!/^\d+$/.test(id)) return refused(400, 'id-required')
+
+  const event = await eventById(context.data, id)
+  if (event === null) return refused(404, 'no-such-event')
+
+  return {
+    kind: 'text',
+    body: toIcs(event, request.boardUrl, new Date()),
+    contentType: ICS_CONTENT_TYPE,
+  }
 }
 
 export async function handleAddOrganiser(

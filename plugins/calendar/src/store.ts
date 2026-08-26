@@ -53,6 +53,28 @@ export async function upcomingEvents(
   return rows.map(toEvent)
 }
 
+export async function pastEvents(
+  data: PluginData,
+  limit: number,
+): Promise<readonly CalendarEvent[]> {
+  const rows = await data.query<EventRow>(
+    `select ${COLUMNS} from plugin_calendar_event
+      where coalesce(ends_at, starts_at) < now()
+      order by starts_at desc
+      limit $1`,
+    [limit],
+  )
+  return rows.map(toEvent)
+}
+
+export async function eventById(data: PluginData, id: string): Promise<CalendarEvent | null> {
+  const row = await data.one<EventRow>(
+    `select ${COLUMNS} from plugin_calendar_event where id = $1`,
+    [id],
+  )
+  return row === null ? null : toEvent(row)
+}
+
 export async function eventForThread(
   data: PluginData,
   threadId: number,

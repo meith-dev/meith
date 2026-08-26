@@ -5,14 +5,20 @@ discuss them.
 
 ## What it adds
 
-- **A calendar page** at `/plugins/calendar`, and a navigation item, listing
-  what is coming up. Readable by anyone who can read the board.
+- **A calendar page** at `/plugins/calendar`, and a navigation item: an
+  agenda grouped by month, each event with its date block, when it is, how
+  soon ("in 4 days", "next week"), and where. Readable by anyone who can
+  read the board, with a **Past** view for what has already happened.
 - **Events linked to threads.** An event can name a thread — paste the link
   or the id — and the calendar links to the discussion.
 - **The event, shown in its thread.** A card above the first post says what
   is scheduled and when, so somebody who arrives at the discussion sees the
   event without going looking for it.
 - **An organiser roster**, under Admin → Plugins → Calendar.
+- **Add to your calendar** on every event — a `.ics` file the reader's own
+  calendar app understands. An event with no end is given an hour, and the
+  thread link travels with it as the event URL when the board knows its own
+  address.
 
 ## Who may add an event
 

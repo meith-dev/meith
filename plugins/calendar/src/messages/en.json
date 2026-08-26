@@ -9,6 +9,7 @@
   "calendar.error.notAnOrganiser": "Only an organiser may add an event to this calendar.",
   "calendar.event.add": "Add event",
   "calendar.event.discuss": "Discussion",
+  "calendar.event.download": "Add to your calendar",
   "calendar.event.location": "Location",
   "calendar.event.starts": "Starts",
   "calendar.event.thread": "Thread link or id",
@@ -16,7 +17,10 @@
   "calendar.event.until": "Until",
   "calendar.nav.label": "Calendar",
   "calendar.page.empty": "Nothing is scheduled yet.",
+  "calendar.page.emptyPast": "Nothing has happened yet.",
+  "calendar.page.past": "Past",
   "calendar.page.title": "Calendar",
+  "calendar.page.upcoming": "Upcoming",
   "calendar.setting.anyMember.description": "When off, only the organisers named under Admin → Plugins → Calendar may add events.",
   "calendar.setting.anyMember.label": "Any member may add an event",
   "calendar.thread.card": "This thread discusses an event."
