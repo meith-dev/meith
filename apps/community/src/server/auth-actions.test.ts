@@ -229,6 +229,26 @@ describe('registerAction', () => {
     expect(state.values?.terms).toBeUndefined()
   })
 
+  it('records consent when the announcements box is ticked, and not otherwise', async () => {
+    const consent: Array<{ userId: number; optIn: boolean }> = []
+    ;(getContainer() as unknown as Record<string, unknown>).memberSettings = {
+      saveMassMailOptIn: async (input: { userId: number; optIn: boolean }) => {
+        consent.push(input)
+      },
+    }
+
+    await redirectOf(registerAction(EMPTY_STATE, form({ ...CREDS, announcements: '1' })))
+    expect(consent).toEqual([{ userId: expect.any(Number), optIn: true }])
+
+    await redirectOf(
+      registerAction(
+        EMPTY_STATE,
+        form({ ...CREDS, username: 'quiet', email: 'quiet@example.com' }),
+      ),
+    )
+    expect(consent).toHaveLength(1)
+  })
+
   it('spends no allowance on a form a person simply got wrong', async () => {
     await registerAction(EMPTY_STATE, form({ ...CREDS, terms: '' }))
 

@@ -72,10 +72,12 @@ class FakeSettings implements MemberSettingsRepository {
     website: null,
     bio: null,
     displayGroupId: null,
+    massMailOptInAt: null,
   }
   readonly profiles: Array<{ userId: number; location: string | null }> = []
   readonly options: Array<{ userId: number; timezone: string }> = []
   readonly displayGroups: Array<number | null> = []
+  readonly massMailOptIns: boolean[] = []
   held = [
     { groupId: 2, title: 'Registered', isPrimary: true, isStaff: false },
     { groupId: 5, title: 'Supporters', isPrimary: false, isStaff: false },
@@ -95,6 +97,9 @@ class FakeSettings implements MemberSettingsRepository {
   }
   async saveOptions(input: { userId: number; timezone: string }) {
     this.options.push(input)
+  }
+  async saveMassMailOptIn(input: { userId: number; optIn: boolean }) {
+    this.massMailOptIns.push(input.optIn)
   }
   async adoptEmail() {
     return true

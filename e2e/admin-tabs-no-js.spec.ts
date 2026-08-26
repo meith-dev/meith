@@ -462,6 +462,10 @@ test('pruning is a dry run until it is confirmed, and mass mail queues', async (
   ).toHaveCount(0)
 
   await page.goto('/admin/users/mail')
+  await expect(
+    page.getByRole('option', { name: /Every member who has asked for announcements \(0\)/ }),
+    'nobody is in the audience until they ask to be',
+  ).toBeAttached()
   await page.getByLabel('Subject').fill(`Board notice ${mint('')}`)
   await page.getByLabel('Message').fill('Queued by the browser suite.')
   await page.getByRole('button', { name: 'Queue this message' }).click()

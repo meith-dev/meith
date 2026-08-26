@@ -19,6 +19,10 @@ async function register(page: Page, username: string): Promise<void> {
   await page.getByLabel('Username').fill(username)
   await page.getByLabel('Email').fill(`${username}@example.test`)
   await page.getByLabel('Password').fill(PASSWORD)
+  await expect(
+    page.getByLabel(/E-mail me the board/),
+    'the announcements opt-in is offered at registration, and starts unticked',
+  ).not.toBeChecked()
   await page.getByLabel(/I have read and accept/).check()
   await page.getByRole('button', { name: 'Create account' }).click()
 }

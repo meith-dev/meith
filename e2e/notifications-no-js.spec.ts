@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { signUp } from './support/session'
+import { PASSWORD, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
@@ -62,4 +62,48 @@ test('e-mail preferences save, and survive a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Save preferences' }).click()
   await page.goto('/notifications/preferences')
   await expect(page.locator('input[name="email"]').first()).toBeChecked()
+})
+
+test('the board’s announcements stay off until the member asks, and stop when they say so', async ({
+  page,
+}) => {
+  await signUp(page, 'nsilent')
+
+  await page.goto('/notifications/preferences')
+  const box = page.locator('input[name="announcements"]')
+  await expect(box, 'signing up enrols nobody in the announcements').not.toBeChecked()
+
+  await box.check()
+  await page.getByRole('button', { name: 'Save announcements' }).click()
+  await page.goto('/notifications/preferences')
+  await expect(page.locator('input[name="announcements"]')).toBeChecked()
+
+  await page.locator('input[name="announcements"]').uncheck()
+  await page.getByRole('button', { name: 'Save announcements' }).click()
+  await page.goto('/notifications/preferences')
+  await expect(
+    page.locator('input[name="announcements"]'),
+    'consent can be withdrawn as easily as it was given',
+  ).not.toBeChecked()
+})
+
+test('the box on the registration form is what enrols a member', async ({ page }) => {
+  const username = `e2e_nasked_${Date.now().toString(36)}`
+
+  await page.goto('/register')
+  await page.getByLabel('Username').fill(username)
+  await page.getByLabel('Email').fill(`${username}@example.test`)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel(/E-mail me the board/).check()
+  await page.getByLabel(/I have read and accept/).check()
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page).toHaveURL(/\/login\?registered=1$/)
+
+  await page.getByLabel('Username or email').fill(username)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL('/')
+
+  await page.goto('/notifications/preferences')
+  await expect(page.locator('input[name="announcements"]')).toBeChecked()
 })

@@ -9,6 +9,7 @@ import {
   parseSubscriptionTarget,
   readUnsubscribeToken,
   SubscriptionService,
+  type UnsubscribeScope,
 } from '@meith/subscriptions'
 
 import type { FormState } from './auth-form-state'
@@ -127,12 +128,14 @@ export async function unsubscribeByTokenAction(
   if (claim === null) return { error: await tr('notice.app.unsubscribe-link-valid') }
 
   try {
-    const { subscriptions, notifications } = getContainer()
-    if (subscriptions === null || notifications === null) {
+    const { subscriptions, notifications, memberSettings } = getContainer()
+    if (subscriptions === null || notifications === null || memberSettings === null) {
       throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-17'))
     }
 
-    if (claim.scope === 'email') {
+    if (claim.scope === 'mass-mail') {
+      await memberSettings.saveMassMailOptIn({ userId: claim.userId, optIn: false })
+    } else if (claim.scope === 'email') {
       await notifications.savePreferences(
         claim.userId,
         'email',
@@ -152,7 +155,12 @@ export async function unsubscribeByTokenAction(
     return toFormState(err)
   }
 
-  redirect(`/unsubscribe?done=${claim.scope === 'email' ? 'email' : 'one'}`)
+  redirect(`/unsubscribe?done=${doneFor(claim.scope)}`)
+}
+
+function doneFor(scope: UnsubscribeScope): string {
+  if (scope === 'mass-mail') return 'announcements'
+  return scope === 'email' ? 'email' : 'one'
 }
 
 function safeReturn(value: string, fallback: string): string {

@@ -82,6 +82,7 @@ interface SeedUser {
   readonly createdAt?: Date
   readonly lastActiveAt?: Date | null
   readonly verified?: boolean
+  readonly optedIn?: boolean
 }
 
 async function seed(user: SeedUser): Promise<void> {
@@ -90,13 +91,14 @@ async function seed(user: SeedUser): Promise<void> {
     insert into users (id, username, username_lower, email, email_lower,
                        password_hash, password_algo, primary_group_id, state,
                        post_count, thread_count, created_at, last_active_at,
-                       email_verified_at)
+                       email_verified_at, mass_mail_opt_in_at)
     values (${user.id}, ${user.username}, ${user.username.toLowerCase()},
             ${email}, ${email}, 'x', 'argon2id',
             ${user.groupId ?? REGISTERED}, ${user.state ?? 'active'},
             ${user.postCount ?? 0}, ${user.threadCount ?? 0},
             ${user.createdAt ?? OLD}, ${user.lastActiveAt ?? null},
-            ${user.verified === false ? null : new Date('2024-01-01T00:00:00Z')})
+            ${user.verified === false ? null : new Date('2024-01-01T00:00:00Z')},
+            ${user.optedIn === false ? null : new Date('2024-02-01T00:00:00Z')})
   `)
 }
 
@@ -350,6 +352,53 @@ describe('mass mail', () => {
     await db.execute(sql`update users set deleted_at = now() where id = 5`)
 
     expect(await repo.massMailAudience(null)).toBe(1)
+  })
+
+  it('reaches nobody who has not asked for announcements', async () => {
+    await seed({ id: 1, username: 'asked' })
+    await seed({ id: 2, username: 'never-asked', optedIn: false })
+    await seed({ id: 3, username: 'asked-then-stopped' })
+    await db.execute(sql`update users set mass_mail_opt_in_at = null where id = 3`)
+
+    expect(await repo.massMailAudience(null)).toBe(1)
+    expect((await repo.massMailAudienceByGroup()).get(REGISTERED)).toBe(1)
+  })
+
+  it('drops a member who stops the announcements while a campaign is running', async () => {
+    await seed({ id: 1, username: 'stays' })
+    await seed({ id: 2, username: 'leaves' })
+    const mailId = await repo.createMassMail({
+      subject: 'Hello',
+      body: 'x',
+      targetGroupId: null,
+      createdByUserId: null,
+    })
+
+    const first = await repo.claimMassMailChunk(mailId, 1)
+    expect(first.recipients.map((row) => row.userId)).toEqual([1])
+
+    await db.execute(sql`update users set mass_mail_opt_in_at = null where id = 2`)
+
+    const second = await repo.claimMassMailChunk(mailId, 1)
+    expect(second).toEqual({ recipients: [], finished: true })
+    expect((await repo.readMassMail(mailId))?.queuedCount).toBe(1)
+  })
+
+  it('says whether one member may still be sent an announcement', async () => {
+    await seed({ id: 1, username: 'asked' })
+    await seed({ id: 2, username: 'never-asked', optedIn: false })
+    await seed({ id: 3, username: 'unverified', verified: false })
+
+    expect(await repo.mayReceiveMassMail(1)).toBe(true)
+    expect(await repo.mayReceiveMassMail(2)).toBe(false)
+    expect(await repo.mayReceiveMassMail(3)).toBe(false)
+    expect(await repo.mayReceiveMassMail(9_999)).toBe(false)
+
+    await db.execute(sql`update users set mass_mail_opt_in_at = null where id = 1`)
+    expect(
+      await repo.mayReceiveMassMail(1),
+      'a queued message must not go out after consent is withdrawn',
+    ).toBe(false)
   })
 
   it('counts a group by primary *or* additional membership', async () => {

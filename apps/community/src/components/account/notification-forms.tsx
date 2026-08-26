@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
+  saveMassMailOptInAction,
   saveNotificationPreferencesAction,
 } from '@/server/notification-actions'
 
@@ -150,6 +151,50 @@ export function NotificationPreferencesForm({
       <div>
         <button type="submit" className={BUTTON}>
           {fromCopy(copy, 'accountForm.notifications.submit')}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export function AnnouncementsOptInForm({ optedIn, copy }: { optedIn: boolean; copy: Copy }) {
+  const [state, action] = useActionState(saveMassMailOptInAction, EMPTY_STATE)
+
+  return (
+    <form
+      action={action}
+      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+    >
+      <FormError message={state.error} />
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium">
+          {fromCopy(copy, 'accountForm.announcements.legend')}
+        </legend>
+
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="announcements"
+            defaultChecked={optedIn}
+            className={`mt-1 ${CHECKBOX}`}
+          />
+          <span>
+            <span className="font-medium">{fromCopy(copy, 'accountForm.announcements.title')}</span>
+            <span className="block text-muted-foreground">
+              {fromCopy(copy, 'accountForm.announcements.description')}
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      <p className="text-xs text-muted-foreground">
+        {fromCopy(copy, 'accountForm.announcements.blurb')}
+      </p>
+
+      <div>
+        <button type="submit" className={BUTTON}>
+          {fromCopy(copy, 'accountForm.announcements.submit')}
         </button>
       </div>
     </form>

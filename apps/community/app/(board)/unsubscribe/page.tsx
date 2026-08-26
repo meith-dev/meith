@@ -60,9 +60,11 @@ export default async function UnsubscribePage({
           <UnsubscribeConfirmForm
             token={token}
             description={
-              claim.scope === 'email'
-                ? await tr('page.unsubscribe.emailScope')
-                : await tr('page.unsubscribe.targetScope')
+              claim.scope === 'mass-mail'
+                ? await tr('page.unsubscribe.massMailScope')
+                : claim.scope === 'email'
+                  ? await tr('page.unsubscribe.emailScope')
+                  : await tr('page.unsubscribe.targetScope')
             }
             copy={followFormCopy(translator)}
           />

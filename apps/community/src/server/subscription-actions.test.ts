@@ -85,8 +85,17 @@ class FakeNotifications {
   }
 }
 
+class FakeMemberSettings {
+  readonly consent: Array<{ userId: number; optIn: boolean }> = []
+
+  async saveMassMailOptIn(input: { userId: number; optIn: boolean }) {
+    this.consent.push(input)
+  }
+}
+
 let subscriptions: FakeSubscriptions
 let notifications: FakeNotifications
+let memberSettings: FakeMemberSettings
 
 async function actorFor(groupId: number, userId: number | null): Promise<Actor> {
   const source = new InMemoryAuthorizationSource(SEED_BOARD)
@@ -134,6 +143,7 @@ function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
     container: {
       subscriptions,
       notifications,
+      memberSettings,
       threads: {
         locate: async () => (forumId === null ? null : { forumId, authorUserId: null }),
         findById: async () => ({
@@ -161,6 +171,7 @@ function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
 beforeEach(async () => {
   subscriptions = new FakeSubscriptions()
   notifications = new FakeNotifications()
+  memberSettings = new FakeMemberSettings()
   actorRef.current = await actorFor(SEED_GROUP.registered, 7)
   install()
 })
@@ -314,6 +325,25 @@ describe('the no-login unsubscribe', () => {
     expect(subscriptions.removed).toEqual([])
     expect(notifications.saved[0]?.entries.get('subscription.digest')).toBe(false)
     expect(notifications.saved[0]?.entries.get('subscription.reply')).toBe(false)
+  })
+
+  it('stops the board’s announcements for the announcements scope', async () => {
+    const token = mintUnsubscribeToken({ userId: 42, scope: 'mass-mail', targetId: 0 }, SECRET)
+
+    const result = await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(result.redirectedTo).toBe('/unsubscribe?done=announcements')
+    expect(memberSettings.consent).toEqual([{ userId: 42, optIn: false }])
+    expect(subscriptions.removed).toEqual([])
+    expect(notifications.saved).toEqual([])
+  })
+
+  it('leaves the announcements alone when the token is about a thread', async () => {
+    const token = mintUnsubscribeToken({ userId: 42, scope: 'thread', targetId: 20 }, SECRET)
+
+    await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(memberSettings.consent).toEqual([])
   })
 
   it('refuses a forged token', async () => {

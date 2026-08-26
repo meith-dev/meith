@@ -70,6 +70,7 @@ export function unsubscribeNotice(
   done: string | undefined,
   t: Translator = untranslated(),
 ): string | null {
+  if (done === 'announcements') return t.t('subscription.announcementsOff')
   if (done === 'email') return t.t('subscription.emailsOff')
   if (done === 'one') return t.t('subscription.doneOne')
   return null

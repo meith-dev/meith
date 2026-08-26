@@ -36,6 +36,7 @@ class MemorySettings implements MemberSettingsRepository {
     website: null,
     bio: null,
     displayGroupId: null,
+    massMailOptInAt: null,
   }
   emailTaken = false
   held: MemberGroupChoice[] = [
@@ -68,6 +69,12 @@ class MemorySettings implements MemberSettingsRepository {
     threadsPerPage: number | null
   }) {
     this.row = { ...this.row, ...input }
+  }
+  async saveMassMailOptIn(input: { userId: number; optIn: boolean }) {
+    this.row = {
+      ...this.row,
+      massMailOptInAt: input.optIn ? (this.row.massMailOptInAt ?? NOW) : null,
+    }
   }
   async adoptEmail(input: { userId: number; email: string; emailLower: string }) {
     if (this.emailTaken) return false
