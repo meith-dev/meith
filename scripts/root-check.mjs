@@ -53,8 +53,17 @@ const ALLOWED = new Map([
   ['.gitignore', 'git'],
   ['.gitattributes', 'git'],
 
+  [
+    '.claude',
+    'Claude Code reads settings.json and hooks/ from this path only — the guardrails every session in this repository loads. Everything else under it is ignored by git',
+  ],
+
   ['README.md', 'the front page'],
   ['AGENTS.md', 'coding agents read it from the root by convention'],
+  [
+    'CLAUDE.md',
+    'a symlink to AGENTS.md: Claude Code loads CLAUDE.md by name, and one file cannot drift from the other',
+  ],
   ['LICENSE.md', 'MIT'],
 ])
 

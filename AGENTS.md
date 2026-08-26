@@ -10,7 +10,16 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else �
 
 - **No inline code comments.** If something needs explaining, the explanation
   belongs in the relevant document under `docs/`, updated in the same change —
-  never in the code.
+  never in the code. This covers `/** */` as well as `//`: a JSDoc block that
+  explains, justifies or gives context is an inline comment. Four things are
+  not, and are the only exceptions: a `biome-ignore` suppression, a
+  `@ts-expect-error`, a type annotation the compiler reads (`@type`,
+  `@satisfies`, `/// <reference>`), and the prose in the six files a generated
+  reference is built from — `packages/theme-kit/src/{slots,api,view-models}.ts`
+  and `packages/plugin-kit/src/{hooks,payloads,regions}.ts`, where the comment
+  *is* the published document. A `PostToolUse` hook in `.claude/settings.json`
+  rejects a write that adds any other comment;
+  `docs/contributing/development.md` explains it.
 - **Update the docs with every change.** Behavior described in `docs/` changes
   in the same commit that changes the behavior. A new document is registered in
   `apps/web/content/docs.manifest.json` and linked from `docs/README.md`.

@@ -521,6 +521,59 @@ but not symmetrically.**
 CI's other jobs build the image, drive a browser, and run the migrations
 against real Postgres.
 
+## No inline comments
+
+`AGENTS.md` carries the rule: an explanation belongs in the document under
+`docs/` that covers the behaviour, changed in the same commit, never in the
+code. The reason is that a comment is invisible to everyone who is not
+already reading that function — an operator, a theme author, somebody
+deciding whether the software does what they need — and it rots without
+anything noticing, because nothing checks a comment against the code beside
+it. A paragraph in `docs/` is read by all of them and is checked: the links
+gate holds its anchors, the index gate holds its registration, and the
+generated references fail when the contract they describe moves.
+
+The rule covers `/** */` as much as `//`. A JSDoc block that explains why a
+function does what it does is an inline comment with a decorative syntax.
+
+Four kinds of comment are not, and are the only exceptions:
+
+- **`biome-ignore` suppressions**, which the linter reads, and which the rule
+  above this section requires to carry a reason.
+- **`@ts-expect-error`**, which the compiler reads.
+- **Type annotations the compiler reads** — `@type`, `@satisfies`,
+  `/// <reference>` — mostly in `.mjs` files that have no other way to say it.
+- **The prose in the six files a generated reference is built from**:
+  `packages/theme-kit/src/slots.ts`, `api.ts` and `view-models.ts`, which
+  `pnpm theme:docs` publishes as
+  [the theme slot reference](../reference/theme-slots.md); and
+  `packages/plugin-kit/src/hooks.ts`, `payloads.ts` and `regions.ts`, which
+  `pnpm plugin:docs` publishes as
+  [the plugin hook reference](../reference/plugin-hooks.md). There the comment
+  *is* the published document, and deleting it deletes a page.
+
+### The hook that enforces it
+
+`.claude/settings.json` registers a `PostToolUse` hook —
+`.claude/hooks/no-inline-comments.mjs` — that runs after every file write a
+Claude Code session makes. It counts the comments in the file it just wrote,
+counts the ones in the same file at `HEAD`, and rejects the write if the set
+grew, naming each comment added. Comparing against `HEAD` rather than a
+checked-in baseline is what lets it stay quiet on the comments already in the
+tree while refusing every new one, with no list to maintain.
+
+`scripts/comment-scan.mjs` does the scanning, and
+`scripts/comment-scan.test.ts` is why it can be trusted: a scanner that reads
+`https://` inside a string as a comment, or misses one after a regular
+expression, would either block honest work or wave through the thing it
+exists to catch. Both directions are covered there.
+
+This is a guardrail for sessions in this repository, not a gate on the
+branch. Nothing in `pnpm verify` or CI checks for comments, so a comment
+committed by any other route lands unopposed. It is deliberate — the rule is
+about how the codebase is written, and the enforcement sits where the writing
+happens.
+
 ## Formatting and lint
 
 One tool does both: [Biome](https://biomejs.dev/), configured in `biome.json`
