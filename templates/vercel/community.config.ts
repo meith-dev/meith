@@ -15,6 +15,7 @@ import { defineForumConfig } from '@meith/web/config'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
+  defaultMessages,
   defaultTheme,
   LIGHT_TOKENS,
 } from '@meith/theme-default'
@@ -29,6 +30,7 @@ export default defineForumConfig({
       tokens: { light: LIGHT_TOKENS, dark: DARK_TOKENS },
       browserThemeColor: BROWSER_THEME_COLOR,
       theme: defaultTheme,
+      messages: defaultMessages,
     },
   },
   defaultTheme: 'default',

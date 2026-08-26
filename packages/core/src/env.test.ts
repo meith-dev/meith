@@ -372,6 +372,45 @@ describe('a mail key injected under the provider name', () => {
   })
 })
 
+describe('the sender, when the provider published the domain it verified', () => {
+  const linked = {
+    ...base,
+    DATA_SOURCE: 'postgres',
+    QUEUE_DRIVER: 'postgres',
+    RESEND_API_KEY: 're_abc123',
+    RESEND_EMAIL_DOMAIN: 'mail.example.com',
+  } satisfies Record<string, string>
+
+  it('sends from the verified domain, so a linked provider needs nothing typed', () => {
+    const env = parseEnv(linked)
+
+    expect(env.MAIL_FROM).toBe('noreply@mail.example.com')
+    expect(env.MAIL_DRIVER).toBe('http')
+  })
+
+  it('lets an address the board set win over the one it would derive', () => {
+    const env = parseEnv({ ...linked, MAIL_FROM: 'hello@example.com' })
+
+    expect(env.MAIL_FROM).toBe('hello@example.com')
+  })
+
+  it('refuses to guess a sender from a key alone, and stays on the log driver', () => {
+    const { RESEND_EMAIL_DOMAIN: _domain, ...keyOnly } = linked
+    const env = parseEnv(keyOnly)
+
+    expect(env.MAIL_FROM).toBeUndefined()
+    expect(env.MAIL_DRIVER).toBe('log')
+  })
+
+  it('derives nothing from a domain with no key behind it', () => {
+    const { RESEND_API_KEY: _key, ...domainOnly } = linked
+    const env = parseEnv(domainOnly)
+
+    expect(env.MAIL_FROM).toBeUndefined()
+    expect(env.MAIL_DRIVER).toBe('log')
+  })
+})
+
 describe('what the platform publishes, and what the board makes of it', () => {
   const BLOB_TOKEN = 'vercel_blob_rw_store123_secret'
 

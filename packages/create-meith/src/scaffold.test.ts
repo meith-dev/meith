@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -14,6 +15,7 @@ import {
   MATERIALIZED_PUBLIC,
   NEXT_VERSION,
   nextSteps,
+  RESEND_SENDER_MAILBOX,
   scaffold,
   validateName,
 } from './scaffold'
@@ -56,6 +58,34 @@ describe('what the scaffold writes', () => {
 
   it('ships no platform configuration file', () => {
     expect([...files.keys()]).not.toContain('vercel.json')
+  })
+
+  /**
+   * MEI-131: the scaffold registered the theme's tokens but not its messages,
+   * and `apps/community/src/server/i18n-catalogs.ts` drops a theme whose
+   * `messages` is undefined without complaining. Every scaffolded board — Vercel
+   * and self-hosted alike — rendered `default.latestThreads.heading` where its
+   * headings belonged. `boards/stock` passed `messages` and rendered fine, so
+   * the two are held to each other here rather than to a literal.
+   */
+  it('registers the theme catalog, without which the board renders its keys', () => {
+    const config = files.get('community.config.ts')!
+
+    expect(config).toMatch(/messages:\s*defaultMessages/)
+    expect(config).toMatch(/\bdefaultMessages\b[\s\S]*from '@meith\/theme-default'/)
+  })
+
+  it('registers every part of the theme the board in this repo registers', () => {
+    const config = files.get('community.config.ts')!
+    const stock = readFileSync(
+      join(import.meta.dirname, '../../../boards/stock/community.config.ts'),
+      'utf8',
+    )
+
+    for (const field of ['tokens', 'browserThemeColor', 'theme', 'messages']) {
+      expect(stock).toMatch(new RegExp(`\\b${field}:`))
+      expect(config).toMatch(new RegExp(`\\b${field}:`))
+    }
   })
 
   it('names the project and pins the dependency versions', () => {
@@ -524,7 +554,7 @@ describe('the published bin, run the way npx actually runs it', () => {
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'package.json': 'fbe57f89349df4dee13155fdbe939e57ef35a551291762776be18d9acb6ab4b3',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
-  'community.config.ts': 'ca17c18b40a9e89af83ff5b2277a76f0d7852ed38fec02cdeba9112c6c76c5b7',
+  'community.config.ts': '85839fa4aa4490ba7f4f499fc8a10af8bcbe0934cf5dc44e5577ea3c76a446bc',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
   'community.plugins.ts': '4143635aeb85cd6a402f4e0a65748489676581c7505cbb24ed7b54bd39116a7d',
   '.env.example': 'f697a7335c4240186230fdeda2b0e95f8480a4d2df6d852fab6c10894547a617',
@@ -755,13 +785,15 @@ describe('the Vercel target', () => {
     expect(url.searchParams.get('stores')).toBeNull()
   })
 
-  it('provisions mail with the deploy, and leaves only the sender address after', () => {
+  it('provisions mail with the deploy, and leaves nothing after it', () => {
     const readme = files.get('README.md')!
 
-    expect(readme).toContain('## Mail, after the deploy')
+    expect(readme).toContain('## Mail')
     expect(readme).toContain('RESEND_API_KEY')
-    expect(readme).toContain('MAIL_FROM')
+    expect(readme).toContain('RESEND_EMAIL_DOMAIN')
+    expect(readme).toMatch(/Mail needs nothing after the deploy/)
     expect(readme).not.toMatch(/Mail is the one thing the button does not set up/)
+    expect(readme).not.toContain('## Mail, after the deploy')
   })
 
   it('prompts for the two values nothing else can supply, and for nothing else', () => {
@@ -799,13 +831,20 @@ describe('the Vercel target', () => {
     }
   })
 
-  it('asks for no sender address on a form that cannot yet send', () => {
+  it('asks for no sender address, because the linked Resend already answers it', () => {
     const url = new URL(deployButtonUrl(DEFAULT_TEMPLATE_REPOSITORY_URL))
     const readme = files.get('README.md')!
 
     expect(url.searchParams.get('env')?.split(',') ?? []).not.toContain('MAIL_FROM')
     expect(url.searchParams.get('envDescription')).not.toContain('address')
-    expect(readme).toMatch(/Add `MAIL_FROM` to the project's environment settings/)
+    expect(readme).not.toMatch(/Add `MAIL_FROM` to the project's environment settings/)
+    expect(readme).toMatch(/To send from a different address/)
+  })
+
+  it('names the mailbox the board derives, so the README cannot claim another', () => {
+    const readme = files.get('README.md')!
+
+    expect(readme).toContain(`${RESEND_SENDER_MAILBOX}@`)
   })
 
   it('says where each derived value comes from, so a failed derivation is findable', () => {
@@ -873,5 +912,20 @@ describe('the Vercel target', () => {
 
   it('produces the same tree twice', () => {
     expect([...scaffold(VERCEL_OPTIONS)]).toEqual([...scaffold(VERCEL_OPTIONS)])
+  })
+})
+
+describe('the sender the Resend bridge derives', () => {
+  function mailboxInCore(): string {
+    const core = readFileSync(join(import.meta.dirname, '../../core/src/env.ts'), 'utf8')
+    return /RESEND_SENDER_MAILBOX = '([^']+)'/.exec(core)?.[1] ?? ''
+  }
+
+  it('finds the constant it is holding the template to', () => {
+    expect(mailboxInCore()).not.toBe('')
+  })
+
+  it('says the same mailbox the board actually sends from', () => {
+    expect(RESEND_SENDER_MAILBOX).toBe(mailboxInCore())
   })
 })

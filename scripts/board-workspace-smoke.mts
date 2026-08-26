@@ -41,7 +41,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { assertBoardAssetsServe } from './board-smoke-assets.mts'
+import defaultEnMessages from '../themes/default/src/messages/en.json' with { type: 'json' }
+import { assertBoardAssetsServe, assertMessagesResolve } from './board-smoke-assets.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -250,6 +251,7 @@ async function main() {
       if (!body.includes('<main')) {
         throw new Error('board-workspace-smoke: / answered but did not render <main>')
       }
+      assertMessagesResolve(body, Object.keys(defaultEnMessages))
       console.log('== the materialized, standalone board rendered / ==')
 
       console.log('== confirming static assets and /sw.js actually serve ==')

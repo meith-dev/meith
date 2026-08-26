@@ -5,6 +5,7 @@ import { MAX_TRUSTED_PROXY_HOPS } from './client-address'
 const nonEmpty = z.string().min(1)
 
 export const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails'
+export const RESEND_SENDER_MAILBOX = 'noreply'
 
 const isPostgresUrl = (value: string): boolean =>
   value.startsWith('postgres://') || value.startsWith('postgresql://')
@@ -97,6 +98,7 @@ const envSchema = z
     MAIL_HTTP_TOKEN: nonEmpty.optional(),
 
     RESEND_API_KEY: nonEmpty.optional(),
+    RESEND_EMAIL_DOMAIN: nonEmpty.optional(),
 
     MAIL_SMTP_HOST: nonEmpty.optional(),
     MAIL_SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
@@ -421,6 +423,12 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
   const ownMailApi = source.MAIL_HTTP_ENDPOINT !== undefined || source.MAIL_HTTP_TOKEN !== undefined
   const bridgedKey = ownMailApi ? undefined : source.RESEND_API_KEY
 
+  const bridgedSender =
+    bridgedKey !== undefined && source.RESEND_EMAIL_DOMAIN !== undefined
+      ? `${RESEND_SENDER_MAILBOX}@${source.RESEND_EMAIL_DOMAIN}`
+      : undefined
+  const mailFrom = source.MAIL_FROM ?? bridgedSender
+
   const onVercel = Boolean(source.VERCEL) && source.NEXT_PHASE !== 'phase-production-build'
   const refusals: Refusal[] = []
 
@@ -470,9 +478,10 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
       ...(bridgedKey === undefined
         ? {}
         : { MAIL_HTTP_TOKEN: bridgedKey, MAIL_HTTP_ENDPOINT: RESEND_EMAILS_ENDPOINT }),
+      ...(mailFrom === undefined ? {} : { MAIL_FROM: mailFrom }),
       MAIL_DRIVER:
         source.MAIL_DRIVER ??
-        (bridgedKey !== undefined && source.MAIL_FROM !== undefined ? 'http' : undefined),
+        (bridgedKey !== undefined && mailFrom !== undefined ? 'http' : undefined),
     },
     refusals,
   }
