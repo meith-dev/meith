@@ -108,6 +108,33 @@
       "primary": false
     },
     {
+      "slug": "forums",
+      "file": "forums.md",
+      "section": "using",
+      "title": "Forums and permissions",
+      "blurb": "The board's shape and who may do what inside it: the forum tree, a forum's options, how a permission resolves, the matrix, and what a moderator appointment grants.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "groups",
+      "file": "groups.md",
+      "section": "using",
+      "title": "Groups and promotions",
+      "blurb": "What a group carries: board-wide permissions, the daily allowances, colours and badges, display groups, the groups a plugin may grant, and the rules that promote members automatically.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "antispam",
+      "file": "antispam.md",
+      "section": "using",
+      "title": "Spam controls and rate limits",
+      "blurb": "The registration challenge, the limits on pages nobody has signed in to, the three login counters, and the hourly allowances — what each is worth and what it costs a real visitor.",
+      "generated": false,
+      "primary": false
+    },
+    {
       "slug": "membership-guide",
       "file": "membership-guide.md",
       "section": "using",

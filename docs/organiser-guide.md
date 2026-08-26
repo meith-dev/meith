@@ -79,6 +79,9 @@ Three things to know before you drag:
   moving a forum under a *different* parent does, because it changes who
   can see what.
 
+The detail is in
+[Forums and permissions § The forum tree](./forums.md#the-forum-tree).
+
 ### A private forum for the organisers
 
 Most boards want one forum only the people running the place can read —
@@ -97,22 +100,29 @@ shape of it:
    are set per group, per forum: for this forum, deny viewing to the
    ordinary member groups (and Guests), and grant it to your new group.
 
-Two things worth knowing before you touch the permissions screen:
+Three things worth knowing before you touch the permissions screen:
 
 > [!IMPORTANT]
 > In the forum permissions matrix, **an empty cell means "inherit"** —
 > it is not the same as "no". Each cell shows what it currently resolves
 > to and where that answer came from, so read what is there before
-> changing it, and set only the cells you mean.
+> changing it, and set only the cells you mean. The full explanation is
+> in [Forums and permissions § Permissions](./forums.md#permissions).
+
+> [!IMPORTANT]
+> **Deny is per group, not board-wide.** Denying a cell for one group
+> only removes that group's contribution; a member who is also in a group
+> that grants it still has it. That is why step 3 says deny it to *every*
+> ordinary group, Guests included.
 
 Administrators see the forum whatever the matrix says — the bypass
-exists so a board can always be repaired, and every use of it is
-recorded in the admin log.
+exists so a board can always be repaired, and every use of it is written
+to the server's log (not the admin log at `/admin/log`).
 
 A related trick: a forum where members can post but only see their *own*
 threads — applications, welfare matters, anything written to the
-organisers rather than to the room — is one permission on that forum's
-permissions screen.
+organisers rather than to the room — is one permission, described in
+[Forums and permissions § A "your threads only" forum](./forums.md#a-your-threads-only-forum).
 
 ## Making the board look like yours
 
@@ -318,7 +328,8 @@ beneath. Approving content, editing, deleting, restoring, locking,
 pinning, moving, merging and splitting are each a separate grant: ticking
 *Delete posts* does not give the undo, so tick *Restore posts* too if
 you mean both. A moderator sees exactly what they hold, forum by forum,
-under **`/modcp/forums`**.
+under **`/modcp/forums`**. What each of the nine ticks decides is in
+[Forums and permissions § What an appointment grants](./forums.md#what-an-appointment-grants).
 
 Promotions that members *earn* — a "Veteran" group at 500 posts — can be
 automated under **Admin → Groups → Promotions**; the screen previews
@@ -333,6 +344,14 @@ does not disturb that. The hourly task works through the membership
 10,000 members at a time and keeps its own place between runs, so on a
 board bigger than that a newly earned promotion arrives within a few
 runs rather than on the very next one.
+
+> [!WARNING]
+> A rule promoting members out of **Registered** into a group of your own
+> is currently refused by the safeguard that stops promotions demoting
+> anybody, and moves nobody. The preview says so honestly — if it reports
+> no members for a rule you believe is right, read
+> [Groups and promotions § Promotions](./groups.md#promotions) before
+> changing the rule.
 
 ### When somebody steps back
 

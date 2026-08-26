@@ -29,6 +29,12 @@ These guides use the browser interface; they do not require shell access.
 - [Memberships guide](./membership-guide.md) — Stripe plans, discounts, gifts, the membership desk, and the ledger.
 - [Writing a post](./formatting.md) — the composer's toolbar and its Markdown: highlighted code, spoilers, mentions, link previews, and inline attachments.
 
+Reference, for when a guide says "one permission on that forum's screen" and you want to know which:
+
+- [Forums and permissions](./forums.md) — the forum tree, a forum's options, how a permission resolves, reading the matrix, and what a moderator appointment grants.
+- [Groups and promotions](./groups.md) — what a group carries board-wide, the daily allowances, colours and badges, the groups a plugin may grant, and automatic promotions.
+- [Spam controls and rate limits](./antispam.md) — the registration challenge, the pre-authentication limits, the three login counters, and the hourly allowances.
+
 ## Operate a board
 
 - [Operations](./operating.md) — health checks, configuration, CLI commands, mail, backups, and troubleshooting.

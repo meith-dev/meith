@@ -80,8 +80,8 @@ plan has one of three shapes:
 - **Name** and an optional **description** — what members read on the card.
 - **Group it grants** — a group marked **may be granted by plugins** under
   **Admin → Groups**. The group's permissions, badge and colour are the
-  product; see [Timed group
-  grants](./plugin-api.md#timed-group-grants). Staff and
+  product; see [Groups a plugin may
+  grant](./groups.md#groups-a-plugin-may-grant). Staff and
   power-carrying groups refuse the tick, on purpose.
 - **Price**, in minor units of its **currency** — for a euro plan, `2500`
   is €25.00. The screen warns you about the trap: a decimal here is

@@ -22,7 +22,9 @@ time, and each appointment carries exactly the rights the organisers
 ticked — approving content, editing, deleting, restoring, locking,
 pinning, moving, merging and splitting are separate grants. The rules
 are the administrator's to set — see
-[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships).
+[Forums and permissions § What an appointment grants](./forums.md#what-an-appointment-grants)
+for what each of the nine ticks decides, and
+[Permissions](./forums.md#permissions) for the model behind them.
 
 **My forums** (**`/modcp/forums`**) is the page to trust: it lists every
 forum you are appointed to and exactly what you may do in each. If a
@@ -53,9 +55,12 @@ sections:
 A post can be held for approval before anybody else sees it. The usual
 reasons:
 
-- **The author is new.** The board can hold a member's first posts until
-  they have a few to their name — the single most effective spam control
-  it has, because spam accounts post once or twice and never come back.
+- **The author is new.** The board has a setting for holding a member's
+  first posts until they have a few to their name. It is not working at
+  present — see
+  [Spam controls and rate limits § What each control is worth](./antispam.md#what-each-control-is-worth)
+  — so on a board today this reason will not be why something is in your
+  queue.
 - **The forum holds everything.** A forum can be set to hold all new
   threads, or all new replies, and the permission matrix can require
   approval from particular groups.
@@ -228,7 +233,7 @@ Other things that look like moderation and are not yours to press:
 - **The spam controls** — the first-post hold threshold, the hourly
   limits, the registration challenge. If spam is getting past the queue,
   that is a settings conversation, not more clicking — point the
-  administrator at the board's anti-spam settings.
+  administrator at [Spam controls and rate limits](./antispam.md).
 - **Closing registration**, activating stuck accounts, lifting bans,
   and anything about a member's account itself.
 - **Warning reasons and the points ladder** — the presets and thresholds
