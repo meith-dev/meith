@@ -17,6 +17,7 @@ import {
   resolveUploadsMode,
   restoreDatabaseUrl,
   restoreLimits,
+  skippedKeyLines,
   uploadDirectoryToStore,
   validateArchiveListing,
 } from './backup'
@@ -168,9 +169,46 @@ describe('parseManifest', () => {
     expect(() => parseManifest(JSON.stringify({ ...manifest, format: 2 }))).toThrow(/format 2/)
   })
 
+  it('carries the keys the backup could not read', () => {
+    const withSkipped = { ...manifest, skippedKeys: ['attachments/./one.png'] }
+    expect(parseManifest(JSON.stringify(withSkipped)).skippedKeys).toEqual([
+      'attachments/./one.png',
+    ])
+    expect(parseManifest(JSON.stringify(manifest)).skippedKeys).toBeUndefined()
+    expect(
+      parseManifest(JSON.stringify({ ...manifest, skippedKeys: [] })).skippedKeys,
+    ).toBeUndefined()
+  })
+
+  it('refuses a skipped-object list it cannot read', () => {
+    expect(() => parseManifest(JSON.stringify({ ...manifest, skippedKeys: 'one' }))).toThrow(
+      /skipped/,
+    )
+    expect(() => parseManifest(JSON.stringify({ ...manifest, skippedKeys: [1] }))).toThrow(
+      /skipped/,
+    )
+  })
+
   it('refuses a bundle that is not a bundle', () => {
     expect(() => parseManifest('not json')).toThrow(/manifest/)
     expect(() => parseManifest(JSON.stringify({ format: 1 }))).toThrow(/uploads/)
+  })
+})
+
+describe('skippedKeyLines', () => {
+  it('escapes what it prints, because an unusable key is why it is printing', () => {
+    expect(skippedKeyLines(['attachments/./one.png', 'attachments/two\u0001.png'])).toEqual([
+      '  "attachments/./one.png"',
+      '  "attachments/two\\u0001.png"',
+    ])
+  })
+
+  it('stops listing at ten and sends the reader to the manifest', () => {
+    const lines = skippedKeyLines(Array.from({ length: 12 }, (_, index) => `key-${index}`))
+
+    expect(lines).toHaveLength(11)
+    expect(lines.at(-1)).toContain('2 more')
+    expect(lines.at(-1)).toContain('manifest.json')
   })
 })
 
@@ -360,9 +398,10 @@ describe('carrying a Blob store out and putting it back', () => {
     const dir = path.join(scratch, 'uploads')
     await mkdir(dir, { recursive: true })
 
-    const pulled = await drainStoreToDirectory(store, dir)
+    const { pulled, skipped } = await drainStoreToDirectory(store, dir)
 
     expect(pulled).toBe(CONTENT.size)
+    expect(skipped).toEqual([])
     for (const [key, body] of CONTENT) {
       expect(await readFile(path.join(dir, key), 'utf8')).toBe(body)
     }
@@ -421,9 +460,13 @@ describe('carrying a Blob store out and putting it back', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {
-      const pulled = await drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, escaping), dir)
+      const { pulled, skipped } = await drainStoreToDirectory(
+        new BlobFileStore({ token: TOKEN }, escaping),
+        dir,
+      )
 
       expect(pulled).toBe(1)
+      expect(skipped).toEqual(['../escaped.txt'])
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('../escaped.txt'))
     } finally {
       warn.mockRestore()
@@ -431,5 +474,69 @@ describe('carrying a Blob store out and putting it back', () => {
 
     expect(await readdir(dir)).toEqual(['safe.txt'])
     await expect(stat(path.join(scratch, 'escaped.txt'))).rejects.toThrow()
+  })
+
+  it.each([
+    ['a relative path segment', 'attachments/./unreadable.txt'],
+    ['a control character', 'attachments/unreadable\u0001.txt'],
+  ])('skips an object whose key holds %s, and finishes the backup', async (_case, key) => {
+    const store = fakeBlob(new Map([['safe.txt', 'kept']]))
+    store.objects.set(key, new TextEncoder().encode('unreadable'))
+
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      const { pulled, skipped } = await drainStoreToDirectory(
+        new BlobFileStore({ token: TOKEN }, store),
+        dir,
+      )
+
+      expect(pulled).toBe(1)
+      expect(skipped).toEqual([key])
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(key)))
+    } finally {
+      warn.mockRestore()
+    }
+
+    expect(await readdir(dir)).toEqual(['safe.txt'])
+  })
+
+  it('reports every unusable key rather than stopping at the first', async () => {
+    const store = fakeBlob(CONTENT)
+    store.objects.set('attachments/./one.txt', new TextEncoder().encode('one'))
+    store.objects.set('attachments/two\u0007.txt', new TextEncoder().encode('two'))
+    store.objects.set('  spaced.txt  ', new TextEncoder().encode('three'))
+
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      const { pulled, skipped } = await drainStoreToDirectory(
+        new BlobFileStore({ token: TOKEN }, store),
+        dir,
+      )
+
+      expect(pulled).toBe(CONTENT.size)
+      expect([...skipped].sort()).toEqual(
+        ['  spaced.txt  ', 'attachments/./one.txt', 'attachments/two\u0007.txt'].sort(),
+      )
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('lets a failure that is not the key abort the backup', async () => {
+    const store = fakeBlob(CONTENT)
+    store.get = () => Promise.reject(new Error('the store is unreachable'))
+
+    const dir = path.join(scratch, 'uploads')
+    await mkdir(dir, { recursive: true })
+
+    await expect(
+      drainStoreToDirectory(new BlobFileStore({ token: TOKEN }, store), dir),
+    ).rejects.toThrow(/unreachable/)
   })
 })

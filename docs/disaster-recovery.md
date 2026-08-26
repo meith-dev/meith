@@ -133,6 +133,18 @@ the objects are in the bundle; `the database dump, no uploads` means the
 store was empty or `--uploads skip` was passed, and restoring that bundle
 gives a board whose posts have broken images.
 
+Then read the exit code. A backup that met an object it could not read —
+a key with a `.` segment, a control character, anything else the board
+cannot use — skips that object, finishes the bundle, names the key, and
+exits **2** instead of 0. The bundle is sound and is the most complete
+copy that can be taken; it records the skipped keys in its manifest, and
+the restore below prints them back. On a Blob store those objects have no
+second copy, so treat the list as a loss to be understood now rather than
+discovered by a member six months from now.
+[When a bundle is incomplete](./operating.md#when-a-bundle-is-incomplete)
+covers the whole of it, including why a scheduled backup should not
+retry.
+
 Restoring puts the objects wherever the *restoring* board's
 `FILESTORE_DRIVER` points, so one bundle moves a board off Vercel as
 easily as back onto it: `FILESTORE_DRIVER=s3` with the `S3_*` variables
