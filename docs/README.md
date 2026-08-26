@@ -37,11 +37,14 @@ Running your community — browser only, no shell access:
 - [Groups and promotions](./guides/community/groups.md) — what a group carries board-wide.
 - [Spam controls and rate limits](./guides/community/antispam.md) — the registration challenge and every threshold.
 - [Reputation](./guides/community/reputation.md) — members rating each other, and the two settings that decide what a post offers.
+- [Search](./guides/community/search.md) — switching it off without losing the index, and the two limits on how often.
+- [The word filter](./guides/community/word-filter.md) — rewriting words at render time, and exactly which surfaces it covers.
 
 Operating the server:
 
 - [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, and troubleshooting.
 - [Monitoring & alerting](./guides/operations/monitoring.md) — liveness versus readiness, metrics, tracing, and logs.
+- [Cookies and security headers](./guides/operations/cookies-and-headers.md) — every cookie the board sets, and the Content Security Policy.
 - [Upgrading](./guides/operations/upgrading.md) — move between released versions safely.
 - [Disaster recovery](./guides/operations/disaster-recovery.md) — restore a board when the original server is unavailable.
 - [Signing in](./guides/operations/single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.

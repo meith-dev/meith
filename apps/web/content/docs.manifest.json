@@ -199,6 +199,26 @@
       "group": "Running your community"
     },
     {
+      "slug": "search",
+      "file": "guides/community/search.md",
+      "section": "guides",
+      "title": "Search",
+      "blurb": "The four controls over the most expensive thing a visitor can ask for: switching search off without losing the index, the shortest word a query may rest on, and the two different limits on how often.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
+      "slug": "word-filter",
+      "file": "guides/community/word-filter.md",
+      "section": "guides",
+      "title": "The word filter",
+      "blurb": "Rewriting words as a page renders, never in the stored post: what a rule is, why a pattern is a literal rather than a wildcard, and exactly which surfaces it covers.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
       "slug": "operating",
       "file": "guides/operations/operating.md",
       "section": "guides",
@@ -214,6 +234,16 @@
       "section": "guides",
       "title": "Monitoring & alerting",
       "blurb": "Liveness versus readiness, the optional Prometheus metrics endpoint and what to alert on, distributed tracing, and shipping logs.",
+      "generated": false,
+      "primary": false,
+      "group": "Operating the server"
+    },
+    {
+      "slug": "cookies-and-headers",
+      "file": "guides/operations/cookies-and-headers.md",
+      "section": "guides",
+      "title": "Cookies and security headers",
+      "blurb": "What the board puts in a visitor's browser and what it tells the browser to refuse: every cookie and why it exists, the nonce Content Security Policy, and the one environment variable that changes it.",
       "generated": false,
       "primary": false,
       "group": "Operating the server"

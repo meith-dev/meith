@@ -248,12 +248,13 @@ system working, not a gap in your permissions.
 Two things do quiet work beside you, and neither needs anything from
 you day to day:
 
-- **The word filter** rewrites listed words wherever a post is shown —
-  thread pages, excerpts, feeds, search results — without ever changing
-  what is stored. You see the original in the queue and on the report
-  screens, because you are judging the words. Adding to the filter is
-  the administrator's job, and a change applies everywhere on the next
-  page load.
+- **[The word filter](./word-filter.md)** rewrites listed words as a
+  page renders — post bodies, excerpts, feeds and search results —
+  without ever changing what is stored. **It does not cover thread
+  titles**, so a title is a rename rather than a filter rule. You see
+  the original in the queue and on the report screens, because you are
+  judging the words. Adding to the filter is the administrator's job,
+  and a change applies everywhere on the next page load.
 - **Reputation** lets members rate each other's posts — a thanks button
   by default, and a rating form if the board allows rating down. New
   members must post a few times before they may rate, which keeps it
