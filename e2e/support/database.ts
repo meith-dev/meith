@@ -283,6 +283,7 @@ function seedSql(staffHash: string): string {
 
 export interface DatabaseOptions {
   readonly seeded?: boolean
+  readonly migrated?: boolean
   readonly port?: number
   readonly maxConnections?: number
 }
@@ -291,11 +292,14 @@ export async function startDatabase(
   options: DatabaseOptions = {},
 ): Promise<{ stop: () => Promise<void> }> {
   const seeded = options.seeded ?? true
+  const migrated = options.migrated ?? seeded
 
   const db = await PGlite.create()
-  if (seeded) {
+  if (migrated) {
     await db.exec(migrationSql())
     await db.exec(DUES_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
+  }
+  if (seeded) {
     await db.exec(
       insert(
         'plugin_migrations',
@@ -334,12 +338,12 @@ if (invokedDirectly) {
 
   void (async () => {
     const { stop } = await startDatabase(
-      empty ? { seeded: false, port: E2E_INSTALL_DB_PORT, maxConnections: 3 } : {},
+      empty ? { seeded: false, migrated: true, port: E2E_INSTALL_DB_PORT, maxConnections: 3 } : {},
     )
     // biome-ignore lint/suspicious/noConsole: this is a process; its output is its status
     console.log(
       empty
-        ? `e2e install database (empty) listening on ${E2E_INSTALL_DATABASE_URL}`
+        ? `e2e install database (migrated, no rows) listening on ${E2E_INSTALL_DATABASE_URL}`
         : `e2e database listening on ${E2E_DATABASE_URL}`,
     )
 

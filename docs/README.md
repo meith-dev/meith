@@ -17,7 +17,7 @@ This directory is the source for [meith.dev/docs](https://www.meith.dev/docs). C
 
 - [Quickstart](./quickstart.md) — deploy with Coolify on your own server.
 - [Deploying by hand](./self-hosting.md) — use Docker Compose with a reverse proxy you operate.
-- [Running on Vercel](./vercel.md) — deploy onto functions instead of a server: the driver set, the cron tick, build-time migrations, and how to leave.
+- [Running on Vercel](./vercel.md) — deploy onto functions instead of a server: the four-step Deploy Button route, then the quirks worth knowing — the cron tick, build-time migrations, and how to leave.
 - [Demo mode](./demo-mode.md) — run a public board that resets itself.
 
 ## Administer a community

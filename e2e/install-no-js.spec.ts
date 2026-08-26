@@ -20,7 +20,9 @@ async function headingStyle(page: Page, selector: string) {
     })
 }
 
-test('a board is installed from an empty database, with no scripting', async ({ page }) => {
+test('a board is installed from a migrated, empty database, with no scripting', async ({
+  page,
+}) => {
   await page.goto('/install')
 
   for (const selector of ['h1', '#preflight', '[data-slot=card-title]']) {
@@ -62,7 +64,7 @@ test('a board is installed from an empty database, with no scripting', async ({ 
 
   const report = page.getByRole('group').filter({ hasText: 'How far it got' })
   await expect(report).toHaveAttribute('open', '')
-  await expect(report).toContainText('Apply migrations')
+  await expect(report).toContainText('Check the schema')
   await expect(report.getByRole('listitem').nth(0)).toContainText('done')
   await expect(report.getByRole('listitem').nth(1)).toContainText('done')
   await expect(report.getByRole('listitem').nth(2)).toContainText('failed')
