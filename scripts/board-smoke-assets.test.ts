@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { unresolvedMessageKeys } from './board-smoke-assets.mts'
+import { classesInMarkup, unresolvedMessageKeys, unstyledClasses } from './board-smoke-assets.mts'
 
 const KEYS = ['default.latestThreads.heading', 'default.shell.skipToContent']
 
@@ -51,5 +51,62 @@ describe('the keys a rendered board failed to turn into text', () => {
     const { defaultMessages } = await import('@meith/theme-default')
 
     for (const key of KEYS) expect(Object.keys(defaultMessages.en!)).toContain(key)
+  })
+})
+
+describe('the classes a served stylesheet has no rule for', () => {
+  const ALERT =
+    '<div class="rounded-md border-l-4 border-l-moderation-pending bg-card">' +
+    '<strong class="font-medium">Mail</strong></div>'
+
+  it('names every class when the stylesheet is only the preflight', () => {
+    expect(unstyledClasses(ALERT, '*, ::before { box-sizing: border-box; }')).toEqual([
+      'bg-card',
+      'border-l-4',
+      'border-l-moderation-pending',
+      'font-medium',
+      'rounded-md',
+    ])
+  })
+
+  it('is silent when every class it rendered has a rule', () => {
+    const css = [
+      '.rounded-md { border-radius: .375rem }',
+      '.border-l-4 { border-left-width: 4px }',
+      '.border-l-moderation-pending { border-left-color: gold }',
+      '.bg-card { background: white }',
+      '.font-medium { font-weight: 500 }',
+    ].join('\n')
+
+    expect(unstyledClasses(ALERT, css)).toEqual([])
+  })
+
+  /**
+   * `.border` must not be answered by `.border-l-4`, or a stylesheet missing
+   * the very rules this looks for would satisfy it by prefix.
+   */
+  it('does not let a longer class answer for a shorter one', () => {
+    expect(
+      unstyledClasses('<i class="border">x</i>', '.border-l-4 { border-left-width: 4px }'),
+    ).toEqual(['border'])
+  })
+
+  it('reads the escaped selectors Tailwind writes for variants and opacities', () => {
+    const html = '<i class="bg-destructive/5 after:absolute bg-[inherit]">x</i>'
+    const css = '.bg-destructive\\/5{}.after\\:absolute::after{}.bg-\\[inherit\\]{}'
+
+    expect(unstyledClasses(html, css)).toEqual([])
+  })
+
+  it('ignores the marker classes that exist to be selected against, not styled', () => {
+    expect(classesInMarkup('<i class="group peer group/row dark">x</i>')).toEqual([])
+  })
+
+  it('reads every class attribute on the page, not just the first', () => {
+    expect(classesInMarkup('<a class="one">x</a><b class="two three">y</b>')).toEqual([
+      'one',
+      'three',
+      'two',
+    ])
   })
 })

@@ -42,7 +42,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import defaultEnMessages from '../themes/default/src/messages/en.json' with { type: 'json' }
-import { assertBoardAssetsServe, assertMessagesResolve } from './board-smoke-assets.mts'
+import {
+  assertBoardAssetsServe,
+  assertMessagesResolve,
+  assertStylesResolve,
+} from './board-smoke-assets.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -257,6 +261,10 @@ async function main() {
       console.log('== confirming static assets and /sw.js actually serve ==')
       await assertBoardAssetsServe(`http://127.0.0.1:${PORT}`, body)
       console.log('== static assets and /sw.js served correctly ==')
+
+      console.log('== confirming the stylesheet actually styles what rendered ==')
+      await assertStylesResolve(`http://127.0.0.1:${PORT}`, body)
+      console.log('== every class the board rendered has a rule ==')
     } finally {
       stopServer()
     }
