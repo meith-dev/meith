@@ -75,17 +75,18 @@ describe('what the scaffold writes', () => {
     expect(config).toMatch(/\bdefaultMessages\b[\s\S]*from '@meith\/theme-default'/)
   })
 
+  /**
+   * Set equality, not a checklist: a field added to the reference board's
+   * theme entry and forgotten here is exactly how `messages` went missing,
+   * and a list written out in this file would have to be remembered too.
+   */
   it('registers every part of the theme the board in this repo registers', () => {
-    const config = files.get('community.config.ts')!
     const stock = readFileSync(
       join(import.meta.dirname, '../../../boards/stock/community.config.ts'),
       'utf8',
     )
 
-    for (const field of ['tokens', 'browserThemeColor', 'theme', 'messages']) {
-      expect(stock).toMatch(new RegExp(`\\b${field}:`))
-      expect(config).toMatch(new RegExp(`\\b${field}:`))
-    }
+    expect(themeEntryFields(files.get('community.config.ts')!)).toEqual(themeEntryFields(stock))
   })
 
   it('names the project and pins the dependency versions', () => {
@@ -570,6 +571,36 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
 
+/**
+ * The top-level fields of the `default:` theme entry, so a config here can be
+ * held to the reference board's without either side writing the list out.
+ * Depth matters: `tokens: { light, dark }` contributes `tokens`, not its own
+ * two keys.
+ */
+function themeEntryFields(config: string): string[] {
+  const start = config.indexOf('default: {')
+  if (start === -1) return []
+
+  const fields: string[] = []
+  let depth = 0
+
+  for (let at = config.indexOf('{', start); at < config.length; at += 1) {
+    const char = config[at]
+    if (char === '{') depth += 1
+    else if (char === '}') {
+      depth -= 1
+      if (depth === 0) break
+    } else if (depth === 1) {
+      const field = /^([A-Za-z][A-Za-z0-9]*):/.exec(config.slice(at))
+      if (field?.[1] !== undefined && !/[A-Za-z0-9]/.test(config[at - 1] ?? '')) {
+        fields.push(field[1])
+      }
+    }
+  }
+
+  return fields.sort()
+}
+
 describe('the default target, against the tree it produced before a second target existed', () => {
   it('is byte-identical file by file — a name that fails here is the file that drifted', async () => {
     const { createHash } = await import('node:crypto')
@@ -791,7 +822,7 @@ describe('the Vercel target', () => {
     expect(readme).toContain('## Mail')
     expect(readme).toContain('RESEND_API_KEY')
     expect(readme).toContain('RESEND_EMAIL_DOMAIN')
-    expect(readme).toMatch(/Mail needs nothing after the deploy/)
+    expect(readme).toMatch(/Mail needs no variables after the deploy/)
     expect(readme).not.toMatch(/Mail is the one thing the button does not set up/)
     expect(readme).not.toContain('## Mail, after the deploy')
   })

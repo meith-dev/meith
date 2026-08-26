@@ -40,7 +40,13 @@ export async function assertBoardAssetsServe(baseUrl: string, html: string): Pro
  * the HTML by shape, because the shapes overlap: `community.config.ts` and
  * `meith-final.vercel.app` are dotted lowercase runs too, and a gate that
  * fails on the deployment's own hostname would be turned off within a week.
- * Matching against the real key set has no false positives by construction.
+ * Matching the real key set costs a false positive only if a member writes a
+ * post whose text is one of these keys exactly.
+ *
+ * What this detects is a catalog that was never registered, not any single
+ * unresolved key: a key that only ever reaches an attribute — `aria-label`,
+ * `placeholder`, `title` — is invisible here, so it is the dozens of keys a
+ * dropped catalog puts in element text that make the page fail this.
  */
 export function unresolvedMessageKeys(html: string, keys: Iterable<string>): string[] {
   const found = new Set<string>()

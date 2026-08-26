@@ -135,9 +135,10 @@ And the values those drivers need:
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | The bucket's credentials. |
 | `S3_ENDPOINT` | The API endpoint for a non-AWS bucket (R2, Spaces, MinIO). Omit for AWS S3. |
 | `S3_PUBLIC_BASE_URL` | Where objects are *served* from, which is not always where the API lives — R2 serves from an `r2.dev` address or a custom domain, not from `S3_ENDPOINT`. Set it to that, or to a CDN in front of the bucket, or public URLs point somewhere a browser cannot fetch. |
-| `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you; there is no sensible default, and nothing derives it. Set it when you add the mail provider, not before — until then there is no verified domain for it to be at. |
+| `MAIL_FROM` | The sender address. It must be at a domain your provider has verified for you. Optional where the provider publishes its sending domain: with `RESEND_API_KEY` and `RESEND_EMAIL_DOMAIN` both set, the board derives `noreply@` that domain. Set this to send from anything else — an address set here always wins over the derived one. |
 | `RESEND_API_KEY` | Set by Resend's Vercel integration, which the Deploy Button adds. The board reads this name and needs neither of the next two. |
-| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. **Set them as a pair**, with `MAIL_DRIVER=http`: setting either one on its own stands the Resend bridge down entirely, so that a key issued for Resend is never presented to an endpoint someone else chose. Only `RESEND_API_KEY` turns the driver on by itself. |
+| `RESEND_EMAIL_DOMAIN` | Set by the same integration: the domain Resend sends from. The board builds the sender out of it, so a linked Resend needs no `MAIL_FROM`. A value that is not a bare hostname is refused at boot under this name. |
+| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Any other provider of the same shape. **Set them as a pair**, with `MAIL_DRIVER=http`: setting either one on its own stands the Resend bridge down entirely, so that a key issued for Resend is never presented to an endpoint someone else chose. Setting `MAIL_DRIVER` to anything but `http` stands it down as well, so a board that moved to SMTP never sends from Resend's domain through its new provider. |
 | `APP_URL` | The board's public origin. Every link in every password-reset and confirmation e-mail is built from it, so it must be the real domain and not a preview URL. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
 | `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. This is the name Vercel Cron can send — see [the tick](#3-the-tick-replaces-the-worker). |
@@ -149,8 +150,8 @@ On Vercel, all five drivers derive themselves, and setting one only
 overrides the derivation: a `DATABASE_URL` implies `DATA_SOURCE=postgres`
 and `QUEUE_DRIVER=postgres`; a Redis connection string implies
 `CACHE_DRIVER=redis`; a Blob store's read-write token implies
-`FILESTORE_DRIVER=blob`; and a `RESEND_API_KEY` with a `MAIL_FROM` beside
-it implies `MAIL_DRIVER=http`. `DIRECT_DATABASE_URL` and `REDIS_URL`
+`FILESTORE_DRIVER=blob`; and a `RESEND_API_KEY` with a sender beside it —
+`RESEND_EMAIL_DOMAIN`, or a `MAIL_FROM` — implies `MAIL_DRIVER=http`. `DIRECT_DATABASE_URL` and `REDIS_URL`
 derive too, from the variables the linked stores publish under their own
 names. That is what leaves the template's Deploy Button asking for two
 fields — `AUTH_SECRET` and `CRON_SECRET` — rather than seven.
@@ -368,11 +369,13 @@ fits inside a function's timeout. Prefer it.
 The body it posts is `{from, to, subject, text, html, reply_to}`, which is
 **Resend's `POST /emails` contract exactly**. So Resend needs no adapter
 and no configuration: the Deploy Button adds Resend alongside the database,
-cache and blob store, and the integration sets `RESEND_API_KEY`. The board reads that name, fills
-in Resend's endpoint for you, and sends — the only thing left to set is
-`MAIL_FROM`, at a domain you have verified in Resend, which nothing can
-guess on your behalf. It belongs to this step rather than to the deploy:
-before a provider exists there is no verified domain for it to be at.
+cache and blob store, and the integration sets `RESEND_API_KEY` and
+`RESEND_EMAIL_DOMAIN`. The board reads both names, fills in Resend's
+endpoint for you, sends from `noreply@` that domain, and needs nothing set
+by hand. `MAIL_FROM` remains available to send from another address, and an
+address set there always wins over the derived one. Either way the domain
+has to be verified in Resend before Resend will send from it — that step is
+between you and Resend, and no deploy can do it for you.
 
 That bridge is one injected variable name mapped onto the generic pair, not
 a provider baked into the board. The driver stays what it was: any provider
@@ -381,7 +384,8 @@ accepting a bearer token and that JSON shape works, by setting
 `RESEND_API_KEY`.
 
 Only `RESEND_API_KEY` flips `MAIL_DRIVER` to `http` on its own, and only
-with a `MAIL_FROM` beside it. Configuring the generic pair by hand leaves
+with a sender beside it — `RESEND_EMAIL_DOMAIN` to derive one, or a
+`MAIL_FROM` set by hand. Configuring the generic pair by hand leaves
 `MAIL_DRIVER` alone, so set it to `http` yourself — a board that had those
 two variables set and `MAIL_DRIVER` unset was not sending mail before, and
 an upgrade is not the moment to start.
@@ -801,8 +805,8 @@ restore run against a destination that keeps the objects.
 | The build fails naming `BLOB_STORE_ID` and `BLOB_READ_WRITE_TOKEN` | `FILESTORE_DRIVER=blob` is set but no Blob store is attached to the project, or it was attached after this build's environment was read. Attach one under **Storage**, then redeploy. |
 | The board boots, then an upload fails saying the store was reached with no usable credential | The board is on the OIDC path and the platform supplied no identity token — OIDC is off for the project, or this is running off the platform, as a local `community backup` is. Create a read-write token on the store and set `BLOB_READ_WRITE_TOKEN`. |
 | A refusal names a variable your store does publish, under another name | The candidate list does not have that name. Set `REDIS_URL` or `DIRECT_DATABASE_URL` directly — an explicit value stands the derivation down — and [add the name to the list](#what-the-board-looks-for-and-in-what-order). |
-| The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the build log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. `MAIL_FROM` must be set too, at a domain the provider has verified. |
-| Mail is rejected with a sender error | `MAIL_FROM` is at a domain the provider has not verified. Verify it in the provider's dashboard; nothing on this side can work around it. |
+| The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the build log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. A sender is needed too: `RESEND_EMAIL_DOMAIN` derives one, or set `MAIL_FROM` by hand. |
+| Mail is rejected with a sender error | The sender is at a domain the provider has not verified — whether it came from `MAIL_FROM` or was derived from `RESEND_EMAIL_DOMAIN`. Verify it in the provider's dashboard; nothing on this side can work around it. |
 | Production migrated and nobody deployed anything | A preview or branch build did it, because the database variables reach every environment — [scope them to Production](#every-build-migrates-previews-included). The migration has applied and does not come back off. |
 | A rollback did not fix the schema | It never could. Rollback runs no build and so runs no migration — [above](#rollback-does-not-un-migrate). Deploy forward. |
 | Nothing happens on a schedule | The cron job is not reaching `/api/system/tick`, or the secret is wrong — a wrong secret gets a plain `404`, because the endpoint does not admit it exists. Check `/admin/system`. |

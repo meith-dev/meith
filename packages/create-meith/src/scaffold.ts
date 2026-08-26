@@ -304,15 +304,17 @@ BLOB_READ_WRITE_TOKEN=
 # board refuses it on Vercel; 587 with STARTTLS may work, but an API does not
 # depend on the platform's egress rules staying as they are.
 #
-# MAIL_FROM is yours to decide, and it belongs to the step that adds Resend
-# rather than to the deploy: it must be an address at a domain the provider has
-# verified for you, no default is right, and until a provider is added the board
-# cannot send from any address at all. Set it alongside the integration.
+# MAIL_FROM is optional where a provider publishes the domain it sends from:
+# with RESEND_API_KEY and RESEND_EMAIL_DOMAIN both set, the board sends from
+# noreply@ that domain and this can stay empty. Set it to send from another
+# address — it must be at a domain the provider has verified for you, and an
+# address set here always wins over the derived one.
 MAIL_FROM=
 
 # Add the Resend integration to the project from Vercel's marketplace and it
-# publishes its key under this name, which the board reads: with RESEND_API_KEY
-# set, and MAIL_FROM beside it, the board sends over Resend's HTTPS API and
+# publishes its key and its sending domain under these names, which the board
+# reads: with RESEND_API_KEY set, and either RESEND_EMAIL_DOMAIN or a MAIL_FROM
+# beside it, the board sends over Resend's HTTPS API and
 # needs neither of the two variables below. The mail driver itself is a plain
 # JSON-over-HTTPS sender and is not Resend-specific — this is one injected name
 # bridged to the generic pair, not a provider baked into the board.
@@ -1079,17 +1081,19 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
   there is no token to copy. This is what used to be four hand-typed \`S3_*\`
   secrets.
 - **A Resend mail account**, attached the same way, which publishes
-  \`RESEND_API_KEY\`. The board reads that name directly: its mail driver already
-  speaks Resend's request shape, so there is nothing to adapt.
+  \`RESEND_API_KEY\` and \`RESEND_EMAIL_DOMAIN\`. The board reads both names
+  directly: its mail driver already speaks Resend's request shape, so there is
+  nothing to adapt, and the sending domain is what the sender is built from.
 - **A Vercel project** carrying \`vercel.json\` — the build command
   \`${VERCEL_BUILD_COMMAND}\`,
   which applies the schema before it builds, materializes the board's app at
   the project root so the artefact lands where Vercel reads it, and the cron
   entry that drives the tick.
 
-**Mail needs nothing after the deploy.** Resend publishes both its key and the
-domain it verified, and the board sends from \`${RESEND_SENDER_MAILBOX}@\` that
-domain — see *Mail* below to send from a different address.
+**Mail needs no variables after the deploy.** Resend publishes both its key
+and its sending domain, and the board sends from \`${RESEND_SENDER_MAILBOX}@\`
+that domain — see *Mail* below to send from a different address, and for the
+one case that does need you: a domain Resend has not verified yet.
 
 ## What to type into the deploy form
 
@@ -1142,15 +1146,21 @@ project's environment settings, with \`S3_ENDPOINT\` for a bucket that is not AW
 
 ## Mail
 
-**There is nothing to do.** The Resend the deploy form added publishes two
+**There is nothing to set.** The Resend the deploy form added publishes two
 names into the project: \`RESEND_API_KEY\`, and \`RESEND_EMAIL_DOMAIN\` — the
-domain it verified for you. The board reads both, sends from
+domain it sends from. The board reads both, sends from
 \`${RESEND_SENDER_MAILBOX}@\` that domain, and posts over Resend's HTTPS API.
+
+**If Resend refuses the messages**, that domain is not verified yet. Resend
+will not send from a domain it has not verified, whoever set the address, so
+verify it from the Resend dashboard — the deploy cannot do that step for you,
+because it is Resend confirming you own the domain. This is the one thing here
+that can need attention, and it announces itself: the test button below says
+so rather than the board failing quietly.
 
 **To send from a different address**, set \`MAIL_FROM\` in the project's
 environment settings and redeploy. It must be at a domain Resend has verified,
-or Resend refuses the message. An address you set always wins over the derived
-one.
+for the same reason. An address you set always wins over the derived one.
 
 A board with the key but no verified domain — which is what you get if you
 remove the integration's \`RESEND_EMAIL_DOMAIN\` without putting a
@@ -1166,8 +1176,10 @@ it needs no adapter. Any provider with the same shape works: set
 \`MAIL_HTTP_ENDPOINT\`, \`MAIL_HTTP_TOKEN\` and \`MAIL_DRIVER=http\` in the
 project's environment settings, and set the first two **together** — either
 one on its own stands the Resend bridge down, so a key issued for Resend is
-never presented to an endpoint you chose. Only \`RESEND_API_KEY\` turns the
-driver on by itself. Delete it once you have moved off Resend.
+never presented to an endpoint you chose. Setting \`MAIL_DRIVER\` to anything
+but \`http\` stands the bridge down too, for the same reason: a board that
+moved to SMTP must not send through its new provider from Resend's domain.
+Delete \`RESEND_API_KEY\` once you have moved off Resend.
 
 Check it worked: sign in as the administrator and use the test button on
 **/admin → Settings → Mail**.
