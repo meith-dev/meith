@@ -146,6 +146,22 @@ export function unstyledClasses(html: string, css: string): string[] {
 }
 
 /**
+ * Classes that only `@meith/ui` and `@meith/theme-default` produce, and that
+ * the board's own app source never mentions — so a rule for each of them is
+ * proof Tailwind scanned the installed packages, which is the one thing that
+ * failed. `scripts/board-smoke-assets.test.ts` holds every entry to that
+ * claim against the real package sources, so the list cannot quietly rot into
+ * something a broken build would still satisfy.
+ */
+export const PACKAGE_WITNESS_CLASSES = [
+  'border-l-moderation-pending',
+  'border-l-moderation-approved',
+  'border-group-supermod/30',
+  'bg-thread-pinned/10',
+  'bg-post-unapproved/40',
+] as const
+
+/**
  * MEI-131: every `@source` in globals.css names a directory of the Meith
  * repository, and a scaffolded board has none of them — its copy of that code
  * is installed under `node_modules/@meith`. Tailwind does not fail on a source
@@ -153,8 +169,14 @@ export function unstyledClasses(html: string, css: string): string[] {
  * with the preflight in it and almost nothing else. The page answered 200,
  * rendered `<main>`, and every asset check here passed against it.
  *
- * Asking whether the stylesheet exists is what missed that. This asks whether
- * it styles the page actually being served.
+ * The witnesses decide this, rather than every class on the page, because
+ * plenty of classes in that markup are nobody's utility to emit: the markdown
+ * renderer writes `md-mention` and `md-quote-author`, a board with group
+ * colours writes `gname-<id>` and styles it from an inline `<style>` this
+ * never reads. Asserting over all of them fails a board that is built
+ * perfectly well, and a gate that cries wolf gets switched off. The unstyled
+ * classes are still worth printing when a witness is missing, so they come
+ * along as diagnosis rather than as the verdict.
  */
 export async function assertStylesResolve(baseUrl: string, html: string): Promise<void> {
   const hrefs = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(
@@ -174,13 +196,16 @@ export async function assertStylesResolve(baseUrl: string, html: string): Promis
     }),
   )
 
-  const unstyled = unstyledClasses(html, sheets.join('\n'))
+  const css = sheets.join('\n')
+  const missing = PACKAGE_WITNESS_CLASSES.filter((className) => !isDefined(css, className))
 
-  if (unstyled.length > 0) {
+  if (missing.length > 0) {
+    const unstyled = unstyledClasses(html, css)
     throw new Error(
-      `the board served ${hrefs.length} stylesheet(s) with no rule for ${unstyled.length} of the ` +
-        `classes it rendered, so Tailwind never scanned where that markup lives: ` +
-        `${unstyled.slice(0, 12).join(', ')}`,
+      `the board served ${hrefs.length} stylesheet(s) with no rule for ${missing.length} of the ` +
+        `classes only its installed packages produce, so Tailwind never scanned them: ` +
+        `${missing.join(', ')}. ${unstyled.length} of the classes the page rendered are ` +
+        `unstyled, starting with: ${unstyled.slice(0, 12).join(', ')}`,
     )
   }
 }
