@@ -155,10 +155,11 @@ tree**, right after `next build` finishes. `next.config.mjs` sets
 `output: 'standalone'` everywhere the board has to serve itself — which is
 everywhere except Vercel, where Vercel packages the build into its own
 functions and never runs `forum-web start`. Asking for standalone there
-breaks the build outright: standalone makes Vercel's builder read
-`.next/next-server.js.nft.json`, and Next skips the tracing that writes it
-whenever the bundler is Turbopack, which is the default for `next build` in
-Next 16. Next's own standalone output deliberately
+breaks the build outright: standalone makes Vercel's builder look for
+`.next/next-server.js.nft.json`, and on that deployment it was not there.
+Why it was missing was never established — a Turbopack build does write
+that file, as the tracing note below records — so treat the mechanism as
+open and the failure as observed. Next's own standalone output deliberately
 excludes both directories — they have to be copied in alongside the traced
 `server.js` for it to serve `/_next/static/*` and anything under `public/`
 (Next's bundled docs, under `node_modules/next/dist/docs`, say so under
@@ -213,6 +214,18 @@ worst place to learn it. The check reads both configs that carry the literal
 (`apps/community` and `apps/web`) and fails just as loudly if either stops
 carrying one at all. The second, unversioned glob beside it covers the hoisted
 layout npm installs, where no `.pnpm` directory exists for the first to match.
+
+**`outputFileTracingIncludes` is applied by Turbopack itself**, which is worth
+stating because the option is handled in `next/dist` only by
+`collectBuildTraces`, and `next build` skips that function entirely when the
+bundler is Turbopack — reading only that far suggests the glob above is dead
+code, and it is not. Turbopack emits the `.nft.json` files and applies the
+include globs on its own side. Measured on a Turbopack build of this app:
+`next-server.js.nft.json`, which the `'/**'` key does not cover, lists three
+`@swc/helpers` entries and none under `esm/`; a route's `.nft.json`, which it
+does cover, lists over a thousand including 324 under `esm/` and the package's
+`LICENSE` — a file no tracer would follow. Delete the glob on the theory that
+nothing reads it and self-hosted boards go back to failing at request time.
 
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The
