@@ -36,12 +36,11 @@
  * that Node's own idle-exit never clears, so the entry point below calls
  * `process.exit()` itself rather than trusting the event loop to empty.
  */
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import defaultEnMessages from '../themes/default/src/messages/en.json' with { type: 'json' }
 import { AT_ROOT_FLAG, AUTH_SECRET, bootAndCheck, TICK_SECRET } from './board-boot-check.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
