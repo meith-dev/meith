@@ -11,7 +11,7 @@ const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const HOOKS_FILE = 'packages/plugin-kit/src/hooks.ts'
 const PAYLOADS_FILE = 'packages/plugin-kit/src/payloads.ts'
 const REGIONS_FILE = 'packages/plugin-kit/src/regions.ts'
-const OUTPUT_FILE = 'docs/plugin-hooks.md'
+const OUTPUT_FILE = 'docs/reference/plugin-hooks.md'
 
 function cell(text) {
   return text.replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim()
@@ -178,7 +178,7 @@ function render({ hooks, signatures, regions, wired }) {
     'Every handler is called inside the host’s try/catch and is timed. Failures are',
     'counted in the database, so a plugin that fails repeatedly is switched off across',
     'the whole board and stays off until an operator clears the record. See',
-    '[`plugin-api.md`](./plugin-api.md) for the policy, the lifecycle and the limits.',
+    '[`plugins.md`](../customization/plugins.md) for the policy, the lifecycle and the limits.',
     '',
   )
 

@@ -10,7 +10,7 @@ const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const SLOTS_FILE = 'packages/theme-kit/src/slots.ts'
 const API_FILE = 'packages/theme-kit/src/api.ts'
 const MODELS_FILE = 'packages/theme-kit/src/view-models.ts'
-const OUTPUT_FILE = 'docs/theme-slots.md'
+const OUTPUT_FILE = 'docs/reference/theme-slots.md'
 
 function depthDelta(line) {
   let delta = 0
@@ -319,7 +319,7 @@ function render({ slots, freeze, models, slotModels }) {
       `${counts.provisional} provisional, ${counts.deprecated} deprecated.`,
     '',
     'What the marks mean, and how something is removed, is in',
-    '[`theme-api.md`](./theme-api.md). In short: a **stable** slot and the fields of its',
+    '[`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its',
     'model do not change before the next major; a **provisional** slot is named but not yet rendered',
     'by any page, so its model may change in a minor release; a **deprecated** slot still',
     'works and has a removal scheduled below.',

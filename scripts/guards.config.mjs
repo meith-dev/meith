@@ -326,7 +326,7 @@ export const GUARDS = [
       'page must keep no addresses at all, or one visitor reads the last one out ' +
       'of the admin log. A fresh truncateIp() call site is a column that fills up ' +
       'again on the demo and nowhere else, which no test on any other board can ' +
-      'see. docs/demo-mode.md carries the reasoning.',
+      'see. docs/guides/operations/demo-mode.md carries the reasoning.',
     files: /^apps\/community\/.*\.tsx?$/,
     pattern: /truncateIp\s*\(/,
     allow: /^(apps\/community\/src\/server\/request-fingerprint\.ts|.*\.test\.tsx?$)/,
@@ -352,7 +352,7 @@ export const GUARDS = [
       'may still import each other by relative path (community.config.ts pulls in ' +
       'community.plugins.ts, which pulls in community.demo.plugins.ts); that is the ' +
       "seam's own definition, not a caller reaching around it — see " +
-      'docs/architecture.md, "The board-config seam", and see docs/plugin-api.md for ' +
+      'docs/reference/architecture.md, "The board-config seam", and see docs/customization/plugins.md for ' +
       'why community.demo.plugins.ts exists at all.',
     files: /\.(ts|tsx)$/,
     pattern:

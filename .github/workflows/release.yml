@@ -1,4 +1,4 @@
-# The release act. Pushing a vX.Y.Z tag runs this; docs/release.md is the
+# The release act. Pushing a vX.Y.Z tag runs this; docs/contributing/release.md is the
 # narrative — what a release is, the version policy, and every step below in
 # prose. CI (ci.yml) remains the gate every change passes; this workflow only
 # ever runs on a commit that has already been through it.
@@ -147,7 +147,7 @@ jobs:
   # No token: npm trusted publishing exchanges this job's OIDC identity for a
   # short-lived credential, and provenance comes with it. Each package names
   # this repository and workflow as its trusted publisher on npmjs.com — see
-  # docs/release.md § What publishes to npm.
+  # docs/contributing/release.md § What publishes to npm.
   npm:
     name: Publish the packages
     needs: build
@@ -219,7 +219,7 @@ jobs:
   # image it builds `npm install`s @meith/web, @meith/cli and
   # @meith/theme-default straight from the real npm registry, so those three
   # have to already be there. On a release whose npm job skipped one of them
-  # as "new to the registry" (docs/release.md, "A package's first publish"),
+  # as "new to the registry" (docs/contributing/release.md, "A package's first publish"),
   # this job fails the same way and for the same reason — re-run the Release
   # workflow against the tag once the package is published by hand, exactly
   # as that document already describes for the rest of the pipeline.
@@ -292,7 +292,7 @@ jobs:
 
       # X.Y.Z never moves again and is what the compose file pins; X.Y and
       # latest are floating conveniences for trying the image, and nothing
-      # this repository ships deploys either — see docs/release.md.
+      # this repository ships deploys either — see docs/contributing/release.md.
       - name: Merge the architectures under the release tags
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -306,7 +306,7 @@ jobs:
       # The base image carries no floating tag: nothing pulls it by anything
       # but an exact version — a scaffolded board's Dockerfile always pins
       # the release it was scaffolded against, the same way it pins
-      # @meith/web itself. See docs/self-hosting.md, "Custom boards".
+      # @meith/web itself. See docs/getting-started/deployment/docker-compose.md, "Custom boards".
       - name: Merge the base image's architectures
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -337,7 +337,7 @@ jobs:
           \`\`\`
 
           **Migrations:** _fill in before publishing — none / adds only / removes or renames._
-          Patch releases carry no migrations; docs/upgrading.md is the operator's side of that promise.
+          Patch releases carry no migrations; docs/guides/operations/upgrading.md is the operator's side of that promise.
 
           ---
           EOF

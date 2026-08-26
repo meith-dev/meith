@@ -10,7 +10,7 @@ otherwise.
 Fixes ship as patch releases on the newest release line, which is the line we
 support. A board keeps itself safe by taking patches promptly — they never
 carry migrations, so applying one is a redeploy and nothing else
-([docs/upgrading.md](../docs/upgrading.md)).
+([docs/guides/operations/upgrading.md](../docs/guides/operations/upgrading.md)).
 
 Out of scope: reports against a board someone else operates (talk to its
 operator), spam that the built-in controls are configured to allow, and

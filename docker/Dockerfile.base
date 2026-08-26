@@ -3,7 +3,7 @@
 #
 # Published as ghcr.io/meith-dev/meith-base:X.Y.Z on every release, alongside
 # the board image (docker/Dockerfile) and the npm packages themselves — see
-# docs/release.md. It exists so a scaffolded board's own Dockerfile
+# docs/contributing/release.md. It exists so a scaffolded board's own Dockerfile
 # (packages/create-meith/src/scaffold.ts) is not a cold toolchain build every
 # time an operator adds a plugin: this image already carries `npm install`
 # for the exact @meith/web, @meith/cli and @meith/theme-default closure at
@@ -22,7 +22,7 @@
 FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS base
 WORKDIR /board
 
-# Stamped by the release workflow — see docs/release.md. Left at its default,
+# Stamped by the release workflow — see docs/contributing/release.md. Left at its default,
 # `npm install` below fails outright: no such version exists on the
 # registry, which is the point — nobody should pull an unpinned base image
 # into a real board, and a local `docker build` with no --build-arg should
@@ -42,7 +42,7 @@ LABEL org.opencontainers.image.title="Meith board base" \
 # see the `base-image` job's `needs: [build, npm]` in
 # .github/workflows/release.yml), so there is nothing this build needs from
 # outside itself. `create-meith`'s own scaffold assumes a hoisted
-# node_modules (docs/development.md, "Consuming the board from a
+# node_modules (docs/contributing/development.md, "Consuming the board from a
 # workspace") — npm's default — which is why this uses npm rather than pnpm,
 # matching the scaffold it primes.
 RUN cat > package.json <<JSON

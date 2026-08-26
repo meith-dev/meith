@@ -14,10 +14,10 @@
       "!**/drizzle",
       "!apps/*/public",
       "!templates",
-      "!docs/openapi.json",
-      "!docs/perf-indexes.json",
-      "!docs/perf-load.json",
-      "!docs/perf-results.json",
+      "!docs/reference/openapi.json",
+      "!docs/reference/perf-indexes.json",
+      "!docs/reference/perf-load.json",
+      "!docs/reference/perf-results.json",
       "!pnpm-lock.yaml"
     ]
   },

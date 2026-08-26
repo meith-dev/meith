@@ -265,7 +265,7 @@ describe('the admin notice', () => {
     const far = state({ recordedVersion: '1.0.0', codeVersion: '4.0.0' })
     const notice = upgradeNotice(planUpgrade(far), far)
     expect(notice).toContain('in stages')
-    expect(notice).toContain('docs/upgrading.md')
+    expect(notice).toContain('docs/guides/operations/upgrading.md')
   })
 
   it('names the tangled plugins', () => {

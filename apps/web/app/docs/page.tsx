@@ -7,7 +7,7 @@ import { docHref, documentsInSection, internalDocuments, sections } from '../../
 export const metadata: Metadata = {
   title: 'Documentation',
   description:
-    'Install, administer, operate, extend, or contribute to Meith with task-focused guides and generated references.',
+    'Get a board running, configure it in code, operate it, build themes and plugins, and read the generated references.',
   alternates: { canonical: '/docs' },
 }
 
@@ -30,8 +30,11 @@ export default function DocsIndexPage() {
             <p className="mt-1 text-micro text-fg-subtle text-pretty">{section.blurb}</p>
 
             <ul className="mt-5 flex flex-col border-t border-border">
-              {documentsInSection(section.id).map((doc) => (
+              {documentsInSection(section.id).map((doc, index, docs) => (
                 <li key={doc.slug} className="border-b border-border">
+                  {doc.group !== undefined && doc.group !== docs[index - 1]?.group ? (
+                    <p className="eyebrow pt-5 pb-1">{doc.group}</p>
+                  ) : null}
                   <Link href={docHref(doc.slug)} className="group row-link">
                     <span className="flex flex-wrap items-baseline gap-3">
                       <span className="text-mid text-fg transition-colors group-hover:text-accent">

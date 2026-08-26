@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * `forum-web` — the bin that makes `@meith/web` runnable as a plain
- * dependency of an external board workspace (see docs/development.md,
+ * dependency of an external board workspace (see docs/contributing/development.md,
  * "Consuming the board from a workspace").
  *
  * A Next.js app is not consumable as a bare dependency: `next dev|build|start`
  * need to run with the app's own directory as the project root, and the
  * board-config seam (`@board/config` / `@board/plugins`, see
- * docs/architecture.md) is a pair of tsconfig path aliases that inside this
+ * docs/reference/architecture.md) is a pair of tsconfig path aliases that inside this
  * monorepo point at `apps/community`'s own files. Neither survives npm
  * installing this package into somebody else's workspace unchanged.
  *
@@ -53,10 +53,10 @@
  * shipped file to compare a board's own against and nothing to tell one apart
  * from a stale one this bin wrote. Both are replaced without asking, so a
  * board cannot keep its own compiler options at the root of an `--at-root`
- * workspace. See docs/development.md, "Consuming the board from a workspace".
+ * workspace. See docs/contributing/development.md, "Consuming the board from a workspace".
  *
  * This assumes a *hoisted* `node_modules` (npm, yarn classic, or pnpm with
- * `node-linker=hoisted`) — see docs/development.md for why.
+ * `node-linker=hoisted`) — see docs/contributing/development.md for why.
  *
  * `boards/stock` (docker/Dockerfile) is this bin's one *in-repo* consumer,
  * and it has neither a hoisted `node_modules` nor a two-directories-up
@@ -147,7 +147,7 @@ function walkFiles(dir, prefix, into) {
  * this bin generates. Ownership is decided per file rather than per
  * top-level name so that a board can keep its own files inside a directory
  * the framework also writes into — `public/ads.txt` beside the shipped
- * `public/sw.js`. See docs/development.md, "Consuming the board from a
+ * `public/sw.js`. See docs/contributing/development.md, "Consuming the board from a
  * workspace".
  */
 function intendedRootFiles() {
@@ -297,7 +297,7 @@ function warnAboutStrayBoardFiles(intended) {
       'They are left exactly as they are. A scaffolded board gitignores these directories as ' +
       'a unit, though, so nothing above is committed, and a deploy that builds from the ' +
       'checkout will not see it. A board extends the forum through plugins and themes ' +
-      '(docs/plugin-api.md, docs/theme-api.md), not by adding files here.',
+      '(docs/customization/plugins.md, docs/customization/themes.md), not by adding files here.',
   )
 }
 
@@ -366,8 +366,8 @@ function rewriteGlobalsCssSourcePaths() {
  * (apps/community/next.config.mjs) is what lets Next compile the `.ts`
  * source that resolution lands on. A board built *inside* this monorepo's
  * own pnpm install has no such hoisting — packages here resolve each other
- * through tsconfig path aliases straight to source (docs/architecture.md,
- * "The board-config seam"; docs/development.md, "The workspace") rather than
+ * through tsconfig path aliases straight to source (docs/reference/architecture.md,
+ * "The board-config seam"; docs/contributing/development.md, "The workspace") rather than
  * through real `dependencies` entries, so plain node_modules resolution
  * finds nothing for most of them.
  *

@@ -275,6 +275,6 @@ describe('boardEject', () => {
     expect(message).toMatch(/could not write to .*: permission denied/)
     expect(message).toContain(target)
     expect(message).toContain('needs write access')
-    expect(message).toContain('docs/marketplace.md')
+    expect(message).toContain('docs/customization/marketplace.md')
   })
 })

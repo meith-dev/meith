@@ -54,7 +54,7 @@
     "version": {
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "The *listed package's* own version — not the repository's release version. This is the one place lockstep does not apply; see docs/marketplace.md."
+      "description": "The *listed package's* own version — not the repository's release version. This is the one place lockstep does not apply; see docs/customization/marketplace.md."
     },
     "apiVersion": {
       "type": "integer",
@@ -73,7 +73,7 @@
     "licence": {
       "type": "string",
       "minLength": 1,
-      "description": "The listed package's licence. Checked during review for being open and truthfully named, not by the generator — see docs/marketplace.md."
+      "description": "The listed package's licence. Checked during review for being open and truthfully named, not by the generator — see docs/customization/marketplace.md."
     }
   }
 }

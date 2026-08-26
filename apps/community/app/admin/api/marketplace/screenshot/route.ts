@@ -20,7 +20,7 @@ function fail(status: number, message: string): Response {
 /**
  * Streams one marketplace screenshot to the admin panel. The board fetches
  * it, not the browser — this is the "proxied" half of "screenshots proxied
- * or linked from the feed's own host only" (see docs/marketplace.md and the
+ * or linked from the feed's own host only" (see docs/customization/marketplace.md and the
  * MEI-80 issue). `key` and `index` are looked up against the currently
  * cached feed rather than trusted as a URL themselves, so nothing this route
  * fetches is ever chosen by the caller.

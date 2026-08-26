@@ -22,7 +22,7 @@ export interface FetchFeedOptions {
   readonly fetchImpl?: typeof fetch
 }
 
-/** See `docs/marketplace.md#outbound-fetches-do-not-follow-redirects`. */
+/** See `docs/customization/marketplace.md#outbound-fetches-do-not-follow-redirects`. */
 export async function readCappedBody(
   response: Response,
   maxBytes: number,
@@ -65,7 +65,7 @@ export async function readCappedBody(
 /**
  * Fetches and JSON-parses a marketplace feed. Never throws: an unreachable
  * host, a non-200 response (a redirect included — see
- * `docs/marketplace.md#outbound-fetches-do-not-follow-redirects`), an
+ * `docs/customization/marketplace.md#outbound-fetches-do-not-follow-redirects`), an
  * oversized body or invalid JSON are all reported as `{ ok: false, error }`
  * — the board with no outbound network is meant to fail quietly here, not
  * crash the task that called this.

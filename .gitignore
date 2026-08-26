@@ -38,7 +38,7 @@ coverage/
 # `forum-web`/`community` (apps/community/bin, apps/cli/bin) materialize their
 # app into `.meith/` inside whichever workspace invokes them — boards/stock,
 # or any board outside this repository. Rebuilt every run, never a merge
-# target. See docs/development.md, "Consuming the board from a workspace".
+# target. See docs/contributing/development.md, "Consuming the board from a workspace".
 .meith/
 
 # Test artefacts. `test-results/` is Playwright's per-run output (traces,

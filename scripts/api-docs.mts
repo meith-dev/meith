@@ -19,7 +19,7 @@ const endpoints = Object.values(document.paths).reduce(
 const scopes = Object.keys(document['x-scopes']).length
 
 await emitGeneratedDoc({
-  outputFile: 'docs/openapi.json',
+  outputFile: 'docs/reference/openapi.json',
   generated: `${JSON.stringify(document, null, 2)}\n`,
   staleReason:
     'The API registry changed and the OpenAPI document did not. Run `pnpm api:docs` and ' +
@@ -30,7 +30,7 @@ await emitGeneratedDoc({
 })
 
 await emitGeneratedDoc({
-  outputFile: 'docs/rest-api.md',
+  outputFile: 'docs/reference/api.md',
   generated: renderReference(document),
   staleReason:
     'The API registry changed and its reference did not. Run `pnpm api:docs` and commit ' +

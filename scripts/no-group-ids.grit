@@ -6,5 +6,5 @@ language js
     `primaryGroupId`
   },
   not $filename <: r".*/(?:packages/(?:authorization|groups|testkit|create-meith)/.*|packages/db/src/schema/.*|packages/db/src/(?:account-repos|actor-builder|admin-repo|ban-repos|promotion-repo|user-admin-repo)\.ts|packages/accounts/src/memory-repos\.ts|apps/(?:cli|worker)/.*|scripts/.*|apps/community/src/server/fixture-actor-source\.ts|apps/community/src/components/admin/user-forms\.tsx|apps/community/app/admin/users/\[id\]/page\.tsx|[^/]*\.test\.tsx?|[^/]*\.config\.(?:ts|mts|mjs|js|cjs))",
-  register_diagnostic(span=$property, message="Group IDs must not leak outside @meith/authorization. Ask the Authorizer `can(actor, action, target)` instead of branching on group membership. docs/development.md names the modules that carry a group id as data.", severity="error")
+  register_diagnostic(span=$property, message="Group IDs must not leak outside @meith/authorization. Ask the Authorizer `can(actor, action, target)` instead of branching on group membership. docs/contributing/development.md names the modules that carry a group id as data.", severity="error")
 }

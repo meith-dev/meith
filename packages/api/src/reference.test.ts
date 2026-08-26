@@ -37,7 +37,7 @@ describe('the generated reference', () => {
 
   it('points at the machine-readable document rather than being one', () => {
     expect(REFERENCE).toContain('/api/v1/openapi.json')
-    expect(REFERENCE).toContain('[`docs/openapi.json`](openapi.json)')
+    expect(REFERENCE).toContain('[`docs/reference/openapi.json`](openapi.json)')
   })
 
   it('quotes the budgets it is generated from', () => {

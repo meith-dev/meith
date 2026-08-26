@@ -93,7 +93,7 @@ export const finding = {
 
     if (!thread) {
       throw new Error(
-        `docs/performance.md no longer measures “${HEADLINE_SCENARIO}”, which the landing page ` +
+        `docs/reference/performance.md no longer measures “${HEADLINE_SCENARIO}”, which the landing page ` +
           'quotes. Name a scenario it does measure, here in src/content/site.ts.',
       )
     }
@@ -251,7 +251,7 @@ export const capabilities: readonly Capability[] = [
     body:
       'Plugins stay in their lane. One that misbehaves fails on its own, and the board ' +
       'carries on without it.',
-    doc: 'plugin-api',
+    doc: 'plugins',
     anchor: null,
     link: 'What plugins can do',
   },
@@ -327,7 +327,7 @@ export const openSource = {
     'The bill follows the machine, never the membership: two hundred members cost what twenty do.',
   links: [
     { label: 'Set one up', doc: 'quickstart' },
-    { label: 'Deploying by hand', doc: 'self-hosting' },
+    { label: 'Deploying by hand', doc: 'docker-compose' },
   ],
   licenceLink: 'Read the licence',
 } as const
@@ -358,9 +358,9 @@ export const extensible = {
     ]
   },
   links: [
-    { label: 'What plugins can do', doc: 'plugin-api' },
-    { label: 'How themes work', doc: 'theme-api' },
-    { label: 'The API and the CLI', doc: 'rest-api' },
+    { label: 'What plugins can do', doc: 'plugins' },
+    { label: 'How themes work', doc: 'themes' },
+    { label: 'The API and the CLI', doc: 'api' },
   ],
 } as const
 

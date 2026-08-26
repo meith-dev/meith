@@ -30,7 +30,7 @@ export const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 
 /**
  * A legal PLUGIN_KEY_PATTERN key does not guarantee toIdentifier(key) below produces a
- * valid TypeScript binding name. See docs/development.md, "The board plugin manifests".
+ * valid TypeScript binding name. See docs/contributing/development.md, "The board plugin manifests".
  */
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 

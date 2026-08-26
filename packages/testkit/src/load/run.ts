@@ -450,7 +450,7 @@ async function explainIndexes(db: Database, marks: Landmarks): Promise<number> {
   return 0
 }
 
-const INDEX_FILE = new URL('../../../../docs/perf-indexes.json', import.meta.url).pathname
+const INDEX_FILE = new URL('../../../../docs/reference/perf-indexes.json', import.meta.url).pathname
 
 function resultRowsOf(result: unknown): Record<string, unknown>[] {
   if (Array.isArray(result)) return result as Record<string, unknown>[]
@@ -711,9 +711,10 @@ async function main(): Promise<number> {
   return passed ? 0 : 1
 }
 
-const RESULTS_FILE = new URL('../../../../docs/perf-results.json', import.meta.url).pathname
+const RESULTS_FILE = new URL('../../../../docs/reference/perf-results.json', import.meta.url)
+  .pathname
 
-const LOAD_FILE = new URL('../../../../docs/perf-load.json', import.meta.url).pathname
+const LOAD_FILE = new URL('../../../../docs/reference/perf-load.json', import.meta.url).pathname
 
 function describeEnvironment(): Record<string, string | number> {
   return {

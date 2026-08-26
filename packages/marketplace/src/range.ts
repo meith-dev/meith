@@ -3,7 +3,7 @@
  *
  * `marketplace/schema.json` documents the range syntax but the generator
  * only checks that it *parses* — it is never evaluated against a real
- * version there (see docs/marketplace.md). This is that evaluation, written
+ * version there (see docs/customization/marketplace.md). This is that evaluation, written
  * for the first time here: comparators `>=`, `<=`, `>`, `<` or `=` (default
  * `=`) against a version of one to three numeric parts, space-separated to
  * mean AND.

@@ -2,7 +2,7 @@
  * The board's installed-plugin list.
  *
  * Inside the Meith monorepo this file is generated from board.plugins.json
- * by `pnpm board:gen` (see docs/plugin-api.md) — that generator is
+ * by `pnpm board:gen` (see docs/customization/plugins.md) — that generator is
  * repository tooling, not something this workspace carries, so this file
  * starts as a plain, valid file with the same shape instead. Add a plugin by
  * importing its `plugin`/`messages` exports and adding an entry:

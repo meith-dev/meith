@@ -15,7 +15,7 @@ async function pointFeedAt(page: import('@playwright/test').Page, url: string): 
 
 /**
  * Order matters in this file: the cached feed is one row shared by the whole
- * suite (see docs/development.md, "The suite shares one database"), so this
+ * suite (see docs/contributing/development.md, "The suite shares one database"), so this
  * "nothing fetched yet" case has to run before anything else here refreshes it.
  */
 test('a board that has never fetched says so plainly, with nothing to show yet', async ({

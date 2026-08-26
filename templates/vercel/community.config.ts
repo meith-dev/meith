@@ -9,7 +9,7 @@
  *
  * Adding a theme is: `npm install` it, add a line here, redeploy. Adding a
  * plugin is the same, through board.plugins.json and community.plugins.ts —
- * see docs/plugin-api.md.
+ * see docs/customization/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
 import {

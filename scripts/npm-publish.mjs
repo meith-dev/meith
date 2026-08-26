@@ -277,7 +277,7 @@ async function main() {
     console.log(
       `\n! the registry has never seen ${list}, so ${newToRegistry.length === 1 ? 'it was' : 'they were'} skipped: ` +
         'trusted publishing cannot create a package, and this workflow holds no token that could.\n' +
-        "  Publish by hand and add the trusted publisher — docs/release.md § A package's first publish — " +
+        "  Publish by hand and add the trusted publisher — docs/contributing/release.md § A package's first publish — " +
         'then re-run this workflow against the tag.',
     )
   }

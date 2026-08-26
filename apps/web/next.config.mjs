@@ -35,6 +35,17 @@ const nextConfig = {
       // stopped assuming every community is a club. The old URL had been
       // published for several releases, so it keeps working.
       { source: '/docs/committee-guide', destination: '/docs/organiser-guide', permanent: true },
+      // The developer-tool restructure renamed these pages. Each old URL had
+      // been published for several releases, so they keep working; the file
+      // moves that kept their slugs (operating, migrating, …) need nothing.
+      { source: '/docs/self-hosting', destination: '/docs/docker-compose', permanent: true },
+      { source: '/docs/theme-api', destination: '/docs/themes', permanent: true },
+      { source: '/docs/plugin-api', destination: '/docs/plugins', permanent: true },
+      { source: '/docs/rest-api', destination: '/docs/api', permanent: true },
+      // These two left the published set for the repository; Development is
+      // where the site still tells their story.
+      { source: '/docs/nextjs-conventions', destination: '/docs/development', permanent: true },
+      { source: '/docs/release', destination: '/docs/development', permanent: true },
     ]
   },
 

@@ -2882,7 +2882,7 @@
   "setting.reputation.min_posts_to_give.label": "Posts required before rating",
   "setting.search.enabled.description": "Off takes the Search link out of the board navigation, replaces /search and any results page still linked to with a line saying so, and answers GET /api/v1/search with a 403. The index is kept and goes on being maintained, so switching it back on needs no reindex.",
   "setting.search.enabled.label": "Enable search",
-  "setting.search.flood_seconds.description": "Minimum seconds between searches per user. Replaces the per-group searchfloodtime permission, which could not obey the numeric combination rule — see docs/mybb-parity.md.",
+  "setting.search.flood_seconds.description": "Minimum seconds between searches per user. Replaces the per-group searchfloodtime permission, which could not obey the numeric combination rule — see docs/reference/mybb-parity.md.",
   "setting.search.flood_seconds.label": "Search flood interval",
   "setting.search.min_word_length.description": "A search is refused unless at least one of its words is this long, so at 3 \"a good post\" runs and \"a b c\" does not. The short words are not dropped — they are still sent to the index, which drops the ones carrying no meaning on its own. Raise it if short words are what your expensive searches turn out to be.",
   "setting.search.min_word_length.label": "Shortest word a search may rest on",

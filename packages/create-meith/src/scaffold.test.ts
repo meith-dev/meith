@@ -160,7 +160,9 @@ describe('what the scaffold writes', () => {
     const readme = scaffold({ ...OPTIONS, repositoryUrl: 'https://example.test/board' }).get(
       'README.md',
     )!
-    expect(readme).toContain('https://example.test/board/blob/main/docs/self-hosting.md')
+    expect(readme).toContain(
+      'https://example.test/board/blob/main/docs/getting-started/deployment/docker-compose.md',
+    )
   })
 
   it('offers no serverless platform', () => {
@@ -240,7 +242,7 @@ describe('the deploy kit', () => {
     expect(dockerfile).toContain('npx forum-web build')
   })
 
-  /** See docs/self-hosting.md for why this Dockerfile scopes DATA_SOURCE to the RUN command. */
+  /** See docs/getting-started/deployment/docker-compose.md for why this Dockerfile scopes DATA_SOURCE to the RUN command. */
   it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
     expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
     expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
@@ -555,18 +557,18 @@ describe('the published bin, run the way npx actually runs it', () => {
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'package.json': 'fbe57f89349df4dee13155fdbe939e57ef35a551291762776be18d9acb6ab4b3',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
-  'community.config.ts': '85839fa4aa4490ba7f4f499fc8a10af8bcbe0934cf5dc44e5577ea3c76a446bc',
+  'community.config.ts': 'f12cfbee87a05c48116e57b005160ee0ebfb94366ea9a3f9cdbc20090795041f',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'community.plugins.ts': '4143635aeb85cd6a402f4e0a65748489676581c7505cbb24ed7b54bd39116a7d',
+  'community.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
   '.env.example': 'f697a7335c4240186230fdeda2b0e95f8480a4d2df6d852fab6c10894547a617',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: '4ca25de5a3412632bdb22ea9c7e0e135c4eec84710b656845b83b64b3f9d3992',
+  Dockerfile: '16fe04e3d029a061be06f85aee711fbf460f8aae79ebc80fe690deb148a9098f',
   'docker-entrypoint.sh': 'c54686c6239ce194747e898658e5811b58f52e5f95f6a45c3a6984957ff449a2',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/workflows/build.yml': 'd2ba5b4f04e76d8df51a39ef8daae352c7299a2b335e984ca2767615c20476d4',
-  'docker-compose.yml': '0b8550942309a84d5f559a7cbc5b148554989ca78e56213b1cb7211c2b737d9c',
-  'README.md': 'd4cf1a50cfa090c940ba5b167d8d139ae63c0c45c4ca4e3ff5fcbfe2a324042c',
+  'docker-compose.yml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
+  'README.md': '4642a56c1827d10abc8c79f0c8079c15d08dbbe8fe7c745615cbc2797fde4b1e',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

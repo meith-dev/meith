@@ -27,7 +27,7 @@ export const EMPTY_CACHE: CachedMarketplace = {
  * whether the notification itself has since been read, which a bare
  * `dedupeKey` on the notification service is not (its coalescing only holds
  * while a notification is unread — see packages/notifications). See
- * docs/marketplace.md for why the claim is a single atomic step rather than
+ * docs/customization/marketplace.md for why the claim is a single atomic step rather than
  * a check followed by a write.
  */
 export interface MarketplaceCacheRepository {

@@ -96,7 +96,7 @@ export interface MarketplaceListingRow {
    * True only for 'not-installed' on the stock image, where installSteps'
    * own `community plugin:add`/`community.config.ts` line cannot actually
    * run — the image is fixed at build time. Signposts
-   * docs/marketplace.md's "Moving to a custom board" walkthrough; never a
+   * docs/customization/marketplace.md's "Moving to a custom board" walkthrough; never a
    * claim this board can graduate itself.
    */
   readonly onStockImage: boolean
@@ -214,7 +214,7 @@ export async function marketplaceScreenshotUrl(key: string, index: number): Prom
 /**
  * Runs the same fetch, validate, cache, notify pass the daily task does — the
  * admin panel's "Refresh" button and the task call the exact same function,
- * per docs/marketplace.md.
+ * per docs/customization/marketplace.md.
  */
 export async function refreshMarketplaceNow(): Promise<{
   readonly ok: boolean

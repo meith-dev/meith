@@ -6,12 +6,12 @@ import { emitGeneratedDoc } from './generated-doc.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
 const BUDGETS_FILE = 'packages/testkit/src/load/budgets.ts'
-const RESULTS_FILE = 'docs/perf-results.json'
-const INDEX_FILE = 'docs/perf-indexes.json'
+const RESULTS_FILE = 'docs/reference/perf-results.json'
+const INDEX_FILE = 'docs/reference/perf-indexes.json'
 const PLANS_FILE = 'packages/testkit/src/load/index-plans.ts'
 const COHORTS_FILE = 'packages/testkit/src/load/cohorts.ts'
-const LOAD_FILE = 'docs/perf-load.json'
-const OUTPUT_FILE = 'docs/performance.md'
+const LOAD_FILE = 'docs/reference/perf-load.json'
+const OUTPUT_FILE = 'docs/reference/performance.md'
 
 function arrayLiteral(source, name, file) {
   const start = source.indexOf(`export const ${name}`)
@@ -307,7 +307,9 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
   out.push('')
   out.push('Every number here is measured on a **single-instance** board — one web')
   out.push('process with the per-process cache, no Redis. That is the stock topology')
-  out.push('and the honest baseline. A board [scaled out](./scaling.md) answers from a')
+  out.push(
+    'and the honest baseline. A board [scaled out](../guides/operations/scaling.md) answers from a',
+  )
   out.push('shared cache instead of an in-process map, so its numbers differ; measure')
   out.push('your own rather than reading these across.')
   out.push('')

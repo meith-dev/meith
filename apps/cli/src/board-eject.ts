@@ -40,7 +40,7 @@ function manifestPath(): string {
 
 /**
  * Duplicated from scripts/board-plugins.mjs's own PLUGIN_KEY_PATTERN, IDENTIFIER_PATTERN
- * and NPM_PACKAGE_NAME_PATTERN rather than imported — see docs/plugin-api.md, "The board
+ * and NPM_PACKAGE_NAME_PATTERN rather than imported — see docs/customization/plugins.md, "The board
  * plugin manifests" — and pinned to agree with it by board-eject.test.ts.
  */
 const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
@@ -165,7 +165,7 @@ interface EjectedPackageJson {
 
 /**
  * Every manifest entry's package pinned into the scaffolded package.json's
- * dependencies, at this exact running version — see docs/marketplace.md,
+ * dependencies, at this exact running version — see docs/customization/marketplace.md,
  * "1. Eject", for why never `latest`, and for the collision policy this
  * implements: a package scaffold() already pins is left exactly where it
  * is, never duplicated or reordered, because both pins are always this
@@ -231,7 +231,7 @@ function isFsPermissionError(error: unknown): error is NodeJS.ErrnoException {
 
 /**
  * Turns an EACCES/EPERM from the write loop below into this instead of a
- * bare Node stack trace — see docs/marketplace.md, "1. Eject", for the
+ * bare Node stack trace — see docs/customization/marketplace.md, "1. Eject", for the
  * bind-mount ownership rule this message is naming. Anything else passes
  * through unchanged.
  */
@@ -241,7 +241,7 @@ function translateWriteError(error: unknown, target: string, path: string): neve
       `board:eject could not write to ${path}: permission denied. The account running this ` +
         `command needs write access to ${target} — inside the official image that account is ` +
         'a fixed, non-root user, so a bind-mounted target directory has to already be owned by ' +
-        '(or writable by) that same account before eject runs. See docs/marketplace.md, ' +
+        '(or writable by) that same account before eject runs. See docs/customization/marketplace.md, ' +
         '"Moving to a custom board", for the exact invocation.',
     )
   }
@@ -309,7 +309,9 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   console.log('  # point Coolify at this repository and set MEITH_IMAGE to the pushed image')
   console.log('  # redeploy — same database, same uploads, same secrets, new image source')
   console.log('')
-  console.log('See docs/marketplace.md, "Moving to a custom board", for the full walkthrough.')
+  console.log(
+    'See docs/customization/marketplace.md, "Moving to a custom board", for the full walkthrough.',
+  )
 
   return 0
 }
