@@ -38,7 +38,12 @@ Three shipped themes are worth reading before you write one:
   (`Footer`) where its markup genuinely disagrees. It ships as reference
   code rather than registered;
   [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
-  walks through installing it or your copy of it.
+  walks through installing it or your copy of it. You do not have to copy it
+  by hand: `npx create-meith --theme my-theme` scaffolds a standalone
+  workspace whose source and passing tests are generated from this example
+  (`pnpm extension:gen` in this repository, so the two cannot drift), plus a
+  README that walks through registering it in a board and a pre-filled
+  marketplace `listing.json`.
 - **`themes/midnight` is a full replacement**: 22 slots overridden, the rest
   inherited, tables where the default theme has lists — and no change to any
   package to make it possible. What it inherits matters as much as what it

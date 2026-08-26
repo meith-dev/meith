@@ -384,6 +384,7 @@ if (process.argv.includes('--probe')) {
   for (const file of files) {
     const rel = relative(ROOT, file)
     if (rel.startsWith('packages/theme-kit/')) continue
+    if (rel === 'packages/create-meith/src/extension-templates.ts') continue
     if (/\.test\.tsx?$/.test(rel)) continue
 
     const source = await readFile(file, 'utf8')

@@ -120,6 +120,12 @@ share a module without one of them changing what it is.
 > a comment explaining its shape. It ships as reference code, not installed;
 > [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples)
 > walks through registering it or your copy of it.
+>
+> You do not have to copy it by hand: `npx create-meith --plugin my-plugin`
+> scaffolds a standalone workspace whose source and passing test are
+> generated from that example (`pnpm extension:gen` in this repository, so
+> the two cannot drift), plus a README that walks through running it inside
+> a board and a pre-filled marketplace `listing.json`.
 
 ### What a plugin can declare
 

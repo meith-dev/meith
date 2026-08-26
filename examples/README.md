@@ -11,6 +11,12 @@ of the product.
 | [`hello-plugin`](./hello-plugin) | `@meith/example-plugin-hello` | The smallest plugin that does something visible with each extension point: a `view.footer` filter, an `index.footer` region contribution, a setting, a migration, a task and an admin page. |
 | [`iris-theme`](./iris-theme) | `@meith/example-theme-iris` | The most common theme there is: the default board recoloured (one brand group of tokens, violet) plus a single slot override (`Footer`) where the markup genuinely disagrees. |
 
+They are also the source of `create-meith`'s extension scaffolds:
+`npx create-meith --plugin <name>` and `--theme <name>` emit these two,
+renamed, as standalone workspaces. The scaffold templates are generated from
+this directory by `pnpm extension:gen`, and `pnpm verify` fails when they
+drift, so editing an example is editing the scaffold.
+
 The policy documents are the place to start before copying either:
 [docs/customization/plugins.md](../docs/customization/plugins.md) and
 [docs/customization/themes.md](../docs/customization/themes.md). The generated references —

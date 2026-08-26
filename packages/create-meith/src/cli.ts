@@ -4,6 +4,12 @@ import { dirname, join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 
 import { DEFAULT_REPOSITORY_URL, nextSteps, scaffold, validateName } from './scaffold'
+import {
+  type ExtensionKind,
+  extensionNextSteps,
+  scaffoldExtension,
+  validateExtensionName,
+} from './scaffold-extension'
 
 const execFileAsync = promisify(execFile)
 
@@ -46,21 +52,37 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     return {
       code: 0,
       lines: [
-        'create-meith — scaffold a forum project.',
+        'create-meith — scaffold a forum project, a plugin or a theme.',
         '',
         '  npx create-meith <name> [--repo <url>] [--no-git]',
+        '  npx create-meith --plugin <name> [--repo <url>] [--no-git]',
+        '  npx create-meith --theme <name> [--repo <url>] [--no-git]',
         '',
-        'Writes package.json, community.config.ts, .env.example, .gitignore and',
-        'README.md into ./<name>, then tells you what to run.',
+        'The first form writes a deployable board into ./<name>, then tells you',
+        'what to run. --plugin and --theme write an extension workspace instead:',
+        'source and a passing test copied from the meith repository’s worked',
+        'examples, plus a README and a marketplace listing.json.',
         '',
         '--no-git skips initializing a git repository in the new directory.',
       ],
     }
   }
 
-  const invalid = validateName(name)
+  const wantsPlugin = argv.includes('--plugin')
+  const wantsTheme = argv.includes('--theme')
+  if (wantsPlugin && wantsTheme) {
+    return {
+      code: 1,
+      lines: ['create-meith: --plugin and --theme are two different scaffolds — pass one.'],
+    }
+  }
+  const kind: ExtensionKind | null = wantsPlugin ? 'plugin' : wantsTheme ? 'theme' : null
+  const usage =
+    kind === null ? 'Usage: npx create-meith <name>' : `Usage: npx create-meith --${kind} <name>`
+
+  const invalid = kind === null ? validateName(name) : validateExtensionName(name)
   if (invalid !== null) {
-    return { code: 1, lines: [`create-meith: ${invalid}`, '', 'Usage: npx create-meith <name>'] }
+    return { code: 1, lines: [`create-meith: ${invalid}`, '', usage] }
   }
 
   const repoIndex = argv.indexOf('--repo')
@@ -78,7 +100,14 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     }
   }
 
-  const files = scaffold({ name, version, repositoryUrl })
+  const files =
+    kind === null
+      ? scaffold({ name, version, repositoryUrl })
+      : scaffoldExtension(kind, {
+          name,
+          version,
+          repositoryUrl: repoIndex === -1 ? undefined : repositoryUrl,
+        })
   for (const [relative, contents] of files) {
     const path = join(target, relative)
     await mkdir(dirname(path), { recursive: true })
@@ -92,7 +121,7 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     lines: [
       `Created ${name} — ${files.size} files.`,
       '',
-      ...nextSteps(name).map((step) => `  ${step}`),
+      ...(kind === null ? nextSteps(name) : extensionNextSteps(name)).map((step) => `  ${step}`),
       '',
       ...(gitReady
         ? [
@@ -112,9 +141,16 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
             '  git push -u origin main',
           ]),
       '',
-      'Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy.',
-      'Something must run the tick every minute — the worker process, or',
-      '`community task:run`. Without it nothing catches up, and nothing errors.',
+      ...(kind === null
+        ? [
+            'Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy.',
+            'Something must run the tick every minute — the worker process, or',
+            '`community task:run`. Without it nothing catches up, and nothing errors.',
+          ]
+        : [
+            `Then follow README.md — it walks through running the ${kind} inside a`,
+            'scaffolded board and submitting it to the meith.dev marketplace.',
+          ]),
     ],
   }
 }
