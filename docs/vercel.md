@@ -521,6 +521,20 @@ then come back for the three things specific to this route:
   preflight names the value it is using. Check that line — a preview URL
   left in `APP_URL` is a board whose password-reset links point at a
   deployment that will not exist next week.
+- **The installer checks the schema rather than applying it.** Its first
+  step confirms every table the board needs is there and stops with the
+  names of any that are not; it never migrates. The build command already
+  did that — `community migrate && forum-web build --at-root` — and a
+  serverless function is the wrong place to try: several cold starts would
+  contend for the same migration lock, and the function timeout bounds how
+  long a migration is allowed to take. The step reads the table names out
+  of the schema definitions, which are ordinary imported code, because the
+  migration `.sql` files are not in the function at all: nothing imports
+  them, so nothing traces them in, and `outputFileTracingIncludes` cannot
+  put them back while `next build` defaults to Turbopack, for which Next
+  skips trace collection entirely. If that step does report missing tables,
+  run `community migrate` against the same database and reload — do not
+  reach for `MIGRATIONS_DIR`, which cannot help when the files are absent.
 - **The installer takes the same session-level advisory lock migrations
   do**, so it needs `DIRECT_DATABASE_URL` for the same reason. Run against
   a pooler, it can report itself permanently in flight.

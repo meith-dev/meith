@@ -314,7 +314,9 @@ function Outcome({ state, copy }: { state: InstallFormState; copy: Copy }) {
             <AlertTitle>
               {formatFromCopy(copy, 'install.outcome.didNotFinish', { title: failed.title })}
             </AlertTitle>{' '}
-            {fieldErrors.length > 0 ? fromCopy(copy, 'install.outcome.oneAnswer') : failed.error}
+            {fieldErrors.length > 0
+              ? fromCopy(copy, 'install.outcome.oneAnswer')
+              : fromCopy(copy, failed.error)}
           </>
         ) : (
           <AlertTitle>

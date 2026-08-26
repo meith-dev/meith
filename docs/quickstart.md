@@ -249,7 +249,12 @@ thing on this form that is harder to add later than now.
 Pressing Install runs five steps, listed beside the button under **What
 installing does**:
 
-1. **Apply migrations** — every table, index and seeded usergroup.
+1. **Check the schema** — confirms every table the board needs is already
+   there, and stops with the names of any that are not. It does not
+   migrate: the container entrypoint and the Vercel build command both do
+   that before the board serves anything, so by the time you reach this
+   form the work is done. If it does report missing tables, run
+   `community migrate` against the same database and reload.
 2. **Record the board's name and mail settings** — the only settings it
    writes.
 3. **Create the administrator** — your account.

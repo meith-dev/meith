@@ -16,10 +16,10 @@ import {
   isInstalled,
   markInstalled,
   migrationUrl,
+  missingTables,
   PostgresAdminRepository,
   PostgresForumRepository,
   PostgresSettingsRepository,
-  runMigrations,
   SEED_GROUP_KEY,
   withInstallLock,
 } from '@meith/db'
@@ -47,6 +47,7 @@ const INSTALLED_VERSION = '0.1.0'
 const INSTALL_IN_FLIGHT = 'install.raced.inFlight'
 
 const INSTALL_RACED = 'install.raced.sealed'
+const SCHEMA_INCOMPLETE = 'install.schema.missing'
 
 export async function gatherPreflight(): Promise<readonly Check[]> {
   const dataSource = env.DATA_SOURCE === 'postgres' ? 'postgres' : 'fixture'
@@ -164,7 +165,17 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
     }
   }
 
-  if (!(await step('migrate', async () => void (await runMigrations())))) return report
+  if (
+    !(await step('migrate', async () => {
+      const missing = await missingTables(db)
+      if (missing.length === 0) return
+
+      logger().error({ step: 'migrate', missing: missing.slice(0, 20) }, 'schema incomplete')
+      throw new Error(SCHEMA_INCOMPLETE)
+    }))
+  ) {
+    return report
+  }
 
   const settings = new PostgresSettingsRepository(db)
   if (
