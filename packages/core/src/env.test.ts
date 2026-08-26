@@ -409,6 +409,59 @@ describe('the sender, when the provider published the domain it verified', () =>
     expect(env.MAIL_FROM).toBeUndefined()
     expect(env.MAIL_DRIVER).toBe('log')
   })
+
+  it('refuses a domain that is not one, under the name the operator set', () => {
+    expect(() => parseEnv({ ...linked, RESEND_EMAIL_DOMAIN: 'https://mail.example.com' })).toThrow(
+      /RESEND_EMAIL_DOMAIN/,
+    )
+  })
+
+  it('names only that variable, not the sender nobody typed', () => {
+    try {
+      parseEnv({ ...linked, RESEND_EMAIL_DOMAIN: 'https://mail.example.com' })
+      expect.unreachable('a malformed domain must be refused')
+    } catch (error) {
+      expect((error as Error).message).not.toContain('MAIL_FROM')
+    }
+  })
+})
+
+/**
+ * The bridge owns one driver. A board that moved to another provider and left
+ * `RESEND_API_KEY` behind must not start sending through that provider with an
+ * envelope sender at Resend's domain, which it has not authorised — a silent
+ * wrong sender in place of a boot that names what is missing.
+ */
+describe('a board that moved off Resend without deleting the key', () => {
+  const movedOn = {
+    ...base,
+    DATA_SOURCE: 'postgres',
+    QUEUE_DRIVER: 'postgres',
+    RESEND_API_KEY: 're_abc123',
+    RESEND_EMAIL_DOMAIN: 'mail.example.com',
+    MAIL_DRIVER: 'smtp',
+    MAIL_SMTP_HOST: 'smtp.other.example',
+  } satisfies Record<string, string>
+
+  it('still refuses to boot without a sender, rather than inventing one', () => {
+    expect(() => parseEnv(movedOn)).toThrow(/MAIL_FROM/)
+  })
+
+  it('sends the new provider nothing that was issued for Resend', () => {
+    const env = parseEnv({ ...movedOn, MAIL_FROM: 'board@other.example' })
+
+    expect(env.MAIL_FROM).toBe('board@other.example')
+    expect(env.MAIL_HTTP_TOKEN).toBeUndefined()
+    expect(env.MAIL_HTTP_ENDPOINT).toBeUndefined()
+  })
+
+  it('still bridges when the driver it owns is the one that is set', () => {
+    const { MAIL_SMTP_HOST: _host, ...overHttp } = movedOn
+    const env = parseEnv({ ...overHttp, MAIL_DRIVER: 'http' })
+
+    expect(env.MAIL_FROM).toBe('noreply@mail.example.com')
+    expect(env.MAIL_HTTP_ENDPOINT).toBe('https://api.resend.com/emails')
+  })
 })
 
 describe('what the platform publishes, and what the board makes of it', () => {

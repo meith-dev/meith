@@ -4,6 +4,17 @@ import { MAX_TRUSTED_PROXY_HOPS } from './client-address'
 
 const nonEmpty = z.string().min(1)
 
+const MAIL_DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i
+
+/**
+ * A bare hostname, because the sender is built from it. The same test gates
+ * the derivation below, so an operator who pastes `https://mail.example.com`
+ * in here is refused under the name they actually set — deriving a sender
+ * from it first would refuse under `MAIL_FROM` as well, a variable they never
+ * set and cannot find in their settings.
+ */
+const mailDomain = z.string().regex(MAIL_DOMAIN)
+
 export const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails'
 export const RESEND_SENDER_MAILBOX = 'noreply'
 
@@ -98,7 +109,7 @@ const envSchema = z
     MAIL_HTTP_TOKEN: nonEmpty.optional(),
 
     RESEND_API_KEY: nonEmpty.optional(),
-    RESEND_EMAIL_DOMAIN: nonEmpty.optional(),
+    RESEND_EMAIL_DOMAIN: mailDomain.optional(),
 
     MAIL_SMTP_HOST: nonEmpty.optional(),
     MAIL_SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
@@ -421,11 +432,24 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
   const dataSource = source.DATA_SOURCE ?? (hasDb ? 'postgres' : 'fixture')
 
   const ownMailApi = source.MAIL_HTTP_ENDPOINT !== undefined || source.MAIL_HTTP_TOKEN !== undefined
-  const bridgedKey = ownMailApi ? undefined : source.RESEND_API_KEY
 
+  /**
+   * The bridge owns one driver, and stands down for any other. A board that
+   * moved to SMTP and left `RESEND_API_KEY` behind would otherwise send
+   * through its new provider with an envelope sender at Resend's domain,
+   * which that provider has not authorised — and it would do so silently,
+   * where naming the missing `MAIL_FROM` at boot is what happens today.
+   */
+  const bridgedDriver = source.MAIL_DRIVER === undefined || source.MAIL_DRIVER === 'http'
+  const bridgedKey = ownMailApi || !bridgedDriver ? undefined : source.RESEND_API_KEY
+
+  const bridgedDomain =
+    source.RESEND_EMAIL_DOMAIN !== undefined && MAIL_DOMAIN.test(source.RESEND_EMAIL_DOMAIN)
+      ? source.RESEND_EMAIL_DOMAIN
+      : undefined
   const bridgedSender =
-    bridgedKey !== undefined && source.RESEND_EMAIL_DOMAIN !== undefined
-      ? `${RESEND_SENDER_MAILBOX}@${source.RESEND_EMAIL_DOMAIN}`
+    bridgedKey !== undefined && bridgedDomain !== undefined
+      ? `${RESEND_SENDER_MAILBOX}@${bridgedDomain}`
       : undefined
   const mailFrom = source.MAIL_FROM ?? bridgedSender
 
