@@ -169,6 +169,50 @@ jobs:
       - run: pnpm --filter create-meith build
       - run: node scripts/npm-publish.mjs
 
+  # MEI-137: 0.21.0 was cut to fix a board that rendered raw message keys and
+  # had no CSS, and shipped with only the first of the two fixes — a stacked
+  # pull request merged into a base that had already merged, so its commits
+  # never reached main. Nothing noticed: main was green, the tag was cut, the
+  # packages published, and the release notes described a fix that was not in
+  # them. Every other gate in this repository looks at the repository. This one
+  # looks at what a user downloads: it scaffolds from the published
+  # create-meith, installs from the real registry, and boots the result at both
+  # materialization depths. It runs after npm for that reason and gates
+  # `publish`, so a broken artefact stops the release being announced even
+  # though it cannot stop it being published.
+  published-board:
+    name: A board built from the published packages boots
+    needs: npm
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: published_board_smoke
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Scaffold from the registry, build and boot at both depths
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/published_board_smoke
+        run: |
+          MEITH_VERSION="${GITHUB_REF_NAME#v}" pnpm published:board:smoke
+
   # MEI-77: the framework base image a scaffolded board's own Dockerfile
   # starts FROM (docker/Dockerfile.base) — deps + framework layers only, no
   # board, no secrets. Needs [build, npm] rather than just `versions`: the
@@ -229,7 +273,7 @@ jobs:
 
   publish:
     name: Tags, the release branch, and the draft notes
-    needs: [build, npm, base-image]
+    needs: [build, npm, base-image, published-board]
     runs-on: ubuntu-24.04
     steps:
       # Full history, not the default shallow clone: pushing over an existing

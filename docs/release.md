@@ -179,10 +179,28 @@ broken promise, which is why the workflow drafts rather than publishes.
      does if one of those three was skipped as new-to-the-registry; re-run
      the workflow once it is published by hand, same as everywhere else in
      this pipeline;
+   - **a board is scaffolded from the packages that were just published**,
+     installed from the real registry rather than from anything in this
+     tree, and booted at both materialization depths — the same three
+     assertions the workspace smoke makes, that it renders `<main>`, that
+     no message key reaches the page as text, and that the stylesheet
+     carries rules for classes only the installed packages produce;
    - the `release` branch is fast-forwarded to the tag — refused if the
      tag is not descended from it, which is the guard against tagging a
      side branch;
    - the GitHub Release is drafted.
+
+   **Why a check that runs after publishing is worth having.** 0.21.0 was
+   cut to fix a board that rendered raw message keys and shipped with only
+   one of the two fixes in it: a stacked pull request had merged into a base
+   that had already merged, so its commits never reached `main`. Nothing
+   noticed — `main` was green, the tag was coherent, the packages published,
+   and the notes described a fix that was not there. Every other gate in
+   this repository examines the repository; this one examines what a user
+   downloads. It cannot un-publish a bad version, and it is not meant to:
+   `publish` waits on it, so a broken artefact stops the release being
+   announced and tells you within minutes rather than after somebody
+   deploys it.
 4. **Finish the draft.** Fill in the migration line, trim the generated
    notes to what an operator needs, publish.
 

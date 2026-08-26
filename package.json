@@ -57,6 +57,7 @@
     "vercel-template:gen": "tsx scripts/vercel-template-gen.mts",
     "vercel-template:gen:check": "tsx scripts/vercel-template-gen.mts --check",
     "board:workspace:smoke": "tsx scripts/board-workspace-smoke.mts",
+    "published:board:smoke": "tsx scripts/published-board-smoke.mts",
     "board:deploy-kit:smoke": "tsx scripts/board-deploy-kit-smoke.mts",
     "board:eject:smoke": "tsx scripts/board-eject-smoke.mts",
     "perf": "tsx packages/testkit/src/load/run.ts",
