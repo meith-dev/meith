@@ -36,17 +36,12 @@
  * that Node's own idle-exit never clears, so the entry point below calls
  * `process.exit()` itself rather than trusting the event loop to empty.
  */
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import defaultEnMessages from '../themes/default/src/messages/en.json' with { type: 'json' }
-import {
-  assertBoardAssetsServe,
-  assertMessagesResolve,
-  assertStylesResolve,
-} from './board-smoke-assets.mts'
+import { AT_ROOT_FLAG, AUTH_SECRET, bootAndCheck, TICK_SECRET } from './board-boot-check.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -58,9 +53,6 @@ if (!DATABASE_URL) {
 
 const PORT = process.env.SMOKE_PORT ?? '3999'
 const AT_ROOT_PORT = process.env.SMOKE_AT_ROOT_PORT ?? String(Number(PORT) + 1)
-const AT_ROOT_FLAG = '--at-root'
-const AUTH_SECRET = 'smoke-test-auth-secret-32-bytes-min'
-const TICK_SECRET = 'smoke-test-tick-secret-32-bytes-min'
 
 function run(
   command: string,
@@ -133,79 +125,6 @@ async function pointAtTarballs(boardDir: string, tarballs: ReadonlyMap<string, s
   await writeFile(packageJsonPath, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
-async function waitForResponse(url: string, attempts: number): Promise<Response> {
-  let lastError: unknown
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      return await fetch(url)
-    } catch (error) {
-      lastError = error
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    }
-  }
-  throw new Error(`board-workspace-smoke: ${url} never answered: ${String(lastError)}`)
-}
-
-async function bootAndCheck(boardDir: string, port: string, atRoot: boolean) {
-  const label = atRoot ? 'at the project root' : 'at .meith/app'
-  const flag = atRoot ? [AT_ROOT_FLAG] : []
-
-  console.log(`== forum-web start ${label} ==`)
-  const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start', ...flag], {
-    cwd: boardDir,
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: {
-      ...process.env,
-      PORT: port,
-      DATABASE_URL,
-      DATA_SOURCE: 'postgres',
-      AUTH_SECRET,
-      TICK_SECRET,
-      APP_URL: `http://127.0.0.1:${port}`,
-    },
-  })
-  server.stdout?.on('data', (chunk) => process.stdout.write(chunk))
-  server.stderr?.on('data', (chunk) => process.stderr.write(chunk))
-
-  function stopServer() {
-    if (server.pid === undefined) return
-    try {
-      process.kill(-server.pid, 'SIGTERM')
-    } catch {}
-    setTimeout(() => {
-      if (server.pid === undefined) return
-      try {
-        process.kill(-server.pid, 'SIGKILL')
-      } catch {}
-    }, 5000).unref()
-  }
-
-  try {
-    console.log('== waiting for it to answer / ==')
-    const response = await waitForResponse(`http://127.0.0.1:${port}/`, 40)
-    if (!response.ok) {
-      throw new Error(`board-workspace-smoke: / answered ${response.status} (${label})`)
-    }
-    const body = await response.text()
-    if (!body.includes('<main')) {
-      throw new Error(`board-workspace-smoke: / answered but did not render <main> (${label})`)
-    }
-    assertMessagesResolve(body, Object.keys(defaultEnMessages))
-    console.log(`== the board materialized ${label} rendered / ==`)
-
-    console.log('== confirming static assets and /sw.js actually serve ==')
-    await assertBoardAssetsServe(`http://127.0.0.1:${port}`, body)
-    console.log('== static assets and /sw.js served correctly ==')
-
-    console.log('== confirming the stylesheet actually styles what rendered ==')
-    await assertStylesResolve(`http://127.0.0.1:${port}`, body)
-    console.log('== every class the board rendered has a rule ==')
-  } finally {
-    stopServer()
-  }
-}
-
 async function main() {
   const tarballDir = await mkdtemp(join(tmpdir(), 'board-workspace-smoke-tarballs-'))
   const scaffoldParent = await mkdtemp(join(tmpdir(), 'board-workspace-smoke-board-'))
@@ -264,7 +183,7 @@ async function main() {
       )
     }
 
-    await bootAndCheck(boardDir, PORT, false)
+    await bootAndCheck(boardDir, PORT, false, DATABASE_URL)
 
     console.log('== a second board, materialized the way Vercel deploys it ==')
     const atRootDir = await scaffoldBoard(scaffoldParent, 'smoke-board-at-root')
@@ -274,7 +193,7 @@ async function main() {
       cwd: atRootDir,
       env: { ...process.env, DATABASE_URL: '', DATA_SOURCE: '' },
     })
-    await bootAndCheck(atRootDir, AT_ROOT_PORT, true)
+    await bootAndCheck(atRootDir, AT_ROOT_PORT, true, DATABASE_URL)
   } finally {
     await rm(tarballDir, { recursive: true, force: true })
     await rm(scaffoldParent, { recursive: true, force: true })
