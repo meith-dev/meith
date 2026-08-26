@@ -93,7 +93,13 @@ export async function registerAction(_prev: FormState, form: FormData): Promise<
   const email = field(form, 'email')
   const password = field(form, 'password')
   const accepted = field(form, 'terms') !== ''
-  const values = { username, email, ...(accepted ? { terms: '1' } : {}) }
+  const announcements = field(form, 'announcements') !== ''
+  const values = {
+    username,
+    email,
+    ...(accepted ? { terms: '1' } : {}),
+    ...(announcements ? { announcements: '1' } : {}),
+  }
 
   const identity = await configuredIdentity()
 
@@ -141,6 +147,11 @@ export async function registerAction(_prev: FormState, form: FormData): Promise<
     )
 
     if (fields !== null) await fields.applyRegistration(result.account.id, fieldValues)
+
+    const { memberSettings } = getContainer()
+    if (announcements && memberSettings !== null) {
+      await memberSettings.saveMassMailOptIn({ userId: result.account.id, optIn: true })
+    }
 
     if (result.verificationToken !== undefined) {
       verification = {

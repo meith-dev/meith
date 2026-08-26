@@ -32,6 +32,7 @@ export interface MemberSettings {
   readonly website: string | null
   readonly bio: string | null
   readonly displayGroupId: number | null
+  readonly massMailOptInAt: Date | null
 }
 
 export interface MemberGroupChoice {
@@ -66,6 +67,8 @@ export interface MemberSettingsRepository {
     readonly threadsPerPage: number | null
     readonly invisible: boolean
   }): Promise<void>
+
+  saveMassMailOptIn(input: { readonly userId: number; readonly optIn: boolean }): Promise<void>
 
   adoptEmail(input: {
     readonly userId: number

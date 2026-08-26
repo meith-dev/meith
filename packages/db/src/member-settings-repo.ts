@@ -18,6 +18,7 @@ interface RawSettings {
   website: string | null
   bio: string | null
   display_group_id: number | null
+  mass_mail_opt_in_at: Date | string | null
 }
 
 interface RawGroupChoice {
@@ -34,7 +35,8 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     const rows = resultRows(
       await this.db.execute(sql`
         select id, email, timezone, locale, posts_per_page, threads_per_page,
-               invisible, location, website, bio, display_group_id
+               invisible, location, website, bio, display_group_id,
+               mass_mail_opt_in_at
           from users
          where id = ${userId} and state <> 'deleted'
       `),
@@ -55,6 +57,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       website: row.website,
       bio: row.bio,
       displayGroupId: row.display_group_id === null ? null : Number(row.display_group_id),
+      massMailOptInAt: row.mass_mail_opt_in_at === null ? null : new Date(row.mass_mail_opt_in_at),
     }
   }
 
@@ -130,6 +133,20 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
              invisible = ${input.invisible},
              updated_at = now()
        where id = ${input.userId}
+    `)
+  }
+
+  async saveMassMailOptIn(input: {
+    readonly userId: number
+    readonly optIn: boolean
+  }): Promise<void> {
+    const consent = input.optIn ? sql`coalesce(mass_mail_opt_in_at, now())` : sql`null`
+
+    await this.db.execute(sql`
+      update users
+         set mass_mail_opt_in_at = ${consent},
+             updated_at = now()
+       where id = ${input.userId} and state <> 'deleted'
     `)
   }
 

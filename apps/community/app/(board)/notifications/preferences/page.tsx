@@ -1,10 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { NotificationPreferencesForm } from '@/components/account/notification-forms'
+import {
+  AnnouncementsOptInForm,
+  NotificationPreferencesForm,
+} from '@/components/account/notification-forms'
 import { PushDeviceForm } from '@/components/account/push-device-form'
 import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
+import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { audiencesForActor } from '@/server/notification-audience'
@@ -34,6 +38,9 @@ export default async function NotificationPreferencesPage({
     await Promise.all(audiences.map((audience) => service.preferences(userId, audience)))
   ).flat()
 
+  const { memberSettings } = getContainer()
+  const settings = memberSettings === null ? null : await memberSettings.read(userId)
+
   const push = await pushAvailability()
   const view = buildPreferencesView(rows, await getTranslator())
   const notice = notificationNotice(query, await getTranslator())
@@ -60,6 +67,13 @@ export default async function NotificationPreferencesPage({
         push={push.enabled}
         copy={notificationFormsCopy(await getTranslator())}
       />
+
+      {settings !== null && (
+        <AnnouncementsOptInForm
+          optedIn={settings.massMailOptInAt !== null}
+          copy={notificationFormsCopy(await getTranslator())}
+        />
+      )}
     </PanelPage>
   )
 }

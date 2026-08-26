@@ -105,6 +105,24 @@ export function RegisterForm({
         </>
       )}
 
+      <label className="flex items-start gap-2 text-sm text-muted-foreground">
+        <input
+          type="checkbox"
+          name="announcements"
+          value="1"
+          defaultChecked={state.values?.announcements === '1'}
+          className="mt-0.5 size-4 rounded border-input accent-primary"
+        />
+        <span>
+          <span className="block text-foreground">
+            {fromCopy(copy, 'authForm.register.announcements')}
+          </span>
+          <span className="block text-xs">
+            {fromCopy(copy, 'authForm.register.announcementsHint')}
+          </span>
+        </span>
+      </label>
+
       {terms !== null && (
         <label className="flex items-start gap-2 text-sm text-muted-foreground">
           <input

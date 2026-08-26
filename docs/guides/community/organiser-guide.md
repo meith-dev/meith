@@ -233,10 +233,24 @@ dragging.
 
 **Admin → Users → Mass mail** (**`/admin/users/mail`**) sends an e-mail
 to everybody, or to one group — the Committee group from earlier, say.
-Either way it reaches only accounts that are active, not closed, and
-have a verified address, and the screen shows the size of each audience
-beside it, so the figure next to a group is how many messages choosing
-it will queue.
+Either way it reaches only accounts that are active, not closed, have a
+verified address **and have asked the board for its announcements**, and
+the screen shows the size of each audience beside it, so the figure next
+to a group is how many messages choosing it will queue.
+
+That last condition is the important one, and it is why a brand-new
+board's audience is nought. Nobody is enrolled by registering. A member
+asks for announcements by ticking the box on the registration form, or
+later on their own **Notifications → Preferences** screen; both start
+unticked, and the board records the date consent was given. Every
+message carries an unsubscribe link at its foot, so a member can stop
+them from the message itself, without signing in — and once they do,
+they are out of every campaign that follows, including one already half
+sent.
+
+So mass mail is the wrong tool for anything every member must see: it
+reaches the members who asked, not the membership. A pinned thread or an
+[announcement](#announcements) reaches everybody who visits.
 
 Mass mail is queued and delivered in the background, so it needs the
 board's mail working and its background worker running — if a mass mail
@@ -272,6 +286,12 @@ decide how people join:
 > registration settings screen warns loudly while this is true. If you
 > see that warning, mail is the thing to fix first — see
 > [Operations § Mail](../operations/operating.md#mail).
+
+The registration form also carries one optional, unticked box: whether
+the board may e-mail the new member its announcements. It is the consent
+[Mass mail](#mass-mail) runs on. Leaving it unticked costs the applicant
+nothing, and a member can change their mind either way at any time from
+**Notifications → Preferences**.
 
 Registration questions and the other anti-spam controls live at
 **Admin → Anti-spam**.

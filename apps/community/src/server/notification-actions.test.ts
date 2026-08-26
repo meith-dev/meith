@@ -34,6 +34,7 @@ vi.mock('./context', () => ({ getActor: async () => actorRef.current }))
 const {
   markAllNotificationsReadAction,
   markNotificationReadAction,
+  saveMassMailOptInAction,
   saveNotificationPreferencesAction,
 } = await import('./notification-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
@@ -139,7 +140,16 @@ class FakeNotifications implements NotificationRepository {
   }
 }
 
+class FakeMemberSettings {
+  readonly consent: Array<{ userId: number; optIn: boolean }> = []
+
+  async saveMassMailOptIn(input: { userId: number; optIn: boolean }) {
+    this.consent.push(input)
+  }
+}
+
 let notifications: FakeNotifications
+let memberSettings: FakeMemberSettings
 
 async function actorFor(groupId: number, userId: number | null): Promise<Actor> {
   const source = new InMemoryAuthorizationSource(SEED_BOARD)
@@ -175,8 +185,9 @@ async function run(
 
 beforeEach(async () => {
   notifications = new FakeNotifications()
+  memberSettings = new FakeMemberSettings()
   actorRef.current = await actorFor(SEED_GROUP.registered, 7)
-  installTestContainer({ container: { notifications } })
+  installTestContainer({ container: { notifications, memberSettings } })
 })
 
 describe('marking read', () => {
@@ -270,5 +281,36 @@ describe('saving preferences', () => {
   it('redirects back to the screen it came from', async () => {
     const result = await run(saveNotificationPreferencesAction, form([]))
     expect(result.redirectedTo).toBe('/notifications/preferences?saved=1')
+  })
+})
+
+describe('the announcements opt-in', () => {
+  it('records consent for the signed-in member, never for the id in the form', async () => {
+    const result = await run(
+      saveMassMailOptInAction,
+      form([
+        ['announcements', '1'],
+        ['userId', '1'],
+      ]),
+    )
+
+    expect(result.redirectedTo).toBe('/notifications/preferences?saved=announcements')
+    expect(memberSettings.consent).toEqual([{ userId: 7, optIn: true }])
+  })
+
+  it('reads an unticked box as consent withdrawn', async () => {
+    const result = await run(saveMassMailOptInAction, form([]))
+
+    expect(result.redirectedTo).toBe('/notifications/preferences?saved=announcements')
+    expect(memberSettings.consent).toEqual([{ userId: 7, optIn: false }])
+  })
+
+  it('refuses a visitor who is not signed in', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.guest, null)
+
+    const result = await run(saveMassMailOptInAction, form([['announcements', '1']]))
+
+    expect(result.error).toBeDefined()
+    expect(memberSettings.consent).toEqual([])
   })
 })

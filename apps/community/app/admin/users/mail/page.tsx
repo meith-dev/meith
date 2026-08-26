@@ -58,7 +58,7 @@ export default async function AdminMassMailPage() {
         <p>{await tr('page.before-press-it')}</p>
         <ul className="flex list-disc flex-col gap-1 pl-4">
           <li>{translator.t('adminUsers.massMailQueued')}</li>
-          <li>{translator.t('adminUsers.massMailNoUnsubscribe')}</li>
+          <li>{translator.t('adminUsers.massMailOptIn')}</li>
           <li>{translator.t('adminUsers.massMailContinues')}</li>
           <li>{await tr('page.email-cannot-be-unsent')}</li>
         </ul>

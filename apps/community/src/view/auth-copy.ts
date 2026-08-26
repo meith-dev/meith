@@ -34,6 +34,8 @@ export function registerFormCopy(
         'authForm.register.password',
         'authForm.register.honeypot',
         'authForm.register.challengeHint',
+        'authForm.register.announcements',
+        'authForm.register.announcementsHint',
         'authForm.register.submit',
       ],
       t,

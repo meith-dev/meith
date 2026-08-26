@@ -110,6 +110,7 @@ export const users = pgTable(
 
     lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    massMailOptInAt: timestamp('mass_mail_opt_in_at', { withTimezone: true }),
 
     suspendedPostingUntil: timestamp('suspended_posting_until', { withTimezone: true }),
     moderatedPostingUntil: timestamp('moderated_posting_until', { withTimezone: true }),
@@ -141,6 +142,7 @@ export const users = pgTable(
     index('users_signature_render_version_idx')
       .on(t.signatureRenderVersion, t.id)
       .where(sql`${t.signature} <> ''`),
+    index('users_mass_mail_opt_in_idx').on(t.id).where(sql`${t.massMailOptInAt} is not null`),
   ],
 )
 

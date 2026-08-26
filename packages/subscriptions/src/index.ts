@@ -27,6 +27,7 @@ export {
   mintUnsubscribeToken,
   readUnsubscribeToken,
   type UnsubscribeClaim,
+  type UnsubscribeScope,
 } from './tokens'
 export type {
   PendingForUser,

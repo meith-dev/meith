@@ -937,6 +937,30 @@ notifications stopped.
 **Cost.** One extra click for somebody who genuinely wants out. The page
 needs no login and no JavaScript.
 
+### Mass mail is opt-in, and carries an unsubscribe link
+
+**MyBB:** a new account has *Receive e-mails from board administrators*
+switched on. Mass mail goes to everybody who has not found the setting
+and turned it off, and the message itself carries no way out.
+
+**Meith:** no account is in the mass-mail audience until the member asks
+to be. The registration form offers an unticked box, the member's
+notification preferences hold the same switch, and the board stores the
+moment consent was given. Every message carries an unsubscribe link that
+needs no login, and a member who uses it drops out of every campaign
+that follows — including one already half sent, because each batch
+re-reads the audience.
+
+**Why.** Consent that is assumed at registration is not consent, and a
+bulk message with no way out is not one either. Both are conditions of
+the GDPR, and neither can be bolted on by an administrator remembering
+to be careful.
+
+**Cost.** An imported board arrives with a mass-mail audience of nought:
+MyBB's `allownotices` is an opt-out, so importing it as consent would be
+recording an answer nobody gave. Members opt in from the board, or by
+one deliberate backfill the operator can defend.
+
 ### Unsubscribing from a digest does not delete subscriptions
 
 **Meith:** the digest's unsubscribe link switches subscription **e-mail**

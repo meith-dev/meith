@@ -7,6 +7,7 @@ import { msg } from '@meith/i18n'
 import type { NotificationService } from '@meith/notifications'
 
 import type { FormState } from './auth-form-state'
+import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { positiveInt } from './form-values'
@@ -60,6 +61,30 @@ export async function markAllNotificationsReadAction(
   }
 
   redirect('/notifications?read=all')
+}
+
+export async function saveMassMailOptInAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
+
+    const { memberSettings } = getContainer()
+    if (memberSettings === null) {
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-9'))
+    }
+
+    await memberSettings.saveMassMailOptIn({
+      userId: actor.userId,
+      optIn: form.get('announcements') !== null,
+    })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/notifications/preferences?saved=announcements')
 }
 
 export async function saveNotificationPreferencesAction(
