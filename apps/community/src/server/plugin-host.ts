@@ -14,6 +14,7 @@ import {
   PluginHost,
 } from '@meith/plugin-kit'
 
+import { runtimeContextFor } from './plugin-runtime'
 import { getSettingOverrides } from './settings'
 
 const HEALTH_TTL_SECONDS = 30
@@ -47,9 +48,23 @@ export function activeDefinitions(): readonly PluginDefinition[] {
     .map((entry) => entry.plugin as PluginDefinition)
 }
 
+async function hookRuntimeContext(pluginKey: string) {
+  const definition = activeDefinitions().find((candidate) => candidate.key === pluginKey)
+  if (definition === undefined) {
+    throw new Error(`plugin "${pluginKey}" is not installed on this board.`)
+  }
+  return runtimeContextFor(
+    pluginKey,
+    definition,
+    await getSettingOverrides(),
+    logger({ component: 'plugin-hook', plugin: pluginKey }),
+  )
+}
+
 export const pluginHost = new PluginHost({
   plugins: activeDefinitions(),
   failureThreshold: FAILURE_THRESHOLD,
+  runtime: hookRuntimeContext,
   logger: {
     warn: (message, detail) => logger().warn(detail, message),
     error: (message, detail) => logger().error(detail, message),

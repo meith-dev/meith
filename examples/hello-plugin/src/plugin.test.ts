@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FilterHandler } from '@meith/plugin-kit'
+import { type FilterHandler, unavailableHookRuntime } from '@meith/plugin-kit'
 
 import { helloPlugin } from './plugin'
 
@@ -18,7 +18,11 @@ describe('the hello plugin', () => {
       timezoneLabel: 'Europe/Dublin',
     }
 
-    const filtered = filter(footer, { userId: null, isGuest: true, requestId: null })
+    const filtered = filter(
+      footer,
+      { userId: null, isGuest: true, requestId: null },
+      unavailableHookRuntime('this test drives the filter directly'),
+    )
 
     expect(filtered).toMatchObject({
       boardTitle: 'A board',

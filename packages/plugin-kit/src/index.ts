@@ -17,6 +17,7 @@ export {
   type PluginHealthSink,
   PluginHost,
   type PluginHostOptions,
+  type PluginRuntimeProvider,
 } from './host'
 export {
   type PluginNavigationPlacement,
@@ -44,6 +45,7 @@ export {
   type FilterHandler,
   type HookHandler,
   type HookRegistration,
+  type HookRuntime,
   MAX_ROUTE_BODY_BYTES,
   type PluginAdminPage,
   type PluginAdminPageContext,
@@ -76,6 +78,8 @@ export {
   pluginSettingKey,
   pluginTablePrefix,
   pluginTaskId,
+  unavailableHookRuntime,
+  unavailablePluginRuntime,
 } from './plugin'
 export {
   createRouteRateLimiter,

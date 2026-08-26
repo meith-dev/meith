@@ -9,15 +9,17 @@ import en from './messages/en.json'
 
 export const RECORDED: {
   hooks: { name: string; value: unknown }[]
+  hookRuntimes: { hook: string; settings: readonly string[] }[]
   regions: PluginRegion[]
   lifecycle: string[]
   tasks: string[]
   routes: { path: string; method: string }[]
   pages: string[]
-} = { hooks: [], regions: [], lifecycle: [], tasks: [], routes: [], pages: [] }
+} = { hooks: [], hookRuntimes: [], regions: [], lifecycle: [], tasks: [], routes: [], pages: [] }
 
 export function resetRecorder(): void {
   RECORDED.hooks = []
+  RECORDED.hookRuntimes = []
   RECORDED.regions = []
   RECORDED.lifecycle = []
   RECORDED.tasks = []
@@ -404,8 +406,12 @@ export const referencePlugin = definePlugin({
     'thread.created': (value) => {
       record('thread.created', value)
     },
-    'post.created': (value) => {
+    'post.created': async (value, _context, runtime) => {
       record('post.created', value)
+      RECORDED.hookRuntimes.push({
+        hook: 'post.created',
+        settings: Object.keys((await runtime()).settings).sort(),
+      })
     },
     'post.edited': (value) => {
       record('post.edited', value)
