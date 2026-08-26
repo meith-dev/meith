@@ -29,3 +29,35 @@ export async function assertBoardAssetsServe(baseUrl: string, html: string): Pro
     throw new Error(`board-smoke: ${swUrl} answered ${swResponse.status}`)
   }
 }
+
+/**
+ * MEI-131: a board whose theme catalog was never registered still renders
+ * `<main>`, still serves every asset, and still answers 200 — it just prints
+ * `default.latestThreads.heading` where the heading belongs. Every smoke here
+ * passed against exactly that board.
+ *
+ * The keys are read from the theme's own catalog rather than sniffed out of
+ * the HTML by shape, because the shapes overlap: `community.config.ts` and
+ * `meith-final.vercel.app` are dotted lowercase runs too, and a gate that
+ * fails on the deployment's own hostname would be turned off within a week.
+ * Matching against the real key set has no false positives by construction.
+ */
+export function unresolvedMessageKeys(html: string, keys: Iterable<string>): string[] {
+  const found = new Set<string>()
+
+  for (const key of keys) {
+    if (html.includes(`>${key}<`)) found.add(key)
+  }
+
+  return [...found].sort()
+}
+
+export function assertMessagesResolve(html: string, keys: Iterable<string>): void {
+  const unresolved = unresolvedMessageKeys(html, keys)
+
+  if (unresolved.length > 0) {
+    throw new Error(
+      `the board rendered ${unresolved.length} message key(s) instead of their text, so a catalog is not registered: ${unresolved.slice(0, 8).join(', ')}`,
+    )
+  }
+}

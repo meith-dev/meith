@@ -35,6 +35,8 @@ export const TICK_PATH = '/api/system/tick'
 
 export const TICK_SCHEDULE = '0 3 * * *'
 
+export const RESEND_SENDER_MAILBOX = 'noreply'
+
 export const MATERIALIZED_PUBLIC = [
   'placeholder-logo.png',
   'placeholder-logo.svg',
@@ -469,6 +471,7 @@ import { defineForumConfig } from '@meith/web/config'
 import {
   BROWSER_THEME_COLOR,
   DARK_TOKENS,
+  defaultMessages,
   defaultTheme,
   LIGHT_TOKENS,
 } from '@meith/theme-default'
@@ -483,6 +486,7 @@ export default defineForumConfig({
       tokens: { light: LIGHT_TOKENS, dark: DARK_TOKENS },
       browserThemeColor: BROWSER_THEME_COLOR,
       theme: defaultTheme,
+      messages: defaultMessages,
     },
   },
   defaultTheme: 'default',
@@ -1083,10 +1087,9 @@ A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
   the project root so the artefact lands where Vercel reads it, and the cron
   entry that drives the tick.
 
-**Mail needs one thing after the deploy**: the address the board sends from.
-It has to be at a domain Resend has verified, and no form can ask for that
-before the account exists — see *Mail, after the deploy* below. The board boots
-and runs without it, and delivers nothing, silently, until it is done.
+**Mail needs nothing after the deploy.** Resend publishes both its key and the
+domain it verified, and the board sends from \`${RESEND_SENDER_MAILBOX}@\` that
+domain — see *Mail* below to send from a different address.
 
 ## What to type into the deploy form
 
@@ -1137,22 +1140,24 @@ Vercel* below for why that matters — set \`FILESTORE_DRIVER=s3\` and add
 project's environment settings, with \`S3_ENDPOINT\` for a bucket that is not AWS
 (\`S3_REGION=auto\` for R2). The same board runs either way.
 
-## Mail, after the deploy
+## Mail
 
-A board that cannot send mail cannot reset a password, so do this before you
-invite anybody. The deploy form already added Resend and published its key; two
-steps remain, and neither could have been answered on the form.
+**There is nothing to do.** The Resend the deploy form added publishes two
+names into the project: \`RESEND_API_KEY\`, and \`RESEND_EMAIL_DOMAIN\` — the
+domain it verified for you. The board reads both, sends from
+\`${RESEND_SENDER_MAILBOX}@\` that domain, and posts over Resend's HTTPS API.
 
-1. Verify your sending domain in the Resend dashboard if you have not already.
-   Resend refuses to send from an address at a domain it has not verified.
-2. Add \`MAIL_FROM\` to the project's environment settings — an address at that
-   verified domain, and the only mail value you ever type.
-3. Redeploy, or let the next push redeploy.
+**To send from a different address**, set \`MAIL_FROM\` in the project's
+environment settings and redeploy. It must be at a domain Resend has verified,
+or Resend refuses the message. An address you set always wins over the derived
+one.
 
-That is all. The integration published its key into the project as
-\`RESEND_API_KEY\` when you deployed, and the board reads that name: with it set,
-and \`MAIL_FROM\` beside it, mail sends over Resend's HTTPS API with nothing
-further to configure.
+A board with the key but no verified domain — which is what you get if you
+remove the integration's \`RESEND_EMAIL_DOMAIN\` without putting a
+\`MAIL_FROM\` in its place — does not guess a sender. It stays on the log
+driver and delivers nothing, which is the honest outcome: a guessed sender at
+an unverified domain would be refused by Resend anyway, one message at a
+time.
 
 The board is not tied to Resend. Its mail driver is a plain JSON-over-HTTPS
 sender that posts \`{from, to, subject, text, html, reply_to}\` with a bearer
