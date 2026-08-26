@@ -62,7 +62,9 @@
     "board:eject:smoke": "tsx scripts/board-eject-smoke.mts",
     "perf": "tsx packages/testkit/src/load/run.ts",
     "perf:docs": "node scripts/perf-docs.mjs",
-    "perf:docs:check": "node scripts/perf-docs.mjs --check"
+    "perf:docs:check": "node scripts/perf-docs.mjs --check",
+    "prepare": "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
+    "comments:check": "node scripts/comment-check.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",

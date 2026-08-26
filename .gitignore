@@ -55,4 +55,12 @@ test-results/
 # Common ignores
 node_modules
 .DS_Store
-.claude/
+
+# Claude Code's per-repository directory. `.claude/*` rather than `.claude/`,
+# because git cannot re-include a file whose parent directory is excluded — and
+# settings.json and hooks/ are the guardrails every session in this repository
+# loads, so they have to be tracked. Worktrees and personal overrides are not.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/settings.local.json

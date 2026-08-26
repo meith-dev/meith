@@ -1,0 +1,5 @@
+#!/bin/sh
+# Rejects a commit that adds an inline code comment. AGENTS.md carries the rule;
+# docs/contributing/development.md, "No inline comments", explains this hook.
+# Bypass for a commit that genuinely needs one with `git commit --no-verify`.
+exec node scripts/comment-check.mjs --staged
