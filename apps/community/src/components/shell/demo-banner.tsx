@@ -2,14 +2,6 @@ import { demoBannerModel } from '@/server/demo'
 import { getTranslator } from '@/server/i18n'
 import { splitAround } from '@/view/copy'
 
-/**
- * The strip at the top of a demo board.
- *
- * Rendered from the root layout rather than through a theme slot, on purpose:
- * the slot contract is frozen, and a visiting administrator can switch themes.
- * A banner a theme could decline to render is a banner that stops telling the
- * next visitor how to log in, on the first theme that has not heard of it.
- */
 export async function DemoBanner() {
   const banner = await demoBannerModel()
   if (banner === null) return null

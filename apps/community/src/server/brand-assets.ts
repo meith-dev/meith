@@ -89,15 +89,11 @@ export async function loadBrandInfo(): Promise<BrandInfo> {
     const settings = await getSettings()
     title = settings.get('board.name').trim() || BOARD_TITLE
     description = settings.get('board.description').trim()
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   try {
     tokens = (await getBoardThemeStyle()).defaultTokens
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   return {
     title,

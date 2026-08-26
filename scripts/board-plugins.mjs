@@ -1,44 +1,14 @@
 #!/usr/bin/env node
-/**
- * The board.plugins.json manifest: what a valid entry looks like, and the
- * community.plugins.ts it compiles down to. `scripts/board-plugins-gen.mjs`
- * is the only caller — `community plugin:add`/`plugin:remove`
- * (apps/cli/src/plugin-manifest.ts) edit the manifest and then run that
- * generator as a subprocess rather than importing this file, because a
- * plain script here and a workspace TypeScript package cannot share a
- * module without one of them changing what it is. Either way there is one
- * place these rules are written down.
- *
- * Nothing in this file has a top-level effect — every export is a function
- * that touches only what its arguments name — so it can be imported from a
- * test (tests/board-plugins-gen.test.ts) without generating anything for real.
- */
 
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-/**
- * Mirrors KEY_PATTERN in packages/plugin-kit/src/plugin.ts. definePlugin() is the real
- * authority — a manifest key that does not match the plugin's own declared key fails
- * loudly in defineForumConfig() — this copy exists so a bad manifest fails before a
- * build does, with a message that names board.plugins.json instead of a file the
- * operator never opened.
- */
 export const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 
-/**
- * A legal PLUGIN_KEY_PATTERN key does not guarantee toIdentifier(key) below produces a
- * valid TypeScript binding name. See docs/contributing/development.md, "The board plugin manifests".
- */
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 
-/**
- * Narrower than the full npm registry grammar (scopes, dots, tildes) — this only needs
- * to keep entry.package from becoming anything other than an import specifier once
- * renderPluginsModule interpolates it.
- */
 const NPM_PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
 
 export const HEADER = `// GENERATED FILE — do not edit.
@@ -52,21 +22,6 @@ export const HEADER = `// GENERATED FILE — do not edit.
  * @typedef {{ readonly key: string, readonly package: string, readonly enabled?: boolean }} ManifestEntry
  */
 
-/**
- * Refuses a manifest that cannot become a working community.plugins.ts.
- * Throws a plain Error with an actionable message and does not touch the
- * filesystem — the caller decides what "apps/community" means and how to
- * spell the fix.
- *
- * @param {readonly ManifestEntry[]} plugins
- * @param {ReadonlySet<string>} dependencies the board package's own "dependencies" keys
- * @param {string} manifestFile the manifest's path, as named in the error (e.g.
- *   "apps/community/board.plugins.json")
- * @param {{ readonly packageLabel?: string, readonly filterName?: string }} [options]
- *   packageLabel: the board package's directory, named in the "is not a dependency of …"
- *   message (default "apps/community"). filterName: the `--filter` target named in the
- *   fix it suggests (default "@meith/web").
- */
 export function validateManifest(plugins, dependencies, manifestFile, options = {}) {
   const { packageLabel = 'apps/community', filterName = '@meith/web' } = options
   const seen = new Set()
@@ -140,19 +95,6 @@ export function toIdentifier(key) {
   return key.replace(/-([a-z0-9])/g, (_match, char) => char.toUpperCase())
 }
 
-/**
- * The generated community.plugins.ts, before formatting — the caller runs
- * it through Biome so the file on disk matches what `pnpm format` would do
- * to it anyway, rather than this function trying to guess Biome's style.
- *
- * Each entry imports its package's `plugin` and `messages` exports — the
- * convention a manifest-installable package satisfies: a ready
- * `PluginDefinition` built with no arguments (its own configuration lives
- * in settings, the way MEI-74 moved plugins/dues's plans there) and its
- * message catalog, `{}` if it ships no text of its own.
- *
- * @param {readonly ManifestEntry[]} plugins
- */
 export function renderPluginsModule(plugins) {
   const importLines = plugins.map((entry) => {
     const name = toIdentifier(entry.key)
@@ -186,17 +128,6 @@ export function installedPluginDefinitions(): readonly PluginDefinition[] {
 `
 }
 
-/**
- * Formats TypeScript source through the project's actual Biome config, on a
- * throwaway file outside the repository — never one the caller names — so
- * this never writes anything a `--check` run, or a test, did not ask for.
- * `--config-path` is explicit rather than relied on being found by walking
- * up from the temp file (which a system tmpdir is not a descendant of) or
- * from the process's own cwd (which a caller should not have to match).
- *
- * @param {string} source
- * @param {{ readonly root: string }} options root: the repository root, i.e. where biome.json lives
- */
 export async function formatWithBiome(source, options) {
   const dir = await mkdtemp(join(tmpdir(), 'board-plugins-'))
   const file = join(dir, 'community.plugins.ts')

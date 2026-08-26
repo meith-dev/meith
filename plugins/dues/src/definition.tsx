@@ -41,20 +41,9 @@ import { runReconcile, runSweep } from './tasks'
 import { CodesPage, LedgerPage, MembersPage, PlansAdminPage, StatusPage } from './ui/admin'
 import { GoPage, ManagePage, PlansPage, ReturnPage } from './ui/pages'
 
-/**
- * The code-configured path: still takes constructor arguments, for a board
- * that registers Dues directly in `community.plugins.ts` rather than
- * through a marketplace install. `dues`, below, is this called with none —
- * the zero-argument export a marketplace install actually uses.
- */
 export function createDues(input: DuesConfigInput = {}): PluginDefinition {
   const staticConfig = parseDuesConfig(input)
 
-  /**
-   * Resolved fresh per call: `currency` and `graceDays` are settings, so a
-   * request made after an operator edits them must see the new value, not
-   * one baked in when the plugin was registered.
-   */
   const configFor = (context: PluginRuntimeContext): DuesConfig =>
     resolveDuesConfig(staticConfig, context.settings)
 
@@ -370,14 +359,4 @@ export function createDues(input: DuesConfigInput = {}): PluginDefinition {
   })
 }
 
-/**
- * The zero-argument export: what a marketplace install actually registers.
- * `allowedRedirectHosts` carries only Stripe's own hosts — a marketplace
- * install cannot express a constructor argument, and `allowedRedirectHosts`
- * is fixed on the definition at this call, before any settings resolve, so
- * there is no later point where a board-configured host could be added. A
- * board that genuinely needs another redirect host (a proxy, a loopback
- * address for a test double) registers `createDues({ extraRedirectHosts })`
- * directly instead.
- */
 export const dues: PluginDefinition = createDues()

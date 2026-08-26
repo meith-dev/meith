@@ -17,10 +17,6 @@ export interface PluginFailure {
   readonly threshold: number
 }
 
-/**
- * Where a failure goes once the host has counted it. The host stays
- * synchronous and fire-and-forgets; whoever supplies this owns the write.
- */
 export interface PluginHealthSink {
   readonly failed: (failure: PluginFailure) => void
 }
@@ -234,11 +230,6 @@ export class PluginHost {
     }
   }
 
-  /**
-   * Reconcile against the durable record. The stored rows are the answer,
-   * not a hint: a plugin an operator has cleared comes back without a
-   * restart, and one another instance switched off is off here too.
-   */
   setDurablyDisabled(rows: readonly DurablyDisabledPlugin[]): void {
     const disabled = new Map(rows.map((row) => [row.key, row.reason]))
 

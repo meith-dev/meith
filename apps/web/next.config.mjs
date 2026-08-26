@@ -5,13 +5,6 @@ const nextConfig = {
 
   outputFileTracingRoot: new URL('../../', import.meta.url).pathname,
 
-  // The output-file tracer only follows the CJS half of @swc/helpers' dual
-  // package and misses the `esm/` variant next's own require-hook resolves at
-  // runtime, so the standalone build ships a `@swc/helpers` directory missing
-  // its esm/ half. next resolves the package from its own nested pnpm store
-  // entry (node_modules/.pnpm/next@…/node_modules/@swc/helpers), which is a
-  // symlink into node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers
-  // — so that is the path that has to be complete, not the app's own copy.
   outputFileTracingIncludes: {
     '/**': ['../../node_modules/.pnpm/@swc+helpers@0.5.23/node_modules/@swc/helpers/**/*'],
   },
@@ -31,24 +24,13 @@ const nextConfig = {
 
   async redirects() {
     return [
-      // The committee's guide became the organiser's guide when the docs
-      // stopped assuming every community is a club. The old URL had been
-      // published for several releases, so it keeps working.
       { source: '/docs/committee-guide', destination: '/docs/organiser-guide', permanent: true },
-      // The developer-tool restructure renamed these pages. Each old URL had
-      // been published for several releases, so they keep working; the file
-      // moves that kept their slugs (operating, migrating, …) need nothing.
       { source: '/docs/self-hosting', destination: '/docs/docker-compose', permanent: true },
       { source: '/docs/theme-api', destination: '/docs/themes', permanent: true },
       { source: '/docs/plugin-api', destination: '/docs/plugins', permanent: true },
       { source: '/docs/rest-api', destination: '/docs/api', permanent: true },
-      // These two left the published set for the repository; Development is
-      // where the site still tells their story.
       { source: '/docs/nextjs-conventions', destination: '/docs/development', permanent: true },
       { source: '/docs/release', destination: '/docs/development', permanent: true },
-      // The segment lineup pivoted to the people who choose and install forum
-      // software. The five community pages collapsed into /for/communities,
-      // which keeps their argument; the old URLs had been shared and indexed.
       { source: '/for/clubs', destination: '/for/communities', permanent: true },
       { source: '/for/neighbourhoods', destination: '/for/communities', permanent: true },
       { source: '/for/discord-and-slack', destination: '/for/communities', permanent: true },

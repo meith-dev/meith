@@ -3,7 +3,6 @@ import { textOf } from './nodes'
 
 const ATTRIBUTION = /^(.+) wrote:$/
 
-/** `/member/by-name/ada`, encoded so a name cannot close a Markdown link. */
 export function memberByNameHref(name: string): string {
   const encoded = encodeURIComponent(name.trim()).replace(
     /[!'()*]/g,
@@ -14,11 +13,9 @@ export function memberByNameHref(name: string): string {
 
 export interface AttributedAuthor {
   readonly name: string
-  /** The profile the name links to, or `null` for a bare name. */
   readonly href: string | null
 }
 
-/** The author named by a `**… wrote:**` run: a bare name, or a linked one. */
 export function attributedAuthor(node: Inline): AttributedAuthor | null {
   if (node.kind !== 'strong') return null
 
@@ -40,12 +37,10 @@ export function attributedAuthor(node: Inline): AttributedAuthor | null {
 }
 
 export interface QuoteAttribution extends AttributedAuthor {
-  /** The quoted post, so a reader can go and read the rest of it. */
   readonly sourceHref: string | null
   readonly sourceLabel: string
 }
 
-/** A quote's opening paragraph, when it is only an attribution. */
 export function quoteAttribution(block: Block | undefined): QuoteAttribution | null {
   if (block === undefined || block.kind !== 'paragraph') return null
 

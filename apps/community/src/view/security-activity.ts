@@ -30,11 +30,6 @@ export function authEventLabel(kind: string, t: Translator = untranslated()): st
   return key === undefined ? kind.replace(/_/g, ' ') : t.t(key)
 }
 
-/**
- * Enough of a user-agent string for a member to tell one of their own devices
- * from another, and no more: the full string is a fingerprint, and this is a
- * page whose job is recognition, not identification.
- */
 export function describeDevice(userAgent: string | null, t: Translator = untranslated()): string {
   const unknown = t.t('device.unknown')
   if (userAgent === null || userAgent.trim() === '') return unknown

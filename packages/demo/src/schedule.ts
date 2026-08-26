@@ -8,11 +8,6 @@ import { type ResetDeps, resetDemoBoard } from './reset'
 
 export const DEMO_RESET_TASK_ID = 'demo.reset'
 
-/**
- * Generous, because the run drops the schema, replays 35 migrations and writes
- * the board back. Ten seconds on a warm machine; the budget is here to catch a
- * reset that has genuinely hung, not to race a slow disk.
- */
 const RESET_BUDGET_SECONDS = 300
 
 export function demoResetTask(deps: Omit<ResetDeps, 'now'>): TaskDefinition {
@@ -56,13 +51,6 @@ async function stampLastRun(db: Database, at: Date): Promise<void> {
   `)
 }
 
-/**
- * When the board next throws itself away, or `null` if it has not run once yet.
- *
- * Read from the column the scheduler itself selects on rather than computed
- * from a wall-clock boundary, so the banner cannot promise a reset at a time
- * the scheduler has no intention of resetting at.
- */
 export async function nextDemoResetAt(db: Database): Promise<Date | null> {
   const rows = resultRows(
     await db.execute(sql`

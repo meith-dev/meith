@@ -44,11 +44,6 @@ export function pluginNavigationNames(): NavigationNames {
   )
 }
 
-/**
- * A row belongs to a plugin that is switched off, or has failed its way off, or
- * is no longer in the build. It is left in place — an operator's ordering is
- * worth keeping — but it is not a link anybody should be offered.
- */
 async function pluginRowIsLive(key: string | null): Promise<boolean> {
   const pluginKey = pluginKeyOfNavigation(key)
   if (pluginKey === null) return true

@@ -1,9 +1,3 @@
-/**
- * `plugin` and `messages` (below) are the manifest-installable convention
- * board.plugins.json generation relies on (scripts/board-plugins-gen.mjs) —
- * re-exports, not a second definition, so `dues` stays the name everyone
- * reads in code that names it directly.
- */
 export type { DuesConfigInput, DuesPlanInput } from './config'
 export { createDues, dues, dues as plugin } from './definition'
 export {

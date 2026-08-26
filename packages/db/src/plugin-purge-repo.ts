@@ -32,14 +32,6 @@ export async function pluginOwnedTables(
   return rows.map((row) => String(row.table_name))
 }
 
-/**
- * Everything a plugin left behind, taken away in one transaction.
- *
- * The tables are found by prefix rather than from the plugin's own migration
- * list, because the list says what it meant to create and the schema says what
- * it did. The prefix is safe to trust: `definePlugin` refuses a migration that
- * names anything outside it, so nothing the board owns can match.
- */
 export async function purgePlugin(db: Database, pluginKey: string): Promise<PluginPurgeResult> {
   const tables = await pluginOwnedTables(db, pluginKey)
 

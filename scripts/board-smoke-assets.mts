@@ -1,13 +1,3 @@
-/**
- * Shared by every board boot smoke (scripts/board-workspace-smoke.mts,
- * scripts/board-deploy-kit-smoke.mts, scripts/board-eject-smoke.mts): proving
- * `/` renders is not proof the standalone build actually serves its own
- * assets (docs/contributing/development.md, "forum-web build stages .next/static and
- * public/ into the standalone tree"; MEI-86 shipped without either, and every
- * one of these smokes still passed on `<main>` alone). This asserts a real
- * `/_next/static/*` asset referenced from the rendered HTML answers 200, and
- * that `/sw.js` (served from `public/`) does too.
- */
 const ASSET_HREF = /(?:href|src)="(\/_next\/static\/[^"]+)"/
 
 export async function assertBoardAssetsServe(baseUrl: string, html: string): Promise<void> {
@@ -30,24 +20,6 @@ export async function assertBoardAssetsServe(baseUrl: string, html: string): Pro
   }
 }
 
-/**
- * MEI-131: a board whose theme catalog was never registered still renders
- * `<main>`, still serves every asset, and still answers 200 — it just prints
- * `default.latestThreads.heading` where the heading belongs. Every smoke here
- * passed against exactly that board.
- *
- * The keys are read from the theme's own catalog rather than sniffed out of
- * the HTML by shape, because the shapes overlap: `community.config.ts` and
- * `meith-final.vercel.app` are dotted lowercase runs too, and a gate that
- * fails on the deployment's own hostname would be turned off within a week.
- * Matching the real key set costs a false positive only if a member writes a
- * post whose text is one of these keys exactly.
- *
- * What this detects is a catalog that was never registered, not any single
- * unresolved key: a key that only ever reaches an attribute — `aria-label`,
- * `placeholder`, `title` — is invisible here, so it is the dozens of keys a
- * dropped catalog puts in element text that make the page fail this.
- */
 export function unresolvedMessageKeys(html: string, keys: Iterable<string>): string[] {
   const found = new Set<string>()
 
@@ -70,11 +42,6 @@ export function assertMessagesResolve(html: string, keys: Iterable<string>): voi
 
 const CLASS_ATTRIBUTE = /\sclass="([^"]*)"/g
 
-/**
- * Classes Tailwind never emits a rule for because they exist to be selected
- * against, not styled. `group` and `peer` mark an ancestor or sibling that
- * `group-hover:` and `peer-checked:` reach; the variants carry the rules.
- */
 const MARKER_CLASSES = new Set(['group', 'peer', 'dark', 'light'])
 
 function isMarker(className: string): boolean {
@@ -91,13 +58,6 @@ const NAMED_ENTITIES: Readonly<Record<string, string>> = {
   nbsp: '\u00a0',
 }
 
-/**
- * A class attribute is HTML, so Tailwind's arbitrary variants reach it
- * encoded: `[&_svg]:shrink-0` is written `[&amp;_svg]:shrink-0`, and
- * `[class*='size-']` carries `&#x27;` for each quote. Comparing those bytes
- * against a stylesheet looks for a selector that could never exist, which
- * reports a correctly built board as unstyled.
- */
 function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (entity, body: string) => {
     if (body.startsWith('#x') || body.startsWith('#X')) {
@@ -120,12 +80,6 @@ export function classesInMarkup(html: string): string[] {
   return [...found].sort()
 }
 
-/**
- * Tailwind escapes every character a CSS selector cannot carry bare, so the
- * class `bg-destructive/5` is written `.bg-destructive\/5` and `after:absolute`
- * is `.after\:absolute`. Nothing else is transformed, which makes the selector
- * for a class computable rather than guessable.
- */
 function selectorFor(className: string): string {
   return `.${className.replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`)}`
 }
@@ -145,14 +99,6 @@ export function unstyledClasses(html: string, css: string): string[] {
   return classesInMarkup(html).filter((className) => !isDefined(css, className))
 }
 
-/**
- * Classes that only `@meith/ui` and `@meith/theme-default` produce, and that
- * the board's own app source never mentions — so a rule for each of them is
- * proof Tailwind scanned the installed packages, which is the one thing that
- * failed. `scripts/board-smoke-assets.test.ts` holds every entry to that
- * claim against the real package sources, so the list cannot quietly rot into
- * something a broken build would still satisfy.
- */
 export const PACKAGE_WITNESS_CLASSES = [
   'border-l-moderation-pending',
   'border-l-moderation-approved',
@@ -161,23 +107,6 @@ export const PACKAGE_WITNESS_CLASSES = [
   'bg-post-unapproved/40',
 ] as const
 
-/**
- * MEI-131: every `@source` in globals.css names a directory of the Meith
- * repository, and a scaffolded board has none of them — its copy of that code
- * is installed under `node_modules/@meith`. Tailwind does not fail on a source
- * that resolves to nothing, so the board built green and served a stylesheet
- * with the preflight in it and almost nothing else. The page answered 200,
- * rendered `<main>`, and every asset check here passed against it.
- *
- * The witnesses decide this, rather than every class on the page, because
- * plenty of classes in that markup are nobody's utility to emit: the markdown
- * renderer writes `md-mention` and `md-quote-author`, a board with group
- * colours writes `gname-<id>` and styles it from an inline `<style>` this
- * never reads. Asserting over all of them fails a board that is built
- * perfectly well, and a gate that cries wolf gets switched off. The unstyled
- * classes are still worth printing when a witness is missing, so they come
- * along as diagnosis rather than as the verdict.
- */
 export async function assertStylesResolve(baseUrl: string, html: string): Promise<void> {
   const hrefs = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(
     (match) => match[1] ?? '',

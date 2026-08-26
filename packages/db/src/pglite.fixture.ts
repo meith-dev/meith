@@ -17,16 +17,10 @@ export interface QueryLog {
 export interface TestDb {
   readonly db: Database
   readonly queries: QueryLog
-  /**
-   * The engine underneath, for the few tests that need to send it something
-   * drizzle cannot: `exec()` takes a script of several statements, which is how
-   * the migration files arrive and what a prepared statement refuses.
-   */
   readonly client: PGlite
   close(): Promise<void>
 }
 
-/** The checked-in migrations, as one script `client.exec()` will accept. */
 export function migrationScript(): string {
   return migrationSql().split('--> statement-breakpoint').join('\n')
 }

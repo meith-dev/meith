@@ -90,12 +90,6 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
       const ran = await applyPluginMigration(db, plugin.key, migration.id, migration.statements)
       if (ran) options.log(`${plugin.key}: applied ${migration.id}.`)
     }
-    /*
-     * onInstall runs after this plugin's migrations, so its tables exist, and
-     * before the version row that will stop it running again. A throw here
-     * stops the upgrade: a plugin that could not finish installing is one the
-     * board should not start serving.
-     */
     if (fresh.includes(plugin.key) && definition !== undefined) {
       const { ran } = await runPluginLifecycle({ db, plugin: definition, phase: 'install' })
       if (ran) options.log(`${plugin.key}: onInstall.`)

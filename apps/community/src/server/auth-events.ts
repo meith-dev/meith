@@ -8,11 +8,6 @@ import { requestFingerprint } from './request-fingerprint'
 
 export const MEMBER_ACTIVITY_LIMIT = 20
 
-/**
- * Never lets the log stop the thing it is recording. A sign-in that worked and
- * went unrecorded is a gap in an audit trail; a sign-in refused because the
- * audit trail was unwritable is an outage.
- */
 export async function recordAuthEvent(input: {
   readonly userId: number | null
   readonly kind: AuthEventKind

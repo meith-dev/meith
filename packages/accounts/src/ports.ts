@@ -115,27 +115,8 @@ export type RememberRotation =
   | { readonly status: 'reuse'; readonly userId: number; readonly familyId: string }
   | { readonly status: 'invalid' }
 
-/**
- * How long after a remember token is rotated its old value is still honoured.
- *
- * Rotation is single-use, and two requests carrying the same cookie arrive
- * whenever a browser restores several tabs at once, a link is double-clicked, or
- * a prefetch races the navigation that prompted it. Exactly one wins the claim;
- * without this window the others are indistinguishable from a stolen token and
- * cost the member every session they hold. Real theft reuses a token long after
- * the fact, not inside the same breath.
- */
 export const REMEMBER_ROTATION_GRACE_SECONDS = 30
 
-/**
- * Whether a spent remember token is a concurrent request rather than a theft.
- *
- * A revoked family is always theft: the board has already decided about it.
- * Elapsed time is not required to be positive — requests racing each other
- * stamp `now` on the way in, so the one that loses the claim can carry a
- * timestamp from just before the winner wrote `usedAt`, which is the very case
- * this window exists to forgive.
- */
 export function withinRotationGrace(
   row: { readonly usedAt: Date | null; readonly revokedAt: Date | null },
   now: Date,
@@ -187,11 +168,6 @@ export interface CredentialTokenRepository {
     purpose: CredentialPurpose,
     now: Date,
   ): Promise<{ userId: number; payload: string | null } | null>
-  /**
-   * The same lookup without spending the token. A half-finished sign-in has to
-   * survive a mistyped code, so the token that carries it is only consumed once
-   * the second factor is actually satisfied.
-   */
   peek(
     tokenHash: string,
     purpose: CredentialPurpose,
@@ -272,7 +248,6 @@ export interface TwoFactorRepository {
     now: Date
   }): Promise<TwoFactorRecord>
   confirm(userId: number, step: number, now: Date): Promise<boolean>
-  /** False when the step has already been spent, which is a replayed code. */
   spendStep(userId: number, step: number): Promise<boolean>
   remove(userId: number): Promise<boolean>
 }

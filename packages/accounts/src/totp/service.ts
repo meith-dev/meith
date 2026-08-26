@@ -117,11 +117,6 @@ export class TwoFactorService {
     }
   }
 
-  /**
-   * The enrolment already under way, so the setup screen survives a reload
-   * without minting a second secret — which would strand whatever the member
-   * had already typed into their authenticator app.
-   */
   async pendingEnrolment(userId: number, boardName: string): Promise<Enrolment | null> {
     const record = await this.twoFactor.find(userId)
     if (record === null || record.confirmedAt !== null) return null
@@ -223,11 +218,6 @@ export class TwoFactorService {
   }
 }
 
-/**
- * The yes-or-no the login path needs, straight off the repository. Built here
- * rather than from the whole service so that composing the two does not hand
- * the login path a key it has no use for.
- */
 export function enrolmentLookup(repository: TwoFactorRepository): {
   isEnrolled(userId: number): Promise<boolean>
 } {

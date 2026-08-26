@@ -25,7 +25,6 @@ async function requireViewer(): Promise<number> {
   return actor.userId
 }
 
-/** The row the member is reading the page on, so it can be marked and kept. */
 export async function currentSessionId(): Promise<number | null> {
   const token = await readSessionToken()
   if (token === undefined || token === '') return null

@@ -17,12 +17,6 @@ function onDemo(): void {
 }
 
 describe('mail on a demo board', () => {
-  /**
-   * The settings table is the thing being defended against here. It is board
-   * configuration an administrator edits at runtime, and on a demo the
-   * administrator is whoever read the banner — so a demo that consulted it would
-   * send mail on behalf of a stranger, from the project's own host.
-   */
   it('sends nowhere, whatever the environment says', async () => {
     onDemo()
     vi.stubEnv('MAIL_DRIVER', 'smtp')

@@ -55,13 +55,6 @@ describe('the figures the landing page quotes', () => {
     expect(sentence).toMatch(/\d+(\.\d+)? ms/)
   })
 
-  /*
-   * The strip counts rather than claims, so what it must never do is claim a
-   * count of nothing. A regular expression over the rendered values catches the
-   * failure this is actually exposed to: a reader in `facts.ts` that stops
-   * matching its document returns `NaN`, and `String(NaN)` is a perfectly
-   * valid-looking thing to render.
-   */
   it('counts the extensible strip out of the generated references', async () => {
     const facts = await readFacts()
 

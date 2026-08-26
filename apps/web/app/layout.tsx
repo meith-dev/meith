@@ -25,11 +25,6 @@ export const metadata: Metadata = {
     url: site.url,
     images: ogImage('/og', `${site.name} — ${site.tagline}`),
   },
-  /*
-   * Only the card type: with no twitter:title/description/image of its own,
-   * every crawler falls back to the OpenGraph tags, which each page already
-   * gets right — including the per-document and per-segment cards.
-   */
   twitter: { card: 'summary_large_image' },
   alternates: { canonical: '/' },
   icons: {

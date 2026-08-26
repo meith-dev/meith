@@ -8,13 +8,7 @@ export interface RefreshCatalogInput {
   readonly url: string
   readonly repository: MarketplaceCacheRepository
   readonly build: BuildInfo
-  /** How this build resolves a listing's key against what it compiled in. */
   readonly resolveInstalled: (listing: MarketplaceListing) => InstalledEntry | null
-  /**
-   * Called once per newly-detected (plugin, version) update, after it has
-   * already been claimed as notified — see docs/customization/marketplace.md for why the
-   * claim happens first, and what that means if this throws.
-   */
   readonly notifyUpdate: (listing: MarketplaceListing) => Promise<void>
   readonly now?: () => Date
   readonly fetchImpl?: typeof fetch
@@ -28,15 +22,6 @@ export interface RefreshCatalogResult {
   readonly error: string | null
 }
 
-/**
- * Fetches, validates and caches the feed, then raises the update
- * notification for any plugin whose new version this board has not already
- * notified about. This is the one function both the daily task and the
- * admin "Refresh" button call — see docs/customization/marketplace.md — so there is
- * exactly one place that decides what counts as a successful refresh, and
- * the two can run concurrently: `claimNotified` is what keeps a race between
- * them from raising the same (plugin, version) update twice.
- */
 export async function refreshCatalog(input: RefreshCatalogInput): Promise<RefreshCatalogResult> {
   const now = input.now ?? (() => new Date())
 

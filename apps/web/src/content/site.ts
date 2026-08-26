@@ -369,11 +369,6 @@ export const extensible = {
   ],
 } as const
 
-/*
- * The quickstart, compressed to its runtime: what a developer sees between
- * cloning nothing and having a board on :3000. Fixture mode is the point —
- * the engine proves itself before asking for a database.
- */
 export const devTerminal: {
   readonly cwd: string
   readonly lines: readonly { readonly text: string; readonly output?: boolean }[]

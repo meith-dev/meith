@@ -146,11 +146,6 @@ export async function disableTwoFactorAction(_prev: FormState, form: FormData): 
   redirect('/usercp/security?factor=off')
 }
 
-/**
- * Weakening an account asks for the thing being weakened. An account with a
- * password gives it; one without — signed in by a provider or a passkey —
- * gives a current code instead, which proves the same possession.
- */
 async function assertStillThem(input: {
   readonly userId: number
   readonly hasPassword: boolean

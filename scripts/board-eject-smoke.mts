@@ -1,28 +1,4 @@
 #!/usr/bin/env -S npx tsx
-/**
- * The integration test for MEI-81 — the epic's own acceptance rule, proved
- * against a real database: eject → build via the scaffold Dockerfile → boot
- * against the *same* database → the board comes up unchanged, before any
- * plugin is added.
- *
- * Unlike scripts/board-workspace-smoke.mts and scripts/board-deploy-kit-smoke.mts,
- * this never scaffolds with `create-meith` — it seeds a real database first
- * (so there is board content already in it, the same way an operator's
- * database holds real content before they ever think about graduating), then
- * runs `community board:eject` for real, against *this* checkout standing in
- * for a running stock image (see apps/cli/src/board-eject.ts's own comment on
- * why `BOARD_PLUGINS_MANIFEST` is unset here on purpose — the fallback it
- * exercises is exactly this monorepo's own boards/stock/board.plugins.json).
- *
- * The base-image chicken-and-egg problem is the same one
- * scripts/board-deploy-kit-smoke.mts already solves and solves it the same
- * way: `ghcr.io/meith-dev/meith-base:<CODE_VERSION>` does not exist in CI, so
- * this builds a local stand-in from packed tarballs and tags it identically —
- * see that script's own module comment for the full reasoning and what this
- * substitution does and does not prove.
- *
- * Needs a reachable, empty Postgres named by DATABASE_URL, and a Docker daemon.
- */
 import { spawnSync } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -76,12 +52,6 @@ function psql(sql: string): string {
   return result.stdout.trim()
 }
 
-/**
- * Read as a literal, the same way scripts/release-check.mjs checks it,
- * rather than imported — apps/cli/src/upgrade.ts pulls in @meith/db and the
- * rest of the CLI's dependency graph, none of which this needs just to read
- * one string.
- */
 async function codeVersion(): Promise<string> {
   const source = await readFile(join(ROOT, 'apps/cli/src/upgrade.ts'), 'utf8')
   const match = /export const CODE_VERSION = '([^']+)'/.exec(source)
@@ -110,16 +80,6 @@ async function pointAtVendoredTarballs(boardDir: string, tarballs: ReadonlyMap<s
   await writeFile(packageJsonPath, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
-/**
- * Same stand-in docker/Dockerfile.base already gets in
- * scripts/board-deploy-kit-smoke.mts — see that script for the full
- * reasoning, including why every packed package (not just the three roots)
- * has to resolve from a tarball: @meith/web's own transitive @meith/*
- * dependencies are not on the real npm registry either. Tagged to the
- * *real* CODE_VERSION here, not an arbitrary smoke version: `community
- * board:eject` always pins to CODE_VERSION, it takes no version argument, so
- * the stand-in has to match what eject actually wrote.
- */
 async function buildStandInBaseImage(
   boardDir: string,
   vendorDir: string,

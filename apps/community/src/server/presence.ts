@@ -40,9 +40,7 @@ export async function touchCurrentLocation(): Promise<void> {
     const location = parseLocation((await headers()).get(PATH_HEADER))
     if (location === null) return
     await touchLocation(location)
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }
 
 export function presenceRepository(): PostgresPresenceRepository | null {
@@ -78,22 +76,9 @@ export async function touchLocation(location: BoardLocation): Promise<void> {
       new Date(),
       LOCATION_WINDOW_SECONDS,
     )
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }
 
-/**
- * The guest token, but only once the client has proved it keeps cookies.
- *
- * The freshness header is the proof, and it has to come from the middleware
- * because nothing downstream can supply it: Next reflects a cookie set on a
- * `NextResponse.next()` into the request the render sees, so on a first-ever
- * visit both `cookies()` and the raw `Cookie` header already carry a token the
- * client has never seen. Counting on that wrote one presence row per request
- * from anything that discards cookies — measured at twelve rows from twelve
- * crawler requests, and a sessions table that grows without bound.
- */
 async function returnedGuestToken(secure: boolean): Promise<string | undefined> {
   if ((await headers()).get(FRESH_GUEST_HEADER) === '1') return undefined
 
@@ -101,13 +86,6 @@ async function returnedGuestToken(secure: boolean): Promise<string | undefined> 
   return value === '' ? undefined : value
 }
 
-/**
- * The same reader, one row.
- *
- * Only reached when there is no usable member session, which is what keeps a
- * logged-in member from being counted twice — and signing in drops the guest
- * row outright, so the two never overlap.
- */
 async function touchGuestLocation(
   guestToken: string | undefined,
   location: BoardLocation,
@@ -131,13 +109,6 @@ async function touchGuestLocation(
   })
 }
 
-/**
- * Retires the guest identity of somebody who has just become a member.
- *
- * Called wherever a session cookie is set, rather than only at the login form,
- * because that is every route into being signed in — the form, the remember-me
- * resume, and a password change that reissues the session.
- */
 export async function retireGuestPresence(): Promise<void> {
   try {
     const secure = env.NODE_ENV !== 'development'
@@ -149,9 +120,7 @@ export async function retireGuestPresence(): Promise<void> {
     }
 
     jar.set(guestCookieName(secure), '', clearedCookie(secure))
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }
 
 export async function onlineScopeFor(actor: Actor): Promise<OnlineScope> {

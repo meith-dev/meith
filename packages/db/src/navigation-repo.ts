@@ -28,12 +28,10 @@ export interface NavigationItemRow {
   readonly visibleToGroups: readonly number[]
 }
 
-/** A navigation item a plugin declares, already namespaced by the host. */
 export interface PluginNavigationRow {
   readonly key: string
   readonly href: string
   readonly audience: NavigationAudience
-  /** The key of the sibling row this one is created under, if any. */
   readonly parentKey: string | null
 }
 
@@ -95,13 +93,6 @@ export class PostgresNavigationRepository {
     return rows.map(toRow)
   }
 
-  /**
-   * Bring the plugin-owned rows into line with what the installed plugins ask
-   * for. An item's row is created once and then belongs to the operator: its
-   * label, order, nesting, audience and visibility survive every redeploy,
-   * because only the address a plugin owns is refreshed here. A row whose
-   * plugin is gone goes with it.
-   */
   async syncPluginItems(declared: readonly PluginNavigationRow[]): Promise<{
     readonly added: readonly string[]
     readonly removed: readonly string[]

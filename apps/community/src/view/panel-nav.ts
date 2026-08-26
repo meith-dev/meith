@@ -12,7 +12,6 @@ import { untranslated } from './time'
 export interface PanelSubsection {
   readonly href: string
   readonly titleKey?: string
-  /** Set instead of `titleKey` where the name is data, such as a plugin's. */
   readonly titleText?: string
   readonly record?: boolean
 }

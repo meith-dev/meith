@@ -16,9 +16,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     const settings = await getSettings()
     name = settings.get('board.name').trim() || BOARD_TITLE
     description = settings.get('board.description').trim()
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   const { browserThemeColor } = await getThemeRuntimeStyle()
 

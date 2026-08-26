@@ -15,7 +15,6 @@ import {
 
 export const DUES_PLUGIN_KEY = 'dues'
 
-/** The group the Supporters plans grant, and the one the supporters-only forum is opened to. */
 export const SUPPORTERS_GROUP_KEY: string = DUES_DEMO_GROUP
 
 const SUPPORTERS = {
@@ -77,14 +76,6 @@ function cast(userIds: ReadonlyMap<string, number>): DuesDemoCast {
   }
 }
 
-/**
- * The group the plans grant, made whether or not the plugin is installed.
- *
- * The board seed needs it before the plugin runs, because the supporters-only
- * forum is a permission override *against a group id* — a forum closed to
- * everyone with nobody left able to read it is not the demonstration. The
- * plugin's own seed calls this too and finds it already there.
- */
 export async function ensureSupportersGroup(db: Database): Promise<number> {
   const groups = new PostgresGroupAdminRepository(db)
   const registered = await new PostgresAdminRepository(db).findGroup(SEED_GROUP_KEY.registered)

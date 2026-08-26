@@ -21,10 +21,6 @@ module.exports = {
           '(^|/)\\.[^/]+\\.(js|cjs|mjs|ts|json)$',
           '\\.d\\.ts$',
           '\\.(fixture|test)\\.ts$',
-          /*
-           * `*.type-test.ts` is checked by `tsc`, not by vitest: its assertions
-           * are `@ts-expect-error` directives. It has no importer by design.
-           */
           '\\.type-test\\.ts$',
           '(^|/)tsconfig\\.json$',
           '(^|/)(babel|webpack)\\.config\\.(js|cjs|mjs|ts|json)$',

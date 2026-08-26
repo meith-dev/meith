@@ -41,9 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
     name = settings.get('board.name').trim() || BOARD_TITLE
     description = settings.get('board.description').trim() || undefined
     origin = resolveBoardUrl({ environment: env, settings }).url || origin
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   return {
     title: {

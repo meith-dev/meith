@@ -308,14 +308,6 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
   }
 }
 
-/**
- * The reset is registered here rather than in `buildSchedulerBundle` because
- * this is the only composition root with a cache to clear afterwards. The
- * worker's `NextCacheDriver` is a different process holding a different map, so
- * a reset it ran would leave this process serving the forum tree of a board
- * that no longer exists — for up to the tree's 60-second TTL, on the one page
- * every visitor lands on.
- */
 function withDemoReset(bundle: SchedulerBundle, db: ReturnType<typeof getDb>): SchedulerBundle {
   if (!env.DEMO_MODE) return bundle
 

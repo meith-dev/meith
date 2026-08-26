@@ -62,7 +62,6 @@ function button(spec: ToolSpec, t: Translator): EditorToolbarButtonModel {
 
 export interface EditorToolbarInput {
   readonly textareaId?: string
-  /** Whether this composer takes attachments. Defaults to `false`. */
   readonly attachments?: boolean
   readonly t?: Translator
 }

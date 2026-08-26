@@ -45,6 +45,13 @@ describe('commentLines', () => {
     expect(count('#!/usr/bin/env node\nconst a = 1\n')).toBe(0)
   })
 
+  it('does not count a directive a bundler or a runtime reads', () => {
+    expect(count('const wasm = await readFile(/* turbopackIgnore: true */ path)')).toBe(0)
+    expect(count('const m = import(/* webpackIgnore: true */ name)')).toBe(0)
+    expect(count('const f = /* @__PURE__ */ create()')).toBe(0)
+    expect(count('/** @deprecated Since 1.4. Use `post.id`. */')).toBe(0)
+  })
+
   it('does not count the directives a suppression needs', () => {
     expect(count('// biome-ignore lint/style/noVar: the reason')).toBe(0)
     expect(count('// @ts-expect-error the reason')).toBe(0)

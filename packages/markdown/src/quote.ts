@@ -3,9 +3,7 @@ import { plainAuthorName } from './escape-source'
 
 export interface QuoteInput {
   readonly author?: string | null
-  /** Defaults to the author's profile; `null` leaves the name as plain text. */
   readonly authorHref?: string | null
-  /** The post being quoted, written into the quote as a link back to it. */
   readonly sourceHref?: string | null
   readonly sourceLabel?: string
   readonly markdown: string

@@ -10,11 +10,6 @@ import {
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
 
-/**
- * `DUES_CURRENCY` matches the demo seed's own currency
- * (packages/demo/src/dues.ts), which is independent of this setting and
- * always writes its history in eur.
- */
 const DEMO_ENV = {
   DATA_SOURCE: 'postgres',
   DATABASE_URL: DEMO_DATABASE_URL,

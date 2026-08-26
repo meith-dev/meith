@@ -293,11 +293,6 @@ describe('recording a guest', () => {
     expect((await repo.onlineNow(later, scope())).guestCount).toBe(0)
   })
 
-  /**
-   * A reader who signs in was a guest a second ago, and that row is still well
-   * inside the fifteen-minute window. Left behind it counts them twice — once by
-   * name in the list, once anonymously in the total.
-   */
   it('is forgotten when the reader holding it signs in', async () => {
     await repo.touchGuest(guest())
     expect((await repo.onlineNow(NOW, scope())).guestCount).toBe(1)

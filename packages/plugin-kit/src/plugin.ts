@@ -153,28 +153,13 @@ type TranslationArgs = Parameters<Translator['t']>[1]
 
 export type PluginNavigationAudience = 'all' | 'guests' | 'members' | 'staff'
 
-/**
- * A board navigation entry a plugin asks for.
- *
- * It is a **request, not a placement**: the host writes it into the board's own
- * navigation table, where an operator renames, reorders, nests, scopes or hides
- * it like any other item. A plugin that appended to the header model instead
- * would put a link where no operator could reach it.
- */
 export interface PluginNavigationItem {
   readonly key: string
   readonly label: string
   readonly labelKey?: string | undefined
   readonly labelArgs?: TranslationArgs | undefined
-  /** A page path of this plugin's own — '' is its index page. */
   readonly path: string
   readonly audience?: PluginNavigationAudience | undefined
-  /**
-   * The `key` of another of this plugin's navigation items to sit under by
-   * default. The board's navigation is one level deep, so the item named here
-   * must itself be top-level. Like `audience`, it only seeds the row — the
-   * operator re-nests it like any other item.
-   */
   readonly under?: string | undefined
 }
 
@@ -231,12 +216,6 @@ export interface PluginDefinition {
   readonly onUninstall?: ((context: PluginRuntimeContext) => Promise<void> | void) | undefined
 }
 
-/**
- * The rule a plugin key (and, by marketplace-gen.mjs's own mirrored copy, a
- * marketplace listing key) has to satisfy. Exported so
- * scripts/marketplace-gen.test.ts can pin its own copy directly against
- * this one rather than trusting the two stay in sync by comment alone.
- */
 export const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const SETTING_KEY_PATTERN = /^[a-z][a-z0-9_]{1,39}$/
 const MIGRATION_ID_PATTERN = /^\d{4}_[a-z0-9_]{1,60}$/

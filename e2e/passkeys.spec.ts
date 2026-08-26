@@ -2,10 +2,6 @@ import { expect, type Page, test } from '@playwright/test'
 
 import { enterAdminPanel, PASSWORD } from './support/session'
 
-/**
- * The board is reached as `localhost` here and nowhere else in the suite: a
- * passkey is scoped to a domain, and Chrome refuses an IP address as one.
- */
 const BOARD = 'http://localhost:3001'
 
 const SETTINGS = '/admin/settings?group=federation'

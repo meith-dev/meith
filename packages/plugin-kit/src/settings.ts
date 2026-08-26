@@ -47,11 +47,6 @@ export function parsePluginSetting(setting: PluginSetting, raw: string): PluginS
   return raw
 }
 
-/**
- * Matches a candidate select value against a setting's declared options —
- * trimmed and case-insensitively — and returns the *option's own* casing.
- * See "Settings" in docs/customization/plugins.md.
- */
 function matchSelectOption(
   options: readonly { readonly value: string }[],
   candidate: PluginSettingValue | null,

@@ -198,7 +198,6 @@ function settledPeriodEnd(
   return addBillingInterval(now, plan?.billingInterval ?? 'month')
 }
 
-/** @see plugins/dues/README.md#changing-and-retiring-one */
 const FALLBACK_PERIOD = { years: 0, months: 0, weeks: 0, days: 30 }
 
 function parseStoredPeriod(order: OrderRow) {

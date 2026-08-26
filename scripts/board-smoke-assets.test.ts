@@ -88,10 +88,6 @@ describe('the classes a served stylesheet has no rule for', () => {
     expect(unstyledClasses(ALERT, css)).toEqual([])
   })
 
-  /**
-   * `.border` must not be answered by `.border-l-4`, or a stylesheet missing
-   * the very rules this looks for would satisfy it by prefix.
-   */
   it('does not let a longer class answer for a shorter one', () => {
     expect(
       unstyledClasses('<i class="border">x</i>', '.border-l-4 { border-left-width: 4px }'),
@@ -109,12 +105,6 @@ describe('the classes a served stylesheet has no rule for', () => {
     expect(classesInMarkup('<i class="group peer group/row dark">x</i>')).toEqual([])
   })
 
-  /**
-   * The shapes that turned a correct board red: a class attribute is HTML, so
-   * `[&_svg]:shrink-0` arrives as `[&amp;_svg]:shrink-0` and each quote in
-   * `[class*='size-']` as `&#x27;`. Read raw, they name a selector that cannot
-   * exist in any stylesheet.
-   */
   it('decodes the entities an arbitrary variant is written with', () => {
     expect(classesInMarkup('<i class="[&amp;_svg]:shrink-0">x</i>')).toEqual(['[&_svg]:shrink-0'])
   })
@@ -162,11 +152,6 @@ describe('the witnesses that prove the installed packages were scanned', () => {
     expect(inPackages).toContain(className)
   })
 
-  /**
-   * The board's own app source is materialized and scanned either way. A
-   * witness it also uses would have a rule in the broken build too, and prove
-   * nothing about the packages.
-   */
   it.each(PACKAGE_WITNESS_CLASSES)('%s is one the app cannot supply by itself', (className) => {
     expect(inApp).not.toContain(className)
   })

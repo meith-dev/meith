@@ -6,11 +6,6 @@ export const TOTP_DIGITS = 6
 
 export const TOTP_SECRET_BYTES = 20
 
-/**
- * How far either side of now a code is still taken. One step each way covers a
- * device whose clock has drifted and a member who started typing at 29 seconds
- * past; more than that widens the window an intercepted code stays usable in.
- */
 export const TOTP_SKEW_STEPS = 1
 
 export function generateTotpSecret(byteLength = TOTP_SECRET_BYTES): string {
@@ -57,12 +52,6 @@ export interface TotpMatch {
   readonly step: number
 }
 
-/**
- * The step the code belongs to, or null. The step is returned rather than a
- * bare yes so the caller can refuse a code it has already accepted: a code is
- * valid for thirty seconds, and anybody who reads it over a shoulder or off a
- * proxy log has that long to use it first.
- */
 export async function matchTotp(input: {
   readonly secret: string
   readonly code: string

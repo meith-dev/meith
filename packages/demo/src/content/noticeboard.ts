@@ -1,10 +1,5 @@
 import type { DemoThread } from './types'
 
-/**
- * Photos, the noticeboard, the buy-and-sell and the off-topic forum: the four
- * that decide whether a board feels lived in. A club board with no lost gear
- * bag and nothing for sale is a website.
- */
 export const NOTICEBOARD_THREADS: readonly DemoThread[] = [
   {
     forum: 'media',

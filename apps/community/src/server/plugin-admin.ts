@@ -33,12 +33,10 @@ export interface PluginSettingRow {
   readonly description: string | null
   readonly advanced: boolean
   readonly kind: PluginSettingKind
-  /** '' for a secret, whatever is stored or not: the value never leaves the server. */
   readonly default: PluginSettingValue
   readonly value: PluginSettingValue
   readonly overridden: boolean
   readonly source: PluginSettingSource
-  /** For secrets: whether a non-empty value is in force, without saying what it is. */
   readonly set: boolean
   readonly options: readonly { readonly value: string; readonly label: string }[]
   readonly envName: string | null
@@ -81,7 +79,6 @@ export interface PluginRow {
   readonly running: boolean
 
   readonly health: PluginHealth | null
-  /** The record every instance reconciles against, not this process's tally. */
   readonly durableHealth: PluginDurableHealthRow | null
   readonly hooks: readonly string[]
   readonly regions: readonly string[]

@@ -8,10 +8,6 @@ import { ADMIN_OVERVIEW, adminNavWithPlugin, pluginKeyAt } from '@/view/admin-na
 import type { PanelNav, PanelSection } from '@/view/panel-nav'
 import { pluginNavChildren } from '@/view/plugin-panel'
 
-/**
- * A plugin may reorder, drop, or add a section here. A link it adds reaches a
- * page it declared and nothing else — the panel re-checks who is asking.
- */
 async function withPluginSections(nav: PanelNav, t: Awaited<ReturnType<typeof getTranslator>>) {
   const links = await filterView(
     'admin.navigation',

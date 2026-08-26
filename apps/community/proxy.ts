@@ -48,20 +48,6 @@ interface Policy {
   readonly value: string
 }
 
-/**
- * Passes the request through, and hands a reader something to be counted by.
- *
- * The cookie is minted here because the Edge is the only place that can set one
- * on an ordinary page response — a render cannot. The row it stands for is
- * written by the render, which has the database this runtime does not.
- *
- * Whether the client *returned* the cookie is the load-bearing part, and it
- * cannot be read downstream: Next reflects a cookie set here into the request
- * the render sees, so a first-ever visit is indistinguishable from a returning
- * one by cookie alone. Hence the header — set when the cookie is new, deleted
- * otherwise, so a crawler that never keeps one is never counted and a client
- * cannot supply its own.
- */
 function withPath(req: NextRequest, policy: Policy): NextResponse {
   const fresh = !req.cookies.has(GUEST_COOKIE) && !req.cookies.has(DEV_GUEST_COOKIE)
 

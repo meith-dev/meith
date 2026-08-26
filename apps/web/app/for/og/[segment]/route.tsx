@@ -3,13 +3,6 @@ import { ImageResponse } from 'next/og'
 import { findSegment, segments } from '../../../../src/content/segments'
 import { OG_SIZE, OgCard } from '../../../../src/og/card'
 
-/*
- * One card per segment, built from the same copy as the page's own hero —
- * the headline is written to be recognised, so it is what travels when the
- * link is shared. The reserved slug `index` is the /for hub's card, and it
- * doubles as the fallback for anything unrecognised.
- */
-
 const INDEX_CARD = {
   eyebrow: "Who it's for",
   title: 'Find the version of this',

@@ -185,10 +185,6 @@ export async function openSearch(input: {
   }
 }
 
-/**
- * A plugin may reorder or drop; a row it invents has no hit behind it and is
- * dropped, because the hits arrived permission-filtered in SQL.
- */
 async function filterHits(
   results: SearchResults,
   terms: string,

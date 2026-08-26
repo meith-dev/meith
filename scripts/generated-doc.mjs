@@ -4,12 +4,6 @@ import { join } from 'node:path'
 
 import { ROOT } from './workspace-packages.mjs'
 
-/**
- * `root` defaults to the repository root; scripts/board-plugins-gen.mjs
- * passes a fixture directory instead when MEITH_BOARD_PLUGINS_ROOT is set, so
- * a test can exercise a real generator run without writing into this
- * checkout's own generated files.
- */
 export async function emitGeneratedDoc({
   outputFile,
   generated,

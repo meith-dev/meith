@@ -27,9 +27,7 @@ function namedPaths(source) {
 async function exists(path, files) {
   try {
     if ((await stat(join(ROOT, path))).isDirectory()) return true
-  } catch {
-    /* empty */
-  }
+  } catch {}
   return files.some(({ rel }) => rel.startsWith(path))
 }
 

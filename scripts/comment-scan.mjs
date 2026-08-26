@@ -14,7 +14,14 @@ const DIRECTIVES = [
   '@type',
   '@satisfies',
   '@typedef',
+  '@deprecated',
   '<reference',
+  'turbopackIgnore',
+  'webpackIgnore',
+  '__PURE__',
+  '@__PURE__',
+  '@vitest-environment',
+  '@jsxImportSource',
 ]
 
 const REGEX_PRECEDERS = new Set([

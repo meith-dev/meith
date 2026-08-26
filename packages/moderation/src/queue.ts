@@ -36,7 +36,6 @@ export interface QueueOutcome {
   readonly applied: number
   readonly refused: number
   readonly missing: number
-  /** The items the decision was carried out on, for whoever has to announce it. */
   readonly decided: readonly { readonly kind: QueueItemKind; readonly id: number }[]
 }
 

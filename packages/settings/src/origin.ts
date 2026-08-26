@@ -15,12 +15,6 @@ export function isUsableIssuer(value: string): boolean {
   return parsed.hostname !== '' && parsed.search === '' && parsed.hash === ''
 }
 
-/**
- * https, or plain http to a loopback address — the same allowance
- * `allowedRedirectHosts` gives a plugin route, for the same reason: a test
- * double never gets real TLS, and self-hosting a marketplace mirror should
- * not have to fake a certificate to be pointed at from a dev or e2e board.
- */
 export function isUsableFeedUrl(value: string): boolean {
   let parsed: URL
   try {

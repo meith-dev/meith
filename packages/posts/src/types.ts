@@ -37,10 +37,8 @@ export interface PostPage {
 }
 
 export interface PostLocation {
-  /** Position in the thread, 1-based, in the reader's own scope. */
   readonly number: number
   readonly page: number
-  /** The cursor that opens that page, or `null` for the first. */
   readonly afterId: number | null
 }
 

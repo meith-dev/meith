@@ -2,12 +2,6 @@ import { ImageResponse } from 'next/og'
 
 import { icon } from '../src/og/palette'
 
-/*
- * iOS ignores SVG favicons and paints its own corner mask, so this one is a
- * filled tile: the brand green as ground, the mark's panel drawn in white.
- * Slightly inset, because the home screen crops tighter than a browser tab.
- */
-
 export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
 

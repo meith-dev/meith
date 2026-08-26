@@ -105,11 +105,6 @@ export async function signInWithPasskey(next: string | undefined, copy: Copy): P
   return assertPasskey('authenticate', next, copy)
 }
 
-/**
- * The same exchange, against a sign-in that has already given its password.
- * The board scopes the challenge to that member's own credentials, so the
- * browser offers only the keys that could finish this particular sign-in.
- */
 export async function confirmWithPasskey(next: string | undefined, copy: Copy): Promise<string> {
   return assertPasskey('second-factor', next, copy)
 }

@@ -1,41 +1,4 @@
 #!/usr/bin/env -S npx tsx
-/**
- * The integration test for MEI-75 — does `forum-web` actually make `@meith/web`
- * consumable by an external workspace? See docs/contributing/development.md, "Consuming
- * the board from a workspace", for the mechanism this proves.
- *
- * Nothing here is a mock: every package `@meith/web`, `@meith/cli` and
- * `@meith/theme-default` need, transitively, is packed with `pnpm pack` (the
- * same tool `scripts/npm-publish.mjs` uses for a real release, which rewrites
- * `workspace:*` ranges into real ones), a board is scaffolded with
- * `create-meith` exactly as a user would run it, `npm install` resolves the
- * scaffold's dependencies against the packed tarballs (`overrides`, since
- * none of this closure is on the real npm registry yet), and the result is
- * built and booted like a deployed board.
- *
- * The one deliberate substitution: the issue that asked for this test
- * describes booting "against fixture mode", but `packages/core/src/env.ts`
- * refuses `QUEUE_DRIVER=memory` — fixture mode's only queue driver — outside
- * a build, in every production process, on purpose (a production process
- * that lost its queue on every cold start would silently drop scheduled
- * work). That refusal predates this issue and has nothing to do with the
- * board-config seam, so rather than weaken it for this one process, the boot
- * check here uses a real, disposable Postgres — exactly the substitution the
- * `image` CI job already makes for the identical reason. The *build* step
- * still runs with no `DATABASE_URL`, i.e. fixture mode, matching "a
- * production build needs no database" (docs/contributing/development.md).
- *
- * Needs a reachable, empty Postgres named by DATABASE_URL.
- *
- * `main()` resolving is not the same claim as this process exiting on its
- * own — confirmed against a real CI run, where the checks above all passed
- * and printed their success lines in under two minutes, and the process
- * then sat with nothing left to do for over an hour until the run was
- * cancelled externally. Something in this dependency chain (`tsx`'s own
- * loader is a documented cause of exactly this) can leave a handle open
- * that Node's own idle-exit never clears, so the entry point below calls
- * `process.exit()` itself rather than trusting the event loop to empty.
- */
 import { spawnSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

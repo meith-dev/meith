@@ -48,9 +48,7 @@ export function MermaidDiagrams() {
           }
           canvas.innerHTML = svg
           figure.setAttribute('data-rendered', 'true')
-        } catch {
-          /* ignore */
-        }
+        } catch {}
       }
     }
 

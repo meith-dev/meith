@@ -13,14 +13,6 @@ export type SlotImplementations = { readonly [K in SlotName]: SlotComponent<K> }
 
 export type PartialSlotImplementations = { readonly [K in SlotName]?: SlotComponent<K> }
 
-/**
- * A slot's copy: the theme's own words for a region, resolved server-side so
- * the slot itself never needs a translator or a locale — the same bargain a
- * CountModel makes for a number. A theme registers one of these per slot
- * alongside its component; the key names are the theme's own, not shared
- * with any other theme, so two themes registered on the same board never
- * collide.
- */
 export type SlotCopy = Readonly<Record<string, string>>
 
 export type SlotCopyBuilder = (t: Translator) => SlotCopy
@@ -182,22 +174,11 @@ export function hasSlot(theme: ResolvedTheme, name: SlotName): boolean {
   return theme.slots[name] !== undefined
 }
 
-/**
- * The theme's own words for a slot, resolved for this viewer. A theme that
- * fills the slot but never registered copy for it (nothing to say beyond
- * the view model) gets an empty record — `fromSlotCopy` falls back to the
- * key, same as everywhere else a copy record is read.
- */
 export function slotCopy(theme: ResolvedTheme, name: SlotName, t: Translator): SlotCopy {
   const builder = theme.copy[name]
   return builder === undefined ? {} : builder(t)
 }
 
-/**
- * Reads one word from a slot's copy. A missing key renders as itself — the
- * same fallback every copy record in the app uses — so a theme's builder
- * lagging its own markup is visible in the page rather than a blank space.
- */
 export function fromSlotCopy(copy: SlotCopy, key: string): string {
   return copy[key] ?? key
 }

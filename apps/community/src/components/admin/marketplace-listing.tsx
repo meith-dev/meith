@@ -12,15 +12,6 @@ const TONE_CLASS: Readonly<Record<StatusTone, string>> = {
   destructive: 'bg-destructive/10 text-destructive',
 }
 
-/**
- * One catalog entry, plugin or theme alike — the row model already carries
- * everything both browse pages need, so this is the one place that renders
- * it. Every string here is either our own catalog copy or a value from
- * `MarketplaceListingRow`, which has already capped lengths and validated
- * URLs against the untrusted feed (see `apps/community/src/server/marketplace-admin.ts`);
- * nothing here uses `dangerouslySetInnerHTML`, so the feed's own text is
- * rendered as plain text no matter what it contains.
- */
 export function MarketplaceListingCard({
   listing,
   t,

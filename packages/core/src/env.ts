@@ -6,13 +6,6 @@ const nonEmpty = z.string().min(1)
 
 const MAIL_DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i
 
-/**
- * A bare hostname, because the sender is built from it. The same test gates
- * the derivation below, so an operator who pastes `https://mail.example.com`
- * in here is refused under the name they actually set — deriving a sender
- * from it first would refuse under `MAIL_FROM` as well, a variable they never
- * set and cannot find in their settings.
- */
 const mailDomain = z.string().regex(MAIL_DOMAIN)
 
 export const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails'
@@ -433,13 +426,6 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
 
   const ownMailApi = source.MAIL_HTTP_ENDPOINT !== undefined || source.MAIL_HTTP_TOKEN !== undefined
 
-  /**
-   * The bridge owns one driver, and stands down for any other. A board that
-   * moved to SMTP and left `RESEND_API_KEY` behind would otherwise send
-   * through its new provider with an envelope sender at Resend's domain,
-   * which that provider has not authorised — and it would do so silently,
-   * where naming the missing `MAIL_FROM` at boot is what happens today.
-   */
   const bridgedDriver = source.MAIL_DRIVER === undefined || source.MAIL_DRIVER === 'http'
   const bridgedKey = ownMailApi || !bridgedDriver ? undefined : source.RESEND_API_KEY
 
@@ -565,12 +551,6 @@ export function assertRuntimeEnv(): Env {
 
 const PLUGIN_ENV_NAME = /^[A-Z][A-Z0-9_]{2,63}$/
 
-/**
- * The one door through which a plugin setting's `env` override is read. It
- * lives here because this module is the sanctioned reader of `process.env` —
- * a plugin never touches the environment itself; the host resolves the
- * variable the plugin *declared* and hands over the value.
- */
 export function readPluginEnv(name: string): string | undefined {
   if (!PLUGIN_ENV_NAME.test(name)) return undefined
   // biome-ignore lint/style/noProcessEnv: this module is the sanctioned reader
