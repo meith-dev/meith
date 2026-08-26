@@ -532,7 +532,8 @@ before you deploy if you ever touched that screen.
 Two things moved as part of it: the session lifetime now says **14
 days** (which is what the board was actually doing), and
 `security.max_account_login_attempts` is new, defaulting to the 50 the
-code always used.
+code always used. See
+[Spam controls and rate limits § The three login counters](./antispam.md#the-three-login-counters).
 
 ### Permissions that were lying, and are not any more
 
@@ -546,7 +547,7 @@ Nobody loses an undo they were using: a one-off migration granted
 *Restore posts* to every existing appointment that held *Delete posts*.
 **New appointments get exactly what is ticked** — tick both boxes if you
 mean both. See
-[The organiser's guide § Roles are group memberships](./organiser-guide.md#roles-are-group-memberships)
+[Forums and permissions § What an appointment grants](./forums.md#what-an-appointment-grants)
 for the nine grants an appointment carries.
 
 #### Three dead moderator checkboxes are gone
@@ -563,8 +564,10 @@ It read "delete a whole thread you started" and nothing read it. Granted,
 the thread's author now gets a **Delete thread** button that moves the
 thread to `visibility=deleted` — reversible, exactly as a moderator's
 delete is; restoring stays a moderator right. It is **off by default**
-and nothing changes until you tick it — and a thread is deleted whole,
-taking other people's replies with it.
+and nothing changes until you tick it — read
+[letting members delete their own threads](./forums.md#letting-members-delete-their-own-threads)
+first, because a thread is deleted whole and takes other people's replies
+with it.
 
 #### `canDeleteOthersPosts` is gone
 
@@ -595,7 +598,8 @@ over a UTC day, on the REST API's endpoints as much as the forms.
 and is the default, so an untouched board is unaffected — but a board
 that set a number, believing it was doing something, will start
 enforcing a number nobody has looked at in a while. *Bypass flood check*
-does not lift this cap; to exempt a group, set its value to `0`.
+does not lift this cap; to exempt a group, set its value to `0`. See
+[the daily post allowance](./groups.md#the-daily-post-allowance).
 
 #### `maxPrivateMessagesPerDay` is enforced
 
@@ -703,7 +707,8 @@ reachable by a member doing anything ordinary:
 
 The one to look at is the first, and only if your members share an
 address — a school, an office, a conference. `0` switches any of them
-off.
+off. See
+[the limits on pages nobody has signed in to](./antispam.md#the-limits-on-pages-nobody-has-signed-in-to).
 
 #### `community upgrade` now really applies plugin migrations
 
