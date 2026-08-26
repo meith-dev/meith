@@ -337,15 +337,8 @@ export function rebaseGlobalsCssSources(css, cssDir, workspaceRoot, exists = exi
     else missing = true
   }
 
-  if (!missing) {
-    return css.replace(SOURCE_LINE, (_match, _dots, tail) => {
-      const target = join(workspaceRoot, ...tail.split('/'))
-      return `@source "${toPosixRelative(cssDir, target)}";\n`
-    })
-  }
-
   const packages = join(workspaceRoot, ...BOARD_PACKAGES)
-  if (exists(packages)) rebased.push(toPosixRelative(cssDir, packages))
+  if (missing && exists(packages)) rebased.push(toPosixRelative(cssDir, packages))
 
   let written = false
   return css.replace(SOURCE_LINE, () => {

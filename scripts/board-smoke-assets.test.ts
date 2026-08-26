@@ -1,6 +1,13 @@
+import { readdirSync, readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
-import { classesInMarkup, unresolvedMessageKeys, unstyledClasses } from './board-smoke-assets.mts'
+import {
+  classesInMarkup,
+  PACKAGE_WITNESS_CLASSES,
+  unresolvedMessageKeys,
+  unstyledClasses,
+} from './board-smoke-assets.mts'
 
 const KEYS = ['default.latestThreads.heading', 'default.shell.skipToContent']
 
@@ -132,5 +139,35 @@ describe('the classes a served stylesheet has no rule for', () => {
       'three',
       'two',
     ])
+  })
+})
+
+describe('the witnesses that prove the installed packages were scanned', () => {
+  function sourceOf(dir: string): string {
+    const root = new URL(dir, import.meta.url)
+    return readdirSync(root, { recursive: true })
+      .filter((name) => typeof name === 'string' && /\.tsx?$/.test(name))
+      .map((name) => readFileSync(new URL(`${dir}/${name}`, import.meta.url), 'utf8'))
+      .join('\n')
+  }
+
+  const inPackages = `${sourceOf('../packages/ui/src')}\n${sourceOf('../themes/default/src')}`
+  const inApp = `${sourceOf('../apps/community/src')}\n${sourceOf('../apps/community/app')}`
+
+  it('has enough of them that one deletion does not empty the gate', () => {
+    expect(PACKAGE_WITNESS_CLASSES.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it.each(PACKAGE_WITNESS_CLASSES)('%s is a class the installed packages produce', (className) => {
+    expect(inPackages).toContain(className)
+  })
+
+  /**
+   * The board's own app source is materialized and scanned either way. A
+   * witness it also uses would have a rule in the broken build too, and prove
+   * nothing about the packages.
+   */
+  it.each(PACKAGE_WITNESS_CLASSES)('%s is one the app cannot supply by itself', (className) => {
+    expect(inApp).not.toContain(className)
   })
 })
