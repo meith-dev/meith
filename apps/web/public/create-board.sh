@@ -180,9 +180,13 @@ TICK_SECRET=
 
 # ─── Optional ────────────────────────────────────────────────────────────────
 
-# fixture = deterministic in-memory sample data, no database needed. This is
-# what `npm run build` uses, and what a checkout with no database falls back to.
-DATA_SOURCE=postgres
+# Derived, and left commented out on purpose: with no DATABASE_URL the board
+# serves `fixture` — deterministic in-memory sample data, no database needed,
+# which is what `npm run build` uses and what `npm run dev` falls back to — and
+# with one it serves `postgres`. Setting it to postgres while DATABASE_URL is
+# still blank is refused at boot, so uncomment it only to override the
+# derivation.
+# DATA_SOURCE=postgres
 
 # Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
 # place a relative URL cannot work because there is no request to be relative to.
@@ -616,12 +620,15 @@ Two things nothing configures for you:
 
 ```sh
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
-With no `DATABASE_URL`, the board runs on deterministic in-memory sample data —
-enough to click through every reading surface. Posting needs a database:
+No environment file, no database: with no `DATABASE_URL` the board serves
+deterministic in-memory sample data, which is enough to click through every
+reading surface.
+
+Posting needs Postgres. Copy `.env.example` to `.env.local`, set
+`DATABASE_URL` and the two secrets in it, then:
 
 ```sh
 npm run community -- migrate
@@ -692,7 +699,6 @@ echo "Created $BOARD_NAME — 14 files."
 echo
 echo "  cd $BOARD_NAME"
 echo "  npm install"
-echo "  cp .env.example .env.local"
 echo "  npm run dev"
 echo
 if [ "$GIT_READY" = 1 ]; then

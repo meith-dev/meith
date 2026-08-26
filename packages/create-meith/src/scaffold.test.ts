@@ -60,27 +60,14 @@ describe('what the scaffold writes', () => {
     expect([...files.keys()]).not.toContain('vercel.json')
   })
 
-  /**
-   * MEI-131: the scaffold registered the theme's tokens but not its messages,
-   * and `apps/community/src/server/i18n-catalogs.ts` drops a theme whose
-   * `messages` is undefined without complaining. Every scaffolded board — Vercel
-   * and self-hosted alike — rendered `default.latestThreads.heading` where its
-   * headings belonged. `boards/stock` passed `messages` and rendered fine, so
-   * the two are held to each other here rather than to a literal.
-   */
-  it('registers the theme catalog, without which the board renders its keys', () => {
+  it('registers the theme catalog, without which the board renders its message keys', () => {
     const config = files.get('community.config.ts')!
 
     expect(config).toMatch(/messages:\s*defaultMessages/)
     expect(config).toMatch(/\bdefaultMessages\b[\s\S]*from '@meith\/theme-default'/)
   })
 
-  /**
-   * Set equality, not a checklist: a field added to the reference board's
-   * theme entry and forgotten here is exactly how `messages` went missing,
-   * and a list written out in this file would have to be remembered too.
-   */
-  it('registers every part of the theme the board in this repo registers', () => {
+  it('registers every field of the theme entry that boards/stock registers, as a set rather than a checklist', () => {
     const stock = readFileSync(
       join(import.meta.dirname, '../../../boards/stock/community.config.ts'),
       'utf8',
@@ -201,15 +188,36 @@ describe('what the scaffold writes', () => {
     expect(nextSteps('my-board')[0]).toBe('cd my-board')
     expect(nextSteps('my-board')).toContain('npm install')
   })
+
+  it('does not send the operator through an env file to reach a first run', () => {
+    expect(nextSteps('my-board')).toEqual(['cd my-board', 'npm install', 'npm run dev'])
+  })
+
+  it('ships an .env.example that cannot defeat the fixture-mode derivation', () => {
+    const example = scaffold(OPTIONS).get('.env.example')!
+    const assignment = example.split('\n').find((line) => /^\s*DATA_SOURCE\s*=/.test(line))
+
+    expect(assignment).toBeUndefined()
+  })
+
+  it('gives the generated README the same first run the CLI prints', () => {
+    const readme = scaffold(OPTIONS).get('README.md')!
+    const local = readme.slice(readme.indexOf('## Local'))
+    const block = local.slice(
+      local.indexOf('```sh') + 5,
+      local.indexOf('```', local.indexOf('```sh') + 5),
+    )
+
+    expect(
+      block
+        .trim()
+        .split('\n')
+        .map((line) => line.trim()),
+    ).toEqual(nextSteps('my-board').filter((step) => !step.startsWith('cd ')))
+  })
 })
 
-/**
- * MEI-77: the deploy kit — a scaffolded board must work for someone with
- * nothing but a GitHub account and a Coolify server, with every file
- * complete and no placeholder needing hand-finishing except the board name
- * (already templated above).
- */
-describe('the deploy kit', () => {
+describe('the deploy kit — every file complete for someone with a GitHub account and a Coolify server', () => {
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
   const buildWorkflow = files.get('.github/workflows/build.yml')!
@@ -242,7 +250,6 @@ describe('the deploy kit', () => {
     expect(dockerfile).toContain('npx forum-web build')
   })
 
-  /** See docs/getting-started/deployment/docker-compose.md for why this Dockerfile scopes DATA_SOURCE to the RUN command. */
   it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
     expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
     expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
@@ -560,7 +567,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'community.config.ts': 'f12cfbee87a05c48116e57b005160ee0ebfb94366ea9a3f9cdbc20090795041f',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
   'community.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
-  '.env.example': 'f697a7335c4240186230fdeda2b0e95f8480a4d2df6d852fab6c10894547a617',
+  '.env.example': '83defc2c09c20a47010594dd89a2d602311e05179d756759aeac699302d170bb',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
   Dockerfile: '16fe04e3d029a061be06f85aee711fbf460f8aae79ebc80fe690deb148a9098f',
   'docker-entrypoint.sh': 'c54686c6239ce194747e898658e5811b58f52e5f95f6a45c3a6984957ff449a2',
@@ -568,17 +575,11 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/workflows/build.yml': 'd2ba5b4f04e76d8df51a39ef8daae352c7299a2b335e984ca2767615c20476d4',
   'docker-compose.yml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
-  'README.md': '4642a56c1827d10abc8c79f0c8079c15d08dbbe8fe7c745615cbc2797fde4b1e',
+  'README.md': 'c27750e694dc7870e4969d6b0c14fb1a08fd1fea104b2b44a8a4298b3b2536e3',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
 
-/**
- * The top-level fields of the `default:` theme entry, so a config here can be
- * held to the reference board's without either side writing the list out.
- * Depth matters: `tokens: { light, dark }` contributes `tokens`, not its own
- * two keys.
- */
 function themeEntryFields(config: string): string[] {
   const start = config.indexOf('default: {')
   if (start === -1) return []
