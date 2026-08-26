@@ -114,7 +114,7 @@
   "packages/notifications/src/push.ts": 2,
   "packages/plugin-kit/src/hooks.ts": 117,
   "packages/plugin-kit/src/plugin.ts": 1,
-  "packages/plugin-kit/src/regions.ts": 12,
+  "packages/plugin-kit/src/regions.ts": 15,
   "packages/plugin-kit/src/runtime.ts": 4,
   "packages/relations/src/service.ts": 2,
   "packages/runtime/src/scheduler-bundle.ts": 3,

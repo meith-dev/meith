@@ -573,9 +573,15 @@ export default async function ThreadPage({
     toolRights.delete ||
     surgeryRights.merge ||
     surgeryRights.split
+  const threadHeader = await pluginRegion('thread.header', {
+    viewer: viewerRef(actor),
+    subjectId: thread.id,
+    authorId: thread.authorUserId,
+  })
   const tools =
-    !anyTool && poll === null ? undefined : (
+    !anyTool && poll === null && threadHeader === null ? undefined : (
       <>
+        {threadHeader}
         {anyTool && (
           <ThreadToolsForm
             copy={moderationFormsCopy(await getTranslator())}

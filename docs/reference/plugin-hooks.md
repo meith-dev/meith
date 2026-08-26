@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**104 hooks** — 59 filters, 45 events — and 6 UI regions. **104 are wired**: something in the board fires
+**104 hooks** — 59 filters, 45 events — and 7 UI regions. **104 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -303,6 +303,7 @@ deterministic order as hooks.
 | `index.footer` | The viewer. |
 | `postbit.badges` | The viewer, the post id and the author id. |
 | `postbit.footer` | The viewer, the post id and the author id. |
+| `thread.header` | The viewer, the thread id and the thread author’s id. |
 | `profile.panel` | The viewer and the profile’s member id. |
 | `admin.dashboard` | The viewer. |
 
@@ -310,5 +311,6 @@ deterministic order as hooks.
 - **`index.footer`** — The bottom of the board index, below the statistics block.
 - **`postbit.badges`** — Beside a post author’s name. Runs once per post on every thread page — the most expensive region on the board, and the one to keep trivial.
 - **`postbit.footer`** — Below a post body, above its actions.
+- **`thread.header`** — Above the first post of a thread, below its title. Runs once per thread page, so unlike postbit.* it can afford to read from the plugin’s own tables.
 - **`profile.panel`** — A panel on a member’s profile, below the standard fields.
 - **`admin.dashboard`** — A card on the admin dashboard. Only rendered for administrators.

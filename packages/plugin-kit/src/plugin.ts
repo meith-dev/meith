@@ -1,3 +1,5 @@
+export type { HookRuntime, PluginRuntimeContext } from './runtime'
+
 import type { ReactNode } from 'react'
 
 import type { Translator } from '@meith/theme-kit'
@@ -5,18 +7,7 @@ import type { Translator } from '@meith/theme-kit'
 import { type HOOKS, type HookName, isHookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
-import {
-  type PluginData,
-  type PluginGrants,
-  type PluginNotify,
-  type PluginUsers,
-  unavailablePluginData,
-  unavailablePluginGrants,
-  unavailablePluginNotify,
-  unavailablePluginUsers,
-} from './runtime'
-
-export type HookRuntime = () => Promise<PluginRuntimeContext>
+import type { HookRuntime, PluginRuntimeContext } from './runtime'
 
 export type FilterHandler<K extends HookName> = (
   value: HookValue<K>,
@@ -87,7 +78,7 @@ export interface PluginAdminPage {
 export interface PluginContribution {
   readonly region: PluginRegion
   readonly priority?: number | undefined
-  readonly render: (context: PluginRegionContext) => ReactNode
+  readonly render: (context: PluginRegionContext) => ReactNode | Promise<ReactNode>
 }
 
 export interface PluginViewer {
@@ -174,34 +165,6 @@ export interface PluginNavigationItem {
   readonly path: string
   readonly audience?: PluginNavigationAudience | undefined
   readonly under?: string | undefined
-}
-
-export interface PluginRuntimeContext {
-  readonly settings: Readonly<Record<string, string | number | boolean>>
-  readonly logger: {
-    readonly info: (message: string, detail?: Record<string, unknown>) => void
-    readonly warn: (message: string, detail?: Record<string, unknown>) => void
-    readonly error: (message: string, detail?: Record<string, unknown>) => void
-  }
-  readonly grants: PluginGrants
-  readonly data: PluginData
-  readonly users: PluginUsers
-  readonly notify: PluginNotify
-}
-
-export function unavailablePluginRuntime(reason: string): PluginRuntimeContext {
-  return {
-    settings: {},
-    logger: { info: () => {}, warn: () => {}, error: () => {} },
-    grants: unavailablePluginGrants(reason),
-    data: unavailablePluginData(reason),
-    users: unavailablePluginUsers(reason),
-    notify: unavailablePluginNotify(reason),
-  }
-}
-
-export function unavailableHookRuntime(reason: string): HookRuntime {
-  return () => Promise.resolve(unavailablePluginRuntime(reason))
 }
 
 export interface PluginNotificationKind {

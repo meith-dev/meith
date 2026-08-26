@@ -206,10 +206,10 @@ export class PluginHost {
     }
   }
 
-  renderRegion(
+  async renderRegion(
     region: PluginRegion,
-    context: PluginRegionContext,
-  ): readonly { key: string; node: ReactNode }[] {
+    context: Omit<PluginRegionContext, 'runtime'>,
+  ): Promise<readonly { key: string; node: ReactNode }[]> {
     const entries = this.#contributions.get(region)
     if (entries === undefined) return []
 
@@ -219,7 +219,10 @@ export class PluginHost {
 
       const started = this.#now()
       try {
-        const node = entry.contribution.render(context)
+        const node = await entry.contribution.render({
+          ...context,
+          runtime: this.#runtimeFor(entry.pluginKey),
+        })
         this.#record(entry.pluginKey, region, this.#now() - started)
         if (node !== null && node !== undefined) nodes.push({ key: entry.pluginKey, node })
       } catch (error) {

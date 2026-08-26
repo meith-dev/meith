@@ -294,11 +294,33 @@ here" point that a *theme* renders. The theme keeps control of **where**
 plugin output appears; the plugin keeps control of **what** it is; several
 plugins compose by concatenation, in the usual deterministic order.
 
-There are six: `header.notice`, `index.footer`, `postbit.badges`,
-`postbit.footer`, `profile.panel` and `admin.dashboard` — described in
-[Plugin hooks](../reference/plugin-hooks.md). The list is short on purpose, because
-every region is a commitment every theme has to render or deliberately
-drop.
+There are seven: `header.notice`, `index.footer`, `thread.header`,
+`postbit.badges`, `postbit.footer`, `profile.panel` and `admin.dashboard` —
+described in [Plugin hooks](../reference/plugin-hooks.md). The list is short on
+purpose, because every region is a commitment every theme has to render or
+deliberately drop.
+
+**A contribution may be async, and may reach this plugin's runtime.** Its
+`render` receives the same lazy `runtime` accessor a [hook
+handler](#reaching-the-runtime-from-a-handler) does, and may return a
+promise:
+
+```ts
+{
+  region: 'thread.header',
+  render: async ({ subjectId, runtime }) => {
+    const { data } = await runtime()
+    const row = await data.one('select title from plugin_example_event where thread_id = $1', [subjectId])
+    return row === null ? null : <EventCard title={String(row.title)} />
+  },
+}
+```
+
+Mind **where** you do it. `thread.header` runs once per thread page, so a
+query there costs one query. `postbit.badges` runs once per *post* — a
+query there is fifty queries on a fifty-post page, and the region's own
+entry in the reference says so. A contribution that rejects is contained,
+counted and auto-disabled exactly like one that throws.
 
 ## Changing how content renders
 

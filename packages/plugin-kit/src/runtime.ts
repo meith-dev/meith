@@ -246,3 +246,33 @@ export function pluginNotify(
     },
   }
 }
+
+export interface PluginRuntimeContext {
+  readonly settings: Readonly<Record<string, string | number | boolean>>
+  readonly logger: {
+    readonly info: (message: string, detail?: Record<string, unknown>) => void
+    readonly warn: (message: string, detail?: Record<string, unknown>) => void
+    readonly error: (message: string, detail?: Record<string, unknown>) => void
+  }
+  readonly grants: PluginGrants
+  readonly data: PluginData
+  readonly users: PluginUsers
+  readonly notify: PluginNotify
+}
+
+export type HookRuntime = () => Promise<PluginRuntimeContext>
+
+export function unavailablePluginRuntime(reason: string): PluginRuntimeContext {
+  return {
+    settings: {},
+    logger: { info: () => {}, warn: () => {}, error: () => {} },
+    grants: unavailablePluginGrants(reason),
+    data: unavailablePluginData(reason),
+    users: unavailablePluginUsers(reason),
+    notify: unavailablePluginNotify(reason),
+  }
+}
+
+export function unavailableHookRuntime(reason: string): HookRuntime {
+  return () => Promise.resolve(unavailablePluginRuntime(reason))
+}
