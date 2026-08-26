@@ -157,6 +157,9 @@ jobs:
       - name: Vercel template matches the scaffold
         run: pnpm vercel-template:gen:check
 
+      - name: Extension scaffold templates match the examples
+        run: pnpm extension:gen:check
+
       - name: Lint and formatting
         run: pnpm lint
 

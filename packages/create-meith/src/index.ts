@@ -14,3 +14,15 @@ export {
   VERCEL_PROMPTED_ENV,
   validateName,
 } from './scaffold'
+export {
+  EXTENSION_KEY_PATTERN,
+  type ExtensionKind,
+  type ExtensionScaffoldOptions,
+  type ExtensionTemplate,
+  extensionNextSteps,
+  meithRange,
+  scaffoldExtension,
+  scaffoldPlugin,
+  scaffoldTheme,
+  validateExtensionName,
+} from './scaffold-extension'

@@ -489,8 +489,9 @@ and the verify/CI parity check, the root and release checks, the guards and
 their probes, the message-catalog check, the slot checks, the generated-document
 and documentation checks (`theme:docs`, `plugin:docs`, `board:gen`,
 `hooks:wired`, `api:docs`, `perf:docs`, `docs:index`, `docs:links`,
-`site:docs`, `marketplace:gen`, `board-installer:gen`, `vercel-template:gen`),
-lint, dependency-cruiser, all three typecheck projects, and the full test suite.
+`site:docs`, `marketplace:gen`, `board-installer:gen`, `vercel-template:gen`,
+`extension:gen`), lint, dependency-cruiser, all three typecheck projects, and
+the full test suite.
 
 **`pnpm verify` and CI's `static` job hold to each other, in both directions,
 but not symmetrically.**
@@ -1014,6 +1015,7 @@ repository that nothing else reads:
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](../customization/plugins.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
 | `marketplace:gen:check`, `board-installer:gen:check`, `vercel-template:gen:check` | A published artifact generated from something in this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and `templates/vercel/`, which is generated from `create-meith`'s `scaffold()` and is what people actually deploy from. |
+| `extension:gen:check` | `create-meith`'s plugin and theme scaffold templates out of step with `examples/hello-plugin` and `examples/iris-theme`, which they are generated from — see [the plugin API](../customization/plugins.md#writing-a-plugin). The generated `extension-templates.ts` holds those sources as string data, so `slots:check` skips it by name: the theme manifest it appears to contain is a template, not a theme of this repository. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 | `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](#documentation-links). |
 
