@@ -345,14 +345,6 @@ does not disturb that. The hourly task works through the membership
 board bigger than that a newly earned promotion arrives within a few
 runs rather than on the very next one.
 
-> [!WARNING]
-> A rule promoting members out of **Registered** into a group of your own
-> is currently refused by the safeguard that stops promotions demoting
-> anybody, and moves nobody. The preview says so honestly — if it reports
-> no members for a rule you believe is right, read
-> [Groups and promotions § Promotions](./groups.md#promotions) before
-> changing the rule.
-
 ### When somebody steps back
 
 Accounts belong to people; roles are group memberships. That one

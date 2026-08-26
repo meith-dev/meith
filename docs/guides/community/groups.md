@@ -213,15 +213,18 @@ primary group is Banned, Administrators or Super moderators are skipped
 whatever a rule says. A promoted member keeps every secondary membership
 they held.
 
-> [!IMPORTANT]
-> **The no-demotion guard reads a fixed table of group ranks**, and only
-> Guests, Registered, Super moderators and Administrators are in it.
-> Every other group — including one you made — ranks as `0`, so a rule
-> promoting members *out of Registered* into a group of your own is
-> passed over as a demotion and moves nobody. The preview runs the same
-> evaluation as the task, so it reports this honestly: if the preview
-> says nobody would be promoted by a rule you believe is right, this is
-> the reason.
+The no-demotion guard reads a fixed table of ranks holding Guests,
+Registered, Super moderators and Administrators. **A group it does not
+rank — including every group you make — is not compared at all**, so a
+rule promoting members out of Registered into one of your own groups runs
+normally. What the guard still refuses is a move between two groups it
+does rank, in the wrong direction. The protection that matters does not
+depend on the table anyway: a member whose primary group is Banned,
+Administrators or Super moderators is skipped before any rank is
+considered.
+
+The preview runs the same evaluation as the task, so it always reports
+what the run will do.
 
 **Run it** applies exactly what the preview lists, asks for your password
 again, and records the count in the admin log. Deleting the target group

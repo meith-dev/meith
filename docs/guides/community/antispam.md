@@ -27,19 +27,9 @@ pre-authentication limits below.
 | Hidden-field trap | `antispam.honeypot` | On | Bots that fill every field | Nothing. Leave it on. |
 | Minimum fill time | `antispam.min_form_seconds` | 3 seconds | Instant submissions | Occasionally somebody with a password manager. Keep it to a few seconds. |
 | A question challenge | `antispam.captcha_mode` | Off | Scripted registration | A moment, every time. Switch it on when you have a problem. |
-| Hold a new member's first posts | `antispam.moderate_first_posts` | Off | Most forum spam — but see the warning below | One wait per genuine new member. |
+| Hold a new member's first posts | `antispam.moderate_first_posts` | Off | Most forum spam | One wait per genuine new member. |
 | Hourly limits | `antispam.*_per_hour` | Off | A night's work by one script | Nothing, set sensibly. |
 | The four pre-auth limits | see below | On | Signup floods, reset-mail bombing, password spraying | Nothing. |
-
-> [!WARNING]
-> **`antispam.moderate_first_posts` does not currently hold anything.**
-> The check asks the authorizer a per-forum question without naming a
-> forum; the error that follows is swallowed and the answer defaults to
-> *not held*, so an ordinary member's first posts go straight up whatever
-> the threshold says. Use the forum's own **Hold new threads / new
-> replies for approval** switches, or the per-group *requires approval*
-> rows in [the matrix](./forums.md#reading-the-matrix), until this is
-> fixed.
 
 ## The registration questions
 
