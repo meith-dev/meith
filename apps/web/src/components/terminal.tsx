@@ -1,14 +1,25 @@
 import { terminal } from '../content/site'
 
-export function Terminal({ className }: { className?: string }) {
+interface TerminalContent {
+  readonly cwd: string
+  readonly lines: readonly { readonly text: string; readonly output?: boolean }[]
+}
+
+export function Terminal({
+  className,
+  content = terminal,
+}: {
+  className?: string
+  content?: TerminalContent
+}) {
   return (
     <div className={`terminal ${className ?? ''}`}>
       <div className="terminal-bar">
         <span aria-hidden>▸</span>
-        <span>{terminal.cwd}</span>
+        <span>{content.cwd}</span>
       </div>
       <div className="terminal-body">
-        {terminal.lines.map((line) => (
+        {content.lines.map((line) => (
           <div key={line.text} className="terminal-line" data-out={line.output ? '' : undefined}>
             {line.text}
           </div>

@@ -1,19 +1,24 @@
 # Meith
 
-Meith is open-source community forum software designed to run on a server you control. It provides threaded discussions, search, permissions, moderation, memberships, themes, plugins, and an operator CLI without per-member pricing.
+**The fast, code-first forum engine.** Meith is open-source forum software: self-hosted by default, built on modern TypeScript, and fast enough to run with JavaScript disabled. Threaded discussions, search, permissions, moderation, paid memberships, themes, plugins and an operator CLI — from a single config repo to a server of your own, with no per-member pricing.
 
 - [Website](https://meith.dev)
 - [Live demo](https://demo.meith.dev)
 - [Documentation](./docs/README.md)
 - [Issue tracker](https://github.com/meith-dev/meith/issues)
 
-## Choose how you want to start
+## Try it in a minute
 
-### Run a board
+```sh
+npx create-meith my-board
+cd my-board && npm install && npm run dev
+```
 
-For most installations, follow the [Quickstart](./docs/getting-started/deployment/coolify.md). It uses Coolify to deploy Meith on an Ubuntu server and configure HTTPS.
+That is a board of your own on <http://localhost:3000>, serving a realistic fixture dataset from memory — no database, no Docker. [The quickstart](./docs/getting-started/quickstart.md) is this route written out; [the introduction](./docs/getting-started/introduction.md) is the philosophy behind it.
 
-If you already operate Docker Compose and a reverse proxy, use [Deploying by hand](./docs/getting-started/deployment/docker-compose.md).
+## Run a board
+
+[Deployment](./docs/getting-started/deployment/index.md) has three routes onto your own infrastructure: [guided with Coolify](./docs/getting-started/deployment/coolify.md) for most boards, [Docker Compose by hand](./docs/getting-started/deployment/docker-compose.md) if you already operate a proxy, or [Vercel](./docs/getting-started/deployment/vercel.md) if you would rather not have a server.
 
 A production board runs four services:
 
@@ -52,13 +57,16 @@ Start with the task you need to complete:
 
 | Task | Guide |
 |---|---|
-| Install a board | [Quickstart](./docs/getting-started/deployment/coolify.md) |
+| See it running locally | [Quickstart](./docs/getting-started/quickstart.md) |
+| Install a board | [Deployment](./docs/getting-started/deployment/index.md) |
+| Configure a board in code | [Configuration](./docs/guides/configuration.md) |
+| Move from MyBB or phpBB | [Migrating](./docs/guides/migrating.md) |
 | Administer forums and members | [Organiser guide](./docs/guides/community/organiser-guide.md) |
 | Moderate content | [Moderator guide](./docs/guides/community/moderation-guide.md) |
 | Manage paid memberships | [Memberships guide](./docs/guides/community/membership-guide.md) |
 | Operate the server | [Operations](./docs/guides/operations/operating.md) |
 | Upgrade or recover a board | [Upgrading](./docs/guides/operations/upgrading.md) · [Disaster recovery](./docs/guides/operations/disaster-recovery.md) |
-| Build a theme or plugin | [Theme API](./docs/customization/themes.md) · [Plugin API](./docs/customization/plugins.md) |
+| Build a theme or plugin | [Themes](./docs/customization/themes.md) · [Plugins](./docs/customization/plugins.md) |
 | Contribute to Meith | [Development](./docs/contributing/development.md) |
 
 The complete index is in [`docs/README.md`](./docs/README.md). The website renders these Markdown files directly; there is no separate copy.

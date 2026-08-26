@@ -6,9 +6,9 @@ export const site = {
   url: 'https://www.meith.dev',
   demo: 'https://demo.meith.dev',
   repository: 'https://github.com/meith-dev/meith',
-  tagline: 'A forum for your community, on a server of your own.',
+  tagline: 'The fast, code-first forum engine.',
   description:
-    'Open-source forum software for communities that want durable discussions, clear permissions, and control of their own server.',
+    'Open-source forum software on modern TypeScript: self-hosted by default, configured from a small repository you own, and fast enough to run with JavaScript disabled.',
 } as const
 
 export const licence = {
@@ -55,16 +55,17 @@ export const shots = {
 } as const satisfies Record<string, { readonly light: Shot; readonly dark: Shot }>
 
 export const hero = {
-  badge: 'Open source · Self-hosted · No per-member pricing',
+  badge: 'Open source · Self-hosted · Modern TypeScript',
   headline: {
-    before: 'A forum your community can rely on.',
-    emphasis: 'On a server you control.',
+    before: 'The fast, code-first',
+    emphasis: 'forum engine.',
   },
   lede:
-    'Keep announcements, decisions, and useful answers in searchable threads. Run the board ' +
-    'from a browser, keep private forums private, and move it with you when operators change.',
+    'Self-hosted by default, built on modern TypeScript, and fast enough to run with ' +
+    'JavaScript disabled. Own your discussions — from a single config repo to a server of ' +
+    'your own in minutes.',
   primary: 'Explore the demo',
-  secondary: 'Install Meith',
+  secondary: 'Read the quickstart',
   caption: 'Screenshots from a working Meith board.',
 } as const
 
@@ -231,7 +232,7 @@ export const capabilities: readonly Capability[] = [
     body:
       'Newcomers, members and the people running the place each see their own forums — and ' +
       'search, feeds and the API keep the secret too.',
-    doc: 'operating',
+    doc: 'forums',
     anchor: null,
     link: 'How permissions work',
   },
@@ -271,7 +272,7 @@ export const capabilities: readonly Capability[] = [
     body:
       'A trap only bots fall into, and sign-up questions only your members can answer. No ' +
       'puzzle grids at the door.',
-    doc: 'operating',
+    doc: 'antispam',
     anchor: null,
     link: 'How the spam controls work',
   },
@@ -326,8 +327,8 @@ export const openSource = {
   emphasis:
     'The bill follows the machine, never the membership: two hundred members cost what twenty do.',
   links: [
-    { label: 'Set one up', doc: 'quickstart' },
-    { label: 'Deploying by hand', doc: 'docker-compose' },
+    { label: 'Deploy it', doc: 'deployment' },
+    { label: 'Docker Compose by hand', doc: 'docker-compose' },
   ],
   licenceLink: 'Read the licence',
 } as const
@@ -344,11 +345,14 @@ export const memberships = {
 } as const
 
 export const extensible = {
-  eyebrow: 'For the member who codes',
-  heading: 'And the rest is yours to add.',
+  eyebrow: 'Code-first',
+  heading: 'A board is a repository. The rest is contracts.',
   lede:
-    'Somebody technical in the community gets a corner too: plugins with typed hooks, themes ' +
-    'that fill documented slots, and an API for anything an administrator can do by hand.',
+    'npx create-meith writes a board that pins the engine at one exact version and registers ' +
+    'its themes and plugins in typed config — a plugin arrives as a reviewable diff, and the ' +
+    'whole board rebuilds from clone plus backup. The contracts are typed too: plugin hooks ' +
+    'with crash isolation, documented theme slots, and an API for anything an administrator ' +
+    'can do by hand.',
   counts(facts: Facts): readonly { readonly label: string; readonly value: string }[] {
     return [
       { label: 'Theme slots', value: String(facts.theme.slots) },
@@ -358,30 +362,50 @@ export const extensible = {
     ]
   },
   links: [
+    { label: 'Configuration in code', doc: 'configuration' },
     { label: 'What plugins can do', doc: 'plugins' },
     { label: 'How themes work', doc: 'themes' },
     { label: 'The API and the CLI', doc: 'api' },
   ],
 } as const
 
+/*
+ * The quickstart, compressed to its runtime: what a developer sees between
+ * cloning nothing and having a board on :3000. Fixture mode is the point —
+ * the engine proves itself before asking for a database.
+ */
+export const devTerminal: {
+  readonly cwd: string
+  readonly lines: readonly { readonly text: string; readonly output?: boolean }[]
+} = {
+  cwd: 'quickstart',
+  lines: [
+    { text: 'npx create-meith my-board' },
+    { text: 'cd my-board && npm install && npm run dev' },
+    { text: '✔ fixture mode  no DATABASE_URL — serving from memory', output: true },
+    { text: '✔ ready        http://localhost:3000', output: true },
+  ],
+}
+
 export const chooser = {
   eyebrow: "Who it's for",
   heading: 'Find the version of this that is about you.',
   lede:
-    "A club has fixtures and subs. A residents' association has the road. A clan has a " +
-    'roster. Each gets a page of its own.',
+    'An open-source project has answers worth keeping. A product needs a support forum it ' +
+    'owns. An agency runs a board per client. And somewhere a twenty-year-old MyBB deserves ' +
+    'better. Each gets a page of its own.',
 } as const
 
 export const closing = {
-  heading: 'Give your community somewhere to keep things.',
+  heading: 'Ship a forum you actually own.',
   body:
-    'Set up by one person in an evening, run from a browser by the people who run everything ' +
-    'else. Have a look at a real board first.',
-  action: 'Set one up',
+    'Scaffold it in a minute, watch it run before it ever touches a server, then hand the ' +
+    'day-to-day to the people who run the community. Have a look at a real board first.',
+  action: 'Read the quickstart',
   requirements: [
-    { label: 'A server', value: 'Rented by the community, from a few euro a month' },
-    { label: 'A domain', value: 'Pointed at it' },
-    { label: 'A volunteer', value: 'With a free evening, once' },
+    { label: 'A repository', value: 'npx create-meith, pushed to your GitHub' },
+    { label: 'A server', value: "Rented in the community's name, from a few euro a month" },
+    { label: 'An evening', value: 'Once — an upgrade is a version bump' },
   ],
 } as const
 

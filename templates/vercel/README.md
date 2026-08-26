@@ -135,7 +135,7 @@ the board's name and address and for the first administrator's username, email
 and password, creates the board and that account, and then **seals itself**:
 `/install` answers 404 from then on. Run it against the database you intend to
 keep — the screens are the ones
-[docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
+[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md#6-install-it)
 walks through.
 
 ## The tick

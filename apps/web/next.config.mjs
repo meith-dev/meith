@@ -46,6 +46,14 @@ const nextConfig = {
       // where the site still tells their story.
       { source: '/docs/nextjs-conventions', destination: '/docs/development', permanent: true },
       { source: '/docs/release', destination: '/docs/development', permanent: true },
+      // The segment lineup pivoted to the people who choose and install forum
+      // software. The five community pages collapsed into /for/communities,
+      // which keeps their argument; the old URLs had been shared and indexed.
+      { source: '/for/clubs', destination: '/for/communities', permanent: true },
+      { source: '/for/neighbourhoods', destination: '/for/communities', permanent: true },
+      { source: '/for/discord-and-slack', destination: '/for/communities', permanent: true },
+      { source: '/for/facebook-groups', destination: '/for/communities', permanent: true },
+      { source: '/for/gaming', destination: '/for/communities', permanent: true },
     ]
   },
 

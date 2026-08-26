@@ -244,7 +244,7 @@ describe('dedupeReferences', () => {
   })
 
   it('finds every doc reference the site content carries', () => {
-    expect(dedupeReferences(collectDocReferences(siteContent))).toHaveLength(12)
+    expect(dedupeReferences(collectDocReferences(siteContent))).toHaveLength(13)
   })
 
   it('keeps two genuinely different places that name the same document', () => {

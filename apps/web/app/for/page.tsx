@@ -11,11 +11,11 @@ import { quickstartHref } from '../../src/docs/registry'
  * the five, and leave for the one that is about them.
  */
 export const metadata: Metadata = {
-  title: { absolute: `Who Meith is for — clubs, neighbourhoods, communities and clans` },
+  title: { absolute: `Who Meith is for — projects, products, agencies, clubs and legacy boards` },
   description:
-    'Meith is community software for people who already have a community: sports clubs, ' +
-    "residents' associations, Discord and Slack communities, Facebook groups and gaming " +
-    'clans. Each one gets a page of its own.',
+    'Meith is a forum engine for people with a community to serve: open-source projects, ' +
+    'product and SaaS communities, agencies building for clients, volunteer-run clubs, and ' +
+    'MyBB or phpBB boards ready to move. Each one gets a page of its own.',
   alternates: { canonical: '/for' },
   openGraph: {
     type: 'website',

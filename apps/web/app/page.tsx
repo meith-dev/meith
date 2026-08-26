@@ -13,6 +13,7 @@ import {
   chooser,
   closing,
   devices,
+  devTerminal,
   extensible,
   finding,
   hero,
@@ -82,6 +83,35 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <section className="border-b border-border">
+        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
+          <div className="flex max-w-[40rem] flex-col gap-5">
+            <p className="eyebrow">{extensible.eyebrow}</p>
+            <h2 className="display text-large leading-[1.15]">{extensible.heading}</h2>
+            <p className="text-fg-muted text-pretty">{extensible.lede}</p>
+
+            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+              {extensible.counts(facts).map((entry) => (
+                <div key={entry.label}>
+                  <dt className="eyebrow">{entry.label}</dt>
+                  <dd className="mt-1 font-mono text-mid text-fg">{entry.value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {extensible.links.map((link) => (
+                <Link className="textlink text-micro" href={docHref(link.doc)} key={link.label}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <Terminal content={devTerminal} />
+        </div>
+      </section>
+
       <section className="border-b border-border bg-surface">
         <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-center">
           <div className="flex flex-col gap-6">
@@ -127,7 +157,7 @@ export default async function LandingPage() {
           </div>
 
           <p className="mt-6">
-            <Link className="textlink text-micro" href={docHref('theme-api')}>
+            <Link className="textlink text-micro" href={docHref('themes')}>
               {themes.link}
             </Link>
           </p>
@@ -237,36 +267,6 @@ export default async function LandingPage() {
       </section>
 
       <section className="border-b border-border bg-surface">
-        <div className="shell grid gap-x-14 gap-y-8 py-14 sm:py-16 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-          <header className="flex flex-col gap-3">
-            <p className="eyebrow">{extensible.eyebrow}</p>
-            <h2 className="display text-mid leading-[1.2]">{extensible.heading}</h2>
-          </header>
-
-          <div className="flex flex-col gap-6 lg:pt-1">
-            <p className="max-w-[36rem] text-fg-muted text-pretty">{extensible.lede}</p>
-
-            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-              {extensible.counts(facts).map((entry) => (
-                <div key={entry.label}>
-                  <dt className="eyebrow">{entry.label}</dt>
-                  <dd className="mt-1 font-mono text-mid text-fg">{entry.value}</dd>
-                </div>
-              ))}
-            </dl>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              {extensible.links.map((link) => (
-                <Link className="textlink text-micro" href={docHref(link.doc)} key={link.label}>
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-border">
         <div className="shell py-16 sm:py-20">
           <header className="max-w-[46rem]">
             <p className="eyebrow">{chooser.eyebrow}</p>
