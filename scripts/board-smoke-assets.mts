@@ -67,3 +67,94 @@ export function assertMessagesResolve(html: string, keys: Iterable<string>): voi
     )
   }
 }
+
+const CLASS_ATTRIBUTE = /\sclass="([^"]*)"/g
+
+/**
+ * Classes Tailwind never emits a rule for because they exist to be selected
+ * against, not styled. `group` and `peer` mark an ancestor or sibling that
+ * `group-hover:` and `peer-checked:` reach; the variants carry the rules.
+ */
+const MARKER_CLASSES = new Set(['group', 'peer', 'dark', 'light'])
+
+function isMarker(className: string): boolean {
+  const [head] = className.split('/')
+  return head !== undefined && MARKER_CLASSES.has(head)
+}
+
+export function classesInMarkup(html: string): string[] {
+  const found = new Set<string>()
+
+  for (const match of html.matchAll(CLASS_ATTRIBUTE)) {
+    for (const className of (match[1] ?? '').split(/\s+/)) {
+      if (className !== '' && !isMarker(className)) found.add(className)
+    }
+  }
+
+  return [...found].sort()
+}
+
+/**
+ * Tailwind escapes every character a CSS selector cannot carry bare, so the
+ * class `bg-destructive/5` is written `.bg-destructive\/5` and `after:absolute`
+ * is `.after\:absolute`. Nothing else is transformed, which makes the selector
+ * for a class computable rather than guessable.
+ */
+function selectorFor(className: string): string {
+  return `.${className.replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`)}`
+}
+
+function isDefined(css: string, className: string): boolean {
+  const selector = selectorFor(className)
+
+  for (let at = css.indexOf(selector); at !== -1; at = css.indexOf(selector, at + 1)) {
+    const next = css[at + selector.length]
+    if (next === undefined || !/[a-zA-Z0-9_\\-]/.test(next)) return true
+  }
+
+  return false
+}
+
+export function unstyledClasses(html: string, css: string): string[] {
+  return classesInMarkup(html).filter((className) => !isDefined(css, className))
+}
+
+/**
+ * MEI-131: every `@source` in globals.css names a directory of the Meith
+ * repository, and a scaffolded board has none of them — its copy of that code
+ * is installed under `node_modules/@meith`. Tailwind does not fail on a source
+ * that resolves to nothing, so the board built green and served a stylesheet
+ * with the preflight in it and almost nothing else. The page answered 200,
+ * rendered `<main>`, and every asset check here passed against it.
+ *
+ * Asking whether the stylesheet exists is what missed that. This asks whether
+ * it styles the page actually being served.
+ */
+export async function assertStylesResolve(baseUrl: string, html: string): Promise<void> {
+  const hrefs = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(
+    (match) => match[1] ?? '',
+  )
+
+  if (hrefs.length === 0) {
+    throw new Error(`board-smoke: ${baseUrl}/ referenced no stylesheet at all`)
+  }
+
+  const sheets = await Promise.all(
+    hrefs.map(async (href) => {
+      const url = href.startsWith('http') ? href : `${baseUrl}${href}`
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`board-smoke: ${url} answered ${response.status}`)
+      return response.text()
+    }),
+  )
+
+  const unstyled = unstyledClasses(html, sheets.join('\n'))
+
+  if (unstyled.length > 0) {
+    throw new Error(
+      `the board served ${hrefs.length} stylesheet(s) with no rule for ${unstyled.length} of the ` +
+        `classes it rendered, so Tailwind never scanned where that markup lives: ` +
+        `${unstyled.slice(0, 12).join(', ')}`,
+    )
+  }
+}
