@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { type HostLogger, PluginHost } from './host'
-import { definePlugin, type PluginDefinition, type PluginHooks } from './plugin'
+import {
+  definePlugin,
+  type PluginDefinition,
+  type PluginHooks,
+  unavailablePluginRuntime,
+} from './plugin'
 
 const VIEWER = { userId: 1, isGuest: false }
 
@@ -570,5 +575,114 @@ describe('run — plugin code on a non-hook surface', () => {
 
     host.setOperatorDisabled([])
     expect(host.isEnabled('alpha')).toBe(true)
+  })
+})
+
+describe('the runtime a hook handler can ask for', () => {
+  const POST = { postId: 1, threadId: 2, forumId: 3, authorId: 4 }
+
+  function runtimeFor(pluginKey: string) {
+    return Promise.resolve({
+      ...unavailablePluginRuntime('a test'),
+      settings: { who: pluginKey },
+    })
+  }
+
+  it('hands each plugin its own runtime, resolved only when asked for', async () => {
+    const provider = vi.fn(runtimeFor)
+    let seen: unknown = null
+
+    const host = new PluginHost({
+      plugins: [
+        makePlugin('alfa', {
+          'post.created': async (_value, _context, runtime) => {
+            seen = (await runtime()).settings
+          },
+        }),
+      ],
+      runtime: provider,
+    })
+
+    await host.emit('post.created', POST, VIEWER)
+
+    expect(seen).toEqual({ who: 'alfa' })
+    expect(provider).toHaveBeenCalledExactlyOnceWith('alfa')
+  })
+
+  it('never builds one for a handler that does not ask', async () => {
+    const provider = vi.fn(runtimeFor)
+
+    const host = new PluginHost({
+      plugins: [makePlugin('alfa', { 'post.created': () => {} })],
+      runtime: provider,
+    })
+
+    await host.emit('post.created', POST, VIEWER)
+
+    expect(provider).not.toHaveBeenCalled()
+  })
+
+  it('builds one per call, however many times a handler asks within it', async () => {
+    const provider = vi.fn(runtimeFor)
+
+    const host = new PluginHost({
+      plugins: [
+        makePlugin('alfa', {
+          'post.created': async (_value, _context, runtime) => {
+            await runtime()
+            await runtime()
+          },
+        }),
+      ],
+      runtime: provider,
+    })
+
+    await host.emit('post.created', POST, VIEWER)
+    await host.emit('post.created', POST, VIEWER)
+
+    expect(provider).toHaveBeenCalledTimes(2)
+  })
+
+  it('is available to a filter too, and its failure is contained like any other', async () => {
+    const logger = silentLogger()
+    const host = new PluginHost({
+      plugins: [
+        makePlugin('alfa', {
+          'view.footer': async (footer, _context, runtime) => ({
+            ...footer,
+            boardTitle: String((await runtime()).settings.who),
+          }),
+        }),
+      ],
+      runtime: runtimeFor,
+      logger,
+    })
+
+    const filtered = await host.applyFilter(
+      'view.footer',
+      { boardTitle: 'before', links: [], timezoneLabel: 'UTC' },
+      { ...VIEWER, requestId: null },
+    )
+
+    expect(filtered.boardTitle).toBe('alfa')
+  })
+
+  it('refuses with a clear message when the host was built without a provider', async () => {
+    const logger = silentLogger()
+    const host = new PluginHost({
+      plugins: [
+        makePlugin('alfa', {
+          'post.created': async (_value, _context, runtime) => {
+            await runtime()
+          },
+        }),
+      ],
+      logger,
+    })
+
+    await host.emit('post.created', POST, VIEWER)
+
+    expect(host.health()[0]?.failures).toBe(1)
+    expect(JSON.stringify(logger.errors)).toContain('without a runtime provider')
   })
 })

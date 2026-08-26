@@ -5,16 +5,29 @@ import type { Translator } from '@meith/theme-kit'
 import { type HOOKS, type HookName, isHookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
 import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
-import type { PluginData, PluginGrants, PluginNotify, PluginUsers } from './runtime'
+import {
+  type PluginData,
+  type PluginGrants,
+  type PluginNotify,
+  type PluginUsers,
+  unavailablePluginData,
+  unavailablePluginGrants,
+  unavailablePluginNotify,
+  unavailablePluginUsers,
+} from './runtime'
+
+export type HookRuntime = () => Promise<PluginRuntimeContext>
 
 export type FilterHandler<K extends HookName> = (
   value: HookValue<K>,
   context: HookContext<K>,
+  runtime: HookRuntime,
 ) => HookValue<K> | Promise<HookValue<K>>
 
 export type EventHandler<K extends HookName> = (
   value: HookValue<K>,
   context: HookContext<K>,
+  runtime: HookRuntime,
 ) => void | Promise<void>
 
 export type HookHandler<K extends HookName> = (typeof HOOKS)[K]['kind'] extends 'filter'
@@ -174,6 +187,21 @@ export interface PluginRuntimeContext {
   readonly data: PluginData
   readonly users: PluginUsers
   readonly notify: PluginNotify
+}
+
+export function unavailablePluginRuntime(reason: string): PluginRuntimeContext {
+  return {
+    settings: {},
+    logger: { info: () => {}, warn: () => {}, error: () => {} },
+    grants: unavailablePluginGrants(reason),
+    data: unavailablePluginData(reason),
+    users: unavailablePluginUsers(reason),
+    notify: unavailablePluginNotify(reason),
+  }
+}
+
+export function unavailableHookRuntime(reason: string): HookRuntime {
+  return () => Promise.resolve(unavailablePluginRuntime(reason))
 }
 
 export interface PluginNotificationKind {

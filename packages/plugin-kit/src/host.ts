@@ -2,7 +2,13 @@ import type { ReactNode } from 'react'
 
 import { HOOKS, type HookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
-import type { HookRegistration, PluginContribution, PluginDefinition } from './plugin'
+import type {
+  HookRegistration,
+  HookRuntime,
+  PluginContribution,
+  PluginDefinition,
+  PluginRuntimeContext,
+} from './plugin'
 import type { PluginRegion, PluginRegionContext } from './regions'
 
 export interface HostLogger {
@@ -26,6 +32,8 @@ export interface DurablyDisabledPlugin {
   readonly reason: string
 }
 
+export type PluginRuntimeProvider = (pluginKey: string) => Promise<PluginRuntimeContext>
+
 export interface PluginHostOptions {
   readonly plugins: readonly PluginDefinition[]
   readonly logger?: HostLogger | undefined
@@ -33,6 +41,7 @@ export interface PluginHostOptions {
   readonly slowCallMs?: number | undefined
   readonly now?: (() => number) | undefined
   readonly health?: PluginHealthSink | undefined
+  readonly runtime?: PluginRuntimeProvider | undefined
 }
 
 export interface PluginHealth {
@@ -48,7 +57,7 @@ export interface PluginHealth {
   readonly lastError: { readonly hook: string; readonly message: string } | null
 }
 
-type StoredHandler = (value: unknown, context: unknown) => unknown
+type StoredHandler = (value: unknown, context: unknown, runtime: HookRuntime) => unknown
 
 interface Entry {
   readonly pluginKey: string
@@ -82,6 +91,7 @@ export class PluginHost {
   readonly #slowCallMs: number
   readonly #now: () => number
   readonly #health: PluginHealthSink
+  readonly #runtime: PluginRuntimeProvider
 
   constructor(options: PluginHostOptions) {
     this.#logger = options.logger ?? { warn: () => {}, error: () => {} }
@@ -89,6 +99,15 @@ export class PluginHost {
     this.#slowCallMs = options.slowCallMs ?? 50
     this.#now = options.now ?? (() => performance.now())
     this.#health = options.health ?? { failed: () => {} }
+    this.#runtime =
+      options.runtime ??
+      ((pluginKey) =>
+        Promise.reject(
+          new Error(
+            `plugin "${pluginKey}": this host was built without a runtime provider, so a hook ` +
+              'handler cannot reach settings, data, grants, users or notifications here.',
+          ),
+        ))
 
     for (const plugin of options.plugins) {
       this.#stats.set(plugin.key, {
@@ -154,7 +173,9 @@ export class PluginHost {
     for (const entry of entries) {
       if (!this.#isEnabled(entry.pluginKey)) continue
 
-      const result = await this.#call(entry.pluginKey, name, () => entry.handler(current, context))
+      const result = await this.#call(entry.pluginKey, name, () =>
+        entry.handler(current, context, this.#runtimeFor(entry.pluginKey)),
+      )
 
       if (result.ok && result.value !== undefined) current = result.value as HookValue<K>
     }
@@ -171,7 +192,17 @@ export class PluginHost {
 
     for (const entry of entries) {
       if (!this.#isEnabled(entry.pluginKey)) continue
-      await this.#call(entry.pluginKey, name, () => entry.handler(value, context))
+      await this.#call(entry.pluginKey, name, () =>
+        entry.handler(value, context, this.#runtimeFor(entry.pluginKey)),
+      )
+    }
+  }
+
+  #runtimeFor(pluginKey: string): HookRuntime {
+    let pending: Promise<PluginRuntimeContext> | null = null
+    return () => {
+      pending ??= this.#runtime(pluginKey)
+      return pending
     }
   }
 

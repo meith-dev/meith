@@ -178,6 +178,48 @@ These are not discouraged; there is no API for them.
 > should be an event. An event handler cannot corrupt the thing it is
 > watching, even when it is wrong.
 
+Both kinds can reach this plugin's runtime, so an event handler is where a
+plugin reacts to the board durably: recording a row, queueing a delivery,
+raising a notification. See [reaching the runtime from a
+handler](#reaching-the-runtime-from-a-handler).
+
+### Reaching the runtime from a handler
+
+A handler's first two arguments are the value and the hook's own context.
+Its **third is a function that resolves this plugin's runtime** — the same
+`settings`, `logger`, `data`, `grants`, `users` and `notify` a task or a
+route is handed:
+
+```ts
+'post.created': async (post, context, runtime) => {
+  const { data } = await runtime()
+  await data.query(
+    'insert into plugin_example_outbox (post_id, queued_at) values ($1, now())',
+    [post.postId],
+  )
+},
+```
+
+It is a function, not a value, for two reasons. Hooks are the hot path —
+`view.*` filters run on every page and `postbit.badges` once per post — and
+a handler that never calls it costs nothing, so the overwhelmingly common
+pure-view filter pays for none of this. And acquiring the runtime can fail:
+on a fixture-mode board there is no database, and `await runtime()` rejects
+with a message that says so rather than handing back something that
+pretends. Within a single handler call the runtime is resolved once and
+reused, however many times it is asked for.
+
+The reach is the same one everything else in the plugin gets, and no
+larger: `data` still refuses anything outside `plugin_<key>_*`, `grants`
+still refuses a group the operator has not opened, and a throw is still
+contained and counted as [failure isolation](#failure-isolation) describes.
+Testing a handler that uses it needs no board — `unavailableHookRuntime()`
+stands in, and every capability on it refuses with the reason you pass:
+
+```ts
+filter(footer, viewer, unavailableHookRuntime('this test drives the filter directly'))
+```
+
 ### Ordering
 
 Handlers run in **(priority, plugin key)** order. Lower priority runs first;
