@@ -69,7 +69,6 @@ export interface AdminLogRepository {
     readonly action?: string | undefined
   }): Promise<readonly AdminLogRow[]>
 
-  /** How many entries the filter matches, whichever page was asked for. */
   count(input: { readonly action?: string | undefined }): Promise<number>
 
   actions(limit?: number): Promise<readonly string[]>

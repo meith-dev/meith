@@ -200,12 +200,6 @@ export class PasskeyService {
     return { account, login }
   }
 
-  /**
-   * The same signature check as signing in, against one named account and with
-   * no session at the end of it. A second factor has to prove the device
-   * belongs to the member who has just given their password — accepting any
-   * registered passkey would let anybody past anybody's second step.
-   */
   async proveOwnership(input: {
     readonly userId: number
     readonly credentialId: string

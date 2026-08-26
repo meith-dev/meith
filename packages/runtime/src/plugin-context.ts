@@ -18,12 +18,6 @@ import {
 
 export const PLUGIN_STATEMENT_TIMEOUT_MS = 30_000
 
-/**
- * The context every plugin callback is handed: its resolved settings, a logger
- * that says which plugin is talking, and the four runtime capabilities. Built
- * in one place so a task, an install and a purge cannot drift into offering a
- * plugin different powers depending on which door it came through.
- */
 export async function pluginRuntimeContext(input: {
   readonly db: Database
   readonly plugin: PluginDefinition

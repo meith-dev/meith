@@ -31,9 +31,7 @@ export const getLocale = cache(async (): Promise<ResolvedLocale> => {
   let boardDefault: string | null = null
   try {
     boardDefault = (await getSettings()).get('display.default_locale')
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   return resolveLocale({
     stored: preferences?.locale ?? null,

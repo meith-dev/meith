@@ -155,9 +155,7 @@ async function resolveModule(fromFile, specifier) {
     const candidate = base + ext
     try {
       return { file: candidate, source: await readSource(candidate) }
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
   return null
 }

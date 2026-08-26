@@ -47,10 +47,6 @@ export interface Draft {
   readonly replyToId: number | null
 }
 
-/**
- * Where a plugin sees a private message. `before` may rewrite it or return null
- * to drop it; `sent` is told what was stored.
- */
 export interface MessageAudit {
   readonly before: (input: {
     readonly senderId: number
@@ -74,11 +70,6 @@ export const NO_MESSAGE_AUDIT: MessageAudit = {
   sent: async () => {},
 }
 
-/**
- * What `send` answers when a plugin suppressed the message. The sender is not
- * told, which is the point: a spam filter that announces itself is a spam
- * filter somebody tunes against.
- */
 export const SUPPRESSED = 0
 
 export class MessageService {
@@ -200,11 +191,6 @@ export class MessageService {
     })
     if (proposed === null) return SUPPRESSED
 
-    /*
-     * Only the recipients the board already resolved survive: a plugin may
-     * take one off the list, and cannot put one on it, because the addressees
-     * are the sender's choice and the board's check, not a plugin's.
-     */
     const kept = new Set(proposed.recipientIds)
     const recipients = resolved.filter((recipient) => kept.has(recipient.userId as number))
     if (recipients.length === 0) return SUPPRESSED
@@ -394,9 +380,7 @@ export class MessageService {
   private async notify(run: () => Promise<void> | undefined): Promise<void> {
     try {
       await run()
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 }
 

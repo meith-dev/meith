@@ -6,7 +6,6 @@ import { PASSWORD, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
-/** The key the setup screen prints, read back off the page. */
 async function enrol(page: Page): Promise<string> {
   await page.goto('/usercp/security')
   await page.getByRole('button', { name: 'Set up an authenticator app' }).click()
@@ -26,12 +25,6 @@ async function enrol(page: Page): Promise<string> {
   return secret
 }
 
-/**
- * A code the board has not seen. Enrolment spends the step it confirmed with,
- * and a sign-in moments later falls in the same thirty seconds — so signing in
- * asks for the next step, which the board accepts inside its skew window and
- * which its replay check has no record of.
- */
 async function code(secret: string, offset = 0): Promise<string> {
   return totpCode(secret, stepAt(new Date()) + offset)
 }

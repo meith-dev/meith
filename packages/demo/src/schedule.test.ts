@@ -59,11 +59,6 @@ describe('nextDemoResetAt', () => {
 })
 
 describe('the reset task', () => {
-  /**
-   * The reset drops the table that records when the reset last ran, so without
-   * the stamp it writes back, the task is due again on the very next tick. This
-   * is the test that a demo does not spend its life resetting.
-   */
   it('does not come due again on the tick straight after it ran', async () => {
     inDemoMode()
 

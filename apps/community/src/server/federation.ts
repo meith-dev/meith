@@ -50,13 +50,6 @@ export function federationOptions(settings: SettingsSnapshot): FederationOptions
   }
 }
 
-/**
- * Every read here goes past the settings cache, because every one of them
- * decides whether a sign-in may start rather than what a page displays. The
- * cached snapshot is held per module instance, so a route handler can be a
- * minute behind the render that invalidated it — long enough for a provider an
- * operator has just switched on to answer that it is switched off.
- */
 export async function federationProvider(id: string): Promise<IdentityProvider | null> {
   if (!isProviderKind(id)) return null
   if (getContainer().dataSource !== 'postgres') return null

@@ -1,10 +1,5 @@
 import type { DemoThread } from './types'
 
-/**
- * Membership, support, feedback and moderation: the forums where the club talks
- * about itself. They are also where the board's own features get demonstrated
- * by somebody using them rather than by a paragraph in a document.
- */
 export const RUNNING_THREADS: readonly DemoThread[] = [
   {
     forum: 'membership',

@@ -3,10 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { createDues, dues } from './definition'
 
 describe('the zero-argument export', () => {
-  /**
-   * `definePlugin()` running without throwing at module load is the real
-   * assertion here: a marketplace install can only ever write `plugin: dues`.
-   */
   it('is constructible from the key alone — no constructor arguments required', () => {
     expect(dues.key).toBe('dues')
     expect(dues.version).toMatch(/^\d+\.\d+\.\d+$/)

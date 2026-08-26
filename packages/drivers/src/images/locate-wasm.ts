@@ -82,9 +82,7 @@ export async function locateAsset(specifier: string, from = process.cwd()): Prom
       const path = required.resolve(specifier)
       found.set(key, path)
       return path
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
   for (const dir of ancestors(from)) {

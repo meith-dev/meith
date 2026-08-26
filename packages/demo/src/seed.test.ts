@@ -21,12 +21,6 @@ let harness: TestDb
 let db: Database
 let summary: SeedSummary
 
-/**
- * The seed is the demo. Everything else in this package is plumbing around it,
- * and every failure mode worth catching — a thread naming a forum that does not
- * exist, a post count that stayed at zero, a board nobody can search — only
- * shows up against a real engine.
- */
 const NOW = new Date('2026-08-10T09:00:00Z')
 
 beforeAll(async () => {
@@ -46,7 +40,6 @@ async function count(table: string, where = sql`true`): Promise<number> {
   return rows[0]?.n ?? 0
 }
 
-/** Every forum id in a restricted section, category included. */
 async function sectionIds(access: 'staff' | 'supporters'): Promise<ReadonlySet<number>> {
   const slugs = DEMO_FORUMS.filter((forum) => forum.access === access).map((forum) => forum.slug)
   expect(slugs.length).toBeGreaterThan(1)
@@ -76,7 +69,6 @@ async function groupIds(...keys: readonly string[]): Promise<readonly number[]> 
   return rows.map((row) => Number(row.id))
 }
 
-/** The forums a member of exactly these groups is offered, through the real authorizer. */
 async function visibleTo(ids: readonly number[]): Promise<readonly number[]> {
   const source = new PostgresAuthorizationSource(db)
   const groups = await source.groupDefaults(ids)

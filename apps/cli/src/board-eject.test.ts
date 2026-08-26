@@ -6,13 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CODE_VERSION } from './upgrade'
 
-/**
- * MEI-90's own case: a bind-mounted target the container cannot write into
- * behaves exactly like a real EACCES, without needing an actual permission
- * failure on disk (this suite, like CI, may run as root, which bypasses
- * filesystem permission bits entirely). `writeFailure.path` targets one
- * write; every other call passes straight through to the real writeFile.
- */
 const writeFailure: { path: string | undefined } = { path: undefined }
 
 vi.mock('node:fs/promises', async (importOriginal) => {

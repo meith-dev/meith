@@ -1,18 +1,3 @@
-/**
- * The mechanics behind `EditorToolbar`: what a formatting tag does to a
- * textarea, independent of who renders the button that triggers it.
- *
- * `EditorToolbar` is a `client` slot, so its buttons live in a different React
- * tree than the textarea `PostForm`'s `regions.form` renders — a theme cannot
- * reach into the app's composer to call a handler, and the app cannot hand a
- * theme a function (see `Serialisable` in `view-models.ts`). `textareaId` is
- * the only thing that crosses: a plain id a theme's button addresses with
- * `document.getElementById`. These functions are the other half of that
- * bargain — the app builds `EditorToolbarModel.buttons` naming a tag per
- * button, and whichever side ends up running the click (a theme's button, or
- * the composer's own keyboard shortcut) calls `applyEditorTag` with it.
- */
-
 export interface Edit {
   readonly from: number
   readonly to: number
@@ -29,7 +14,6 @@ export interface WrapSyntax {
 
 export type LineMarker = string | ((index: number) => string)
 
-/** The formatting commands a theme's `EditorToolbar` button may name. */
 export type EditorTag =
   | 'bold'
   | 'italic'
@@ -189,7 +173,6 @@ const PREFIX_TAGS: Readonly<
   heading: '## ',
 }
 
-/** Applies an `Edit` to a live textarea: the replacement, the selection, and the `input` event a controlled form needs to notice the change. */
 export function applyEditorEdit(field: HTMLTextAreaElement, edit: Edit): void {
   field.setRangeText(edit.text, edit.from, edit.to, 'end')
   field.setSelectionRange(edit.selectionStart, edit.selectionEnd)
@@ -197,13 +180,6 @@ export function applyEditorEdit(field: HTMLTextAreaElement, edit: Edit): void {
   field.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
-/**
- * Runs one `EditorTag` against a textarea's current selection.
- *
- * `placeholder` fills a wrap or spoiler tag's rail when nothing is selected —
- * `EditorToolbarModel.buttons[].placeholder`, already translated by the app.
- * Ignored by every other tag, which has nothing to place.
- */
 export function applyEditorTag(
   field: HTMLTextAreaElement,
   tag: EditorTag,

@@ -1,28 +1,4 @@
 #!/usr/bin/env node
-/**
- * `community` — the bin that makes `@meith/cli` runnable against an external
- * board workspace, on the same footing as `forum-web` (see
- * apps/community/bin/forum-web.mjs and docs/contributing/development.md).
- *
- * `apps/cli/src/index.ts` reaches the board-config seam with a *dynamic*
- * `await import('@board/plugins')` (never a static one — see
- * docs/reference/architecture.md), so unlike the release image's own bundled CLI —
- * which bakes in whichever board it was built next to — this one resolves
- * that seam at the moment it actually runs, against whichever workspace it
- * was invoked from. So the same materialize-then-run trick as `forum-web`
- * applies, with `tsx` standing in for `next`: this package ships TypeScript
- * source with no build step, `tsx` is already how it runs inside this
- * monorepo (`pnpm community` is `tsx src/index.ts`), and a tsconfig it reads
- * from the nearest ancestor directory is a mechanism it already has, so
- * pointing that tsconfig's `@board/config` / `@board/plugins` at the
- * invoking workspace's own files is the same seam-resolution mechanism
- * `forum-web` uses for the Next app, applied through the tool this package
- * already runs through.
- *
- * Unlike `forum-web`, this does not change the working directory: the CLI's
- * own `.env` loading is relative to wherever the operator invoked it from,
- * and that should stay the workspace root.
- */
 import { spawn } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -92,12 +68,6 @@ function materialize() {
   return join(srcTarget, 'index.ts')
 }
 
-/**
- * Resolved from this package's own directory — `tsx` is `@meith/cli`'s
- * dependency, found either hoisted to the workspace root or nested under
- * this package's own `node_modules`, the same reasoning as forum-web's
- * `resolveNextBin()`.
- */
 function resolveTsx() {
   const require = createRequire(join(packageRoot, 'package.json'))
   try {

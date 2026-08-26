@@ -1,10 +1,5 @@
 import type { DemoThread } from './types'
 
-/**
- * General discussion and Events: the two busiest forums, and the ones that show
- * a fixture, a raid night, a blitz and a table quiz sitting in the same list
- * without any of them looking out of place.
- */
 export const COMMUNITY_THREADS: readonly DemoThread[] = [
   {
     forum: 'general',

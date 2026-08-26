@@ -18,9 +18,7 @@ for (const { dir, manifest } of await workspaceEntries()) {
       problems.push(
         `${dir} has src/ but no package.json — pnpm will not see it as a workspace package`,
       )
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     continue
   }
 

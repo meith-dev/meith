@@ -1,43 +1,4 @@
 #!/usr/bin/env -S npx tsx
-/**
- * The integration test for MEI-77 — does a scaffolded board's *deploy kit*
- * (Dockerfile, docker-compose.yml, .github/workflows/build.yml) actually build and
- * boot? scripts/board-workspace-smoke.mts (MEI-75) proves `forum-web`/
- * `community` work against a real, externally-installed board; this proves
- * the Docker shape on top of that — the thing an operator with nothing but
- * a GitHub account and a Coolify server actually deploys.
- *
- * The one thing this cannot do in CI, and the "Done when" bullet the MEI-77
- * PR calls out explicitly: pull the real `ghcr.io/meith-dev/meith-base`.
- * That image does not exist until the *next* release publishes it — a
- * chicken-and-egg CI cannot resolve by waiting, since the release pipeline
- * itself needs a green CI first. So this builds a **local stand-in**: the
- * same three packages (`@meith/web`, `@meith/cli`, `@meith/theme-default`)
- * `docker/Dockerfile.base` installs from the real npm registry, here
- * installed instead from `pnpm pack` tarballs (no package on the real
- * registry yet has this commit's code) — and tags the result with the
- * *exact* tag the scaffolded Dockerfile's own `FROM` line names
- * (`ghcr.io/meith-dev/meith-base:<version>`). A plain `docker build` (no
- * `--pull`) resolves a `FROM` line against whatever is already in the local
- * image cache before it would reach for the registry, so the scaffold's own
- * Dockerfile — unmodified, exactly what create-meith writes — builds
- * against the stand-in without ever knowing it is not the real thing.
- *
- * What this substitution does NOT prove: that `docker/Dockerfile.base`
- * itself is correct against the *real* npm registry (its `RUN npm install`
- * against real package names is exercised for real only by an actual
- * release) — see the PR description for that gap and why it is an
- * acceptable one. What it does prove, faithfully: the scaffolded
- * Dockerfile, docker-compose.yml and the "install only the delta" shape all work,
- * because those are exercised completely unmodified.
- *
- * Also reports how long installing and rebuilding after a plugin is added
- * takes from an already-warm base layer — the MEI-77 "Done when" bullet
- * that asks for this to be measured. See buildBoardImage's two calls below.
- *
- * Needs a reachable, empty Postgres named by DATABASE_URL, and a Docker
- * daemon.
- */
 import { spawnSync } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -88,15 +49,6 @@ async function scaffoldBoard(parentDir: string): Promise<string> {
   return join(parentDir, 'deploy-kit-smoke')
 }
 
-/**
- * Builds `docker/Dockerfile.base`'s stand-in: same three root packages,
- * same shape (a plain `npm install` in an otherwise-empty image), but
- * resolved against packed tarballs rather than the real registry — see the
- * module comment for why. Tagged as the exact reference the scaffolded
- * Dockerfile's own FROM line names, so that unmodified Dockerfile resolves
- * it from the local image cache. Excludes `PLUGIN` — it is not part of the
- * framework image the base stub stands in for.
- */
 function buildStandInBaseImage(
   boardDir: string,
   vendorDir: string,
@@ -133,14 +85,6 @@ RUN npm install
   })
 }
 
-/**
- * Points the scaffolded board's own package.json at the packed tarballs —
- * the same `overrides` trick scripts/board-workspace-smoke.mts uses, except
- * with paths relative to the board directory (`file:./vendor/...`) rather
- * than absolute ones, because these files have to resolve *inside* the
- * Docker build context the board's own Dockerfile COPYs from, not just on
- * this host.
- */
 async function pointAtVendoredTarballs(
   boardDir: string,
   vendorDir: string,
@@ -191,15 +135,6 @@ async function waitForResponse(url: string, attempts: number): Promise<Response>
   throw new Error(`board-deploy-kit-smoke: ${url} never answered: ${String(lastError)}`)
 }
 
-/**
- * The container needs to reach the GitHub Actions Postgres service, which is
- * bound to the *runner's* 127.0.0.1:5432 — on the default bridge network, a
- * container's own 127.0.0.1 is itself, not the runner. `--network host` (the
- * same fix the site-image CI job uses) puts it on the runner's network
- * directly, so it also replaces the `-p` mapping: the app binds `PORT` on
- * the host interface itself, so `PORT` is passed in rather than fixed at the
- * image's own default of 3000.
- */
 async function bootAndRender(tag: string, containerName: string) {
   stopAndRemove(containerName)
   run(
@@ -241,7 +176,6 @@ async function bootAndRender(tag: string, containerName: string) {
   }
 }
 
-/** Same reachability fix as `bootAndRender` above. */
 function runMigrate(tag: string) {
   console.log('== COMMUNITY_ROLE=migrate ==')
   run(

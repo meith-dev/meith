@@ -53,7 +53,6 @@ export async function countingAddress(): Promise<string | null> {
   return demoDiscardsAddresses() ? demoAddressToken(address) : address
 }
 
-/** Where a request came from and what made it, as much as is kept about either. */
 export async function requestFingerprint(): Promise<RequestFingerprint> {
   const incoming = await headers()
   const agent = incoming.get('user-agent') ?? ''

@@ -4,12 +4,6 @@ import { stepAt, totpCode } from '@meith/accounts'
 
 import { enterAdminPanel, PASSWORD, signUp } from './support/session'
 
-/**
- * The companion to two-factor-no-js.spec.ts, with scripting on. The panels are
- * client components driven by `useActionState`, and a page that renders without
- * JavaScript can still throw once React takes it over.
- */
-
 async function code(secret: string, offset = 0): Promise<string> {
   return totpCode(secret, stepAt(new Date()) + offset)
 }

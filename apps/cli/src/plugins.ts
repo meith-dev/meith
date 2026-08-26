@@ -9,12 +9,6 @@ export interface PurgeOptions {
   readonly log: (line: string) => void
 }
 
-/**
- * The one moment `onUninstall` can run: the operator has decided the plugin is
- * going, and its code is still in the build. Afterwards there is nothing left
- * to call — removing a plugin is `pnpm remove`, a line out of
- * `community.plugins.ts` and a redeploy, and by then the function is gone.
- */
 export async function purge(options: PurgeOptions): Promise<number> {
   const definition = options.plugins.find((plugin) => plugin.key === options.key)
 

@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-/**
- * Validates marketplace/listings/*.json against marketplace/schema.json and
- * the rules a JSON Schema cannot express, then emits the merged feed and its
- * screenshots into apps/web's public assets. See docs/customization/marketplace.md.
- */
 import { mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 
@@ -16,42 +11,16 @@ export const PUBLIC_MARKETPLACE_DIR = 'apps/web/public/marketplace'
 export const FEED_FILE = `${PUBLIC_MARKETPLACE_DIR}/v1.json`
 export const FEED_SCREENSHOTS_DIR = `${PUBLIC_MARKETPLACE_DIR}/screenshots`
 
-/**
- * Mirrors KEY_PATTERN in packages/plugin-kit/src/plugin.ts and
- * packages/marketplace/src/schema.ts. A listing key is not a plugin key —
- * it namespaces nothing on its own — but a marketplace author already
- * knows this rule from writing `definePlugin`, and a second rule for the
- * same shape would only be a second thing to get wrong.
- * marketplace-gen.test.ts pins all three copies plus marketplace/schema.json's
- * own `pattern` against each other so the four cannot silently drift apart.
- */
 export const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 export const VERSION_PATTERN = /^\d+\.\d+\.\d+$/
 export const PACKAGE_PATTERN = /^(@[a-z0-9-][a-z0-9-._]*\/)?[a-z0-9-][a-z0-9-._]*$/
 export const SCREENSHOT_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*\.png$/
 export const KINDS = new Set(['plugin', 'theme'])
 
-/**
- * The 8-byte signature every PNG file opens with, regardless of what
- * follows it. checkScreenshotsExist reads this many bytes off disk rather
- * than trusting the `.png` filename a listing already had to pass through
- * SCREENSHOT_NAME_PATTERN.
- */
 export const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 
-/**
- * A screenshot over this size does not get copied into the site's public
- * assets. Matches the ceiling the screenshot proxy route already applies
- * to a remotely fetched screenshot (apps/community/app/admin/api/marketplace/screenshot/route.ts),
- * so a locally committed one is held to the same bound.
- */
 export const MAX_SCREENSHOT_BYTES = 5_000_000
 
-/**
- * Kept in the order marketplace/schema.json declares `required`;
- * marketplace-gen.test.ts asserts the two lists stay equal so the schema
- * document and this generator cannot silently drift apart.
- */
 export const REQUIRED_FIELDS = [
   'key',
   'kind',
@@ -66,11 +35,6 @@ export const REQUIRED_FIELDS = [
   'licence',
 ]
 
-/**
- * A comparator is `>=`, `<=`, `>`, `<` or `=` (default `=`) against a version
- * of one to three numeric parts. Comparators separated by spaces are ANDed —
- * enough to write ">=0.16 <1" and nothing more elaborate than that.
- */
 const COMPARATOR_PATTERN = /^(>=|<=|>|<|=)?\d+(\.\d+){0,2}$/
 
 export function isValidRange(range) {
@@ -81,11 +45,6 @@ export function isValidRange(range) {
     .every((token) => COMPARATOR_PATTERN.test(token))
 }
 
-/**
- * Structural and semantic checks on one parsed listing. Pure — no filesystem
- * access — so it can be unit tested directly against fixture objects.
- * Returns an array of problem strings, each naming the file and the field.
- */
 export function validateEntry(file, entry) {
   const problems = []
 
@@ -175,7 +134,6 @@ export function validateEntry(file, entry) {
   return problems
 }
 
-/** Cross-listing checks: nothing here can be seen from one file alone. */
 export function checkUniqueness(files) {
   const problems = []
   const byKey = new Map()
@@ -199,28 +157,12 @@ export function checkUniqueness(files) {
   return problems
 }
 
-/**
- * Orders two entries by `key`, by UTF-16 code point rather than
- * `String.localeCompare` — see buildFeed's own doc comment for why.
- */
 export function compareKeys(a, b) {
   if (a.key < b.key) return -1
   if (a.key > b.key) return 1
   return 0
 }
 
-/**
- * Builds the merged feed from validated entries. Pure and order-independent:
- * entries are sorted by key so the output does not depend on directory
- * listing order, which is what makes the generator deterministic. The sort
- * itself is by UTF-16 code point (compareKeys), not `String.localeCompare`
- * — a bare `localeCompare` call follows the runtime's own `LANG`/ICU
- * collation, which disagrees across machines on `[a-z0-9-]` strings, so a
- * feed generated on one machine would not byte-match one generated on
- * another from the same listings. docs/customization/marketplace.md promises byte-
- * identical output; only a locale-independent comparator can keep that
- * promise across machines rather than only on one.
- */
 export function buildFeed(entries) {
   const listings = [...entries].sort(compareKeys).map((entry) => ({
     ...entry,
@@ -230,11 +172,6 @@ export function buildFeed(entries) {
   return { schema: 'https://www.meith.dev/marketplace/v1.json#/schema', listings }
 }
 
-/**
- * Reads and validates every listing under `listingsDirAbs`. Returns the
- * structural/semantic problems plus the entries that parsed and validated
- * cleanly enough to check for cross-listing collisions and build the feed.
- */
 export async function collectListings(listingsDirAbs) {
   const problems = []
   const names = (await readdir(listingsDirAbs)).filter((name) => extname(name) === '.json').sort()
@@ -258,12 +195,6 @@ export async function collectListings(listingsDirAbs) {
   return { problems, files }
 }
 
-/**
- * Checks that every screenshot a validated listing names actually exists,
- * is under MAX_SCREENSHOT_BYTES, and is genuinely a PNG (its first 8 bytes
- * match PNG_SIGNATURE) — a filename ending in ".png" only proves it passed
- * SCREENSHOT_NAME_PATTERN, not that the bytes behind it are one.
- */
 export async function checkScreenshotsExist(files, screenshotsDirAbs) {
   const problems = []
   for (const { file, entry } of files) {
@@ -310,24 +241,12 @@ async function listFilesRecursive(dirAbs, prefix = '') {
   return files
 }
 
-/**
- * Screenshots sitting in the source directory that no validated listing
- * references — leftovers from a deleted or renamed listing, or a file a
- * pull request dropped in with no listing behind it.
- */
 export async function findOrphanScreenshots(files, screenshotsDirAbs) {
   const referenced = new Set(files.flatMap(({ entry }) => entry.screenshots ?? []))
   const onDisk = await readdir(screenshotsDirAbs).catch(() => [])
   return onDisk.filter((name) => !referenced.has(name)).sort()
 }
 
-/**
- * Files under the published marketplace directory the generator did not
- * put there. The feed file and the screenshots the current listings
- * reference are the whole of what this generator produces; anything else
- * under apps/web/public/marketplace/ reaches meith.dev at a stable URL
- * with no listing, and no review, behind it.
- */
 export async function findExtraneousPublishedFiles(files, publicMarketplaceDirAbs) {
   const referenced = new Set(files.flatMap(({ entry }) => entry.screenshots ?? []))
   const allowed = new Set(['v1.json', ...[...referenced].map((name) => `screenshots/${name}`)])
@@ -335,10 +254,6 @@ export async function findExtraneousPublishedFiles(files, publicMarketplaceDirAb
   return onDisk.filter((relPath) => !allowed.has(relPath)).sort()
 }
 
-/**
- * The schema document itself only needs to parse here — the generator's own
- * checks above are what actually gets enforced (see this file's own header).
- */
 async function main() {
   const check = process.argv.includes('--check')
 

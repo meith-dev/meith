@@ -30,11 +30,9 @@ export const TAB =
 export const BUTTON =
   'inline-flex h-8 items-center rounded-sm px-3 text-[0.6875rem] font-bold tracking-[0.08em] whitespace-nowrap uppercase transition-colors'
 
-/** The columns every listing shares: name, two counts, and what happened last. */
 export const TABLE_ROW =
   'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 px-4 py-2.5 md:grid-cols-[auto_minmax(0,1fr)_4.5rem_4.5rem_14rem] md:items-center'
 
-/** The club's two colours, stacked — the stripe every panel is hung on. */
 export function ClubBar({ className }: { className?: string }) {
   return (
     <span
@@ -47,7 +45,6 @@ export function ClubBar({ className }: { className?: string }) {
   )
 }
 
-/** The same pair laid flat, under the masthead and over the footer. */
 export function ClubRule({ className }: { className?: string }) {
   return (
     <span aria-hidden="true" className={cn('flex h-1 w-full', className)}>

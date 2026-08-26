@@ -38,17 +38,6 @@ export async function boardSessionConfig(): Promise<BoardSessionConfig> {
   }
 }
 
-/**
- * Applied last, over the stored settings, because on a demo the stored settings
- * are whatever the last visitor left behind.
- *
- * The lockout exists to make guessing a password expensive. A demo's passwords
- * are printed on the page, so there is nothing left to guess — and the counter
- * is per account, which means one visitor mistyping `admin` five times locks the
- * published login for everyone else for a quarter of an hour. Not disabled
- * outright: this is still a login form on the open internet, and something
- * hammering it should still meet a wall.
- */
 function demoOverrides(config: AuthConfig): AuthConfig {
   if (!env.DEMO_MODE) return config
 

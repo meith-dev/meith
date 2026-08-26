@@ -84,13 +84,6 @@ export interface MarkdownEditorProps {
   readonly hint?: React.ReactNode
   readonly scope?: PreviewScope
   readonly attachTo?: AttachmentTarget | undefined
-  /**
-   * Whether the formatting buttons render inside this component (`'inline'`,
-   * the default — every composer outside the post/reply/edit pages) or are
-   * left to the page's `EditorToolbar` slot (`'external'`), which addresses
-   * this textarea by `id` from a different part of the tree. Either way the
-   * textarea works with none of them: the buttons are the enhancement.
-   */
   readonly toolbar?: 'inline' | 'external' | undefined
 }
 

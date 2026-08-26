@@ -10,14 +10,6 @@ import {
   DEMO_THREADS,
 } from './content'
 
-/**
- * The content is hand-written, which is what makes it worth reading and also
- * what makes it possible to write a post by a member who had not joined yet.
- * Everything here is a mistake a person makes and a database does not catch:
- * the seed would happily write a reply dated before its author registered, and
- * a visitor would find it on the member's profile.
- */
-
 const ACCOUNT = new Map(DEMO_ACCOUNTS.map((account) => [account.key, account]))
 const FORUM = new Map(DEMO_FORUMS.map((forum) => [forum.key, forum]))
 const PREFIX = new Set(DEMO_PREFIXES.map((prefix) => prefix.key))

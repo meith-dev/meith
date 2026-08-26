@@ -1,16 +1,5 @@
 import type { DemoThread } from './types'
 
-/**
- * The Supporters' club: four forums opened by a group the Dues plugin grants
- * and takes away on its own.
- *
- * Second section on the board, under the staff one, so a visitor logged in as
- * `admin` sees both restricted sections before anything a guest could have read
- * anyway. What it is not: a members' area with anything the rest of the club
- * cannot get. Every thread in here is early, itemised or sentimental — never a
- * privilege — because a club where the people who pay more can see more is not
- * a club, and a demo that shows one is selling the wrong thing.
- */
 export const SUPPORTERS_THREADS: readonly DemoThread[] = [
   {
     forum: 'supporters',

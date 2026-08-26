@@ -3,14 +3,6 @@ import { ImageResponse } from 'next/og'
 import { documents, findDocument, findSection } from '../../../../src/docs/registry'
 import { OG_SIZE, OgCard } from '../../../../src/og/card'
 
-/*
- * One card per published document, prerendered from the same manifest entry
- * as the page: the section (or sub-group) as the eyebrow, the document's
- * title, and its blurb. The reserved slug `index` is the /docs hub's card;
- * anything unrecognised gets the plain documentation card rather than a 404,
- * because a stale unfurl is better than a broken one.
- */
-
 const INDEX_CARD = {
   eyebrow: 'Documentation',
   title: 'What do you want',

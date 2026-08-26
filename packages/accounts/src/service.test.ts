@@ -44,7 +44,6 @@ function fixedClock(start = new Date('2026-01-01T00:00:00Z')) {
   return clock
 }
 
-/** Every existing case here signs in outright; the second factor has its own file. */
 async function signIn(
   service: IdentityService,
   identifier: string,

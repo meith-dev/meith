@@ -24,11 +24,6 @@ export function pluginMarkdownPipeline(host: PluginHost): MarkdownPipeline {
   }
 }
 
-/**
- * A message on its way out of the worker, past the plugins first. Returning
- * null from `mail.send.before` drops it; nothing tells the recipient, because
- * nobody was waiting on a page for it.
- */
 export async function sendAudited(
   host: PluginHost,
   mail: MailDriver,

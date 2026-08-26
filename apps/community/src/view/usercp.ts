@@ -59,9 +59,7 @@ export function availableTimezones(): readonly string[] {
   if (typeof supported === 'function') {
     try {
       return supported('timeZone')
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
   return FALLBACK_TIMEZONES

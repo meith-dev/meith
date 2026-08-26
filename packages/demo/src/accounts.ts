@@ -1,17 +1,3 @@
-/**
- * The people on the demo board.
- *
- * Three of them have a published password and are the ones a visitor logs in as.
- * The rest exist to write the content — they have no password anybody knows,
- * because a member account nobody can reach is still a member account, and a
- * board where every author is also a door is a board with forty doors.
- *
- * The cast is the kind of membership the software is actually for: a committee,
- * a juvenile section, players, a crew who play online on a Tuesday night, and
- * the people who turn up for the social side and never the sport. The ones who
- * meet in a room have a town. The ones who meet on a headset have a timezone.
- */
-
 export type DemoGroupKey =
   | 'administrators'
   | 'superModerators'
@@ -20,28 +6,17 @@ export type DemoGroupKey =
   | 'awaitingActivation'
 
 export interface DemoAccount {
-  /** Stable handle used by the content to refer to an author. */
   readonly key: string
   readonly username: string
   readonly email: string
-  /** `null` means no published password: the account cannot be logged into. */
   readonly password: string | null
   readonly group: DemoGroupKey
-  /** Days before the reset that this account registered. */
   readonly joinedDaysAgo: number
   readonly location: string | null
   readonly website: string | null
   readonly bio: string | null
 }
 
-/**
- * `admin` is five characters, and the board's own policy wants eight. That is
- * not a contradiction to paper over: the seed writes the hash directly rather
- * than going through registration, so the policy stays honest for every account
- * created after the seed — including the one a visitor makes themselves. What a
- * demo needs is a password somebody can retype from a banner without a paste
- * buffer, and `admin` is that password.
- */
 export const DEMO_LOGINS = {
   admin: { username: 'admin', password: 'admin' },
   moderator: { username: 'moderator', password: 'moderator' },
@@ -618,10 +593,6 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
   },
 ]
 
-/**
- * The accounts a visitor is invited to log in as. Their password and email are
- * frozen for the life of the demo — see `packages/demo/src/protected.ts`.
- */
 export const DEMO_LOGIN_USERNAMES: readonly string[] = Object.values(DEMO_LOGINS).map(
   (login) => login.username,
 )

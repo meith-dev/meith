@@ -31,7 +31,6 @@ export interface AttachmentAdminFilter {
 export interface AttachmentAdminPage {
   readonly rows: readonly AttachmentAdminRow[]
   readonly nextBeforeId: number | null
-  /** How many attachments the filter matches, whichever page was asked for. */
   readonly total: number
 }
 

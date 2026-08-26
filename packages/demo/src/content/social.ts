@@ -1,13 +1,5 @@
 import type { DemoMessage, DemoReport, DemoThanks } from './types'
 
-/**
- * Reputation, so profiles and post footers are not all zeroes.
- *
- * Weighted the way a club board weights it: the person who wrote down where the
- * money went, the parent who found four seats, and the one who explained a rule
- * without making anybody feel stupid all outscore the man who ranked the
- * chippers. Only just, in the last case.
- */
 export const DEMO_THANKS: readonly DemoThanks[] = [
   {
     threadTitle: 'Where the pitch fund money went, in numbers',
@@ -273,11 +265,6 @@ export const DEMO_THANKS: readonly DemoThanks[] = [
   },
 ]
 
-/**
- * Private messages, so an inbox is not empty on first login. Three land on
- * `admin` and two on `moderator`, because those are the two accounts a visitor
- * is most likely to read the messages screen as.
- */
 export const DEMO_MESSAGES: readonly DemoMessage[] = [
   {
     from: 'moderator',
@@ -361,11 +348,6 @@ export const DEMO_MESSAGES: readonly DemoMessage[] = [
   },
 ]
 
-/**
- * Open reports, so the moderation queue has something in it. Two, deliberately
- * of different kinds: one is obvious spam, and one is a member using the report
- * button the way the staff post asks them to — "probably fine, but look".
- */
 export const DEMO_REPORTS: readonly DemoReport[] = [
   {
     reporter: 'member',

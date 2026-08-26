@@ -18,7 +18,6 @@ function inDemoMode(): void {
   resetEnvForTests()
 }
 
-/** Records the statements a reset issues, and answers all of them. */
 function recordingDb(): { db: Database; statements: string[] } {
   const statements: string[] = []
   const db = {
@@ -56,12 +55,6 @@ describe('resetDemoBoard', () => {
     await expect(resetDemoBoard({ db: neverReached })).rejects.toThrow(/end of the board/)
   })
 
-  /**
-   * The reset runs from the scheduler, and the scheduler's own bookkeeping table
-   * is in the schema the reset drops. A reset that dies after the drop and does
-   * not put the schema back takes the scheduler with it, so nothing ever retries
-   * and the board stays empty until a human notices.
-   */
   it('puts the schema back when the migration fails after the drop', async () => {
     inDemoMode()
     const { db, statements } = recordingDb()

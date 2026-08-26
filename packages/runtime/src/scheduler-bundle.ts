@@ -131,11 +131,6 @@ export function buildSchedulerBundle(deps: {
     'Scheduled task run duration in seconds, labelled by task and outcome.',
   )
 
-  /**
-   * Every task, announced. The host is told before and after each run — a
-   * plugin watching its own task, or the board's, gets the same two events
-   * whichever scheduled it.
-   */
   const announced = (tasks: readonly TaskDefinition[]): TaskDefinition[] =>
     tasks.map((task) => ({
       ...task,

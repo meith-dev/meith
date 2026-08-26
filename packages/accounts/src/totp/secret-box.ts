@@ -8,12 +8,6 @@ const IV_BYTES = 12
 
 const INFO = new TextEncoder().encode('meith/two-factor-secret')
 
-/**
- * The shared secret an authenticator app holds is a password equivalent: with
- * it, anybody can mint that member's codes forever. It is sealed with a key
- * derived from AUTH_SECRET so that a leaked backup, or a read of the table by
- * anything that never had the environment, is not enough on its own.
- */
 export async function sealSecret(plaintext: string, passphrase: string): Promise<string> {
   const key = await deriveKey(passphrase)
   const iv = new Uint8Array(IV_BYTES)

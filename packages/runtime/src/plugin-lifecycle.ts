@@ -12,14 +12,6 @@ const CALLBACKS: Readonly<Record<PluginLifecyclePhase, keyof PluginDefinition>> 
   uninstall: 'onUninstall',
 }
 
-/**
- * Run one lifecycle callback, or report that the plugin declares none.
- *
- * It throws what the callback throws, deliberately. These do not run inside the
- * host's try/catch, because that isolation exists to keep a page rendering and
- * none of these is on a page: an install that half-worked should stop the
- * deploy rather than be swallowed, and each caller states its own policy.
- */
 export async function runPluginLifecycle(input: {
   readonly db: Database
   readonly plugin: PluginDefinition

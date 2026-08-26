@@ -8,15 +8,6 @@ import { ValidationError } from '@meith/core'
 
 import { CODE_VERSION } from './upgrade'
 
-/**
- * apps/cli/src/plugin-manifest.ts and this file are the same distance from
- * the repository root (apps/cli/{src,dist}/<file> either way) — see that
- * file's own comment. This default is only reached from *this* checkout
- * (`pnpm community board:eject`, tests): the deployed image sets
- * `BOARD_PLUGINS_MANIFEST` explicitly (see docker/Dockerfile), because a
- * bundled `dist/cli.cjs` does not sit at that same distance — Docker's own
- * `COPY apps/cli/dist/ ./apps/cli/` drops the `dist` segment.
- */
 function defaultManifestPath(): string {
   return join(
     fileURLToPath(new URL('../../../', import.meta.url)),
@@ -38,22 +29,10 @@ function manifestPath(): string {
   return process.env.BOARD_PLUGINS_MANIFEST ?? defaultManifestPath()
 }
 
-/**
- * Duplicated from scripts/board-plugins.mjs's own PLUGIN_KEY_PATTERN, IDENTIFIER_PATTERN
- * and NPM_PACKAGE_NAME_PATTERN rather than imported — see docs/customization/plugins.md, "The board
- * plugin manifests" — and pinned to agree with it by board-eject.test.ts.
- */
 const PLUGIN_KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 const NPM_PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
 
-/**
- * The same shape of refusal scripts/board-plugins.mjs's validateManifest makes for
- * apps/community and boards/stock, minus the dependency check — a deployed image
- * carries no package.json listing what it was actually built with. A manifest that
- * gets this far already passed that check once, when plugin:add wrote it; this is
- * defense against a manifest hand-edited after the fact, not the primary gate.
- */
 export function validateEjectManifest(plugins: readonly ManifestEntry[], path: string): void {
   const seen = new Set<string>()
   const identifiers = new Map<string, string>()
@@ -112,14 +91,6 @@ export function validateEjectManifest(plugins: readonly ManifestEntry[], path: s
   }
 }
 
-/**
- * The manifest this build actually compiled in. Unlike
- * apps/cli/src/plugin-manifest.ts's readManifest — which is written for a
- * checkout and refuses to run against a deployed image — this one is meant
- * to run *only* against a deployed image (or this checkout's own
- * boards/stock, standing in for one), so a missing file is the real failure
- * this command exists to report, not an expected outcome.
- */
 async function readManifest(): Promise<Manifest> {
   const path = manifestPath()
   let raw: string
@@ -163,14 +134,6 @@ interface EjectedPackageJson {
   [key: string]: unknown
 }
 
-/**
- * Every manifest entry's package pinned into the scaffolded package.json's
- * dependencies, at this exact running version — see docs/customization/marketplace.md,
- * "1. Eject", for why never `latest`, and for the collision policy this
- * implements: a package scaffold() already pins is left exactly where it
- * is, never duplicated or reordered, because both pins are always this
- * same CODE_VERSION.
- */
 function mergePluginDependencies(packageJson: string, plugins: readonly ManifestEntry[]): string {
   const parsed = JSON.parse(packageJson) as EjectedPackageJson
   for (const entry of plugins) {
@@ -181,20 +144,6 @@ function mergePluginDependencies(packageJson: string, plugins: readonly Manifest
   return `${JSON.stringify(parsed, null, 2)}\n`
 }
 
-/**
- * The ejected workspace's own community.plugins.ts — the same shape
- * create-meith's scaffold() writes for a plugin-free board (see
- * packages/create-meith/src/scaffold.ts), extended with one entry per
- * manifest plugin. Never the showcase-wired shape scripts/board-plugins.mjs
- * generates for apps/community and boards/stock: `./community.demo.plugins`
- * is this monorepo's own demo/test scaffolding and does not exist in a
- * workspace outside it — the same reason scaffold.ts's own template omits
- * it. In practice the manifest a real stock image compiles in is always
- * empty (plugin:add refuses to run against a deployed image — see
- * plugin-manifest.ts — so a running stock image can never have grown one),
- * but this reads the real file rather than assuming that, so a future
- * default plugin would still be captured correctly.
- */
 function renderInstalledPluginsModule(plugins: readonly ManifestEntry[]): string {
   const importLines = plugins.map((entry) => {
     const name = toIdentifier(entry.key)
@@ -229,12 +178,6 @@ function isFsPermissionError(error: unknown): error is NodeJS.ErrnoException {
   return code === 'EACCES' || code === 'EPERM'
 }
 
-/**
- * Turns an EACCES/EPERM from the write loop below into this instead of a
- * bare Node stack trace — see docs/customization/marketplace.md, "1. Eject", for the
- * bind-mount ownership rule this message is naming. Anything else passes
- * through unchanged.
- */
 function translateWriteError(error: unknown, target: string, path: string): never {
   if (isFsPermissionError(error)) {
     throw new ValidationError(

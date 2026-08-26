@@ -3,20 +3,9 @@ export const REMEMBER_COOKIE = '__Host-fs_remember'
 export const DEV_SESSION_COOKIE = 'fs_session'
 export const DEV_REMEMBER_COOKIE = 'fs_remember'
 
-/**
- * Counts one reader once, and carries nothing else.
- *
- * An opaque random value, first-party, readable by nobody but this board. It
- * exists because "37 guests reading" is not derivable from a stateless request:
- * without something that comes back, every page view is a stranger. It is never
- * an identity — no code path turns it into an actor, and `locateSession()`
- * refuses a row with no user — so the worst it can say about the person holding
- * it is that they were here.
- */
 export const GUEST_COOKIE = '__Host-fs_guest'
 export const DEV_GUEST_COOKIE = 'fs_guest'
 
-/** Long enough that a reader is one guest across a visit, short enough to expire. */
 export const GUEST_COOKIE_DAYS = 1
 
 export const ADMIN_COOKIE = 'fs_admin'
@@ -31,7 +20,6 @@ export const DEV_PASSKEY_COOKIE = 'fs_passkey'
 export const SECOND_FACTOR_COOKIE = '__Host-fs_2fa'
 export const DEV_SECOND_FACTOR_COOKIE = 'fs_2fa'
 
-/** Long enough to read a consent screen, short enough that a stale one is gone. */
 export const HANDSHAKE_MINUTES = 10
 
 export function sessionCookieName(secure: boolean): string {
@@ -108,26 +96,14 @@ export function secondFactorCookieName(secure: boolean): string {
   return secure ? SECOND_FACTOR_COOKIE : DEV_SECOND_FACTOR_COOKIE
 }
 
-/**
- * A sign-in that has proved its password and nothing else. Strict, because
- * every step that finishes it starts on this board — and short, because it
- * stands in for a password already given.
- */
 export function secondFactorCookie(expires: Date, secure: boolean): CookieAttrs {
   return { httpOnly: true, secure, sameSite: 'strict', path: '/', expires }
 }
 
-/**
- * Lax, not Strict: the identity provider sends the member back with a top-level
- * GET, and a Strict cookie is not attached to a navigation that started on
- * another site — the handshake would arrive with nothing to check the state
- * against and every sign-in would fail.
- */
 export function ssoCookie(secure: boolean): CookieAttrs {
   return { ...base(secure), maxAge: HANDSHAKE_MINUTES * 60 }
 }
 
-/** Strict: nothing in the passkey exchange ever leaves this board. */
 export function passkeyCookie(secure: boolean): CookieAttrs {
   return {
     httpOnly: true,

@@ -106,9 +106,7 @@ export async function buildThemeAdminView(key: string): Promise<ThemeAdminView |
   let overrides: TokenOverrides = { light: {}, dark: {} }
   try {
     overrides = validateTokenOverrides(installed.tokens, record?.tokenOverrides)
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 
   const listing = (await themeListing()).find((entry) => entry.key === key)
 
@@ -179,9 +177,7 @@ export async function boardSampleSurfaces(): Promise<{
       .catch(() => null)
     try {
       overrides = validateTokenOverrides(theme.tokens, record?.tokenOverrides)
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
   const pick = (

@@ -26,12 +26,6 @@ const toFormState = formStateReporter(
   'unexpected error while changing a sign-in',
 )
 
-/**
- * Only a credential the board would actually accept today counts as a way back
- * in. A passkey on a board that has since switched passkeys off, or a link to a
- * provider an operator has turned off, opens nothing — counting it would let a
- * member unlink their way out of their own account in one click.
- */
 async function usableWaysIn(userId: number): Promise<{
   readonly usablePasskeys: number
   readonly usableProviders: readonly string[]

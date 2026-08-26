@@ -74,11 +74,6 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
     await syncPluginEnablement()
     await syncPluginNavigation()
 
-    /*
-     * After the switch is written, so the callback sees the state it is being
-     * told about, and never for the host's own failure switch: a plugin that
-     * has just failed five times is not one to hand more work to.
-     */
     await announceSwitch(definition, enabled)
 
     await recordAdminAction({
@@ -94,12 +89,6 @@ export async function setPluginEnabledAction(_prev: FormState, form: FormData): 
   }
 }
 
-/**
- * The switch has already been thrown by the time this runs, and it stays
- * thrown: a callback that throws is the plugin's fault, so it is counted and
- * reported like any other plugin failure rather than being reported as the
- * operator's action having failed.
- */
 async function announceSwitch(definition: PluginDefinition, enabled: boolean): Promise<void> {
   if (enabled) {
     await emitEvent('plugin.enabled', { pluginKey: definition.key }, {})

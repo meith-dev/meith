@@ -27,20 +27,10 @@ const BUILD_INFO = {
   themeApiMajor: THEME_API_MAJOR,
 }
 
-/**
- * Whether this process is the stock image rather than a graduated custom
- * board — both run identical @meith/web code, so an env var set only by
- * docker/Dockerfile is the only signal available: `BOARD_PLUGINS_MANIFEST`,
- * baked in for `community board:eject` (see apps/cli/src/board-eject.ts). A
- * graduated board's own scaffolded Dockerfile never sets it. Read fresh
- * rather than cached at module load, so it is not fixed by whichever test
- * happens to import this module first.
- */
 function onStockImage(): boolean {
   return readPluginEnv('BOARD_PLUGINS_MANIFEST') !== undefined
 }
 
-/** Caps against untrusted feed content — a self-hosted mirror can serve anything. */
 const MAX_NAME_LENGTH = 120
 const MAX_DESCRIPTION_LENGTH = 500
 const MAX_LICENCE_LENGTH = 100
@@ -50,7 +40,6 @@ function truncate(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value
 }
 
-/** https only, and a real URL — never rendered as a link otherwise. */
 function safeHttpsUrl(value: string): string | null {
   try {
     const url = new URL(value)
@@ -85,27 +74,17 @@ export interface MarketplaceListingRow {
   readonly package: string
   readonly licence: string
   readonly repositoryUrl: string | null
-  /** Same-origin URLs — the browser never fetches the feed's own host directly. */
   readonly screenshotHrefs: readonly string[]
   readonly status: ListingStatus
   readonly incompatibleReason: string | null
   readonly installedVersion: string | null
-  /** Set only for 'not-installed': the exact steps this board would need. Never an affordance that acts. */
   readonly installSteps: readonly string[] | null
-  /**
-   * True only for 'not-installed' on the stock image, where installSteps'
-   * own `community plugin:add`/`community.config.ts` line cannot actually
-   * run — the image is fixed at build time. Signposts
-   * docs/customization/marketplace.md's "Moving to a custom board" walkthrough; never a
-   * claim this board can graduate itself.
-   */
   readonly onStockImage: boolean
 }
 
 export interface MarketplaceCatalogView {
   readonly listings: readonly MarketplaceListingRow[]
   readonly fetchedAt: Date | null
-  /** True once a fetch has ever succeeded — an empty `listings` before that is "not fetched yet", not "empty catalog". */
   readonly hasEverFetched: boolean
   readonly unreachable: boolean
   readonly errorMessage: string | null
@@ -171,12 +150,6 @@ function toRow(
   }
 }
 
-/**
- * The Browse tab's whole read model for one kind — reads the cached feed
- * only (never the network) and computes status against what this build
- * actually contains. Renders honestly when the cache is empty: `listings`
- * is `[]` either way, and `hasEverFetched`/`unreachable` say why.
- */
 export async function marketplaceCatalog(kind: ListingKind): Promise<MarketplaceCatalogView> {
   const cache = await readCache()
   const installed =
@@ -195,7 +168,6 @@ export async function marketplaceCatalog(kind: ListingKind): Promise<Marketplace
   }
 }
 
-/** One listing's screenshot, resolved against the feed's own host — never a client-supplied URL. */
 export async function marketplaceScreenshotUrl(key: string, index: number): Promise<string | null> {
   const cache = await readCache()
   if (cache.feed === null || cache.sourceUrl === null) return null
@@ -211,11 +183,6 @@ export async function marketplaceScreenshotUrl(key: string, index: number): Prom
   }
 }
 
-/**
- * Runs the same fetch, validate, cache, notify pass the daily task does — the
- * admin panel's "Refresh" button and the task call the exact same function,
- * per docs/customization/marketplace.md.
- */
 export async function refreshMarketplaceNow(): Promise<{
   readonly ok: boolean
   readonly listingCount: number

@@ -54,7 +54,6 @@ export interface UserSearchRow {
 export interface UserSearchPage {
   readonly rows: readonly UserSearchRow[]
   readonly nextCursor: number | null
-  /** How many accounts the filter matches, whichever page was asked for. */
   readonly total: number
 }
 

@@ -61,12 +61,6 @@ export const pluginHost = new PluginHost({
   },
 })
 
-/**
- * A plugin failing somewhere the host does not itself dispatch — a lifecycle
- * callback — counted and reported exactly as a failing hook is. There is one
- * failure record per plugin, and an operator reading it should not have to know
- * which door the plugin was behind when it broke.
- */
 export async function recordPluginFault(
   pluginKey: string,
   surface: string,

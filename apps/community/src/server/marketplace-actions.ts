@@ -9,12 +9,6 @@ import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
 import { refreshMarketplaceNow } from './marketplace-admin'
 
-/**
- * The Browse tab's "Refresh" button. Runs the exact same fetch, validate,
- * cache, notify pass as the daily task (`refreshMarketplaceNow`, shared with
- * `packages/runtime`'s task worker) — this is the "on demand" half of that
- * one behaviour, not a second implementation of it.
- */
 export async function refreshMarketplaceAction(
   _prev: FormState,
   _form: FormData,

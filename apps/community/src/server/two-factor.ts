@@ -32,11 +32,6 @@ export function twoFactorService(): TwoFactorService | null {
   })
 }
 
-/**
- * Offered when the board says so and the board has a key to seal a secret
- * with. Without AUTH_SECRET there is nowhere safe to put the secret, so the
- * surface is hidden rather than half-built.
- */
 export async function twoFactorOffered(): Promise<boolean> {
   if (getContainer().dataSource !== 'postgres') return false
   if (twoFactorService() === null) return false
@@ -49,7 +44,6 @@ export async function twoFactorRequiredForStaff(): Promise<boolean> {
   return (await getSettingsUncached()).get('security.two_factor_required_for_staff')
 }
 
-/** Whether this member must hold a second factor, and may not drop it. */
 export async function secondFactorPosture(userId: number | null): Promise<SecondFactorPosture> {
   const offered = await twoFactorOffered()
   if (!offered || userId === null) return { offered, required: false }

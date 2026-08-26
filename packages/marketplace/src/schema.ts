@@ -1,22 +1,3 @@
-/**
- * The shape of a listing on the wire — mirroring `marketplace/schema.json`
- * and `scripts/marketplace-gen.mjs`, which this package never imports (a
- * board-side consumer and the generator that produces the feed it consumes
- * are deliberately separate concerns; see docs/customization/marketplace.md). One
- * difference is load-bearing: `marketplace/schema.json` validates a
- * *listing file* before it is merged, where `screenshots` is a bare
- * filename. What a board actually fetches is the *emitted* feed at
- * `/marketplace/v1.json`, where `buildFeed()` has already rewritten every
- * screenshot into an absolute site path (`/marketplace/screenshots/x.png`)
- * and wrapped the listings in `{ schema, listings }`. `validateFeed` below
- * validates that served shape — same fields, same rules, screenshots
- * checked as paths rather than bare names — which is "the same schema
- * shape" the issue asks for once the wrapper and the path rewrite are
- * accounted for. `packages/marketplace/src/schema.test.ts` cross-checks the
- * required field list against `marketplace/schema.json` itself so the two
- * cannot silently drift apart.
- */
-
 export type ListingKind = 'plugin' | 'theme'
 
 export interface MarketplaceListing {
@@ -52,15 +33,9 @@ export const REQUIRED_LISTING_FIELDS = [
   'licence',
 ] as const
 
-/**
- * Mirrors KEY_PATTERN in scripts/marketplace-gen.mjs and
- * packages/plugin-kit/src/plugin.ts. Exported so
- * scripts/marketplace-gen.test.ts can pin all three against each other.
- */
 export const KEY_PATTERN = /^[a-z][a-z0-9-]{1,39}$/
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/
 const PACKAGE_PATTERN = /^(@[a-z0-9-][a-z0-9-._]*\/)?[a-z0-9-][a-z0-9-._]*$/
-/** The served feed's screenshots are absolute site paths, not bare filenames — see this file's own header. */
 const SCREENSHOT_PATH_PATTERN = /^\/marketplace\/screenshots\/[a-z0-9][a-z0-9-]*\.png$/
 const KINDS = new Set<string>(['plugin', 'theme'])
 
@@ -148,12 +123,6 @@ function validateListing(entry: unknown, index: number): readonly string[] {
   return errors
 }
 
-/**
- * Validates the document a board fetches from `/marketplace/v1.json` (or a
- * self-hosted mirror of it) against the same shape MEI-79's schema defines.
- * Never throws — a malformed feed is exactly the case this function exists
- * to report, not to crash the fetch task over.
- */
 export function validateFeed(raw: unknown): FeedValidation {
   if (!isRecord(raw)) {
     return { ok: false, feed: null, errors: ['the feed must be a JSON object'] }

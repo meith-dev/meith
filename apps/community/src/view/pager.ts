@@ -15,12 +15,6 @@ export type Cursor = Readonly<Record<string, string>>
 export interface PagerInput {
   readonly path: string
   readonly params: QueryParams
-  /**
-   * The query parameters the cursor owns. They are rewritten on every step and
-   * never carried forward from the current address, which is what keeps a
-   * two-part cursor — a rank and an id — from being half of one page and half
-   * of the next.
-   */
   readonly cursorParams: readonly string[]
   readonly nextCursor: Cursor | null
   readonly pageSize?: number

@@ -69,11 +69,6 @@ describe('the guest cookie', () => {
     expect(res.cookies.get(GUEST_COOKIE)?.value).toBeTruthy()
   })
 
-  /**
-   * The flag the render depends on. Without it a first-ever visit is
-   * indistinguishable from a returning one — Next reflects the cookie set here
-   * into the same request — and every crawler request writes a presence row.
-   */
   it('tells the render the cookie is new, so a first visit is not counted', () => {
     expect(requestHeader(proxy(request()), FRESH_GUEST_HEADER)).toBe('1')
   })

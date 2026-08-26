@@ -8,15 +8,9 @@ import { type SeedSummary, seedDemoBoard } from './seed'
 
 export interface ResetDeps {
   readonly db: Database
-  /**
-   * Cleared after the seed. Optional because the CLI has no cache to clear, and
-   * a missing one is not an error there.
-   */
   readonly cache?: CacheDriver | undefined
-  /** Wipes uploaded files. Optional for the same reason. */
   readonly clearUploads?: (() => Promise<void>) | undefined
   readonly now?: Date | undefined
-  /** Injectable so the recovery path below can be tested without a broken database. */
   readonly migrate?: (() => Promise<number>) | undefined
   readonly plugins?: readonly PluginDefinition[] | undefined
 }
@@ -26,20 +20,6 @@ export interface ResetResult extends SeedSummary {
   readonly elapsedMs: number
 }
 
-/**
- * Throws the demo board away and builds a new one.
- *
- * The schema is dropped rather than truncated, and that is the whole design.
- * Truncating leaves behind everything the migrations seeded — the usergroup
- * ladder, the warning types, the permission defaults — and a demo visitor holds
- * the administrator password, so those are exactly the rows they can wreck. A
- * reset that cannot restore the guest group's permissions is a reset that
- * cannot fix the one thing most likely to need fixing.
- *
- * The board is unreachable while this runs — a few seconds — because the tables
- * genuinely are not there. On a board that announces its own reset in a banner,
- * that is honest rather than embarrassing.
- */
 export async function resetDemoBoard(deps: ResetDeps): Promise<ResetResult> {
   if (!env.DEMO_MODE) {
     throw new Error(
@@ -91,20 +71,6 @@ export async function resetDemoBoard(deps: ResetDeps): Promise<ResetResult> {
   return result
 }
 
-/**
- * Puts the schema back after a reset that died between the drop and the seed.
- *
- * Without this the board is not merely broken, it is **unrecoverable without a
- * human**: the reset runs from the scheduler, the scheduler's own `tasks` table
- * was in the schema that was just dropped, and every later tick fails trying to
- * register against a table that is not there. Nothing ever tries the reset
- * again.
- *
- * So the failure path re-runs the migrations and nothing else. That leaves an
- * empty board rather than a seeded one, which is a bad demo for up to one reset
- * interval — and a board that fixes itself on the next tick instead of one that
- * waits for somebody to notice.
- */
 async function recoverSchema(deps: ResetDeps, migrate: () => Promise<number>): Promise<void> {
   const log = logger({ module: 'demo' })
 

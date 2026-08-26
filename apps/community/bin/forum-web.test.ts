@@ -36,14 +36,6 @@ describe('rebaseGlobalsCssSources', () => {
     expect(rewritten).toContain('.foo { color: red; }')
   })
 
-  /**
-   * Against the real shipped file, not a fixture: this rebase now runs on
-   * every materialization including the default one, where it must be a
-   * no-op. Every `@source` in that file is written relative to the workspace
-   * root, and this only stays a no-op while that holds — a `@source` meaning
-   * anything else (`../fonts`, for `src/fonts`) would be silently retargeted
-   * at the workspace root, and fails here instead.
-   */
   const shippedGlobalsCss = readFileSync(
     new URL('../src/styles/globals.css', import.meta.url),
     'utf8',
@@ -87,13 +79,6 @@ describe('rebaseGlobalsCssSources', () => {
     ).toBe(css)
   })
 
-  /**
-   * MEI-131. A scaffolded board has none of the directories these sources
-   * name — the same code is installed under `node_modules/@meith` — and
-   * Tailwind emits no utilities for a source it cannot scan while still
-   * exiting 0, so the failure is a board that serves an unstyled page rather
-   * than a build that stops.
-   */
   describe('in a board, where none of those directories exist', () => {
     const inBoard = (path: string) => path.includes('node_modules')
 
@@ -157,13 +142,6 @@ describe('rebaseGlobalsCssSources', () => {
   })
 })
 
-/**
- * `forum-web start --at-root` materializes and then stops, because there is
- * no standalone build for it to exec — which makes it the whole
- * materialization path in under a tenth of a second, with no `next build`
- * anywhere near it. Materialization is the part that has been wrong; the
- * build is not.
- */
 const BIN = fileURLToPath(new URL('./forum-web.mjs', import.meta.url))
 
 function materializeAtRoot(dir: string) {

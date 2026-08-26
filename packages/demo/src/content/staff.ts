@@ -1,15 +1,5 @@
 import type { DemoThread } from './types'
 
-/**
- * The Committee room: four forums nobody outside the staff groups is shown.
- *
- * It is the first section on the board, which is the point of it — a visitor
- * who logs in as `admin` should land on the part of the demo that is not
- * available to them logged out. The content is written to be worth finding:
- * money before it is decided, a member who wants their posts gone, a
- * safeguarding date running out. A private forum whose threads say "this is
- * private" demonstrates the feature and nothing about why anybody wants it.
- */
 export const STAFF_THREADS: readonly DemoThread[] = [
   {
     forum: 'committee',

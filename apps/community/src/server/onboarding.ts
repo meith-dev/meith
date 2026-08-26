@@ -28,11 +28,6 @@ async function dismissed(panel: OnboardingPanel): Promise<boolean> {
   return (await cookies()).get(onboardingCookieName(panel))?.value === '1'
 }
 
-/**
- * At most one of the welcome banner or the profile-completion nudge, never
- * both — stacking unrelated notices in the same board-wide slot is the
- * "heavy multi-step tour" the feature is meant to avoid.
- */
 export async function onboardingBanner(actor: Actor): Promise<OnboardingNoticeModel | null> {
   if (actor.userId === null) return null
 

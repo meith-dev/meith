@@ -31,10 +31,6 @@ export interface NotificationPreferenceView {
   readonly isDefault: boolean
 }
 
-/**
- * Where a plugin gets to see a notification. `before` may rewrite it or return
- * null to drop it; `created` is told what was stored and cannot change it.
- */
 export interface NotificationAudit {
   readonly before: (input: {
     readonly userId: number
@@ -58,10 +54,6 @@ export const NO_NOTIFICATION_AUDIT: NotificationAudit = {
   created: async () => {},
 }
 
-/**
- * A notification suppressed by a plugin. It reports the same shape a coalesced
- * one does, so nothing downstream has to learn a third outcome.
- */
 const DROPPED: RaiseResult = {
   notificationId: 0,
   coalesced: true,
@@ -157,9 +149,7 @@ export class NotificationService {
       try {
         await this.raise({ ...input, userId })
         raised += 1
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     }
     return { raised }
   }

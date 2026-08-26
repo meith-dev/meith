@@ -2,12 +2,6 @@ import { ImageResponse } from 'next/og'
 
 import { icon } from '../src/og/palette'
 
-/*
- * The PNG fallback beside public/icon.svg, generated from the same mark so the
- * two can never drift. The flat green is the icon ramp's mid step — see the
- * note in public/icon.svg for why neither scheme's accent is used.
- */
-
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 

@@ -6,12 +6,6 @@ import { formatWithBiome, renderPluginsModule, validateManifest } from './board-
 import { emitGeneratedDoc } from './generated-doc.mjs'
 import { ROOT } from './workspace-packages.mjs'
 
-/**
- * The boards this repository generates a community.plugins.ts for, and the
- * MEITH_BOARD_PLUGINS_ROOT override this script and
- * apps/cli/src/plugin-manifest.ts both honour: see docs/contributing/development.md,
- * "The board plugin manifests".
- */
 const BOARDS = JSON.parse(await readFile(join(ROOT, 'scripts/boards.json'), 'utf8'))
 const BOARDS_ROOT = process.env.MEITH_BOARD_PLUGINS_ROOT ?? ROOT
 

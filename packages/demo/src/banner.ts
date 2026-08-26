@@ -7,19 +7,9 @@ export interface DemoBannerLogin {
 
 export interface DemoBanner {
   readonly logins: readonly DemoBannerLogin[]
-  /** "in 34 minutes", or `null` before the first reset has been recorded. */
   readonly resetsIn: string | null
 }
 
-/**
- * What the banner says.
- *
- * Built here rather than in the app because it is the one piece of the demo a
- * visitor is guaranteed to read, and because the banner belongs to demo mode
- * rather than to the board: a visiting administrator can delete every
- * announcement on this board, and none of that touches the line telling the
- * next visitor how to log in.
- */
 export function demoBanner(input: {
   readonly nextResetAt: Date | null
   readonly now: Date

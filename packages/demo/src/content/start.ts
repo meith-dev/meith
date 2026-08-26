@@ -1,6 +1,5 @@
 import type { DemoThread } from './types'
 
-/** Announcements and introductions: the two forums a first visit lands in. */
 export const START_THREADS: readonly DemoThread[] = [
   {
     forum: 'announcements',

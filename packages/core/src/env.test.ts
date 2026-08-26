@@ -426,12 +426,6 @@ describe('the sender, when the provider published the domain it verified', () =>
   })
 })
 
-/**
- * The bridge owns one driver. A board that moved to another provider and left
- * `RESEND_API_KEY` behind must not start sending through that provider with an
- * envelope sender at Resend's domain, which it has not authorised — a silent
- * wrong sender in place of a boot that names what is missing.
- */
 describe('a board that moved off Resend without deleting the key', () => {
   const movedOn = {
     ...base,

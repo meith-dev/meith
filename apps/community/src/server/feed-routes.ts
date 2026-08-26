@@ -15,11 +15,6 @@ export type FeedFormat = 'rss' | 'atom'
 
 export type FeedScope = 'board' | 'forum' | 'thread'
 
-/**
- * A plugin may reorder, drop, or add. An entry it adds keeps the board's own
- * fields where one matches by href, and is otherwise taken as given — a feed
- * is rendered as a guest, so everything in it is already public.
- */
 async function filterEntries(
   entries: readonly FeedEntry[],
   feed: FeedScope,

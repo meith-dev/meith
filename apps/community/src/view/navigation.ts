@@ -67,10 +67,6 @@ export function defaultNavigationItems(): readonly NavigationItemRow[] {
   }))
 }
 
-/**
- * What a plugin called an item, for the rows the board holds on its behalf.
- * Keyed by the same `plugin.<plugin>.<item>` the row carries.
- */
 export interface NavigationName {
   readonly label: string
   readonly labelKey: string | null

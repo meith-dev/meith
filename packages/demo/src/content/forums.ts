@@ -1,23 +1,5 @@
 import type { DemoForum, DemoPrefix } from './types'
 
-/**
- * Twenty forums in five categories, and none of them named after one kind of
- * club.
- *
- * A board that splits *Sports*, *Gaming* and *Community* into three wings looks
- * like a brochure: every visitor sees two-thirds of a board that is not for
- * them. Real ones are organised by what a member is doing — turning up to a
- * thing, selling a thing, asking for help — and the same forums carry a fixture,
- * a raid night and a table quiz without noticing the difference.
- *
- * The first two sections are the exception, and they are deliberately first.
- * **Committee room** is closed to everybody outside the staff groups;
- * **Supporters' club** is closed to everybody not paying for the plan. A
- * section a member cannot read is not shown to them at all, so an ordinary
- * member lands on *Start here* and a visiting administrator lands on the two
- * sections that are worth logging in to see. Putting them at the bottom would
- * hide the demonstration from the people the demonstration is for.
- */
 export const DEMO_FORUMS: readonly DemoForum[] = [
   {
     key: 'cat-committee',
@@ -233,14 +215,6 @@ export const DEMO_FORUMS: readonly DemoForum[] = [
   },
 ]
 
-/**
- * Prefixes, scoped to the branch they belong to rather than offered everywhere.
- *
- * Eight labels on one board is a menu nobody reads; three in the forum you are
- * posting in is a habit. The scope is a category or a forum, and everything
- * beneath it inherits — which is the part worth seeing on a demo, because it is
- * the setting that keeps a prefix list usable as a board grows.
- */
 export const DEMO_PREFIXES: readonly DemoPrefix[] = [
   { key: 'notice', label: 'Notice', token: 'thread-pinned', scope: 'announcements' },
   { key: 'fixture', label: 'Fixture', token: null, scope: 'events' },

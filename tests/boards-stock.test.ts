@@ -1,12 +1,3 @@
-/**
- * docker/Dockerfile builds the official image from boards/stock (MEI-76), and
- * the whole point of that workspace is that it reproduces exactly what
- * apps/community's own board config declares — the default theme, the
- * env-gated showcase themes, and the env-gated demo/test plugin spreading —
- * so the demo and e2e boards keep working from the same image. These tests
- * are the drift guard: apps/community's board config changing without the
- * matching boards/stock edit is exactly the failure this catches.
- */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'

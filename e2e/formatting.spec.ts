@@ -42,11 +42,6 @@ test('typing @ opens mention suggestions, and picking one inserts the name', asy
 test('the "Insert attachment" toolbar button uploads and places [attachment=id]', async ({
   page,
 }) => {
-  /**
-   * Same dev-server cold-compile risk as the mention test above: the upload
-   * (with re-encode) and the thread-creation submit are both real server
-   * round trips that can outrun the default budgets.
-   */
   test.setTimeout(60_000)
 
   await signUp(page, 'inlineattacher')

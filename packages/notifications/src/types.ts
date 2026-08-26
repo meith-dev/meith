@@ -96,7 +96,6 @@ export interface NotificationRepository {
 
   unreadCount(userId: number): Promise<number>
 
-  /** Every notification this member has, read or not. */
   countFor(userId: number): Promise<number>
 
   markRead(userId: number, notificationId: number): Promise<boolean>

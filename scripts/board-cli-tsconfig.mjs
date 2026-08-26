@@ -11,13 +11,6 @@ function toPosixRelative(from, to) {
   return rel.startsWith('.') ? rel : `./${rel}`
 }
 
-/**
- * Writes boards/stock/.meith/tsconfig.cli.json: every tsconfig.base.json
- * alias except @board/*, which is pointed at boards/stock's own
- * community.config.ts / community.plugins.ts instead. docker/Dockerfile
- * passes the result to esbuild's --tsconfig flag when building the image's
- * CLI bundle: see docs/reference/architecture.md, "The image's CLI build".
- */
 async function main() {
   const base = JSON.parse(await readFile(join(ROOT, 'tsconfig.base.json'), 'utf8'))
   const basePaths = base.compilerOptions?.paths ?? {}

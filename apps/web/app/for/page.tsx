@@ -6,11 +6,6 @@ import { chooser, site } from '../../src/content/site'
 import { quickstartHref } from '../../src/docs/registry'
 import { ogImage } from '../../src/og/card'
 
-/*
- * The hub the header points at, and the parent of every segment page. It is
- * deliberately short: its whole job is to be a place a reader can land, see
- * the five, and leave for the one that is about them.
- */
 export const metadata: Metadata = {
   title: { absolute: `Who Meith is for — projects, products, agencies, clubs and legacy boards` },
   description:

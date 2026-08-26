@@ -1,14 +1,6 @@
-/**
- * The one place this package touches the network — and only ever server-side:
- * the daily task and the admin "Refresh" action both call `refreshCatalog`
- * (see refresh.ts), never the browser. Node's built-in `fetch` is enough; no
- * HTTP client dependency is added for this.
- */
 export interface FetchFeedResult {
   readonly ok: boolean
-  /** Parsed JSON body, present only when `ok` is true. */
   readonly body: unknown
-  /** A short, loggable reason, present only when `ok` is false. */
   readonly error: string | null
 }
 
@@ -18,11 +10,9 @@ const MAX_BODY_BYTES = 2_000_000
 export interface FetchFeedOptions {
   readonly url: string
   readonly timeoutMs?: number
-  /** Swappable for tests; defaults to the platform's global `fetch`. */
   readonly fetchImpl?: typeof fetch
 }
 
-/** See `docs/customization/marketplace.md#outbound-fetches-do-not-follow-redirects`. */
 export async function readCappedBody(
   response: Response,
   maxBytes: number,
@@ -62,14 +52,6 @@ export async function readCappedBody(
   return combined
 }
 
-/**
- * Fetches and JSON-parses a marketplace feed. Never throws: an unreachable
- * host, a non-200 response (a redirect included — see
- * `docs/customization/marketplace.md#outbound-fetches-do-not-follow-redirects`), an
- * oversized body or invalid JSON are all reported as `{ ok: false, error }`
- * — the board with no outbound network is meant to fail quietly here, not
- * crash the task that called this.
- */
 export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<FetchFeedResult> {
   const fetchImpl = options.fetchImpl ?? fetch
   const controller = new AbortController()

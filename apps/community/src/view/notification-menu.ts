@@ -13,14 +13,12 @@ export type NotificationMenuTabKind = 'notifications' | 'messages' | 'mod'
 
 export interface NotificationMenuRow {
   readonly key: string
-  /** The id a mark-seen form submits, or `null` for a row that is acted on elsewhere. */
   readonly seenId: number | null
   readonly subject: string
   readonly meta: string | null
   readonly href: string | null
   readonly at: TimeModel
   readonly isUnread: boolean
-  /** A short category label shown before the subject, or `null`. */
   readonly tag: string | null
 }
 

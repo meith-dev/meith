@@ -1,9 +1,5 @@
 import { card } from './palette'
 
-/*
- * The one social card, shared by every og route so the brand renders once.
- */
-
 export const OG_SIZE = { width: 1200, height: 630 }
 export const OG_CONTENT_TYPE = 'image/png'
 
@@ -26,11 +22,6 @@ export function OgMark({ size }: { size: number }) {
   )
 }
 
-/*
- * Descriptions come from manifest blurbs and segment metas, which run long for
- * a 630-pixel canvas; satori clips rather than ellipsising, so the cut happens
- * here, at a word boundary.
- */
 export function ogExcerpt(text: string, limit = 170): string {
   if (text.length <= limit) return text
   const cut = text.slice(0, limit)

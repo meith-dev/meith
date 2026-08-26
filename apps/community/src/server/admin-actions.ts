@@ -103,11 +103,6 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
   redirect(target)
 }
 
-/**
- * The panel's door asks for the second factor as well as the password. The
- * panel can rewrite the whole board, so re-proving only the thing most likely
- * to have leaked would be re-proving the wrong one.
- */
 async function adminReauthenticationBucket(userId: number): Promise<string> {
   const prefix = await retainedIpPrefix()
   return prefix === null ? `admin-reauth:${userId}` : `admin-reauth:${userId}@${prefix}`

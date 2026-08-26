@@ -39,7 +39,5 @@ export async function touchActivity(userId: number | null): Promise<void> {
   try {
     const { accountStore } = getContainer()
     await accountStore.accounts.touchLastActive(userId, new Date(), ACTIVITY_WINDOW_SECONDS)
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }

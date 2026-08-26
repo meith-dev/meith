@@ -81,19 +81,6 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
               {segment.hero.badge}
             </p>
 
-            {/*
-              A sentence to a block rather than a `<br />` between them, so
-              `text-wrap: balance` — which `display-hero` sets — runs on each
-              sentence separately.
-
-              With one block and a break, balance sees the whole headline and
-              still left "Where is that written" over "down?". Given its own
-              box each sentence breaks near its middle instead, so the two long
-              ones read as two even lines rather than a line and an orphan, and
-              the short ones are unaffected. Which is the reason not to solve
-              this by dropping a step of the type scale: nothing here needed to
-              be smaller, it needed to break somewhere else.
-            */}
             <h1 className="display-hero max-w-[24ch] text-huge leading-[1.06]">
               <span className="block">{segment.hero.headline.before}</span>
               <span className="block text-accent">{segment.hero.headline.emphasis}</span>

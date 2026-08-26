@@ -32,12 +32,6 @@ function toCached(row: Row | undefined): CachedMarketplace {
   }
 }
 
-/**
- * The single-row cache behind the Browse tab — see the `marketplace_catalog`
- * table comment in `packages/db/src/schema/platform.ts` for why a table
- * rather than the generic `settings` store: this holds a whole feed
- * document and fetch bookkeeping, not a board-operator preference.
- */
 export class PostgresMarketplaceCacheRepository implements MarketplaceCacheRepository {
   constructor(private readonly db: Database) {}
 

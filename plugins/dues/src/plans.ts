@@ -117,12 +117,6 @@ function bad(error: string): PlanParse {
   return { ok: false, error }
 }
 
-/**
- * Checks a fixed plan's length against `MAX_GRACE_DAYS`, not the live
- * `grace_days` setting — mirroring the seed-path cap in `parseDuesConfig`
- * (`config.ts`), for the same reason: `grace_days` is a runtime setting an
- * operator can raise after the plan already exists.
- */
 export function parsePlanForm(form: PlanFormInput): PlanParse {
   const key = (form.key ?? '').trim().toLowerCase()
   if (!PLAN_KEY.test(key)) return bad('bad-key')

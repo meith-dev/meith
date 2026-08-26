@@ -50,10 +50,6 @@ export async function isIndexable(): Promise<boolean> {
   }
 }
 
-/**
- * One chunk of the sitemap, after the plugins have had it. Everything here is
- * public by definition — the sitemap is what the board offers a crawler.
- */
 export async function filterSitemapEntries(
   urls: readonly SitemapUrl[],
   chunk: number,

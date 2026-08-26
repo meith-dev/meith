@@ -10,7 +10,6 @@ import {
   totpCode,
 } from './totp'
 
-/** RFC 4648 section 10. */
 describe('base32', () => {
   it('matches the published vectors', () => {
     const cases: readonly [string, string][] = [
@@ -40,11 +39,6 @@ describe('base32', () => {
   })
 })
 
-/**
- * RFC 6238 appendix B, the SHA-1 rows. The published secret is the ASCII
- * "12345678901234567890"; the vectors are eight digits, and this board issues
- * six, so each expectation is the last six of the published code.
- */
 const RFC_SECRET = encodeBase32(new TextEncoder().encode('12345678901234567890'))
 
 describe('the codes an authenticator app produces', () => {

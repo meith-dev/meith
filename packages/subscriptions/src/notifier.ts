@@ -174,9 +174,7 @@ export class SubscriptionNotifier {
             watermarks: pending.watermarks,
           })
         }
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     }
 
     return { notified, considered }

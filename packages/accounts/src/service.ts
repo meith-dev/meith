@@ -25,11 +25,6 @@ export interface IdentityDeps {
   readonly secondFactor?: SecondFactorLookup
 }
 
-/**
- * Whether an account asks for something beyond its password. Kept as a port
- * rather than the whole two-factor service so that the login path cannot reach
- * the secrets it holds — it only ever needs the yes or no.
- */
 export interface SecondFactorLookup {
   isEnrolled(userId: number): Promise<boolean>
 }
@@ -61,11 +56,6 @@ export interface LoginResult {
   readonly expiresAt: Date
 }
 
-/**
- * How long a half-finished sign-in waits for its second factor. Long enough to
- * fetch a phone from another room, short enough that a password proven on a
- * shared machine does not stay proven.
- */
 export const SECOND_FACTOR_TTL_MINUTES = 10
 
 export type LoginOutcome =
@@ -432,11 +422,6 @@ export class IdentityService {
     return { token, expiresAt }
   }
 
-  /**
-   * Who a half-finished sign-in belongs to, without spending it — the code can
-   * be mistyped, and a member who fumbles it should not have to start from
-   * their password again.
-   */
   async pendingSecondFactor(token: string): Promise<PendingSecondFactor | null> {
     const held = await this.store.tokens.peek(await hashToken(token), 'second_factor', this.now())
     if (held === null) return null
@@ -444,7 +429,6 @@ export class IdentityService {
     return { userId: held.userId, remember: held.payload === 'remember' }
   }
 
-  /** Spends the hold and starts the session it was standing in for. */
   async redeemSecondFactor(token: string, context: RequestContext = {}): Promise<LoginResult> {
     const at = this.now()
     const redeemed = await this.store.tokens.consume(await hashToken(token), 'second_factor', at)
@@ -464,11 +448,6 @@ export class IdentityService {
     await this.store.tokens.revokeAllForUser(userId, 'second_factor')
   }
 
-  /**
-   * The second step gets its own counter. The password counters were cleared
-   * when the password proved out, and a six-digit code is worth a million
-   * guesses — far fewer than a password, and so worth far less patience.
-   */
   async assertSecondFactorAttemptsLeft(userId: number): Promise<void> {
     const max = this.config.maxLoginAttempts
     if (max <= 0) return

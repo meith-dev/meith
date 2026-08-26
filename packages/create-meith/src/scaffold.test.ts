@@ -60,14 +60,6 @@ describe('what the scaffold writes', () => {
     expect([...files.keys()]).not.toContain('vercel.json')
   })
 
-  /**
-   * MEI-131: the scaffold registered the theme's tokens but not its messages,
-   * and `apps/community/src/server/i18n-catalogs.ts` drops a theme whose
-   * `messages` is undefined without complaining. Every scaffolded board — Vercel
-   * and self-hosted alike — rendered `default.latestThreads.heading` where its
-   * headings belonged. `boards/stock` passed `messages` and rendered fine, so
-   * the two are held to each other here rather than to a literal.
-   */
   it('registers the theme catalog, without which the board renders its keys', () => {
     const config = files.get('community.config.ts')!
 
@@ -75,11 +67,6 @@ describe('what the scaffold writes', () => {
     expect(config).toMatch(/\bdefaultMessages\b[\s\S]*from '@meith\/theme-default'/)
   })
 
-  /**
-   * Set equality, not a checklist: a field added to the reference board's
-   * theme entry and forgotten here is exactly how `messages` went missing,
-   * and a list written out in this file would have to be remembered too.
-   */
   it('registers every part of the theme the board in this repo registers', () => {
     const stock = readFileSync(
       join(import.meta.dirname, '../../../boards/stock/community.config.ts'),
@@ -203,12 +190,6 @@ describe('what the scaffold writes', () => {
   })
 })
 
-/**
- * MEI-77: the deploy kit — a scaffolded board must work for someone with
- * nothing but a GitHub account and a Coolify server, with every file
- * complete and no placeholder needing hand-finishing except the board name
- * (already templated above).
- */
 describe('the deploy kit', () => {
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
@@ -242,7 +223,6 @@ describe('the deploy kit', () => {
     expect(dockerfile).toContain('npx forum-web build')
   })
 
-  /** See docs/getting-started/deployment/docker-compose.md for why this Dockerfile scopes DATA_SOURCE to the RUN command. */
   it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
     expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
     expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
@@ -573,12 +553,6 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
 
-/**
- * The top-level fields of the `default:` theme entry, so a config here can be
- * held to the reference board's without either side writing the list out.
- * Depth matters: `tokens: { light, dark }` contributes `tokens`, not its own
- * two keys.
- */
 function themeEntryFields(config: string): string[] {
   const start = config.indexOf('default: {')
   if (start === -1) return []

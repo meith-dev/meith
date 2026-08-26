@@ -8,11 +8,6 @@ import { ValidationError } from '@meith/core'
 import BOARDS_JSON from '../../../scripts/boards.json'
 import { optional, parseFlags } from './args'
 
-/**
- * apps/cli/src/plugin-manifest.ts and scripts/board-plugins-gen.mjs are the same
- * distance from the repository root (apps/cli/{src,dist}/<file> either way), so this
- * offset holds whether these commands run from source (tsx) or the built dist/cli.cjs.
- */
 function repoRoot(): string {
   return fileURLToPath(new URL('../../../', import.meta.url))
 }
@@ -21,12 +16,6 @@ function generatorScript(): string {
   return join(repoRoot(), 'scripts/board-plugins-gen.mjs')
 }
 
-/**
- * Every board's board.plugins.json is edited together, from the one list in
- * scripts/boards.json that scripts/board-plugins-gen.mjs reads too. That file
- * and the MEITH_BOARD_PLUGINS_ROOT override are described in
- * docs/contributing/development.md, "The board plugin manifests".
- */
 interface Board {
   readonly manifestFile: string
   readonly packageFile: string
@@ -51,14 +40,6 @@ interface Manifest {
   readonly plugins: readonly ManifestEntry[]
 }
 
-/**
- * `plugin:add`/`plugin:remove` edit source files and rebuild output that only exists in
- * a checkout — unlike `plugin:purge`, which acts on a running board's database and is the
- * one meant to run as `docker compose run --rm web community plugin:purge`. The deployed
- * image is built `FROM node:26-alpine` with only `.next/standalone`, the worker and this
- * CLI's own bundle copied in (see docker/Dockerfile) — no `scripts/`, no `board.plugins.json`,
- * no Biome. Reading a manifest is where that shows up first, so this is where it is named.
- */
 async function readManifestFor(board: Board): Promise<Manifest> {
   const path = join(boardsRoot(), board.manifestFile)
   let raw: string
@@ -105,14 +86,6 @@ interface GeneratorResult {
   readonly output: string
 }
 
-/**
- * The one thing this file trusts to know whether a manifest edit is valid: the same
- * generator `pnpm board:gen` runs, for every board it carries. Shelling out — rather
- * than importing scripts/board-plugins.mjs — keeps a plain script and a workspace
- * TypeScript package from needing to share a module; it also means a failed add or
- * remove is reported in exactly the words a person typing `pnpm board:gen` themselves
- * would see, board by board.
- */
 function runGenerator(): GeneratorResult {
   try {
     const output = execFileSync(process.execPath, [generatorScript()], {
@@ -129,7 +102,6 @@ function runGenerator(): GeneratorResult {
 
 const PACKAGE_KEY_PATTERN = /^@[^/]+\/plugin-([a-z][a-z0-9-]*)$/
 
-/** `@scope/plugin-<key>` is the only shape a key can be read from without asking. */
 export function inferKey(packageName: string): string | undefined {
   return PACKAGE_KEY_PATTERN.exec(packageName)?.[1]
 }

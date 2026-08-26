@@ -118,18 +118,6 @@ export class PostgresPresenceRepository {
     }
   }
 
-  /**
-   * Records that an anonymous reader is here, under a session row with no user.
-   *
-   * The read side has counted these rows since presence was written — the
-   * `user_id` column is nullable for exactly this — but nothing ever wrote one,
-   * so every board reported zero guests forever. This is the missing half.
-   *
-   * `windowSeconds` throttles the write the way the member path does: a reader
-   * clicking through a thread should cost one update a minute, not one an
-   * article. The insert is unconditional, though, or a reader whose first page
-   * view landed inside another reader's throttle window would never appear.
-   */
   async touchGuest(input: {
     readonly tokenHash: string
     readonly location: {
@@ -161,14 +149,6 @@ export class PostgresPresenceRepository {
     `)
   }
 
-  /**
-   * Forgets a guest row, for when the reader holding it has just signed in.
-   *
-   * Without this they are two people for the next fifteen minutes — a member in
-   * the list and a guest in the count — because the row they browsed under is
-   * still inside the window and there is nothing tying it to the account they
-   * have now proved they own.
-   */
   async dropGuest(tokenHash: string): Promise<void> {
     await this.db.execute(sql`
       delete from sessions where token_hash = ${tokenHash} and user_id is null

@@ -56,25 +56,12 @@ const GROUP_KEY: Record<DemoGroupKey, string> = {
   awaitingActivation: SEED_GROUP_KEY.awaitingActivation,
 }
 
-/**
- * The staff colours, which a board of your own picks for itself on the groups
- * screen. Every value is set twice because a name has to be readable on both
- * schemes: the light ones are dark enough to read on paper-white, the dark ones
- * bright enough to read at midnight, and the pair keeps the same hue so the
- * hierarchy is the same hierarchy in both.
- */
 const GROUP_COLOUR: Readonly<Record<string, { readonly light: string; readonly dark: string }>> = {
   [SEED_GROUP_KEY.administrators]: { light: '#b91c1c', dark: '#f87171' },
   [SEED_GROUP_KEY.superModerators]: { light: '#1e3a8a', dark: '#60a5fa' },
   [SEED_GROUP_KEY.moderators]: { light: '#0284c7', dark: '#7dd3fc' },
 }
 
-/**
- * A closed section is a permission override per group, which is what an
- * administrator writes on the permissions screen — there is no separate private
- * flag to find. The rows go on the category and on every forum under it, so the
- * screen answers "who can read this?" on whichever one you happen to open.
- */
 const CLOSED_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
   staff: [
     SEED_GROUP_KEY.guests,
@@ -91,16 +78,6 @@ const CLOSED_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
   ],
 }
 
-/**
- * Who is written in as allowed, rather than left to inherit it.
- *
- * The staff would see both sections anyway — an administrator bypasses the
- * matrix entirely and the other two groups are not denied — but "an
- * administrator can see the supporters' club" should be a row an administrator
- * can read on the permissions screen and not a rule they have to know. It also
- * survives somebody using the demo the way a demo invites: rewrite the
- * registered group's defaults, and the staff sections stay staff sections.
- */
 const OPEN_TO: Readonly<Record<DemoForumAccess, readonly string[]>> = {
   staff: [SEED_GROUP_KEY.administrators, SEED_GROUP_KEY.superModerators, SEED_GROUP_KEY.moderators],
   supporters: [
@@ -129,13 +106,6 @@ const OPEN = {
   canPostReplies: true,
 } as const
 
-/**
- * Argon2id at the shipped policy costs ~50ms per hash, and only three accounts
- * have a password at all — but the reset runs on a timer with a live board
- * waiting on it, so the demo hashes at the cheapest setting the verifier still
- * accepts. These are published passwords printed in a banner. There is nothing
- * to protect.
- */
 const DEMO_HASH_POLICY = { memorySize: 8192, iterations: 1, parallelism: 1 } as const
 
 export interface SeedSummary {
@@ -153,19 +123,9 @@ export interface SeedOptions {
 interface Placed {
   readonly thread: DemoThread
   readonly threadId: number
-  /** Post ids in reading order: opening post first. */
   readonly postIds: readonly number[]
 }
 
-/**
- * Writes the demo board into an empty, migrated database.
- *
- * Everything goes through the same repositories a member's browser does, which
- * is not ceremony: those writes are where counters are incremented, markdown is
- * rendered and the search vector is built. A seed that reached past them into
- * `insert` would produce a board that looks right and cannot be searched, with
- * member post counts of zero — the three bugs every hand-written seed has.
- */
 export async function seedDemoBoard(
   db: Database,
   now: Date = new Date(),
@@ -255,26 +215,11 @@ async function seedAccounts(db: Database, now: Date): Promise<ReadonlyMap<string
   return ids
 }
 
-/**
- * Recent enough that the member list does not read as a graveyard, but never
- * newer than the account itself — a member last seen before they joined is the
- * kind of detail that quietly tells a visitor the board is fake.
- */
 function lastActive(now: Date, account: DemoAccount): Date {
   const days = Math.min(account.joinedDaysAgo, account.joinedDaysAgo < 30 ? 1 : 9)
   return daysBefore(now, days)
 }
 
-/**
- * Paints the staff groups and makes the group the supporters-only forum is
- * opened to, whether or not the Dues plugin is going to be installed after it.
- *
- * The colours are written through the same repository the groups screen writes
- * through, so a visitor can change them and see the change everywhere a name
- * appears — the value is a class the app emits into the stylesheet rather than
- * an inline colour, because a name needs one answer for light and another for
- * dark and a `style` attribute only holds one.
- */
 async function seedGroupIdentity(db: Database): Promise<ReadonlyMap<string, number>> {
   const groups = new PostgresGroupAdminRepository(db)
   await ensureSupportersGroup(db)
@@ -304,7 +249,6 @@ async function seedGroupIdentity(db: Database): Promise<ReadonlyMap<string, numb
 
 interface SeededForum {
   readonly id: number
-  /** The materialised path, which is how a prefix is scoped to a branch. */
   readonly path: string
 }
 
@@ -334,7 +278,6 @@ async function seedForums(db: Database): Promise<ReadonlyMap<string, SeededForum
   return created
 }
 
-/** Closes the two sections that are not for everybody, one group row at a time. */
 async function seedForumAccess(
   db: Database,
   forums: ReadonlyMap<string, SeededForum>,

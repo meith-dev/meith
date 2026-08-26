@@ -13,14 +13,6 @@ let db: Database
 
 const NOW = new Date('2026-08-10T09:00:00Z')
 
-/**
- * The migrations, applied the way the fixture applies them.
- *
- * `runMigrations()` opens its own connection to `DATABASE_URL` with the
- * postgres.js driver, which PGlite is not. Injecting the same SQL keeps the
- * sequence under test — drop, migrate, seed, against a real engine — and only
- * swaps out how the file gets to the server.
- */
 async function applyMigrations(): Promise<number> {
   const results = await harness.client.exec(migrationScript())
   return results.length

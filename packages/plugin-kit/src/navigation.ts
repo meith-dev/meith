@@ -9,7 +9,6 @@ export interface PluginNavigationPlacement {
   readonly key: string
   readonly href: string
   readonly audience: PluginNavigationAudience
-  /** The namespaced key of the sibling item this one sits under by default. */
   readonly parentKey: string | null
   readonly label: string
   readonly labelKey: string | null
