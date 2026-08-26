@@ -100,7 +100,7 @@
       "screenshots": [
         "/marketplace/screenshots/webhooks-light.png"
       ],
-      "version": "0.21.2",
+      "version": "0.22.0",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
