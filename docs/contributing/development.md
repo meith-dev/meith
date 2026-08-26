@@ -521,6 +521,72 @@ but not symmetrically.**
 CI's other jobs build the image, drive a browser, and run the migrations
 against real Postgres.
 
+## No inline comments
+
+`AGENTS.md` carries the rule: an explanation belongs in the document under
+`docs/` that covers the behaviour, changed in the same commit, never in the
+code. The reason is that a comment is invisible to everyone who is not
+already reading that function — an operator, a theme author, somebody
+deciding whether the software does what they need — and it rots without
+anything noticing, because nothing checks a comment against the code beside
+it. A paragraph in `docs/` is read by all of them and is checked: the links
+gate holds its anchors, the index gate holds its registration, and the
+generated references fail when the contract they describe moves.
+
+The rule covers `/** */` as much as `//`. A JSDoc block that explains why a
+function does what it does is an inline comment with a decorative syntax.
+
+Four kinds of comment are not, and are the only exceptions:
+
+- **`biome-ignore` suppressions**, which the linter reads, and which the rule
+  above this section requires to carry a reason.
+- **`@ts-expect-error`**, which the compiler reads.
+- **Type annotations the compiler reads** — `@type`, `@satisfies`,
+  `/// <reference>` — mostly in `.mjs` files that have no other way to say it.
+- **The prose in the six files a generated reference is built from**:
+  `packages/theme-kit/src/slots.ts`, `api.ts` and `view-models.ts`, which
+  `pnpm theme:docs` publishes as
+  [the theme slot reference](../reference/theme-slots.md); and
+  `packages/plugin-kit/src/hooks.ts`, `payloads.ts` and `regions.ts`, which
+  `pnpm plugin:docs` publishes as
+  [the plugin hook reference](../reference/plugin-hooks.md). There the comment
+  *is* the published document, and deleting it deletes a page.
+
+### How it is enforced
+
+Three layers, none of them CI, in the order they catch something.
+
+**`pnpm comments:check`** lists every comment your change adds, comparing the
+working tree against `HEAD`. Run it before you finish. Comparing against
+`HEAD` rather than a checked-in list of allowed comments is what lets all
+three layers stay quiet about the comments already in the tree while refusing
+every new one, with nothing to maintain.
+
+**The git `pre-commit` hook** — `.githooks/pre-commit` — runs the same check
+over the staged tree and refuses the commit. `core.hooksPath` is set to
+`.githooks` by the `prepare` script, so `pnpm install` arms it once and it
+applies to every commit made in the repository afterwards, by any agent and by
+any person. This is the layer that does not care what wrote the code:
+`git commit --no-verify` is the deliberate way past it, and it leaves a
+visible choice behind rather than an accident.
+
+**A `PostToolUse` hook**, `.claude/hooks/no-inline-comments.mjs`, registered in
+`.claude/settings.json`, runs after every file write a Claude Code session
+makes and rejects the write, naming each comment added. It is the fastest
+feedback of the three because it fires before the code is even staged, but it
+only covers that one tool — which is why it is not the layer the rule rests
+on.
+
+`scripts/comment-scan.mjs` does the scanning for all three, and
+`scripts/comment-scan.test.ts` is why it can be trusted: a scanner that reads
+`https://` inside a string as a comment, or misses one after a regular
+expression, would either block honest work or wave through the thing it exists
+to catch. Both directions are covered there.
+
+Nothing in `pnpm verify` or CI checks for comments. That is deliberate: the
+rule is about how the codebase is written, so the enforcement sits where the
+writing and the committing happen, not on the branch.
+
 ## Formatting and lint
 
 One tool does both: [Biome](https://biomejs.dev/), configured in `biome.json`

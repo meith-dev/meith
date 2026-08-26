@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import {
   DEFAULT_REPOSITORY_URL,
+  nextSteps,
   type ScaffoldOptions,
   scaffold,
 } from '../packages/create-meith/src/scaffold.ts'
@@ -75,10 +76,9 @@ fi
 
 echo "Created $BOARD_NAME — ${files.size} files."
 echo
-echo "  cd $BOARD_NAME"
-echo "  npm install"
-echo "  cp .env.example .env.local"
-echo "  npm run dev"
+${nextSteps('$BOARD_NAME')
+  .map((step) => `echo "  ${step}"`)
+  .join('\n')}
 echo
 if [ "$GIT_READY" = 1 ]; then
   echo "Initialized a git repository here and staged every file. Commit it,"

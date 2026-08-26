@@ -120,8 +120,12 @@ const ENV_TICK_SECRET_PROSE = `# The shared secret the tick caller presents to G
 # it the same way. Without it the tick is unauthenticated, and the tick is how
 # bans expire and digests send.`
 
-const ENV_DATA_SOURCE_PROSE = `# fixture = deterministic in-memory sample data, no database needed. This is
-# what \`npm run build\` uses, and what a checkout with no database falls back to.`
+const ENV_DATA_SOURCE_PROSE = `# Derived, and left commented out on purpose: with no DATABASE_URL the board
+# serves \`fixture\` — deterministic in-memory sample data, no database needed,
+# which is what \`npm run build\` uses and what \`npm run dev\` falls back to — and
+# with one it serves \`postgres\`. Setting it to postgres while DATABASE_URL is
+# still blank is refused at boot, so uncomment it only to override the
+# derivation.`
 
 const ENV_APP_URL_PROSE = `# Absolute, no trailing slash. Used in mail, feeds and canonical URLs — every
 # place a relative URL cannot work because there is no request to be relative to.
@@ -168,7 +172,7 @@ TICK_SECRET=
 ${ENV_OPTIONAL_HEADING}
 
 ${ENV_DATA_SOURCE_PROSE}
-DATA_SOURCE=postgres
+# DATA_SOURCE=postgres
 
 ${ENV_APP_URL_PROSE}
 APP_URL=
@@ -949,12 +953,15 @@ Two things nothing configures for you:
 
 \`\`\`sh
 npm install
-cp .env.example .env.local
 npm run dev
 \`\`\`
 
-With no \`DATABASE_URL\`, the board runs on deterministic in-memory sample data —
-enough to click through every reading surface. Posting needs a database:
+No environment file, no database: with no \`DATABASE_URL\` the board serves
+deterministic in-memory sample data, which is enough to click through every
+reading surface.
+
+Posting needs Postgres. Copy \`.env.example\` to \`.env.local\`, set
+\`DATABASE_URL\` and the two secrets in it, then:
 
 \`\`\`sh
 npm run community -- migrate
@@ -1318,5 +1325,5 @@ bucket is the portable choice for uploads everywhere but here.
 }
 
 export function nextSteps(name: string): readonly string[] {
-  return [`cd ${name}`, 'npm install', 'cp .env.example .env.local', 'npm run dev']
+  return [`cd ${name}`, 'npm install', 'npm run dev']
 }
