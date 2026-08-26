@@ -3,21 +3,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
+const FORUM_SCOPED = new Set(['content.viewUnapproved'])
+
 const state = vi.hoisted(() => ({
   dataSource: 'postgres' as 'postgres' | 'fixture',
   bypassesFlood: false,
   counts: new Map<string, number>(),
   storeThrows: false,
+  firstPostThreshold: 0,
 }))
 
 vi.mock('./request-fingerprint', () => ({ countingPrefix: async () => null }))
-vi.mock('./settings', () => ({ getSettings: async () => ({ get: () => 0 }) }))
+vi.mock('./settings', () => ({
+  getSettings: async () => ({ get: () => state.firstPostThreshold }),
+}))
 
 vi.mock('./container', () => ({
   getContainer: () => ({
     dataSource: state.dataSource,
     authorizer: {
-      can: () => state.bypassesFlood,
+      can: (_actor: Actor, action: string, target?: unknown) => {
+        if (FORUM_SCOPED.has(action) && target === undefined) {
+          throw new Error(
+            `Forum-scoped action "${action}" requires target.forum (resolved matrix).`,
+          )
+        }
+        return state.bypassesFlood
+      },
       globalLimit: (actor: Actor, key: keyof PermissionSet) => {
         const value = actor.global[key]
         return typeof value === 'number' ? value : 0
@@ -51,7 +63,7 @@ vi.mock('@meith/db', () => ({
   },
 }))
 
-const { dailyLimitMessage, refused, spendDailyLimit } = await import('./antispam')
+const { dailyLimitMessage, holdsNewMember, refused, spendDailyLimit } = await import('./antispam')
 
 function member(over: Partial<PermissionSet>, userId: number | null = 7): Actor {
   return {
@@ -177,5 +189,50 @@ describe('dailyLimitMessage', () => {
     expect(
       dailyLimitMessage('message_day', { allowed: false, used: 9, retryAfterSeconds: 7200 }),
     ).toBe('You have used your allowance of private messages for today. It resets in 2 hours.')
+  })
+})
+
+describe('holding a new member for review', () => {
+  const FORUM_TARGET = { forum: { id: 1 } } as never
+
+  beforeEach(() => {
+    state.firstPostThreshold = 0
+    state.bypassesFlood = false
+  })
+
+  it('does nothing while the setting is off', async () => {
+    state.firstPostThreshold = 0
+    await expect(
+      holdsNewMember({ actor: member({}), postCount: 0, target: FORUM_TARGET }),
+    ).resolves.toBe(false)
+  })
+
+  it('holds a member under the threshold', async () => {
+    state.firstPostThreshold = 5
+    await expect(
+      holdsNewMember({ actor: member({}), postCount: 1, target: FORUM_TARGET }),
+    ).resolves.toBe(true)
+  })
+
+  it('lets a member past the threshold through', async () => {
+    state.firstPostThreshold = 5
+    await expect(
+      holdsNewMember({ actor: member({}), postCount: 9, target: FORUM_TARGET }),
+    ).resolves.toBe(false)
+  })
+
+  it('lets someone who may see unapproved content through', async () => {
+    state.firstPostThreshold = 5
+    state.bypassesFlood = true
+    await expect(
+      holdsNewMember({ actor: member({}), postCount: 1, target: FORUM_TARGET }),
+    ).resolves.toBe(false)
+  })
+
+  it('holds the post when it cannot tell who bypasses moderation', async () => {
+    state.firstPostThreshold = 5
+    await expect(
+      holdsNewMember({ actor: member({}), postCount: 1, target: undefined as never }),
+    ).resolves.toBe(true)
   })
 })
