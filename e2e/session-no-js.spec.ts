@@ -152,6 +152,9 @@ test('an unsubscribe link that arrived broken explains itself', async ({ page })
 
   await page.goto('/unsubscribe?done=one')
   await expect(page.getByText(/you will not be notified about that any more/)).toBeVisible()
+
+  await page.goto('/unsubscribe?done=announcements')
+  await expect(page.getByText(/announcements are off/)).toBeVisible()
 })
 
 test('the health probe answers, uncached, without reading the board', async ({ request }) => {

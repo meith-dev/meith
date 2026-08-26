@@ -407,6 +407,13 @@
       "when": 1787650466674,
       "tag": "0057_promotion_scan_cursor",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1787771682008,
+      "tag": "0058_mass_mail_opt_in",
+      "breakpoints": true
     }
   ]
 }

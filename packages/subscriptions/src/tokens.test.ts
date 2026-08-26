@@ -19,6 +19,12 @@ describe('a genuine token', () => {
     expect(readUnsubscribeToken(token, SECRET)).toEqual(claim)
   })
 
+  it('round-trips the announcements scope', () => {
+    const claim: UnsubscribeClaim = { userId: 7, scope: 'mass-mail', targetId: 0 }
+    const token = mintUnsubscribeToken(claim, SECRET)
+    expect(readUnsubscribeToken(token, SECRET)).toEqual(claim)
+  })
+
   it('is stable, so a link works for as long as the message exists', () => {
     expect(mintUnsubscribeToken(CLAIM, SECRET)).toBe(mintUnsubscribeToken(CLAIM, SECRET))
   })
@@ -60,6 +66,11 @@ describe('what it refuses', () => {
 
   it('a target id on the scope that may not carry one', () => {
     const token = mintUnsubscribeToken({ userId: 7, scope: 'email', targetId: 0 }, SECRET)
+    expect(readUnsubscribeToken(token.replace('.0.', '.5.'), SECRET)).toBeNull()
+  })
+
+  it('a target id on the announcements scope', () => {
+    const token = mintUnsubscribeToken({ userId: 7, scope: 'mass-mail', targetId: 0 }, SECRET)
     expect(readUnsubscribeToken(token.replace('.0.', '.5.'), SECRET)).toBeNull()
   })
 

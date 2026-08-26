@@ -296,6 +296,16 @@ export class PostgresUserBulkRepository {
     }
   }
 
+  async mayReceiveMassMail(userId: number): Promise<boolean> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select 1 as ok from users u
+         where u.id = ${userId} and ${this.audienceWhere(null)}
+      `),
+    ) as Array<{ ok: number }>
+    return rows.length > 0
+  }
+
   async massMailAudience(targetGroupId: number | null): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`
@@ -332,6 +342,7 @@ export class PostgresUserBulkRepository {
       sql`u.deleted_at is null`,
       sql`u.state = 'active'`,
       sql`u.email_verified_at is not null`,
+      sql`u.mass_mail_opt_in_at is not null`,
     ]
 
     if (targetGroupId !== null) {

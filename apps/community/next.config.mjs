@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -21,6 +21,8 @@ for (const name of ['.env.local', '.env']) {
 if (process.env.NODE_ENV !== 'production' && loadedEnvFiles.length > 0) {
   console.log(`- Environments: ${loadedEnvFiles.join(', ')} (${workspaceRoot})`)
 }
+
+const FRAMEWORK_PACKAGES = ['next', 'react', 'react-dom']
 
 const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
@@ -116,6 +118,17 @@ const nextConfig = {
       },
     ]
   },
+}
+
+const boardManifestFile = path.join(workspaceRoot, 'package.json')
+if (existsSync(boardManifestFile)) {
+  const boardManifest = JSON.parse(readFileSync(boardManifestFile, 'utf8'))
+  for (const name of Object.keys(boardManifest.dependencies ?? {})) {
+    if (FRAMEWORK_PACKAGES.includes(name)) continue
+    if (nextConfig.serverExternalPackages.includes(name)) continue
+    if (nextConfig.transpilePackages.includes(name)) continue
+    nextConfig.transpilePackages.push(name)
+  }
 }
 
 export default nextConfig

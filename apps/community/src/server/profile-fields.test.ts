@@ -107,6 +107,7 @@ class FakeSettings implements MemberSettingsRepository {
     website: null,
     bio: null,
     displayGroupId: null,
+    massMailOptInAt: null,
   }
   async read() {
     return this.row
@@ -117,6 +118,7 @@ class FakeSettings implements MemberSettingsRepository {
   async saveDisplayGroup() {}
   async saveProfile() {}
   async saveOptions() {}
+  async saveMassMailOptIn() {}
   async adoptEmail() {
     return true
   }

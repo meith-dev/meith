@@ -51,6 +51,7 @@ describe('reading', () => {
       website: null,
       bio: null,
       displayGroupId: null,
+      massMailOptInAt: null,
     })
   })
 
@@ -104,6 +105,30 @@ describe('saving', () => {
       threadsPerPage: null,
       invisible: false,
     })
+  })
+
+  it('records when a member asked for the announcements, and forgets it when they stop', async () => {
+    await repo.saveMassMailOptIn({ userId: IVAN, optIn: true })
+    const asked = (await repo.read(IVAN))?.massMailOptInAt
+    expect(asked).toBeInstanceOf(Date)
+
+    await repo.saveMassMailOptIn({ userId: IVAN, optIn: false })
+    expect((await repo.read(IVAN))?.massMailOptInAt).toBeNull()
+  })
+
+  it('keeps the date consent was first given when it is confirmed again', async () => {
+    await repo.saveMassMailOptIn({ userId: IVAN, optIn: true })
+    const first = (await repo.read(IVAN))?.massMailOptInAt
+
+    await repo.saveMassMailOptIn({ userId: IVAN, optIn: true })
+
+    expect((await repo.read(IVAN))?.massMailOptInAt).toEqual(first)
+  })
+
+  it('leaves everybody else’s answer about announcements alone', async () => {
+    await repo.saveMassMailOptIn({ userId: IVAN, optIn: true })
+
+    expect((await repo.read(MOD))?.massMailOptInAt).toBeNull()
   })
 
   it('touches nobody else', async () => {

@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "mass_mail_opt_in_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "users_mass_mail_opt_in_idx" ON "users" USING btree ("id") WHERE "users"."mass_mail_opt_in_at" is not null;

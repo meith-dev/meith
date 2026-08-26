@@ -4,10 +4,12 @@ import { timingSafeEqualString } from '@meith/core'
 
 import type { SubscriptionTarget } from './modes'
 
-export type UnsubscribeScope = SubscriptionTarget | 'email'
+export type UnsubscribeScope = SubscriptionTarget | 'email' | 'mass-mail'
 
 export function parseUnsubscribeScope(value: string): UnsubscribeScope | null {
-  return value === 'thread' || value === 'forum' || value === 'email' ? value : null
+  return value === 'thread' || value === 'forum' || value === 'email' || value === 'mass-mail'
+    ? value
+    : null
 }
 
 export interface UnsubscribeClaim {
@@ -48,7 +50,7 @@ export function readUnsubscribeToken(token: string, secret: string): Unsubscribe
   const scope = parseUnsubscribeScope(rawScope)
   if (scope === null) return null
 
-  const targetPattern = scope === 'email' ? /^0$/ : /^[1-9]\d*$/
+  const targetPattern = scope === 'thread' || scope === 'forum' ? /^[1-9]\d*$/ : /^0$/
   if (!/^[1-9]\d*$/.test(rawUserId) || !targetPattern.test(rawTargetId)) return null
   const userId = Number(rawUserId)
   const targetId = Number(rawTargetId)

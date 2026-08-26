@@ -36,8 +36,8 @@ import {
   recordPluginFailure,
   syncRenderSignature,
 } from '@meith/db'
-import { EN_CATALOG, sourceTranslator } from '@meith/i18n'
-import { renderMail } from '@meith/mail'
+import { EN_CATALOG, sourceTranslator, type Translator } from '@meith/i18n'
+import { absoluteUrl, type MailFooterLine, renderMail } from '@meith/mail'
 import {
   deliverNotificationEmail,
   deliverNotificationPush,
@@ -47,6 +47,7 @@ import {
 } from '@meith/notifications'
 import { type PluginDefinition, PluginHost, renderingSignature } from '@meith/plugin-kit'
 import { resolvePushConfig, SettingsSnapshot } from '@meith/settings'
+import { mintUnsubscribeToken } from '@meith/subscriptions'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
 import { buildEventRegistry } from './event-handlers'
@@ -213,9 +214,11 @@ export function buildSchedulerBundle(deps: {
             },
             ...optional(mail, (mail) => ({
               massMail: {
-                async send({ massMailId, email }) {
-                  const campaign = await new PostgresUserBulkRepository(db).readMassMail(massMailId)
+                async send({ massMailId, userId, email }) {
+                  const bulk = new PostgresUserBulkRepository(db)
+                  const campaign = await bulk.readMassMail(massMailId)
                   if (campaign === null) return
+                  if (!(await bulk.mayReceiveMassMail(userId))) return
 
                   const brand = await resolveMailBrand({ db, ...themeDeps })
                   const t = await (
@@ -235,6 +238,8 @@ export function buildSchedulerBundle(deps: {
                               brand.boardName === '' ? t.t('mail.boardFallback') : brand.boardName,
                           }),
                         },
+                        { text: t.t('mail.footer.announcementsConsent') },
+                        massMailUnsubscribeLine({ boardUrl: brand.boardUrl, userId, t }),
                       ],
                     },
                   })
@@ -365,4 +370,31 @@ function taskFailureNotifier(
         log.error({ taskId, err }, 'could not raise the task-failure notification')
       })
   }
+}
+
+const UNSUBSCRIBE_PATH = '/unsubscribe'
+
+const MAIL_PREFERENCES_PATH = '/notifications/preferences'
+
+function massMailUnsubscribeLine(input: {
+  readonly boardUrl: string
+  readonly userId: number
+  readonly t: Translator
+}): MailFooterLine {
+  const secret = env.AUTH_SECRET
+  const token =
+    secret === undefined
+      ? null
+      : mintUnsubscribeToken({ userId: input.userId, scope: 'mass-mail', targetId: 0 }, secret)
+
+  const href = absoluteUrl(
+    input.boardUrl,
+    token === null
+      ? MAIL_PREFERENCES_PATH
+      : `${UNSUBSCRIBE_PATH}?token=${encodeURIComponent(token)}`,
+  )
+
+  return href === null
+    ? { text: input.t.t('mail.footer.announcementsNoLink') }
+    : { text: input.t.t('mail.footer.announcementsStop'), href }
 }

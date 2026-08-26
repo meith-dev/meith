@@ -9,7 +9,7 @@ This directory is the source for [meith.dev/docs](https://www.meith.dev/docs). C
 | See what Meith is | [Introduction](./getting-started/introduction.md) |
 | Run a board on your machine | [Quickstart](./getting-started/quickstart.md) |
 | Put a board on your own server | [Deployment](./getting-started/deployment/index.md) |
-| Build a theme or plugin | [Themes](./customization/themes.md) · [Plugins](./customization/plugins.md) |
+| Build a theme or plugin | [Write your first plugin](./customization/first-plugin.md) · [Themes](./customization/themes.md) · [Plugins](./customization/plugins.md) |
 | Run an existing board from the browser | [Organiser guide](./guides/community/organiser-guide.md) |
 | Contribute code | [Development](./contributing/development.md) |
 
@@ -55,6 +55,7 @@ Operating the server:
 
 ## Customization
 
+- [Write your first plugin](./customization/first-plugin.md) — the walkthrough from an empty directory to a plugin running inside a board and listed on the marketplace.
 - [Themes](./customization/themes.md) — theme slots, view models, and packaging.
 - [Plugins](./customization/plugins.md) — plugin boundaries, typed hooks, lifecycle, and crash isolation.
 - [The marketplace](./customization/marketplace.md) — the curated feed of plugins and themes, and the listing-by-PR process.
