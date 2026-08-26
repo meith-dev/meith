@@ -36,6 +36,7 @@ Running your community — browser only, no shell access:
 - [Forums and permissions](./guides/community/forums.md) — the forum tree and the per-forum permission matrix.
 - [Groups and promotions](./guides/community/groups.md) — what a group carries board-wide.
 - [Spam controls and rate limits](./guides/community/antispam.md) — the registration challenge and every threshold.
+- [Reputation](./guides/community/reputation.md) — members rating each other, and the two settings that decide what a post offers.
 
 Operating the server:
 
