@@ -10,9 +10,12 @@
  * the build is green, the classes are simply absent, and the page renders
  * unstyled with no error anywhere to explain why.
  *
- * Paths are relative to this file, and deliberately not the `node_modules`
- * symlinks: scanning through a symlinked workspace package is inconsistent
- * between pnpm layouts.
+ * Paths are relative to this file and name this repository's own directories,
+ * which is all they can do from here. A board installed from npm has none of
+ * them — the same code arrives under `node_modules/@meith` — so
+ * `apps/community/bin/forum-web.mjs` rebases these at materialization and
+ * substitutes that directory for the ones that are not there. Editing a path
+ * here without reading `rebaseGlobalsCssSources` will only work in this repo.
  */
 @source "../../../../themes";
 @source "../../../../plugins";

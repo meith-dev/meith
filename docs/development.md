@@ -278,6 +278,18 @@ serves neither its own script/style bundles nor its service worker fails the
 smoke rather than passing it (`scripts/board-smoke-assets.mts`, shared with
 `board-deploy-kit-smoke.mts` and `board-eject-smoke.mts`).
 
+Answering 200 is not the same as working, and two checks in that same file
+exist because a board did both while being unusable. The rendered `/` must not
+contain the theme's own message keys as text, which is what a board whose
+config forgot `messages: defaultMessages` served; and the stylesheet it links
+must carry rules for a handful of classes only `@meith/ui` and
+`@meith/theme-default` produce, which is what a board Tailwind never scanned
+did not. The second is deliberately not "every class on the page has a rule":
+the markdown renderer emits `md-mention` and `md-quote-author`, and group
+colours emit `gname-<id>` styled from an inline `<style>`, none of which are
+Tailwind's to generate — a gate that failed on those would be failing correct
+boards.
+
 ### Building where Vercel looks
 
 `forum-web build --at-root` materializes into the workspace root itself
@@ -322,11 +334,13 @@ instead:
   prefix produces a leading `/`, which reads as an absolute path and silently
   matches nothing.
 - **`globals.css`'s Tailwind `@source` roots are rebased on every
-  materialization**, not only when `FORUM_WORKSPACE_ROOT` was set externally.
-  At depth two the rebase reproduces the file's own paths byte for byte; at
-  depth zero it is what keeps `themes/`, `plugins/`, `examples/` and
-  `packages/ui/src` pointing inside the board instead of two directories above
-  it.
+  materialization**, not only when `FORUM_WORKSPACE_ROOT` was set externally,
+  and each root is kept only if it is really there. In this repository all four
+  are, at either depth. In a scaffolded board none of them are — `themes/`,
+  `plugins/`, `examples/` and `packages/ui/src` do not exist beside a board,
+  and that code is installed under `node_modules/@meith` — so the rebase
+  substitutes that directory for them. A scan root that resolves to nothing is
+  not an error to Tailwind, which is how boards shipped unstyled (MEI-131).
 
 **Depth zero puts framework-owned names beside the board's own files**, which
 `.meith/app` never did, so ownership there is decided per *file* rather than per
