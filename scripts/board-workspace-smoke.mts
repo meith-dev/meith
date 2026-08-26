@@ -57,6 +57,8 @@ if (!DATABASE_URL) {
 }
 
 const PORT = process.env.SMOKE_PORT ?? '3999'
+const AT_ROOT_PORT = process.env.SMOKE_AT_ROOT_PORT ?? String(Number(PORT) + 1)
+const AT_ROOT_FLAG = '--at-root'
 const AUTH_SECRET = 'smoke-test-auth-secret-32-bytes-min'
 const TICK_SECRET = 'smoke-test-tick-secret-32-bytes-min'
 
@@ -98,19 +100,19 @@ function runCapturingStdout(
 
 const CLOSURE_ROOTS = ['@meith/web', '@meith/cli', '@meith/theme-default']
 
-async function scaffoldBoard(parentDir: string): Promise<string> {
+async function scaffoldBoard(parentDir: string, name = 'smoke-board'): Promise<string> {
   const { run: runCreateMeith } = await import(join(ROOT, 'packages/create-meith/src/cli.ts'))
   const previousCwd = process.cwd()
   process.chdir(parentDir)
   try {
-    const result = await runCreateMeith(['smoke-board'], '0.0.0-smoke')
+    const result = await runCreateMeith([name], '0.0.0-smoke')
     if (result.code !== 0) {
       throw new Error(`create-meith failed:\n${result.lines.join('\n')}`)
     }
   } finally {
     process.chdir(previousCwd)
   }
-  return join(parentDir, 'smoke-board')
+  return join(parentDir, name)
 }
 
 async function pointAtTarballs(boardDir: string, tarballs: ReadonlyMap<string, string>) {
@@ -142,6 +144,66 @@ async function waitForResponse(url: string, attempts: number): Promise<Response>
     }
   }
   throw new Error(`board-workspace-smoke: ${url} never answered: ${String(lastError)}`)
+}
+
+async function bootAndCheck(boardDir: string, port: string, atRoot: boolean) {
+  const label = atRoot ? 'at the project root' : 'at .meith/app'
+  const flag = atRoot ? [AT_ROOT_FLAG] : []
+
+  console.log(`== forum-web start ${label} ==`)
+  const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start', ...flag], {
+    cwd: boardDir,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      PORT: port,
+      DATABASE_URL,
+      DATA_SOURCE: 'postgres',
+      AUTH_SECRET,
+      TICK_SECRET,
+      APP_URL: `http://127.0.0.1:${port}`,
+    },
+  })
+  server.stdout?.on('data', (chunk) => process.stdout.write(chunk))
+  server.stderr?.on('data', (chunk) => process.stderr.write(chunk))
+
+  function stopServer() {
+    if (server.pid === undefined) return
+    try {
+      process.kill(-server.pid, 'SIGTERM')
+    } catch {}
+    setTimeout(() => {
+      if (server.pid === undefined) return
+      try {
+        process.kill(-server.pid, 'SIGKILL')
+      } catch {}
+    }, 5000).unref()
+  }
+
+  try {
+    console.log('== waiting for it to answer / ==')
+    const response = await waitForResponse(`http://127.0.0.1:${port}/`, 40)
+    if (!response.ok) {
+      throw new Error(`board-workspace-smoke: / answered ${response.status} (${label})`)
+    }
+    const body = await response.text()
+    if (!body.includes('<main')) {
+      throw new Error(`board-workspace-smoke: / answered but did not render <main> (${label})`)
+    }
+    assertMessagesResolve(body, Object.keys(defaultEnMessages))
+    console.log(`== the board materialized ${label} rendered / ==`)
+
+    console.log('== confirming static assets and /sw.js actually serve ==')
+    await assertBoardAssetsServe(`http://127.0.0.1:${port}`, body)
+    console.log('== static assets and /sw.js served correctly ==')
+
+    console.log('== confirming the stylesheet actually styles what rendered ==')
+    await assertStylesResolve(`http://127.0.0.1:${port}`, body)
+    console.log('== every class the board rendered has a rule ==')
+  } finally {
+    stopServer()
+  }
 }
 
 async function main() {
@@ -202,72 +264,17 @@ async function main() {
       )
     }
 
-    console.log('== forum-web start ==')
-    const server = spawn(join(boardDir, 'node_modules/.bin/forum-web'), ['start'], {
-      cwd: boardDir,
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        PORT,
-        DATABASE_URL,
-        DATA_SOURCE: 'postgres',
-        AUTH_SECRET,
-        TICK_SECRET,
-        APP_URL: `http://127.0.0.1:${PORT}`,
-      },
+    await bootAndCheck(boardDir, PORT, false)
+
+    console.log('== a second board, materialized the way Vercel deploys it ==')
+    const atRootDir = await scaffoldBoard(scaffoldParent, 'smoke-board-at-root')
+    await pointAtTarballs(atRootDir, tarballs)
+    run('npm', ['install'], { cwd: atRootDir })
+    run(join(atRootDir, 'node_modules/.bin/forum-web'), ['build', AT_ROOT_FLAG], {
+      cwd: atRootDir,
+      env: { ...process.env, DATABASE_URL: '', DATA_SOURCE: '' },
     })
-    server.stdout?.on('data', (chunk) => process.stdout.write(chunk))
-    server.stderr?.on('data', (chunk) => process.stderr.write(chunk))
-
-    /**
-     * `forum-web start` is itself a wrapper (apps/community/bin/forum-web.mjs)
-     * that spawns the real `node server.js` as *its own* child with
-     * `stdio: 'inherit'`. Killing the wrapper does not kill that
-     * grandchild — Linux does not cascade a signal to orphaned children —
-     * so `detached: true` on the spawn above plus signalling the whole
-     * process group (`-server.pid`) here is what actually reaches the
-     * standalone server, not just its wrapper. Confirmed against a real CI
-     * run: the smoke test itself passed in under two minutes, but the
-     * process then sat for over an hour until the run was cancelled — see
-     * the PR for the log.
-     */
-    function stopServer() {
-      if (server.pid === undefined) return
-      try {
-        process.kill(-server.pid, 'SIGTERM')
-      } catch {}
-      setTimeout(() => {
-        if (server.pid === undefined) return
-        try {
-          process.kill(-server.pid, 'SIGKILL')
-        } catch {}
-      }, 5000).unref()
-    }
-
-    try {
-      console.log('== waiting for it to answer / ==')
-      const response = await waitForResponse(`http://127.0.0.1:${PORT}/`, 40)
-      if (!response.ok) {
-        throw new Error(`board-workspace-smoke: / answered ${response.status}`)
-      }
-      const body = await response.text()
-      if (!body.includes('<main')) {
-        throw new Error('board-workspace-smoke: / answered but did not render <main>')
-      }
-      assertMessagesResolve(body, Object.keys(defaultEnMessages))
-      console.log('== the materialized, standalone board rendered / ==')
-
-      console.log('== confirming static assets and /sw.js actually serve ==')
-      await assertBoardAssetsServe(`http://127.0.0.1:${PORT}`, body)
-      console.log('== static assets and /sw.js served correctly ==')
-
-      console.log('== confirming the stylesheet actually styles what rendered ==')
-      await assertStylesResolve(`http://127.0.0.1:${PORT}`, body)
-      console.log('== every class the board rendered has a rule ==')
-    } finally {
-      stopServer()
-    }
+    await bootAndCheck(atRootDir, AT_ROOT_PORT, true)
   } finally {
     await rm(tarballDir, { recursive: true, force: true })
     await rm(scaffoldParent, { recursive: true, force: true })
