@@ -186,7 +186,7 @@ A rule is:
   is the one applied, and no member is moved twice in a run.
 - **Promote from** — a primary group, or *any group*.
 - **Promote into** — the group that becomes their new primary group.
-- **At least** — posts, reputation, days registered. Each optional
+- **At least** — posts, [reputation](./reputation.md), days registered. Each optional
   individually, and every one that is filled in must be met.
 
 **A new rule is enabled straight away**, and from then on the board

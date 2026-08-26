@@ -189,6 +189,16 @@
       "group": "Running your community"
     },
     {
+      "slug": "reputation",
+      "file": "guides/community/reputation.md",
+      "section": "guides",
+      "title": "Reputation",
+      "blurb": "Members rating each other: what a rating is worth, the four settings, the two that decide between a one-press thanks and a form, and why the totals cannot drift.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
       "slug": "operating",
       "file": "guides/operations/operating.md",
       "section": "guides",
