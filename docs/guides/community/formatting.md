@@ -91,6 +91,23 @@ the file still also appears in the attachment list once the post is
 saved. An id you did not upload yourself never resolves to anything in
 somebody else's post — typing one by hand does not work.
 
+## Drafts
+
+The composer saves what you are writing without being asked. A second or
+so after you stop typing, and again whenever a field loses focus, it
+sends the subject and the message to the board and says **Saved just
+now.** underneath. One draft is kept per forum for a thread you have not
+posted yet, and one per thread for a reply; reopening the composer fills
+it back in. **Save draft** does the same on demand.
+
+A copy is also kept in the browser, and it is the one that survives a
+crashed tab or a lost connection. Reopen the composer and it offers to
+**restore** what it kept, or to **discard** it.
+
+Posting clears both, so the next thread you start in that forum begins
+empty. With scripting off there is no autosave and no recovery offer;
+**Save draft** still works.
+
 ## Everything else stays server-rendered
 
 None of the above needed a client-side markup renderer, a syntax-
