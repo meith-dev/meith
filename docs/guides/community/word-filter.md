@@ -56,18 +56,43 @@ rule for `cat` cannot break a link to `example.com/catalogue`.
 
 | Filtered | Not filtered |
 | --- | --- |
-| Post bodies | **Thread titles** |
-| Excerpts in the latest-posts lists | Signatures |
-| Search result excerpts, on the board and through the REST API | Custom profile fields |
-| Feed summaries (RSS and Atom) | Usernames |
+| Post bodies | Signatures |
+| Thread titles, wherever a reader meets one | Custom profile fields |
+| Excerpts in the latest-posts lists | Usernames |
+| Search result excerpts, on the board and through the REST API | Forum names |
+| Feed summaries and feed entry titles (RSS and Atom) | |
 | The description in a page's metadata, which is what a link preview shows | |
 
-> [!WARNING]
-> **Thread titles are not filtered.** A filtered word in a title stays
-> visible in every forum listing, in search results beside a filtered
-> excerpt, and in the feed. If a title is the problem, rename the thread
-> — a moderator can — rather than expecting a rule to cover it. This is
-> a gap rather than a decision, and it is tracked.
+**Thread titles are filtered everywhere a reader meets one**: the
+heading of the thread page and its breadcrumb, every forum listing, the
+last-post line on the board index, the latest-threads and latest-posts
+panels, the discovery lists, search results, the list of threads a
+member follows, what somebody online is said to be reading, the heading
+over the reply form, RSS and Atom entry titles, and the `<title>`,
+OpenGraph and structured-data tags a link preview and a search engine
+read.
+
+Two places see the stored title instead, each on purpose:
+
+- **The moderation queue, the report screens and the mod control
+  panel.** You are judging the words, so you see them.
+- **The thread resource the REST API returns** under `/threads`. It is
+  the record a client may write back, and a filtered title becoming the
+  stored one is a loss the filter must never cause. The search results
+  and subscription lists the API serves are display text, and they are
+  filtered.
+
+Nothing on the board offers a thread rename, so a filter rule is the
+only way to take a word out of a title that is already there. Splitting
+posts out into a new thread is the one place a moderator types a title,
+and that is a new title rather than an edit of the old one.
+
+> [!NOTE]
+> Notification subjects are not filtered — "New reply in …" keeps the
+> stored title. A notification subject is composed once and becomes an
+> e-mail and a push payload as well as a line on the board, so whether
+> the filter should reach the mail a board sends is a separate question
+> from what a page renders.
 
 ## What it costs
 

@@ -1,9 +1,11 @@
 import type { Translator } from '@meith/i18n'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type { SubscriptionMode, SubscriptionRow } from '@meith/subscriptions'
 import { MODE_LABELS, SUBSCRIPTION_MODES } from '@meith/subscriptions'
 import type { TimeModel } from '@meith/theme-kit'
 
 import { formatTime, untranslated } from './time'
+import { filterWords } from './word-filter'
 
 export interface SubscriptionRowView {
   readonly key: string
@@ -28,8 +30,9 @@ export function buildSubscriptionsView(input: {
   readonly rows: readonly SubscriptionRow[]
   readonly now: Date
   readonly t?: Translator
+  readonly wordFilter?: CompiledWordFilter | undefined
 }): SubscriptionsView {
-  const rows = input.rows.map((row) => toRow(row, input.now, input.t))
+  const rows = input.rows.map((row) => toRow(row, input.now, input.t, input.wordFilter))
 
   return {
     threads: rows.filter((row) => row.target === 'thread'),
@@ -39,12 +42,17 @@ export function buildSubscriptionsView(input: {
   }
 }
 
-function toRow(row: SubscriptionRow, now: Date, t: Translator | undefined): SubscriptionRowView {
+function toRow(
+  row: SubscriptionRow,
+  now: Date,
+  t: Translator | undefined,
+  wordFilter: CompiledWordFilter | undefined,
+): SubscriptionRowView {
   return {
     key: `${row.target}:${row.targetId}`,
     target: row.target,
     targetId: row.targetId,
-    title: row.title,
+    title: row.target === 'thread' ? filterWords(row.title, wordFilter) : row.title,
     href: row.href,
     mode: row.mode,
     modeLabel: MODE_LABELS[row.mode],

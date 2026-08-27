@@ -54,6 +54,7 @@ import { locatedHref } from '@/view/post-link'
 import { leadingId } from '@/view/slug-id'
 import { buildSubscriptionsView } from '@/view/subscriptions'
 import { buildThreadView, revealedFrom, threadToolsHeading } from '@/view/thread-view'
+import { filterWords } from '@/view/word-filter'
 
 export async function generateMetadata({
   params,
@@ -102,7 +103,7 @@ export async function generateMetadata({
   })
 
   const meta = await pageMetadata('/thread/[slug]', {
-    title: thread.title,
+    title: filterWords(thread.title, await activeWordFilter()),
     description: t.t('threadPage.discussion', { forum: forum.title }),
     canonical: links.canonical,
     imageUrl: null,
@@ -424,7 +425,7 @@ export default async function ThreadPage({
     opening === null
       ? null
       : threadJsonLd({
-          title: thread.title,
+          title: filterWords(thread.title, wordFilter),
           url: `/thread/${thread.id}-${thread.slug}`,
           author: thread.authorUsername,
           published: opening.createdAt,
@@ -662,7 +663,7 @@ export default async function ThreadPage({
     forums: allForums,
     forumId: forum.id,
     visibleForumIds: new Set(visibleIds),
-    leaf: thread.title,
+    leaf: filterWords(thread.title, wordFilter),
     homeLabel: (await getSettings()).get('board.name'),
   })
 

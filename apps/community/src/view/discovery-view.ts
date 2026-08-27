@@ -1,8 +1,10 @@
 import type { Translator } from '@meith/i18n'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type { DiscoveryViewModel } from '@meith/theme-kit'
 
 import { count } from './count'
 import { formatTime, untranslated } from './time'
+import { filterWords } from './word-filter'
 
 export const DISCOVERY_LABELS = {
   new: { labelKey: 'discovery.new.label', blurbKey: 'discovery.new.blurb' },
@@ -40,6 +42,7 @@ export function buildDiscoveryView(input: {
   readonly refusalMessage?: string | null | undefined
   readonly now: Date
   readonly t?: Translator | undefined
+  readonly wordFilter?: CompiledWordFilter | undefined
 }): DiscoveryViewModel {
   const refusal = input.refusalMessage ?? null
   const t = input.t ?? untranslated()
@@ -55,7 +58,7 @@ export function buildDiscoveryView(input: {
     })),
     rows: input.rows.map((row) => ({
       threadId: row.threadId,
-      title: row.title,
+      title: filterWords(row.title, input.wordFilter),
       href: `/thread/${row.threadId}-${row.slug}`,
       forum: { label: row.forumTitle, href: `/${row.forumId}-${row.forumSlug}` },
       authorUsername: row.authorUsername,

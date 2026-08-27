@@ -1,8 +1,10 @@
 import type { Translator } from '@meith/i18n'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type { PostFormModel } from '@meith/theme-kit'
 
 import { postLink } from './post-link'
 import { untranslated } from './time'
+import { filterWords } from './word-filter'
 
 export interface PostFormInput {
   readonly forum: { readonly id: number; readonly title: string; readonly slug: string }
@@ -26,6 +28,7 @@ export interface ReplyViewInput {
   readonly thread: { readonly id: number; readonly title: string; readonly slug: string }
   readonly errorMessage?: string | null
   readonly t?: Translator
+  readonly wordFilter?: CompiledWordFilter | undefined
 }
 
 export function buildReplyView(input: ReplyViewInput): Omit<PostFormModel, 'regions'> {
@@ -33,7 +36,7 @@ export function buildReplyView(input: ReplyViewInput): Omit<PostFormModel, 'regi
 
   return {
     mode: 'reply',
-    heading: t.t('postForm.reply', { thread: input.thread.title }),
+    heading: t.t('postForm.reply', { thread: filterWords(input.thread.title, input.wordFilter) }),
     cancelHref: `/thread/${input.thread.id}-${input.thread.slug}`,
     cancelLabel: t.t('postForm.backToThread'),
     errorMessage: input.errorMessage ?? null,

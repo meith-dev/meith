@@ -78,7 +78,7 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
     searchedAt: formatTime(input.createdAt, input.now, input.t),
     hits: input.hits.map((hit) => ({
       postId: hit.postId,
-      threadTitle: hit.threadTitle,
+      threadTitle: filterWords(hit.threadTitle, input.wordFilter),
       href: postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId),
       excerptHtml: filterWords(hit.excerpt, input.wordFilter),
       authorUsername: hit.authorUsername,

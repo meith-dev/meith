@@ -1,5 +1,6 @@
 import { buildTree, type ForumListingRow, type ForumNode, keepVisibleSubtrees } from '@meith/forums'
 import type { Translator } from '@meith/i18n'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type {
   BoardIndexModel,
   CategoryBlockModel,
@@ -13,6 +14,7 @@ import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
 import { formatTime } from './time'
+import { filterWords } from './word-filter'
 
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
@@ -23,6 +25,7 @@ export interface BoardIndexInput {
   readonly now: Date
   readonly t?: Translator
   readonly identities?: ReadonlyMap<number, MemberIdentity>
+  readonly wordFilter?: CompiledWordFilter | undefined
 }
 
 export function forumHref(row: { id: number; slug: string }): string {
@@ -43,12 +46,13 @@ function toLastPost(
   now: Date,
   t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
+  wordFilter: CompiledWordFilter | undefined,
 ): LastPostModel | null {
   const last = row.lastPost
   if (last === null) return null
 
   return {
-    threadTitle: last.threadTitle,
+    threadTitle: filterWords(last.threadTitle, wordFilter),
     href: threadHref(last.threadId, last.postId),
     author: {
       userId: last.userId,
@@ -67,6 +71,7 @@ function toForumRow(
   unreadForumIds: ReadonlySet<number> | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
+  wordFilter: CompiledWordFilter | undefined,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(node.id) ?? false
 
@@ -78,7 +83,7 @@ function toForumRow(
     type: node.type,
     threadCount: count(ownThreadsOnly ? 0 : node.threadCount, t),
     postCount: count(ownThreadsOnly ? 0 : node.postCount, t),
-    lastPost: ownThreadsOnly ? null : toLastPost(node, now, t, identities),
+    lastPost: ownThreadsOnly ? null : toLastPost(node, now, t, identities, wordFilter),
     isUnread: !ownThreadsOnly && (unreadForumIds?.has(node.id) ?? false),
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
@@ -127,6 +132,7 @@ export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
       input.unreadForumIds,
       input.identities,
       input.ownThreadsOnlyForumIds,
+      input.wordFilter,
     )
 
   return { block: { category: row(node) }, forums: node.children.map(row) }
@@ -150,6 +156,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
           input.unreadForumIds,
           input.identities,
           input.ownThreadsOnlyForumIds,
+          input.wordFilter,
         ),
       },
       forums: node.children.map((child) =>
@@ -160,6 +167,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
           input.unreadForumIds,
           input.identities,
           input.ownThreadsOnlyForumIds,
+          input.wordFilter,
         ),
       ),
     })),

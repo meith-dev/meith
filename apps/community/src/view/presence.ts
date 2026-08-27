@@ -1,10 +1,12 @@
 import type { Translator } from '@meith/i18n'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type { BoardStatsModel, OnlineMemberModel, WhoIsOnlineModel } from '@meith/theme-kit'
 
 import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { formatTime, untranslated } from './time'
+import { filterWords } from './word-filter'
 
 export interface OnlineRow {
   readonly userId: number
@@ -26,15 +28,17 @@ export interface OnlineInput {
   readonly now: Date
   readonly t?: Translator | undefined
   readonly identities?: ReadonlyMap<number, MemberIdentity>
+  readonly wordFilter?: CompiledWordFilter | undefined
 }
 
 export function locationOf(
   row: OnlineRow,
   t: Translator = untranslated(),
+  wordFilter?: CompiledWordFilter | undefined,
 ): { label: string; href: string | null } {
   if (row.threadId !== null && row.threadTitle !== null) {
     return {
-      label: t.t('presence.reading', { title: row.threadTitle }),
+      label: t.t('presence.reading', { title: filterWords(row.threadTitle, wordFilter) }),
       href: `/thread/${row.threadId}-${row.threadSlug ?? ''}`,
     }
   }
@@ -52,7 +56,7 @@ export function buildWhoIsOnlineModel(input: OnlineInput): WhoIsOnlineModel {
     username: row.username,
     profileHref: memberHref(row.userId),
     nameClass: nameClassOf(input.identities, row.userId),
-    location: locationOf(row, input.t ?? untranslated()),
+    location: locationOf(row, input.t ?? untranslated(), input.wordFilter),
     isInvisible: row.invisible,
     lastSeen: formatTime(row.lastSeenAt, input.now, input.t),
   }))

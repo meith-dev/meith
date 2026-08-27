@@ -27,7 +27,7 @@ export function feedFor(
   function threadEntry(thread: FeedThread): FeedEntry {
     return {
       id: tagId('thread', thread.threadId),
-      title: thread.title,
+      title: filterWords(thread.title, wordFilter),
       href: absolute(`/thread/${thread.threadId}-${thread.slug}`),
       author: thread.authorUsername,
       published: thread.createdAt,
@@ -39,7 +39,7 @@ export function feedFor(
   function postEntry(post: FeedPost): FeedEntry {
     return {
       id: tagId('post', post.postId),
-      title: post.threadTitle,
+      title: filterWords(post.threadTitle, wordFilter),
       href: absolute(postLink(`/thread/${post.threadId}-${post.threadSlug}`, post.postId)),
       author: post.authorUsername,
       published: post.createdAt,

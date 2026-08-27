@@ -84,7 +84,7 @@ export const SEARCH_HANDLERS: ApiRoutes = [
             postId: hit.postId,
             threadId: hit.threadId,
             forumId: hit.forumId,
-            threadTitle: hit.threadTitle,
+            threadTitle: filterWords(hit.threadTitle, wordFilter),
             authorUserId: hit.authorUserId,
             authorUsername: hit.authorUsername,
             postedAt: hit.postedAt.toISOString(),

@@ -1,5 +1,6 @@
 import type { ForumListingRow } from '@meith/forums'
 import type { Translator } from '@meith/i18n'
+import type { CompiledWordFilter } from '@meith/markdown'
 import type {
   ForumDisplayModel,
   ForumRowModel,
@@ -16,6 +17,7 @@ import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
 import { postLink } from './post-link'
 import { formatTime } from './time'
+import { filterWords } from './word-filter'
 
 export function threadHref(row: ThreadListingRow): string {
   return `/thread/${row.id}-${row.slug}`
@@ -32,10 +34,11 @@ function lastPost(
   now: Date,
   t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
+  wordFilter: CompiledWordFilter | undefined,
 ): LastPostModel | null {
   if (!post) return null
   return {
-    threadTitle: thread.title,
+    threadTitle: filterWords(thread.title, wordFilter),
     href: postLink(threadHref(thread), post.postId),
     author: {
       userId: post.userId,
@@ -73,6 +76,7 @@ export function threadRowModel(
   readState: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null = null,
   t?: Translator,
   identities?: ReadonlyMap<number, MemberIdentity>,
+  wordFilter?: CompiledWordFilter | undefined,
 ): ThreadRowModel {
   const last = row.lastPost
   const isUnread =
@@ -82,7 +86,7 @@ export function threadRowModel(
     last.at > (readState.forumReadAt.get(row.forumId) ?? new Date(0))
   return {
     id: row.id,
-    title: row.title,
+    title: filterWords(row.title, wordFilter),
     href: threadHref(row),
     prefix: row.prefix,
     author: {
@@ -97,7 +101,7 @@ export function threadRowModel(
     isLocked: row.isLocked,
     isUnread,
     isMoved: row.isMoved,
-    lastPost: lastPost(row.lastPost, row, now, t, identities),
+    lastPost: lastPost(row.lastPost, row, now, t, identities, wordFilter),
   }
 }
 
@@ -115,6 +119,7 @@ export interface ForumDisplayInput {
   readonly now: Date
   readonly t?: Translator
   readonly identities?: ReadonlyMap<number, MemberIdentity>
+  readonly wordFilter?: CompiledWordFilter | undefined
 }
 
 export interface ForumDisplayView {
@@ -138,7 +143,14 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
             forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds, input.t)),
           },
     threads: input.page.rows.map((row) =>
-      threadRowModel(row, input.now, input.readState ?? null, input.t, input.identities),
+      threadRowModel(
+        row,
+        input.now,
+        input.readState ?? null,
+        input.t,
+        input.identities,
+        input.wordFilter,
+      ),
     ),
     pagination: input.pagination ?? {
       page: input.pageNumber,

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
 import { getTranslator, tr } from '@/server/i18n'
@@ -37,6 +38,7 @@ export default async function OnlinePage() {
   }
 
   const identities = await identitiesFor(snapshot.members.map((member) => member.userId))
+  const wordFilter = await activeWordFilter()
 
   return (
     <PanelPage
@@ -63,7 +65,7 @@ export default async function OnlinePage() {
         ) : (
           <CardRows>
             {snapshot.members.map((member) => {
-              const where = locationOf(member, translator)
+              const where = locationOf(member, translator, wordFilter)
               return (
                 <li
                   key={member.userId}
