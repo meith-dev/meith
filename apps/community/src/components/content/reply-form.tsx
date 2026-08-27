@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useActionState } from 'react'
 
 import type { UploadLimits } from '@meith/attachments/limits'
@@ -24,7 +25,7 @@ export function ReplyForm({
   attachmentLimits,
   draft,
   collapsible = false,
-  toolbar = 'inline',
+  toolbar,
   copy,
 }: {
   threadId: number
@@ -34,7 +35,7 @@ export function ReplyForm({
   attachmentLimits: UploadLimits | null
   draft: Draft | null
   collapsible?: boolean
-  toolbar?: 'inline' | 'external'
+  toolbar?: ReactNode
   copy: Copy
 }) {
   const [state, action] = useActionState(createReplyAction, EMPTY_STATE)

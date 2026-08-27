@@ -94,6 +94,11 @@ export default async function ReplyPage({
         viewerRef(actor),
       )
 
+  const editorToolbar =
+    toolbarModel === null ? undefined : (
+      <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
+    )
+
   const formModel = await filterView(
     'view.post-form',
     {
@@ -114,14 +119,11 @@ export default async function ReplyPage({
                   ? null
                   : await drafts.find(actor.userId, target.forum.id, target.threadId)
               }
-              toolbar="external"
+              toolbar={editorToolbar}
             />
           </>
         ),
-        toolbar:
-          toolbarModel === null ? null : (
-            <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
-          ),
+        toolbar: null,
       },
     },
     viewerRef(actor),

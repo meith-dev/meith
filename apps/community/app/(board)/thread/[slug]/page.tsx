@@ -41,6 +41,7 @@ import { followFormCopy } from '@/view/account-copy'
 import { attachmentsByPost } from '@/view/attachments'
 import { buildBreadcrumb } from '@/view/breadcrumb'
 import { replyFormCopy, threadRatingCopy } from '@/view/content-copy'
+import { buildEditorToolbarModel } from '@/view/editor-toolbar'
 import {
   anyInlineTool,
   INLINE_FORM_ID,
@@ -402,6 +403,7 @@ export default async function ThreadPage({
   const PostActions = requireSlot(theme, 'PostActions')
   const Pagination = requireSlot(theme, 'Pagination')
   const QuickReply = requireSlot(theme, 'QuickReply')
+  const EditorToolbar = requireSlot(theme, 'EditorToolbar')
   const translator = await getTranslator()
   const toolNotice = query.tool === undefined ? undefined : TOOL_NOTICE_KEYS[query.tool]
 
@@ -528,6 +530,14 @@ export default async function ThreadPage({
     forum: matrix,
     allowsAttachments: replyRules?.allowAttachments === true,
   }
+  const quickReplyAttachable = canAttach(actor, replyTarget)
+  const quickReplyToolbar = !canReply
+    ? null
+    : await filterView(
+        'view.editor-toolbar',
+        buildEditorToolbarModel({ attachments: quickReplyAttachable, t: translator }),
+        viewerRef(actor),
+      )
   const quickReplyForm = !canReply ? null : (
     <>
       <QuoteInPlace threadId={thread.id} />
@@ -538,11 +548,19 @@ export default async function ThreadPage({
         seenLastPostId={thread.lastPost?.postId ?? null}
         prefill=""
         canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
-        attachmentLimits={canAttach(actor, replyTarget) ? attachmentLimits(replyTarget) : null}
+        attachmentLimits={quickReplyAttachable ? attachmentLimits(replyTarget) : null}
         draft={
           actor.userId === null || drafts === null
             ? null
             : await drafts.find(actor.userId, forum.id, thread.id)
+        }
+        toolbar={
+          quickReplyToolbar === null ? undefined : (
+            <EditorToolbar
+              {...quickReplyToolbar}
+              copy={slotCopy(theme, 'EditorToolbar', translator)}
+            />
+          )
         }
         collapsible
       />

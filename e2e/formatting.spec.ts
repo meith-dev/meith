@@ -3,6 +3,40 @@ import { expect, test } from '@playwright/test'
 import { samplePng } from './support/png'
 import { signUp } from './support/session'
 
+test('the formatting toolbar sits below the subject, joined to the message box', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+
+  await signUp(page, 'toolbarplacement')
+
+  await page.goto('/200-general/new')
+
+  const subject = page.getByLabel('Subject')
+  const toolbar = page.getByRole('group', { name: 'Formatting' })
+  const message = page.getByLabel('Message')
+
+  await expect(toolbar).toBeVisible()
+
+  const subjectBox = await subject.boundingBox()
+  const toolbarBox = await toolbar.boundingBox()
+  const messageBox = await message.boundingBox()
+  if (subjectBox === null || toolbarBox === null || messageBox === null) {
+    throw new Error('composer fields have no layout box')
+  }
+
+  expect(
+    toolbarBox.y,
+    'toolbar is below the subject field, not at the top of the card',
+  ).toBeGreaterThan(subjectBox.y + subjectBox.height)
+
+  const gap = messageBox.y - (toolbarBox.y + toolbarBox.height)
+  expect(
+    gap,
+    'toolbar is joined to the message box, with no field between them',
+  ).toBeLessThanOrEqual(2)
+})
+
 test('typing @ opens mention suggestions, and picking one inserts the name', async ({
   page,
   browser,
@@ -64,4 +98,32 @@ test('the "Insert attachment" toolbar button uploads and places [attachment=id]'
   await page.getByRole('button', { name: 'Post thread' }).click()
   await expect(page).toHaveURL(/\/thread\/\d+-/, { timeout: 15_000 })
   await expect(page.locator('article .md-attachment')).toBeVisible()
+})
+
+test('the quick reply carries the same toolbar, joined to its message box', async ({ page }) => {
+  test.setTimeout(60_000)
+
+  await signUp(page, 'qrtb')
+
+  await page.goto('/200-general/new')
+  await page.getByLabel('Subject').fill(`Quick reply host ${Date.now()}`)
+  await page.getByLabel('Message').fill('A thread to reply under.')
+  await page.getByRole('button', { name: 'Post thread' }).click()
+  await expect(page).toHaveURL(/\/thread\/\d+-/, { timeout: 15_000 })
+
+  await page.getByText('Write a reply', { exact: true }).click()
+
+  const toolbar = page.getByRole('group', { name: 'Formatting' })
+  const message = page.getByLabel('Message')
+  await expect(toolbar).toBeVisible()
+
+  const toolbarBox = await toolbar.boundingBox()
+  const messageBox = await message.boundingBox()
+  if (toolbarBox === null || messageBox === null) {
+    throw new Error('quick reply fields have no layout box')
+  }
+
+  expect(toolbarBox.y, 'toolbar sits above the message box').toBeLessThan(messageBox.y)
+  const gap = messageBox.y - (toolbarBox.y + toolbarBox.height)
+  expect(gap, 'toolbar is joined to the message box').toBeLessThanOrEqual(2)
 })

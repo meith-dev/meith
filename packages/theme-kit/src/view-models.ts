@@ -926,8 +926,13 @@ export interface PostFormModel {
     /** The app-rendered `<form>` carrying the Server Action and its controls. */
     readonly form: ReactNode
     /**
-     * The `EditorToolbar` island, or `null`. A `null` here must leave a working
-     * plain-textarea form: the island enhances, it never enables.
+     * Kept for a theme that wants a toolbar affordance of its own at the top of
+     * the composer. The built-in composer no longer fills it: a formatting
+     * toolbar belongs against the box it formats, not at the head of a card a
+     * subject field and a prefix picker can sit below, so the `EditorToolbar`
+     * island renders inside `form`, joined to the message textarea, and this is
+     * `null` there. A `null` must leave a working plain-textarea form: the
+     * island enhances, it never enables.
      */
     readonly toolbar: ReactNode
   }

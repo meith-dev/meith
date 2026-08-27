@@ -68,6 +68,11 @@ export default async function EditPostPage({
         viewerRef(await getActor()),
       )
 
+  const editorToolbar =
+    toolbarModel === null ? undefined : (
+      <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
+    )
+
   const formModel = await filterView(
     'view.post-form',
     {
@@ -84,16 +89,13 @@ export default async function EditPostPage({
                 postId={post}
                 message={scope.target.post.message}
                 reason={null}
-                toolbar="external"
+                toolbar={editorToolbar}
               />
             )}
             {scope.mayDelete && <DeletePostForm copy={formCopy} threadId={thread} postId={post} />}
           </>
         ),
-        toolbar:
-          toolbarModel === null ? null : (
-            <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
-          ),
+        toolbar: null,
       },
     },
     viewerRef(await getActor()),

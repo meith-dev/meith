@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useActionState } from 'react'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
@@ -14,14 +15,14 @@ export function EditPostForm({
   postId,
   message,
   reason,
-  toolbar = 'inline',
+  toolbar,
   copy,
 }: {
   threadId: number
   postId: number
   message: string
   reason: string | null
-  toolbar?: 'inline' | 'external'
+  toolbar?: ReactNode
   copy: Copy
 }) {
   const [state, action] = useActionState(editPostAction, EMPTY_STATE)

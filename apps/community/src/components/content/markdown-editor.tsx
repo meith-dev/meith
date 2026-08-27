@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import type { MemberSuggestion } from '@meith/accounts'
@@ -84,7 +85,7 @@ export interface MarkdownEditorProps {
   readonly hint?: React.ReactNode
   readonly scope?: PreviewScope
   readonly attachTo?: AttachmentTarget | undefined
-  readonly toolbar?: 'inline' | 'external' | undefined
+  readonly toolbar?: ReactNode
 }
 
 export function MarkdownEditor({
@@ -99,7 +100,7 @@ export function MarkdownEditor({
   hint,
   scope = 'post',
   attachTo,
-  toolbar = 'inline',
+  toolbar,
 }: MarkdownEditorProps) {
   const field = useRef<HTMLTextAreaElement>(null)
   const attachmentInput = useRef<HTMLInputElement>(null)
@@ -308,6 +309,9 @@ export function MarkdownEditor({
   }
 
   const writing = !enhanced || tab === 'write'
+  const onWriteTab = enhanced && tab === 'write'
+  const showThemedToolbar = toolbar != null && onWriteTab
+  const showBuiltInToolbar = toolbar == null && onWriteTab
 
   const tabClass = (active: boolean): string =>
     cn(
@@ -359,121 +363,136 @@ export function MarkdownEditor({
         )}
       </div>
 
-      {toolbar === 'inline' && enhanced && tab === 'write' && (
-        <div
-          role="group"
-          aria-label={fromCopy(copy, 'composer.formatting')}
-          aria-controls={id}
-          className="flex flex-wrap gap-0.5 rounded-md border border-border bg-muted/40 p-1"
-        >
-          {TOOLS.map((tool) => (
-            <button
-              key={tool.labelKey}
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                if (field.current !== null) runTool(field.current, tool, copy)
-              }}
-              title={
-                tool.shortcut === undefined
-                  ? fromCopy(copy, tool.labelKey)
-                  : formatFromCopy(copy, 'composer.toolShortcut', {
-                      label: fromCopy(copy, tool.labelKey),
-                      key: tool.shortcut.toUpperCase(),
-                    })
-              }
-              aria-label={fromCopy(copy, tool.labelKey)}
-              {...(tool.shortcut === undefined
-                ? {}
-                : { 'aria-keyshortcuts': `Control+${tool.shortcut}` })}
-              className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <span aria-hidden="true">{tool.glyph}</span>
-            </button>
-          ))}
-
-          {attachTo !== undefined && (
-            <button
-              type="button"
-              disabled={attachmentUpload === 'uploading'}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => attachmentInput.current?.click()}
-              title={fromCopy(copy, 'composer.tool.attachment')}
-              aria-label={fromCopy(copy, 'composer.tool.attachment')}
-              className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
-            >
-              <span aria-hidden="true">Attach</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      <div
-        {...(enhanced
-          ? { role: 'tabpanel', id: `${panelId}-write`, 'aria-labelledby': `${panelId}-write-tab` }
-          : {})}
-        hidden={!writing}
-        className="relative"
-      >
-        <textarea
-          ref={field}
-          id={id}
-          name={name}
-          rows={rows}
-          required={required === true && writing}
-          defaultValue={defaultValue}
-          {...(maxLength === undefined ? {} : { maxLength })}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          onInput={(event) => {
-            fit()
-            syncMentionToken(event.currentTarget)
-          }}
-          onSelect={(event) => syncMentionToken(event.currentTarget)}
-          onBlur={() => setMentionToken(null)}
-          {...(enhanced && mentionToken !== null && mentionMatches.length > 0
-            ? {
-                role: 'combobox',
-                'aria-expanded': true,
-                'aria-controls': `${panelId}-mentions`,
-                'aria-activedescendant': `${panelId}-mention-${mentionActive}`,
-                'aria-autocomplete': 'list' as const,
-              }
-            : {})}
-          className="w-full rounded-md border border-input bg-card px-3 py-2 font-normal text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        />
-
-        {enhanced && mentionToken !== null && mentionMatches.length > 0 && (
-          <div
-            id={`${panelId}-mentions`}
-            role="listbox"
-            aria-label={fromCopy(copy, 'composer.mention.suggestions')}
-            className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-card py-1 text-sm shadow-lg"
-          >
-            {mentionMatches.map((candidate, index) => (
-              <button
-                key={candidate.id}
-                type="button"
-                id={`${panelId}-mention-${index}`}
-                role="option"
-                aria-selected={index === mentionActive}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  if (field.current !== null) applyMention(field.current, candidate)
-                }}
-                onMouseEnter={() => setMentionActive(index)}
-                className={cn(
-                  'block w-full px-3 py-1.5 text-start',
-                  index === mentionActive
-                    ? 'bg-muted text-foreground'
-                    : 'text-foreground hover:bg-muted',
-                )}
-              >
-                @{candidate.username}
-              </button>
-            ))}
+      <div className="flex flex-col">
+        {showThemedToolbar && (
+          <div className="overflow-hidden rounded-t-md border border-b-0 border-input">
+            {toolbar}
           </div>
         )}
+
+        {showBuiltInToolbar && (
+          <div
+            role="group"
+            aria-label={fromCopy(copy, 'composer.formatting')}
+            aria-controls={id}
+            className="flex flex-wrap gap-0.5 rounded-t-md border border-b-0 border-input bg-muted/40 p-1"
+          >
+            {TOOLS.map((tool) => (
+              <button
+                key={tool.labelKey}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  if (field.current !== null) runTool(field.current, tool, copy)
+                }}
+                title={
+                  tool.shortcut === undefined
+                    ? fromCopy(copy, tool.labelKey)
+                    : formatFromCopy(copy, 'composer.toolShortcut', {
+                        label: fromCopy(copy, tool.labelKey),
+                        key: tool.shortcut.toUpperCase(),
+                      })
+                }
+                aria-label={fromCopy(copy, tool.labelKey)}
+                {...(tool.shortcut === undefined
+                  ? {}
+                  : { 'aria-keyshortcuts': `Control+${tool.shortcut}` })}
+                className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <span aria-hidden="true">{tool.glyph}</span>
+              </button>
+            ))}
+
+            {attachTo !== undefined && (
+              <button
+                type="button"
+                disabled={attachmentUpload === 'uploading'}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => attachmentInput.current?.click()}
+                title={fromCopy(copy, 'composer.tool.attachment')}
+                aria-label={fromCopy(copy, 'composer.tool.attachment')}
+                className="min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+              >
+                <span aria-hidden="true">Attach</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div
+          {...(enhanced
+            ? {
+                role: 'tabpanel',
+                id: `${panelId}-write`,
+                'aria-labelledby': `${panelId}-write-tab`,
+              }
+            : {})}
+          hidden={!writing}
+          className="relative"
+        >
+          <textarea
+            ref={field}
+            id={id}
+            name={name}
+            rows={rows}
+            required={required === true && writing}
+            defaultValue={defaultValue}
+            {...(maxLength === undefined ? {} : { maxLength })}
+            onKeyDown={onKeyDown}
+            onPaste={onPaste}
+            onInput={(event) => {
+              fit()
+              syncMentionToken(event.currentTarget)
+            }}
+            onSelect={(event) => syncMentionToken(event.currentTarget)}
+            onBlur={() => setMentionToken(null)}
+            {...(enhanced && mentionToken !== null && mentionMatches.length > 0
+              ? {
+                  role: 'combobox',
+                  'aria-expanded': true,
+                  'aria-controls': `${panelId}-mentions`,
+                  'aria-activedescendant': `${panelId}-mention-${mentionActive}`,
+                  'aria-autocomplete': 'list' as const,
+                }
+              : {})}
+            className={cn(
+              'w-full rounded-md border border-input bg-card px-3 py-2 font-normal text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+              onWriteTab && 'rounded-t-none border-t-0',
+            )}
+          />
+
+          {enhanced && mentionToken !== null && mentionMatches.length > 0 && (
+            <div
+              id={`${panelId}-mentions`}
+              role="listbox"
+              aria-label={fromCopy(copy, 'composer.mention.suggestions')}
+              className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-card py-1 text-sm shadow-lg"
+            >
+              {mentionMatches.map((candidate, index) => (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  id={`${panelId}-mention-${index}`}
+                  role="option"
+                  aria-selected={index === mentionActive}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    if (field.current !== null) applyMention(field.current, candidate)
+                  }}
+                  onMouseEnter={() => setMentionActive(index)}
+                  className={cn(
+                    'block w-full px-3 py-1.5 text-start',
+                    index === mentionActive
+                      ? 'bg-muted text-foreground'
+                      : 'text-foreground hover:bg-muted',
+                  )}
+                >
+                  @{candidate.username}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {attachTo !== undefined && (
