@@ -91,7 +91,7 @@ describe('boardEject', () => {
       // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
       'ghcr.io/meith-dev/meith-base:${MEITH_VERSION}',
     )
-    await expect(readFile(join(target, 'docker-compose.yml'), 'utf8')).resolves.toContain(
+    await expect(readFile(join(target, 'docker-compose.yaml'), 'utf8')).resolves.toContain(
       'services:',
     )
     await expect(readFile(join(target, '.github/workflows/build.yml'), 'utf8')).resolves.toContain(

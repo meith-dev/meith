@@ -81,10 +81,12 @@ All three end up in the same place: a repository on GitHub with the
 deploy kit already in it.
 
 - **Rather not open a terminal at all?** Click **Use this template** on
-  [meith-dev/template](https://github.com/meith-dev/template), name your
-  new repository, and skip straight to [step
-  3](#3-set-your-domain-and-deploy) — GitHub creates the repository and
-  its first commit for you, no local anything required.
+  [meith-dev/template](https://github.com/meith-dev/template) and name your
+  new repository — GitHub creates it and its first commit for you, no local
+  anything required, and there is nothing else to do in this step but its
+  last paragraph and the note under it. Skip the rest and read those: your
+  repository's first build has already started, and [step
+  3](#3-set-your-domain-and-deploy) needs what it prints.
 - **Have a terminal, nothing installed?**
 
   ```sh
@@ -107,7 +109,7 @@ with no spaces.
 
 The two commands write an identical small workspace into `./my-board` —
 `package.json`, `community.config.ts`, and a deploy kit of its own:
-`Dockerfile`, `docker-compose.yml` and `.github/workflows/build.yml` —
+`Dockerfile`, `docker-compose.yaml` and `.github/workflows/build.yml` —
 the same files the template repository already has. All three depend on
 the published `@meith/web` and `@meith/cli` packages rather than
 containing a copy of this repository, and this is what turns "installing
@@ -140,48 +142,65 @@ your computer, no registry account beyond the GitHub account you already
 have.
 
 > [!IMPORTANT]
-> **Before moving on**, once that run finishes:
+> **Before moving on, wait for that build.** Step 3 asks you for a value
+> only the finished run knows, so there is no starting it early. Open your
+> repository's **Actions** tab — **Build and push** is already running, or
+> already done — and once it is green:
 >
-> 1. Open it, and click its **Summary** tab.
+> 1. Open the run and read its **Summary**.
 > 2. Copy the image value it shows — you'll paste it into Coolify in
 >    [step 3](#3-set-your-domain-and-deploy).
-> 3. Click the link under **make the package public**, and do that now.
->    It only takes a click, and skipping it means Coolify fails to pull
->    the image later with a confusing error, so it's easier to handle
->    here while you're already on the page.
+> 3. Follow the Summary's link to the package itself and check it says
+>    **Public**. Often it already does — a build from a public repository
+>    usually publishes a public package — in which case there is nothing
+>    to do. If it says Private, change it here (**Package settings** →
+>    **Change visibility** → **Public**) while you are on the page:
+>    Coolify cannot pull a private package, and fails the deploy with an
+>    authentication error rather than an explanation.
 
 ## 3. Set your domain and deploy
 
-In the panel: **New Resource → Docker Compose → Public Repository**.
+In the panel: **New Resource → Public Git repository**. Paste your
+repository's address into **Repository URL** and press **Check
+repository** — Coolify reads the repository and opens **Build
+configuration** underneath, where one field needs changing and the rest
+are already right:
 
 | Field | Value |
 |---|---|
-| Repository | `https://github.com/<you>/my-board` |
+| Repository URL | `https://github.com/<you>/my-board` |
 | Branch | `main` |
+| Build pack | **Docker Compose** — the one field on this screen you have to change |
+| Base directory | `/` |
+| Compose file | `/docker-compose.yaml` — already correct; your repository's file is named for this default |
 
-Coolify finds `docker-compose.yml` on its own — that is the one field
-worth knowing you don't have to touch.
+Then press **Continue**, which creates the resource.
 
 Coolify offers a generated domain and accepts your own. Put yours in — the
 one whose `A` record points at this server.
 
-Before you press deploy, set one thing the compose file has no default
-for: open the resource's **Environment Variables**, add `MEITH_IMAGE`,
-and paste in the first value step 2's Actions run Summary printed —
-`ghcr.io/<you>/my-board:latest`. The compose file refuses to start
-without it.
+Before you deploy, set the one thing the compose file has no default for:
+open the resource's **Environment Variables**, add `MEITH_IMAGE`, and give
+it the `:latest` value step 2's Actions run Summary printed —
+`ghcr.io/<you>/my-board:latest`. The compose file refuses to start without
+it.
 
 > [!NOTE]
-> **Why this matters later, not now.** That Summary also printed a second
-> value ending in a long code instead of `:latest`. Using it instead is
-> worth doing once the board is live and you care about upgrades happening
-> only when you choose, not on their own — see [Self-hosting § Custom
-> boards](./docker-compose.md#custom-boards) when you get there. For getting
-> the board up today, the `:latest` value above is the right one; nothing
-> below depends on which you picked.
+> **Why `:latest`, and what the other value is for.** `:latest` follows your
+> repository's `main` branch: installing a plugin later is a push and a
+> **Redeploy**, with nothing on this screen to edit — which is the right
+> trade while the board is young and you are still changing it. The Summary
+> prints a second value beside it, the same image ending in a long commit
+> code, which names that one build and nothing else, ever. Move `MEITH_IMAGE`
+> to that once the board is settled and you want upgrades happening only when
+> you choose, not on any redeploy — see [Self-hosting § Custom
+> boards](./docker-compose.md#custom-boards) when you get there. Nothing below
+> depends on which you picked.
 
-Now press deploy. It pulls the image and takes a minute or two. Four
-containers come up, in order:
+Now deploy: the button is on the resource's own **Actions**, and it is the
+step everything above was setting up, so leave it until the domain and
+`MEITH_IMAGE` are both in. It pulls the image and takes a minute or two.
+Four containers come up, in order:
 
 | Container | What it does |
 |---|---|
@@ -422,13 +441,13 @@ can fix and retry:
 | What you see | What it is |
 |---|---|
 | The deploy fails before any container starts, complaining that `MEITH_IMAGE` is unset | You skipped setting it before deploying, or it is set on the wrong resource — [step 3](#3-set-your-domain-and-deploy). The compose file will not guess an image for you. |
-| The deploy fails pulling the image, with an authentication error | The GHCR package is still private — [step 2](#2-create-your-board)'s note on making it public. |
+| The deploy fails pulling the image, with an authentication error | The GHCR package is private — [step 2](#2-create-your-board)'s note on checking its visibility. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | The `worker` container logs `tick failed` repeatedly | The board it is calling is not answering — check `web`'s own log first; the loop container has no logic of its own to break. |
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
 | Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
 | Nothing happens on a schedule | The `worker` container is not running, so nothing is calling `/api/system/tick` — see `/admin/system`. |
-| The board is on a newer version than you deployed | `MEITH_IMAGE` is still on the mutable `:latest` tag, and a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. Move `MEITH_IMAGE` to a commit-sha tag instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it again on its own. |
+| The board is on a newer version than you deployed | `MEITH_IMAGE` is on the `:latest` tag step 3 sets, working as intended: a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. If you would rather that never happen unasked, move `MEITH_IMAGE` to the commit-sha value instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it on its own. |
 
 [Operations § Troubleshooting](../../guides/operations/operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.

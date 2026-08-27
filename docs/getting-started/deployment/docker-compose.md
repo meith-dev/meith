@@ -340,7 +340,7 @@ curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- <name>
 scaffolds a small workspace of its own — `package.json`,
 `community.config.ts`, `board.plugins.json` — that depends on the
 published `@meith/web` and `@meith/cli` packages instead, and comes with
-its own deploy kit already written: `Dockerfile`, `docker-compose.yml` and
+its own deploy kit already written: `Dockerfile`, `docker-compose.yaml` and
 `.github/workflows/build.yml`, plus a git repository already initialized
 and staged. `npx create-meith <name>` does the identical thing for anyone
 who already has Node.js and would rather use it, and clicking **Use this
@@ -367,17 +367,20 @@ own registry. Three steps:
    `main` and pushes the image to `ghcr.io/<you>/<board>` — the automatic
    `GITHUB_TOKEN` every workflow run already carries is enough; there is no
    secret to add. The run's own **Summary** tab, once it finishes, prints
-   the exact image for step 2 and a direct link to the one-time step of
-   making the resulting package public — it starts **private**, and
-   Coolify's pull fails with an authentication error no operator can act
-   on until that is done.
-2. **Point Coolify at the scaffolded repository** — a Docker Compose
-   resource, that repository as its source, the same mechanics the
+   the exact image for step 2 and a direct link to the package itself, to
+   check it is public — a build from a public repository usually publishes
+   a public package already, and a private one fails Coolify's pull with an
+   authentication error no operator can act on until its visibility is
+   changed.
+2. **Point Coolify at the scaffolded repository** — a **Public Git
+   repository** resource with **Docker Compose** as its build pack, that
+   repository as its source, the same mechanics the
    [Quickstart](./coolify.md#3-set-your-domain-and-deploy) walks through
-   step by step for the same scaffold. `docker-compose.yml` is named for
-   Coolify's own default, so there is no path to type; it carries the same
-   Coolify magic variables `docker/compose.coolify.yml` does for
-   `AUTH_SECRET`, `TICK_SECRET` and the database password. The one thing it
+   step by step for the same scaffold. `docker-compose.yaml` is named for
+   the path Coolify's **Compose file** field already contains, so there is
+   nothing to type there, and it carries the same Coolify magic variables
+   `docker/compose.coolify.yml` does for `AUTH_SECRET`, `TICK_SECRET` and
+   the database password. The one thing it
    cannot generate is the image step 1's Summary just printed, so the
    operator sets `MEITH_IMAGE` once, in the resource's own environment —
    the compose file refuses to start without it, with a message saying so.
@@ -416,7 +419,7 @@ the in-memory queue driver it implies) in production regardless of the
 `DATABASE_URL` an operator supplies at `docker run` time.
 
 `@meith/worker` is not published, so a scaffolded board's image carries no
-compiled worker binary — its `docker-compose.yml`'s own `worker` service drives
+compiled worker binary — its `docker-compose.yaml`'s own `worker` service drives
 the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)
 describes instead: a small loop against `/api/system/tick`, needing nothing
 this image does not already expose.

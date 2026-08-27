@@ -49,7 +49,7 @@ describe('what the scaffold writes', () => {
       'board.plugins.json',
       'community.config.ts',
       'community.plugins.ts',
-      'docker-compose.yml',
+      'docker-compose.yaml',
       'docker-entrypoint.sh',
       'docker-healthcheck.sh',
       'package.json',
@@ -221,7 +221,7 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
   const buildWorkflow = files.get('.github/workflows/build.yml')!
-  const compose = files.get('docker-compose.yml')!
+  const compose = files.get('docker-compose.yaml')!
   const entrypoint = files.get('docker-entrypoint.sh')!
   const healthcheck = files.get('docker-healthcheck.sh')!
   const dockerignore = files.get('.dockerignore')!
@@ -446,7 +446,7 @@ describe('the CLI', () => {
         'board.plugins.json',
         'community.config.ts',
         'community.plugins.ts',
-        'docker-compose.yml',
+        'docker-compose.yaml',
         'docker-entrypoint.sh',
         'docker-healthcheck.sh',
         'package.json',
@@ -569,13 +569,13 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'community.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
   '.env.example': '83defc2c09c20a47010594dd89a2d602311e05179d756759aeac699302d170bb',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: '16fe04e3d029a061be06f85aee711fbf460f8aae79ebc80fe690deb148a9098f',
-  'docker-entrypoint.sh': 'c54686c6239ce194747e898658e5811b58f52e5f95f6a45c3a6984957ff449a2',
+  Dockerfile: 'ab6191e044aa267b73b8005fa66ba05d98542a454694a9af65ef542c4de6485f',
+  'docker-entrypoint.sh': 'cd1ef4a68be0005b31cbdb21bcd460035a157668550dbe3fca23cfd6d48321a0',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
-  '.github/workflows/build.yml': 'd2ba5b4f04e76d8df51a39ef8daae352c7299a2b335e984ca2767615c20476d4',
-  'docker-compose.yml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
-  'README.md': 'c27750e694dc7870e4969d6b0c14fb1a08fd1fea104b2b44a8a4298b3b2536e3',
+  '.github/workflows/build.yml': 'd61b4b1fe933e5fd4d584e63ec45a999e47145529c0c89f9bb9eef0580fb4915',
+  'docker-compose.yaml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
+  'README.md': '736096b013c0a1856e282b1250879d023fd82843ef0ffd4e06cf5814d2c5ba3f',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
