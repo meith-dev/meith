@@ -22,12 +22,10 @@ so a browser left signed in to the board is not also signed in to the
 panel. The panel session lapses after 30 minutes idle, and after 8 hours
 regardless.
 
-The panel's header has two ways out, and they are not the same.
-**Back to the board** returns you to the forum with the panel still
-open — you stay signed in, and reopening `/admin` does not ask for your
-password again. **Sign out of the panel** ends the panel session there
-and then; the next visit to `/admin` asks for your password. Your board
-session is untouched either way.
+The panel's header has one way out: **Sign out of admin panel** ends the
+panel session and returns you to the board. The next visit to `/admin`
+asks for your password again. Your board session is untouched — you stay
+signed in to the forum.
 
 Inside it, anything destructive — deleting a group, rewriting the
 permissions of forums you are not looking at — asks for your password

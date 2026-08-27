@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main
         id="board-content"
         tabIndex={-1}
-        className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 py-12"
+        className="flex min-h-screen items-center justify-center px-6 py-12"
       >
         <AdminSignInForm
           next="/admin"
@@ -34,9 +34,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           idleMinutes={ADMIN_IDLE_MINUTES}
           copy={adminFormsCopy(await getTranslator())}
         />
-        <a href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          {await tr('adminPanel.backToBoard')}
-        </a>
       </main>
     )
   }
@@ -67,14 +64,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             {await tr('page.control-panel')}
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-3 text-sm whitespace-nowrap sm:gap-4">
-            <a
-              href="/"
-              title={t.t('adminPanel.backToBoardHint')}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <span aria-hidden="true">←</span> {await tr('adminPanel.backToBoard')}
-            </a>
-            <span aria-hidden="true" className="h-4 w-px bg-border" />
             <AdminSignOutForm copy={adminFormsCopy(t)} />
           </div>
         </div>
