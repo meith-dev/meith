@@ -90,7 +90,7 @@ A pnpm workspace: applications in `apps/`, everything else in `packages/`,
 | `boards/stock` | `@meith/board-stock` | A second, create-meith-shaped board — the workspace `docker/Dockerfile` builds the official image from. See [Architecture](../reference/architecture.md#the-stock-board). |
 | `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
 | `themes/*` | `@meith/theme-*` | The default theme and four alternates: midnight, phasebook, raidframe, clubhouse. |
-| `plugins/*` | `@meith/plugin-*` | Dues (paid membership through Stripe), calendar (shared events linked to threads) and the reference plugin. |
+| `plugins/*` | `@meith/plugin-*` | Dues (paid membership through Stripe), webhooks (outbound deliveries on new content), calendar (shared events linked to threads) and the reference plugin. |
 | `examples/*` | — | Reference code to copy, not installed: `hello-plugin` and `iris-theme`. See [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples). |
 
 > [!TIP]
