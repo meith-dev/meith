@@ -8,7 +8,8 @@ const alertVariants = cva(
     variants: {
       tone: {
         info: 'border-border border-l-muted-foreground bg-card text-card-foreground',
-        success: 'border-border border-l-moderation-approved bg-card text-card-foreground',
+        success:
+          'border-moderation-approved/30 border-l-moderation-approved bg-moderation-approved/5 text-card-foreground',
         warning: 'border-border border-l-moderation-pending bg-card text-card-foreground',
         error: 'border-destructive/30 border-l-destructive bg-destructive/5 text-card-foreground',
       },

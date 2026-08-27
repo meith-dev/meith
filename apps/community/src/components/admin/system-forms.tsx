@@ -14,13 +14,10 @@ import {
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
+import { Saved } from './form-bits'
 
 function Result({ children }: { children: React.ReactNode }) {
-  return (
-    <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-      {children}
-    </p>
-  )
+  return <Saved>{children}</Saved>
 }
 
 export function PruneSessionsForm({ prunable, copy }: { prunable: number; copy: Copy }) {

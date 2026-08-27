@@ -11,7 +11,7 @@ import {
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
-import { INPUT } from './form-bits'
+import { INPUT, Saved } from './form-bits'
 
 export interface PluginSettingField {
   readonly key: string
@@ -87,11 +87,7 @@ export function PluginSettingsForm({
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'saved' && (
-        <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {fromCopy(copy, 'adminPanel.plugin.saved')}
-        </p>
-      )}
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminPanel.plugin.saved')}</Saved>
 
       <input type="hidden" name="key" value={pluginKey} />
 

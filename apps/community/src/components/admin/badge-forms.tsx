@@ -10,6 +10,7 @@ import { removeBadgeAction, saveBadgeAction } from '@/server/group-badge-actions
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
+import { Saved } from './form-bits'
 
 const GHOST =
   'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -39,13 +40,11 @@ export function BadgeUploadForm({
       <h3 className="text-sm font-medium">{label}</h3>
 
       <FormError message={saved.error ?? removed.error} />
-      {(saved.notice === 'saved' || removed.notice === 'removed') && (
-        <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {saved.notice === 'saved'
-            ? fromCopy(copy, 'admin.saved')
-            : fromCopy(copy, 'adminPanel.badge.removed')}
-        </p>
-      )}
+      <Saved when={saved.notice === 'saved' || removed.notice === 'removed'}>
+        {saved.notice === 'saved'
+          ? fromCopy(copy, 'admin.saved')
+          : fromCopy(copy, 'adminPanel.badge.removed')}
+      </Saved>
 
       <div
         className={`flex min-h-12 items-center justify-center rounded-md border border-border bg-card p-2 ${
