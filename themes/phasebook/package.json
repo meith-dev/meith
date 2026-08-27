@@ -1,6 +1,6 @@
 {
   "name": "@meith/theme-phasebook",
-  "version": "0.23.1",
+  "version": "0.23.2",
   "description": "A theme for Meith with a familiar social shape, built on the default theme's slots.",
   "license": "MIT",
   "repository": {
