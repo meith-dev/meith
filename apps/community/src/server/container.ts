@@ -4,7 +4,7 @@ import forumConfig from '@board/config'
 
 import {
   type AccountStore,
-  type BanFilterRepository,
+  type BanFilterAdminRepository,
   type BanLookup,
   BanService,
   createMemoryStore,
@@ -121,7 +121,7 @@ export interface Container {
   readonly identity: IdentityService
   readonly sessions: SessionService
   readonly banLookup: BanLookup | null
-  readonly banFilters: BanFilterRepository
+  readonly banFilters: BanFilterAdminRepository
   readonly forums: ForumRepository
   readonly threads: ThreadRepository
   readonly threadWrites: (ThreadWriteRepository & ReplyWriteRepository) | null
@@ -220,13 +220,13 @@ function cached(inner: ForumRepository): ForumRepository {
 
 function identityServices(
   store: AccountStore,
-  banFilters: BanFilterRepository,
+  banFilters: BanFilterAdminRepository,
   bans?: BanLookup,
 ): {
   identity: IdentityService
   sessions: SessionService
   banLookup: BanLookup | null
-  banFilters: BanFilterRepository
+  banFilters: BanFilterAdminRepository
 } {
   return {
     identity: new IdentityService({

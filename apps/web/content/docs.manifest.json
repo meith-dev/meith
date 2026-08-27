@@ -219,6 +219,16 @@
       "group": "Running your community"
     },
     {
+      "slug": "ban-filters",
+      "file": "guides/community/ban-filters.md",
+      "section": "guides",
+      "title": "Ban filters",
+      "blurb": "Turning somebody away before an account exists: the three things a filter matches on, why a pattern is a glob rather than a regular expression, and every route into an account that consults one.",
+      "generated": false,
+      "primary": false,
+      "group": "Running your community"
+    },
+    {
       "slug": "operating",
       "file": "guides/operations/operating.md",
       "section": "guides",

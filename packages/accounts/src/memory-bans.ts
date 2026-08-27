@@ -1,7 +1,7 @@
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import { assertUsableFilter, type BanFilter } from './ban-filter'
-import { BAN_FILTER_ALREADY_HELD } from './ban-filter-messages'
 import type {
   AccountRepository,
   BanFilterAdminRepository,
@@ -100,7 +100,7 @@ export class MemoryBanFilters implements BanFilterAdminRepository {
     const note = input.note?.trim()
 
     if (this.rows.some((row) => row.type === input.type && row.pattern === pattern)) {
-      throw new ValidationError(BAN_FILTER_ALREADY_HELD)
+      throw new ValidationError(msg('error.accounts.ban-filter-already-held'))
     }
 
     return this.insert({

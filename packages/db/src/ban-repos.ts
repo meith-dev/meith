@@ -2,7 +2,6 @@ import { and, asc, desc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm'
 
 import {
   assertUsableFilter,
-  BAN_FILTER_ALREADY_HELD,
   type BanFilter,
   type BanFilterAdminRepository,
   type BanFilterRecord,
@@ -13,6 +12,7 @@ import {
   type CreateBanInput,
 } from '@meith/accounts'
 import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { banFilters, bans, rememberTokens, sessions, users } from './schema'
@@ -181,7 +181,7 @@ export class PostgresBanFilterRepository implements BanFilterAdminRepository {
       .onConflictDoNothing({ target: [banFilters.type, banFilters.pattern] })
       .returning({ id: banFilters.id })
 
-    if (row === undefined) throw new ValidationError(BAN_FILTER_ALREADY_HELD)
+    if (row === undefined) throw new ValidationError(msg('error.accounts.ban-filter-already-held'))
 
     return row.id
   }

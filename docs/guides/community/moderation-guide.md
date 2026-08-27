@@ -220,7 +220,9 @@ banned, and shown the public reason if one was given.
 lives in the admin panel, on the member's page under `/admin/users` — a
 moderator's route to a ban is the warning ladder, or asking an
 administrator. The same goes for **ban filters**, the patterns that
-block a registration or sign-in before an account exists.
+block a registration or sign-in before an account exists — they live at
+`/admin/users/ban-filters`, and [Ban filters](./ban-filters.md)
+describes what they match and how a pattern is written.
 
 Other things that look like moderation and are not yours to press:
 

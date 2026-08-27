@@ -39,6 +39,7 @@ Running your community — browser only, no shell access:
 - [Reputation](./guides/community/reputation.md) — members rating each other, and the two settings that decide what a post offers.
 - [Search](./guides/community/search.md) — switching it off without losing the index, and the two limits on how often.
 - [The word filter](./guides/community/word-filter.md) — rewriting words at render time, and exactly which surfaces it covers.
+- [Ban filters](./guides/community/ban-filters.md) — turning somebody away before an account exists, and why a pattern is a glob.
 
 Operating the server:
 
