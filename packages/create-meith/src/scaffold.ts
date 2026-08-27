@@ -742,16 +742,21 @@ jobs:
           {
             echo "## Deploy this image"
             echo
-            echo "Paste this into the MEITH_IMAGE variable on the Coolify resource:"
+            echo "Either of these goes in the MEITH_IMAGE variable on the Coolify"
+            echo "resource:"
             echo
             echo "    $IMAGE:\${{ github.sha }}"
             echo
-            echo "This tag names this run's build and nothing else, ever. $IMAGE:latest"
-            echo "also pushed, as a convenience for a quick manual pull; it moves on"
-            echo "every push to main, so any later Coolify redeploy — for any reason,"
-            echo "not necessarily this one — pulls whatever main most recently built,"
-            echo "including a commit still mid-feature. Prefer the sha above for the"
-            echo "value you actually set on the resource."
+            echo "    $IMAGE:latest"
+            echo
+            echo "The first names this run's build and nothing else, ever: nothing"
+            echo "moves under you, and an upgrade is you editing this variable."
+            echo
+            echo "The second follows main — every push rebuilds it and Coolify's next"
+            echo "Redeploy picks that build up, a commit still mid-feature included."
+            echo "That is the trade the quickstart takes while a board is young and"
+            echo "still gaining plugins: installing one is a push and a Redeploy, with"
+            echo "nothing on the resource to edit."
             echo
             echo "## One-time: check the package is public"
             echo
@@ -907,15 +912,15 @@ one value only you know:
    so its **Compose file** field is already right when the form opens, and
    the file already carries Coolify's own "magic variables" for
    \`AUTH_SECRET\`, \`TICK_SECRET\` and the database password, generated on
-   the first deploy and never typed in. The one thing Coolify cannot generate is the image
-   step 1 just pushed: set \`MEITH_IMAGE\` in the resource's own environment
-   to the value that run's Summary printed — \`ghcr.io/<you>/${name}:\${{ github.sha }}\`,
-   a pin that only ever names that one build (\`docker-compose.yaml\` refuses
-   to start without this set, with a message saying why). The same run also
-   pushes \`ghcr.io/<you>/${name}:latest\` as a convenience for a quick manual
-   pull, but it moves on every push to \`main\` — set it on the resource and a
-   later, unrelated redeploy can pull whatever \`main\` most recently built,
-   commit still mid-feature included.
+   the first deploy and never typed in. The one thing Coolify cannot
+   generate is the image step 1 just pushed: set \`MEITH_IMAGE\` in the
+   resource's own environment to one of the two values that run's Summary
+   printed (\`docker-compose.yaml\` refuses to start without it, with a
+   message saying why). \`ghcr.io/<you>/${name}:\${{ github.sha }}\` names
+   that one build and nothing else, ever; \`ghcr.io/<you>/${name}:latest\`
+   follows \`main\` instead, so installing a plugin later is a push and a
+   **Redeploy** — the trade the quickstart takes, at the cost of an
+   unrelated redeploy pulling whatever \`main\` most recently built.
 
 3. **Deploy, then \`/install\` on your own domain.** Coolify issues the
    certificate; the installer from there is the one

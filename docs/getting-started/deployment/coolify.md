@@ -181,20 +181,21 @@ one whose `A` record points at this server.
 
 Before you deploy, set the one thing the compose file has no default for:
 open the resource's **Environment Variables**, add `MEITH_IMAGE`, and give
-it the image step 2's Actions run Summary printed, tagged `:latest` —
+it the `:latest` value step 2's Actions run Summary printed —
 `ghcr.io/<you>/my-board:latest`. The compose file refuses to start without
 it.
 
 > [!NOTE]
-> **Why this matters later, not now.** The value in the Summary's own
-> ready-to-paste box is the other form of the same image — it ends in a long
-> commit code instead of `:latest` — and the Summary recommends it, because
-> it names that one build and nothing else, ever. That discipline is worth
-> adopting once the board is live and you care about upgrades happening only
-> when you choose, not on their own — see [Self-hosting § Custom
-> boards](./docker-compose.md#custom-boards) when you get there. For getting
-> the board up today either value works, and nothing below depends on which
-> you picked.
+> **Why `:latest`, and what the other value is for.** `:latest` follows your
+> repository's `main` branch: installing a plugin later is a push and a
+> **Redeploy**, with nothing on this screen to edit — which is the right
+> trade while the board is young and you are still changing it. The Summary
+> prints a second value beside it, the same image ending in a long commit
+> code, which names that one build and nothing else, ever. Move `MEITH_IMAGE`
+> to that once the board is settled and you want upgrades happening only when
+> you choose, not on any redeploy — see [Self-hosting § Custom
+> boards](./docker-compose.md#custom-boards) when you get there. Nothing below
+> depends on which you picked.
 
 Now deploy: the button is on the resource's own **Actions**, and it is the
 step everything above was setting up, so leave it until the domain and
@@ -446,7 +447,7 @@ can fix and retry:
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
 | Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
 | Nothing happens on a schedule | The `worker` container is not running, so nothing is calling `/api/system/tick` — see `/admin/system`. |
-| The board is on a newer version than you deployed | `MEITH_IMAGE` is still on the mutable `:latest` tag, and a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. Move `MEITH_IMAGE` to a commit-sha tag instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it again on its own. |
+| The board is on a newer version than you deployed | `MEITH_IMAGE` is on the `:latest` tag step 3 sets, working as intended: a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. If you would rather that never happen unasked, move `MEITH_IMAGE` to the commit-sha value instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it on its own. |
 
 [Operations § Troubleshooting](../../guides/operations/operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.

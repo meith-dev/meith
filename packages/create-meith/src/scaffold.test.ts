@@ -573,9 +573,9 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-entrypoint.sh': 'cd1ef4a68be0005b31cbdb21bcd460035a157668550dbe3fca23cfd6d48321a0',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
-  '.github/workflows/build.yml': '17da0a71f7ee5dcab805b7a2a52c5ebd7234c36bfa17e5226caca45252ccb051',
+  '.github/workflows/build.yml': 'd61b4b1fe933e5fd4d584e63ec45a999e47145529c0c89f9bb9eef0580fb4915',
   'docker-compose.yaml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
-  'README.md': '861097be239187576612bfa796330618df37f0890a61041a7ceb075e2aa1a169',
+  'README.md': '736096b013c0a1856e282b1250879d023fd82843ef0ffd4e06cf5814d2c5ba3f',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
