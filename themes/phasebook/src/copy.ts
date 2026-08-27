@@ -221,6 +221,8 @@ export function threadRowCopy(t: Translator): SlotCopy {
     'phasebook.threadRow.latestReply',
     'phasebook.threadRow.locked',
     'phasebook.threadRow.moved',
+    'phasebook.threadRow.deleted',
+    'phasebook.threadRow.unapproved',
     'phasebook.threadRow.newPosts',
     'phasebook.threadRow.noRepliesYet',
     'phasebook.threadRow.pinned',

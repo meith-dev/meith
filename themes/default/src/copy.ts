@@ -276,6 +276,8 @@ export function threadRowCopy(t: Translator): SlotCopy {
     'default.threadRow.latestReply',
     'default.threadRow.locked',
     'default.threadRow.moved',
+    'default.threadRow.deleted',
+    'default.threadRow.unapproved',
     'default.threadRow.newPosts',
     'default.threadRow.noRepliesYet',
     'default.threadRow.pinned',

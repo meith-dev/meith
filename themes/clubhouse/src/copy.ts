@@ -179,6 +179,8 @@ export function threadRowCopy(t: Translator): SlotCopy {
     'clubhouse.threadRow.latestReply',
     'clubhouse.threadRow.locked',
     'clubhouse.threadRow.moved',
+    'clubhouse.threadRow.deleted',
+    'clubhouse.threadRow.unapproved',
     'clubhouse.threadRow.newPosts',
     'clubhouse.threadRow.noRepliesYet',
     'clubhouse.threadRow.pinned',

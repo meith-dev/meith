@@ -248,6 +248,8 @@ export function threadRowCopy(t: Translator): SlotCopy {
     'raidframe.threadRow.pinned',
     'raidframe.threadRow.locked',
     'raidframe.threadRow.moved',
+    'raidframe.threadRow.deleted',
+    'raidframe.threadRow.unapproved',
     'raidframe.threadRow.startedBy',
     'raidframe.threadRow.none',
     'raidframe.threadRow.byPrefix',

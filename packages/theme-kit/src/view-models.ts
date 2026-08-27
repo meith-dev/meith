@@ -268,6 +268,15 @@ export interface ThreadRowModel {
   readonly isUnread: boolean
   /** Set when the thread is a move stub; the row renders as a redirect. */
   readonly isMoved: boolean
+  /**
+   * Whether this thread is hidden from ordinary members. `'visible'` on almost
+   * every row; a listing only ever carries `'unapproved'` or `'deleted'` for a
+   * viewer allowed to see held or removed threads, so a theme that marks them —
+   * a badge, a tint — is drawing something only staff will meet. Optional: a
+   * theme written before this field treats every row as visible, which is what
+   * the reader saw anyway.
+   */
+  readonly visibility?: 'visible' | 'unapproved' | 'deleted'
   readonly lastPost: LastPostModel | null
 }
 

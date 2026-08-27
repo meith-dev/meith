@@ -6,8 +6,14 @@ import { UserRef } from '../shared'
 export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `midnight.threadRow.${key}`)
 
+  const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
+  const tint = thread.visibility === 'deleted' ? 'bg-thread-deleted/15' : 'bg-thread-unapproved/15'
+
   return (
-    <tr className="border-t border-border align-top odd:bg-card even:bg-muted/40">
+    <tr
+      data-visibility={hidden ? thread.visibility : undefined}
+      className={`border-t border-border align-top ${hidden ? tint : 'odd:bg-card even:bg-muted/40'}`}
+    >
       <td className="px-3 py-2">
         <div className="flex flex-wrap items-baseline gap-2">
           {select !== null && (
@@ -42,6 +48,12 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
           )}
           {thread.isMoved && (
             <span className="font-mono text-xs text-thread-moved">{c('moved')}</span>
+          )}
+          {thread.visibility === 'unapproved' && (
+            <span className="font-mono text-xs text-thread-unapproved">{c('unapproved')}</span>
+          )}
+          {thread.visibility === 'deleted' && (
+            <span className="font-mono text-xs text-thread-deleted">{c('deleted')}</span>
           )}
         </div>
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">

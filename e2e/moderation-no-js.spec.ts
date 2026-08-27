@@ -289,3 +289,22 @@ test('the staff screens refuse whoever is not staff', async ({ browser }) => {
     await modContext.close()
   }
 })
+
+test('a deleted thread stays in the forum listing for staff, marked as deleted', async ({
+  browser,
+}) => {
+  const { modPage, title, threadUrl, close } = await scene(browser, 'deletedmark')
+
+  try {
+    await modPage.goto(threadUrl)
+    await modPage.getByRole('button', { name: 'Delete thread', exact: true }).click()
+
+    await modPage.goto('/200-general')
+
+    const row = modPage.locator('[data-visibility="deleted"]').filter({ hasText: title })
+    await expect(row).toBeVisible()
+    await expect(row.getByText('Deleted', { exact: true })).toBeVisible()
+  } finally {
+    await close()
+  }
+})

@@ -6,10 +6,14 @@ import { Circle, count, MUTED_LINK, NUMERIC, Prefix, plural, Stamp, Tag, UserRef
 export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `phasebook.threadRow.${key}`)
 
+  const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
+  const tint = thread.visibility === 'deleted' ? 'bg-thread-deleted/8' : 'bg-thread-unapproved/8'
+
   return (
     <li
       data-unread={thread.isUnread ? '' : undefined}
-      className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-elevation transition-colors hover:border-input"
+      data-visibility={hidden ? thread.visibility : undefined}
+      className={`overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-elevation transition-colors hover:border-input ${hidden ? tint : ''}`}
     >
       <div className="flex items-start gap-3 px-4 py-3">
         {select !== null && (
@@ -41,6 +45,10 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
             {thread.isSticky && <Tag token="thread-pinned">{c('pinned')}</Tag>}
             {thread.isLocked && <Tag token="thread-locked">{c('locked')}</Tag>}
             {thread.isMoved && <Tag token="thread-moved">{c('moved')}</Tag>}
+            {thread.visibility === 'unapproved' && (
+              <Tag token="thread-unapproved">{c('unapproved')}</Tag>
+            )}
+            {thread.visibility === 'deleted' && <Tag token="thread-deleted">{c('deleted')}</Tag>}
           </div>
 
           <a

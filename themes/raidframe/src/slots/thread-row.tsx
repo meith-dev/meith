@@ -8,8 +8,14 @@ const TAG = 'border px-1.5 py-px font-mono text-[0.625rem] font-bold uppercase t
 export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `raidframe.threadRow.${key}`)
 
+  const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
+  const tint = thread.visibility === 'deleted' ? 'bg-thread-deleted/10' : 'bg-thread-unapproved/10'
+
   return (
-    <tr className="border-t border-border align-top hover:bg-secondary/50">
+    <tr
+      data-visibility={hidden ? thread.visibility : undefined}
+      className={`border-t border-border align-top hover:bg-secondary/50 ${hidden ? tint : ''}`}
+    >
       <td className="px-3 py-2.5">
         <div className="flex flex-wrap items-baseline gap-2">
           {select !== null && (
@@ -48,6 +54,16 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
           )}
           {thread.isMoved && (
             <span className={`${TAG} border-thread-moved/60 text-thread-moved`}>{c('moved')}</span>
+          )}
+          {thread.visibility === 'unapproved' && (
+            <span className={`${TAG} border-thread-unapproved/60 text-thread-unapproved`}>
+              {c('unapproved')}
+            </span>
+          )}
+          {thread.visibility === 'deleted' && (
+            <span className={`${TAG} border-thread-deleted/60 text-thread-deleted`}>
+              {c('deleted')}
+            </span>
           )}
         </div>
 
