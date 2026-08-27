@@ -244,13 +244,18 @@ Back up the source, rehearse against a non-production board, and run the importe
 ## Plugins
 
 Installing a manifest-eligible plugin — one that ships a zero-argument `plugin` export, see
-[Writing a plugin](../../customization/plugins.md#writing-a-plugin) — is a checkout-time change, run where you
-would run `pnpm add`, not against the deployed image:
+[Writing a plugin](../../customization/plugins.md#writing-a-plugin) — is a change to the sources your
+image is built from, not something run against the deployed image. On your own board — scaffolded by
+`create-meith`, or graduated out of the stock image by `board:eject` — those sources are a single
+`package.json`, so it is `npm install`:
 
 ```sh
-pnpm add @meith/plugin-dues --filter @meith/web
+npm install @meith/plugin-dues
 community plugin:add @meith/plugin-dues
 ```
+
+In a checkout of *this* repository, where the board is one workspace among many, the first line reads
+`pnpm add @meith/plugin-dues --filter @meith/web` instead. Nothing else differs.
 
 `plugin:add` and `plugin:remove` edit `board.plugins.json` and regenerate
 `community.plugins.ts`; commit both and rebuild and redeploy the image for the change to take

@@ -5,10 +5,12 @@ at — `marketplace/` in this repository, published at
 [meith.dev/marketplace/v1.json](https://www.meith.dev/marketplace/v1.json).
 
 It is metadata only. **Nothing is fetched through this feed.** Installing
-a plugin or theme is still `pnpm add`, a line in `community.plugins.ts` or
-your theme selection, and a redeploy — the same procedure described in
-[the plugin API](./plugins.md#writing-a-plugin) and
-[the theme API](./themes.md). The feed exists so a board operator can
+a plugin or theme is still a package install, a line in
+`community.plugins.ts` or your theme selection, and a redeploy — the same
+procedure described in [the plugin API](./plugins.md#writing-a-plugin) and
+[the theme API](./themes.md), whose `pnpm add` is this repository's own
+checkout speaking; a board of your own is a single package and installs
+with `npm install` ([below](#moving-to-a-custom-board)). The feed exists so a board operator can
 find out what is available and whether it is worth their trust before they
 do any of that; it has no way to make the board do it for them.
 
@@ -137,10 +139,22 @@ contains — `Active`, `Installed — disabled`, `Not installed`, `Update
 available`, or `Incompatible` (its `apiVersion` or `meith` range fails
 against this build) — never against what installing it would do. An
 incompatible listing never gets install steps; a **Not installed** one
-gets the exact `community plugin:add <package>` (or `pnpm add` plus a
-`community.config.ts` line, for a theme) this board would need, and a
-link to this document — not a button that pretends to act, because nothing
-here installs anything.
+gets the exact `npm install <package>` and `community plugin:add <package>`
+(or, for a theme, the install plus a `community.config.ts` line) this board
+would need, and a link to this document — not a button that pretends to
+act, because nothing here installs anything.
+
+Those steps name `npm`, never `pnpm add … --filter @meith/web`. What reads
+this screen is a *board*, and a board — scaffolded by `create-meith`, or
+graduated out of the stock image by `board:eject` — is a single
+`package.json` whose `forum-web` needs a hoisted `node_modules`, not this
+repository's pnpm workspace: the filter names a workspace that does not
+exist out there, and pnpm's default linker produces a tree the board cannot
+build from. On the stock image, which cannot install into itself at all,
+the steps describe the board you would graduate to — the same shape, so the
+same command. The monorepo form belongs in [the plugin
+API](./plugins.md#writing-a-plugin), whose reader really is in a checkout
+of this repository.
 
 Screenshots are proxied through the board's own `/admin/api/marketplace/screenshot`
 route rather than linked to the feed's host directly, so a member's — or

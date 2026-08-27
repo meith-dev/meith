@@ -70,7 +70,7 @@ export function MarketplaceListingCard({
           <ol className="flex flex-col gap-1">
             {listing.installSteps.map((step) => (
               <li key={step} className="text-xs">
-                {step.startsWith('pnpm ') || step.startsWith('community ') ? (
+                {step.startsWith('npm ') || step.startsWith('community ') ? (
                   <code className="rounded bg-muted px-1.5 py-0.5">{step}</code>
                 ) : (
                   <span className="text-muted-foreground">{step}</span>
