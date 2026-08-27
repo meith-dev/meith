@@ -101,6 +101,7 @@ export function threadRowModel(
     isLocked: row.isLocked,
     isUnread,
     isMoved: row.isMoved,
+    visibility: row.visibility,
     lastPost: lastPost(row.lastPost, row, now, t, identities, wordFilter),
   }
 }

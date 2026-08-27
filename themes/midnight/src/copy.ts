@@ -151,6 +151,8 @@ export function threadRowCopy(t: Translator): SlotCopy {
     'midnight.threadRow.pinned',
     'midnight.threadRow.locked',
     'midnight.threadRow.moved',
+    'midnight.threadRow.deleted',
+    'midnight.threadRow.unapproved',
     'midnight.threadRow.by',
   ])
 }

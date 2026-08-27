@@ -326,8 +326,13 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   },
 
   ThreadRow: {
-    model: { thread: THREAD, select: null },
-    requires: ['Bikeshedding the bike shed', '/thread/91-bikeshedding', '27'],
+    model: { thread: { ...THREAD, visibility: 'deleted' }, select: null },
+    requires: [
+      'Bikeshedding the bike shed',
+      '/thread/91-bikeshedding',
+      '27',
+      'data-visibility="deleted"',
+    ],
   },
 
   SubforumList: {

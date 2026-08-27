@@ -7,10 +7,14 @@ import { HEADING, LINK, MICRO, Prefix, ReadMark, Stamp, TABLE_ROW, Tally, UserRe
 export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `clubhouse.threadRow.${key}`)
 
+  const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
+  const tint = thread.visibility === 'deleted' ? 'bg-thread-deleted/8' : 'bg-thread-unapproved/8'
+
   return (
     <li
       data-unread={thread.isUnread ? '' : undefined}
-      className={`${TABLE_ROW} transition-colors hover:bg-accent`}
+      data-visibility={hidden ? thread.visibility : undefined}
+      className={`${TABLE_ROW} transition-colors hover:bg-accent ${hidden ? tint : ''}`}
     >
       <span className="flex items-start gap-2">
         {select !== null && (
@@ -35,6 +39,8 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
           {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
           {thread.isLocked && <Badge tone="locked">{c('locked')}</Badge>}
           {thread.isMoved && <Badge tone="moved">{c('moved')}</Badge>}
+          {thread.visibility === 'unapproved' && <Badge tone="unapproved">{c('unapproved')}</Badge>}
+          {thread.visibility === 'deleted' && <Badge tone="deleted">{c('deleted')}</Badge>}
 
           <a
             href={thread.href}

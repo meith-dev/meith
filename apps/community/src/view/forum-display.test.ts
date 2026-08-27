@@ -72,10 +72,47 @@ describe('buildForumDisplayView', () => {
       href: '/thread/3-hello',
       author: { username: 'departed', profileHref: null },
       lastPost: { href: '/thread/3-hello?post=4' },
+      visibility: 'visible',
     })
     expect(view.pagination).toMatchObject({
       page: 1,
       nextHref: '/2-general?after=cursor&page=2',
     })
+  })
+
+  it('carries a thread’s deleted state through to the row, for the theme to mark', () => {
+    const view = buildForumDisplayView({
+      forum,
+      subforums: [],
+      page: {
+        rows: [
+          {
+            id: 7,
+            forumId: 2,
+            title: 'Removed',
+            slug: 'removed',
+            prefix: null,
+            authorUserId: 5,
+            authorUsername: 'spammer',
+            replyCount: 0,
+            viewCount: 0,
+            visibility: 'deleted',
+            isSticky: false,
+            isLocked: false,
+            isMoved: false,
+            ratingTotal: 0,
+            ratingCount: 0,
+            lastPost: null,
+            lastPostAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextCursor: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(view.threads[0]?.visibility).toBe('deleted')
   })
 })

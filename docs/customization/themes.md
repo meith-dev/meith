@@ -289,7 +289,7 @@ rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.17`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.18`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -361,6 +361,13 @@ not an API version.
 > the other half of the boundary a client slot draws, since a theme's button
 > and the composer's own keyboard shortcut both have to run the same edit
 > without either one calling into the other's React tree.
+>
+> `0.18` is additive: [`ThreadRowModel`](../reference/theme-slots.md#threadrow) gained
+> `visibility` — `'visible'`, `'unapproved'` or `'deleted'`. A forum listing only
+> ever carries a held or removed thread for a viewer allowed to see one, so a
+> theme that marks it — the built-ins add a badge and a faint tint — is drawing
+> something only staff will meet. The field is optional: a theme written against
+> `0.17` treats every row as visible, which is what its reader saw anyway.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

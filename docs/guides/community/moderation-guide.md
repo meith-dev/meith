@@ -153,6 +153,13 @@ forum's listing you can lock, unlock, pin, unpin, move, delete, restore
 or approve selected **threads**. Anything in the selection you may not
 act on is refused and counted in the notice, not quietly included.
 
+A deleted or still-unapproved thread stays in its forum's listing for
+staff who may see it, marked so you can tell it apart from a live one —
+a **Deleted** or **Pending** badge and a faint tint on the row. An
+ordinary member never sees the row at all, so the mark is for you: it is
+how you find the thread to restore or approve it without opening every
+one to check.
+
 Two things about editing and deleting posts:
 
 - **There is no hard delete.** Deleting always means the reversible

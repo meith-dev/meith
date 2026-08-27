@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.17.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.18.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -1015,6 +1015,7 @@ One tab in a strip of view tabs.
 | `isLocked` | `boolean` |  |
 | `isUnread` | `boolean` |  |
 | `isMoved` | `boolean` | Set when the thread is a move stub; the row renders as a redirect. |
+| `visibility` | `'visible' \| 'unapproved' \| 'deleted'` | optional — Whether this thread is hidden from ordinary members. `'visible'` on almost every row; a listing only ever carries `'unapproved'` or `'deleted'` for a viewer allowed to see held or removed threads, so a theme that marks them — a badge, a tint — is drawing something only staff will meet. Optional: a theme written before this field treats every row as visible, which is what the reader saw anyway. |
 | `lastPost` | `LastPostModel \| null` |  |
 
 ### TimeModel
@@ -1053,5 +1054,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.17. Nothing can be: this is the first
+Nothing is deprecated in v0.18. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.
