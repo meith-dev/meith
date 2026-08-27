@@ -90,12 +90,13 @@ export function ComposerRecovery({
   const latest = useRef('')
   const saved = useRef('')
   const submitting = useRef(false)
+  const held = useRef(false)
   const [recovery, setRecovery] = useState<Backup | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
 
   const persist = useCallback(async () => {
     const form = root.current?.closest('form')
-    if (form === null || form === undefined) return
+    if (form === null || form === undefined || held.current) return
     const payload = readPayload(form, { ...scope, title: '', message: '', prefixId: null })
     const next = signature(payload)
     latest.current = next
@@ -134,6 +135,8 @@ export function ComposerRecovery({
 
     let timer: ReturnType<typeof setTimeout> | undefined
     const onInput = () => {
+      submitting.current = false
+      held.current = false
       const payload = readPayload(form, { ...scope, title: '', message: '', prefixId: null })
       latest.current = signature(payload)
       try {
@@ -146,6 +149,12 @@ export function ComposerRecovery({
       timer = setTimeout(() => void persist(), AUTOSAVE_DELAY_MS)
     }
     const onBlur = () => void persist()
+    const onPointerDown = (event: Event) => {
+      const target = event.target
+      if (target instanceof Element && target.closest('button[type="submit"]') !== null) {
+        held.current = true
+      }
+    }
     const onSubmit = (event: SubmitEvent) => {
       const submitter = event.submitter
       submitting.current =
@@ -163,6 +172,7 @@ export function ComposerRecovery({
 
     form.addEventListener('input', onInput)
     form.addEventListener('blur', onBlur, true)
+    form.addEventListener('pointerdown', onPointerDown, true)
     form.addEventListener('submit', onSubmit)
     window.addEventListener('pagehide', onPageHide)
     window.addEventListener('beforeunload', onBeforeUnload)
@@ -170,11 +180,19 @@ export function ComposerRecovery({
       clearTimeout(timer)
       form.removeEventListener('input', onInput)
       form.removeEventListener('blur', onBlur, true)
+      form.removeEventListener('pointerdown', onPointerDown, true)
       form.removeEventListener('submit', onSubmit)
       window.removeEventListener('pagehide', onPageHide)
       window.removeEventListener('beforeunload', onBeforeUnload)
     }
   }, [persist, scope, serverUpdatedAt, storageKey])
+
+  useEffect(
+    () => () => {
+      if (submitting.current) localStorage.removeItem(storageKey)
+    },
+    [storageKey],
+  )
 
   function restore(): void {
     const form = root.current?.closest('form')
