@@ -99,3 +99,31 @@ test('the "Insert attachment" toolbar button uploads and places [attachment=id]'
   await expect(page).toHaveURL(/\/thread\/\d+-/, { timeout: 15_000 })
   await expect(page.locator('article .md-attachment')).toBeVisible()
 })
+
+test('the quick reply carries the same toolbar, joined to its message box', async ({ page }) => {
+  test.setTimeout(60_000)
+
+  await signUp(page, 'qrtb')
+
+  await page.goto('/200-general/new')
+  await page.getByLabel('Subject').fill(`Quick reply host ${Date.now()}`)
+  await page.getByLabel('Message').fill('A thread to reply under.')
+  await page.getByRole('button', { name: 'Post thread' }).click()
+  await expect(page).toHaveURL(/\/thread\/\d+-/, { timeout: 15_000 })
+
+  await page.getByText('Write a reply', { exact: true }).click()
+
+  const toolbar = page.getByRole('group', { name: 'Formatting' })
+  const message = page.getByLabel('Message')
+  await expect(toolbar).toBeVisible()
+
+  const toolbarBox = await toolbar.boundingBox()
+  const messageBox = await message.boundingBox()
+  if (toolbarBox === null || messageBox === null) {
+    throw new Error('quick reply fields have no layout box')
+  }
+
+  expect(toolbarBox.y, 'toolbar sits above the message box').toBeLessThan(messageBox.y)
+  const gap = messageBox.y - (toolbarBox.y + toolbarBox.height)
+  expect(gap, 'toolbar is joined to the message box').toBeLessThanOrEqual(2)
+})
