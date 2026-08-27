@@ -221,11 +221,46 @@ stating because the option is handled in `next/dist` only by
 bundler is Turbopack — reading only that far suggests the glob above is dead
 code, and it is not. Turbopack emits the `.nft.json` files and applies the
 include globs on its own side. Measured on a Turbopack build of this app:
-`next-server.js.nft.json`, which the `'/**'` key does not cover, lists three
+`next-server.js.nft.json`, which the `'/**'` key does not cover, lists five
 `@swc/helpers` entries and none under `esm/`; a route's `.nft.json`, which it
 does cover, lists over a thousand including 324 under `esm/` and the package's
 `LICENSE` — a file no tracer would follow. Delete the glob on the theory that
 nothing reads it and self-hosted boards go back to failing at request time.
+
+**Nor does any of that depend on `output: 'standalone'`.** That mattered as an
+open question because `next.config.mjs` skips standalone when `VERCEL` is set,
+so every measurement above came from a configuration Vercel never builds — and
+which of the two Turbopack emits trace files for is decided inside the Rust
+binary, not readable out of `next/dist`. Two builds of this app differing in
+nothing but that setting answer it:
+
+| | `output` unset | `output: 'standalone'` |
+|---|---|---|
+| `.nft.json` emitted | 136, of which 132 routes | 136, of which 132 routes |
+| a route's `.nft.json` | 2958 files, 1318 `@swc/helpers`, 324 under `esm/` | identical |
+| routes carrying no `esm/` entry | 0 of 132 | 0 of 132 |
+| `next-server.js.nft.json` | 5 `@swc/helpers`, none under `esm/` | 5 `@swc/helpers`, none under `esm/` |
+
+The glob is therefore load-bearing on every route this app builds, not only for
+the Docker and self-hosted paths. To repeat the measurement:
+
+```sh
+VERCEL=1 DATA_SOURCE=fixture FORUM_DIST_DIR=.next-probe pnpm --filter @meith/web run build
+```
+
+Count by parsing the JSON, not with `grep -c`: each `.nft.json` is one long
+line, so `grep -c` reports `1` for a file holding 1318 matches. `next-server.js.nft.json`
+sits at the top of the dist directory, not under `server/`, and a standalone
+build also leaves a second copy of every route's file inside `standalone/`.
+
+What this does **not** establish is that Vercel's own builder then assembles a
+function from those files. That is the documented mechanism and the reason to
+expect it, but it was not measured, and it cannot be from a local build. The
+consequence is a narrow one: adding a `packages/db/migrations/**/*` entry was
+worth trying for the missing migration files on Vercel rather than dismissing
+as inert. The schema check that shipped instead is still the better design, for
+the lock-contention and function-timeout reasons
+[Running on Vercel](../getting-started/deployment/vercel.md) gives.
 
 **This assumes a hoisted `node_modules`** — npm, yarn classic, or pnpm with
 `node-linker=hoisted` (`create-meith`'s own scaffold uses npm). The

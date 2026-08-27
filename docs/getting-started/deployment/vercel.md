@@ -363,9 +363,15 @@ then come back for the four things specific to this route:
   of the schema definitions, which are ordinary imported code, because the
   migration `.sql` files are not in the function: nothing imports them, so
   nothing traces them in, and nothing lists them in
-  `outputFileTracingIncludes` either. If that step does report missing
-  tables, run `community migrate` against the same database and reload —
-  `MIGRATIONS_DIR` cannot help when the files are absent.
+  `outputFileTracingIncludes` either. Listing them there would not have been
+  inert, for the record — Turbopack emits its trace files and applies those
+  globs whether or not `output` is `'standalone'`, which is the configuration
+  Vercel builds ([Building where Vercel
+  looks](../../contributing/development.md#building-where-vercel-looks)) — so
+  this is a design choice rather than the only option: a schema check needs no
+  files and cannot contend for the migration lock. If that step does report
+  missing tables, run `community migrate` against the same database and
+  reload — `MIGRATIONS_DIR` cannot help when the files are absent.
 - **The installer takes the same session-level advisory lock migrations
   do**, so it needs `DIRECT_DATABASE_URL` for the same reason. Run against
   a pooler, it can report itself permanently in flight.
