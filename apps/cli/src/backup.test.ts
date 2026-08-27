@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -257,12 +257,37 @@ describe('claimBackupDestination', () => {
     }
   })
 
-  it('lets a non-permission failure through undisguised — an existing bundle is still EEXIST', async () => {
+  it('refuses an occupied path with the remedy, not a bare errno (MEI-149)', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'meith-backup-test-'))
     try {
       const destination = path.join(dir, 'board.tar.gz')
       await claimBackupDestination(destination)
-      await expect(claimBackupDestination(destination)).rejects.toMatchObject({ code: 'EEXIST' })
+
+      let caught: unknown
+      try {
+        await claimBackupDestination(destination)
+      } catch (error) {
+        caught = error
+      }
+
+      const message = (caught as Error).message
+      expect(message).toContain(destination)
+      expect(message).toContain('something is already there')
+      expect(message).toContain('--out')
+      expect(message).not.toContain('EEXIST')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("leaves the occupying file alone — refusing is not deleting somebody's bundle", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'meith-backup-test-'))
+    try {
+      const destination = path.join(dir, 'board.tar.gz')
+      await writeFile(destination, 'an earlier bundle')
+
+      await expect(claimBackupDestination(destination)).rejects.toThrow()
+      expect(await readFile(destination, 'utf8')).toBe('an earlier bundle')
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
