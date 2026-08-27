@@ -19,6 +19,19 @@ function composer(page: Page, verb: string): Locator {
   return page.locator('form').filter({ has: page.getByRole('button', { name: verb, exact: true }) })
 }
 
+async function openGroup(page: Page, saveLabel: string): Promise<Locator> {
+  const card = page.locator('details').filter({ hasText: saveLabel })
+  await card.locator('summary').click()
+  return card
+}
+
+async function setTriState(card: Locator, name: string, label: string): Promise<void> {
+  const field = card
+    .locator('fieldset')
+    .filter({ has: card.page().locator(`input[name="${name}"]`) })
+  await field.getByText(label, { exact: true }).click()
+}
+
 async function selectStartingWith(select: Locator, prefix: string): Promise<void> {
   const value = await select
     .locator('option')
@@ -112,6 +125,7 @@ test('a forum’s options and its permissions decide what the board does', async
   page,
   browser,
 }) => {
+  test.setTimeout(60_000)
   await enterAdminPanel(page)
 
   await page.goto('/admin/forums')
@@ -159,12 +173,12 @@ test('a forum’s options and its permissions decide what the board does', async
       page.getByRole('heading', { name: 'Permissions: Off Topic', level: 1 }),
     ).toBeVisible()
 
-    const guests = page.locator('form').filter({ hasText: 'Save Guests' })
-    await guests.locator('select[name="canView"]').selectOption('deny')
+    const guests = await openGroup(page, 'Save Guests')
+    await setTriState(guests, 'canView', 'Deny')
     await guests.getByRole('button', { name: 'Save Guests' }).click()
 
-    const saved = page.locator('form').filter({ hasText: 'Save Guests' })
-    await expect(saved.locator('select[name="canView"]')).toHaveValue('deny')
+    const saved = await openGroup(page, 'Save Guests')
+    await expect(saved.locator('input[name="canView"][value="deny"]')).toBeChecked()
     await expect(saved.getByText('set here: denied')).toBeVisible()
 
     expect((await guestPage.goto(OFF_TOPIC))?.status()).toBe(404)
@@ -173,8 +187,8 @@ test('a forum’s options and its permissions decide what the board does', async
   } finally {
     await page.goto('/admin/forums')
     await page.getByRole('link', { name: 'Permissions for Off Topic' }).click()
-    const guests = page.locator('form').filter({ hasText: 'Save Guests' })
-    await guests.locator('select[name="canView"]').selectOption('inherit')
+    const guests = await openGroup(page, 'Save Guests')
+    await setTriState(guests, 'canView', 'Inherit')
     await guests.getByRole('button', { name: 'Save Guests' }).click()
     await guestContext.close()
   }

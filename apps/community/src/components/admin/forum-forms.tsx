@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import type { MatrixCell, MatrixRow } from '@meith/authorization'
+import { cn, Disclosure } from '@meith/ui'
 
 import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
 import { EMPTY_STATE } from '@/server/auth-form-state'
@@ -153,36 +154,143 @@ function effectiveLabel(
   })
 }
 
-function CellControl({ cell, copy }: { cell: MatrixCell; copy: Copy }) {
-  if (cell.kind === 'numeric') {
-    return (
-      <input
-        type="number"
-        name={cell.key}
-        min={0}
-        placeholder={fromCopy(copy, 'adminForum.perm.inherit')}
-        defaultValue={cell.control}
-        className={INPUT}
-      />
-    )
-  }
+const PERM_GROUPS: readonly { readonly labelKey: string; readonly fields: readonly string[] }[] = [
+  {
+    labelKey: 'adminForum.permGroup.viewing',
+    fields: ['canView', 'canViewThreads', 'canViewOthersThreads', 'canSearch'],
+  },
+  {
+    labelKey: 'adminForum.permGroup.posting',
+    fields: [
+      'canPostThreads',
+      'canPostReplies',
+      'canPostPolls',
+      'canVotePolls',
+      'canRateThreads',
+      'canSubscribe',
+    ],
+  },
+  {
+    labelKey: 'adminForum.permGroup.ownContent',
+    fields: ['canEditOwnPosts', 'canDeleteOwnPosts', 'canDeleteOwnThreads', 'editTimeLimitMinutes'],
+  },
+  {
+    labelKey: 'adminForum.permGroup.moderation',
+    fields: [
+      'canEditOthersPosts',
+      'canSoftDeletePosts',
+      'canViewUnapproved',
+      'canViewDeleted',
+      'canApproveContent',
+    ],
+  },
+  {
+    labelKey: 'adminForum.permGroup.attachments',
+    fields: [
+      'canUploadAttachments',
+      'canDownloadAttachments',
+      'maxAttachmentsPerPost',
+      'maxAttachmentSizeKb',
+    ],
+  },
+  {
+    labelKey: 'adminForum.permGroup.approvals',
+    fields: ['requiresThreadApproval', 'requiresPostApproval', 'requiresApprovalOnEdit'],
+  },
+]
 
+function firstSentence(text: string): string {
+  const at = text.indexOf('. ')
+  return at === -1 ? text : text.slice(0, at + 1)
+}
+
+function groupCells(
+  cells: readonly MatrixCell[],
+): readonly { readonly labelKey: string; readonly cells: readonly MatrixCell[] }[] {
+  const byKey = new Map(cells.map((cell) => [cell.key, cell]))
+  const taken = new Set<string>()
+  const sections = PERM_GROUPS.map((group) => {
+    const found = group.fields.flatMap((key) => {
+      const cell = byKey.get(key)
+      if (cell === undefined) return []
+      taken.add(key)
+      return [cell]
+    })
+    return { labelKey: group.labelKey, cells: found }
+  }).filter((section) => section.cells.length > 0)
+
+  const leftover = cells.filter((cell) => !taken.has(cell.key))
+  return leftover.length === 0
+    ? sections
+    : [...sections, { labelKey: 'adminForum.permGroup.other', cells: leftover }]
+}
+
+const SEGMENT =
+  'flex-1 cursor-pointer px-2.5 py-1 text-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground has-[:checked]:font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ring'
+
+function TriState({ cell, copy }: { cell: MatrixCell; copy: Copy }) {
   const negative = cell.kind === 'negative'
+  const options = [
+    {
+      value: 'inherit',
+      label: fromCopy(copy, 'adminForum.perm.inherit'),
+      on: 'has-[:checked]:bg-secondary has-[:checked]:text-secondary-foreground',
+    },
+    {
+      value: 'grant',
+      label: negative
+        ? fromCopy(copy, 'adminForum.perm.requiredOption')
+        : fromCopy(copy, 'adminForum.perm.grant'),
+      on: 'has-[:checked]:bg-primary has-[:checked]:text-primary-foreground',
+    },
+    {
+      value: 'deny',
+      label: negative
+        ? fromCopy(copy, 'adminForum.perm.notRequiredOption')
+        : fromCopy(copy, 'adminForum.perm.deny'),
+      on: 'has-[:checked]:bg-destructive has-[:checked]:text-destructive-foreground',
+    },
+  ]
+
   return (
-    <select name={cell.key} defaultValue={cell.control} className={INPUT}>
-      <option value="inherit">{fromCopy(copy, 'adminForum.perm.inherit')}</option>
-      <option value="grant">
-        {negative
-          ? fromCopy(copy, 'adminForum.perm.requiredOption')
-          : fromCopy(copy, 'adminForum.perm.grant')}
-      </option>
-      <option value="deny">
-        {negative
-          ? fromCopy(copy, 'adminForum.perm.notRequiredOption')
-          : fromCopy(copy, 'adminForum.perm.deny')}
-      </option>
-    </select>
+    <fieldset className="flex w-full shrink-0 divide-x divide-border overflow-hidden rounded-md border border-border sm:w-56">
+      <legend className="sr-only">{firstSentence(cell.description)}</legend>
+      {options.map((option) => (
+        <label key={option.value} className={cn(SEGMENT, option.on)}>
+          <input
+            type="radio"
+            name={cell.key}
+            value={option.value}
+            defaultChecked={cell.control === option.value}
+            className="sr-only"
+          />
+          {option.label}
+        </label>
+      ))}
+    </fieldset>
   )
+}
+
+function CellControl({ cell, copy }: { cell: MatrixCell; copy: Copy }) {
+  if (cell.kind !== 'numeric') return <TriState cell={cell} copy={copy} />
+
+  return (
+    <input
+      type="number"
+      name={cell.key}
+      min={0}
+      placeholder={fromCopy(copy, 'adminForum.perm.inherit')}
+      defaultValue={cell.control}
+      className={cn(INPUT, 'w-full shrink-0 sm:w-56')}
+    />
+  )
+}
+
+function overridesAside(row: MatrixRow, copy: Copy): string {
+  const count = row.cells.filter((cell) => cell.stored !== null).length
+  return count === 0
+    ? fromCopy(copy, 'adminForum.inheritsAll')
+    : formatFromCopy(copy, 'adminForum.overridesSet', { count })
 }
 
 export function ForumPermissionRowForm({
@@ -199,36 +307,46 @@ export function ForumPermissionRowForm({
   const [state, action] = useActionState(saveForumPermissionsAction, EMPTY_STATE)
 
   return (
-    <form action={action} className={PANEL_CARD}>
-      <FormError message={state.error} />
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold tracking-tight">{row.groupTitle}</h3>
-        {state.notice === 'saved' && (
-          <span className="text-xs text-muted-foreground">{fromCopy(copy, 'admin.saved')}</span>
-        )}
-      </div>
+    <Disclosure summary={row.groupTitle} aside={overridesAside(row, copy)}>
+      <form action={action} className="flex flex-col gap-5">
+        <FormError message={state.error} />
+        <input type="hidden" name="forumId" value={forumId} />
+        <input type="hidden" name="groupId" value={row.groupId} />
 
-      <input type="hidden" name="forumId" value={forumId} />
-      <input type="hidden" name="groupId" value={row.groupId} />
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {row.cells.map((cell) => (
-          <label key={cell.key} className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">{cell.description}</span>
-            <CellControl cell={cell} copy={copy} />
-            <span className="text-xs text-muted-foreground">
-              {effectiveLabel(cell, forumTitles, copy)}
-            </span>
-          </label>
+        {groupCells(row.cells).map((section) => (
+          <section key={section.labelKey} className="flex flex-col gap-2.5">
+            <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {fromCopy(copy, section.labelKey)}
+            </h4>
+            {section.cells.map((cell) => (
+              <div
+                key={cell.key}
+                className="flex flex-col gap-1.5 border-b border-border/60 pb-2.5 last:border-b-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium" title={cell.description}>
+                    {firstSentence(cell.description)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {effectiveLabel(cell, forumTitles, copy)}
+                  </p>
+                </div>
+                <CellControl cell={cell} copy={copy} />
+              </div>
+            ))}
+          </section>
         ))}
-      </div>
 
-      <div>
-        <SubmitButton>
-          {formatFromCopy(copy, 'adminForum.saveGroup', { group: row.groupTitle })}
-        </SubmitButton>
-      </div>
-    </form>
+        <div className="flex items-center gap-3">
+          <SubmitButton>
+            {formatFromCopy(copy, 'adminForum.saveGroup', { group: row.groupTitle })}
+          </SubmitButton>
+          {state.notice === 'saved' && (
+            <span className="text-xs text-muted-foreground">{fromCopy(copy, 'admin.saved')}</span>
+          )}
+        </div>
+      </form>
+    </Disclosure>
   )
 }
 
