@@ -39,3 +39,48 @@ export async function workspaceEntries(root = ROOT) {
 export async function workspacePackages(root = ROOT) {
   return (await workspaceEntries(root)).filter((entry) => entry.manifest !== null)
 }
+
+export async function pluginDefinitionSites(root = ROOT) {
+  const sites = []
+
+  let directories
+  try {
+    directories = await readdir(join(root, 'plugins'), { withFileTypes: true })
+  } catch {
+    return sites
+  }
+
+  for (const entry of directories) {
+    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+
+    const dir = join(root, 'plugins', entry.name, 'src')
+    let sources
+    try {
+      sources = (await readdir(dir)).filter(
+        (name) => /\.tsx?$/.test(name) && !name.includes('.test.'),
+      )
+    } catch {
+      continue
+    }
+
+    let found = null
+    for (const name of sources.sort()) {
+      const file = `plugins/${entry.name}/src/${name}`
+      const source = await readFile(join(root, file), 'utf8')
+      if (!source.includes('definePlugin(')) continue
+      if (!/\n\s*version: '[^']+'/.test(source)) continue
+      found = file
+      break
+    }
+
+    if (found === null) {
+      throw new Error(
+        `plugins/${entry.name} declares no definePlugin version that release tooling can read`,
+      )
+    }
+
+    sites.push(found)
+  }
+
+  return sites.sort()
+}
