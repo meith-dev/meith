@@ -70,6 +70,11 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
         viewerRef(actor),
       )
 
+  const editorToolbar =
+    toolbarModel === null ? undefined : (
+      <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
+    )
+
   const formModel = await filterView(
     'view.post-form',
     {
@@ -89,13 +94,10 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
                 ? null
                 : await drafts.find(actor.userId, id, null)
             }
-            toolbar="external"
+            toolbar={editorToolbar}
           />
         ) : null,
-        toolbar:
-          toolbarModel === null ? null : (
-            <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
-          ),
+        toolbar: null,
       },
     },
     viewerRef(actor),

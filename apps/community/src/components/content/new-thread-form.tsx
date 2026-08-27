@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useActionState } from 'react'
 
 import type { UploadLimits } from '@meith/attachments/limits'
@@ -29,7 +30,7 @@ export function NewThreadForm({
   canPostPoll,
   attachmentLimits,
   draft,
-  toolbar = 'inline',
+  toolbar,
   copy,
 }: {
   forumId: number
@@ -39,7 +40,7 @@ export function NewThreadForm({
   canPostPoll: boolean
   attachmentLimits: UploadLimits | null
   draft: Draft | null
-  toolbar?: 'inline' | 'external'
+  toolbar?: ReactNode
   copy: Copy
 }) {
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
