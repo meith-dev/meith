@@ -1,9 +1,14 @@
-import type { BanFilter } from './ban-filter'
+import { ValidationError } from '@meith/core'
+
+import { assertUsableFilter, type BanFilter } from './ban-filter'
+import { BAN_FILTER_ALREADY_HELD } from './ban-filter-messages'
 import type {
   AccountRepository,
-  BanFilterRepository,
+  BanFilterAdminRepository,
+  BanFilterRecord,
   BanRecord,
   BanRepository,
+  CreateBanFilterInput,
   CreateBanInput,
 } from './ports'
 
@@ -72,17 +77,60 @@ export class MemoryBans implements BanRepository {
   }
 }
 
-export class MemoryBanFilters implements BanFilterRepository {
-  private readonly rows: BanFilter[] = []
+export class MemoryBanFilters implements BanFilterAdminRepository {
+  private readonly rows: BanFilterRecord[] = []
   private nextId = 1
 
-  add(type: BanFilter['type'], pattern: string): BanFilter {
-    const row = { id: this.nextId++, type, pattern }
-    this.rows.push(row)
-    return row
+  add(type: BanFilter['type'], pattern: string, note: string | null = null): BanFilter {
+    return this.insert({ type, pattern, note, createdByUserId: null })
   }
 
   async listAll(): Promise<readonly BanFilter[]> {
-    return [...this.rows]
+    return this.rows.map((row) => ({ id: row.id, type: row.type, pattern: row.pattern }))
+  }
+
+  async listForAdmin(): Promise<readonly BanFilterRecord[]> {
+    return [...this.rows].sort((a, b) => b.id - a.id)
+  }
+
+  async create(input: CreateBanFilterInput): Promise<number> {
+    assertUsableFilter(input.type, input.pattern)
+
+    const pattern = input.pattern.trim()
+    const note = input.note?.trim()
+
+    if (this.rows.some((row) => row.type === input.type && row.pattern === pattern)) {
+      throw new ValidationError(BAN_FILTER_ALREADY_HELD)
+    }
+
+    return this.insert({
+      type: input.type,
+      pattern,
+      note: note === undefined || note === '' ? null : note,
+      createdByUserId: input.createdByUserId,
+    }).id
+  }
+
+  async remove(id: number): Promise<void> {
+    const at = this.rows.findIndex((row) => row.id === id)
+    if (at !== -1) this.rows.splice(at, 1)
+  }
+
+  private insert(input: {
+    type: BanFilter['type']
+    pattern: string
+    note: string | null
+    createdByUserId: number | null
+  }): BanFilterRecord {
+    const row: BanFilterRecord = {
+      id: this.nextId++,
+      type: input.type,
+      pattern: input.pattern,
+      note: input.note,
+      createdByUserId: input.createdByUserId,
+      createdAt: new Date(),
+    }
+    this.rows.push(row)
+    return row
   }
 }

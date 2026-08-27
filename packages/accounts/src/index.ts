@@ -8,6 +8,7 @@ export {
   type BanFilterType,
   matchBanFilter,
 } from './ban-filter'
+export { BAN_FILTER_ALREADY_HELD } from './ban-filter-messages'
 export { BAN_FILTERS_NOT_CONSULTED } from './ban-filters-not-consulted'
 export { type BanInput, BanService, type BanServiceDeps } from './ban-service'
 export { foldIdentifier } from './case-fold'
@@ -115,10 +116,13 @@ export type {
   AuthEventKind,
   AuthEventRecord,
   AuthEventRepository,
+  BanFilterAdminRepository,
+  BanFilterRecord,
   BanFilterRepository,
   BanRecord,
   BanRepository,
   Clock,
+  CreateBanFilterInput,
   CreateBanInput,
   CredentialPurpose,
   CredentialTokenRepository,
