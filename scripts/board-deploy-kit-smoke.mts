@@ -200,8 +200,8 @@ function runMigrate(tag: string) {
 }
 
 function checkComposeParses(boardDir: string, tag: string) {
-  console.log('== docker-compose.yml parses ==')
-  run('docker', ['compose', '-f', join(boardDir, 'docker-compose.yml'), 'config'], boardDir, {
+  console.log('== docker-compose.yaml parses ==')
+  run('docker', ['compose', '-f', join(boardDir, 'docker-compose.yaml'), 'config'], boardDir, {
     ...process.env,
     MEITH_IMAGE: tag,
     SERVICE_PASSWORD_POSTGRES: 'stub',

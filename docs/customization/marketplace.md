@@ -300,7 +300,7 @@ where `mkdir` made it.
 `my-board` becomes a complete workspace: `package.json` pinned to
 *this image's exact release version* — never `latest`, so graduating is
 never a surprise upgrade — the full deploy kit (`Dockerfile`,
-`docker-compose.yml`, `.github/workflows/build.yml`, described in full in
+`docker-compose.yaml`, `.github/workflows/build.yml`, described in full in
 [Self-hosting § Custom boards](../getting-started/deployment/docker-compose.md#custom-boards)),
 `board.plugins.json` matching what this build actually compiled in, and
 `community.config.ts` matching the stock configuration. Every plugin the
@@ -331,9 +331,10 @@ branch is pushed to.
 
 From here it is the same three-step deploy [Self-hosting § Custom
 boards](../getting-started/deployment/docker-compose.md#custom-boards) describes for any scaffolded
-board: make the GitHub package public (it starts private), point Coolify
-at the new repository — it finds `docker-compose.yml` on its own — and
-set `MEITH_IMAGE` to the image step 2 just pushed, then redeploy.
+board: check the GitHub package is public, point Coolify at the new
+repository — `docker-compose.yaml` is the path its **Compose file** field
+already carries — and set `MEITH_IMAGE` to the image step 2 just pushed,
+then redeploy.
 
 ### What does not move
 
