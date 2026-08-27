@@ -1,12 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { type HostLogger, PluginHost } from './host'
-import {
-  definePlugin,
-  type PluginDefinition,
-  type PluginHooks,
-  unavailablePluginRuntime,
-} from './plugin'
+import { definePlugin, type PluginDefinition, type PluginHooks } from './plugin'
+import { unavailablePluginRuntime } from './runtime'
 
 const VIEWER = { userId: 1, isGuest: false }
 
@@ -388,7 +384,7 @@ describe('UI regions', () => {
     authorId: 7,
   }
 
-  it('collects contributions in priority then key order', () => {
+  it('collects contributions in priority then key order', async () => {
     const host = new PluginHost({
       plugins: [
         definePlugin({
@@ -406,13 +402,12 @@ describe('UI regions', () => {
       ],
     })
 
-    expect(host.renderRegion('postbit.footer', context).map((entry) => entry.node)).toEqual([
-      'A',
-      'Z',
-    ])
+    expect((await host.renderRegion('postbit.footer', context)).map((entry) => entry.node)).toEqual(
+      ['A', 'Z'],
+    )
   })
 
-  it('drops a contribution that throws while building its node', () => {
+  it('drops a contribution that throws while building its node', async () => {
     const host = new PluginHost({
       plugins: [
         definePlugin({
@@ -437,11 +432,13 @@ describe('UI regions', () => {
       ],
     })
 
-    expect(host.renderRegion('postbit.footer', context).map((entry) => entry.node)).toEqual(['B'])
+    expect((await host.renderRegion('postbit.footer', context)).map((entry) => entry.node)).toEqual(
+      ['B'],
+    )
     expect(host.health().find((entry) => entry.key === 'alpha')?.failures).toBe(1)
   })
 
-  it('omits a contribution that returns nothing', () => {
+  it('omits a contribution that returns nothing', async () => {
     const host = new PluginHost({
       plugins: [
         definePlugin({
@@ -453,14 +450,14 @@ describe('UI regions', () => {
       ],
     })
 
-    expect(host.renderRegion('postbit.footer', context)).toEqual([])
+    expect(await host.renderRegion('postbit.footer', context)).toEqual([])
   })
 
-  it('renders nothing for a region nobody contributes to', () => {
+  it('renders nothing for a region nobody contributes to', async () => {
     const host = new PluginHost({ plugins: [] })
-    expect(host.renderRegion('admin.dashboard', { ...context, region: 'admin.dashboard' })).toEqual(
-      [],
-    )
+    expect(
+      await host.renderRegion('admin.dashboard', { ...context, region: 'admin.dashboard' }),
+    ).toEqual([])
   })
 })
 
@@ -684,5 +681,122 @@ describe('the runtime a hook handler can ask for', () => {
 
     expect(host.health()[0]?.failures).toBe(1)
     expect(JSON.stringify(logger.errors)).toContain('without a runtime provider')
+  })
+})
+
+describe('what a region contribution can reach', () => {
+  const context = {
+    region: 'thread.header' as const,
+    viewer: VIEWER,
+    subjectId: 42,
+    authorId: 7,
+  }
+
+  it('awaits a contribution that renders asynchronously', async () => {
+    const host = new PluginHost({
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'thread.header',
+              render: async () => {
+                await Promise.resolve()
+                return 'late'
+              },
+            },
+          ],
+        }),
+      ],
+    })
+
+    expect((await host.renderRegion('thread.header', context)).map((entry) => entry.node)).toEqual([
+      'late',
+    ])
+  })
+
+  it('hands it the same lazily-built runtime a hook handler gets', async () => {
+    const provider = vi.fn(async (pluginKey: string) =>
+      Promise.resolve({
+        ...unavailablePluginRuntime('a test'),
+        settings: { who: pluginKey },
+      }),
+    )
+
+    const host = new PluginHost({
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'thread.header',
+              render: async (regionContext) => String((await regionContext.runtime()).settings.who),
+            },
+          ],
+        }),
+      ],
+      runtime: provider,
+    })
+
+    expect((await host.renderRegion('thread.header', context)).map((entry) => entry.node)).toEqual([
+      'alpha',
+    ])
+    expect(provider).toHaveBeenCalledExactlyOnceWith('alpha')
+  })
+
+  it('contains a rejection the same way it contains a throw', async () => {
+    const logger = silentLogger()
+    const host = new PluginHost({
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'thread.header',
+              render: async () => {
+                throw new Error('boom')
+              },
+            },
+          ],
+        }),
+        definePlugin({
+          key: 'bravo',
+          name: 'B',
+          version: '1.0.0',
+          contributions: [{ region: 'thread.header', render: () => 'B' }],
+        }),
+      ],
+      logger,
+    })
+
+    expect((await host.renderRegion('thread.header', context)).map((entry) => entry.node)).toEqual([
+      'B',
+    ])
+    expect(host.health().find((entry) => entry.key === 'alpha')?.failures).toBe(1)
+  })
+
+  it('never builds a runtime for a contribution that does not ask', async () => {
+    const provider = vi.fn(async () => unavailablePluginRuntime('a test'))
+
+    const host = new PluginHost({
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [{ region: 'thread.header', render: () => 'plain' }],
+        }),
+      ],
+      runtime: provider,
+    })
+
+    await host.renderRegion('thread.header', context)
+    expect(provider).not.toHaveBeenCalled()
   })
 })

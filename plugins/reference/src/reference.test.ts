@@ -171,12 +171,12 @@ describe('driven through a real host', () => {
     ])
   })
 
-  it('renders into every region', () => {
+  it('renders into every region', async () => {
     resetRecorder()
     const board = host()
 
     for (const region of REGION_NAMES) {
-      const nodes = board.renderRegion(region, {
+      const nodes = await board.renderRegion(region, {
         region,
         viewer: { userId: 7, isGuest: false },
         subjectId: 1,

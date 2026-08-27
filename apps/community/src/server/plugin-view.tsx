@@ -37,11 +37,11 @@ export async function emitEvent<K extends HookName>(
 
 export async function pluginRegion(
   region: PluginRegion,
-  context: Omit<PluginRegionContext, 'region'>,
+  context: Omit<PluginRegionContext, 'region' | 'runtime'>,
 ): Promise<React.ReactNode> {
   await syncPluginEnablement()
 
-  const nodes = pluginHost.renderRegion(region, { ...context, region })
+  const nodes = await pluginHost.renderRegion(region, { ...context, region })
   if (nodes.length === 0) return null
 
   return (

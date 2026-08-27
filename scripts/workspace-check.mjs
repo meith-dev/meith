@@ -234,6 +234,58 @@ function stringList(source, pattern, file, label) {
   return [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1])
 }
 
+const BOARD_CONFIG = 'apps/community/next.config.mjs'
+const boardConfigSource = await readFile(join(ROOT, BOARD_CONFIG), 'utf8')
+
+const transpiled = stringList(
+  boardConfigSource,
+  /transpilePackages: \[([\s\S]*?)\]/,
+  BOARD_CONFIG,
+  'transpilePackages',
+)
+const external = stringList(
+  boardConfigSource,
+  /serverExternalPackages: \[([\s\S]*?)\]/,
+  BOARD_CONFIG,
+  'serverExternalPackages',
+)
+
+const boardReachable = new Set()
+const pending = ['@meith/web']
+while (pending.length > 0) {
+  const name = pending.pop()
+  for (const dep of Object.keys(byName.get(name)?.manifest.dependencies ?? {})) {
+    if (!dep.startsWith('@meith/') || boardReachable.has(dep)) continue
+    boardReachable.add(dep)
+    pending.push(dep)
+  }
+}
+
+if (transpiled !== null && external !== null) {
+  const compiled = new Set([...transpiled, ...external])
+
+  for (const name of boardReachable) {
+    if (compiled.has(name)) continue
+    problems.push(
+      `${name} reaches a board's node_modules through @meith/web's dependencies and ` +
+        `${BOARD_CONFIG} names it in neither transpilePackages nor serverExternalPackages. ` +
+        'Every workspace package ships TypeScript source, so a board built outside this ' +
+        'repo — where nothing resolves through tsconfig path aliases — fails with ' +
+        `"Unknown module type" on ${name}/src/index.ts. Nothing in \`pnpm verify\` builds ` +
+        'such a board, so the first sight of it is a red CI job',
+    )
+  }
+
+  for (const name of compiled) {
+    if (!name.startsWith('@meith/') || name === '@meith/web') continue
+    if (boardReachable.has(name)) continue
+    problems.push(
+      `${BOARD_CONFIG} names ${name} and no dependency of @meith/web reaches it any more — ` +
+        'drop it, or restore the dependency that put it in a board',
+    )
+  }
+}
+
 const scaffoldSource = await readFile(join(ROOT, 'packages/create-meith/src/scaffold.ts'), 'utf8')
 const forumWebSource = await readFile(join(ROOT, 'apps/community/bin/forum-web.mjs'), 'utf8')
 
@@ -331,5 +383,7 @@ console.log(
   `✓ workspace integrity: ${byName.size} packages, every workspace: dependency resolves ` +
     `and matches the lockfile, every ${FRAMEWORK_PINS.join('/')} pin agrees with @meith/web, ` +
     `every @swc+helpers output-tracing glob names the pinned ${SWC_HELPERS}, ` +
+    `every one of the ${boardReachable.size} @meith/* packages a board installs is compiled ` +
+    `by ${BOARD_CONFIG}, ` +
     "and create-meith's scaffold ignores exactly what forum-web --at-root materializes",
 )

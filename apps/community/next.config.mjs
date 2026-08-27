@@ -77,6 +77,7 @@ const nextConfig = {
     '@meith/messages',
     '@meith/moderation',
     '@meith/notifications',
+    '@meith/plugin-calendar',
     '@meith/plugin-dues',
     '@meith/plugin-kit',
     '@meith/polls',

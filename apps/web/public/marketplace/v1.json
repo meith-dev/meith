@@ -2,6 +2,21 @@
   "schema": "https://www.meith.dev/marketplace/v1.json#/schema",
   "listings": [
     {
+      "key": "calendar",
+      "kind": "plugin",
+      "package": "@meith/plugin-calendar",
+      "name": "Calendar",
+      "description": "A shared calendar: events the community can see, linked to the threads that discuss them.",
+      "screenshots": [
+        "/marketplace/screenshots/calendar-light.png"
+      ],
+      "version": "0.22.0",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "MIT"
+    },
+    {
       "key": "clubhouse",
       "kind": "theme",
       "package": "@meith/theme-clubhouse",

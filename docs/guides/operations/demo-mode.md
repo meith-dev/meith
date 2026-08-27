@@ -149,13 +149,14 @@ in `community.config.ts`, a file you own and the flag never touches.
 
 ## The shop, and a Stripe that is not Stripe
 
-Demo mode installs one plugin —
-[Dues](../../README.md), which sells membership of a
-usergroup — because a plugin nobody can click is a paragraph rather than
-a demonstration. It is registered by the flag in
-`community.demo.plugins.ts`, the demo's own file, so that
-`community.plugins.ts` — the file a board of your own lists its plugins
-in — stays a list you can read at a glance.
+Demo mode installs two plugins — [Dues](../../README.md), which sells
+membership of a usergroup, and [Calendar](../../README.md), which puts
+the community's events on a page and beside the threads that discuss
+them — because a
+plugin nobody can click is a paragraph rather than a demonstration. Both
+are registered by the flag in `community.demo.plugins.ts`, the demo's own
+file, so that `community.plugins.ts` — the file a board of your own lists
+its plugins in — stays a list you can read at a glance.
 
 The seed writes the shop and a year of its history: four plans (a €5
 monthly subscription, a €12 90-day pass, a €99 lifetime, and a founding
@@ -193,6 +194,33 @@ What the fake costs the demo is one honest gap: it forgets everything on
 a restart, and answers for a checkout it no longer remembers by calling
 the session expired — which is what Stripe does with an abandoned one,
 and what the plugin's reconcile task is written to handle.
+
+## A calendar with a season in it
+
+The seed furnishes the Calendar plugin the same way, and for the same
+reason: an empty agenda demonstrates nothing. It writes eight events
+placed relative to the moment the board is seeded — six ahead and two
+behind — so the page shows a season rather than a fixture, and so the
+**Upcoming** and **Past** views both have something in them however long
+after the reset a visitor arrives.
+
+The events are spread across three months, so the agenda shows the month
+headings it groups by. Five of them name a thread the seed also writes —
+the bus to Ballyquin, the raid night, the U14 blitz, the table quiz, the
+summer camp — and those threads carry the event card above the first
+post, which is the plugin's `thread.header` region doing what it does on
+any board. Three carry a link with words of their own — *Join online* to
+a video call, *Get tickets* to a ticket page, *Offer to help* to a form —
+and the rest carry none, which is what the field looks like left empty.
+Every link points at `example` hosts that go nowhere on purpose. One
+event has no finish time, so the agenda shows an open-ended one beside
+ones that end.
+
+`admin`, `siobhan` and `gerry` are seeded onto the organiser roster, so
+the published administrator account can add an event and delete one, and
+a visitor signed in as `member` sees the agenda without the form — the
+two halves of the plugin's permission model, both visible without
+touching the admin panel.
 
 ## What demo mode changes
 

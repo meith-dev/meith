@@ -78,8 +78,6 @@ export {
   pluginSettingKey,
   pluginTablePrefix,
   pluginTaskId,
-  unavailableHookRuntime,
-  unavailablePluginRuntime,
 } from './plugin'
 export {
   createRouteRateLimiter,
@@ -111,9 +109,11 @@ export {
   type PluginUsers,
   pluginNotificationKindSpecs,
   pluginNotify,
+  unavailableHookRuntime,
   unavailablePluginData,
   unavailablePluginGrants,
   unavailablePluginNotify,
+  unavailablePluginRuntime,
   unavailablePluginUsers,
 } from './runtime'
 export {

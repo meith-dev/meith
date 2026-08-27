@@ -1,3 +1,5 @@
+import type { HookRuntime } from './runtime'
+
 export interface RegionSpec {
   readonly purpose: string
   readonly context: string
@@ -22,6 +24,12 @@ export const PLUGIN_REGIONS = {
     purpose: 'Below a post body, above its actions.',
     context: 'The viewer, the post id and the author id.',
   },
+  'thread.header': {
+    purpose:
+      'Above the first post of a thread, below its title. Runs once per thread page, ' +
+      'so unlike postbit.* it can afford to read from the plugin’s own tables.',
+    context: 'The viewer, the thread id and the thread author’s id.',
+  },
   'profile.panel': {
     purpose: 'A panel on a member’s profile, below the standard fields.',
     context: 'The viewer and the profile’s member id.',
@@ -45,4 +53,5 @@ export interface PluginRegionContext {
   readonly viewer: { readonly userId: number | null; readonly isGuest: boolean }
   readonly subjectId: number | null
   readonly authorId: number | null
+  readonly runtime: HookRuntime
 }
