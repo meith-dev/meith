@@ -10,7 +10,7 @@
       "screenshots": [
         "/marketplace/screenshots/calendar-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -25,7 +25,7 @@
       "screenshots": [
         "/marketplace/screenshots/clubhouse-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -40,7 +40,7 @@
       "screenshots": [
         "/marketplace/screenshots/default-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -55,7 +55,7 @@
       "screenshots": [
         "/marketplace/screenshots/dues-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -70,7 +70,7 @@
       "screenshots": [
         "/marketplace/screenshots/midnight-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -85,7 +85,7 @@
       "screenshots": [
         "/marketplace/screenshots/phasebook-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -100,7 +100,7 @@
       "screenshots": [
         "/marketplace/screenshots/raidframe-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
@@ -115,7 +115,7 @@
       "screenshots": [
         "/marketplace/screenshots/webhooks-light.png"
       ],
-      "version": "0.23.0",
+      "version": "0.23.1",
       "apiVersion": 0,
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",

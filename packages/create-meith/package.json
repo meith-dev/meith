@@ -1,6 +1,6 @@
 {
   "name": "create-meith",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "description": "Scaffold a Meith board, plugin or theme — npx create-meith <name> writes a deployable board workspace; --plugin and --theme write extension workspaces built on the published kits.",
   "license": "MIT",
   "repository": {
