@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { MemoryBanFilters } from '../memory-bans'
 import { createMemoryStore } from '../memory-repos'
 import type { AccountStore, AuthConfig } from '../ports'
 import { IdentityService } from '../service'
@@ -51,6 +52,7 @@ function build(overrides: Partial<AuthConfig> = {}): FederationService {
     store,
     config: { ...CONFIG, ...overrides },
     clock: () => NOW,
+    banFilters: new MemoryBanFilters(),
   })
 
   return new FederationService({

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { randomBase64Url } from '../crypto/base64url'
+import { MemoryBanFilters } from '../memory-bans'
 import { createMemoryStore } from '../memory-repos'
 import type { AccountStore, AuthConfig } from '../ports'
 import { IdentityService } from '../service'
@@ -31,7 +32,12 @@ let userId: number
 
 function service(): PasskeyService {
   return new PasskeyService({
-    identity: new IdentityService({ store, config: CONFIG, clock: () => NOW }),
+    identity: new IdentityService({
+      store,
+      config: CONFIG,
+      clock: () => NOW,
+      banFilters: new MemoryBanFilters(),
+    }),
     accounts: store.accounts,
     passkeys: store.passkeys,
     identities: store.identities,

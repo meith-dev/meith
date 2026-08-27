@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { MemoryBanFilters } from './memory-bans'
 import { createMemoryStore } from './memory-repos'
 import type { AccountStore, AuthConfig } from './ports'
 import { IdentityService, SECOND_FACTOR_TTL_MINUTES } from './service'
@@ -45,6 +46,7 @@ function identity(): IdentityService {
     config: CONFIG,
     clock: () => now,
     secondFactor: twoFactor(),
+    banFilters: new MemoryBanFilters(),
   })
 }
 

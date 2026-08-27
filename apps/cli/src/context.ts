@@ -1,6 +1,7 @@
 import {
   type AccountStore,
   type AuthConfig,
+  BAN_FILTERS_NOT_CONSULTED,
   DEFAULT_AUTH_POLICY,
   IdentityService,
   resolveAuthPolicy,
@@ -69,7 +70,7 @@ export async function createContext(): Promise<CliContext> {
   return {
     db,
     accounts: store,
-    identity: new IdentityService({ store, config }),
+    identity: new IdentityService({ store, config, banFilters: BAN_FILTERS_NOT_CONSULTED }),
     forums: new PostgresForumRepository(db),
     settings,
     admin,

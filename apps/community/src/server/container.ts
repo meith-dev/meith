@@ -4,6 +4,7 @@ import forumConfig from '@board/config'
 
 import {
   type AccountStore,
+  type BanFilterRepository,
   type BanLookup,
   BanService,
   createMemoryStore,
@@ -11,6 +12,7 @@ import {
   IdentityService,
   type MemberProfileRepository,
   type MemberSettingsRepository,
+  MemoryBanFilters,
   SessionService,
 } from '@meith/accounts'
 import type { AdminLogRepository, AdminSessionRepository } from '@meith/admin'
@@ -33,6 +35,7 @@ import {
   PostgresAttachmentRepository,
   PostgresAuthorizationSource,
   PostgresAvatarRepository,
+  PostgresBanFilterRepository,
   PostgresBanRepository,
   PostgresDraftRepository,
   PostgresForumRepository,
@@ -118,6 +121,7 @@ export interface Container {
   readonly identity: IdentityService
   readonly sessions: SessionService
   readonly banLookup: BanLookup | null
+  readonly banFilters: BanFilterRepository
   readonly forums: ForumRepository
   readonly threads: ThreadRepository
   readonly threadWrites: (ThreadWriteRepository & ReplyWriteRepository) | null
@@ -204,7 +208,7 @@ function buildFixture(onBypass: (e: BypassEvent) => void): Container {
     posts: new FixturePostRepository(),
     memberProfiles: new FixtureMemberProfileRepository(),
     fixtureDataVersion: FIXTURE_DATA_VERSION,
-    ...identityServices(store),
+    ...identityServices(store, new MemoryBanFilters()),
     accountStore: store,
     dataSource: 'fixture',
   }
@@ -216,16 +220,19 @@ function cached(inner: ForumRepository): ForumRepository {
 
 function identityServices(
   store: AccountStore,
+  banFilters: BanFilterRepository,
   bans?: BanLookup,
 ): {
   identity: IdentityService
   sessions: SessionService
   banLookup: BanLookup | null
+  banFilters: BanFilterRepository
 } {
   return {
     identity: new IdentityService({
       store,
       config: AUTH_CONFIG,
+      banFilters,
       secondFactor: enrolmentLookup(store.twoFactor),
       ...(bans === undefined ? {} : { bans }),
     }),
@@ -235,6 +242,7 @@ function identityServices(
       sessionLifetimeDays: SESSION_LIFETIME_DAYS,
     }),
     banLookup: bans ?? null,
+    banFilters,
   }
 }
 
@@ -287,7 +295,7 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     threadViews,
     fixtureDataVersion: null,
     accountStore: store,
-    ...identityServices(store, new PostgresBanRepository(db)),
+    ...identityServices(store, new PostgresBanFilterRepository(db), new PostgresBanRepository(db)),
     scheduler: withDemoReset(
       buildSchedulerBundle({
         queue: drivers().queue,
@@ -359,6 +367,7 @@ export function getContainer(): Container {
     cached.adminLog === undefined ||
     cached.attachments === undefined ||
     cached.avatars === undefined ||
+    cached.banFilters === undefined ||
     typeof cached.memberProfiles?.findPublicById !== 'function' ||
     typeof cached.accountStore?.identities?.listForUser !== 'function' ||
     typeof cached.accountStore?.passkeys?.listForUser !== 'function' ||
@@ -375,10 +384,11 @@ export function getAuthorizer(): Authorizer {
 }
 
 export async function configuredIdentity(): Promise<IdentityService> {
-  const { accountStore, banLookup } = getContainer()
+  const { accountStore, banLookup, banFilters } = getContainer()
   return new IdentityService({
     store: accountStore,
     config: await boardAuthConfig(),
+    banFilters,
     secondFactor: enrolmentLookup(accountStore.twoFactor),
     ...(banLookup === null ? {} : { bans: banLookup }),
   })

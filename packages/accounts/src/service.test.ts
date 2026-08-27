@@ -6,7 +6,7 @@ import { ForbiddenError, ValidationError } from '@meith/core'
 import { hashToken } from './crypto/tokens'
 import { MemoryBanFilters } from './memory-bans'
 import { createMemoryStore } from './memory-repos'
-import type { AccountStore, AuthConfig } from './ports'
+import type { AccountStore, AuthConfig, BanFilterRepository } from './ports'
 import { type RegisterField, rejectedField } from './register-fields'
 import {
   type BanLookup,
@@ -62,11 +62,13 @@ function makeService(
   overrides: Partial<AuthConfig> = {},
   clock = fixedClock(),
   bans?: BanLookup,
+  banFilters: BanFilterRepository = new MemoryBanFilters(),
 ) {
   const service = new IdentityService({
     store,
     config: { ...BASE_CONFIG, ...overrides },
     clock,
+    banFilters,
     ...(bans === undefined ? {} : { bans }),
   })
   return { service, clock }
@@ -767,7 +769,7 @@ describe('resolveSession', () => {
   })
 })
 
-describe('ban filters block registration and login', () => {
+describe('ban filters block every route into an account', () => {
   const CREDS = { username: 'newcomer', email: 'newcomer@spam.example', password: 'long-enough-pw' }
 
   function serviceWith(filters: MemoryBanFilters) {
@@ -854,9 +856,42 @@ describe('ban filters block registration and login', () => {
     expect(message).not.toContain('email')
   })
 
-  it('does nothing when no filter repository is supplied', async () => {
-    const service = new IdentityService({ store: createMemoryStore(), config: BASE_CONFIG })
-    await expect(service.register(CREDS)).resolves.toBeDefined()
+  it('blocks a filtered address when a federated provider provisions an account', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('email', '*@spam.example')
+
+    await expect(
+      serviceWith(filters).provisionFederated({
+        username: 'newcomer',
+        email: 'newcomer@spam.example',
+        emailVerified: true,
+      }),
+    ).rejects.toThrow(ForbiddenError)
+  })
+
+  it('blocks the username a federated provider chose, even when its address is clean', async () => {
+    const filters = new MemoryBanFilters()
+    filters.add('username', 'newcom*')
+
+    await expect(
+      serviceWith(filters).provisionFederated({
+        username: 'newcomer',
+        email: 'newcomer@clean.example',
+        emailVerified: true,
+      }),
+    ).rejects.toThrow(ForbiddenError)
+  })
+
+  it('blocks a filtered account when a hand-off asks whether it may sign in', async () => {
+    const filters = new MemoryBanFilters()
+    const service = serviceWith(filters)
+    const { account } = await service.register(CREDS)
+
+    await expect(service.assertSignInAllowed(account)).resolves.toBeUndefined()
+
+    filters.add('username', 'newcom*')
+
+    await expect(service.assertSignInAllowed(account)).rejects.toThrow(ForbiddenError)
   })
 })
 

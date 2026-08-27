@@ -2,6 +2,7 @@ import 'server-only'
 
 import {
   type AuthConfig,
+  BAN_FILTERS_NOT_CONSULTED,
   DEFAULT_AUTH_POLICY,
   IdentityService,
   rejectedField,
@@ -247,7 +248,11 @@ async function performInstall(input: InstallInput): Promise<readonly StepOutcome
         defaultMemberGroupId: registered.id,
       }
 
-      const identity = new IdentityService({ store: createPostgresAccountStore(db), config })
+      const identity = new IdentityService({
+        store: createPostgresAccountStore(db),
+        config,
+        banFilters: BAN_FILTERS_NOT_CONSULTED,
+      })
       const result = await identity.register({
         username: input.username,
         email: input.email,
