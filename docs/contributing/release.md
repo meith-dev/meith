@@ -428,6 +428,26 @@ comment: the workflows hold publish rights, and a re-tagged action is code
 they would run. Dependabot moves all of these pins on the same weekly schedule
 as the npm dependencies, so the pinning costs review, not staleness.
 
+That last clause is what bounds where a pin belongs. The `docker` and
+`docker-compose` ecosystems in `.github/dependabot.yml` are scoped to
+`docker/`, so a digest written by hand anywhere else is a digest nothing ever
+moves — pinning costing staleness rather than review, which is the trade this
+section exists to avoid. Where something outside `docker/` needs one of these
+images, it therefore *reads* the pinned value instead of repeating it:
+`scripts/board-eject-smoke.mts` takes the `psql` client it shells out to from
+`docker/compose.yml`'s `postgres` service, through `pinnedComposeImage`
+(`scripts/compose-images.mts`), so the smoke runs a digest and still follows
+the weekly bump without carrying a second copy of it.
+
+The throwaway Postgres that GitHub Actions starts as a job's `services:`
+container is the deliberate exception, and stays on the bare
+`postgres:18-alpine` tag. It is created empty for one job and discarded with
+it, nothing it holds outlives the run, and no Dependabot ecosystem reads a
+workflow's `services:` block — so a digest there would rot in place while
+buying nothing. A bare tag in a `services:` block is a decision, not an
+oversight; a bare tag in a Dockerfile, a compose file, or a script that reads
+one is the bug.
+
 ## One-time setup
 
 ### The deploy key the cut workflow pushes with

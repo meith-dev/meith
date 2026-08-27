@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 
 import { assertBoardAssetsServe } from './board-smoke-assets.mts'
+import { pinnedComposeImage } from './compose-images.mts'
 import { packClosure } from './pack-workspace-closure.mts'
 import { ROOT } from './workspace-packages.mjs'
 
@@ -30,20 +31,12 @@ function run(command: string, args: readonly string[], cwd: string, env?: NodeJS
   }
 }
 
+const PSQL_IMAGE = await pinnedComposeImage('postgres')
+
 function psql(sql: string): string {
   const result = spawnSync(
     'docker',
-    [
-      'run',
-      '--rm',
-      '--network',
-      'host',
-      'postgres:18-alpine',
-      'psql',
-      DATABASE_URL as string,
-      '-tAc',
-      sql,
-    ],
+    ['run', '--rm', '--network', 'host', PSQL_IMAGE, 'psql', DATABASE_URL as string, '-tAc', sql],
     { encoding: 'utf8' },
   )
   if (result.status !== 0) {
