@@ -387,6 +387,14 @@ export async function claimBackupDestination(destination: string): Promise<void>
   try {
     await reserveBackupDestination(destination)
   } catch (error) {
+    if ((error as NodeJS.ErrnoException | undefined)?.code === 'EEXIST') {
+      throw new ValidationError(
+        `backup will not write over ${destination}: something is already there. Move it aside ` +
+          'or pass a different --out. A previous run killed part-way through can leave an ' +
+          'empty or truncated bundle at the path it had claimed; that file is not a backup ' +
+          'and is safe to delete.',
+      )
+    }
     translateWriteError(error, {
       command: 'backup',
       path: destination,
@@ -535,6 +543,9 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
   const stage = await mkdtemp(path.join(tmpdir(), 'meith-backup-'))
   let destinationCreated = false
   try {
+    await claimBackupDestination(out)
+    destinationCreated = true
+
     console.log(
       env.DIRECT_DATABASE_URL === undefined
         ? 'Dumping the database…'
@@ -564,8 +575,6 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
 
     const members = ['manifest.json', 'db.dump']
     if (uploads === 'included') members.push('uploads.tar.gz')
-    await claimBackupDestination(out)
-    destinationCreated = true
     await run('tar', ['czf', out, '-C', stage, ...members])
     await chmod(out, 0o600)
 

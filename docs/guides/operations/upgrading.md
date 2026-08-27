@@ -219,8 +219,9 @@ docker compose up -d --build
 The `mkdir` and the `--user` are what let the container write the bundle
 onto your host at all — the image runs as uid 1001, which owns nothing
 there; [Backup](./operating.md#backup) explains it in full. Get them
-wrong and the run fails with `EACCES` *after* the dump, two lines before
-this runbook destroys the volume.
+wrong and the run refuses immediately, before it dumps anything, naming
+the directory that needs write access — so you find out here rather than
+two lines further down, where this runbook destroys the volume.
 
 The new image's `pg_dump` reads the old server fine — clients dump any
 older server, which is why the backup comes from the *new* build against
