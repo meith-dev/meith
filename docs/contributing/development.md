@@ -250,6 +250,16 @@ monorepo — a materialized workspace's `community.config.ts` reaches it
 through the `@meith/web/config` subpath, which is real only once npm has
 resolved this package into another workspace's `node_modules`.
 
+That list is a hand-written mirror of a dependency graph, so
+`scripts/workspace-check.mjs` holds the two in step: every `@meith/*`
+package reachable through `@meith/web`'s own dependencies must be named in
+`transpilePackages` or in `serverExternalPackages`, and a name in either
+that nothing reaches any more fails just as loudly. Nothing in `pnpm
+verify` builds a board from outside this repo — the path aliases hide the
+whole problem in here — so before this check the first sight of a missing
+name was a red CI job on every packed-tarball board build at once, which
+is how a plugin added to `@meith/web` and not to the list was found.
+
 **Fixture mode covers `forum-web dev` and `forum-web build`,** not
 `forum-web start`. A production process refuses `QUEUE_DRIVER=memory` —
 fixture mode's only queue driver — on purpose
@@ -1017,7 +1027,7 @@ repository that nothing else reads:
 
 | Script | What it catches |
 |---|---|
-| `workspace:check` | A package directory with sources and no `package.json`, or a manifest the lockfile has not seen. Both pass every other gate and fail `pnpm install --frozen-lockfile`, which is CI's first step. |
+| `workspace:check` | A package directory with sources and no `package.json`, or a manifest the lockfile has not seen. Both pass every other gate and fail `pnpm install --frozen-lockfile`, which is CI's first step. Also an `@meith/*` package a board installs that `next.config.mjs` does not compile — invisible in here, where the path aliases resolve to source, and red on every board-build job at once. |
 | `ci:parity:check` | A gate chained in `pnpm verify` that runs in no step of `ci.yml`'s `static` job — the shape of defect that let six gates pass for a developer and merge green on a pull request. See [the commands](#the-commands). |
 | `root:check` | A new file at the repository root. The root is an interface — every entry is registered with the reason it must live there. |
 | `release:check` | A version written anywhere that disagrees with the release version, or a published package depending on a private one. See [Releasing](./release.md). |
