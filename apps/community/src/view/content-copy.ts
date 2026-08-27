@@ -3,16 +3,20 @@ import type { Translator } from '@meith/i18n'
 import { copyFor, patternCopy, splitAround } from './copy'
 import { untranslated } from './time'
 
+const RECOVERY_KEYS = [
+  'composer.autosave.failed',
+  'composer.autosave.saved',
+  'composer.autosave.saving',
+  'composer.recovery.available',
+  'composer.recovery.discard',
+  'composer.recovery.restore',
+] as const
+
 export function replyFormCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
   return copyFor(
     [
+      ...RECOVERY_KEYS,
       'composer.draftSaved',
-      'composer.autosave.failed',
-      'composer.autosave.saved',
-      'composer.autosave.saving',
-      'composer.recovery.available',
-      'composer.recovery.discard',
-      'composer.recovery.restore',
       'composer.notifyReplies',
       'composer.reply.submit',
       'composer.reply.write',
@@ -44,6 +48,7 @@ export function newThreadFormCopy(
   return {
     ...copyFor(
       [
+        ...RECOVERY_KEYS,
         'composer.draftSaved',
         'composer.notifyReplies',
         'composer.newThread.subject',
