@@ -47,6 +47,9 @@ export default async function VerifySecurityPage({
           codeSubmit: tr.t('credentialProof.codeSubmit'),
           passwordLabel: tr.t('credentialProof.passwordLabel'),
           passwordSubmit: tr.t('credentialProof.passwordSubmit'),
+          recoveryLabel: tr.t('otp.recoveryLabel'),
+          useRecovery: tr.t('otp.useRecovery'),
+          useApp: tr.t('otp.useApp'),
         }}
         hasPassword={account?.passwordHash !== null && account !== null}
         hasSecondFactor={factor.enrolled}

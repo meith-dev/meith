@@ -6,6 +6,7 @@ import { adminSignInAction, adminSignOutAction } from '@/server/admin-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { FormError } from '../auth/form-controls'
+import { OtpField, otpRecoveryFromCopy } from '../auth/otp-field'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 export function AdminSignInForm({
@@ -50,19 +51,13 @@ export function AdminSignInForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{fromCopy(copy, 'adminPanel.twoFactorCode')}</span>
-        <input
-          type="text"
-          name="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-        />
-        <span className="text-xs text-muted-foreground">
-          {fromCopy(copy, 'adminPanel.twoFactorCodeHint')}
-        </span>
-      </label>
+      <OtpField
+        label={fromCopy(copy, 'adminPanel.twoFactorCode')}
+        name="code"
+        required={false}
+        hint={fromCopy(copy, 'adminPanel.twoFactorCodeHint')}
+        recovery={otpRecoveryFromCopy(copy)}
+      />
 
       <button
         type="submit"

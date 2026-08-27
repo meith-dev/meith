@@ -79,19 +79,26 @@ export function resendVerificationFormCopy(
   return copyFor(['authForm.email', 'authForm.resend.submit'], t)
 }
 
+export function otpFieldCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return copyFor(['otp.recoveryLabel', 'otp.useApp', 'otp.useRecovery'], t)
+}
+
 export function secondFactorFormCopy(
   t: Translator = untranslated(),
 ): Readonly<Record<string, string>> {
-  return copyFor(
-    [
-      'authForm.secondFactor.code',
-      'authForm.secondFactor.recoveryHint',
-      'authForm.secondFactor.recoveryHintExhausted',
-      'authForm.secondFactor.submit',
-      'authForm.secondFactor.cancel',
-    ],
-    t,
-  )
+  return {
+    ...copyFor(
+      [
+        'authForm.secondFactor.code',
+        'authForm.secondFactor.recoveryHint',
+        'authForm.secondFactor.recoveryHintExhausted',
+        'authForm.secondFactor.submit',
+        'authForm.secondFactor.cancel',
+      ],
+      t,
+    ),
+    ...otpFieldCopy(t),
+  }
 }
 
 export function passkeyCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {

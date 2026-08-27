@@ -9,6 +9,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { proveCredentialAction } from '@/server/credential-proof-actions'
 
 import { FormError } from '../auth/form-controls'
+import { OtpField } from '../auth/otp-field'
 
 export interface CredentialProofCopy {
   readonly codeConsumed: string
@@ -16,6 +17,9 @@ export interface CredentialProofCopy {
   readonly codeSubmit: string
   readonly passwordLabel: string
   readonly passwordSubmit: string
+  readonly recoveryLabel: string
+  readonly useRecovery: string
+  readonly useApp: string
 }
 
 export function CredentialProofForm({
@@ -59,10 +63,16 @@ export function CredentialProofForm({
         >
           <input type="hidden" name="method" value="code" />
           <input type="hidden" name="next" value={next} />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">{copy.codeLabel}</span>
-            <Input name="code" inputMode="numeric" autoComplete="one-time-code" required />
-          </label>
+          <OtpField
+            label={copy.codeLabel}
+            name="code"
+            recovery={{
+              label: copy.recoveryLabel,
+              toRecovery: copy.useRecovery,
+              toApp: copy.useApp,
+              hint: copy.codeConsumed,
+            }}
+          />
           <p className="text-sm text-muted-foreground">{copy.codeConsumed}</p>
           <div>
             <Button type="submit" variant="primary">

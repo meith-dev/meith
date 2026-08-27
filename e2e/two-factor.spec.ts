@@ -54,7 +54,38 @@ test('the whole second-factor lifecycle survives being hydrated', async ({ page 
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 
   await expect(page).toHaveURL(/\/login\/verify$/)
+  await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(6)
   await page.getByLabel(/Code from your authenticator app/).fill(await code(secret, 1))
+  await page.getByRole('button', { name: 'Finish signing in' }).click()
+
+  await expect(page).toHaveURL('/')
+  expect(problems).toEqual([])
+})
+
+test('the code boxes hydrate in, and a recovery code still signs in through the link', async ({
+  page,
+}) => {
+  const problems = watchForErrors(page)
+
+  const member = await signUp(page, 'otprecovery')
+  await enrol(page)
+
+  const recovery = (await page.locator('li').allInnerTexts())
+    .map((text) => text.trim())
+    .find((text) => /^[A-Z2-7]{5}(?:-[A-Z2-7]{5}){4}-[A-Z2-7]$/.test(text))
+  if (recovery === undefined) throw new Error('no recovery code was shown after enrolment')
+
+  await page.context().clearCookies()
+  await page.goto('/login')
+  await page.getByLabel('Username or email').fill(member)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+
+  await expect(page).toHaveURL(/\/login\/verify$/)
+  await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(6)
+
+  await page.getByRole('button', { name: /Enter a recovery code instead/ }).click()
+  await page.getByLabel('Recovery code').fill(recovery)
   await page.getByRole('button', { name: 'Finish signing in' }).click()
 
   await expect(page).toHaveURL('/')
