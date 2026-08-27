@@ -87,6 +87,8 @@ describe('adding an event', () => {
       '',
       12,
       7,
+      '',
+      '',
     ])
   })
 

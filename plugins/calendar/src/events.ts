@@ -2,6 +2,10 @@ export const MAX_TITLE = 120
 
 export const MAX_LOCATION = 120
 
+export const MAX_LINK_LABEL = 40
+
+export const MAX_LINK_URL = 500
+
 export const MAX_DURATION_HOURS = 24 * 14
 
 export interface EventDraft {
@@ -10,6 +14,8 @@ export interface EventDraft {
   readonly endsAt: Date | null
   readonly location: string
   readonly threadId: number | null
+  readonly linkUrl: string
+  readonly linkLabel: string
 }
 
 export type DraftProblem =
@@ -19,6 +25,10 @@ export type DraftProblem =
   | 'starts-missing'
   | 'ends-before-starts'
   | 'too-long'
+  | 'link-not-a-url'
+  | 'link-too-long'
+  | 'link-label-too-long'
+  | 'link-label-without-link'
 
 export interface CalendarEvent {
   readonly id: string
@@ -28,6 +38,27 @@ export interface CalendarEvent {
   readonly location: string
   readonly threadId: number | null
   readonly createdByUserId: number | null
+  readonly linkUrl: string
+  readonly linkLabel: string
+}
+
+export const DEFAULT_LINK_LABEL = 'calendar.event.linkFallback'
+
+export function safeLinkUrl(raw: string): string | null {
+  const trimmed = raw.trim()
+  if (trimmed === '' || trimmed.length > MAX_LINK_URL) return null
+
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    return null
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
+  if (parsed.hostname === '') return null
+
+  return parsed.toString()
 }
 
 function parseDate(raw: string): Date | null {
@@ -74,10 +105,28 @@ export function readDraft(form: Readonly<Record<string, string>>): {
     }
   }
 
+  const rawLink = (form.link ?? '').trim()
+  const linkLabel = (form.link_text ?? '').trim()
+  const linkUrl = rawLink === '' ? '' : (safeLinkUrl(rawLink) ?? '')
+
+  if (rawLink !== '' && linkUrl === '') {
+    problems.push(rawLink.length > MAX_LINK_URL ? 'link-too-long' : 'link-not-a-url')
+  }
+  if (linkLabel.length > MAX_LINK_LABEL) problems.push('link-label-too-long')
+  if (linkLabel !== '' && rawLink === '') problems.push('link-label-without-link')
+
   if (problems.length > 0 || startsAt === null) return { draft: null, problems }
 
   return {
-    draft: { title, startsAt, endsAt, location, threadId: parseThreadRef(form.thread ?? '') },
+    draft: {
+      title,
+      startsAt,
+      endsAt,
+      location,
+      threadId: parseThreadRef(form.thread ?? ''),
+      linkUrl,
+      linkLabel,
+    },
     problems: [],
   }
 }
@@ -180,6 +229,15 @@ export function relativeHint(startsAt: Date, now: Date, locale: string = DEFAULT
 export function isUpcoming(event: CalendarEvent, now: Date): boolean {
   const finishes = event.endsAt ?? event.startsAt
   return finishes.getTime() >= now.getTime()
+}
+
+export function pickThreadEvent(events: readonly CalendarEvent[], now: Date): CalendarEvent | null {
+  if (events.length === 0) return null
+
+  const upcoming = events.filter((event) => isUpcoming(event, now)).sort(byStart)
+  if (upcoming.length > 0) return upcoming[0] ?? null
+
+  return [...events].sort(byStart).at(-1) ?? null
 }
 
 export function byStart(a: CalendarEvent, b: CalendarEvent): number {

@@ -11,6 +11,7 @@ import {
 } from '../events'
 import en from '../messages/en.json'
 import { organiserIds, pastEvents, upcomingEvents } from '../store'
+import { EventLink } from './event-link'
 
 export const UPCOMING_LIMIT = 50
 
@@ -74,6 +75,8 @@ function EventRow({
             {translated(context, 'calendar.event.download')}
           </a>
         </p>
+
+        <EventLink event={event} label={translated(context, 'calendar.event.linkFallback')} />
       </div>
     </li>
   )
@@ -137,6 +140,26 @@ function AddForm({ context }: { context: PluginPageContext }) {
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.thread')}
           <input name="thread" className="rounded border p-1.5" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          {translated(context, 'calendar.event.link')}
+          <input
+            name="link"
+            type="url"
+            maxLength={500}
+            placeholder="https://"
+            className="rounded border p-1.5"
+          />
+          <span className="text-muted-foreground text-xs">
+            {translated(context, 'calendar.event.linkHint')}
+          </span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          {translated(context, 'calendar.event.linkText')}
+          <input name="link_text" maxLength={40} className="rounded border p-1.5" />
+          <span className="text-muted-foreground text-xs">
+            {translated(context, 'calendar.event.linkTextHint')}
+          </span>
         </label>
       </div>
 

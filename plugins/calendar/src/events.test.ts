@@ -8,10 +8,14 @@ import {
   formatRange,
   groupByMonth,
   isUpcoming,
+  MAX_LINK_LABEL,
+  MAX_LINK_URL,
   MAX_TITLE,
   parseThreadRef,
+  pickThreadEvent,
   readDraft,
   relativeHint,
+  safeLinkUrl,
 } from './events'
 
 function form(overrides: Record<string, string> = {}): Record<string, string> {
@@ -93,6 +97,8 @@ describe('ordering and filtering', () => {
     location: '',
     threadId: null,
     createdByUserId: null,
+    linkUrl: '',
+    linkLabel: '',
   })
 
   const now = new Date('2026-09-01T20:00:00Z')
@@ -179,6 +185,8 @@ describe('grouping into months', () => {
     location: '',
     threadId: null,
     createdByUserId: null,
+    linkUrl: '',
+    linkLabel: '',
   })
 
   it('runs consecutive events of one month under a single heading', () => {
@@ -225,5 +233,145 @@ describe('the relative hint', () => {
   it('looks backwards for something that has already happened', () => {
     expect(relativeHint(new Date('2026-08-29T12:00:00Z'), now, 'en-GB')).toBe('3 days ago')
     expect(relativeHint(new Date('2026-08-12T12:00:00Z'), now, 'en-GB')).toBe('2 weeks ago')
+  })
+})
+
+describe('the link an event can carry', () => {
+  it('keeps an https link and the words the organiser chose for it', () => {
+    const { draft, problems } = readDraft(
+      form({ link: 'https://zoom.example/j/123', link_text: 'Join online' }),
+    )
+
+    expect(problems).toEqual([])
+    expect(draft?.linkUrl).toBe('https://zoom.example/j/123')
+    expect(draft?.linkLabel).toBe('Join online')
+  })
+
+  it('keeps the query string a ticket link needs', () => {
+    expect(
+      readDraft(
+        form({ link: 'https://meetup.example/e/42?utm=board#tickets', link_text: 'Get tickets' }),
+      ).draft?.linkUrl,
+    ).toBe('https://meetup.example/e/42?utm=board#tickets')
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'data:text/html;base64,PHNjcmlwdD4=',
+    'vbscript:msgbox',
+    'file:///etc/passwd',
+    'not a url at all',
+    '//evil.example/path',
+  ])('refuses %o rather than rendering it as a link', (link) => {
+    const { draft, problems } = readDraft(form({ link, link_text: 'Join online' }))
+
+    expect(draft).toBeNull()
+    expect(problems).toContain('link-not-a-url')
+  })
+
+  it('allows plain http, since not every community runs TLS on its own tooling', () => {
+    expect(readDraft(form({ link: 'http://intranet.example/meet' })).problems).toEqual([])
+  })
+
+  it('refuses a link longer than the column holds', () => {
+    expect(
+      readDraft(form({ link: `https://example.com/${'x'.repeat(MAX_LINK_URL)}` })).problems,
+    ).toContain('link-too-long')
+  })
+
+  it('refuses link text longer than a button can show', () => {
+    expect(
+      readDraft(form({ link: 'https://zoom.example', link_text: 'x'.repeat(MAX_LINK_LABEL + 1) }))
+        .problems,
+    ).toContain('link-label-too-long')
+  })
+
+  it('refuses words with no link behind them, rather than storing a dead label', () => {
+    expect(readDraft(form({ link_text: 'Join online' })).problems).toContain(
+      'link-label-without-link',
+    )
+  })
+
+  it('leaves both empty when no link is offered', () => {
+    const { draft } = readDraft(form())
+    expect(draft?.linkUrl).toBe('')
+    expect(draft?.linkLabel).toBe('')
+  })
+
+  it('accepts a link with no words, so the page can fall back to its own', () => {
+    const { draft, problems } = readDraft(form({ link: 'https://zoom.example/j/1' }))
+    expect(problems).toEqual([])
+    expect(draft?.linkLabel).toBe('')
+  })
+})
+
+describe('safeLinkUrl on its own', () => {
+  it('normalises what it accepts', () => {
+    expect(safeLinkUrl('  https://Example.com  ')).toBe('https://example.com/')
+  })
+
+  it('refuses a URL with no host', () => {
+    expect(safeLinkUrl('https://')).toBeNull()
+    expect(safeLinkUrl('')).toBeNull()
+  })
+})
+
+describe('which event a thread shows', () => {
+  const now = new Date('2026-09-01T12:00:00Z')
+  const at = (id: string, iso: string, endsAt: string | null = null): CalendarEvent => ({
+    id,
+    title: id,
+    startsAt: new Date(iso),
+    endsAt: endsAt === null ? null : new Date(endsAt),
+    location: '',
+    threadId: 2,
+    createdByUserId: null,
+    linkUrl: '',
+    linkLabel: '',
+  })
+
+  it('shows nothing when the thread has no event', () => {
+    expect(pickThreadEvent([], now)).toBeNull()
+  })
+
+  it('prefers the soonest upcoming one over an earlier one that has passed', () => {
+    const chosen = pickThreadEvent(
+      [at('old-agm', '2026-08-14T20:00:00Z'), at('devfest', '2026-09-26T09:00:00Z')],
+      now,
+    )
+    expect(chosen?.id).toBe('devfest')
+  })
+
+  it('picks the soonest of several upcoming, not the furthest away', () => {
+    const chosen = pickThreadEvent(
+      [at('later', '2026-10-01T09:00:00Z'), at('sooner', '2026-09-05T09:00:00Z')],
+      now,
+    )
+    expect(chosen?.id).toBe('sooner')
+  })
+
+  it('falls back to the most recent past one when nothing is upcoming', () => {
+    const chosen = pickThreadEvent(
+      [at('ancient', '2026-01-01T09:00:00Z'), at('recent', '2026-08-20T09:00:00Z')],
+      now,
+    )
+    expect(chosen?.id).toBe('recent')
+  })
+
+  it('counts an event still running as the one to show', () => {
+    const chosen = pickThreadEvent(
+      [
+        at('running', '2026-09-01T09:00:00Z', '2026-09-01T18:00:00Z'),
+        at('next', '2026-09-20T09:00:00Z'),
+      ],
+      now,
+    )
+    expect(chosen?.id).toBe('running')
+  })
+
+  it('does not depend on the order it was given', () => {
+    const events = [at('devfest', '2026-09-26T09:00:00Z'), at('old-agm', '2026-08-14T20:00:00Z')]
+    expect(pickThreadEvent(events, now)?.id).toBe(pickThreadEvent([...events].reverse(), now)?.id)
   })
 })

@@ -10,6 +10,8 @@ interface EventRow extends Record<string, unknown> {
   readonly location: string
   readonly thread_id: number | null
   readonly created_by_user_id: number | null
+  readonly link_url: string | null
+  readonly link_label: string | null
 }
 
 function toEvent(row: EventRow): CalendarEvent {
@@ -21,10 +23,13 @@ function toEvent(row: EventRow): CalendarEvent {
     location: row.location,
     threadId: row.thread_id,
     createdByUserId: row.created_by_user_id,
+    linkUrl: row.link_url ?? '',
+    linkLabel: row.link_label ?? '',
   }
 }
 
-const COLUMNS = `id, title, starts_at, ends_at, location, thread_id, created_by_user_id`
+const COLUMNS = `id, title, starts_at, ends_at, location, thread_id, created_by_user_id,
+                 link_url, link_label`
 
 export async function createEvent(
   data: PluginData,
@@ -33,9 +38,18 @@ export async function createEvent(
 ): Promise<void> {
   await data.query(
     `insert into plugin_calendar_event
-       (title, starts_at, ends_at, location, thread_id, created_by_user_id)
-     values ($1, $2, $3, $4, $5, $6)`,
-    [draft.title, draft.startsAt, draft.endsAt, draft.location, draft.threadId, createdByUserId],
+       (title, starts_at, ends_at, location, thread_id, created_by_user_id, link_url, link_label)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      draft.title,
+      draft.startsAt,
+      draft.endsAt,
+      draft.location,
+      draft.threadId,
+      createdByUserId,
+      draft.linkUrl,
+      draft.linkLabel,
+    ],
   )
 }
 
@@ -75,18 +89,20 @@ export async function eventById(data: PluginData, id: string): Promise<CalendarE
   return row === null ? null : toEvent(row)
 }
 
-export async function eventForThread(
+export const THREAD_EVENT_SCAN = 20
+
+export async function eventsForThread(
   data: PluginData,
   threadId: number,
-): Promise<CalendarEvent | null> {
-  const row = await data.one<EventRow>(
+): Promise<readonly CalendarEvent[]> {
+  const rows = await data.query<EventRow>(
     `select ${COLUMNS} from plugin_calendar_event
       where thread_id = $1
-      order by starts_at
-      limit 1`,
-    [threadId],
+      order by starts_at desc
+      limit $2`,
+    [threadId, THREAD_EVENT_SCAN],
   )
-  return row === null ? null : toEvent(row)
+  return rows.map(toEvent)
 }
 
 export async function deleteEvent(data: PluginData, id: string): Promise<void> {

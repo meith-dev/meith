@@ -1,8 +1,9 @@
 import type { PluginRegionContext, PluginRuntimeContext } from '@meith/plugin-kit'
 
-import { type CalendarEvent, formatRange } from '../events'
+import { type CalendarEvent, formatRange, pickThreadEvent } from '../events'
 import en from '../messages/en.json'
-import { eventForThread } from '../store'
+import { eventsForThread } from '../store'
+import { EventLink } from './event-link'
 
 export async function ThreadEventCard(context: PluginRegionContext) {
   if (context.subjectId === null) return null
@@ -10,7 +11,7 @@ export async function ThreadEventCard(context: PluginRegionContext) {
   let event: CalendarEvent | null = null
   try {
     const runtime = (await context.runtime()) as PluginRuntimeContext
-    event = await eventForThread(runtime.data, context.subjectId)
+    event = pickThreadEvent(await eventsForThread(runtime.data, context.subjectId), new Date())
   } catch {
     return null
   }
@@ -29,6 +30,7 @@ export async function ThreadEventCard(context: PluginRegionContext) {
         </time>
         {event.location !== '' && <span> · {event.location}</span>}
       </p>
+      <EventLink event={event} label={en['calendar.event.linkFallback']} />
     </section>
   )
 }

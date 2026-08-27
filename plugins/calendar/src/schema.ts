@@ -26,4 +26,13 @@ export const CALENDAR_MIGRATIONS: readonly PluginMigration[] = [
        )`,
     ],
   },
+  {
+    id: '0002_event_link',
+    statements: [
+      `alter table plugin_calendar_event
+         add column if not exists link_url text not null default ''`,
+      `alter table plugin_calendar_event
+         add column if not exists link_label text not null default ''`,
+    ],
+  },
 ]

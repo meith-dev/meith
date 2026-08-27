@@ -13,6 +13,8 @@ const EVENT: CalendarEvent = {
   location: 'The Rose & Crown, back room',
   threadId: 12,
   createdByUserId: 1,
+  linkUrl: '',
+  linkLabel: '',
 }
 
 function lines(event: CalendarEvent, boardUrl = 'https://board.example'): string[] {
@@ -124,5 +126,36 @@ describe('when the board does not know its own address', () => {
   it('keeps the URL when the address is absolute, with or without a trailing slash', () => {
     expect(lines(EVENT, 'https://board.example/')).toContain('URL:https://board.example/threads/12')
     expect(lines(EVENT, 'http://board.example')).toContain('URL:http://board.example/threads/12')
+  })
+})
+
+describe('an event that carries a link of its own', () => {
+  const WITH_LINK: CalendarEvent = {
+    ...EVENT,
+    linkUrl: 'https://zoom.example/j/123',
+    linkLabel: 'Join online',
+  }
+
+  it('makes that link the event URL, since it is the one to act on', () => {
+    expect(lines(WITH_LINK)).toContain('URL:https://zoom.example/j/123')
+  })
+
+  it('keeps the thread reachable in the description rather than dropping it', () => {
+    const description = lines(WITH_LINK).find((line) => line.startsWith('DESCRIPTION:'))
+    expect(description).toContain('https://board.example/threads/12')
+  })
+
+  it('writes no description when the thread is the only link there is', () => {
+    expect(lines(EVENT).some((line) => line.startsWith('DESCRIPTION:'))).toBe(false)
+  })
+
+  it('still offers the link when the board does not know its own address', () => {
+    const out = lines(WITH_LINK, '')
+    expect(out).toContain('URL:https://zoom.example/j/123')
+    expect(out.some((line) => line.startsWith('DESCRIPTION:'))).toBe(false)
+  })
+
+  it('has a URL even for an event with no thread at all', () => {
+    expect(lines({ ...WITH_LINK, threadId: null })).toContain('URL:https://zoom.example/j/123')
   })
 })

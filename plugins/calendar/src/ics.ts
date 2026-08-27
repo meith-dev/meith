@@ -4,6 +4,8 @@ export const ICS_CONTENT_TYPE = `text/calendar; charset=utf-8`
 
 export const DEFAULT_DURATION_MINUTES = 60
 
+const PRODID = `PRODID:-//Meith//Calendar//EN`
+
 function stamp(date: Date): string {
   return `${date.toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`
 }
@@ -40,7 +42,14 @@ export function icsFileName(event: CalendarEvent): string {
 
 export function absoluteBase(boardUrl: string): string | null {
   const trimmed = boardUrl.trim().replace(/\/+$/, '')
-  return /^https?:\/\/[^/\s]+/.test(trimmed) ? trimmed : null
+  if (trimmed === '') return null
+
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? trimmed : null
+  } catch {
+    return null
+  }
 }
 
 export function toIcs(event: CalendarEvent, boardUrl: string, now: Date): string {
@@ -48,12 +57,19 @@ export function toIcs(event: CalendarEvent, boardUrl: string, now: Date): string
     event.endsAt ?? new Date(event.startsAt.getTime() + DEFAULT_DURATION_MINUTES * 60_000)
 
   const base = absoluteBase(boardUrl)
-  const host = base === null ? 'meith' : base.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+  const host = base === null ? 'meith' : new URL(base).host
+
+  const threadUrl =
+    event.threadId === null || base === null ? null : `${base}/threads/${event.threadId}`
+
+  const hasOwnLink = event.linkUrl !== ''
+  const actionUrl = hasOwnLink ? event.linkUrl : threadUrl
+  const describedUrl = hasOwnLink ? threadUrl : null
 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Meith//Calendar//EN',
+    PRODID,
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
@@ -63,9 +79,8 @@ export function toIcs(event: CalendarEvent, boardUrl: string, now: Date): string
     `DTEND:${stamp(ends)}`,
     `SUMMARY:${escapeText(event.title)}`,
     ...(event.location === '' ? [] : [`LOCATION:${escapeText(event.location)}`]),
-    ...(event.threadId === null || base === null
-      ? []
-      : [`URL:${escapeText(`${base}/threads/${event.threadId}`)}`]),
+    ...(actionUrl === null ? [] : [`URL:${escapeText(actionUrl)}`]),
+    ...(describedUrl === null ? [] : [`DESCRIPTION:${escapeText(describedUrl)}`]),
     'END:VEVENT',
     'END:VCALENDAR',
   ]
