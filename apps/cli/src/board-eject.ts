@@ -7,6 +7,7 @@ import { DEFAULT_REPOSITORY_URL, scaffold, validateName } from 'create-meith'
 import { ValidationError } from '@meith/core'
 
 import { CODE_VERSION } from './upgrade'
+import { translateWriteError } from './write-errors'
 
 function defaultManifestPath(): string {
   return join(
@@ -173,24 +174,6 @@ export function installedPluginDefinitions() {
 `
 }
 
-function isFsPermissionError(error: unknown): error is NodeJS.ErrnoException {
-  const code = (error as NodeJS.ErrnoException | undefined)?.code
-  return code === 'EACCES' || code === 'EPERM'
-}
-
-function translateWriteError(error: unknown, target: string, path: string): never {
-  if (isFsPermissionError(error)) {
-    throw new ValidationError(
-      `board:eject could not write to ${path}: permission denied. The account running this ` +
-        `command needs write access to ${target} — inside the official image that account is ` +
-        'a fixed, non-root user, so a bind-mounted target directory has to already be owned by ' +
-        '(or writable by) that same account before eject runs. See docs/customization/marketplace.md, ' +
-        '"Moving to a custom board", for the exact invocation.',
-    )
-  }
-  throw error
-}
-
 export async function boardEject(args: readonly string[]): Promise<number> {
   const positional = args.filter((arg) => !arg.startsWith('-'))
   const [dir] = positional
@@ -233,7 +216,12 @@ export async function boardEject(args: readonly string[]): Promise<number> {
       await mkdir(dirname(path), { recursive: true })
       await writeFile(path, contents, 'utf8')
     } catch (error) {
-      translateWriteError(error, target, path)
+      translateWriteError(error, {
+        command: 'board:eject',
+        path,
+        target,
+        reference: 'docs/customization/marketplace.md, "Moving to a custom board"',
+      })
     }
   }
 
