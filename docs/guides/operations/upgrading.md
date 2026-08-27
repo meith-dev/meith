@@ -203,25 +203,33 @@ The way across is the backup, which is the point of this page's first
 section. On Compose, from the checkout of the **new** release:
 
 ```sh
+mkdir -p backups
 docker compose build web
-docker compose run --rm --no-deps -v "$PWD":/backup web \
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/backups":/backup web \
   node apps/cli/cli.cjs backup --out /backup/pre-18.tar.gz
 docker compose down
 docker volume rm docker_pgdata
 docker compose up -d postgres
 RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/community" \
-  docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD":/backup web \
+  docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD/backups":/backup web \
   node apps/cli/cli.cjs restore /backup/pre-18.tar.gz --skip-uploads
 docker compose up -d --build
 ```
+
+The `mkdir` and the `--user` are what let the container write the bundle
+onto your host at all — the image runs as uid 1001, which owns nothing
+there; [Backup](./operating.md#backup) explains it in full. Get them
+wrong and the run fails with `EACCES` *after* the dump, two lines before
+this runbook destroys the volume.
 
 The new image's `pg_dump` reads the old server fine — clients dump any
 older server, which is why the backup comes from the *new* build against
 the *still-running* old database. `docker volume ls` names the real
 `pgdata` volume; `--skip-uploads` because the uploads volume never went
 anywhere and a restore refuses to write into a directory that is not
-empty. Keep the bundle until the board has served for a while — it is
-also the rollback.
+empty. The restore reads the same mount and needs no `--user`, since
+files in the image are world-readable. Keep the bundle until the board
+has served for a while — it is also the rollback.
 
 Under Coolify the same sequence runs from the resource's terminal, with
 the volume deleted in the panel between the backup and the restore.

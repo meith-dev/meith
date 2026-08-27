@@ -140,10 +140,16 @@ Manual execution follows the same due and claim rules as the worker. Use it for 
 Create a restorable bundle with:
 
 ```sh
-docker compose run --rm web community backup --help
+mkdir -p backups
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/backups":/backup web \
+  community backup --out /backup/board.tar.gz
 ```
 
-Follow the usage printed by the installed release. Include uploads when they use the local volume, write the bundle to a mounted path, and copy at least one version off the server.
+`community backup --help` prints the flags the installed release actually has — include uploads when they use the local volume, and copy at least one version off the server.
+
+**Neither the `mkdir` nor the `--user` is optional**, and they are needed for the same reason `board:eject` needs them (see [the marketplace](../../customization/marketplace.md#moving-to-a-custom-board)). The image runs as a fixed, non-root account — `nextjs`, uid 1001 — which owns nothing on your host, so it can only write into a directory that account can already write to. Creating `backups` yourself first means it belongs to you rather than being auto-created root-owned by Docker; `--user "$(id -u):$(id -g)"` then makes the account doing the writing the account that owns the directory. Without them the run ends in `EACCES: permission denied` — and it ends there *after* the database dump, with no bundle to show for it. The command says so if it happens, and points back here.
+
+Reading a bundle back needs neither addition: files inside the image are world-readable, so [Restore](#restore) and [disaster recovery](./disaster-recovery.md) mount `/backup` and read from it as they are.
 
 A useful policy records frequency, retention, off-server location, access ownership, and the last successful restore rehearsal. A backup is not proven until it restores into an empty target.
 

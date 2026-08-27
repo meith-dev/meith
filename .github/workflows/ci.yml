@@ -307,6 +307,34 @@ jobs:
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
             forum:ci
 
+      # MEI-104: docs/guides/operations/operating.md and upgrading.md document the
+      # backup as a bind-mounted, non-root `docker compose run`, and the upgrade
+      # runbook destroys the pgdata volume two lines after taking it. The image
+      # runs as uid 1001, which owns nothing on the host, so the documented shape
+      # is the only one that produces a bundle — this proves it against the real
+      # image rather than trusting the prose. Runs after the migrations so there
+      # is a schema to dump.
+      - name: backup through the image, the documented way (MEI-104)
+        run: |
+          mkdir -p backups
+          docker run --rm --network host --user "$(id -u):$(id -g)" \
+            -v "$PWD/backups:/backup" \
+            -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
+            -e DATA_SOURCE=postgres \
+            -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
+            -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
+            forum:ci community backup --out /backup/ci.tar.gz
+
+          test -f backups/ci.tar.gz \
+            || { echo "::error::backup wrote nothing to the bind-mounted host directory"; exit 1; }
+
+          owner=$(stat -c '%u' backups/ci.tar.gz)
+          test "$owner" = "$(id -u)" \
+            || { echo "::error::the bundle is owned by uid $owner, not the invoking user $(id -u)"; exit 1; }
+
+          tar tzf backups/ci.tar.gz | grep -q '^db.dump$' \
+            || { echo "::error::the bundle carries no db.dump"; tar tzf backups/ci.tar.gz; exit 1; }
+
       # The web role. Polls the real health route rather than the port, so a
       # server that bound and cannot render is reported as the failure it is.
       #

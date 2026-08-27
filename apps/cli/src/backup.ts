@@ -21,6 +21,7 @@ import { BlobFileStore, S3FileStore, unusableKeyReason } from '@meith/drivers'
 import { optional, parseFlags } from './args'
 import { requirePostgres } from './context'
 import { CODE_VERSION } from './upgrade'
+import { translateWriteError } from './write-errors'
 
 export type UploadsMode = 'include' | 'skip'
 
@@ -382,6 +383,19 @@ export async function reserveBackupDestination(destination: string): Promise<voi
   await file.close()
 }
 
+export async function claimBackupDestination(destination: string): Promise<void> {
+  try {
+    await reserveBackupDestination(destination)
+  } catch (error) {
+    translateWriteError(error, {
+      command: 'backup',
+      path: destination,
+      target: path.dirname(destination),
+      reference: 'docs/guides/operations/operating.md, "Backup"',
+    })
+  }
+}
+
 interface StagedUploads {
   readonly uploads: 'included' | 'skipped'
   readonly skippedKeys: readonly string[]
@@ -550,7 +564,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
 
     const members = ['manifest.json', 'db.dump']
     if (uploads === 'included') members.push('uploads.tar.gz')
-    await reserveBackupDestination(out)
+    await claimBackupDestination(out)
     destinationCreated = true
     await run('tar', ['czf', out, '-C', stage, ...members])
     await chmod(out, 0o600)

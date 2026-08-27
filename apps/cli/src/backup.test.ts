@@ -8,6 +8,7 @@ import { BlobFileStore, type BlobLike } from '@meith/drivers'
 
 import {
   bundleName,
+  claimBackupDestination,
   contentTypeFor,
   drainStoreToDirectory,
   formatBytes,
@@ -239,6 +240,30 @@ describe('reserveBackupDestination', () => {
       await expect(reserveBackupDestination(destination)).rejects.toMatchObject({ code: 'EEXIST' })
     } finally {
       process.umask(previous)
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('claimBackupDestination', () => {
+  it('creates the destination the way reserveBackupDestination does', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'meith-backup-test-'))
+    try {
+      const destination = path.join(dir, 'board.tar.gz')
+      await claimBackupDestination(destination)
+      expect((await stat(destination)).mode & 0o777).toBe(0o600)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('lets a non-permission failure through undisguised — an existing bundle is still EEXIST', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'meith-backup-test-'))
+    try {
+      const destination = path.join(dir, 'board.tar.gz')
+      await claimBackupDestination(destination)
+      await expect(claimBackupDestination(destination)).rejects.toMatchObject({ code: 'EEXIST' })
+    } finally {
       await rm(dir, { recursive: true, force: true })
     }
   })
