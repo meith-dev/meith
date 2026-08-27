@@ -1,6 +1,7 @@
 import type { Translator } from '@meith/i18n'
 
 import { adminSharedCopy } from './admin-copy'
+import { otpFieldCopy } from './auth-copy'
 import { copyFor, patternCopy, splitAround } from './copy'
 import { untranslated } from './time'
 
@@ -21,6 +22,7 @@ export function adminFormsCopy(t: Translator = untranslated()): Readonly<Record<
       t,
     ),
     ...patternCopy(['adminPanel.idleNote'], t),
+    ...otpFieldCopy(t),
   }
 }
 

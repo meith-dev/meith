@@ -8,7 +8,8 @@ import { abandonSecondFactorAction, verifySecondFactorAction } from '@/server/au
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { type Copy, fromCopy } from '../shell/copy'
-import { Field, FormError, SubmitButton } from './form-controls'
+import { FormError, SubmitButton } from './form-controls'
+import { OtpField, otpRecoveryFromCopy } from './otp-field'
 
 export function SecondFactorForm({
   next,
@@ -26,15 +27,15 @@ export function SecondFactorForm({
       <form action={action} className="flex flex-col gap-4" noValidate>
         <FormError message={state.error} />
 
-        <Field
+        <OtpField
           label={fromCopy(copy, 'authForm.secondFactor.code')}
           name="code"
-          autoComplete="one-time-code"
           hint={
             recoveryCodesLeft > 0
               ? fromCopy(copy, 'authForm.secondFactor.recoveryHint')
               : fromCopy(copy, 'authForm.secondFactor.recoveryHintExhausted')
           }
+          recovery={otpRecoveryFromCopy(copy)}
         />
 
         {next ? <input type="hidden" name="next" value={next} /> : null}

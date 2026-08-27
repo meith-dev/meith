@@ -1,5 +1,6 @@
 import type { Translator } from '@meith/i18n'
 
+import { otpFieldCopy } from './auth-copy'
 import { copyFor, splitAround } from './copy'
 import { untranslated } from './time'
 
@@ -201,6 +202,7 @@ export function twoFactorFormsCopy(
     'accountForm.twoFactor.codes': t.t('accountForm.twoFactor.codes', {
       count: recoveryCodesLeft,
     }),
+    ...otpFieldCopy(t),
   }
 }
 

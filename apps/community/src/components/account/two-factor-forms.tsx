@@ -15,6 +15,7 @@ import {
 import { RECOVERY_CODES_FIELD } from '@/view/two-factor'
 
 import { Field, FormError } from '../auth/form-controls'
+import { OtpField, otpRecoveryFromCopy } from '../auth/otp-field'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
@@ -96,10 +97,9 @@ export function TwoFactorSetup({
 
       <form action={action} className="flex flex-col gap-4">
         <FormError message={state.error} />
-        <Field
+        <OtpField
           label={fromCopy(copy, 'accountForm.twoFactor.codeLabel')}
           name="code"
-          autoComplete="one-time-code"
           hint={fromCopy(copy, 'accountForm.twoFactor.codeHint')}
         />
         <div className="flex flex-wrap gap-2">
@@ -166,12 +166,12 @@ export function TwoFactorPanel({
         autoComplete="current-password"
       />
     ) : (
-      <Field
+      <OtpField
         id={`${which}-code`}
         label={fromCopy(copy, 'accountForm.twoFactor.codeProofLabel')}
         name="code"
-        autoComplete="one-time-code"
         hint={fromCopy(copy, 'accountForm.twoFactor.codeProofHint')}
+        recovery={otpRecoveryFromCopy(copy)}
       />
     )
 

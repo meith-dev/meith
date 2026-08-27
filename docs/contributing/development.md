@@ -823,6 +823,22 @@ asserts the username fits the board's 30-character maximum, because the
 registration input silently truncates a longer one and the sign-in that
 follows then fails with "Incorrect username or password".
 
+The two-factor specs are where both halves of that contract are read at
+once. Every place a member types an authenticator code — signing in
+(`second-factor-form`), confirming enrolment (`two-factor-forms`),
+re-proving before a security change (`credential-proof-form`,
+`two-factor-forms`) and entering the admin panel (`admin-forms`) — renders
+`OtpField`. With scripting off it is a native text field that takes either
+a six-digit code or a recovery code, which is what `two-factor-no-js.spec.ts`
+signs in with; once scripting confirms, it upgrades to the `@meith/ui`
+`InputOTP` widget — six boxes, one digit each — with a link across to a
+plain recovery-code field, because the boxes hold digits and a recovery
+code is neither six long nor numeric. `two-factor.spec.ts` fills that
+widget by its label and finishes the sign-in, so the enhanced path is
+proven without the fallback ever being torn out from under it. Enrolment
+is the one code field with no recovery link: a recovery code cannot confirm
+the authenticator it is a backup for.
+
 **`admin-panel-live.spec.ts` runs with scripting on**, and it is an
 exception the rule needs. With scripting off, a form post is a full
 navigation, so the page re-renders whatever the action did about caching —
