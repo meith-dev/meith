@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { ROOT, workspacePackages } from './workspace-packages.mjs'
+import { pluginDefinitionSites, ROOT, workspacePackages } from './workspace-packages.mjs'
 
 const version = process.argv[2] ?? ''
 
@@ -74,16 +74,10 @@ const SOURCE_CONSTANTS = [
   },
 ]
 
-const PLUGIN_MANIFESTS = [
-  {
-    file: 'plugins/dues/src/definition.tsx',
-    pattern: /(\n\s*version: ')[^']+(')/,
-  },
-  {
-    file: 'plugins/reference/src/plugin.tsx',
-    pattern: /(\n\s*version: ')[^']+(')/,
-  },
-]
+const PLUGIN_MANIFESTS = (await pluginDefinitionSites()).map((file) => ({
+  file,
+  pattern: /(\n\s*version: ')[^']+(')/,
+}))
 
 const COMPOSE_PIN = {
   file: 'docker/compose.coolify.yml',
