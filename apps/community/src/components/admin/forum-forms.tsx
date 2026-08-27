@@ -19,7 +19,7 @@ import {
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
-import { INPUT } from './form-bits'
+import { INPUT, Saved } from './form-bits'
 
 const TOGGLES = [
   { name: 'isOpen', labelKey: 'adminForum.toggle.isOpen' },
@@ -49,11 +49,7 @@ export function ForumOptionsForm({ forum, copy }: { forum: ForumOptionsValues; c
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'saved' && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {fromCopy(copy, 'admin.saved')}
-        </p>
-      )}
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
       <input type="hidden" name="forumId" value={forum.id} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -342,7 +338,9 @@ export function ForumPermissionRowForm({
             {formatFromCopy(copy, 'adminForum.saveGroup', { group: row.groupTitle })}
           </SubmitButton>
           {state.notice === 'saved' && (
-            <span className="text-xs text-muted-foreground">{fromCopy(copy, 'admin.saved')}</span>
+            <span className="text-xs font-medium text-moderation-approved">
+              {fromCopy(copy, 'admin.saved')}
+            </span>
           )}
         </div>
       </form>
@@ -366,11 +364,7 @@ export function CopyPermissionsForm({
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormError message={state.error} />
-      {state.notice === 'copied' && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {fromCopy(copy, 'adminForum.copied')}
-        </p>
-      )}
+      <Saved when={state.notice === 'copied'}>{fromCopy(copy, 'adminForum.copied')}</Saved>
       <input type="hidden" name="forumId" value={forumId} />
       <div>
         <SubmitButton>
@@ -418,11 +412,7 @@ export function CreateForumForm({
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'created' && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {fromCopy(copy, 'admin.created')}
-        </p>
-      )}
+      <Saved when={state.notice === 'created'}>{fromCopy(copy, 'admin.created')}</Saved>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
@@ -486,11 +476,7 @@ export function MoveForumForm({
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'moved' && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {fromCopy(copy, 'adminForum.moved')}
-        </p>
-      )}
+      <Saved when={state.notice === 'moved'}>{fromCopy(copy, 'adminForum.moved')}</Saved>
       <input type="hidden" name="forumId" value={forumId} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -589,9 +575,7 @@ export function ModeratorsPanel({
 
       <form action={appoint} className={PANEL_CARD}>
         <FormError message={appointState.error} />
-        {appointState.notice === 'saved' && (
-          <p className="text-sm text-muted-foreground">{fromCopy(copy, 'admin.saved')}</p>
-        )}
+        <Saved when={appointState.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
         <h3 className="text-sm font-medium">{fromCopy(copy, 'adminForum.appointTitle')}</h3>
         <input type="hidden" name="forumId" value={forumId} />
 

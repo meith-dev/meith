@@ -23,7 +23,7 @@ test('the panel is a second door, even for an administrator already signed in', 
   await page.getByRole('button', { name: 'Enter the control panel' }).click()
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Leave the control panel' }).click()
+  await page.getByRole('button', { name: 'Sign out of admin panel' }).click()
   await page.goto('/admin')
   await expect(page.getByText('Confirm your password.')).toBeVisible()
 

@@ -8,7 +8,7 @@ import type { SettingFieldModel, SettingGroupModel } from '@/view/admin-settings
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
-import { INPUT } from './form-bits'
+import { INPUT, Saved } from './form-bits'
 
 function Control({ setting, copy }: { setting: SettingFieldModel; copy: Copy }) {
   const { field, key, value } = setting
@@ -95,11 +95,7 @@ export function AdminSettingsForm({
   return (
     <form action={action} className="flex flex-col gap-8" noValidate>
       <FormError message={state.error} />
-      {state.notice === 'saved' && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {fromCopy(copy, 'adminPanel.setting.saved')}
-        </p>
-      )}
+      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'adminPanel.setting.saved')}</Saved>
       {state.notice === 'unchanged' && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
           {fromCopy(copy, 'adminPanel.setting.unchanged')}

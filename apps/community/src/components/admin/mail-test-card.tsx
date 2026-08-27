@@ -7,6 +7,7 @@ import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 import { sendTestMailAction } from '@/server/mail-test-actions'
 
 import { type Copy, fromCopy } from '../shell/copy'
+import { Saved } from './form-bits'
 
 export function MailTestCard({
   summary,
@@ -61,11 +62,7 @@ export function MailTestCard({
         </p>
       )}
 
-      {state.notice !== undefined && (
-        <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm">
-          {state.notice}
-        </p>
-      )}
+      <Saved when={state.notice !== undefined}>{state.notice}</Saved>
 
       <form action={submit} className="flex flex-col gap-2">
         <div>
