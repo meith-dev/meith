@@ -1,4 +1,9 @@
-import { createMemoryStore, IdentityService, SessionService } from '@meith/accounts'
+import {
+  createMemoryStore,
+  IdentityService,
+  MemoryBanFilters,
+  SessionService,
+} from '@meith/accounts'
 import type { MemoryAppointment, MemoryBoard } from '@meith/authorization'
 import { Authorizer, InMemoryAuthorizationSource } from '@meith/authorization'
 
@@ -59,11 +64,15 @@ export function installTestContainer(options: TestContainerOptions = {}): Record
 }
 
 function identityOver(store: ReturnType<typeof createMemoryStore>) {
+  const banFilters = new MemoryBanFilters()
+
   return {
     accountStore: store,
     actorSource: new FixtureActorSource(store),
+    banFilters,
     identity: new IdentityService({
       store,
+      banFilters,
       config: {
         registrationEnabled: true,
         minPasswordLength: 8,

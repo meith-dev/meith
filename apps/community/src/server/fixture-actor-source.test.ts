@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { type AccountStore, createMemoryStore, IdentityService } from '@meith/accounts'
+import {
+  type AccountStore,
+  createMemoryStore,
+  IdentityService,
+  MemoryBanFilters,
+} from '@meith/accounts'
 
 import { AUTH_CONFIG } from './auth-config'
 import { FixtureActorSource } from './fixture-actor-source'
@@ -26,7 +31,11 @@ describe('FixtureActorSource', () => {
   })
 
   it('builds a registered user in their primary group with combined permissions', async () => {
-    const identity = new IdentityService({ store, config: AUTH_CONFIG })
+    const identity = new IdentityService({
+      store,
+      config: AUTH_CONFIG,
+      banFilters: new MemoryBanFilters(),
+    })
     const { account } = await identity.register({
       username: 'alice',
       email: 'alice@example.com',

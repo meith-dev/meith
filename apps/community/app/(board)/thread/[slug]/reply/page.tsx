@@ -9,6 +9,7 @@ import { ReplyForm } from '@/components/content/reply-form'
 import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { attachmentLimits, canAttach } from '@/server/attachments'
 import { getContainer } from '@/server/container'
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { firstPostGuidance } from '@/server/onboarding'
@@ -76,6 +77,7 @@ export default async function ReplyPage({
   const view = buildReplyView({
     t: await getTranslator(),
     thread: { id: target.threadId, title: target.title, slug: target.slug },
+    wordFilter: await activeWordFilter(),
     errorMessage: locked ? (await getTranslator()).t('board.reply.locked') : null,
   })
 

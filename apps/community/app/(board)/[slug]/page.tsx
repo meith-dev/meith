@@ -13,6 +13,7 @@ import { BOARD_MEASURE } from '@/components/shell/measure'
 import { ViewTabs } from '@/components/shell/view-tabs'
 import { liveAnnouncements } from '@/server/announcements'
 import { getContainer } from '@/server/container'
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
 import { getTranslator } from '@/server/i18n'
@@ -239,6 +240,7 @@ export default async function ForumPage({
     now: new Date(),
     t: await getTranslator(),
     identities,
+    wordFilter: await activeWordFilter(),
   })
 
   const { subscriptions } = getContainer()

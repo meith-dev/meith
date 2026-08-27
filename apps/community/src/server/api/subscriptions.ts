@@ -6,7 +6,10 @@ import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import { parseSubscriptionTarget, SubscriptionService } from '@meith/subscriptions'
 
+import { filterWords } from '@/view/word-filter'
+
 import { getContainer } from '../container'
+import { activeWordFilter } from '../content-admin'
 import { type ApiResult, type ApiRoutes, bodyId, bodyText, notFound, requireUserId } from './http'
 
 async function mayView(
@@ -48,6 +51,7 @@ export const SUBSCRIPTION_HANDLERS: ApiRoutes = [
       const userId = requireUserId(actor)
       const visibleForumIds = await getContainer().authorizer.visibleForumIds(actor)
       const rows = await requireSubscriptions().list(userId, visibleForumIds)
+      const wordFilter = await activeWordFilter()
 
       return {
         status: 200,
@@ -55,7 +59,7 @@ export const SUBSCRIPTION_HANDLERS: ApiRoutes = [
           data: rows.map((row) => ({
             target: row.target,
             targetId: row.targetId,
-            title: row.title,
+            title: row.target === 'thread' ? filterWords(row.title, wordFilter) : row.title,
             href: row.href,
             mode: row.mode,
             createdAt: row.createdAt.toISOString(),

@@ -1,13 +1,18 @@
-import { and, asc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm'
 
-import type {
-  BanFilter,
-  BanFilterRepository,
-  BanFilterType,
-  BanRecord,
-  BanRepository,
-  CreateBanInput,
+import {
+  assertUsableFilter,
+  type BanFilter,
+  type BanFilterAdminRepository,
+  type BanFilterRecord,
+  type BanFilterType,
+  type BanRecord,
+  type BanRepository,
+  type CreateBanFilterInput,
+  type CreateBanInput,
 } from '@meith/accounts'
+import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { banFilters, bans, rememberTokens, sessions, users } from './schema'
@@ -133,7 +138,7 @@ export class PostgresBanRepository implements BanRepository {
   }
 }
 
-export class PostgresBanFilterRepository implements BanFilterRepository {
+export class PostgresBanFilterRepository implements BanFilterAdminRepository {
   constructor(private readonly db: Database) {}
 
   async listAll(): Promise<readonly BanFilter[]> {
@@ -142,5 +147,46 @@ export class PostgresBanFilterRepository implements BanFilterRepository {
       .from(banFilters)
 
     return rows.map((r) => ({ id: r.id, type: r.type as BanFilterType, pattern: r.pattern }))
+  }
+
+  async listForAdmin(): Promise<readonly BanFilterRecord[]> {
+    const rows = await this.db
+      .select({
+        id: banFilters.id,
+        type: banFilters.type,
+        pattern: banFilters.pattern,
+        note: banFilters.note,
+        createdByUserId: banFilters.createdByUserId,
+        createdAt: banFilters.createdAt,
+      })
+      .from(banFilters)
+      .orderBy(desc(banFilters.id))
+
+    return rows.map((r) => ({ ...r, type: r.type as BanFilterType }))
+  }
+
+  async create(input: CreateBanFilterInput): Promise<number> {
+    assertUsableFilter(input.type, input.pattern)
+
+    const note = input.note?.trim()
+
+    const [row] = await this.db
+      .insert(banFilters)
+      .values({
+        type: input.type,
+        pattern: input.pattern.trim(),
+        note: note === undefined || note === '' ? null : note,
+        createdByUserId: input.createdByUserId,
+      })
+      .onConflictDoNothing({ target: [banFilters.type, banFilters.pattern] })
+      .returning({ id: banFilters.id })
+
+    if (row === undefined) throw new ValidationError(msg('error.accounts.ban-filter-already-held'))
+
+    return row.id
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.db.delete(banFilters).where(eq(banFilters.id, id))
   }
 }

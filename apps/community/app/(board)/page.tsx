@@ -7,6 +7,7 @@ import { liveAnnouncements } from '@/server/announcements'
 import { LATEST_REFRESH_SECONDS, renderLatestPanels } from '@/server/board-latest'
 import { refreshLatestPanels } from '@/server/board-latest-actions'
 import { getContainer } from '@/server/container'
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
 import { getTranslator, tr } from '@/server/i18n'
@@ -54,6 +55,8 @@ export default async function BoardIndexPage() {
     ]),
   )
 
+  const wordFilter = await activeWordFilter()
+
   const view = buildBoardIndexView({
     rows,
     visibleForumIds: new Set(listing.visibleForumIds),
@@ -63,6 +66,7 @@ export default async function BoardIndexPage() {
     now,
     t: translator,
     identities,
+    wordFilter,
   })
 
   const announcements = await liveAnnouncements({
@@ -127,6 +131,7 @@ export default async function BoardIndexPage() {
             now,
             t: translator,
             identities,
+            wordFilter,
           }),
           pluginContext,
         )

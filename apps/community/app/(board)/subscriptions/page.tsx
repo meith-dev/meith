@@ -7,6 +7,7 @@ import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { followFormCopy } from '@/view/account-copy'
@@ -37,7 +38,12 @@ export default async function SubscriptionsPage({
 
   const translator = await getTranslator()
 
-  const view = buildSubscriptionsView({ rows, now: new Date(), t: translator })
+  const view = buildSubscriptionsView({
+    rows,
+    now: new Date(),
+    t: translator,
+    wordFilter: await activeWordFilter(),
+  })
   const notice = subscriptionNotice(query)
 
   return (

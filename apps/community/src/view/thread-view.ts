@@ -245,7 +245,7 @@ export interface ThreadView {
 export function buildThreadView(input: ThreadViewInput): ThreadView {
   return {
     view: {
-      thread: threadRowModel(input.thread, input.now, null, input.t),
+      thread: threadRowModel(input.thread, input.now, null, input.t, undefined, input.wordFilter),
       forum: { label: input.forum.title, href: forumHref(input.forum) },
       replyHref: input.replyHref ?? null,
       markReadAction: input.markReadAction ?? null,

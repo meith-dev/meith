@@ -4,6 +4,7 @@ import { currentRequestId } from '@meith/core/logger'
 import type { ForumListingRow } from '@meith/forums'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { identitiesFor } from '@/server/group-identity'
 import { getTranslator } from '@/server/i18n'
@@ -44,6 +45,7 @@ export async function SectionPage({
     now: new Date(),
     t: await getTranslator(),
     identities,
+    wordFilter: await activeWordFilter(),
   })
 
   const pluginContext = viewerRef(actor)

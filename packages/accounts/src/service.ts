@@ -20,7 +20,7 @@ export interface IdentityDeps {
   readonly store: AccountStore
   readonly config: AuthConfig
   readonly clock?: Clock
-  readonly banFilters?: BanFilterRepository
+  readonly banFilters: BanFilterRepository
   readonly bans?: BanLookup
   readonly secondFactor?: SecondFactorLookup
 }
@@ -117,7 +117,7 @@ export class IdentityService {
   private readonly config: AuthConfig
   private readonly now: Clock
 
-  private readonly banFilters: BanFilterRepository | undefined
+  private readonly banFilters: BanFilterRepository
 
   private readonly bans: BanLookup | undefined
 
@@ -506,8 +506,6 @@ export class IdentityService {
   }
 
   private async assertNotFiltered(subject: BanFilterSubject): Promise<void> {
-    if (!this.banFilters) return
-
     const match = matchBanFilter(await this.banFilters.listAll(), subject)
     if (match) {
       throw new ForbiddenError(msg('error.accounts.account-used-board-contact-administrator'))

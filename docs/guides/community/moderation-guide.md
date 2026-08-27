@@ -220,7 +220,9 @@ banned, and shown the public reason if one was given.
 lives in the admin panel, on the member's page under `/admin/users` — a
 moderator's route to a ban is the warning ladder, or asking an
 administrator. The same goes for **ban filters**, the patterns that
-block a registration or sign-in before an account exists.
+block a registration or sign-in before an account exists — they live at
+`/admin/users/ban-filters`, and [Ban filters](./ban-filters.md)
+describes what they match and how a pattern is written.
 
 Other things that look like moderation and are not yours to press:
 
@@ -249,12 +251,11 @@ Two things do quiet work beside you, and neither needs anything from
 you day to day:
 
 - **[The word filter](./word-filter.md)** rewrites listed words as a
-  page renders — post bodies, excerpts, feeds and search results —
-  without ever changing what is stored. **It does not cover thread
-  titles**, so a title is a rename rather than a filter rule. You see
-  the original in the queue and on the report screens, because you are
-  judging the words. Adding to the filter is the administrator's job,
-  and a change applies everywhere on the next page load.
+  page renders — post bodies, excerpts, thread titles, feeds and search
+  results — without ever changing what is stored. You see the original
+  in the queue and on the report screens, because you are judging the
+  words. Adding to the filter is the administrator's job, and a change
+  applies everywhere on the next page load.
 - **Reputation** lets members rate each other's posts — a thanks button
   by default, and a rating form if the board allows rating down. New
   members must post a few times before they may rate, which keeps it

@@ -70,7 +70,7 @@ function authorOf(
 
 export function buildLatestThreadsModel(input: LatestInput<LatestThreadRow>): LatestThreadsModel {
   const threads: LatestThreadModel[] = input.rows.map((row) => ({
-    title: row.title,
+    title: filterWords(row.title, input.wordFilter),
     href: `/thread/${row.threadId}-${row.slug}`,
     forum: {
       label: row.forumTitle,
@@ -86,7 +86,7 @@ export function buildLatestThreadsModel(input: LatestInput<LatestThreadRow>): La
 
 export function buildLatestPostsModel(input: LatestInput<LatestPostRow>): LatestPostsModel {
   const posts: LatestPostModel[] = input.rows.map((row) => ({
-    threadTitle: row.threadTitle,
+    threadTitle: filterWords(row.threadTitle, input.wordFilter),
     href: postHref(row),
     forum: {
       label: row.forumTitle,

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { isAppError } from '@meith/core'
 import { type DiscoveryViewModel, requireSlot, slotCopy } from '@meith/theme-kit'
 
+import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
 import { DISCOVER_PAGE, DISCOVERY_VIEWS, isDiscoveryView, runDiscovery } from '@/server/discovery'
 import { getTranslator } from '@/server/i18n'
@@ -65,6 +66,7 @@ export default async function DiscoverPage({
     isFirstPage: after === null,
     now,
     timeZone: preferences.timezone,
+    wordFilter: await activeWordFilter(),
   } as const
 
   let page: Awaited<ReturnType<typeof runDiscovery>>

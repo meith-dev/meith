@@ -57,6 +57,10 @@ export const ADMIN_SECTIONS: PanelNav = [
     children: [
       { href: '/admin/users/mail', titleKey: 'adminNav.admin-users-mail.title' },
       { href: '/admin/users/prune', titleKey: 'adminNav.admin-users-prune.title' },
+      {
+        href: '/admin/users/ban-filters',
+        titleKey: 'adminNav.admin-users-ban-filters.title',
+      },
     ],
   },
   {

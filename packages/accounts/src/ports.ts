@@ -1,4 +1,4 @@
-import type { BanFilter } from './ban-filter'
+import type { BanFilter, BanFilterType } from './ban-filter'
 
 export type AccountState = 'active' | 'awaiting_activation' | 'banned'
 
@@ -387,4 +387,25 @@ export interface BanRepository {
 
 export interface BanFilterRepository {
   listAll(): Promise<readonly BanFilter[]>
+}
+
+export interface BanFilterRecord extends BanFilter {
+  readonly note: string | null
+  readonly createdByUserId: number | null
+  readonly createdAt: Date
+}
+
+export interface CreateBanFilterInput {
+  readonly type: BanFilterType
+  readonly pattern: string
+  readonly note?: string | null
+  readonly createdByUserId: number | null
+}
+
+export interface BanFilterAdminRepository extends BanFilterRepository {
+  listForAdmin(): Promise<readonly BanFilterRecord[]>
+
+  create(input: CreateBanFilterInput): Promise<number>
+
+  remove(id: number): Promise<void>
 }
