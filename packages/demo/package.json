@@ -24,6 +24,7 @@
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/markdown": "workspace:*",
+    "@meith/plugin-calendar": "workspace:*",
     "@meith/plugin-dues": "workspace:*",
     "@meith/plugin-kit": "workspace:*",
     "@meith/tasks": "workspace:*",

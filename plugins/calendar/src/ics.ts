@@ -1,4 +1,4 @@
-import type { CalendarEvent } from './events'
+import { type CalendarEvent, eventHref } from './events'
 
 export const ICS_CONTENT_TYPE = `text/calendar; charset=utf-8`
 
@@ -59,8 +59,8 @@ export function toIcs(event: CalendarEvent, boardUrl: string, now: Date): string
   const base = absoluteBase(boardUrl)
   const host = base === null ? 'meith' : new URL(base).host
 
-  const threadUrl =
-    event.threadId === null || base === null ? null : `${base}/threads/${event.threadId}`
+  const href = eventHref(event)
+  const threadUrl = href === null || base === null ? null : `${base}${href}`
 
   const hasOwnLink = event.linkUrl !== ''
   const actionUrl = hasOwnLink ? event.linkUrl : threadUrl

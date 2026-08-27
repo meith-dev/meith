@@ -61,7 +61,7 @@ describe('the .ics an event downloads as', () => {
   })
 
   it('carries the thread as the event URL, and omits it when there is none', () => {
-    expect(lines(EVENT)).toContain('URL:https://board.example/threads/12')
+    expect(lines(EVENT)).toContain('URL:https://board.example/thread/12')
     expect(lines({ ...EVENT, threadId: null }).some((line) => line.startsWith('URL:'))).toBe(false)
   })
 
@@ -124,8 +124,8 @@ describe('when the board does not know its own address', () => {
   })
 
   it('keeps the URL when the address is absolute, with or without a trailing slash', () => {
-    expect(lines(EVENT, 'https://board.example/')).toContain('URL:https://board.example/threads/12')
-    expect(lines(EVENT, 'http://board.example')).toContain('URL:http://board.example/threads/12')
+    expect(lines(EVENT, 'https://board.example/')).toContain('URL:https://board.example/thread/12')
+    expect(lines(EVENT, 'http://board.example')).toContain('URL:http://board.example/thread/12')
   })
 })
 
@@ -142,7 +142,7 @@ describe('an event that carries a link of its own', () => {
 
   it('keeps the thread reachable in the description rather than dropping it', () => {
     const description = lines(WITH_LINK).find((line) => line.startsWith('DESCRIPTION:'))
-    expect(description).toContain('https://board.example/threads/12')
+    expect(description).toContain('https://board.example/thread/12')
   })
 
   it('writes no description when the thread is the only link there is', () => {

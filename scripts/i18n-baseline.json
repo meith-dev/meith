@@ -80,6 +80,7 @@
   "packages/db/src/thread-writes.ts": 1,
   "packages/db/src/user-merge-map.ts": 1,
   "packages/demo/src/accounts.ts": 37,
+  "packages/demo/src/calendar.ts": 25,
   "packages/demo/src/content/community.ts": 252,
   "packages/demo/src/content/forums.ts": 43,
   "packages/demo/src/content/noticeboard.ts": 245,

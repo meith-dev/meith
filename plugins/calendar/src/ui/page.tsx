@@ -48,7 +48,7 @@ function EventRow({
   const href = eventHref(event)
 
   return (
-    <li className="flex items-start gap-4 py-4">
+    <li className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
       <DateBlock event={event} locale={locale} />
 
       <div className="flex min-w-0 flex-col gap-1">
@@ -96,8 +96,8 @@ function Agenda({
   return (
     <div className="flex flex-col gap-6">
       {groupByMonth(events, locale).map((month) => (
-        <section key={month.key}>
-          <h2 className="text-muted-foreground border-b pb-1 text-xs font-semibold tracking-widest">
+        <section key={month.key} className="bg-card flex flex-col gap-3 rounded-md border p-4">
+          <h2 className="text-muted-foreground text-xs font-semibold tracking-widest">
             {month.label}
           </h2>
           <ul className="divide-border divide-y">

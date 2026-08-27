@@ -1,5 +1,6 @@
 import type { InstalledPlugin } from '@meith/core'
 import { readPluginEnv } from '@meith/core'
+import { calendarMessages, calendarPlugin } from '@meith/plugin-calendar'
 import { createDues, duesMessages } from '@meith/plugin-dues'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
@@ -65,6 +66,11 @@ const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
     plugin: createDues({
       extraRedirectHosts: boardHosts(),
     }),
+  },
+  {
+    key: 'calendar',
+    messages: calendarMessages,
+    plugin: calendarPlugin,
   },
 ]
 

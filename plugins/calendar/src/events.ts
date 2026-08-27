@@ -245,5 +245,5 @@ export function byStart(a: CalendarEvent, b: CalendarEvent): number {
 }
 
 export function eventHref(event: CalendarEvent): string | null {
-  return event.threadId === null ? null : `/threads/${event.threadId}`
+  return event.threadId === null ? null : `/thread/${event.threadId}`
 }

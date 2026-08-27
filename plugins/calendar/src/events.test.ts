@@ -125,7 +125,7 @@ describe('ordering and filtering', () => {
   })
 
   it('links to the thread only when there is one', () => {
-    expect(eventHref({ ...at('2026-09-01T00:00:00Z'), threadId: 9 })).toBe('/threads/9')
+    expect(eventHref({ ...at('2026-09-01T00:00:00Z'), threadId: 9 })).toBe('/thread/9')
     expect(eventHref(at('2026-09-01T00:00:00Z'))).toBeNull()
   })
 })

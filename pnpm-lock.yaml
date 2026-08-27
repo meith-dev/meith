@@ -166,6 +166,9 @@ importers:
       '@meith/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@meith/plugin-calendar':
+        specifier: workspace:*
+        version: link:../../plugins/calendar
       '@meith/plugin-dues':
         specifier: workspace:*
         version: link:../../plugins/dues
@@ -339,6 +342,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@meith/plugin-calendar':
+        specifier: workspace:*
+        version: link:../../plugins/calendar
       '@meith/plugin-dues':
         specifier: workspace:*
         version: link:../../plugins/dues
@@ -627,6 +633,9 @@ importers:
       '@meith/markdown':
         specifier: workspace:*
         version: link:../markdown
+      '@meith/plugin-calendar':
+        specifier: workspace:*
+        version: link:../../plugins/calendar
       '@meith/plugin-dues':
         specifier: workspace:*
         version: link:../../plugins/dues

@@ -28,6 +28,7 @@ import { threadSlug } from '@meith/threads'
 
 import { DEMO_ACCOUNTS, type DemoAccount, type DemoGroupKey } from './accounts'
 import { demoIpPrefixes } from './addresses'
+import { CALENDAR_PLUGIN_KEY, seedCalendarDemoBoard } from './calendar'
 import {
   DEMO_FORUMS,
   DEMO_MESSAGES,
@@ -149,7 +150,7 @@ export async function seedDemoBoard(
   await seedReports(db, placed, userIds, now)
   await seedSettings(db)
 
-  const plugins = await seedPlugins(db, options.plugins ?? [], userIds, now)
+  const plugins = await seedPlugins(db, options.plugins ?? [], userIds, placed, now)
 
   await markInstalled(db, DEMO_VERSION)
 
@@ -622,9 +623,11 @@ async function seedPlugins(
   db: Database,
   definitions: readonly PluginDefinition[],
   userIds: ReadonlyMap<string, number>,
+  placed: readonly Placed[],
   now: Date,
 ): Promise<readonly string[]> {
   const furnished: string[] = []
+  const threadIdByTitle = new Map(placed.map((entry) => [entry.thread.title, entry.threadId]))
 
   for (const definition of definitions) {
     for (const migration of definition.migrations ?? []) {
@@ -634,6 +637,11 @@ async function seedPlugins(
 
     if (definition.key === DUES_PLUGIN_KEY) {
       await seedDuesDemoBoard(db, userIds, now)
+      furnished.push(definition.key)
+    }
+
+    if (definition.key === CALENDAR_PLUGIN_KEY) {
+      await seedCalendarDemoBoard(db, { userIds, threadIdByTitle, now })
       furnished.push(definition.key)
     }
   }
