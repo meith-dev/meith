@@ -93,12 +93,12 @@ export interface MarketplaceCatalogView {
 function installSteps(kind: ListingKind, packageName: string): readonly string[] {
   return kind === 'plugin'
     ? [
-        `pnpm add ${packageName} --filter @meith/web`,
+        `npm install ${packageName}`,
         `community plugin:add ${packageName}`,
         'Rebuild and redeploy for it to take effect.',
       ]
     : [
-        `pnpm add ${packageName} --filter @meith/web`,
+        `npm install ${packageName}`,
         'Register it in community.config.ts (and set it as defaultTheme if it should be the board default).',
         'Rebuild and redeploy for it to take effect.',
       ]

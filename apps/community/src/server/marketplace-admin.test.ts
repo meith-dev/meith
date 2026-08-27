@@ -196,11 +196,50 @@ describe('marketplaceCatalog', () => {
     const [row] = (await marketplaceCatalog('plugin')).listings
     expect(row?.status).toBe('not-installed')
     expect(row?.installSteps).toEqual([
-      'pnpm add @meith/plugin-dues --filter @meith/web',
+      'npm install @meith/plugin-dues',
       'community plugin:add @meith/plugin-dues',
       'Rebuild and redeploy for it to take effect.',
     ])
     expect(row?.onStockImage).toBe(false)
+  })
+
+  it('names npm, not a pnpm workspace filter — the board reading this screen is a single package (MEI-106)', async () => {
+    cache.current = {
+      feed: { schema: 'x', listings: [pluginListing(), themeListingEntry()] },
+      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
+      fetchedAt: new Date(),
+      error: null,
+      errorAt: null,
+    }
+
+    const steps = [
+      ...((await marketplaceCatalog('plugin')).listings[0]?.installSteps ?? []),
+      ...((await marketplaceCatalog('theme')).listings[0]?.installSteps ?? []),
+    ]
+
+    expect(steps.length).toBeGreaterThan(0)
+    for (const step of steps) {
+      expect(step).not.toContain('--filter')
+      expect(step).not.toMatch(/^pnpm /)
+    }
+  })
+
+  it('still names npm on the stock image, where the steps describe the board being graduated to', async () => {
+    cache.current = {
+      feed: { schema: 'x', listings: [pluginListing()] },
+      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
+      fetchedAt: new Date(),
+      error: null,
+      errorAt: null,
+    }
+    process.env.BOARD_PLUGINS_MANIFEST = '/app/board.plugins.json'
+    try {
+      const [row] = (await marketplaceCatalog('plugin')).listings
+      expect(row?.onStockImage).toBe(true)
+      expect(row?.installSteps?.[0]).toBe('npm install @meith/plugin-dues')
+    } finally {
+      delete process.env.BOARD_PLUGINS_MANIFEST
+    }
   })
 
   it('flags "not-installed" as onStockImage when BOARD_PLUGINS_MANIFEST is set — docker/Dockerfile\'s own signal', async () => {
