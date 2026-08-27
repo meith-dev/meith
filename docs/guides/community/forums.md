@@ -129,11 +129,18 @@ model.
 
 ### Reading the matrix
 
-`/admin/forums/[id]/permissions` holds the matrix, one block per group.
-Each switch cell offers **Inherit**, **Grant** and **Deny**; each numeric
-cell is a box that may be left blank for inherit. The three approval rows
-read **Required** and **Not required** instead, because they are
-requirements rather than rights.
+`/admin/forums/[id]/permissions` holds the matrix, one collapsible block
+per group. A block stays shut until you open it and says on its header
+whether it sets anything on this forum — **All inherited**, or how many
+cells are **set here** — so you can find the group you customised without
+opening every one. Inside, the permissions are gathered under headings
+(viewing, posting, own content, moderation, attachments, approvals)
+rather than run together in one long list.
+
+Each switch is a three-way toggle — **Inherit**, **Grant**, **Deny** —
+and each numeric cell is a box that may be left blank for inherit. The
+three approval rows read **Required** and **Not required** instead,
+because they are requirements rather than rights.
 
 Every cell shows what it resolves to *and where that answer came from* —
 set here, inherited from a named ancestor forum, or the group's own
