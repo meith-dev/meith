@@ -6,25 +6,39 @@ import {
   DEFAULT_REPOSITORY_URL,
   DEFAULT_TEMPLATE_REPOSITORY_URL,
   type ScaffoldOptions,
+  type ScaffoldTarget,
   scaffold,
 } from '../packages/create-meith/src/scaffold.ts'
 import { ROOT } from './workspace-packages.mjs'
 
-export const OUTPUT_DIR = 'templates/vercel'
 export const TEMPLATE_BOARD_NAME = 'meith-board'
 
-export function scaffoldOptionsFor(version: string): ScaffoldOptions {
+export interface TemplateTarget {
+  readonly target: ScaffoldTarget
+  readonly dir: string
+  readonly repo: string
+}
+
+export const TEMPLATES: readonly TemplateTarget[] = [
+  { target: 'self-host', dir: 'templates/self-host', repo: 'meith-dev/template' },
+  { target: 'vercel', dir: 'templates/vercel', repo: 'meith-dev/vercel-template' },
+]
+
+export function scaffoldOptionsFor(target: ScaffoldTarget, version: string): ScaffoldOptions {
   return {
     name: TEMPLATE_BOARD_NAME,
     version,
     repositoryUrl: DEFAULT_REPOSITORY_URL,
     templateRepositoryUrl: DEFAULT_TEMPLATE_REPOSITORY_URL,
-    target: 'vercel',
+    target,
   }
 }
 
-export function renderVercelTemplate(version: string): ReadonlyMap<string, string> {
-  return scaffold(scaffoldOptionsFor(version))
+export function renderTemplate(
+  target: ScaffoldTarget,
+  version: string,
+): ReadonlyMap<string, string> {
+  return scaffold(scaffoldOptionsFor(target, version))
 }
 
 export async function readTree(root: string): Promise<Map<string, string>> {
@@ -73,33 +87,46 @@ export function differences(
   return problems.sort()
 }
 
+async function rootVersion(): Promise<string> {
+  return JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8')).version as string
+}
+
 async function main() {
-  const rootManifest = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'))
-  const version = rootManifest.version as string
+  const version = await rootVersion()
+  const check = process.argv.includes('--check')
+  let stale = false
 
-  const files = renderVercelTemplate(version)
-  const outputRoot = join(ROOT, OUTPUT_DIR)
+  for (const { target, dir } of TEMPLATES) {
+    const files = renderTemplate(target, version)
+    const outputRoot = join(ROOT, dir)
 
-  if (process.argv.includes('--check')) {
-    const problems = differences(files, await readTree(outputRoot))
-    if (problems.length > 0) {
-      console.error(`✗ ${OUTPUT_DIR} is stale:\n`)
-      for (const problem of problems) console.error(`  - ${problem}`)
-      console.error(`\nRun \`pnpm vercel-template:gen\` and commit the result.`)
-      process.exit(1)
+    if (check) {
+      const problems = differences(files, await readTree(outputRoot))
+      if (problems.length > 0) {
+        stale = true
+        console.error(`✗ ${dir} is stale:\n`)
+        for (const problem of problems) console.error(`  - ${problem}`)
+        console.error('')
+      } else {
+        console.log(`${dir} is up to date.`)
+      }
+      continue
     }
-    console.log(`${OUTPUT_DIR} is up to date.`)
-    return
+
+    await rm(outputRoot, { recursive: true, force: true })
+    for (const [path, content] of files) {
+      const absolute = join(outputRoot, path)
+      await mkdir(dirname(absolute), { recursive: true })
+      await writeFile(absolute, content, 'utf8')
+    }
+
+    console.log(`Wrote ${dir} (${files.size} files, version ${version}).`)
   }
 
-  await rm(outputRoot, { recursive: true, force: true })
-  for (const [path, content] of files) {
-    const absolute = join(outputRoot, path)
-    await mkdir(dirname(absolute), { recursive: true })
-    await writeFile(absolute, content, 'utf8')
+  if (check && stale) {
+    console.error('Run `pnpm templates:gen` and commit the result.')
+    process.exit(1)
   }
-
-  console.log(`Wrote ${OUTPUT_DIR} (${files.size} files, version ${version}).`)
 }
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {

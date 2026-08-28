@@ -101,7 +101,7 @@ for (const { file, pattern } of REWRITES) {
 
 execFileSync('pnpm', ['api:docs'], { cwd: ROOT, stdio: 'inherit' })
 execFileSync('pnpm', ['board-installer:gen'], { cwd: ROOT, stdio: 'inherit' })
-execFileSync('pnpm', ['vercel-template:gen'], { cwd: ROOT, stdio: 'inherit' })
+execFileSync('pnpm', ['templates:gen'], { cwd: ROOT, stdio: 'inherit' })
 execFileSync('pnpm', ['marketplace:gen'], { cwd: ROOT, stdio: 'inherit' })
 
 console.log(
@@ -109,6 +109,6 @@ console.log(
     `${SOURCE_CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
     `the compose pin, ${listings} first-party marketplace listings and the regenerated feed, ` +
     'the generated OpenAPI document, the generated board installer script, and the ' +
-    'generated Vercel template. ' +
+    'generated deploy templates. ' +
     'Run release-check, then commit.',
 )

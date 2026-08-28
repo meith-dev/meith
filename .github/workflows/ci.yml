@@ -154,8 +154,8 @@ jobs:
       - name: Board installer is current
         run: pnpm board-installer:gen:check
 
-      - name: Vercel template matches the scaffold
-        run: pnpm vercel-template:gen:check
+      - name: Deploy templates match the scaffold
+        run: pnpm templates:gen:check
 
       - name: Extension scaffold templates match the examples
         run: pnpm extension:gen:check
@@ -1049,3 +1049,17 @@ jobs:
           test -n "$thread" || { echo "::error::the seeded start-here thread is gone"; exit 1; }
           curl -fsS "http://127.0.0.1:3000/thread/$thread" | grep -qF 'Start here' \
             || { echo "::error::the seeded thread did not render after the restore"; tail -50 /tmp/dev.log; exit 1; }
+
+  templates-in-sync:
+    name: Deploy template repositories are in sync
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm templates:sync:check

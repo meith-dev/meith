@@ -41,6 +41,7 @@ describe('what the scaffold writes', () => {
     expect([...files.keys()].sort()).toEqual([
       '.dockerignore',
       '.env.example',
+      '.github/dependabot.yml',
       '.github/workflows/build.yml',
       '.gitignore',
       '.npmrc',
@@ -54,6 +55,13 @@ describe('what the scaffold writes', () => {
       'docker-healthcheck.sh',
       'package.json',
     ])
+  })
+
+  it('keeps this board’s own GitHub Actions current, without touching the coupled Meith pins', () => {
+    const dependabot = files.get('.github/dependabot.yml')!
+
+    expect(dependabot).toContain('package-ecosystem: github-actions')
+    expect(dependabot).not.toContain('package-ecosystem: npm')
   })
 
   it('ships no platform configuration file', () => {
@@ -573,9 +581,10 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-entrypoint.sh': 'cd1ef4a68be0005b31cbdb21bcd460035a157668550dbe3fca23cfd6d48321a0',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
+  '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
   '.github/workflows/build.yml': 'd61b4b1fe933e5fd4d584e63ec45a999e47145529c0c89f9bb9eef0580fb4915',
   'docker-compose.yaml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
-  'README.md': '736096b013c0a1856e282b1250879d023fd82843ef0ffd4e06cf5814d2c5ba3f',
+  'README.md': 'addfac59dc9912ef95571ed5a58689574e1fadb3b97bc2a8a098810d5f5d9de7',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

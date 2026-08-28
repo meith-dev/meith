@@ -152,7 +152,8 @@ divide into two kinds, and the difference decides how each is kept honest:
 | `marketplace/listings/*.json` whose `package` names a workspace package | The first-party listings — see [the marketplace](../customization/marketplace.md#what-is-in-a-listing) | `release:check`, over **every** listing in the directory |
 | `docs/reference/openapi.json` | `info.version` of the generated API reference | `api:docs:check` |
 | `apps/web/public/create-board.sh` | The installer [the Quickstart](../getting-started/deployment/coolify.md#2-create-your-board) points operators at, so nobody needs Node.js on their own machine | `board-installer:gen:check` |
-| `templates/vercel` | The generated Vercel deploy template | `vercel-template:gen:check` |
+| `templates/self-host` | The generated self-host deploy template (Coolify and Docker Compose) | `templates:gen:check` |
+| `templates/vercel` | The generated Vercel deploy template | `templates:gen:check` |
 | `apps/web/public/marketplace/v1.json` | The merged marketplace feed, a mirror of the listings above | `marketplace:gen:check` |
 
 The first group is compared textually by `pnpm release:check`. The second is
@@ -391,6 +392,51 @@ Two consequences worth knowing:
   publishing attaches to a package that already exists. The release does not
   attempt it: a name the registry has never seen is skipped with a notice, and
   the rest of the release goes out.
+
+## Deploy template repositories
+
+Two deploy routes start from a repository the operator clones rather than from
+this one: **[meith-dev/template](https://github.com/meith-dev/template)** is the
+"Use this template" repository behind the self-host Quickstart (Coolify and
+Docker Compose both), and
+**[meith-dev/vercel-template](https://github.com/meith-dev/vercel-template)** is
+what the Vercel Deploy Button clones. Their contents are *generated*, not
+hand-written: `templates/self-host/` and `templates/vercel/` here are the source
+of truth, written by `pnpm templates:gen` from `create-meith`'s `scaffold()` and
+held current by `pnpm templates:gen:check` (part of `pnpm verify`).
+
+The `publish-templates` job in `release.yml` mirrors each committed tree into
+its repository on every release: it clones the repository, makes its tracked
+tree match `templates/<target>/` exactly — adding, updating and **deleting** so
+the two agree file for file — commits `chore(release): sync template to vX.Y.Z`
+when anything changed, and tags the repository `vX.Y.Z`. It runs after
+`publish`, so a release that did not ship never pushes a template, and it is
+idempotent: a re-run with nothing to change makes no commit.
+
+The tracked content of each repository is **owned entirely** by its
+`templates/<target>/` source — anything the source does not contain, the mirror
+removes. A file a repository needs, such as a `LICENSE`, belongs in the scaffold
+so the source carries it, never added to the repository by hand. `pnpm
+templates:sync:check` verifies in CI that the repositories still match the
+generated trees, so drift is a red build rather than a stale board a new adopter
+clones.
+
+**The push credential.** `GITHUB_TOKEN` grants write to this repository only, so
+the cross-repository push authenticates as a **GitHub App** — chosen because,
+unlike a personal access token, it does not expire and so needs no scheduled
+rotation. Create an organisation-owned App with the **Contents: read and write**
+repository permission, install it on `meith-dev/template` and
+`meith-dev/vercel-template`, and store its **App ID** and a generated **private
+key** as the Actions secrets `TEMPLATE_SYNC_APP_ID` and
+`TEMPLATE_SYNC_APP_PRIVATE_KEY` here. The `publish-templates` job mints a
+short-lived installation token from them on each run
+(`actions/create-github-app-token`, scoped to just those two repositories) and
+hands it to `templates:sync` as `TEMPLATE_SYNC_TOKEN`; the only stored secret is
+the key, and nothing expires on a clock. Without the App configured the job logs
+a warning and does nothing, so releases still succeed — add the two secrets
+before the first release that should propagate templates. The repositories are
+created once, up front, with `meith-dev/template` marked as a *template
+repository* in its settings so the "Use this template" button appears.
 
 ## How each route consumes a release
 

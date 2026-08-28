@@ -346,3 +346,33 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --notes-file /tmp/notes-header.md \
             --generate-notes
+
+  publish-templates:
+    name: Sync the deploy templates to their repositories
+    needs: publish
+    runs-on: ubuntu-24.04
+    env:
+      HAS_APP: ${{ secrets.TEMPLATE_SYNC_APP_ID != '' && secrets.TEMPLATE_SYNC_APP_PRIVATE_KEY != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Mint an installation token for the template repositories
+        if: env.HAS_APP == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.TEMPLATE_SYNC_APP_ID }}
+          private-key: ${{ secrets.TEMPLATE_SYNC_APP_PRIVATE_KEY }}
+          owner: meith-dev
+          repositories: |
+            template
+            vercel-template
+      - name: Mirror the templates into their repositories and tag them
+        env:
+          TEMPLATE_SYNC_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: pnpm templates:sync

@@ -1,0 +1,106 @@
+# meith-board, deployed by Coolify — the same shape as the meith repository's own
+# docker/compose.coolify.yml: db, migrate, web, worker. See README.md for
+# the three-step deploy story this file is the last step of.
+#
+# No published ports — Coolify's proxy routes to the container and issues
+# the certificate. The two secrets and the database password are Coolify's
+# own "magic variables": it fills them in on the first deploy and shows them
+# in the panel, so nothing here needs a value typed into it except
+# MEITH_IMAGE, which only you can know — the build workflow's own Summary
+# tab prints it, ready to paste, the moment it finishes. Requires Coolify
+# v4.0.0-beta.411 or newer, which is when magic variables in a compose file
+# from a Git source arrived.
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    restart: unless-stopped
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    cpus: ${POSTGRES_CPUS:-1}
+    environment:
+      POSTGRES_USER: community
+      POSTGRES_PASSWORD: $SERVICE_PASSWORD_POSTGRES
+      POSTGRES_DB: community
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U community -d community']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Runs to completion, then exits. web waits for it, so the schema is
+  # always applied before the first request rather than racing it.
+  migrate:
+    image: ${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/meith-board:latest}
+    environment:
+      COMMUNITY_ROLE: migrate
+      DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
+      AUTH_SECRET: $SERVICE_BASE64_64_AUTH
+      TICK_SECRET: $SERVICE_BASE64_64_TICK
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  web:
+    image: ${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/meith-board:latest}
+    restart: unless-stopped
+    mem_limit: ${WEB_MEM_LIMIT:-1g}
+    cpus: ${WEB_CPUS:-2}
+    environment:
+      # Ask Coolify for a domain on port 3000, then hand the board the same
+      # thing with a scheme in front.
+      - SERVICE_FQDN_WEB_3000
+      - APP_URL=$SERVICE_URL_WEB
+      - DATABASE_URL=postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
+      - AUTH_SECRET=$SERVICE_BASE64_64_AUTH
+      - TICK_SECRET=$SERVICE_BASE64_64_TICK
+      - QUEUE_DRIVER=postgres
+      - CACHE_DRIVER=next
+      - FILESTORE_DRIVER=local
+      # Left unset, mail is configured on the board itself — the installer
+      # asks on first run. Set MAIL_DRIVER here and this file wins instead.
+      - MAIL_DRIVER=${MAIL_DRIVER:-log}
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST:-}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT:-}
+      - MAIL_SMTP_SECURITY=${MAIL_SMTP_SECURITY:-}
+      - MAIL_SMTP_USERNAME=${MAIL_SMTP_USERNAME:-}
+      - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+    volumes:
+      - uploads:/app/.uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # @meith/worker is not published (see the meith repository's
+  # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
+  # board can run — this drives the tick the alternative way the meith
+  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # a second set of credentials": a small loop calling /api/system/tick.
+  worker:
+    image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    restart: unless-stopped
+    mem_limit: ${WORKER_MEM_LIMIT:-64m}
+    cpus: ${WORKER_CPUS:-0.25}
+    environment:
+      TICK_SECRET: $SERVICE_BASE64_64_TICK
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null
+        while true; do
+          curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \
+            http://web:3000/api/system/tick >/dev/null 2>&1 \
+            || echo "tick failed at $$(date -Is)"
+          sleep 60
+        done
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  uploads:
