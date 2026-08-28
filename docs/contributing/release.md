@@ -422,14 +422,21 @@ generated trees, so drift is a red build rather than a stale board a new adopter
 clones.
 
 **The push credential.** `GITHUB_TOKEN` grants write to this repository only, so
-the cross-repository push uses a separate secret, `TEMPLATE_SYNC_TOKEN`: a
-fine-grained personal access token, or a GitHub App installation token, with
-**contents: write** on both `meith-dev/template` and `meith-dev/vercel-template`,
-stored as an Actions secret here. Without it the job logs a warning and does
-nothing, so releases still succeed — add the secret before the first release
-that should propagate templates. The repositories are created once, up front,
-with `meith-dev/template` marked as a *template repository* in its settings so
-the "Use this template" button appears.
+the cross-repository push authenticates as a **GitHub App** — chosen because,
+unlike a personal access token, it does not expire and so needs no scheduled
+rotation. Create an organisation-owned App with the **Contents: read and write**
+repository permission, install it on `meith-dev/template` and
+`meith-dev/vercel-template`, and store its **App ID** and a generated **private
+key** as the Actions secrets `TEMPLATE_SYNC_APP_ID` and
+`TEMPLATE_SYNC_APP_PRIVATE_KEY` here. The `publish-templates` job mints a
+short-lived installation token from them on each run
+(`actions/create-github-app-token`, scoped to just those two repositories) and
+hands it to `templates:sync` as `TEMPLATE_SYNC_TOKEN`; the only stored secret is
+the key, and nothing expires on a clock. Without the App configured the job logs
+a warning and does nothing, so releases still succeed — add the two secrets
+before the first release that should propagate templates. The repositories are
+created once, up front, with `meith-dev/template` marked as a *template
+repository* in its settings so the "Use this template" button appears.
 
 ## How each route consumes a release
 
