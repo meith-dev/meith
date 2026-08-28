@@ -18,8 +18,8 @@ export async function refreshMarketplaceAction(
 
     const result = await refreshMarketplaceNow()
 
-    revalidatePath('/admin/plugins/browse')
-    revalidatePath('/admin/themes/browse')
+    revalidatePath('/admin/plugins')
+    revalidatePath('/admin/themes')
 
     await recordAdminAction({
       action: 'marketplace.refresh',

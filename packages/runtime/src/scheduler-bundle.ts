@@ -301,7 +301,7 @@ export function buildSchedulerBundle(deps: {
                   package: listing.package,
                   version: listing.version,
                 },
-                href: '/admin/plugins/browse',
+                href: listing.kind === 'plugin' ? '/admin/plugins' : '/admin/themes',
                 dedupeKey: `marketplace.update_available:${listing.key}:${listing.version}`,
               })
             },

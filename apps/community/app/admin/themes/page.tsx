@@ -3,18 +3,18 @@ import type { Metadata } from 'next'
 import { cn } from '@meith/ui'
 
 import { LogoUploadForm } from '@/components/admin/branding-forms'
+import { MarketplaceRefreshForm } from '@/components/admin/marketplace-forms'
 import { ThemeStateForms } from '@/components/admin/theme-forms'
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
-import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
 import { logoKey, logoSrc } from '@/server/branding'
 import { getTranslator, tr } from '@/server/i18n'
 import { MAX_IMAGE_BYTES } from '@/server/image-upload'
+import { marketplaceUpdates } from '@/server/marketplace-admin'
 import { themeListing } from '@/server/theme-admin'
-import { brandingFormsCopy } from '@/view/admin-panel-copy'
+import { brandingFormsCopy, marketplaceFormsCopy } from '@/view/admin-panel-copy'
 import { themeStateCopy } from '@/view/admin-theme-copy'
-import { catalogTabs } from '@/view/marketplace-panel'
 import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,18 +33,23 @@ export default async function AdminThemesPage() {
   const now = new Date()
   const brandingCopy = brandingFormsCopy(translator)
   const stateCopy = themeStateCopy(translator)
+  const marketplaceCopy = marketplaceFormsCopy(translator)
+  const updates = await marketplaceUpdates('theme')
 
   return (
     <PanelPage title={await tr('page.themes')} lede={translator.t('adminThemes.lede')}>
-      <ViewTabs
-        label={translator.t('adminMarketplace.tabsLabel')}
-        tabs={catalogTabs({
-          installedHref: '/admin/themes',
-          browseHref: '/admin/themes/browse',
-          current: 'installed',
-          t: translator,
-        })}
-      />
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <p className={PANEL_NOTE}>
+          {updates.unreachable
+            ? translator.t('adminMarketplace.unreachable')
+            : updates.hasEverFetched && updates.fetchedAt !== null
+              ? translator.t('adminMarketplace.lastChecked', {
+                  time: formatTime(updates.fetchedAt, now, translator).label,
+                })
+              : translator.t('adminMarketplace.neverChecked')}
+        </p>
+        <MarketplaceRefreshForm copy={marketplaceCopy} />
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -124,6 +129,14 @@ export default async function AdminThemesPage() {
                   </>
                 )}
               </span>
+
+              {updates.latestByKey.has(theme.key) && (
+                <span className="w-fit rounded-full border border-border bg-accent px-2 py-0.5 text-xs font-medium text-foreground">
+                  {translator.t('adminMarketplace.updateAvailable', {
+                    version: updates.latestByKey.get(theme.key) ?? '',
+                  })}
+                </span>
+              )}
             </span>
 
             <ThemeStateForms

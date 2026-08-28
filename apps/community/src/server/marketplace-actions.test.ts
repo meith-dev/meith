@@ -53,11 +53,11 @@ describe('refreshMarketplaceAction', () => {
     expect(result.error).toBeDefined()
   })
 
-  it('revalidates both browse tabs and records the admin action on success', async () => {
+  it('revalidates the plugins and themes pages and records the admin action on success', async () => {
     const result = await refreshMarketplaceAction({}, new FormData())
 
     expect(result.notice).toBe('refreshed')
-    expect(revalidated).toEqual(['/admin/plugins/browse', '/admin/themes/browse'])
+    expect(revalidated).toEqual(['/admin/plugins', '/admin/themes'])
     expect(adminCalls).toEqual([
       { action: 'marketplace.refresh', detail: { ok: true, listingCount: 2 } },
     ])

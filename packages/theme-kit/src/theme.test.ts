@@ -53,6 +53,11 @@ describe('defineTheme', () => {
     expect(() => defineTheme({ key: 'x', title: '', slots: {} })).toThrow(/must have a title/)
   })
 
+  it('accepts a semver version and rejects one that is not', () => {
+    expect(defineTheme({ key: 'v', title: 'V', version: '1.2.3', slots: {} }).version).toBe('1.2.3')
+    expect(() => defineTheme({ key: 'v', title: 'V', version: '1.2', slots: {} })).toThrow(/semver/)
+  })
+
   it('rejects an unknown slot name', () => {
     expect(() =>
       defineTheme({

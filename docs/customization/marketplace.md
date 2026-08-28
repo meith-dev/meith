@@ -2,7 +2,9 @@
 
 A curated, reviewed feed of the plugins and themes worth pointing a board
 at — `marketplace/` in this repository, published at
-[meith.dev/marketplace/v1.json](https://www.meith.dev/marketplace/v1.json).
+[meith.dev/marketplace/v1.json](https://www.meith.dev/marketplace/v1.json)
+and browsable, a page per listing, at
+[meith.dev/marketplace](https://www.meith.dev/marketplace).
 
 It is metadata only. **Nothing is fetched through this feed.** Installing
 a plugin or theme is still a package install, a line in
@@ -107,9 +109,8 @@ listing's screenshot from `marketplace/screenshots/` before running the
 generator, as [Delisting](#delisting) already asked for, does the right
 thing either way. Each screenshot is also checked as a file, not just as a
 name: its first 8 bytes must be a real PNG signature, and it must be under
-5,000,000 bytes — the same ceiling the screenshot proxy route applies to a
-screenshot fetched from a self-hosted mirror — so a `*.png` filename with
-some other payload behind it never reaches meith.dev's public assets.
+5,000,000 bytes, so a `*.png` filename with some other payload behind it
+never reaches meith.dev's public assets.
 
 ## The feed URL is a contract
 
@@ -118,57 +119,71 @@ against today's shape can keep reading it after the shape changes,
 because that change ships as `/marketplace/v2.json` alongside it rather
 than in place of it.
 
-## The board-side consumer: the Browse tab
+## Where a board operator browses it
+
+The catalog is browsed on the public marketplace at
+[meith.dev/marketplace](https://www.meith.dev/marketplace) — an index of
+every listing and a page per listing, built from this same feed at site
+build time (`apps/web/app/marketplace`), with the screenshots served from
+the site's own public assets. Each listing page carries the description,
+the screenshots, the compatibility it declares, and the exact steps to
+install it: `npm install <package>` and `community plugin:add <package>`
+for a plugin, or the install plus a `community.config.ts` line for a
+theme, and a link back here. It is a page to read, not a button that
+pretends to act, because nothing installs a package but the operator, in
+the board repository they own.
+
+Those steps name `npm`, never `pnpm add … --filter @meith/web`. What
+installs a listing is a *board*, and a board — scaffolded by
+`create-meith`, or graduated out of the stock image by `board:eject` — is
+a single `package.json` whose `forum-web` needs a hoisted `node_modules`,
+not this repository's pnpm workspace: the filter names a workspace that
+does not exist out there, and pnpm's default linker produces a tree the
+board cannot build from. The monorepo form belongs in [the plugin
+API](./plugins.md#writing-a-plugin), whose reader really is in a checkout
+of this repository.
+
+## The board-side consumer: update checks
+
+The board does not browse the catalog; that is what the public pages
+above are for. What the board itself does with the feed is narrower and
+specific to what it already runs — it tells the operator when something
+installed has a newer version worth moving to.
 
 `marketplace.feed_url` is a board setting (**Settings → Marketplace**),
 defaulting to the URL above, so a self-hosted mirror serving the same
 shape works as a drop-in replacement. **The board fetches it, never the
 member's or the operator's browser** — a `marketplace.refresh_catalog`
 task (`packages/tasks`) fetches, validates against the same shape this
-document describes, and caches the result once a day; the **Refresh**
-button on **Admin → Plugins → Browse** and **Admin → Themes → Browse**
-runs the identical pass on demand (`refreshCatalog` in
-`packages/marketplace`, called by both the task and the admin action —
-one implementation, not two). A board with no outbound network fails the
-fetch quietly — logged, not alarmed — and the Browse tab falls back to
-the installed list plus a plain note that the catalog could not be
-loaded; whatever it last fetched successfully keeps showing.
+document describes, and caches the result once a day; the **Check for
+updates** button on **Admin → Plugins** and **Admin → Themes** runs the
+identical pass on demand (`refreshCatalog` in `packages/marketplace`,
+called by both the task and the admin action — one implementation, not
+two). A board with no outbound network fails the fetch quietly — logged,
+not alarmed — and those pages carry a plain note that the marketplace
+could not be reached; whatever it last fetched successfully keeps
+informing the check.
 
-Each listing's status is computed against what this build actually
-contains — `Active`, `Installed — disabled`, `Not installed`, `Update
-available`, or `Incompatible` (its `apiVersion` or `meith` range fails
-against this build) — never against what installing it would do. An
-incompatible listing never gets install steps; a **Not installed** one
-gets the exact `npm install <package>` and `community plugin:add <package>`
-(or, for a theme, the install plus a `community.config.ts` line) this board
-would need, and a link to this document — not a button that pretends to
-act, because nothing here installs anything.
+For each installed plugin and theme, the board compares the version it
+runs against the version the feed lists (`computeListingStatus` in
+`packages/marketplace`) and, when the feed's is newer and compatible with
+this build, marks that row **Update available** with the version to move
+to on the **Plugins** or **Themes** page. A plugin declares its version in
+`definePlugin`; a theme declares its in `defineTheme`, so the check covers
+themes exactly as it covers plugins. A newer version that is incompatible
+— its `apiVersion` or `meith` range fails against this build — is not
+offered, because installing it would not work.
 
-Those steps name `npm`, never `pnpm add … --filter @meith/web`. What reads
-this screen is a *board*, and a board — scaffolded by `create-meith`, or
-graduated out of the stock image by `board:eject` — is a single
-`package.json` whose `forum-web` needs a hoisted `node_modules`, not this
-repository's pnpm workspace: the filter names a workspace that does not
-exist out there, and pnpm's default linker produces a tree the board cannot
-build from. On the stock image, which cannot install into itself at all,
-the steps describe the board you would graduate to — the same shape, so the
-same command. The monorepo form belongs in [the plugin
-API](./plugins.md#writing-a-plugin), whose reader really is in a checkout
-of this repository.
-
-Screenshots are proxied through the board's own `/admin/api/marketplace/screenshot`
-route rather than linked to the feed's host directly, so a member's — or
-an operator's — browser never makes a request to meith.dev or a mirror on
-its own. When the daily fetch finds a newer, compatible version of an
-installed plugin, administrators are notified through the board's own
-notification system (`marketplace.update_available`, a staff-audience
-kind next to `system.task_failed`) once per (plugin, version) ever —
+When the daily fetch first sees a newer, compatible version of an
+installed plugin or theme, administrators are notified through the board's
+own notification system (`marketplace.update_available`, a staff-audience
+kind next to `system.task_failed`) once per (key, version) ever —
 independent of whether that notification has since been read, which a
 bare dedupe key on the notification service is not.
 
-The daily task and an admin's **Refresh** click can land on the same
-newly-seen version at the same moment, so "once ever" is enforced by
-claiming the (plugin, version) marker atomically before the notification
+The daily task and an admin's **Check for updates** click can land on the
+same newly-seen version at the same moment, so "once ever" is enforced by
+claiming the (key, version) marker atomically before the notification
 is raised, not by checking it and writing it back afterwards — a
 `PostgresMarketplaceCacheRepository.claimNotified` call is a single
 `UPDATE ... WHERE NOT (already claimed)` against the one
@@ -177,13 +192,14 @@ behind the row lock and then sees the marker already there, or loses the
 `WHERE` race outright; either way it reports the claim as already taken
 and `refreshCatalog` skips the notification. The marker is written before
 the notification is raised, on purpose: if raising the notification then
-throws, this build has claimed a (plugin, version) it never actually
+throws, this build has claimed a (key, version) it never actually
 announced, and will not retry it — a missed notice, not a duplicate one.
-That is the accepted failure mode, because the Browse tab's status badge
-is computed fresh from the cached feed on every read, independent of the
-notified-marker set; a missed notification is recoverable by the operator
-simply visiting Browse, where a duplicate notification for the same
-version, ever, is the one thing this system promises not to do.
+That is the accepted failure mode, because the update line on the Plugins
+and Themes pages is computed fresh from the cached feed on every read,
+independent of the notified-marker set; a missed notification is
+recoverable by the operator simply visiting those pages, where a duplicate
+notification for the same version, ever, is the one thing this system
+promises not to do.
 
 See [The organiser's guide § When to hand it to somebody
 technical](../guides/community/organiser-guide.md#when-to-hand-it-to-somebody-technical) for
@@ -191,29 +207,24 @@ the operator-facing walkthrough.
 
 ### Outbound fetches do not follow redirects
 
-Both places the board fetches an untrusted host — the daily/on-demand
-catalog fetch (`packages/marketplace/src/fetch.ts`) and the screenshot
-proxy route (`apps/community/app/admin/api/marketplace/screenshot/route.ts`)
-— pass `redirect: 'manual'` and treat any non-2xx response, a redirect
-included, as a failed fetch, exactly like an unreachable host or a 503.
-Per-listing screenshot paths are already constrained to the feed's own
-origin (they are validated as site-relative and resolved against it, not
-trusted as full URLs), but the feed host itself is an admin-configured
-address (see below) that could answer with a `302` to a link-local or
-RFC1918 target; left unhandled, the screenshot proxy would follow it and
-stream whatever answered back to the admin's browser, and the daily fetch
-would follow it too before its own shape validation caught the mismatch —
-usable either way as a reachability or timing probe into a network the
-feed host itself cannot otherwise reach. Refusing to follow closes that
-without changing how a redirect-free feed or screenshot host behaves.
+The board's one outbound fetch to an untrusted host — the daily/on-demand
+catalog fetch (`packages/marketplace/src/fetch.ts`) — passes
+`redirect: 'manual'` and treats any non-2xx response, a redirect included,
+as a failed fetch, exactly like an unreachable host or a 503. The feed
+host is an admin-configured address (see below) that could answer with a
+`302` to a link-local or RFC1918 target; left unhandled, the fetch would
+follow it before its own shape validation caught the mismatch — usable as
+a reachability or timing probe into a network the feed host itself cannot
+otherwise reach. Refusing to follow closes that without changing how a
+redirect-free feed host behaves.
 
-Both fetches also refuse to buffer a hostile body whole before enforcing
-their size cap. A `Content-Length` over the cap is rejected before any
-read begins; otherwise the body is read through `readCappedBody`
-(`packages/marketplace/src/fetch.ts`, exported for the screenshot route to
-share), which walks the response stream chunk by chunk and cancels it the
-moment the running total passes the cap, rather than accumulating the
-whole thing first. The existing 10-second abort timeout is unchanged.
+The fetch also refuses to buffer a hostile body whole before enforcing its
+size cap. A `Content-Length` over the cap is rejected before any read
+begins; otherwise the body is read through `readCappedBody`
+(`packages/marketplace/src/fetch.ts`), which walks the response stream
+chunk by chunk and cancels it the moment the running total passes the cap,
+rather than accumulating the whole thing first. The existing 10-second
+abort timeout is unchanged.
 
 ### The feed URL is an admin-trusted setting
 
@@ -222,8 +233,8 @@ whole thing first. The existing 10-second abort timeout is unchanged.
 `http:` to a loopback address for local mirrors and tests. That
 deliberately permits internal addresses too: an admin can point it at an
 RFC1918 or link-local host, and the board will fetch it once a day and on
-demand from the Refresh button — a standing SSRF pivot into whatever
-network the board can reach.
+demand from the **Check for updates** button — a standing SSRF pivot into
+whatever network the board can reach.
 
 This is accepted, not fixed, on purpose. `marketplace.feed_url` sits at
 the same trust tier as every other admin-only setting a board already
@@ -238,8 +249,9 @@ no way to resolve the hostname — Node's `dns` module does not exist in a
 browser bundle, and `refine` here is not async. Moved server-side and made
 async, a resolved-IP deny list would still only run once, at save time; it
 would not stop a host that resolves to a public address at that moment and
-a private one when the daily task or the Refresh button actually fetches
-it (DNS rebinding), which is exactly the case a determined or compromised
+a private one when the daily task or the **Check for updates** button
+actually fetches it (DNS rebinding), which is exactly the case a
+determined or compromised
 admin session would use. Given that, the honest fix here is naming the
 trust boundary, not a check that would mostly look like one without being
 one.
@@ -247,8 +259,8 @@ one.
 ## Moving to a custom board
 
 The stock image is fixed at the version it was built at — nothing can be
-installed into a running container, which is exactly why a **Not
-installed** listing on a stock board's Browse tab links here rather than
+installed into a running container, which is exactly why the public
+marketplace shows a listing's install steps and links here rather than
 offering an install button. Because the stock image is itself built from
 a workspace shaped like [`create-meith`](../contributing/development.md#the-workspace)'s
 own scaffold (see [Self-hosting § Custom

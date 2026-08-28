@@ -2,7 +2,12 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { pluginDefinitionSites, ROOT, workspacePackages } from './workspace-packages.mjs'
+import {
+  pluginDefinitionSites,
+  ROOT,
+  themeDefinitionSites,
+  workspacePackages,
+} from './workspace-packages.mjs'
 
 const problems = []
 
@@ -75,7 +80,12 @@ const PLUGIN_MANIFESTS = (await pluginDefinitionSites()).map((file) => ({
   pattern: /\n\s*version: '([^']+)'/,
 }))
 
-for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS]) {
+const THEME_MANIFESTS = (await themeDefinitionSites()).map((file) => ({
+  file,
+  pattern: /\n\s*version: '([^']+)'/,
+}))
+
+for (const { file, pattern } of [...CONSTANTS, ...PLUGIN_MANIFESTS, ...THEME_MANIFESTS]) {
   const source = await readFile(join(ROOT, file), 'utf8')
   const match = pattern.exec(source)
   if (match === null) {
@@ -142,6 +152,7 @@ if (problems.length > 0) {
 console.log(
   `✓ release coherence: ${version} in the root manifest, ${byName.size} workspace manifests, ` +
     `${CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
+    `${THEME_MANIFESTS.length} theme manifests, ` +
     `${firstPartyListings} first-party marketplace listings, and the compose pin; ` +
     `${published.length} packages publish to npm and the set is closed`,
 )

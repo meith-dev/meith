@@ -9,6 +9,7 @@ import { DARK_TOKENS, LIGHT_TOKENS } from './tokens'
 describe('the iris theme', () => {
   it('satisfies the theme-kit contract', () => {
     expect(assertThemeContract(resolveTheme(irisTheme)).missing).toEqual([])
+    expect(irisTheme.version).toBe('0.1.0')
   })
 
   it('inherits from the default theme rather than copying it', () => {

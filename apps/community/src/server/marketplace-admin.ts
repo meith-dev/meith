@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { env, logger, readPluginEnv } from '@meith/core'
+import { env, logger } from '@meith/core'
 import { getDb, PostgresMarketplaceCacheRepository } from '@meith/db'
 import {
   type CachedMarketplace,
@@ -8,8 +8,6 @@ import {
   EMPTY_CACHE,
   type InstalledEntry,
   type ListingKind,
-  type ListingStatus,
-  type MarketplaceListing,
   MEITH_VERSION,
   PLUGIN_API_MAJOR,
   refreshCatalog,
@@ -25,28 +23,6 @@ const BUILD_INFO = {
   meithVersion: MEITH_VERSION,
   pluginApiMajor: PLUGIN_API_MAJOR,
   themeApiMajor: THEME_API_MAJOR,
-}
-
-function onStockImage(): boolean {
-  return readPluginEnv('BOARD_PLUGINS_MANIFEST') !== undefined
-}
-
-const MAX_NAME_LENGTH = 120
-const MAX_DESCRIPTION_LENGTH = 500
-const MAX_LICENCE_LENGTH = 100
-const MAX_REASON_LENGTH = 300
-
-function truncate(value: string, max: number): string {
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value
-}
-
-function safeHttpsUrl(value: string): string | null {
-  try {
-    const url = new URL(value)
-    return url.protocol === 'https:' ? url.toString() : null
-  } catch {
-    return null
-  }
 }
 
 export function marketplaceCacheRepository(): PostgresMarketplaceCacheRepository | null {
@@ -65,45 +41,6 @@ async function readCache(): Promise<CachedMarketplace> {
   }
 }
 
-export interface MarketplaceListingRow {
-  readonly key: string
-  readonly kind: ListingKind
-  readonly name: string
-  readonly description: string
-  readonly version: string
-  readonly package: string
-  readonly licence: string
-  readonly repositoryUrl: string | null
-  readonly screenshotHrefs: readonly string[]
-  readonly status: ListingStatus
-  readonly incompatibleReason: string | null
-  readonly installedVersion: string | null
-  readonly installSteps: readonly string[] | null
-  readonly onStockImage: boolean
-}
-
-export interface MarketplaceCatalogView {
-  readonly listings: readonly MarketplaceListingRow[]
-  readonly fetchedAt: Date | null
-  readonly hasEverFetched: boolean
-  readonly unreachable: boolean
-  readonly errorMessage: string | null
-}
-
-function installSteps(kind: ListingKind, packageName: string): readonly string[] {
-  return kind === 'plugin'
-    ? [
-        `npm install ${packageName}`,
-        `community plugin:add ${packageName}`,
-        'Rebuild and redeploy for it to take effect.',
-      ]
-    : [
-        `npm install ${packageName}`,
-        'Register it in community.config.ts (and set it as defaultTheme if it should be the board default).',
-        'Rebuild and redeploy for it to take effect.',
-      ]
-}
-
 async function pluginInstalledEntries(): Promise<ReadonlyMap<string, InstalledEntry>> {
   const map = new Map<string, InstalledEntry>()
   for (const plugin of configuredPlugins()) {
@@ -116,70 +53,38 @@ async function pluginInstalledEntries(): Promise<ReadonlyMap<string, InstalledEn
 async function themeInstalledEntries(): Promise<ReadonlyMap<string, InstalledEntry>> {
   const map = new Map<string, InstalledEntry>()
   for (const theme of await themeListing()) {
-    map.set(theme.key, { enabled: theme.enabled, version: null })
+    map.set(theme.key, { enabled: theme.enabled, version: theme.version })
   }
   return map
 }
 
-function screenshotHref(listingKey: string, index: number): string {
-  return `/admin/api/marketplace/screenshot?key=${encodeURIComponent(listingKey)}&index=${index}`
+export interface MarketplaceUpdatesView {
+  readonly latestByKey: ReadonlyMap<string, string>
+  readonly fetchedAt: Date | null
+  readonly hasEverFetched: boolean
+  readonly unreachable: boolean
 }
 
-function toRow(
-  listing: MarketplaceListing,
-  installed: InstalledEntry | null,
-): MarketplaceListingRow {
-  const { status, incompatibleReason } = computeListingStatus({ ...listing, installed }, BUILD_INFO)
-
-  return {
-    key: listing.key,
-    kind: listing.kind,
-    name: truncate(listing.name, MAX_NAME_LENGTH),
-    description: truncate(listing.description, MAX_DESCRIPTION_LENGTH),
-    version: listing.version,
-    package: listing.package,
-    licence: truncate(listing.licence, MAX_LICENCE_LENGTH),
-    repositoryUrl: safeHttpsUrl(listing.repository),
-    screenshotHrefs: listing.screenshots.map((_, index) => screenshotHref(listing.key, index)),
-    status,
-    incompatibleReason:
-      incompatibleReason === null ? null : truncate(incompatibleReason, MAX_REASON_LENGTH),
-    installedVersion: installed?.version ?? null,
-    installSteps: status === 'not-installed' ? installSteps(listing.kind, listing.package) : null,
-    onStockImage: status === 'not-installed' && onStockImage(),
-  }
-}
-
-export async function marketplaceCatalog(kind: ListingKind): Promise<MarketplaceCatalogView> {
+export async function marketplaceUpdates(kind: ListingKind): Promise<MarketplaceUpdatesView> {
   const cache = await readCache()
   const installed =
     kind === 'plugin' ? await pluginInstalledEntries() : await themeInstalledEntries()
 
-  const listings = (cache.feed?.listings ?? [])
-    .filter((listing) => listing.kind === kind)
-    .map((listing) => toRow(listing, installed.get(listing.key) ?? null))
+  const latestByKey = new Map<string, string>()
+  for (const listing of cache.feed?.listings ?? []) {
+    if (listing.kind !== kind) continue
+    const entry = installed.get(listing.key)
+    if (entry === undefined) continue
+
+    const { status } = computeListingStatus({ ...listing, installed: entry }, BUILD_INFO)
+    if (status === 'update-available') latestByKey.set(listing.key, listing.version)
+  }
 
   return {
-    listings,
+    latestByKey,
     fetchedAt: cache.fetchedAt,
     hasEverFetched: cache.fetchedAt !== null,
     unreachable: cache.error !== null,
-    errorMessage: cache.error,
-  }
-}
-
-export async function marketplaceScreenshotUrl(key: string, index: number): Promise<string | null> {
-  const cache = await readCache()
-  if (cache.feed === null || cache.sourceUrl === null) return null
-
-  const listing = cache.feed.listings.find((entry) => entry.key === key)
-  const path = listing?.screenshots[index]
-  if (path === undefined) return null
-
-  try {
-    return new URL(path, cache.sourceUrl).toString()
-  } catch {
-    return null
   }
 }
 
@@ -194,7 +99,10 @@ export async function refreshMarketplaceNow(): Promise<{
   }
 
   const url = (await getSettingsUncached()).get('marketplace.feed_url')
-  const pluginEntries = await pluginInstalledEntries()
+  const [pluginEntries, themeEntries] = await Promise.all([
+    pluginInstalledEntries(),
+    themeInstalledEntries(),
+  ])
   const notifications = notificationService()
 
   const result = await refreshCatalog({
@@ -202,7 +110,7 @@ export async function refreshMarketplaceNow(): Promise<{
     repository,
     build: BUILD_INFO,
     resolveInstalled: (listing) =>
-      listing.kind === 'plugin' ? (pluginEntries.get(listing.key) ?? null) : null,
+      (listing.kind === 'plugin' ? pluginEntries : themeEntries).get(listing.key) ?? null,
     notifyUpdate: async (listing) => {
       if (notifications === null) return
       await notifications.raiseForAdministrators({
@@ -213,7 +121,7 @@ export async function refreshMarketplaceNow(): Promise<{
           package: listing.package,
           version: listing.version,
         },
-        href: '/admin/plugins/browse',
+        href: listing.kind === 'plugin' ? '/admin/plugins' : '/admin/themes',
         dedupeKey: `marketplace.update_available:${listing.key}:${listing.version}`,
       })
     },

@@ -12,6 +12,8 @@ function oneMinorAhead(version: string): string {
 
 export const DUES_FIXTURE_VERSION = oneMinorAhead(MEITH_VERSION)
 
+export const DEFAULT_THEME_FIXTURE_VERSION = oneMinorAhead(MEITH_VERSION)
+
 const FEED = {
   schema: 'https://www.meith.dev/marketplace/v1.json#/schema',
   listings: [
@@ -35,7 +37,7 @@ const FEED = {
       name: 'Default',
       description: 'The default theme.',
       screenshots: ['/marketplace/screenshots/default-light.png'],
-      version: '0.16.0',
+      version: DEFAULT_THEME_FIXTURE_VERSION,
       apiVersion: 0,
       meith: '>=0.16 <1',
       repository: 'https://github.com/meith-dev/meith',

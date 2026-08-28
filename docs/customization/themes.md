@@ -10,7 +10,8 @@ every slot and every view model — is generated into
 ## Writing a theme
 
 A theme is a module that calls `defineTheme` with a key, a title, and a map
-from slot name to component. Nothing else.
+from slot name to component. An optional `version` — semver, like a
+plugin's — names the release it ships as.
 
 ```ts
 // themes/acme/src/theme.ts
@@ -22,6 +23,7 @@ import { PostBit } from "./slots/post-bit"
 export const acmeTheme = defineTheme({
   key: "acme",
   title: "Acme",
+  version: "1.0.0",
   extends: defaultTheme,
   slots: { PostBit },
 })
@@ -32,6 +34,13 @@ should be the board's default. A theme ships TypeScript source like every
 `@meith/*` package: a board build compiles every dependency in the board's
 own `package.json` from source, so an installed theme needs no build step of
 its own.
+
+The `version` is what lets a board notice a newer release: with it declared,
+the [marketplace](./marketplace.md#the-board-side-consumer-update-checks)
+compares the version the board runs against the version the feed lists and
+marks the theme **Update available** on **Admin → Themes** when a newer,
+compatible one exists — the same check a plugin's `version` drives. A theme
+without a `version` still works; it simply never reports an update.
 
 Three shipped themes are worth reading before you write one:
 

@@ -98,8 +98,19 @@ vi.mock('./notifications', () => ({
   notificationService: () => ({ raiseForAdministrators: notifyMock }),
 }))
 
-const { marketplaceCatalog, marketplaceScreenshotUrl, refreshMarketplaceNow, currentFeedUrl } =
-  await import('./marketplace-admin')
+const { marketplaceUpdates, refreshMarketplaceNow, currentFeedUrl } = await import(
+  './marketplace-admin'
+)
+
+function fetched(listings: unknown[]) {
+  return {
+    feed: { schema: 'x', listings },
+    sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
+    fetchedAt: new Date(),
+    error: null,
+    errorAt: null,
+  }
+}
 
 beforeEach(() => {
   dataSource.current = 'postgres'
@@ -111,10 +122,12 @@ beforeEach(() => {
   notifyMock.mockReset()
 })
 
-describe('marketplaceCatalog', () => {
+describe('marketplaceUpdates', () => {
   it('reports "not fetched yet" before any fetch has ever succeeded', async () => {
-    const result = await marketplaceCatalog('plugin')
-    expect(result).toMatchObject({ hasEverFetched: false, unreachable: false, listings: [] })
+    const result = await marketplaceUpdates('plugin')
+    expect(result.hasEverFetched).toBe(false)
+    expect(result.unreachable).toBe(false)
+    expect(result.latestByKey.size).toBe(0)
   })
 
   it('reports unreachable when the cache carries an error', async () => {
@@ -126,289 +139,63 @@ describe('marketplaceCatalog', () => {
       errorAt: '2026-01-01T00:00:00Z',
     }
 
-    const result = await marketplaceCatalog('plugin')
+    const result = await marketplaceUpdates('plugin')
     expect(result.unreachable).toBe(true)
-    expect(result.errorMessage).toBe('could not reach the host')
   })
 
-  it('filters listings by kind', async () => {
-    cache.current = {
-      feed: {
-        schema: 'x',
-        listings: [pluginListing(), themeListingEntry()],
-      },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const plugins = await marketplaceCatalog('plugin')
-    expect(plugins.listings.map((row) => row.key)).toEqual(['dues'])
-
-    const themeRows = await marketplaceCatalog('theme')
-    expect(themeRows.listings.map((row) => row.key)).toEqual(['clubhouse'])
-  })
-
-  it('reports "active" for an installed, enabled plugin at the listed version', async () => {
+  it('names a plugin whose feed version is newer than what this board runs', async () => {
     configuredPlugins.current = [
       { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
     ]
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
+    cache.current = fetched([pluginListing({ version: '0.17.0' })])
 
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.status).toBe('active')
-    expect(row?.installedVersion).toBe('0.16.0')
-    expect(row?.installSteps).toBeNull()
+    const result = await marketplaceUpdates('plugin')
+    expect(result.latestByKey.get('dues')).toBe('0.17.0')
   })
 
-  it('reports "installed-disabled" for a disabled plugin', async () => {
+  it('offers no update when the installed plugin is already at the listed version', async () => {
     configuredPlugins.current = [
-      { key: 'dues', enabled: false, hasDefinition: true, name: 'Dues', version: '0.16.0' },
+      { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
     ]
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
+    cache.current = fetched([pluginListing({ version: '0.16.0' })])
 
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.status).toBe('installed-disabled')
+    const result = await marketplaceUpdates('plugin')
+    expect(result.latestByKey.size).toBe(0)
   })
 
-  it('reports "not-installed" with install steps for a plugin this board never registered', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
+  it('offers no update for a newer but incompatible version', async () => {
+    configuredPlugins.current = [
+      { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
+    ]
+    cache.current = fetched([pluginListing({ version: '0.17.0', apiVersion: 9 })])
 
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.status).toBe('not-installed')
-    expect(row?.installSteps).toEqual([
-      'npm install @meith/plugin-dues',
-      'community plugin:add @meith/plugin-dues',
-      'Rebuild and redeploy for it to take effect.',
+    const result = await marketplaceUpdates('plugin')
+    expect(result.latestByKey.size).toBe(0)
+  })
+
+  it('names a theme update using the version tracked in the theme registry', async () => {
+    themes.current = [{ key: 'clubhouse', enabled: true, version: '0.16.0' }]
+    cache.current = fetched([themeListingEntry({ version: '0.17.0' })])
+
+    const result = await marketplaceUpdates('theme')
+    expect(result.latestByKey.get('clubhouse')).toBe('0.17.0')
+  })
+
+  it('ignores listings of the other kind', async () => {
+    configuredPlugins.current = [
+      { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
+    ]
+    themes.current = [{ key: 'clubhouse', enabled: true, version: '0.16.0' }]
+    cache.current = fetched([
+      pluginListing({ version: '0.17.0' }),
+      themeListingEntry({ version: '0.17.0' }),
     ])
-    expect(row?.onStockImage).toBe(false)
-  })
 
-  it('names npm, not a pnpm workspace filter — the board reading this screen is a single package (MEI-106)', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing(), themeListingEntry()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
+    const plugins = await marketplaceUpdates('plugin')
+    expect([...plugins.latestByKey.keys()]).toEqual(['dues'])
 
-    const steps = [
-      ...((await marketplaceCatalog('plugin')).listings[0]?.installSteps ?? []),
-      ...((await marketplaceCatalog('theme')).listings[0]?.installSteps ?? []),
-    ]
-
-    expect(steps.length).toBeGreaterThan(0)
-    for (const step of steps) {
-      expect(step).not.toContain('--filter')
-      expect(step).not.toMatch(/^pnpm /)
-    }
-  })
-
-  it('still names npm on the stock image, where the steps describe the board being graduated to', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-    process.env.BOARD_PLUGINS_MANIFEST = '/app/board.plugins.json'
-    try {
-      const [row] = (await marketplaceCatalog('plugin')).listings
-      expect(row?.onStockImage).toBe(true)
-      expect(row?.installSteps?.[0]).toBe('npm install @meith/plugin-dues')
-    } finally {
-      delete process.env.BOARD_PLUGINS_MANIFEST
-    }
-  })
-
-  it('flags "not-installed" as onStockImage when BOARD_PLUGINS_MANIFEST is set — docker/Dockerfile\'s own signal', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-    process.env.BOARD_PLUGINS_MANIFEST = '/app/board.plugins.json'
-    try {
-      const [row] = (await marketplaceCatalog('plugin')).listings
-      expect(row?.onStockImage).toBe(true)
-    } finally {
-      delete process.env.BOARD_PLUGINS_MANIFEST
-    }
-  })
-
-  it('never flags an installed, active listing as onStockImage', async () => {
-    configuredPlugins.current = [
-      { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
-    ]
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-    process.env.BOARD_PLUGINS_MANIFEST = '/app/board.plugins.json'
-    try {
-      const [row] = (await marketplaceCatalog('plugin')).listings
-      expect(row?.status).toBe('active')
-      expect(row?.onStockImage).toBe(false)
-    } finally {
-      delete process.env.BOARD_PLUGINS_MANIFEST
-    }
-  })
-
-  it('reports "update-available" when the feed lists a newer, compatible version', async () => {
-    configuredPlugins.current = [
-      { key: 'dues', enabled: true, hasDefinition: true, name: 'Dues', version: '0.16.0' },
-    ]
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing({ version: '0.17.0' })] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.status).toBe('update-available')
-  })
-
-  it('reports "incompatible" and explains why, without offering install steps', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing({ apiVersion: 9 })] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.status).toBe('incompatible')
-    expect(row?.incompatibleReason).not.toBeNull()
-    expect(row?.installSteps).toBeNull()
-  })
-
-  it('caps an incompatibility reason built from an untrusted, unbounded "meith" range', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing({ meith: `>=${'9'.repeat(10_000)}` })] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.status).toBe('incompatible')
-    expect(row?.incompatibleReason?.length).toBeLessThan(400)
-  })
-
-  it('reports "active" for an enabled, installed theme', async () => {
-    themes.current = [{ key: 'clubhouse', enabled: true }]
-    cache.current = {
-      feed: { schema: 'x', listings: [themeListingEntry()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('theme')).listings
-    expect(row?.status).toBe('active')
-  })
-
-  it('caps a description far longer than the feed schema requires', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing({ description: 'x'.repeat(10_000) })] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.description.length).toBeLessThan(600)
-  })
-
-  it('refuses to render a non-https repository as a link', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing({ repository: 'javascript:alert(1)' })] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.repositoryUrl).toBeNull()
-  })
-
-  it('builds same-origin screenshot hrefs rather than the feed host directly', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    const [row] = (await marketplaceCatalog('plugin')).listings
-    expect(row?.screenshotHrefs).toEqual(['/admin/api/marketplace/screenshot?key=dues&index=0'])
-  })
-})
-
-describe('marketplaceScreenshotUrl', () => {
-  it('resolves a screenshot path against the feed source, not the current setting', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://mirror.example/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    expect(await marketplaceScreenshotUrl('dues', 0)).toBe(
-      'https://mirror.example/marketplace/screenshots/dues-light.png',
-    )
-  })
-
-  it('returns null for an unknown listing or an out-of-range index', async () => {
-    cache.current = {
-      feed: { schema: 'x', listings: [pluginListing()] },
-      sourceUrl: 'https://www.meith.dev/marketplace/v1.json',
-      fetchedAt: new Date(),
-      error: null,
-      errorAt: null,
-    }
-
-    expect(await marketplaceScreenshotUrl('nope', 0)).toBeNull()
-    expect(await marketplaceScreenshotUrl('dues', 5)).toBeNull()
-  })
-
-  it('returns null before anything has ever been cached', async () => {
-    expect(await marketplaceScreenshotUrl('dues', 0)).toBeNull()
+    const themeUpdates = await marketplaceUpdates('theme')
+    expect([...themeUpdates.latestByKey.keys()]).toEqual(['clubhouse'])
   })
 })
 
