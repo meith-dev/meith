@@ -347,24 +347,10 @@ jobs:
             --notes-file /tmp/notes-header.md \
             --generate-notes
 
-  # The deploy templates people actually clone live in repositories of their
-  # own — meith-dev/template (the "Use this template" / self-host shape) and
-  # meith-dev/vercel-template (the Deploy Button). templates/self-host and
-  # templates/vercel here are their source of truth; this job mirrors each into
-  # its repository and tags it, so a release propagates the pins release-bump
-  # just moved. Runs after `publish`, so a release that did not ship never
-  # pushes templates. Without TEMPLATE_SYNC_TOKEN the step is a logged no-op —
-  # see docs/contributing/release.md, "Deploy template repositories".
   publish-templates:
     name: Sync the deploy templates to their repositories
     needs: publish
     runs-on: ubuntu-24.04
-    # Auth is a GitHub App, not a token that expires: only the App's id and
-    # private key are stored (neither expires), and the installation token
-    # minted below lasts about an hour, so there is nothing to rotate on a
-    # schedule. HAS_APP is false until the two secrets exist — the token step
-    # is then skipped, templates:sync sees no token, and it no-ops with a
-    # warning rather than failing the release.
     env:
       HAS_APP: ${{ secrets.TEMPLATE_SYNC_APP_ID != '' && secrets.TEMPLATE_SYNC_APP_PRIVATE_KEY != '' }}
     steps:
