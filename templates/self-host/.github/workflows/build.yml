@@ -1,0 +1,74 @@
+# Builds this board's image and pushes it to your own GHCR, on every push to
+# main. No secret to configure: GITHUB_TOKEN is provided automatically by
+# GitHub Actions and is enough to push to ghcr.io/<this repository>. See
+# README.md for the rest of the three-step deploy story.
+name: Build and push
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: Build and push the board image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR requires a lower-case image name, and neither your GitHub
+      # username nor this repository's name is guaranteed to be.
+      - name: Build and push
+        run: |
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']")
+          if ! echo "$MEITH_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::@meith/web in package.json is '$MEITH_VERSION', not an exact X.Y.Z version — that is not a legal Docker image tag. Upgrade with \`npm install --save-exact\` (see README.md, Upgrading) so this dependency always resolves to one."
+            exit 1
+          fi
+          docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      - name: Summary
+        run: |
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          PKG_NAME=$(echo "$REPO_LOWER" | cut -d/ -f2)
+          PKG_URL="https://github.com/$REPO_LOWER/pkgs/container/$PKG_NAME"
+          {
+            echo "## Deploy this image"
+            echo
+            echo "Either of these goes in the MEITH_IMAGE variable on the Coolify"
+            echo "resource:"
+            echo
+            echo "    $IMAGE:${{ github.sha }}"
+            echo
+            echo "    $IMAGE:latest"
+            echo
+            echo "The first names this run's build and nothing else, ever: nothing"
+            echo "moves under you, and an upgrade is you editing this variable."
+            echo
+            echo "The second follows main — every push rebuilds it and Coolify's next"
+            echo "Redeploy picks that build up, a commit still mid-feature included."
+            echo "That is the trade the quickstart takes while a board is young and"
+            echo "still gaining plugins: installing one is a push and a Redeploy, with"
+            echo "nothing on the resource to edit."
+            echo
+            echo "## One-time: check the package is public"
+            echo
+            echo "Coolify can only pull a public package, and this one may already be"
+            echo "one — a build from a public repository usually lands public. Open"
+            echo "$PKG_URL: if it does not already say Public, change it there —"
+            echo "**Package settings** → **Change visibility** → **Public**."
+          } >> "$GITHUB_STEP_SUMMARY"

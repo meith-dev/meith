@@ -1,0 +1,69 @@
+# syntax=docker/dockerfile:1.7-labs
+# check=skip=InvalidDefaultArgInFrom
+# meith-board's deploy image.
+#
+# FROM the published framework base image — deps + framework layers only,
+# locked to this exact release (see the meith repository's
+# docs/getting-started/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
+# it is and is not). This board's own Dockerfile only ever installs its own
+# delta on top of it — a new plugin's own dependency, typically nothing more
+# — which is what keeps a rebuild after `npm install some-plugin` a matter
+# of minutes rather than a cold toolchain build.
+#
+# Two stages, not three: unlike the official image, this does not prune down
+# to Next's own standalone output. The migrate role below runs `community
+# migrate`, and `community` materializes @meith/cli's sources and runs them
+# with tsx at the moment it runs (see the meith repository's
+# docs/contributing/development.md, "Consuming the board from a workspace") — it needs
+# the full, un-pruned node_modules tree this board installed, not what Next
+# traced as reachable from the web server alone. The tick itself is driven
+# by docker-compose.yaml's own `worker` service — a lightweight loop against
+# /api/system/tick, not a compiled worker process, because @meith/worker is
+# not published (see the meith repository's docs/contributing/release.md).
+ARG MEITH_VERSION
+FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps
+WORKDIR /board
+
+# This board's own manifest, cached independently of its source — editing
+# community.config.ts should not re-run npm install. The base image above
+# already carries node_modules for @meith/web, @meith/cli and
+# @meith/theme-default at this exact version, so installing this file on top
+# of it only fetches what changed: a plugin newly added to `dependencies`,
+# typically nothing at all.
+COPY package.json ./
+RUN npm install
+
+FROM deps AS runtime
+WORKDIR /board
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# DATA_SOURCE is scoped to this one RUN, not declared with ENV — an ENV
+# persists into every container started from this image afterward, and this
+# Dockerfile has no later stage to reset it in (see "Two stages, not three"
+# above). The build needs neither a database nor a production secret (see
+# the meith repository's docs/contributing/development.md, "Fixture mode"), but baking
+# DATA_SOURCE=fixture into the image itself would silently force fixture
+# mode — and with it the in-memory queue driver — at runtime too, no matter
+# what DATABASE_URL an operator supplies to `docker run`.
+RUN DATA_SOURCE=fixture npx forum-web build
+
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+EXPOSE 3000
+
+# node:alpine already carries a non-root "node" user; the board's own files
+# are copied in as root above, so they need handing over before this drops
+# privilege.
+RUN chown -R node:node /board
+USER node
+
+COPY --chown=node:node docker-entrypoint.sh docker-healthcheck.sh ./
+RUN chmod +x docker-entrypoint.sh docker-healthcheck.sh
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["./docker-healthcheck.sh"]
+
+ENTRYPOINT ["./docker-entrypoint.sh"]

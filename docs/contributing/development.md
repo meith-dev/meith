@@ -516,8 +516,8 @@ and the same tree's `dev`, `build` and `start` scripts carry it too, so a board
 built locally and a board built on the platform materialize to the same place
 rather than quietly disagreeing. The self-host target is untouched: its scripts,
 its `.meith/app` artefact and its standalone tree are exactly what they were.
-`pnpm vercel-template:gen:check` ties the generated `templates/vercel/` tree back
-to `scaffold()`, and `scripts/workspace-check.mjs` ties `scaffold()`'s
+`pnpm templates:gen:check` ties the generated `templates/self-host/` and
+`templates/vercel/` trees back to `scaffold()`, and `scripts/workspace-check.mjs` ties `scaffold()`'s
 `NEXT_VERSION` back to `@meith/web`'s — so the `next` version the deploy form
 installs cannot drift from the one the board is built with, in either link.
 
@@ -547,7 +547,7 @@ and the verify/CI parity check, the root and release checks, the guards and
 their probes, the message-catalog check, the slot checks, the generated-document
 and documentation checks (`theme:docs`, `plugin:docs`, `board:gen`,
 `hooks:wired`, `api:docs`, `perf:docs`, `docs:index`, `docs:links`,
-`site:docs`, `marketplace:gen`, `board-installer:gen`, `vercel-template:gen`,
+`site:docs`, `marketplace:gen`, `board-installer:gen`, `templates:gen`,
 `extension:gen`), lint, dependency-cruiser, all three typecheck projects, and
 the full test suite.
 
@@ -1088,7 +1088,7 @@ repository that nothing else reads:
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](../customization/plugins.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
-| `marketplace:gen:check`, `board-installer:gen:check`, `vercel-template:gen:check` | A published artifact generated from something in this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and `templates/vercel/`, which is generated from `create-meith`'s `scaffold()` and is what people actually deploy from. |
+| `marketplace:gen:check`, `board-installer:gen:check`, `templates:gen:check` | A published artifact generated from something in this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and `templates/self-host/` and `templates/vercel/`, which are generated from `create-meith`'s `scaffold()` and are what people actually deploy from. |
 | `extension:gen:check` | `create-meith`'s plugin and theme scaffold templates out of step with `examples/hello-plugin` and `examples/iris-theme`, which they are generated from — see [the plugin API](../customization/plugins.md#writing-a-plugin). The generated `extension-templates.ts` holds those sources as string data, so `slots:check` skips it by name: the theme manifest it appears to contain is a template, not a theme of this repository. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 | `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](#documentation-links). |

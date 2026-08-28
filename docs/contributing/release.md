@@ -152,7 +152,8 @@ divide into two kinds, and the difference decides how each is kept honest:
 | `marketplace/listings/*.json` whose `package` names a workspace package | The first-party listings — see [the marketplace](../customization/marketplace.md#what-is-in-a-listing) | `release:check`, over **every** listing in the directory |
 | `docs/reference/openapi.json` | `info.version` of the generated API reference | `api:docs:check` |
 | `apps/web/public/create-board.sh` | The installer [the Quickstart](../getting-started/deployment/coolify.md#2-create-your-board) points operators at, so nobody needs Node.js on their own machine | `board-installer:gen:check` |
-| `templates/vercel` | The generated Vercel deploy template | `vercel-template:gen:check` |
+| `templates/self-host` | The generated self-host deploy template (Coolify and Docker Compose) | `templates:gen:check` |
+| `templates/vercel` | The generated Vercel deploy template | `templates:gen:check` |
 | `apps/web/public/marketplace/v1.json` | The merged marketplace feed, a mirror of the listings above | `marketplace:gen:check` |
 
 The first group is compared textually by `pnpm release:check`. The second is
