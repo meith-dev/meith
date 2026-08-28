@@ -23,6 +23,13 @@ describe('what the generator asks the scaffold for', () => {
     expect(TEMPLATES.map((entry) => entry.dir)).toEqual(['templates/self-host', 'templates/vercel'])
   })
 
+  it('names the repository each target is published to', () => {
+    expect(TEMPLATES.map((entry) => entry.repo)).toEqual([
+      'meith-dev/template',
+      'meith-dev/vercel-template',
+    ])
+  })
+
   it('asks for each target under a fixed board name', () => {
     for (const { target } of TEMPLATES) {
       const options = scaffoldOptionsFor(target, '1.2.3')

@@ -346,3 +346,28 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --notes-file /tmp/notes-header.md \
             --generate-notes
+
+  # The deploy templates people actually clone live in repositories of their
+  # own — meith-dev/template (the "Use this template" / self-host shape) and
+  # meith-dev/vercel-template (the Deploy Button). templates/self-host and
+  # templates/vercel here are their source of truth; this job mirrors each into
+  # its repository and tags it, so a release propagates the pins release-bump
+  # just moved. Runs after `publish`, so a release that did not ship never
+  # pushes templates. Without TEMPLATE_SYNC_TOKEN the step is a logged no-op —
+  # see docs/contributing/release.md, "Deploy template repositories".
+  publish-templates:
+    name: Sync the deploy templates to their repositories
+    needs: publish
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Mirror the templates into their repositories and tag them
+        env:
+          TEMPLATE_SYNC_TOKEN: ${{ secrets.TEMPLATE_SYNC_TOKEN }}
+        run: pnpm templates:sync

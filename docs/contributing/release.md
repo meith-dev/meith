@@ -393,6 +393,44 @@ Two consequences worth knowing:
   attempt it: a name the registry has never seen is skipped with a notice, and
   the rest of the release goes out.
 
+## Deploy template repositories
+
+Two deploy routes start from a repository the operator clones rather than from
+this one: **[meith-dev/template](https://github.com/meith-dev/template)** is the
+"Use this template" repository behind the self-host Quickstart (Coolify and
+Docker Compose both), and
+**[meith-dev/vercel-template](https://github.com/meith-dev/vercel-template)** is
+what the Vercel Deploy Button clones. Their contents are *generated*, not
+hand-written: `templates/self-host/` and `templates/vercel/` here are the source
+of truth, written by `pnpm templates:gen` from `create-meith`'s `scaffold()` and
+held current by `pnpm templates:gen:check` (part of `pnpm verify`).
+
+The `publish-templates` job in `release.yml` mirrors each committed tree into
+its repository on every release: it clones the repository, makes its tracked
+tree match `templates/<target>/` exactly — adding, updating and **deleting** so
+the two agree file for file — commits `chore(release): sync template to vX.Y.Z`
+when anything changed, and tags the repository `vX.Y.Z`. It runs after
+`publish`, so a release that did not ship never pushes a template, and it is
+idempotent: a re-run with nothing to change makes no commit.
+
+The tracked content of each repository is **owned entirely** by its
+`templates/<target>/` source — anything the source does not contain, the mirror
+removes. A file a repository needs, such as a `LICENSE`, belongs in the scaffold
+so the source carries it, never added to the repository by hand. `pnpm
+templates:sync:check` verifies in CI that the repositories still match the
+generated trees, so drift is a red build rather than a stale board a new adopter
+clones.
+
+**The push credential.** `GITHUB_TOKEN` grants write to this repository only, so
+the cross-repository push uses a separate secret, `TEMPLATE_SYNC_TOKEN`: a
+fine-grained personal access token, or a GitHub App installation token, with
+**contents: write** on both `meith-dev/template` and `meith-dev/vercel-template`,
+stored as an Actions secret here. Without it the job logs a warning and does
+nothing, so releases still succeed — add the secret before the first release
+that should propagate templates. The repositories are created once, up front,
+with `meith-dev/template` marked as a *template repository* in its settings so
+the "Use this template" button appears.
+
 ## How each route consumes a release
 
 | Route | What it tracks | How an upgrade arrives |

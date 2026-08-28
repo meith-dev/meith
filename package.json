@@ -56,6 +56,7 @@
     "board-installer:gen:check": "tsx scripts/board-installer-gen.mts --check",
     "templates:gen": "tsx scripts/templates-gen.mts",
     "templates:gen:check": "tsx scripts/templates-gen.mts --check",
+    "templates:sync": "tsx scripts/publish-templates.mts",
     "extension:gen": "tsx scripts/extension-scaffold-gen.mts",
     "extension:gen:check": "tsx scripts/extension-scaffold-gen.mts --check",
     "board:workspace:smoke": "tsx scripts/board-workspace-smoke.mts",

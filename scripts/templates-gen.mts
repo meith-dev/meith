@@ -16,11 +16,12 @@ export const TEMPLATE_BOARD_NAME = 'meith-board'
 export interface TemplateTarget {
   readonly target: ScaffoldTarget
   readonly dir: string
+  readonly repo: string
 }
 
 export const TEMPLATES: readonly TemplateTarget[] = [
-  { target: 'self-host', dir: 'templates/self-host' },
-  { target: 'vercel', dir: 'templates/vercel' },
+  { target: 'self-host', dir: 'templates/self-host', repo: 'meith-dev/template' },
+  { target: 'vercel', dir: 'templates/vercel', repo: 'meith-dev/vercel-template' },
 ]
 
 export function scaffoldOptionsFor(target: ScaffoldTarget, version: string): ScaffoldOptions {
