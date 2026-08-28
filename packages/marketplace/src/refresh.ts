@@ -48,8 +48,6 @@ export async function refreshCatalog(input: RefreshCatalogInput): Promise<Refres
 
   let notified = 0
   for (const listing of validated.feed.listings) {
-    if (listing.kind !== 'plugin') continue
-
     const installed = input.resolveInstalled(listing)
     const result = computeListingStatus({ ...listing, installed }, input.build)
     if (result.status !== 'update-available') continue

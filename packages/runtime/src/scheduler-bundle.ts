@@ -55,7 +55,7 @@ import { SEED_GROUP } from './groups'
 import { resolveMailBrand, type ThemeTokenRegistry } from './mail-brand'
 import { pluginMarkdownPipeline, sendAudited } from './plugin-rendering'
 import { pluginTasks } from './plugin-tasks'
-import { defaultPromotionGuards, taskWorkers } from './task-workers'
+import { defaultPromotionGuards, type InstalledThemeVersion, taskWorkers } from './task-workers'
 import { visibleForumSource } from './visible-forums'
 
 export interface SchedulerBundle {
@@ -73,6 +73,7 @@ export function buildSchedulerBundle(deps: {
   readonly files?: FileStore
   readonly images?: ImageProcessor
   readonly plugins?: readonly PluginDefinition[]
+  readonly themeVersions?: readonly InstalledThemeVersion[]
   readonly translatorForLocale?: NotificationTranslatorResolver
 }): SchedulerBundle {
   const db = deps.db ?? getDb()
@@ -291,6 +292,7 @@ export function buildSchedulerBundle(deps: {
           marketplace: {
             repository: new PostgresMarketplaceCacheRepository(db),
             plugins,
+            themes: deps.themeVersions ?? [],
             feedUrl: () => marketplaceFeedUrl(db),
             async notifyUpdate(listing) {
               await new NotificationService({ notifications }).raiseForAdministrators({
