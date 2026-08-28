@@ -225,6 +225,23 @@ node_modules
 .DS_Store
 MEITH_SCAFFOLD_EOF
 
+mkdir -p "$(dirname -- "$BOARD_NAME/.github/dependabot.yml")"
+cat > "$BOARD_NAME/.github/dependabot.yml" <<'MEITH_SCAFFOLD_EOF'
+# Keeps this board's GitHub Actions current: one weekly pull request that
+# bumps the actions pinned in .github/workflows. Upgrading Meith itself is
+# separate and deliberate — see README.md, "Upgrading" — because the board's
+# `next` pin has to move together with `@meith/web` rather than on its own.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+MEITH_SCAFFOLD_EOF
+
 mkdir -p "$(dirname -- "$BOARD_NAME/Dockerfile")"
 cat > "$BOARD_NAME/Dockerfile" <<'MEITH_SCAFFOLD_EOF'
 # syntax=docker/dockerfile:1.7-labs
@@ -672,6 +689,13 @@ while everything reading `package.json` sees the other. Reading the version
 out of the freshly installed `@meith/web` is what keeps the two the same
 without anybody having to know the number.
 
+This upgrade is deliberate and manual for that reason: `next` and
+`@meith/web` move together or not at all. What *is* kept current for you is
+this repository's own GitHub Actions — `.github/dependabot.yml` opens a
+weekly pull request bumping the actions pinned in
+`.github/workflows/build.yml`, which is a safe, independent update the two
+commands above never touch.
+
 That `package.json` change is the whole pin: `Dockerfile`'s own
 `FROM` line takes the version as a build argument, and
 `.github/workflows/build.yml` reads it straight out of `package.json`'s
@@ -704,7 +728,7 @@ if command -v git >/dev/null 2>&1 \
   GIT_READY=1
 fi
 
-echo "Created $BOARD_NAME — 14 files."
+echo "Created $BOARD_NAME — 15 files."
 echo
 echo "  cd $BOARD_NAME"
 echo "  npm install"
