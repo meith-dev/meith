@@ -1093,6 +1093,16 @@ repository that nothing else reads:
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 | `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](#documentation-links). |
 
+One check runs in CI but deliberately **not** in `pnpm verify`:
+`templates:sync:check` clones the two deploy-template repositories
+(`meith-dev/template` and `meith-dev/vercel-template`) and diffs each against
+its generated `templates/<target>/` tree. It needs the network, which `verify`
+does not, so it lives in its own CI job rather than in the offline gate. It is
+advisory until a release has synced both repositories for the first time — a
+repository that does not exist yet is skipped with a warning — after which the
+job drops `continue-on-error` and drift becomes blocking. See
+[Releasing](./release.md), "Deploy template repositories", for what it guards.
+
 Three of those gates read the working tree rather than the index, so a
 directory a tool leaves behind is a directory they scan. `root:check` walks
 the root and tolerates an unregistered entry only when git ignores that entry

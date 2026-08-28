@@ -1049,3 +1049,25 @@ jobs:
           test -n "$thread" || { echo "::error::the seeded start-here thread is gone"; exit 1; }
           curl -fsS "http://127.0.0.1:3000/thread/$thread" | grep -qF 'Start here' \
             || { echo "::error::the seeded thread did not render after the restore"; tail -50 /tmp/dev.log; exit 1; }
+
+  # The repositories people deploy from (meith-dev/template, meith-dev/vercel-template)
+  # must match the generated templates/* trees. This clones each and diffs it —
+  # unlike templates:gen:check (offline, in `pnpm verify`), it needs network, so it
+  # lives here rather than in verify. It is advisory until both repositories have
+  # been synced by a release for the first time; a repository that does not exist
+  # yet is skipped with a warning, so this is green until then. Drop
+  # continue-on-error to make drift blocking once the repositories are live — see
+  # docs/contributing/release.md, "Deploy template repositories".
+  templates-in-sync:
+    name: Deploy template repositories are in sync
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm templates:sync:check
