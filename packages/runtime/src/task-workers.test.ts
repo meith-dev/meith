@@ -351,6 +351,7 @@ describe('the marketplace catalog refresh', () => {
       marketplace: {
         repository,
         plugins: [{ key: 'dues', name: 'Dues', version: '0.16.0' }] as never,
+        themes: [],
         feedUrl: async () => 'https://example.com/v1.json',
         notifyUpdate: vi.fn(),
       },
@@ -383,6 +384,7 @@ describe('the marketplace catalog refresh', () => {
       marketplace: {
         repository,
         plugins: [{ key: 'dues', name: 'Dues', version: '0.16.0' }] as never,
+        themes: [],
         feedUrl: async () => 'https://example.com/v1.json',
         notifyUpdate,
       },
@@ -394,6 +396,51 @@ describe('the marketplace catalog refresh', () => {
     expect(notifyUpdate).toHaveBeenCalledTimes(1)
     expect(notifyUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'dues', version: '0.17.0' }),
+    )
+
+    vi.unstubAllGlobals()
+  })
+
+  it('notifies for an installed theme whose feed version is newer, using its tracked version', async () => {
+    const repository = fakeRepository()
+    const themeListing = () =>
+      listing({
+        key: 'midnight',
+        kind: 'theme',
+        package: '@meith/theme-midnight',
+        name: 'Midnight',
+        version: '0.17.0',
+      })
+    const fetchImpl = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(feed([themeListing()])))
+          controller.close()
+        },
+      }),
+    })) as unknown as typeof fetch
+    vi.stubGlobal('fetch', fetchImpl)
+
+    const notifyUpdate = vi.fn().mockResolvedValue(undefined)
+    const workers = taskWorkers({
+      ...base,
+      marketplace: {
+        repository,
+        plugins: [],
+        themes: [{ key: 'midnight', version: '0.16.0' }],
+        feedUrl: async () => 'https://example.com/v1.json',
+        notifyUpdate,
+      },
+    })
+
+    await workers.refreshMarketplaceCatalog!()
+
+    expect(notifyUpdate).toHaveBeenCalledTimes(1)
+    expect(notifyUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'midnight', version: '0.17.0' }),
     )
 
     vi.unstubAllGlobals()

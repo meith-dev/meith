@@ -22,6 +22,7 @@ export type PartialSlotCopyBuilders = { readonly [K in SlotName]?: SlotCopyBuild
 export interface ThemeDefinition {
   readonly key: string
   readonly title: string
+  readonly version?: string | undefined
   readonly extends?: ThemeDefinition | undefined
   readonly slots: PartialSlotImplementations
   readonly copy?: PartialSlotCopyBuilders | undefined
@@ -54,6 +55,13 @@ export function defineTheme(theme: ThemeDefinition): ThemeDefinition {
   }
   if (theme.title.trim() === '') {
     throw new Error(`defineTheme: theme "${theme.key}" must have a title.`)
+  }
+
+  if (theme.version !== undefined && !/^\d+\.\d+\.\d+$/.test(theme.version)) {
+    throw new Error(
+      `defineTheme: theme "${theme.key}" version must be semver (major.minor.patch), ` +
+        `got "${theme.version}".`,
+    )
   }
 
   for (const [name, component] of Object.entries(theme.slots)) {

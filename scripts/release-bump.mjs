@@ -3,7 +3,12 @@ import { execFileSync } from 'node:child_process'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { pluginDefinitionSites, ROOT, workspacePackages } from './workspace-packages.mjs'
+import {
+  pluginDefinitionSites,
+  ROOT,
+  themeDefinitionSites,
+  workspacePackages,
+} from './workspace-packages.mjs'
 
 const version = process.argv[2] ?? ''
 
@@ -79,12 +84,17 @@ const PLUGIN_MANIFESTS = (await pluginDefinitionSites()).map((file) => ({
   pattern: /(\n\s*version: ')[^']+(')/,
 }))
 
+const THEME_MANIFESTS = (await themeDefinitionSites()).map((file) => ({
+  file,
+  pattern: /(\n\s*version: ')[^']+(')/,
+}))
+
 const COMPOSE_PIN = {
   file: 'docker/compose.coolify.yml',
   pattern: /(\$\{MEITH_IMAGE:-ghcr\.io\/meith-dev\/meith:)[^}]+(\})/g,
 }
 
-const REWRITES = [...SOURCE_CONSTANTS, ...PLUGIN_MANIFESTS, COMPOSE_PIN]
+const REWRITES = [...SOURCE_CONSTANTS, ...PLUGIN_MANIFESTS, ...THEME_MANIFESTS, COMPOSE_PIN]
 
 for (const { file, pattern } of REWRITES) {
   const path = join(ROOT, file)
@@ -107,6 +117,7 @@ execFileSync('pnpm', ['marketplace:gen'], { cwd: ROOT, stdio: 'inherit' })
 console.log(
   `✓ release bump: ${current} → ${version} in the root manifest, ${manifests} workspace manifests, ` +
     `${SOURCE_CONSTANTS.length} source constants, ${PLUGIN_MANIFESTS.length} plugin manifests, ` +
+    `${THEME_MANIFESTS.length} theme manifests, ` +
     `the compose pin, ${listings} first-party marketplace listings and the regenerated feed, ` +
     'the generated OpenAPI document, the generated board installer script, and the ' +
     'generated deploy templates. ' +

@@ -305,6 +305,10 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
         themeTokens: Object.fromEntries(
           Object.values(forumConfig.themes).map((theme) => [theme.key, theme.tokens]),
         ),
+        themeVersions: Object.values(forumConfig.themes).map((theme) => ({
+          key: theme.key,
+          version: theme.theme?.version ?? null,
+        })),
         files: drivers().files,
         images: imageProcessor,
         plugins: activeDefinitions(),

@@ -42,6 +42,7 @@ export interface ThemeAdminView {
 export interface ThemeListing {
   readonly key: string
   readonly title: string
+  readonly version: string | null
   readonly isBuildTheme: boolean
   readonly isDefault: boolean
   readonly enabled: boolean
@@ -82,6 +83,7 @@ export async function themeListing(): Promise<readonly ThemeListing[]> {
     return {
       key: theme.key,
       title: theme.title,
+      version: theme.theme?.version ?? null,
       isBuildTheme: theme.key === buildThemeKey,
       isDefault:
         claimed === undefined || byKey.get(claimed.key)?.enabled === false

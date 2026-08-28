@@ -31,6 +31,12 @@ export function SiteHeader() {
             Who it&rsquo;s for
           </Link>
           <Link
+            href="/marketplace"
+            className="hidden text-micro font-medium text-fg-muted transition-colors hover:text-fg sm:inline"
+          >
+            Marketplace
+          </Link>
+          <Link
             href="/docs"
             className="text-micro font-medium text-fg-muted transition-colors hover:text-fg"
           >

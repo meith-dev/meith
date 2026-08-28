@@ -2,15 +2,16 @@ import type { Metadata } from 'next'
 
 import { cn } from '@meith/ui'
 
+import { MarketplaceRefreshForm } from '@/components/admin/marketplace-forms'
 import { PluginEnableForm, PluginHealthResetForm } from '@/components/admin/plugin-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
-import { ViewTabs } from '@/components/shell/view-tabs'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
+import { marketplaceUpdates } from '@/server/marketplace-admin'
 import { hookListeners, pluginInventory } from '@/server/plugin-admin'
-import { pluginFormsCopy } from '@/view/admin-panel-copy'
-import { catalogTabs } from '@/view/marketplace-panel'
+import { marketplaceFormsCopy, pluginFormsCopy } from '@/view/admin-panel-copy'
+import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.plugins') }
@@ -23,6 +24,9 @@ export default async function AdminPluginsPage() {
   const { plugins, migrationsKnown } = await pluginInventory(t)
   const listeners = hookListeners()
   const copy = pluginFormsCopy(t)
+  const marketplaceCopy = marketplaceFormsCopy(t)
+  const updates = await marketplaceUpdates('plugin')
+  const now = new Date()
 
   return (
     <PanelPage
@@ -34,15 +38,18 @@ export default async function AdminPluginsPage() {
         </>
       }
     >
-      <ViewTabs
-        label={t.t('adminMarketplace.tabsLabel')}
-        tabs={catalogTabs({
-          installedHref: '/admin/plugins',
-          browseHref: '/admin/plugins/browse',
-          current: 'installed',
-          t,
-        })}
-      />
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <p className={PANEL_NOTE}>
+          {updates.unreachable
+            ? t.t('adminMarketplace.unreachable')
+            : updates.hasEverFetched && updates.fetchedAt !== null
+              ? t.t('adminMarketplace.lastChecked', {
+                  time: formatTime(updates.fetchedAt, now, t).label,
+                })
+              : t.t('adminMarketplace.neverChecked')}
+        </p>
+        <MarketplaceRefreshForm copy={marketplaceCopy} />
+      </section>
 
       {plugins.length === 0 ? (
         <p className={PANEL_NOTE}>{t.t('page.no-plugins-configured-this-board')}</p>
@@ -50,6 +57,7 @@ export default async function AdminPluginsPage() {
         <ul className={PANEL_LIST}>
           {plugins.map((plugin) => {
             const pending = plugin.migrations.filter((migration) => !migration.applied).length
+            const latestVersion = updates.latestByKey.get(plugin.key) ?? null
 
             return (
               <li key={plugin.key} className={PANEL_ROW}>
@@ -95,6 +103,12 @@ export default async function AdminPluginsPage() {
                   {pending > 0 && migrationsKnown && (
                     <span className="text-xs text-destructive">
                       {t.t('adminPlugins.pendingMigrations', { count: pending })}
+                    </span>
+                  )}
+
+                  {latestVersion !== null && (
+                    <span className="w-fit rounded-full border border-border bg-accent px-2 py-0.5 text-xs font-medium text-foreground">
+                      {t.t('adminMarketplace.updateAvailable', { version: latestVersion })}
                     </span>
                   )}
 

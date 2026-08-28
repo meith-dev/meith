@@ -84,3 +84,39 @@ export async function pluginDefinitionSites(root = ROOT) {
 
   return sites.sort()
 }
+
+export async function themeDefinitionSites(root = ROOT) {
+  const sites = []
+
+  let directories
+  try {
+    directories = await readdir(join(root, 'themes'), { withFileTypes: true })
+  } catch {
+    return sites
+  }
+
+  for (const entry of directories) {
+    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+
+    const dir = join(root, 'themes', entry.name, 'src')
+    let sources
+    try {
+      sources = (await readdir(dir)).filter(
+        (name) => /\.tsx?$/.test(name) && !name.includes('.test.'),
+      )
+    } catch {
+      continue
+    }
+
+    for (const name of sources.sort()) {
+      const file = `themes/${entry.name}/src/${name}`
+      const source = await readFile(join(root, file), 'utf8')
+      if (!source.includes('defineTheme(')) continue
+      if (!/\n\s*version: '[^']+'/.test(source)) continue
+      sites.push(file)
+      break
+    }
+  }
+
+  return sites.sort()
+}

@@ -68,9 +68,15 @@ export interface TaskWorkerDeps {
   readonly marketplace?: {
     readonly repository: MarketplaceCacheRepository
     readonly plugins: readonly PluginDefinition[]
+    readonly themes: readonly InstalledThemeVersion[]
     readonly feedUrl: () => Promise<string>
     readonly notifyUpdate: (listing: MarketplaceListing) => Promise<void>
   }
+}
+
+export interface InstalledThemeVersion {
+  readonly key: string
+  readonly version: string | null
 }
 
 export function defaultPromotionGuards(): PromotionGuards {
@@ -236,6 +242,12 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
             themeApiMajor: THEME_API_MAJOR,
           },
           resolveInstalled: (listing) => {
+            if (listing.kind === 'theme') {
+              const theme = marketplace.themes.find((entry) => entry.key === listing.key)
+              return theme === undefined || theme.version === null
+                ? null
+                : { enabled: true, version: theme.version }
+            }
             const definition = marketplace.plugins.find((plugin) => plugin.key === listing.key)
             return definition === undefined ? null : { enabled: true, version: definition.version }
           },

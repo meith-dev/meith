@@ -21,3 +21,5 @@ function workspaceRoot(): string {
 export const WORKSPACE_ROOT = workspaceRoot()
 
 export const DOCS_DIRECTORY = join(WORKSPACE_ROOT, 'docs')
+
+export const MARKETPLACE_FEED_FILE = join(WORKSPACE_ROOT, 'apps/web/public/marketplace/v1.json')

@@ -405,14 +405,15 @@ the page they need:
 | Installing a theme or a plugin | [The theme API](../../customization/themes.md), [The plugin API](../../customization/plugins.md) |
 | Recovering lost administrator access | [Operations § Account recovery](../operations/operating.md#account-recovery) |
 
-Deciding *what* to install is yours, even when installing it is not.
-**Admin → Plugins → Browse** and **Admin → Themes → Browse** read a
-cached copy of the meith.dev catalog and show, for each listing, whether
-it is already running, switched off, updatable, not installed, or built
-for a version of Meith this board does not run — plainly labelled, and
-with the exact command line whoever has the terminal will need. It reads
-the catalog; it does not install anything, so browsing it costs nothing
-and needs nobody technical yet.
+Deciding *what* to install is yours, even when installing it is not. The
+public marketplace at [meith.dev/marketplace](https://www.meith.dev/marketplace)
+is a page per plugin and theme — what each does, its screenshots, and the
+exact command line whoever has the terminal will need. Your own board
+watches the same catalog for you: **Admin → Plugins** and **Admin →
+Themes** mark anything already installed **Update available** when a newer,
+compatible version is listed, so you learn what is worth chasing without
+browsing anything. Neither installs anything, so both cost nothing and
+need nobody technical yet.
 
 One of these is worth chasing rather than filing: **backups**. A board
 accumulates years of a community's writing, and the backup is the only

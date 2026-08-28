@@ -1,5 +1,4 @@
 {
-  "apps/community/app/admin/api/marketplace/screenshot/route.ts": 8,
   "apps/community/app/api/metrics/route.ts": 5,
   "apps/community/app/api/system/tick/route.ts": 3,
   "apps/community/app/api/v1/[...path]/route.ts": 6,
@@ -23,7 +22,7 @@
   "apps/community/src/server/group-badge.ts": 1,
   "apps/community/src/server/image-upload.ts": 2,
   "apps/community/src/server/install.ts": 5,
-  "apps/community/src/server/marketplace-admin.ts": 4,
+  "apps/community/src/server/marketplace-admin.ts": 1,
   "apps/community/src/server/plugin-routes.ts": 16,
   "apps/community/src/server/request-fingerprint.ts": 2,
   "apps/community/src/server/safe-path.ts": 2,
