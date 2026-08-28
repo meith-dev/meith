@@ -122,6 +122,13 @@ while everything reading `package.json` sees the other. Reading the version
 out of the freshly installed `@meith/web` is what keeps the two the same
 without anybody having to know the number.
 
+This upgrade is deliberate and manual for that reason: `next` and
+`@meith/web` move together or not at all. What *is* kept current for you is
+this repository's own GitHub Actions — `.github/dependabot.yml` opens a
+weekly pull request bumping the actions pinned in
+`.github/workflows/build.yml`, which is a safe, independent update the two
+commands above never touch.
+
 That `package.json` change is the whole pin: `Dockerfile`'s own
 `FROM` line takes the version as a build argument, and
 `.github/workflows/build.yml` reads it straight out of `package.json`'s

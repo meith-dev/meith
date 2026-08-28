@@ -350,6 +350,7 @@ function envExample(name: string, target: ScaffoldTarget): string {
 
 const SELF_HOST_DEPLOY_KIT = [
   '.dockerignore',
+  '.github/dependabot.yml',
   '.github/workflows/build.yml',
   'Dockerfile',
   'docker-compose.yaml',
@@ -549,6 +550,24 @@ export function installedPluginDefinitions() {
 .env*.local
 *.log
 .DS_Store
+`,
+  )
+
+  files.set(
+    '.github/dependabot.yml',
+    `# Keeps this board's GitHub Actions current: one weekly pull request that
+# bumps the actions pinned in .github/workflows. Upgrading Meith itself is
+# separate and deliberate — see README.md, "Upgrading" — because the board's
+# \`next\` pin has to move together with \`@meith/web\` rather than on its own.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
 `,
   )
 
@@ -1004,6 +1023,13 @@ which npm resolves by installing both — the build then runs on one version
 while everything reading \`package.json\` sees the other. Reading the version
 out of the freshly installed \`@meith/web\` is what keeps the two the same
 without anybody having to know the number.
+
+This upgrade is deliberate and manual for that reason: \`next\` and
+\`@meith/web\` move together or not at all. What *is* kept current for you is
+this repository's own GitHub Actions — \`.github/dependabot.yml\` opens a
+weekly pull request bumping the actions pinned in
+\`.github/workflows/build.yml\`, which is a safe, independent update the two
+commands above never touch.
 
 That \`package.json\` change is the whole pin: \`Dockerfile\`'s own
 \`FROM\` line takes the version as a build argument, and
