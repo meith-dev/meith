@@ -46,8 +46,10 @@ describe('what the scaffold writes', () => {
       '.gitignore',
       '.npmrc',
       'Dockerfile',
+      'Dockerfile.prebuilt',
       'README.md',
       'board.plugins.json',
+      'docker-compose.prebuilt.yaml',
       'docker-compose.yaml',
       'docker-entrypoint.sh',
       'docker-healthcheck.sh',
@@ -228,56 +230,78 @@ describe('what the scaffold writes', () => {
 describe('the deploy kit — every file complete for someone with a GitHub account and a Coolify server', () => {
   const files = scaffold(OPTIONS)
   const dockerfile = files.get('Dockerfile')!
+  const dockerfilePrebuilt = files.get('Dockerfile.prebuilt')!
   const buildWorkflow = files.get('.github/workflows/build.yml')!
   const compose = files.get('docker-compose.yaml')!
+  const composePrebuilt = files.get('docker-compose.prebuilt.yaml')!
   const entrypoint = files.get('docker-entrypoint.sh')!
   const healthcheck = files.get('docker-healthcheck.sh')!
   const dockerignore = files.get('.dockerignore')!
 
-  it("starts the board's image FROM the published base image, pinned by a build arg rather than a literal version", () => {
-    expect(dockerfile).toContain('ARG MEITH_VERSION')
-    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
-    expect(dockerfile).toContain('FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps')
-    expect(dockerfile).not.toContain('meith-base:1.2.3')
+  it('builds the quick-start image FROM a plain node:alpine, with no version to pin', () => {
+    expect(dockerfile).toMatch(/^FROM node:26-alpine@sha256:[0-9a-f]+ AS deps$/m)
+    expect(dockerfile).not.toContain('ARG MEITH_VERSION')
+    expect(dockerfile).not.toContain('meith-base')
+  })
+
+  it('starts the prebuilt image FROM the published base image, pinned by a build arg rather than a literal version', () => {
+    expect(dockerfilePrebuilt).toContain('ARG MEITH_VERSION')
+    expect(dockerfilePrebuilt).toContain(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
+      'FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps',
+    )
+    expect(dockerfilePrebuilt).not.toContain('meith-base:1.2.3')
   })
 
   it("reads that build arg from package.json's own @meith/web dependency, so upgrading is one file", () => {
     expect(buildWorkflow).toContain(
       "MEITH_VERSION=$(node -p \"require('./package.json').dependencies['@meith/web']\")",
     )
-    expect(buildWorkflow).toContain('--build-arg MEITH_VERSION="$MEITH_VERSION"')
+    expect(buildWorkflow).toContain(
+      'docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION="$MEITH_VERSION"',
+    )
   })
 
-  it('installs only its own delta on top of the base image', () => {
-    expect(dockerfile).toContain('COPY package.json ./')
-    expect(dockerfile).toContain('RUN npm install')
-    expect(dockerfile).not.toContain('pnpm install')
+  it('installs its dependency closure the same way in both images', () => {
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('COPY package.json ./')
+      expect(image).toContain('RUN npm install')
+      expect(image).not.toContain('pnpm install')
+    }
   })
 
   it('builds the board, not just installs it', () => {
-    expect(dockerfile).toContain('npx forum-web build')
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('npx forum-web build')
+    }
   })
 
   it('scopes the build-time DATA_SOURCE to the build command, not a persistent ENV', () => {
-    expect(dockerfile).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
-    expect(dockerfile).not.toMatch(/^ENV DATA_SOURCE=/m)
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('RUN DATA_SOURCE=fixture npx forum-web build')
+      expect(image).not.toMatch(/^ENV DATA_SOURCE=/m)
+    }
   })
 
   it('carries no board secret or database URL', () => {
-    for (const file of [dockerfile, buildWorkflow]) {
+    for (const file of [dockerfile, dockerfilePrebuilt, buildWorkflow]) {
       expect(file).not.toMatch(/AUTH_SECRET=\S/)
       expect(file).not.toContain('DATABASE_URL=postgres')
     }
   })
 
   it('drops root privilege before running', () => {
-    expect(dockerfile).toContain('USER node')
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('USER node')
+    }
   })
 
   it('declares a healthcheck and an entrypoint, both made executable', () => {
-    expect(dockerfile).toContain('RUN chmod +x docker-entrypoint.sh docker-healthcheck.sh')
-    expect(dockerfile).toContain('HEALTHCHECK')
-    expect(dockerfile).toContain('ENTRYPOINT ["./docker-entrypoint.sh"]')
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('RUN chmod +x docker-entrypoint.sh docker-healthcheck.sh')
+      expect(image).toContain('HEALTHCHECK')
+      expect(image).toContain('ENTRYPOINT ["./docker-entrypoint.sh"]')
+    }
   })
 
   it('ignores what a local checkout has that the image build must not see', () => {
@@ -311,37 +335,53 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
   })
 
   it('offers no paid CI or registry', () => {
-    for (const file of [buildWorkflow, compose]) {
+    for (const file of [buildWorkflow, compose, composePrebuilt]) {
       expect(file).not.toMatch(/hub\.docker\.com/)
       expect(file).not.toMatch(/circleci|travis-ci|buildkite/i)
     }
   })
 
-  it('runs the whole board, mirroring the meith repository’s own Coolify compose shape', () => {
-    for (const service of ['postgres', 'migrate', 'web', 'worker']) {
-      expect(compose).toMatch(new RegExp(`\\n {2}${service}:\\n`))
+  it('runs the whole board, mirroring the meith repository’s own Coolify compose shape, on both paths', () => {
+    for (const file of [compose, composePrebuilt]) {
+      for (const service of ['postgres', 'migrate', 'web', 'worker']) {
+        expect(file).toMatch(new RegExp(`\\n {2}${service}:\\n`))
+      }
     }
   })
 
-  it('asks the operator for nothing except the image it cannot generate itself', () => {
-    expect(compose).toContain('AUTH_SECRET: $SERVICE_BASE64_64_AUTH')
-    expect(compose).toContain('TICK_SECRET: $SERVICE_BASE64_64_TICK')
-    expect(compose).toContain('$SERVICE_PASSWORD_POSTGRES')
-    expect(compose).not.toMatch(/AUTH_SECRET=\$\{[^}]*:-/)
+  it('builds the image itself in the quick-start compose file, with no MEITH_IMAGE to set', () => {
+    expect(compose).toContain('build: .')
+    expect(compose).toContain('image: my-board')
+    expect(compose).not.toMatch(/image:\s*\$\{MEITH_IMAGE/)
+    expect(compose).not.toContain('pull_policy: always')
   })
 
-  it('refuses to start without an image, loudly, rather than pulling something unpinned', () => {
-    expect(compose).toMatch(/image: \$\{MEITH_IMAGE:\?/)
-    expect(compose).not.toMatch(/image: \$\{MEITH_IMAGE:-/)
+  it('refuses to start without an image, loudly, rather than pulling something unpinned, in the prebuilt compose file', () => {
+    expect(composePrebuilt).toMatch(/image: \$\{MEITH_IMAGE:\?/)
+    expect(composePrebuilt).not.toMatch(/image: \$\{MEITH_IMAGE:-/)
+    expect(composePrebuilt).toContain('pull_policy: always')
+  })
+
+  it('asks the operator for nothing to type by hand except the prebuilt path’s image', () => {
+    for (const file of [compose, composePrebuilt]) {
+      expect(file).toContain('AUTH_SECRET: $SERVICE_BASE64_64_AUTH')
+      expect(file).toContain('TICK_SECRET: $SERVICE_BASE64_64_TICK')
+      expect(file).toContain('$SERVICE_PASSWORD_POSTGRES')
+      expect(file).not.toMatch(/AUTH_SECRET=\$\{[^}]*:-/)
+    }
   })
 
   it('publishes no ports, leaving the proxy in front', () => {
-    expect(compose).not.toMatch(/^\s*ports:/m)
+    for (const file of [compose, composePrebuilt]) {
+      expect(file).not.toMatch(/^\s*ports:/m)
+    }
   })
 
   it('drives the tick without a compiled worker binary', () => {
-    expect(compose).toMatch(/system\/tick/)
-    expect(compose).toContain('Authorization: Bearer')
+    for (const file of [compose, composePrebuilt]) {
+      expect(file).toMatch(/system\/tick/)
+      expect(file).toContain('Authorization: Bearer')
+    }
   })
 
   it("prints the image to deploy and a link to the package's visibility toggle in the run's own Summary", () => {
@@ -359,22 +399,26 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
     expect(shaIndex).toBeLessThan(latestIndex)
   })
 
-  it('mounts the uploads volume into both processes that write to it', () => {
-    expect(compose).toMatch(/uploads:\/app\/\.uploads/g)
-    expect([...compose.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
+  it('mounts the uploads volume into both processes that write to it, on both paths', () => {
+    for (const file of [compose, composePrebuilt]) {
+      expect(file).toMatch(/uploads:\/app\/\.uploads/g)
+      expect([...file.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
+    }
   })
 
-  it('tells the three-step deploy story, and the local alternative', () => {
+  it('tells both deploy stories, and the local alternative', () => {
     const readme = files.get('README.md')!
     expect(readme).toMatch(/push this repository to github/i)
     expect(readme).toMatch(/github actions/i)
     expect(readme).toMatch(/coolify/i)
+    expect(readme).toMatch(/quick start/i)
+    expect(readme).toMatch(/advanced/i)
     expect(readme).toContain('MEITH_IMAGE')
-    expect(readme).toContain('docker build --build-arg MEITH_VERSION=')
+    expect(readme).toContain('docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=')
     expect(readme).toMatch(/-t my-board \.\s*```/)
   })
 
-  it('leads the README deploy step with the sha tag, not the floating latest one', () => {
+  it('leads the README advanced-path deploy step with the sha tag, not the floating latest one', () => {
     const readme = files.get('README.md')!
     const shaIndex = readme.indexOf('github.sha')
     const latestIndex = readme.indexOf(':latest')
@@ -408,7 +452,7 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
     )
     expect(buildWorkflow).toMatch(/::error::.*not an exact X\.Y\.Z version/)
     expect(buildWorkflow.indexOf('grep -Eq')).toBeLessThan(
-      buildWorkflow.indexOf('docker build --build-arg MEITH_VERSION'),
+      buildWorkflow.indexOf('docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION'),
     )
   })
 })
@@ -450,8 +494,10 @@ describe('the CLI', () => {
         '.gitignore',
         '.npmrc',
         'Dockerfile',
+        'Dockerfile.prebuilt',
         'README.md',
         'board.plugins.json',
+        'docker-compose.prebuilt.yaml',
         'docker-compose.yaml',
         'docker-entrypoint.sh',
         'docker-healthcheck.sh',
@@ -577,14 +623,17 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'meith.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
   '.env.example': '83defc2c09c20a47010594dd89a2d602311e05179d756759aeac699302d170bb',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: '97522eb00e3cb3e3c77a7813e720570aad694e0cafb3908fe1736fb0728e7b7b',
+  Dockerfile: 'a0ee5de6211bf529e4edaace3bc582bfbee5f2ae4f9357b80211907849e7b9bb',
+  'Dockerfile.prebuilt': '375ce5865892949abf94c96c2c6bba44112b85180d7c028fe8bda6f9916faee5',
   'docker-entrypoint.sh': 'cd1ef4a68be0005b31cbdb21bcd460035a157668550dbe3fca23cfd6d48321a0',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
-  '.github/workflows/build.yml': 'd61b4b1fe933e5fd4d584e63ec45a999e47145529c0c89f9bb9eef0580fb4915',
-  'docker-compose.yaml': '42bc81028ffce83ae55ac407ece0607b144f73674822610064da3eabe77fc6d1',
-  'README.md': 'c2af780df2ca761943117adbe44c4ce464bb6781654dcb9928b78d21066221d4',
+  '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
+  'docker-compose.yaml': '24c28833a810c7e2df48d38b601e6727712d0e88364a7a73848cfdc7514af8a5',
+  'docker-compose.prebuilt.yaml':
+    'adeeb9787a46360b00ca3cf047d8a4fa603a9dc726661649ba4ba20bb1ca161f',
+  'README.md': '30a6d4a2daaea441c66d55fc83858f8a181c6a0d93922653c1189256663154ab',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

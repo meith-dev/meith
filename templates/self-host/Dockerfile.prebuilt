@@ -1,18 +1,18 @@
 # syntax=docker/dockerfile:1.7-labs
 # check=skip=InvalidDefaultArgInFrom
-# meith-board's quick-start deploy image — built from source, with nothing to
-# set up first.
+# meith-board's advanced deploy image — built by `.github/workflows/build.yml` and
+# pulled by `docker-compose.prebuilt.yaml`. A quick-start board never builds
+# this file directly; it can delete this file, `docker-compose.prebuilt.yaml`
+# and `.github/workflows/build.yml` outright and keep only `Dockerfile` and
+# `docker-compose.yaml` (see README.md, "Deploy").
 #
-# FROM node:26-alpine directly rather than a published Meith base image:
-# Coolify (or a plain `docker build`) builds this from this repository, so
-# there is no registry account, no image tag to paste anywhere, and no
-# `.github/workflows/build.yml` run to wait on. The cost of that zero setup
-# is that this installs the board's full dependency closure itself (see the
-# `npm install` below), so a build here is heavier than `Dockerfile.prebuilt`'s
-# thin delta — that image, pulled rather than built, is the trade the advanced
-# path takes for a low-spec build server or a faster deploy (see `README.md`
-# and, in the meith repository, docs/getting-started/deployment/docker-compose.md,
-# "Custom boards").
+# FROM the published framework base image — deps + framework layers only,
+# locked to this exact release (see the meith repository's
+# docs/getting-started/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
+# it is and is not). This board's own Dockerfile only ever installs its own
+# delta on top of it — a new plugin's own dependency, typically nothing more
+# — which is what keeps a rebuild after `npm install some-plugin` a matter
+# of minutes rather than a cold toolchain build.
 #
 # Two stages, not three: unlike the official image, this does not prune down
 # to Next's own standalone output. The migrate role below runs `community
@@ -24,15 +24,16 @@
 # by docker-compose.yaml's own `worker` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
 # not published (see the meith repository's docs/contributing/release.md).
-FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
+ARG MEITH_VERSION
+FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps
 WORKDIR /board
 
 # This board's own manifest, cached independently of its source — editing
-# meith.config.ts should not re-run npm install. Nothing warms node_modules
-# ahead of this the way `Dockerfile.prebuilt`'s base image does: the full
-# @meith/web, @meith/cli and @meith/theme-default closure this board depends
-# on is installed here, from scratch, which is the heavier half of the
-# quick-start trade.
+# meith.config.ts should not re-run npm install. The base image above
+# already carries node_modules for @meith/web, @meith/cli and
+# @meith/theme-default at this exact version, so installing this file on top
+# of it only fetches what changed: a plugin newly added to `dependencies`,
+# typically nothing at all.
 COPY package.json ./
 RUN npm install
 

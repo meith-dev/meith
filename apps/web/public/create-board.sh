@@ -246,7 +246,87 @@ mkdir -p "$(dirname -- "$BOARD_NAME/Dockerfile")"
 cat > "$BOARD_NAME/Dockerfile" <<'MEITH_SCAFFOLD_EOF'
 # syntax=docker/dockerfile:1.7-labs
 # check=skip=InvalidDefaultArgInFrom
-# __MEITH_BOARD_NAME__'s deploy image.
+# __MEITH_BOARD_NAME__'s quick-start deploy image — built from source, with nothing to
+# set up first.
+#
+# FROM node:26-alpine directly rather than a published Meith base image:
+# Coolify (or a plain `docker build`) builds this from this repository, so
+# there is no registry account, no image tag to paste anywhere, and no
+# `.github/workflows/build.yml` run to wait on. The cost of that zero setup
+# is that this installs the board's full dependency closure itself (see the
+# `npm install` below), so a build here is heavier than `Dockerfile.prebuilt`'s
+# thin delta — that image, pulled rather than built, is the trade the advanced
+# path takes for a low-spec build server or a faster deploy (see `README.md`
+# and, in the meith repository, docs/getting-started/deployment/docker-compose.md,
+# "Custom boards").
+#
+# Two stages, not three: unlike the official image, this does not prune down
+# to Next's own standalone output. The migrate role below runs `community
+# migrate`, and `community` materializes @meith/cli's sources and runs them
+# with tsx at the moment it runs (see the meith repository's
+# docs/contributing/development.md, "Consuming the board from a workspace") — it needs
+# the full, un-pruned node_modules tree this board installed, not what Next
+# traced as reachable from the web server alone. The tick itself is driven
+# by docker-compose.yaml's own `worker` service — a lightweight loop against
+# /api/system/tick, not a compiled worker process, because @meith/worker is
+# not published (see the meith repository's docs/contributing/release.md).
+FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
+WORKDIR /board
+
+# This board's own manifest, cached independently of its source — editing
+# meith.config.ts should not re-run npm install. Nothing warms node_modules
+# ahead of this the way `Dockerfile.prebuilt`'s base image does: the full
+# @meith/web, @meith/cli and @meith/theme-default closure this board depends
+# on is installed here, from scratch, which is the heavier half of the
+# quick-start trade.
+COPY package.json ./
+RUN npm install
+
+FROM deps AS runtime
+WORKDIR /board
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# DATA_SOURCE is scoped to this one RUN, not declared with ENV — an ENV
+# persists into every container started from this image afterward, and this
+# Dockerfile has no later stage to reset it in (see "Two stages, not three"
+# above). The build needs neither a database nor a production secret (see
+# the meith repository's docs/contributing/development.md, "Fixture mode"), but baking
+# DATA_SOURCE=fixture into the image itself would silently force fixture
+# mode — and with it the in-memory queue driver — at runtime too, no matter
+# what DATABASE_URL an operator supplies to `docker run`.
+RUN DATA_SOURCE=fixture npx forum-web build
+
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+EXPOSE 3000
+
+# node:alpine already carries a non-root "node" user; the board's own files
+# are copied in as root above, so they need handing over before this drops
+# privilege.
+RUN chown -R node:node /board
+USER node
+
+COPY --chown=node:node docker-entrypoint.sh docker-healthcheck.sh ./
+RUN chmod +x docker-entrypoint.sh docker-healthcheck.sh
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["./docker-healthcheck.sh"]
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
+MEITH_SCAFFOLD_EOF
+
+mkdir -p "$(dirname -- "$BOARD_NAME/Dockerfile.prebuilt")"
+cat > "$BOARD_NAME/Dockerfile.prebuilt" <<'MEITH_SCAFFOLD_EOF'
+# syntax=docker/dockerfile:1.7-labs
+# check=skip=InvalidDefaultArgInFrom
+# __MEITH_BOARD_NAME__'s advanced deploy image — built by `.github/workflows/build.yml` and
+# pulled by `docker-compose.prebuilt.yaml`. A quick-start board never builds
+# this file directly; it can delete this file, `docker-compose.prebuilt.yaml`
+# and `.github/workflows/build.yml` outright and keep only `Dockerfile` and
+# `docker-compose.yaml` (see README.md, "Deploy").
 #
 # FROM the published framework base image — deps + framework layers only,
 # locked to this exact release (see the meith repository's
@@ -377,10 +457,10 @@ MEITH_SCAFFOLD_EOF
 
 mkdir -p "$(dirname -- "$BOARD_NAME/.github/workflows/build.yml")"
 cat > "$BOARD_NAME/.github/workflows/build.yml" <<'MEITH_SCAFFOLD_EOF'
-# Builds this board's image and pushes it to your own GHCR, on every push to
-# main. No secret to configure: GITHUB_TOKEN is provided automatically by
-# GitHub Actions and is enough to push to ghcr.io/<this repository>. See
-# README.md for the rest of the three-step deploy story.
+# The advanced/prebuilt path (see README.md, "Deploy"). Builds this board's
+# Dockerfile.prebuilt and pushes it to your own GHCR, on every push to main.
+# No secret to configure: GITHUB_TOKEN is provided automatically by GitHub
+# Actions and is enough to push to ghcr.io/<this repository>.
 name: Build and push
 
 on:
@@ -415,7 +495,7 @@ jobs:
             echo "::error::@meith/web in package.json is '$MEITH_VERSION', not an exact X.Y.Z version — that is not a legal Docker image tag. Upgrade with \`npm install --save-exact\` (see README.md, Upgrading) so this dependency always resolves to one."
             exit 1
           fi
-          docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
@@ -455,9 +535,141 @@ MEITH_SCAFFOLD_EOF
 
 mkdir -p "$(dirname -- "$BOARD_NAME/docker-compose.yaml")"
 cat > "$BOARD_NAME/docker-compose.yaml" <<'MEITH_SCAFFOLD_EOF'
-# __MEITH_BOARD_NAME__, deployed by Coolify — the same shape as the meith repository's own
-# docker/compose.coolify.yml: db, migrate, web, worker. See README.md for
-# the three-step deploy story this file is the last step of.
+# __MEITH_BOARD_NAME__, quick-start deployed by Coolify — the same shape as the meith
+# repository's own docker/compose.coolify.yml: db, migrate, web, worker. See
+# README.md for the deploy story this file is the last step of.
+#
+# Coolify builds `Dockerfile` from this repository itself, so there is no
+# MEITH_IMAGE to set here — every deploy is a build from source. For a
+# low-spec build server or a faster deploy, use `docker-compose.prebuilt.yaml`
+# instead, which pulls the image `.github/workflows/build.yml` pushes to GHCR.
+#
+# No published ports — Coolify's proxy routes to the container and issues
+# the certificate. The two secrets and the database password are Coolify's
+# own "magic variables": it fills them in on the first deploy and shows them
+# in the panel, so nothing here needs a value typed into it. Requires Coolify
+# v4.0.0-beta.411 or newer, which is when magic variables in a compose file
+# from a Git source arrived.
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    restart: unless-stopped
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    cpus: ${POSTGRES_CPUS:-1}
+    environment:
+      POSTGRES_USER: community
+      POSTGRES_PASSWORD: $SERVICE_PASSWORD_POSTGRES
+      POSTGRES_DB: community
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U community -d community']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Runs to completion, then exits. web waits for it, so the schema is
+  # always applied before the first request rather than racing it.
+  migrate:
+    build: .
+    image: __MEITH_BOARD_NAME__
+    environment:
+      COMMUNITY_ROLE: migrate
+      DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
+      AUTH_SECRET: $SERVICE_BASE64_64_AUTH
+      TICK_SECRET: $SERVICE_BASE64_64_TICK
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  web:
+    build: .
+    image: __MEITH_BOARD_NAME__
+    restart: unless-stopped
+    mem_limit: ${WEB_MEM_LIMIT:-1g}
+    cpus: ${WEB_CPUS:-2}
+    # A readiness probe Coolify gates a rolling deploy on: with "Rolling
+    # update" enabled on the resource, the new container must answer
+    # /api/ready before the old one is retired, so a redeploy swaps in with no
+    # gap. Without it Coolify recreates the stack — old removed, then new
+    # started — and the board is down while the new web boots.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    environment:
+      # Ask Coolify for a domain on port 3000, then hand the board the same
+      # thing with a scheme in front.
+      - SERVICE_FQDN_WEB_3000
+      - APP_URL=$SERVICE_URL_WEB
+      - DATABASE_URL=postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
+      - AUTH_SECRET=$SERVICE_BASE64_64_AUTH
+      - TICK_SECRET=$SERVICE_BASE64_64_TICK
+      - QUEUE_DRIVER=postgres
+      - CACHE_DRIVER=next
+      - FILESTORE_DRIVER=local
+      # Left unset, mail is configured on the board itself — the installer
+      # asks on first run. Set MAIL_DRIVER here and this file wins instead.
+      - MAIL_DRIVER=${MAIL_DRIVER:-log}
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST:-}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT:-}
+      - MAIL_SMTP_SECURITY=${MAIL_SMTP_SECURITY:-}
+      - MAIL_SMTP_USERNAME=${MAIL_SMTP_USERNAME:-}
+      - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+    volumes:
+      - uploads:/app/.uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # @meith/worker is not published (see the meith repository's
+  # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
+  # board can run — this drives the tick the alternative way the meith
+  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # a second set of credentials": a small loop calling /api/system/tick.
+  worker:
+    image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    restart: unless-stopped
+    mem_limit: ${WORKER_MEM_LIMIT:-64m}
+    cpus: ${WORKER_CPUS:-0.25}
+    environment:
+      TICK_SECRET: $SERVICE_BASE64_64_TICK
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null
+        while true; do
+          curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \
+            http://web:3000/api/system/tick >/dev/null 2>&1 \
+            || echo "tick failed at $$(date -Is)"
+          sleep 60
+        done
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  uploads:
+MEITH_SCAFFOLD_EOF
+
+mkdir -p "$(dirname -- "$BOARD_NAME/docker-compose.prebuilt.yaml")"
+cat > "$BOARD_NAME/docker-compose.prebuilt.yaml" <<'MEITH_SCAFFOLD_EOF'
+# __MEITH_BOARD_NAME__, deployed by Coolify from a prebuilt image — the advanced path: point
+# Coolify's compose-file at this file instead of docker-compose.yaml once
+# `.github/workflows/build.yml` has pushed an image, and set MEITH_IMAGE to
+# what its Summary printed. This trades the quick-start's heavier
+# build-on-every-deploy for a low-spec build server or a faster deploy — see
+# README.md, "Deploy".
+#
+# Same shape as the meith repository's own docker/compose.coolify.yml: db,
+# migrate, web, worker.
 #
 # No published ports — Coolify's proxy routes to the container and issues
 # the certificate. The two secrets and the database password are Coolify's
@@ -587,15 +799,55 @@ A forum, built on [Meith](https://github.com/meith-dev/meith).
 
 ## Deploy
 
-Nothing here builds on your own server — a 2 GB VPS OOMs on a Next.js build,
-which is the whole reason `Dockerfile`, `docker-compose.yaml` and
-`.github/workflows/build.yml` exist: something else builds the image, the
-server only ever pulls one. Three steps, nothing to configure by hand beyond
-one value only you know:
+Two paths onto [Coolify](https://coolify.io), both ending at the same
+`/install`. **Quick start** is the default and needs nothing but a push;
+**advanced/prebuilt** moves the build off the server, onto GitHub Actions, for
+a low-spec build server or a faster deploy. Pick one — a board only ever runs
+one of them at a time.
+
+### Quick start (default)
+
+Coolify builds the image itself, from this repository, every time it
+deploys — there is nothing to push anywhere first and no image tag to paste
+in. Two steps:
+
+1. **Push this repository to GitHub.**
+
+2. **Point Coolify at `docker-compose.yaml`** — a **Public Git repository**
+   resource with **Docker Compose** as its build pack, this repository as its
+   source. The name is Coolify's own default, so its **Compose file** field is
+   already right when the form opens, and the file already carries Coolify's
+   own "magic variables" for `AUTH_SECRET`, `TICK_SECRET` and the database
+   password, generated on the first deploy and never typed in. Nothing else to
+   set: `docker-compose.yaml` builds `web` and `migrate` from `Dockerfile`
+   itself, so there is no `MEITH_IMAGE` here at all.
+
+3. **Deploy, then `/install` on your own domain.** Coolify issues the
+   certificate; the installer from there is the one
+   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
+   walks through, screen for screen. It seals itself when it finishes, and
+   `/install` answers 404 from then on — run it **against the database you
+   are going to keep**. Every push to `main` after this is picked up the next
+   time Coolify's own **Redeploy** button runs — pushing alone does not
+   rebuild it.
+
+The trade for that zero setup is a heavier build: `Dockerfile` installs this
+board's full dependency closure on the server itself, on every deploy, rather
+than starting from a warm base image. A 2 GB VPS can OOM on it. If that is
+your server, use the advanced path below instead.
+
+A quick-start board never needs `Dockerfile.prebuilt`,
+`docker-compose.prebuilt.yaml` or `.github/workflows/build.yml` — delete all
+three.
+
+### Advanced / prebuilt — for a low-spec server or a faster deploy
+
+Something else builds the image ahead of time; the server only ever pulls
+one. Three steps, nothing to configure by hand beyond one value only you know:
 
 1. **Push this repository to GitHub.** `.github/workflows/build.yml` builds
-   `Dockerfile` on every push to `main` and pushes the result to your own
-   GitHub Container Registry, `ghcr.io/<you>/__MEITH_BOARD_NAME__` — using only the
+   `Dockerfile.prebuilt` on every push to `main` and pushes the result to your
+   own GitHub Container Registry, `ghcr.io/<you>/__MEITH_BOARD_NAME__` — using only the
    `GITHUB_TOKEN` every GitHub Actions run already carries. No secret to
    add, no registry account beyond the GitHub account you already have.
 
@@ -606,29 +858,26 @@ one value only you know:
    repository usually lands public already, and a private one fails
    Coolify's pull with an authentication error no operator can act on.
 
-2. **Point [Coolify](https://coolify.io) at `docker-compose.yaml`** — a
+2. **Point Coolify at `docker-compose.prebuilt.yaml`** — a
    **Public Git repository** resource with **Docker Compose** as its build
-   pack, this repository as its source. The name is Coolify's own default,
-   so its **Compose file** field is already right when the form opens, and
-   the file already carries Coolify's own "magic variables" for
-   `AUTH_SECRET`, `TICK_SECRET` and the database password, generated on
-   the first deploy and never typed in. The one thing Coolify cannot
-   generate is the image step 1 just pushed: set `MEITH_IMAGE` in the
+   pack, this repository as its source, and its **Compose file** field
+   changed from Coolify's default of `docker-compose.yaml` to
+   `docker-compose.prebuilt.yaml`. That file carries Coolify's own "magic
+   variables" for `AUTH_SECRET`, `TICK_SECRET` and the database password,
+   generated on the first deploy and never typed in. The one thing Coolify
+   cannot generate is the image step 1 just pushed: set `MEITH_IMAGE` in the
    resource's own environment to one of the two values that run's Summary
-   printed (`docker-compose.yaml` refuses to start without it, with a
-   message saying why). `ghcr.io/<you>/__MEITH_BOARD_NAME__:${{ github.sha }}` names
+   printed (`docker-compose.prebuilt.yaml` refuses to start without it, with
+   a message saying why). `ghcr.io/<you>/__MEITH_BOARD_NAME__:${{ github.sha }}` names
    that one build and nothing else, ever; `ghcr.io/<you>/__MEITH_BOARD_NAME__:latest`
    follows `main` instead, so installing a plugin later is a push and a
-   **Redeploy** — the trade the quickstart takes, at the cost of an
-   unrelated redeploy pulling whatever `main` most recently built.
+   **Redeploy** — the trade this path takes, at the cost of an unrelated
+   redeploy pulling whatever `main` most recently built.
 
-3. **Deploy, then `/install` on your own domain.** Coolify issues the
-   certificate; the installer from there is the one
+3. **Deploy, then `/install` on your own domain.** Same installer, same
    [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
-   walks through, screen for screen. It seals itself when it finishes, and
-   `/install` answers 404 from then on — run it **against the database you
-   are going to keep**. Every push to `main` after this rebuilds the
-   image; Coolify's own **Redeploy** button is what actually pulls it —
+   walk-through, same one-time seal. Every push to `main` after this rebuilds
+   the image; Coolify's own **Redeploy** button is what actually pulls it —
    pushing alone does not.
 
 No Docker Hub, no paid CI: GitHub Actions' free tier and GHCR are the whole
@@ -636,22 +885,23 @@ build side of this, for a board of any size.
 
 **Building it yourself**: works on any machine with Docker, if you would
 rather not use GitHub Actions for the build — push the result wherever
-`docker-compose.yaml`'s `MEITH_IMAGE` can reach.
+`docker-compose.prebuilt.yaml`'s `MEITH_IMAGE` can reach.
 
 ```sh
-docker build --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t __MEITH_BOARD_NAME__ .
+docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t __MEITH_BOARD_NAME__ .
 ```
 
 **Without a panel**: [docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md)
 is the same four containers by hand — your own `.env`, a reverse proxy you
 already run, no Coolify. `Dockerfile` and `docker-compose.yaml` here are this
-board's own version of exactly that shape.
+board's own version of exactly that shape (or `Dockerfile.prebuilt` and
+`docker-compose.prebuilt.yaml`, for the advanced path).
 
-Two things nothing configures for you:
+Two things nothing configures for you, on either path:
 
 - **Mail.** Until `MAIL_DRIVER` and its three settings exist, every message is
   written to the log and delivered to nobody, so password reset fails silently.
-- **The tick.** `docker-compose.yaml`'s `worker` service drives it here — a small
+- **The tick.** The compose file's `worker` service drives it here — a small
   loop calling `/api/system/tick` once a minute, since `@meith/web`'s own
   worker package is not something a board outside the meith monorepo can
   depend on yet. Deploy some other way and something still has to call that
@@ -712,14 +962,18 @@ weekly pull request bumping the actions pinned in
 `.github/workflows/build.yml`, which is a safe, independent update the two
 commands above never touch.
 
-That `package.json` change is the whole pin: `Dockerfile`'s own
-`FROM` line takes the version as a build argument, and
-`.github/workflows/build.yml` reads it straight out of `package.json`'s
-own `@meith/web` dependency when it rebuilds — nothing in `Dockerfile`
-itself to keep in sync by hand. `--save-exact` matters: npm's default
-`save-prefix` is `^`, and a caret range is not a legal Docker image tag —
-without it, this exact command would write `"^0.18.0"` and the next build
-would fail with `invalid reference format` instead of building. This
+On the quick-start path there is no version to keep in sync by hand:
+`Dockerfile` runs `npm install` straight from this `package.json` on every
+build, so a rebuild always picks up whatever is pinned there. On the
+advanced/prebuilt path, that `package.json` change is the whole pin:
+`Dockerfile.prebuilt`'s own `FROM` line takes the version as a build argument,
+and `.github/workflows/build.yml` reads it straight out of `package.json`'s
+own `@meith/web` dependency when it rebuilds — nothing in
+`Dockerfile.prebuilt` itself to keep in sync by hand. `--save-exact` matters
+either way: npm's default `save-prefix` is `^`, and a caret range is not a
+legal Docker image tag for the advanced path — without it, this exact command
+would write `"^0.18.0"` and the next `Dockerfile.prebuilt` build would fail
+with `invalid reference format` instead of building. This
 project's own `.npmrc` sets `save-exact=true` for the same reason, so an
 `npm install` of anything else here — a plugin, say — stays pinned too; the
 build workflow also refuses to build from anything but an exact version, as
@@ -744,7 +998,7 @@ if command -v git >/dev/null 2>&1 \
   GIT_READY=1
 fi
 
-echo "Created $BOARD_NAME — 15 files."
+echo "Created $BOARD_NAME — 17 files."
 echo
 echo "  cd $BOARD_NAME"
 echo "  npm install"

@@ -237,7 +237,12 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   console.log('  git init && git add -A && git commit -m "Graduate from the stock image"')
   console.log('  # push it to a new GitHub repository')
   console.log('  # .github/workflows/build.yml builds and pushes the image on every push to main —')
-  console.log('  # point Coolify at this repository and set MEITH_IMAGE to the pushed image')
+  console.log(
+    '  # point Coolify at this repository, on docker-compose.prebuilt.yaml, and set MEITH_IMAGE',
+  )
+  console.log(
+    '  # to the pushed image (or docker-compose.yaml instead, which builds on the server)',
+  )
   console.log('  # redeploy — same database, same uploads, same secrets, new image source')
   console.log('')
   console.log(

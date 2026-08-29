@@ -4,10 +4,15 @@ You do not need to be a programmer to set up a Meith board. This page is
 written for whichever volunteer drew the short straw: if you can rent a
 server, point a domain at it, and follow along, it takes you from
 nothing to a board the whole community can reach — on your own domain,
-over HTTPS — in about twenty minutes. Nothing is built on your server:
-the deploy pulls an image GitHub built for you, and step 2 offers a route
-that needs nothing installed on your own computer at all — not even a
-terminal.
+over HTTPS — in about twenty minutes. By default Coolify builds the image
+itself, from your repository, so there is nothing to wait on before your
+first deploy, and step 2 offers a route that needs nothing installed on
+your own computer at all — not even a terminal. This guide walks that
+default, **quick-start** path start to finish; an **advanced/prebuilt**
+path exists too — GitHub builds the image ahead of time and Coolify only
+ever pulls it, which trades a small amount of setup for a lighter server
+build and a faster deploy — and this guide calls it out at each step where
+the two diverge.
 
 This is the guided route, and the one most boards should take:
 [Coolify](https://coolify.io) is a free panel you install on your server
@@ -39,7 +44,7 @@ section on getting back off again.
 | **A server** | Rented in the community's name, from any provider, for a few euro a month. 4 GB RAM, 2 vCPU, 40 GB disk is comfortable. Ubuntu 24.04 LTS below; any distro Docker runs on is fine. |
 | **A domain** | With an `A` record already pointing at the server's IP — the certificate step needs it resolving. Your registrar's control panel does this. |
 | **SSH** | Root, once, to install the panel. The terminal appears in step 1 and never again. |
-| **A GitHub account** | Free. Your board's own repository lives there, and GitHub's own runners build its image — no software of yours involved. |
+| **A GitHub account** | Free. Your board's own repository lives there, and Coolify builds its image straight from it by default — no software of yours involved. Take the advanced/prebuilt path instead and GitHub's own runners build the image for you. |
 
 ## 1. Install Coolify
 
@@ -108,14 +113,20 @@ installer asks for that later, in [step
 with no spaces.
 
 The two commands write an identical small workspace into `./my-board` —
-`package.json`, `meith.config.ts`, and a deploy kit of its own:
-`Dockerfile`, `docker-compose.yaml` and `.github/workflows/build.yml` —
-the same files the template repository already has. All three depend on
-the published `@meith/web` and `@meith/cli` packages rather than
-containing a copy of this repository, and this is what turns "installing
-a plugin" from a fork of this project into `npm install` and a line in a
-config file — see [Self-hosting § Custom
-boards](./docker-compose.md#custom-boards) for the mechanism.
+`package.json`, `meith.config.ts`, and a deploy kit of its own, for both
+paths this guide covers: `Dockerfile` and `docker-compose.yaml` for the
+default quick-start path, `Dockerfile.prebuilt`,
+`docker-compose.prebuilt.yaml` and `.github/workflows/build.yml` for the
+advanced/prebuilt one — the same files the template repository already
+has. Every one of them depends on the published `@meith/web` and
+`@meith/cli` packages rather than containing a copy of this repository,
+and this is what turns "installing a plugin" from a fork of this project
+into `npm install` and a line in a config file — see [Self-hosting § Custom
+boards](./docker-compose.md#custom-boards) for the mechanism. Taking the
+quick-start path (the rest of this guide) means the advanced-only files
+are never used — delete `Dockerfile.prebuilt`,
+`docker-compose.prebuilt.yaml` and `.github/workflows/build.yml` whenever
+you like, or leave them for later.
 
 **If you used curl or npx:** the command also initialized a git
 repository in `./my-board` and staged every file, so the only commands
@@ -133,8 +144,11 @@ Create that empty repository on GitHub first — **New repository**, no
 README, no `.gitignore` — then run the four lines above. (Skip this whole
 part if you used the template — GitHub already did it.)
 
-`.github/workflows/build.yml`, already written, builds `Dockerfile` on
-GitHub's own runners the moment `main` has something pushed to it — for
+On the quick-start path nothing else happens here — step 3 points Coolify
+straight at your repository and it builds `Dockerfile` itself, on every
+deploy. **Taking the advanced/prebuilt path instead:**
+`.github/workflows/build.yml`, already written, builds `Dockerfile.prebuilt`
+on GitHub's own runners the moment `main` has something pushed to it — for
 the template route, that means the moment GitHub finishes creating your
 repository — and pushes the result to `ghcr.io/<you>/my-board`, using
 only the `GITHUB_TOKEN` every Actions run already carries. No Docker on
@@ -142,10 +156,11 @@ your computer, no registry account beyond the GitHub account you already
 have.
 
 > [!IMPORTANT]
-> **Before moving on, wait for that build.** Step 3 asks you for a value
-> only the finished run knows, so there is no starting it early. Open your
-> repository's **Actions** tab — **Build and push** is already running, or
-> already done — and once it is green:
+> **Advanced/prebuilt path only — before moving on, wait for that build.**
+> Step 3's advanced variant asks you for a value only the finished run
+> knows, so there is no starting it early. Open your repository's
+> **Actions** tab — **Build and push** is already running, or already
+> done — and once it is green:
 >
 > 1. Open the run and read its **Summary**.
 > 2. Copy the image value it shows — you'll paste it into Coolify in
@@ -179,28 +194,32 @@ Then press **Continue**, which creates the resource.
 Coolify offers a generated domain and accepts your own. Put yours in — the
 one whose `A` record points at this server.
 
-Before you deploy, set the one thing the compose file has no default for:
-open the resource's **Environment Variables**, add `MEITH_IMAGE`, and give
-it the `:latest` value step 2's Actions run Summary printed —
-`ghcr.io/<you>/my-board:latest`. The compose file refuses to start without
-it.
+There is nothing else to set: `docker-compose.yaml` builds `web` and
+`migrate` from `Dockerfile` in your repository itself, so there is no image
+value to look up or paste in. Skip straight to deploying, below.
 
 > [!NOTE]
-> **Why `:latest`, and what the other value is for.** `:latest` follows your
-> repository's `main` branch: installing a plugin later is a push and a
-> **Redeploy**, with nothing on this screen to edit — which is the right
-> trade while the board is young and you are still changing it. The Summary
-> prints a second value beside it, the same image ending in a long commit
-> code, which names that one build and nothing else, ever. Move `MEITH_IMAGE`
-> to that once the board is settled and you want upgrades happening only when
-> you choose, not on any redeploy — see [Self-hosting § Custom
-> boards](./docker-compose.md#custom-boards) when you get there. Nothing below
-> depends on which you picked.
+> **Taking the advanced/prebuilt path instead?** Change **Compose file** to
+> `/docker-compose.prebuilt.yaml` before you press **Continue**, then, once
+> the resource exists, open its **Environment Variables**, add
+> `MEITH_IMAGE`, and give it the `:latest` value step 2's Actions run
+> Summary printed — `ghcr.io/<you>/my-board:latest`. That compose file
+> refuses to start without it. `:latest` follows your repository's `main`
+> branch: installing a plugin later is a push and a **Redeploy**, with
+> nothing on this screen to edit — the right trade while the board is young
+> and you are still changing it. The Summary prints a second value beside
+> it, the same image ending in a long commit code, which names that one
+> build and nothing else, ever. Move `MEITH_IMAGE` to that once the board
+> is settled and you want upgrades happening only when you choose, not on
+> any redeploy — see [Self-hosting § Custom
+> boards](./docker-compose.md#custom-boards) when you get there.
 
 Now deploy: the button is on the resource's own **Actions**, and it is the
-step everything above was setting up, so leave it until the domain and
-`MEITH_IMAGE` are both in. It pulls the image and takes a minute or two.
-Four containers come up, in order:
+step everything above was setting up, so leave it until the domain is in
+(and, on the advanced path, `MEITH_IMAGE` too). The quick-start path builds
+the image on the server, which takes longer than a pull and can strain a
+2 GB box; the advanced path only ever pulls one. Either way, four
+containers come up, in order:
 
 | Container | What it does |
 |---|---|
@@ -225,15 +244,18 @@ The same **Environment Variables** tab tunes the containers' resource
 ceilings, which default to a small VPS: `WEB_MEM_LIMIT`, `WEB_CPUS`,
 `POSTGRES_MEM_LIMIT`, `POSTGRES_CPUS`, `WORKER_MEM_LIMIT` and
 `WORKER_CPUS` override the compose file's defaults the same way
-`MEITH_IMAGE` does, so a larger server is a variable on the resource,
-never an edit to the file.
+`MEITH_IMAGE` does on the advanced path, so a larger server is a variable
+on the resource, never an edit to the file.
 
 > [!NOTE]
-> **Redeploys, and deploying without a gap.** The `web` and `migrate`
-> services set `pull_policy: always`, so every **Redeploy** fetches the
-> current image for the tag rather than reusing a `:latest` the host already
-> has — a rebuild on `main` is picked up without pinning a new digest.
-> Coolify recreates a compose stack by default, though: it stops the old
+> **Redeploys, and deploying without a gap.** On the quick-start path,
+> every **Redeploy** rebuilds `web` and `migrate` from your repository's
+> current `main`, so a newly installed plugin is picked up without an
+> image to update anywhere. On the advanced path, those two services set
+> `pull_policy: always` instead, so every **Redeploy** fetches the current
+> image for the tag rather than reusing a `:latest` the host already has —
+> a rebuild on `main` is picked up without pinning a new digest. Either
+> way, Coolify recreates a compose stack by default: it stops the old
 > containers before starting the new ones, so the board is briefly down while
 > `web` boots. To close that gap, turn on **Rolling update** for the resource
 > (its **General** settings). `web` declares a `/api/ready` healthcheck for
@@ -452,14 +474,15 @@ can fix and retry:
 
 | What you see | What it is |
 |---|---|
-| The deploy fails before any container starts, complaining that `MEITH_IMAGE` is unset | You skipped setting it before deploying, or it is set on the wrong resource — [step 3](#3-set-your-domain-and-deploy). The compose file will not guess an image for you. |
-| The deploy fails pulling the image, with an authentication error | The GHCR package is private — [step 2](#2-create-your-board)'s note on checking its visibility. |
+| The deploy fails before any container starts, complaining that `MEITH_IMAGE` is unset | Advanced/prebuilt path only: you skipped setting it before deploying, or it is set on the wrong resource — [step 3](#3-set-your-domain-and-deploy). That compose file will not guess an image for you. |
+| The deploy fails pulling the image, with an authentication error | Advanced/prebuilt path only: the GHCR package is private — [step 2](#2-create-your-board)'s note on checking its visibility. |
+| The build fails on the server, or takes a very long time | Quick-start path: `Dockerfile` installs this board's full dependency closure on the box itself, which can OOM a 2 GB VPS. Move to the advanced/prebuilt path — [step 3](#3-set-your-domain-and-deploy) — and let GitHub's runners do the heavy lifting instead. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
 | The `worker` container logs `tick failed` repeatedly | The board it is calling is not answering — check `web`'s own log first; the loop container has no logic of its own to break. |
 | 413 on an upload | The proxy's body limit, not the board's. Raise it on the resource. |
 | Password reset "sent" and never arrives | Mail is not configured, so the message is sitting in the web container's log. Check `/admin/settings?group=mail` and press the test button. |
 | Nothing happens on a schedule | The `worker` container is not running, so nothing is calling `/api/system/tick` — see `/admin/system`. |
-| The board is on a newer version than you deployed | `MEITH_IMAGE` is on the `:latest` tag step 3 sets, working as intended: a push to `main` since your last deploy — adding a plugin, say — landed a rebuild that **Restart** or **Redeploy** then picked up. If you would rather that never happen unasked, move `MEITH_IMAGE` to the commit-sha value instead — [step 3](#3-set-your-domain-and-deploy) — and neither button can do it on its own. |
+| The board is on a newer version than you deployed | Quick-start path: every **Redeploy** builds whatever is on `main` right now, working as intended — a push since your last deploy, adding a plugin say, is what the next Redeploy picks up. Advanced/prebuilt path: `MEITH_IMAGE` is on the `:latest` tag step 3 sets, working as intended the same way; move it to the commit-sha value instead — [step 3](#3-set-your-domain-and-deploy) — if you would rather that never happen unasked, since neither button can do it on its own. |
 
 [Operations § Troubleshooting](../../guides/operations/operating.md#troubleshooting)
 covers the failures that are about the board rather than the deploy.

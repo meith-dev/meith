@@ -1,16 +1,19 @@
-# meith-board, quick-start deployed by Coolify — the same shape as the meith
-# repository's own docker/compose.coolify.yml: db, migrate, web, worker. See
-# README.md for the deploy story this file is the last step of.
+# meith-board, deployed by Coolify from a prebuilt image — the advanced path: point
+# Coolify's compose-file at this file instead of docker-compose.yaml once
+# `.github/workflows/build.yml` has pushed an image, and set MEITH_IMAGE to
+# what its Summary printed. This trades the quick-start's heavier
+# build-on-every-deploy for a low-spec build server or a faster deploy — see
+# README.md, "Deploy".
 #
-# Coolify builds `Dockerfile` from this repository itself, so there is no
-# MEITH_IMAGE to set here — every deploy is a build from source. For a
-# low-spec build server or a faster deploy, use `docker-compose.prebuilt.yaml`
-# instead, which pulls the image `.github/workflows/build.yml` pushes to GHCR.
+# Same shape as the meith repository's own docker/compose.coolify.yml: db,
+# migrate, web, worker.
 #
 # No published ports — Coolify's proxy routes to the container and issues
 # the certificate. The two secrets and the database password are Coolify's
 # own "magic variables": it fills them in on the first deploy and shows them
-# in the panel, so nothing here needs a value typed into it. Requires Coolify
+# in the panel, so nothing here needs a value typed into it except
+# MEITH_IMAGE, which only you can know — the build workflow's own Summary
+# tab prints it, ready to paste, the moment it finishes. Requires Coolify
 # v4.0.0-beta.411 or newer, which is when magic variables in a compose file
 # from a Git source arrived.
 services:
@@ -34,8 +37,11 @@ services:
   # Runs to completion, then exits. web waits for it, so the schema is
   # always applied before the first request rather than racing it.
   migrate:
-    build: .
-    image: meith-board
+    image: ${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/meith-board:latest}
+    # Pull the tag on every deploy. Compose keeps an image it already has, so
+    # a rebuilt `:latest` is otherwise never fetched and a redeploy quietly
+    # runs the old code.
+    pull_policy: always
     environment:
       COMMUNITY_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
@@ -47,8 +53,8 @@ services:
     restart: 'no'
 
   web:
-    build: .
-    image: meith-board
+    image: ${MEITH_IMAGE:?set this to the image the build workflow's Summary just printed, e.g. ghcr.io/<you>/meith-board:latest}
+    pull_policy: always
     restart: unless-stopped
     mem_limit: ${WEB_MEM_LIMIT:-1g}
     cpus: ${WEB_CPUS:-2}
