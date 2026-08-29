@@ -117,7 +117,7 @@ describe('the three states of "enabled"', () => {
     expect(row).toMatchObject({ configuredEnabled: true, operatorEnabled: true, running: true })
   })
 
-  it('lists a plugin disabled in community.config.ts, and does not call it running', async () => {
+  it('lists a plugin disabled in meith.config.ts, and does not call it running', async () => {
     config.current.plugins = [{ key: 'alpha', enabled: false, plugin: ALPHA }]
 
     const [row] = (await pluginInventory()).plugins

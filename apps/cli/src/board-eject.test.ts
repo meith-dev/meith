@@ -152,13 +152,13 @@ describe('boardEject', () => {
     ])
   })
 
-  it('renders an empty community.plugins.ts with no showcase wiring when the manifest is empty', async () => {
+  it('renders an empty meith.plugins.ts with no showcase wiring when the manifest is empty', async () => {
     const target = join(targetParent, 'my-board')
     await boardEject([target])
 
-    const generated = await readFile(join(target, 'community.plugins.ts'), 'utf8')
+    const generated = await readFile(join(target, 'meith.plugins.ts'), 'utf8')
     expect(generated).toContain('export const INSTALLED_PLUGINS: readonly InstalledPlugin[] = []')
-    expect(generated).not.toContain('community.demo.plugins')
+    expect(generated).not.toContain('meith.demo.plugins')
     expect(generated).not.toContain('showcasePlugins')
   })
 
@@ -171,7 +171,7 @@ describe('boardEject', () => {
 
     await boardEject([target])
 
-    const generated = await readFile(join(target, 'community.plugins.ts'), 'utf8')
+    const generated = await readFile(join(target, 'meith.plugins.ts'), 'utf8')
     expect(generated).toContain(
       "import { messages as duesMessages, plugin as duesPlugin } from '@meith/plugin-dues'",
     )
@@ -185,7 +185,7 @@ describe('boardEject', () => {
     expect(generated).toContain(
       "{ key: 'reference', enabled: false, plugin: referencePlugin, messages: referenceMessages },",
     )
-    expect(generated).not.toContain('community.demo.plugins')
+    expect(generated).not.toContain('meith.demo.plugins')
   })
 
   it('prints next steps naming what does not move', async () => {

@@ -108,7 +108,7 @@ installer asks for that later, in [step
 with no spaces.
 
 The two commands write an identical small workspace into `./my-board` —
-`package.json`, `community.config.ts`, and a deploy kit of its own:
+`package.json`, `meith.config.ts`, and a deploy kit of its own:
 `Dockerfile`, `docker-compose.yaml` and `.github/workflows/build.yml` —
 the same files the template repository already has. All three depend on
 the published `@meith/web` and `@meith/cli` packages rather than

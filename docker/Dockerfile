@@ -104,8 +104,8 @@ RUN pnpm --filter @meith/worker build
 # board:cli-tsconfig` (scripts/board-cli-tsconfig.mjs) writes a throwaway
 # tsconfig at boards/stock/.meith/tsconfig.cli.json — gitignored, regenerated
 # every build, never a merge target — carrying every tsconfig.base.json alias
-# except `@board/*`, which it points at boards/stock's own community.config.ts
-# / community.plugins.ts instead. `--tsconfig` then makes esbuild use exactly
+# except `@board/*`, which it points at boards/stock's own meith.config.ts
+# / meith.plugins.ts instead. `--tsconfig` then makes esbuild use exactly
 # that file instead of auto-discovering the wrong one. See docs/reference/architecture.md,
 # "The stock board".
 RUN pnpm board:cli-tsconfig

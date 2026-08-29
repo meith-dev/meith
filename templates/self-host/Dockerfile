@@ -25,7 +25,7 @@ FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps
 WORKDIR /board
 
 # This board's own manifest, cached independently of its source — editing
-# community.config.ts should not re-run npm install. The base image above
+# meith.config.ts should not re-run npm install. The base image above
 # already carries node_modules for @meith/web, @meith/cli and
 # @meith/theme-default at this exact version, so installing this file on top
 # of it only fetches what changed: a plugin newly added to `dependencies`,

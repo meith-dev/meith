@@ -20,20 +20,20 @@ export const GUARDS = [
   {
     id: 'no-runtime-filesystem-scan',
     why:
-      'Invariant 6: everything installable is registered in community.config.ts, and ' +
+      'Invariant 6: everything installable is registered in meith.config.ts, and ' +
       'nothing is discovered by scanning a directory at runtime. A serverless ' +
       'bundle contains only what the bundler could see statically, so a readdir ' +
       'over themes/ or plugins/ is empty in production while working perfectly ' +
       'on the developer machine that wrote it. It also makes the installed set ' +
       'unknowable at build time, so a broken plugin is a 500 rather than a ' +
-      'compile error. Import it in community.config.ts instead.',
+      'compile error. Import it in meith.config.ts instead.',
     files: /\.(ts|tsx)$/,
     pattern: /\b(readdir|readdirSync|globSync|opendir|opendirSync)\s*\(/,
     allow:
       /^(scripts\/|apps\/cli\/|packages\/create-meith\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
     probe: {
       violates: "const themes = await readdir('./themes')",
-      clean: "import themes from './community.config'",
+      clean: "import themes from './meith.config'",
     },
   },
   {
@@ -239,7 +239,7 @@ export const GUARDS = [
     id: 'no-third-party-browser-code',
     why:
       'What the board imports is an allowlist: relative paths, @/, @meith/*, ' +
-      '@board/* (the community.config.ts / community.plugins.ts seam), ' +
+      '@board/* (the meith.config.ts / meith.plugins.ts seam), ' +
       'node:*, next, react, react-dom and server-only. Everything else is a ' +
       "third party in a member's browser, and that is not a dependency " +
       "decision — it is a decision about somebody else's members, so it is " +
@@ -342,31 +342,31 @@ export const GUARDS = [
   {
     id: 'no-relative-board-config-import',
     why:
-      'community.config.ts, community.plugins.ts, and community.demo.plugins.ts are ' +
+      'meith.config.ts, meith.plugins.ts, and meith.demo.plugins.ts are ' +
       'reached through one seam — @board/config and @board/plugins (tsconfig path ' +
       'aliases in tsconfig.base.json and apps/community/tsconfig.json) — never a ' +
       'relative path into apps/community, at any depth or through any intermediate ' +
       'directory. For a board to become an external workspace later, every consumer ' +
       'must resolve board config through a name a consuming workspace can supply, not ' +
       "through a relative path that assumes today's directory layout. The board files " +
-      'may still import each other by relative path (community.config.ts pulls in ' +
-      'community.plugins.ts, which pulls in community.demo.plugins.ts); that is the ' +
+      'may still import each other by relative path (meith.config.ts pulls in ' +
+      'meith.plugins.ts, which pulls in meith.demo.plugins.ts); that is the ' +
       "seam's own definition, not a caller reaching around it — see " +
       'docs/reference/architecture.md, "The board-config seam", and see docs/customization/plugins.md for ' +
-      'why community.demo.plugins.ts exists at all.',
+      'why meith.demo.plugins.ts exists at all.',
     files: /\.(ts|tsx)$/,
     pattern:
-      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[^'"]*community\.(?:config|plugins|demo\.plugins)['"]/,
+      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[^'"]*meith\.(?:config|plugins|demo\.plugins)['"]/,
     allow:
-      /^apps\/community\/community\.(?:config|plugins)\.ts$|^boards\/stock\/community\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$|^templates\/[^/]+\/community\.(?:config|plugins)\.ts$/,
+      /^apps\/community\/meith\.(?:config|plugins)\.ts$|^boards\/stock\/meith\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$|^templates\/[^/]+\/meith\.(?:config|plugins)\.ts$/,
     probe: {
-      violates: "import forumConfig from '../../community.config'",
+      violates: "import forumConfig from '../../meith.config'",
       clean: "import forumConfig from '@board/config'",
     },
     alsoViolates: [
-      "import { showcasePlugins } from '../../community.demo.plugins'",
-      "import forumConfig from '../apps/community/community.config'",
-      "import { installedPluginDefinitions } from '../../boards/stock/community.plugins'",
+      "import { showcasePlugins } from '../../meith.demo.plugins'",
+      "import forumConfig from '../apps/community/meith.config'",
+      "import { installedPluginDefinitions } from '../../boards/stock/meith.plugins'",
     ],
     alsoClean: [
       "await import('@board/plugins')",

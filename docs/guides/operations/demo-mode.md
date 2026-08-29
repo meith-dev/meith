@@ -145,7 +145,7 @@ server reads, so the page arrives already painted.
 
 The flag is the demo being a shop window and decides nothing for a board
 of your own: yours starts with the default theme and adds what it wants
-in `community.config.ts`, a file you own and the flag never touches.
+in `meith.config.ts`, a file you own and the flag never touches.
 
 ## The shop, and a Stripe that is not Stripe
 
@@ -154,8 +154,8 @@ membership of a usergroup, and [Calendar](../../README.md), which puts
 the community's events on a page and beside the threads that discuss
 them — because a
 plugin nobody can click is a paragraph rather than a demonstration. Both
-are registered by the flag in `community.demo.plugins.ts`, the demo's own
-file, so that `community.plugins.ts` — the file a board of your own lists
+are registered by the flag in `meith.demo.plugins.ts`, the demo's own
+file, so that `meith.plugins.ts` — the file a board of your own lists
 its plugins in — stays a list you can read at a glance.
 
 The seed writes the shop and a year of its history: four plans (a €5

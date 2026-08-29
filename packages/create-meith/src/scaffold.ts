@@ -65,7 +65,7 @@ const AT_ROOT_IGNORES = `# What \`forum-web ${AT_ROOT_FLAG}\` writes into this d
 # alone by the build and still never committed, so it works locally and is
 # simply absent from the deploy, which builds from what git has. Extend the
 # board with a plugin or a theme instead — the forum loads those from
-# community.config.ts, and they are yours to commit. forum-web prints a
+# meith.config.ts, and they are yours to commit. forum-web prints a
 # warning naming any file of yours it finds there.
 #
 # For the rest, a build refuses rather than overwriting a file it did not
@@ -460,7 +460,7 @@ save-exact=true
   )
 
   files.set(
-    'community.config.ts',
+    'meith.config.ts',
     `/**
  * The board's build-time registry.
  *
@@ -471,7 +471,7 @@ save-exact=true
  * not there at all.
  *
  * Adding a theme is: \`npm install\` it, add a line here, redeploy. Adding a
- * plugin is the same, through board.plugins.json and community.plugins.ts —
+ * plugin is the same, through board.plugins.json and meith.plugins.ts —
  * see docs/customization/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
@@ -483,7 +483,7 @@ import {
   LIGHT_TOKENS,
 } from '@meith/theme-default'
 
-import { INSTALLED_PLUGINS } from './community.plugins'
+import { INSTALLED_PLUGINS } from './meith.plugins'
 
 export default defineForumConfig({
   themes: {
@@ -506,7 +506,7 @@ export default defineForumConfig({
   files.set('board.plugins.json', `${JSON.stringify({ plugins: [] }, null, 2)}\n`)
 
   files.set(
-    'community.plugins.ts',
+    'meith.plugins.ts',
     `/**
  * The board's installed-plugin list.
  *
@@ -600,7 +600,7 @@ FROM ghcr.io/meith-dev/meith-base:\${MEITH_VERSION} AS deps
 WORKDIR /board
 
 # This board's own manifest, cached independently of its source — editing
-# community.config.ts should not re-run npm install. The base image above
+# meith.config.ts should not re-run npm install. The base image above
 # already carries node_modules for @meith/web, @meith/cli and
 # @meith/theme-default at this exact version, so installing this file on top
 # of it only fetches what changed: a plugin newly added to \`dependencies\`,
@@ -998,7 +998,7 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 
 ## Configuring
 
-- **\`community.config.ts\`** — installed themes and plugins. Everything installable
+- **\`meith.config.ts\`** — installed themes and plugins. Everything installable
   is named here so the bundler can see it; nothing is found by scanning a
   directory at runtime.
 - **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An

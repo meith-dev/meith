@@ -89,10 +89,10 @@ async function registerPlugin(boardDir: string) {
         2,
       )}\n`,
   )
-  await editFile(boardDir, 'community.plugins.ts', (source) =>
+  await editFile(boardDir, 'meith.plugins.ts', (source) =>
     replaceOnce(
       source,
-      'community.plugins.ts',
+      'meith.plugins.ts',
       'export const INSTALLED_PLUGINS: readonly InstalledPlugin[] = []',
       "import { messages as smokePluginMessages, plugin as smokePluginPlugin } from 'smoke-plugin'\n\n" +
         'export const INSTALLED_PLUGINS: readonly InstalledPlugin[] = [\n' +
@@ -103,22 +103,22 @@ async function registerPlugin(boardDir: string) {
 }
 
 async function registerTheme(boardDir: string) {
-  await editFile(boardDir, 'community.config.ts', (source) => {
+  await editFile(boardDir, 'meith.config.ts', (source) => {
     const withImport = replaceOnce(
       source,
-      'community.config.ts',
-      "import { INSTALLED_PLUGINS } from './community.plugins'",
+      'meith.config.ts',
+      "import { INSTALLED_PLUGINS } from './meith.plugins'",
       'import {\n' +
         '  BROWSER_THEME_COLOR as smokeThemeColor,\n' +
         '  DARK_TOKENS as smokeThemeDark,\n' +
         '  LIGHT_TOKENS as smokeThemeLight,\n' +
         '  smokeThemeTheme,\n' +
         "} from 'smoke-theme'\n\n" +
-        "import { INSTALLED_PLUGINS } from './community.plugins'",
+        "import { INSTALLED_PLUGINS } from './meith.plugins'",
     )
     return replaceOnce(
       withImport,
-      'community.config.ts',
+      'meith.config.ts',
       "  },\n  defaultTheme: 'default',",
       '    ' +
         "'smoke-theme': {\n" +

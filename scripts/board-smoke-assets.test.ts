@@ -42,7 +42,7 @@ describe('the keys a rendered board failed to turn into text', () => {
       '<a>meith-final.vercel.app</a>',
       '<span>0.20.0</span>',
       '<time>Europe/Dublin</time>',
-      '<code>community.config.ts</code>',
+      '<code>meith.config.ts</code>',
     ].join('')
 
     expect(unresolvedMessageKeys(html, KEYS)).toEqual([])

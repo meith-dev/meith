@@ -29,7 +29,7 @@ export const acmeTheme = defineTheme({
 })
 ```
 
-Register it in `community.config.ts`, and set `defaultTheme` to its key if it
+Register it in `meith.config.ts`, and set `defaultTheme` to its key if it
 should be the board's default. A theme ships TypeScript source like every
 `@meith/*` package: a board build compiles every dependency in the board's
 own `package.json` from source, so an installed theme needs no build step of
@@ -195,7 +195,7 @@ function WhoIsOnline({ total, copy }: WhoIsOnlineModel & { copy: SlotCopy }) {
 A missing key renders as itself, the same fallback every other copy record in
 the app uses. The values themselves come from your theme's own message
 catalog — a `messages` bundle registered alongside `slots` and `copy` in
-`community.config.ts`:
+`meith.config.ts`:
 
 ```ts
 export const clubhouseMessages = {
@@ -553,7 +553,7 @@ that brings the zoom back.
 ## Testing a theme
 
 `apps/community/src/theme/contract.test.ts` renders every theme registered
-in `community.config.ts` through every stable slot with the same fixture
+in `meith.config.ts` through every stable slot with the same fixture
 models, and asserts the properties that are true of any theme:
 
 - Required slots are filled.

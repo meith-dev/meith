@@ -40,7 +40,7 @@ history behind it, and a checkout a visitor can actually go through. See
 1. **Register the plugin** where plugins are registered:
 
    ```ts
-   // apps/community/community.plugins.ts
+   // apps/community/meith.plugins.ts
    import { dues } from '@meith/plugin-dues'
 
    export const INSTALLED_PLUGINS = [{ key: 'dues', plugin: dues }]
@@ -55,7 +55,7 @@ history behind it, and a checkout a visitor can actually go through. See
    or code-declared seed plans for a demo or test board — calls `createDues`
    instead: `createDues({ extraRedirectHosts: ['proxy.example'] })`. This
    repository's own demo and test boards do exactly that, in
-   `community.demo.plugins.ts`, behind `DEMO_MODE` and `DUES_TEST_BOARD`. A
+   `meith.demo.plugins.ts`, behind `DEMO_MODE` and `DUES_TEST_BOARD`. A
    seed plan populates the plan table on the board's first run and is
    ignored once it has rows — after that, the panel owns the plans, exactly
    as for a board that never declared any.

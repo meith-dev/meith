@@ -330,7 +330,7 @@ drift apart, and why there is no second Dockerfile.
 ## Custom boards
 
 Everything above deploys **this board** — the stock one, whatever plugins
-and themes `apps/community`'s own `community.config.ts` compiles in.
+and themes `apps/community`'s own `meith.config.ts` compiles in.
 Installing a third-party plugin does not mean forking this repository:
 
 ```sh
@@ -338,7 +338,7 @@ curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- <name>
 ```
 
 scaffolds a small workspace of its own — `package.json`,
-`community.config.ts`, `board.plugins.json` — that depends on the
+`meith.config.ts`, `board.plugins.json` — that depends on the
 published `@meith/web` and `@meith/cli` packages instead, and comes with
 its own deploy kit already written: `Dockerfile`, `docker-compose.yaml` and
 `.github/workflows/build.yml`, plus a git repository already initialized

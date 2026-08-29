@@ -211,7 +211,7 @@ const commands: Command[] = [
 
   {
     name: 'plugin:add',
-    summary: 'Add a package to board.plugins.json and regenerate community.plugins.ts.',
+    summary: 'Add a package to board.plugins.json and regenerate meith.plugins.ts.',
     usage: 'community plugin:add <package> [--key <key>] [--disabled]',
     async run(args: readonly string[]) {
       const { pluginAdd } = await import('./plugin-manifest')
@@ -221,7 +221,7 @@ const commands: Command[] = [
 
   {
     name: 'plugin:remove',
-    summary: 'Remove a plugin from board.plugins.json and regenerate community.plugins.ts.',
+    summary: 'Remove a plugin from board.plugins.json and regenerate meith.plugins.ts.',
     usage: 'community plugin:remove <key>',
     async run(args: readonly string[]) {
       const { pluginRemove } = await import('./plugin-manifest')

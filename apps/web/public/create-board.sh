@@ -56,8 +56,8 @@ cat > "$BOARD_NAME/.npmrc" <<'MEITH_SCAFFOLD_EOF'
 save-exact=true
 MEITH_SCAFFOLD_EOF
 
-mkdir -p "$(dirname -- "$BOARD_NAME/community.config.ts")"
-cat > "$BOARD_NAME/community.config.ts" <<'MEITH_SCAFFOLD_EOF'
+mkdir -p "$(dirname -- "$BOARD_NAME/meith.config.ts")"
+cat > "$BOARD_NAME/meith.config.ts" <<'MEITH_SCAFFOLD_EOF'
 /**
  * The board's build-time registry.
  *
@@ -68,7 +68,7 @@ cat > "$BOARD_NAME/community.config.ts" <<'MEITH_SCAFFOLD_EOF'
  * not there at all.
  *
  * Adding a theme is: `npm install` it, add a line here, redeploy. Adding a
- * plugin is the same, through board.plugins.json and community.plugins.ts —
+ * plugin is the same, through board.plugins.json and meith.plugins.ts —
  * see docs/customization/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
@@ -80,7 +80,7 @@ import {
   LIGHT_TOKENS,
 } from '@meith/theme-default'
 
-import { INSTALLED_PLUGINS } from './community.plugins'
+import { INSTALLED_PLUGINS } from './meith.plugins'
 
 export default defineForumConfig({
   themes: {
@@ -106,8 +106,8 @@ cat > "$BOARD_NAME/board.plugins.json" <<'MEITH_SCAFFOLD_EOF'
 }
 MEITH_SCAFFOLD_EOF
 
-mkdir -p "$(dirname -- "$BOARD_NAME/community.plugins.ts")"
-cat > "$BOARD_NAME/community.plugins.ts" <<'MEITH_SCAFFOLD_EOF'
+mkdir -p "$(dirname -- "$BOARD_NAME/meith.plugins.ts")"
+cat > "$BOARD_NAME/meith.plugins.ts" <<'MEITH_SCAFFOLD_EOF'
 /**
  * The board's installed-plugin list.
  *
@@ -271,7 +271,7 @@ FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps
 WORKDIR /board
 
 # This board's own manifest, cached independently of its source — editing
-# community.config.ts should not re-run npm install. The base image above
+# meith.config.ts should not re-run npm install. The base image above
 # already carries node_modules for @meith/web, @meith/cli and
 # @meith/theme-default at this exact version, so installing this file on top
 # of it only fetches what changed: a plugin newly added to `dependencies`,
@@ -663,7 +663,7 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 
 ## Configuring
 
-- **`community.config.ts`** — installed themes and plugins. Everything installable
+- **`meith.config.ts`** — installed themes and plugins. Everything installable
   is named here so the bundler can see it; nothing is found by scanning a
   directory at runtime.
 - **`/admin`** — settings, forums, groups, members, themes, maintenance. An

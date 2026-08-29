@@ -17,21 +17,21 @@ describe("boards/stock reproduces apps/community's board config", () => {
     )
   })
 
-  it('community.demo.config.ts is byte-identical — it carries no board-seam import, so nothing should differ', () => {
-    expect(read('boards/stock/community.demo.config.ts')).toBe(
-      read('apps/community/community.demo.config.ts'),
+  it('meith.demo.config.ts is byte-identical — it carries no board-seam import, so nothing should differ', () => {
+    expect(read('boards/stock/meith.demo.config.ts')).toBe(
+      read('apps/community/meith.demo.config.ts'),
     )
   })
 
-  it('community.demo.plugins.ts is byte-identical — same env-gated demo/test plugin spreading', () => {
-    expect(read('boards/stock/community.demo.plugins.ts')).toBe(
-      read('apps/community/community.demo.plugins.ts'),
+  it('meith.demo.plugins.ts is byte-identical — same env-gated demo/test plugin spreading', () => {
+    expect(read('boards/stock/meith.demo.plugins.ts')).toBe(
+      read('apps/community/meith.demo.plugins.ts'),
     )
   })
 
-  it('community.config.ts declares the same theme set and default theme', () => {
-    const stock = read('boards/stock/community.config.ts')
-    const community = read('apps/community/community.config.ts')
+  it('meith.config.ts declares the same theme set and default theme', () => {
+    const stock = read('boards/stock/meith.config.ts')
+    const community = read('apps/community/meith.config.ts')
 
     for (const needle of [
       "key: 'default'",
@@ -41,14 +41,12 @@ describe("boards/stock reproduces apps/community's board config", () => {
       'showcaseEnabled()',
       'plugins: INSTALLED_PLUGINS',
     ]) {
-      expect(stock, `boards/stock/community.config.ts should contain ${needle}`).toContain(needle)
-      expect(community, `apps/community/community.config.ts should contain ${needle}`).toContain(
-        needle,
-      )
+      expect(stock, `boards/stock/meith.config.ts should contain ${needle}`).toContain(needle)
+      expect(community, `apps/community/meith.config.ts should contain ${needle}`).toContain(needle)
     }
   })
 
-  it('community.config.ts reaches defineForumConfig through @meith/web/config — the seam a board outside this monorepo builds against', () => {
-    expect(read('boards/stock/community.config.ts')).toContain("from '@meith/web/config'")
+  it('meith.config.ts reaches defineForumConfig through @meith/web/config — the seam a board outside this monorepo builds against', () => {
+    expect(read('boards/stock/meith.config.ts')).toContain("from '@meith/web/config'")
   })
 })

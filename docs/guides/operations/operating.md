@@ -266,9 +266,9 @@ In a checkout of *this* repository, where the board is one workspace among many,
 `pnpm add @meith/plugin-dues --filter @meith/web` instead. Nothing else differs.
 
 `plugin:add` and `plugin:remove` edit `board.plugins.json` and regenerate
-`community.plugins.ts`; commit both and rebuild and redeploy the image for the change to take
+`meith.plugins.ts`; commit both and rebuild and redeploy the image for the change to take
 effect. A plugin that cannot yet satisfy the manifest's export convention stays a line in
-`community.plugins.ts` you write by hand, exactly as before.
+`meith.plugins.ts` you write by hand, exactly as before.
 
 Before removing plugin code, purge its owned data through the lifecycle hook — this one *does*
 run against the deployed board, because it needs the live database:

@@ -8,8 +8,8 @@ payload — is generated into [Plugin hooks](../reference/plugin-hooks.md).
 
 ## Writing a plugin
 
-A plugin is a module that calls `definePlugin`. `community.plugins.ts` — the
-installed list, in its own file beside `community.config.ts` so the operator
+A plugin is a module that calls `definePlugin`. `meith.plugins.ts` — the
+installed list, in its own file beside `meith.config.ts` so the operator
 CLI can read it without importing the themes' component trees — is
 **generated** from `board.plugins.json`, and that manifest is the
 installation path for any plugin that fits it:
@@ -74,7 +74,7 @@ install it switched off) and writes both `board.plugins.json` files:
 ```
 
 then runs `pnpm board:gen` for you, which writes the import and the list
-entry into both `community.plugins.ts` files. `community plugin:remove <key>`
+entry into both `meith.plugins.ts` files. `community plugin:remove <key>`
 is the reverse, on both boards. If the generator refuses one board's manifest
 — the package is not yet a dependency there, most often, or the two manifests
 already disagree before the command ran — neither `board.plugins.json` file
@@ -88,30 +88,30 @@ own settings, the way `plugins/dues`'s did.
 **The escape hatch is still real code, and it is honest about being one.**
 A plugin that cannot yet fit the manifest — it takes constructor
 configuration, or you are still writing it — is registered by hand, exactly
-as before: a line in `community.plugins.ts`. Because that file is generated,
+as before: a line in `meith.plugins.ts`. Because that file is generated,
 a hand-written entry cannot live there directly; it goes in
-`community.demo.plugins.ts` instead (this repository's own demo and test
+`meith.demo.plugins.ts` instead (this repository's own demo and test
 boards keep their plugins there already), spread into the generated list
 through `showcasePlugins()`, which the generator preserves as a fixed
-extension point. Nothing about `community.plugins.ts` being generated
+extension point. Nothing about `meith.plugins.ts` being generated
 changes what runs — it changes how the manifest-installable, common case
 gets there without hand-editing TypeScript.
 
 `pnpm board:gen:check`, wired into `pnpm verify`, fails when either board's
-manifest and its `community.plugins.ts` disagree — run `pnpm board:gen` and
+manifest and its `meith.plugins.ts` disagree — run `pnpm board:gen` and
 commit the result — and `tests/boards-stock.test.ts` fails when the two
 `board.plugins.json` files disagree with each other. Each `board.plugins.json`
 refuses: a duplicate key; a key `definePlugin` would refuse; a key that is
 legal but whose camelCase identifier collides with another entry's, or is
 not itself a valid identifier (a repeated or trailing hyphen, most often —
 `foo--bar` and `foo-` are both legal plugin keys and both make
-`community.plugins.ts` un-generatable without this check); a non-boolean
+`meith.plugins.ts` un-generatable without this check); a non-boolean
 `enabled`; a `package` that is not a valid npm package name; and a package
 its own board does not depend on, naming the fix — `pnpm add <package>
 --filter @meith/web` for `apps/community`, `pnpm add <package> --filter
 @meith/board-stock` for `boards/stock` — against whichever board actually
 lacks it. `apps/cli/src/board-eject.ts` renders the same shape of
-`community.plugins.ts` for an ejected board and carries its own copy of the
+`meith.plugins.ts` for an ejected board and carries its own copy of the
 key/identifier/`enabled`/package-name checks (not the dependency check — an
 ejected build has no such list to check against); the two `toIdentifier`
 implementations are pinned to agree by a test in `board-eject.test.ts`
@@ -406,7 +406,7 @@ so it is counted and shown in the plugin's health row rather than reported to
 the operator as their action having failed.
 
 **`onUninstall` needs `community plugin:purge`, and that is not a workaround.**
-Removing a plugin is `pnpm remove`, taking it out of `community.plugins.ts`
+Removing a plugin is `pnpm remove`, taking it out of `meith.plugins.ts`
 (`community plugin:remove <key>` for a manifest entry, by hand for the escape
 hatch) and a redeploy — and at the moment the board would call `onUninstall`,
 the function is no longer in the build. There is no point in time where the
@@ -499,7 +499,7 @@ setting key, and a slash in a page path would escape the admin prefix.
 ## Words of its own
 
 A plugin that shows text to a member ships a message catalog and is registered
-with it in `community.config.ts`:
+with it in `meith.config.ts`:
 
 ```ts
 plugins: [{ key: 'dues', plugin: dues, messages: duesMessages }]
@@ -990,7 +990,7 @@ A few consequences, stated plainly:
   failures — write a row that every instance reconciles against on its next
   request, so both survive a redeploy: the plugin somebody switched off at
   2am is exactly the one that must stay off. Removing a plugin is still
-  `pnpm remove`, a line out of `community.plugins.ts`, and a redeploy, with
+  `pnpm remove`, a line out of `meith.plugins.ts`, and a redeploy, with
   `community plugin:purge` before it when its data should go too. There is
   no button, because a button that dropped the rows while the code kept
   running would produce a state neither installing nor removing does.

@@ -57,7 +57,7 @@ function installSteps(
   return [
     { code: `npm install ${listing.package}`, text: 'Add the package to your board.' },
     {
-      text: 'Register it in community.config.ts (and set it as defaultTheme if it should be the board default).',
+      text: 'Register it in meith.config.ts (and set it as defaultTheme if it should be the board default).',
     },
     { text: 'Rebuild and redeploy for it to take effect.' },
   ]

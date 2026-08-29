@@ -81,6 +81,6 @@ describe('purge', () => {
   it('says what is left to do by hand', async () => {
     await purge({ key: 'dues', plugins: [dues], confirmed: true, log })
 
-    expect(lines.join('\n')).toContain('community.plugins.ts')
+    expect(lines.join('\n')).toContain('meith.plugins.ts')
   })
 })

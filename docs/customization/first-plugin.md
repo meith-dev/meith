@@ -104,7 +104,7 @@ cd my-board
 npm install ../first-light
 ```
 
-Register it in the board's `community.plugins.ts` — the comment at the top
+Register it in the board's `meith.plugins.ts` — the comment at the top
 of that file shows the shape:
 
 ```ts
