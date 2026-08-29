@@ -193,6 +193,32 @@ page in a panel, so render your content straight into it. Grouping it into
 it is not required the way it is on a board page. `dues` and `calendar` in
 this repository are worked examples of both.
 
+When a page switches between views — an upcoming/past toggle, a set of
+folders — render the switch as the board's segmented control rather than a
+row of links, so it matches every other tab strip on the board. `plugin-kit`
+exports the pieces: `PLUGIN_TAB_LIST` for the `<ul>` track, and
+`pluginTabClass(active)` for each tab's `<a>`. Mark the current one with
+`aria-current="page"`.
+
+```tsx
+import { PLUGIN_TAB_LIST, pluginTabClass } from '@meith/plugin-kit'
+
+<nav aria-label={context.t.t('first-light.page.views')}>
+  <ul className={PLUGIN_TAB_LIST}>
+    <li className="shrink-0">
+      <a href="/plugins/first-light" aria-current="page" className={pluginTabClass(true)}>
+        {context.t.t('first-light.page.recent')}
+      </a>
+    </li>
+    <li className="shrink-0">
+      <a href="/plugins/first-light?show=all" className={pluginTabClass(false)}>
+        {context.t.t('first-light.page.all')}
+      </a>
+    </li>
+  </ul>
+</nav>
+```
+
 ## Publish it
 
 ```sh

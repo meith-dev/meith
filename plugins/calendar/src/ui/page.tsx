@@ -1,4 +1,10 @@
-import { PLUGIN_CARD, PLUGIN_NOTE, type PluginPageContext } from '@meith/plugin-kit'
+import {
+  PLUGIN_CARD,
+  PLUGIN_NOTE,
+  PLUGIN_TAB_LIST,
+  type PluginPageContext,
+  pluginTabClass,
+} from '@meith/plugin-kit'
 
 import { mayAdd, resolveCalendarConfig } from '../access'
 import {
@@ -183,19 +189,27 @@ export async function CalendarPage(context: PluginPageContext) {
 
   return (
     <div className="flex flex-col gap-6">
-      <nav className="flex gap-4 text-sm">
-        <a
-          className={showingPast ? 'underline underline-offset-2' : 'font-semibold'}
-          href="/plugins/calendar"
-        >
-          {translated(context, 'calendar.page.upcoming')}
-        </a>
-        <a
-          className={showingPast ? 'font-semibold' : 'underline underline-offset-2'}
-          href="/plugins/calendar?show=past"
-        >
-          {translated(context, 'calendar.page.past')}
-        </a>
+      <nav aria-label={translated(context, 'calendar.page.views')}>
+        <ul className={PLUGIN_TAB_LIST}>
+          <li className="shrink-0">
+            <a
+              href="/plugins/calendar"
+              {...(showingPast ? {} : { 'aria-current': 'page' as const })}
+              className={pluginTabClass(!showingPast)}
+            >
+              {translated(context, 'calendar.page.upcoming')}
+            </a>
+          </li>
+          <li className="shrink-0">
+            <a
+              href="/plugins/calendar?show=past"
+              {...(showingPast ? { 'aria-current': 'page' as const } : {})}
+              className={pluginTabClass(showingPast)}
+            >
+              {translated(context, 'calendar.page.past')}
+            </a>
+          </li>
+        </ul>
       </nav>
 
       {events.length === 0 ? (

@@ -5,14 +5,14 @@ import { Card, CardRows, cn, Empty, EmptyDescription } from '@meith/ui'
 import { LINK, NUMERIC, pageAt, Stamp } from '../shared'
 
 const TAB =
-  'inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
   if (tabs.length === 0) return null
 
   return (
-    <nav aria-label={label} className="flex items-center gap-x-3">
-      <ul className="-my-1.5 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5">
+    <nav aria-label={label} className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <ul className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
         {tabs.map((tab) => (
           <li key={tab.href} className="shrink-0">
             <a
@@ -21,8 +21,8 @@ function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
               className={cn(
                 TAB,
                 tab.isCurrent
-                  ? 'bg-primary font-semibold text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  ? 'bg-card font-semibold text-foreground shadow-sm'
+                  : 'font-medium text-muted-foreground hover:text-foreground',
               )}
             >
               {tab.label}

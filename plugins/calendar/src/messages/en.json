@@ -26,6 +26,7 @@
   "calendar.page.past": "Past",
   "calendar.page.title": "Calendar",
   "calendar.page.upcoming": "Upcoming",
+  "calendar.page.views": "Calendar views",
   "calendar.setting.anyMember.description": "When off, only the organisers named under Admin → Plugins → Calendar may add events.",
   "calendar.setting.anyMember.label": "Any member may add an event",
   "calendar.thread.card": "This thread discusses an event."
