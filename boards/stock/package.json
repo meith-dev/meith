@@ -1,6 +1,6 @@
 {
   "name": "@meith/board-stock",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "description": "The stock board: a create-meith-shaped workspace consuming @meith/web and @meith/cli, built by docker/Dockerfile into the official image. Not published.",
   "license": "MIT",
   "repository": {

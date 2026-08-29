@@ -18,7 +18,7 @@ export const calendarPlugin = definePlugin({
   key: 'calendar',
   name: en['calendar.definition.name'],
   nameKey: 'calendar.definition.name',
-  version: '0.25.0',
+  version: '0.25.1',
   description: en['calendar.definition.description'],
   descriptionKey: 'calendar.definition.description',
   apiVersion: '0',
