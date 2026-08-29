@@ -5,7 +5,7 @@ import { MAX_RELATIONS } from '@meith/relations'
 
 import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
-import { PANEL_LIST } from '@/components/shell/panel-list'
+import { PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
@@ -68,9 +68,7 @@ export default async function ContactsPage({
         </h2>
 
         {view.buddies.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {translator.t('board.contacts.emptyBuddies')}
-          </p>
+          <p className={PANEL_NOTE}>{translator.t('board.contacts.emptyBuddies')}</p>
         ) : (
           <ul className={PANEL_LIST}>
             {view.buddies.map((row) => (
@@ -89,9 +87,7 @@ export default async function ContactsPage({
         </p>
 
         {view.ignored.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {translator.t('board.contacts.emptyIgnored')}
-          </p>
+          <p className={PANEL_NOTE}>{translator.t('board.contacts.emptyIgnored')}</p>
         ) : (
           <ul className={PANEL_LIST}>
             {view.ignored.map((row) => (

@@ -21,27 +21,32 @@ export function ViewTabs({
   if (tabs.length === 0) return null
 
   return (
-    <nav aria-label={label} className={cn('flex items-center gap-x-3', className)}>
-      <ul className="-my-1.5 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5">
+    <nav
+      aria-label={label}
+      className={cn('flex flex-wrap items-center gap-x-3 gap-y-2', className)}
+    >
+      <ul className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
         {tabs.map((tab) => (
           <li key={tab.href} className="shrink-0">
             <a
               href={tab.href}
               {...(tab.isCurrent ? { 'aria-current': 'page' as const } : {})}
               className={cn(
-                'inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+                'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 tab.isCurrent
-                  ? 'bg-primary font-semibold text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  ? 'bg-card font-semibold text-foreground shadow-sm'
+                  : 'font-medium text-muted-foreground hover:text-foreground',
               )}
             >
               {tab.label}
               {tab.count !== undefined && tab.count > 0 && (
                 <span
                   className={cn(
-                    'rounded-full px-1.5 text-xs font-semibold tabular-nums',
-                    tab.isCurrent ? 'bg-primary-foreground/20' : 'bg-secondary',
+                    'rounded px-1.5 text-xs font-semibold tabular-nums',
+                    tab.isCurrent
+                      ? 'bg-secondary text-secondary-foreground'
+                      : 'bg-muted text-muted-foreground',
                   )}
                 >
                   {tab.count}

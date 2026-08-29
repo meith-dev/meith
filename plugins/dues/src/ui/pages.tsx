@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { PluginPageContext } from '@meith/plugin-kit'
+import { PLUGIN_CARD, PLUGIN_NOTE, type PluginPageContext } from '@meith/plugin-kit'
 import type { Translator } from '@meith/theme-kit'
 
 import type { DuesConfig } from '../config'
@@ -15,11 +15,9 @@ import {
   type PlanRow,
 } from '../store'
 
-const QUIET_PANEL = 'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
+const QUIET_PANEL = PLUGIN_NOTE
 
-const CARD =
-  'flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground ' +
-  'shadow-elevation'
+const CARD = PLUGIN_CARD
 const INPUT =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'

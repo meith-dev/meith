@@ -110,7 +110,7 @@ export default async function MessagesPage({
       ) : null}
 
       {view.rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           {folder === 'inbox'
             ? translator.t('board.messages.emptyInbox')
             : folder === 'sent'
@@ -125,7 +125,7 @@ export default async function MessagesPage({
             copy={messageFormsCopy(await getTranslator())}
           />
 
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
             {view.rows.map((row) => (
               <li key={row.copyId} className="flex items-start gap-3 px-4 py-3">
                 <input

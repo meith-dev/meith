@@ -79,7 +79,9 @@ export default async function NotificationsPage({
       {notice !== null && <BoardNotice kind="info" message={notice} dismissHref="/notifications" />}
 
       {view.rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{translator.t('board.notifications.empty')}</p>
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          {translator.t('board.notifications.empty')}
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {view.rows.map((row) => (

@@ -115,9 +115,11 @@ export function SearchResults({
         </CardContent>
       </Card>
 
-      <a href={newSearchHref} className={`text-sm font-medium text-foreground ${LINK}`}>
-        {c('startNewSearch')}
-      </a>
+      <div>
+        <a href={newSearchHref} className={buttonVariants({ variant: 'outline' })}>
+          {c('startNewSearch')}
+        </a>
+      </div>
     </main>
   )
 }
@@ -147,18 +149,19 @@ function Refine({
 
         <nav
           aria-label={sortsLabel}
-          className="flex items-center rounded-md border border-border p-0.5"
+          className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface p-1"
         >
           {sorts.map((sort) => (
             <a
               key={sort.label}
               href={sort.href}
               {...(sort.isCurrent ? { 'aria-current': 'true' as const } : {})}
-              className={`rounded px-2.5 py-1 text-xs font-medium ${
+              className={cn(
+                'rounded-md px-2.5 py-1 text-xs whitespace-nowrap transition-colors',
                 sort.isCurrent
-                  ? 'bg-secondary text-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
+                  ? 'bg-card font-semibold text-foreground shadow-sm'
+                  : 'font-medium text-muted-foreground hover:text-foreground',
+              )}
             >
               {sort.label}
             </a>

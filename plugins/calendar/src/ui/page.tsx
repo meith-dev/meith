@@ -1,4 +1,10 @@
-import type { PluginPageContext } from '@meith/plugin-kit'
+import {
+  PLUGIN_CARD,
+  PLUGIN_NOTE,
+  PLUGIN_TAB_LIST,
+  type PluginPageContext,
+  pluginTabClass,
+} from '@meith/plugin-kit'
 
 import { mayAdd, resolveCalendarConfig } from '../access'
 import {
@@ -96,7 +102,7 @@ function Agenda({
   return (
     <div className="flex flex-col gap-6">
       {groupByMonth(events, locale).map((month) => (
-        <section key={month.key} className="bg-card flex flex-col gap-3 rounded-md border p-4">
+        <section key={month.key} className={PLUGIN_CARD}>
           <h2 className="text-muted-foreground text-xs font-semibold tracking-widest">
             {month.label}
           </h2>
@@ -113,11 +119,7 @@ function Agenda({
 
 function AddForm({ context }: { context: PluginPageContext }) {
   return (
-    <form
-      method="post"
-      action="/api/plugins/calendar/events"
-      className="bg-card flex flex-col gap-3 rounded-md border p-4"
-    >
+    <form method="post" action="/api/plugins/calendar/events" className={PLUGIN_CARD}>
       <h2 className="font-semibold">{translated(context, 'calendar.event.add')}</h2>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -187,23 +189,31 @@ export async function CalendarPage(context: PluginPageContext) {
 
   return (
     <div className="flex flex-col gap-6">
-      <nav className="flex gap-4 text-sm">
-        <a
-          className={showingPast ? 'underline underline-offset-2' : 'font-semibold'}
-          href="/plugins/calendar"
-        >
-          {translated(context, 'calendar.page.upcoming')}
-        </a>
-        <a
-          className={showingPast ? 'font-semibold' : 'underline underline-offset-2'}
-          href="/plugins/calendar?show=past"
-        >
-          {translated(context, 'calendar.page.past')}
-        </a>
+      <nav aria-label={translated(context, 'calendar.page.views')}>
+        <ul className={PLUGIN_TAB_LIST}>
+          <li className="shrink-0">
+            <a
+              href="/plugins/calendar"
+              {...(showingPast ? {} : { 'aria-current': 'page' as const })}
+              className={pluginTabClass(!showingPast)}
+            >
+              {translated(context, 'calendar.page.upcoming')}
+            </a>
+          </li>
+          <li className="shrink-0">
+            <a
+              href="/plugins/calendar?show=past"
+              {...(showingPast ? { 'aria-current': 'page' as const } : {})}
+              className={pluginTabClass(showingPast)}
+            >
+              {translated(context, 'calendar.page.past')}
+            </a>
+          </li>
+        </ul>
       </nav>
 
       {events.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
+        <p className={PLUGIN_NOTE}>
           {translated(context, showingPast ? 'calendar.page.emptyPast' : 'calendar.page.empty')}
         </p>
       ) : (
@@ -212,9 +222,7 @@ export async function CalendarPage(context: PluginPageContext) {
 
       {!showingPast && verdict === 'allowed' && <AddForm context={context} />}
       {!showingPast && verdict === 'not-an-organiser' && (
-        <p className="text-muted-foreground text-sm">
-          {translated(context, 'calendar.error.notAnOrganiser')}
-        </p>
+        <p className={PLUGIN_NOTE}>{translated(context, 'calendar.error.notAnOrganiser')}</p>
       )}
     </div>
   )

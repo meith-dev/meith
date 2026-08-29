@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import type { MatrixCell, MatrixRow } from '@meith/authorization'
 import { cn, Disclosure } from '@meith/ui'
 
-import { PANEL_CARD, PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   appointModeratorAction,
@@ -534,13 +534,13 @@ export function ModeratorsPanel({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold tracking-tight">
+      <h2 className="font-heading text-lg font-semibold">
         {fromCopy(copy, 'adminForum.moderators')}
       </h2>
 
       <FormError message={removeState.error} />
       {moderators.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{fromCopy(copy, 'adminForum.noModerators')}</p>
+        <p className={PANEL_NOTE}>{fromCopy(copy, 'adminForum.noModerators')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {moderators.map((moderator) => (

@@ -129,3 +129,4 @@ export {
   resolvePluginSettings,
   serialisePluginSetting,
 } from './settings'
+export { PLUGIN_CARD, PLUGIN_NOTE, PLUGIN_TAB_LIST, pluginTabClass } from './ui'

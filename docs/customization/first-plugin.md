@@ -141,6 +141,84 @@ bundler saw at build time is exactly what runs
 While iterating, npm installs a local directory as a symlink: edit the
 plugin, rebuild the board, and the change is there — no reinstalling.
 
+## Give every page a panel
+
+A board page renders into a plain content column: the host draws your
+page's title as the heading and drops your returned node straight beneath
+it, with nothing framing it. So a page that returns bare text, a bare form,
+or a bare list leaves that content sitting on the board's background, which
+reads as unfinished next to the rest of the board — where every block of
+content lives inside a panel.
+
+Wrap each block — a form, a list, a stat grid, an empty-state line — in a
+panel. `@meith/plugin-kit` exports two class strings for exactly this, built
+from the board's own card tokens so they match the active theme and follow
+light and dark without any work from you:
+
+- `PLUGIN_CARD` — a titled block. A `flex` column with padding, a border and
+  the card surface; put an `<h2>` and the block's body inside it.
+- `PLUGIN_NOTE` — a quiet one-line panel, for an empty state or a hint.
+
+```tsx
+import { PLUGIN_CARD, PLUGIN_NOTE, type PluginPageContext } from '@meith/plugin-kit'
+
+export function WavePage(context: PluginPageContext) {
+  const waves = /* … */ []
+  return (
+    <div className="flex flex-col gap-6">
+      {waves.length === 0 ? (
+        <p className={PLUGIN_NOTE}>{context.t.t('first-light.page.empty')}</p>
+      ) : (
+        <section className={PLUGIN_CARD}>
+          <h2 className="font-heading text-lg font-semibold">
+            {context.t.t('first-light.page.heading')}
+          </h2>
+          <ul className="flex flex-col divide-y divide-border text-sm">
+            {waves.map((wave) => (
+              <li key={wave.id} className="py-2">
+                {wave.label}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+}
+```
+
+Admin pages are the exception: the control panel already frames each plugin
+page in a panel, so render your content straight into it. Grouping it into
+`PLUGIN_CARD` sections is still fine — the nesting reads as sub-panels — but
+it is not required the way it is on a board page. `dues` and `calendar` in
+this repository are worked examples of both.
+
+When a page switches between views — an upcoming/past toggle, a set of
+folders — render the switch as the board's segmented control rather than a
+row of links, so it matches every other tab strip on the board. `plugin-kit`
+exports the pieces: `PLUGIN_TAB_LIST` for the `<ul>` track, and
+`pluginTabClass(active)` for each tab's `<a>`. Mark the current one with
+`aria-current="page"`.
+
+```tsx
+import { PLUGIN_TAB_LIST, pluginTabClass } from '@meith/plugin-kit'
+
+<nav aria-label={context.t.t('first-light.page.views')}>
+  <ul className={PLUGIN_TAB_LIST}>
+    <li className="shrink-0">
+      <a href="/plugins/first-light" aria-current="page" className={pluginTabClass(true)}>
+        {context.t.t('first-light.page.recent')}
+      </a>
+    </li>
+    <li className="shrink-0">
+      <a href="/plugins/first-light?show=all" className={pluginTabClass(false)}>
+        {context.t.t('first-light.page.all')}
+      </a>
+    </li>
+  </ul>
+</nav>
+```
+
 ## Publish it
 
 ```sh

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { postBodyHtml } from '@meith/markdown'
+import { Card, CardContent, CardFooter } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
@@ -63,27 +64,34 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
           }
         : {})}
     >
-      <article
-        className="prose prose-sm max-w-none break-words"
-        dangerouslySetInnerHTML={{ __html: view.bodyHtml }}
-      />
+      <Card>
+        <CardContent className="p-4 sm:p-5">
+          <article
+            className="prose prose-sm max-w-none break-words"
+            dangerouslySetInnerHTML={{ __html: view.bodyHtml }}
+          />
+        </CardContent>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
-        {view.actions.map((action) => (
-          <a
-            key={action.href}
-            href={action.href}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            {action.label}
-          </a>
-        ))}
-        {view.reportHref !== null && (
-          <a href={view.reportHref} className="text-sm text-muted-foreground hover:text-foreground">
-            {await tr('page.report-this-message')}
-          </a>
-        )}
-      </div>
+        <CardFooter className="gap-4">
+          {view.actions.map((action) => (
+            <a
+              key={action.href}
+              href={action.href}
+              className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+            >
+              {action.label}
+            </a>
+          ))}
+          {view.reportHref !== null && (
+            <a
+              href={view.reportHref}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              {await tr('page.report-this-message')}
+            </a>
+          )}
+        </CardFooter>
+      </Card>
 
       {view.tracking.length > 0 && (
         <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
