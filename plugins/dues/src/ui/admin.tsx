@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { PluginAdminPageContext } from '@meith/plugin-kit'
+import { PLUGIN_CARD, PLUGIN_NOTE, type PluginAdminPageContext } from '@meith/plugin-kit'
 
 import { type DuesConfig, MAX_GRACE_DAYS } from '../config'
 import { formatMinor } from '../money'
@@ -19,11 +19,9 @@ import {
 } from '../store'
 import { SUBSCRIBED_EVENT_TYPES } from '../stripe/events'
 
-const QUIET_PANEL = 'rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground'
+const QUIET_PANEL = PLUGIN_NOTE
 
-const CARD =
-  'flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground ' +
-  'shadow-elevation'
+const CARD = PLUGIN_CARD
 const TH = 'px-2 py-1.5 text-left text-xs font-medium text-muted-foreground'
 const TD = 'px-2 py-1.5 align-top'
 const INPUT =
