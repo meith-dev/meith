@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { mergeThreadAction, splitThreadAction } from '@/server/surgery-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -64,9 +64,9 @@ export function ThreadSurgeryForm({
                 className={`${FIELD} w-48`}
               />
             </label>
-            <button type="submit" className={BUTTON}>
+            <PendingButton showWorking className={BUTTON}>
               {fromCopy(copy, 'moderationForm.surgery.split')}
-            </button>
+            </PendingButton>
           </div>
           <FormError message={splitState.error} />
         </form>
@@ -88,9 +88,12 @@ export function ThreadSurgeryForm({
                 className={`${FIELD} w-40`}
               />
             </label>
-            <button type="submit" className={`${BUTTON} border-destructive/40 text-destructive`}>
+            <PendingButton
+              showWorking
+              className={`${BUTTON} border-destructive/40 text-destructive`}
+            >
               {fromCopy(copy, 'moderationForm.surgery.merge')}
-            </button>
+            </PendingButton>
           </div>
           <FormError message={mergeState.error} />
         </form>

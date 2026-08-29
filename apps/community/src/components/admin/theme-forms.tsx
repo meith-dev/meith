@@ -29,7 +29,7 @@ import {
 } from '@/view/theme-draft'
 import { BRAND_PRESETS, groupTokens } from '@/view/theme-tokens'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { Saved } from './form-bits'
 import { OklchPicker } from './oklch-picker'
@@ -473,14 +473,13 @@ export function ThemeEditorForm({
                   : formatFromCopy(copy, 'adminTheme.saveChanges', { count: unsaved })}
               </SubmitButton>
             </span>
-            <button
-              type="submit"
+            <PendingButton
               name="intent"
               value="preview"
               className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm"
             >
               {fromCopy(copy, 'adminTheme.previewWithoutSaving')}
-            </button>
+            </PendingButton>
             <span className="text-xs text-muted-foreground">
               {unsaved === 0
                 ? fromCopy(copy, 'adminTheme.nothingToSave')
@@ -593,13 +592,12 @@ export function ThemeStateForms({
         {!isDefault && enabled && (
           <form action={defaultAction}>
             <input type="hidden" name="key" value={themeKey} />
-            <button
-              type="submit"
+            <PendingButton
               aria-label={formatFromCopy(copy, 'adminTheme.state.makeDefaultFor', { title })}
               className={GHOST_BUTTON}
             >
               {fromCopy(copy, 'adminTheme.state.makeDefault')}
-            </button>
+            </PendingButton>
           </form>
         )}
 
@@ -607,8 +605,7 @@ export function ThemeStateForms({
           <form action={enabledAction}>
             <input type="hidden" name="key" value={themeKey} />
             <input type="hidden" name="enabled" value={enabled ? 'false' : 'true'} />
-            <button
-              type="submit"
+            <PendingButton
               aria-label={formatFromCopy(
                 copy,
                 enabled ? 'adminTheme.state.turnOffFor' : 'adminTheme.state.turnOnFor',
@@ -619,7 +616,7 @@ export function ThemeStateForms({
               {enabled
                 ? fromCopy(copy, 'adminTheme.state.turnOff')
                 : fromCopy(copy, 'adminTheme.state.turnOn')}
-            </button>
+            </PendingButton>
           </form>
         )}
 

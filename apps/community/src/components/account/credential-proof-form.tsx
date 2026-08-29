@@ -2,13 +2,12 @@
 
 import { useActionState } from 'react'
 
-import { Input } from '@meith/ui'
-import { Button } from '@meith/ui/button'
+import { buttonVariants, Input } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { proveCredentialAction } from '@/server/credential-proof-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { OtpField } from '../auth/otp-field'
 
 export interface CredentialProofCopy {
@@ -50,9 +49,9 @@ export function CredentialProofForm({
             <Input name="password" type="password" autoComplete="current-password" required />
           </label>
           <div>
-            <Button type="submit" variant="primary">
+            <PendingButton showWorking className={buttonVariants({ variant: 'primary' })}>
               {copy.passwordSubmit}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       ) : null}
@@ -75,9 +74,9 @@ export function CredentialProofForm({
           />
           <p className="text-sm text-muted-foreground">{copy.codeConsumed}</p>
           <div>
-            <Button type="submit" variant="primary">
+            <PendingButton showWorking className={buttonVariants({ variant: 'primary' })}>
               {copy.codeSubmit}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       ) : null}

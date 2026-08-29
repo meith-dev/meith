@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 
-import { Button } from '@meith/ui/button'
+import { buttonVariants } from '@meith/ui'
 
 import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/server/two-factor-actions'
 import { RECOVERY_CODES_FIELD } from '@/view/two-factor'
 
-import { Field, FormError } from '../auth/form-controls'
+import { Field, FormError, PendingButton } from '../auth/form-controls'
 import { OtpField, otpRecoveryFromCopy } from '../auth/otp-field'
 import { type Copy, fromCopy } from '../shell/copy'
 
@@ -103,17 +103,17 @@ export function TwoFactorSetup({
           hint={fromCopy(copy, 'accountForm.twoFactor.codeHint')}
         />
         <div className="flex flex-wrap gap-2">
-          <button type="submit" className={BUTTON}>
+          <PendingButton showWorking className={BUTTON}>
             {fromCopy(copy, 'accountForm.twoFactor.turnOn')}
-          </button>
+          </PendingButton>
         </div>
       </form>
 
       <form action={abandon}>
         <FormError message={abandonState.error} />
-        <Button type="submit" variant="ghost" size="sm">
+        <PendingButton showWorking className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           {fromCopy(copy, 'accountForm.twoFactor.cancel')}
-        </Button>
+        </PendingButton>
       </form>
     </section>
   )
@@ -148,9 +148,9 @@ export function TwoFactorPanel({
         </p>
         <FormError message={beginState.error} />
         <form action={begin}>
-          <button type="submit" className={BUTTON}>
+          <PendingButton showWorking className={BUTTON}>
             {fromCopy(copy, 'accountForm.twoFactor.begin')}
-          </button>
+          </PendingButton>
         </form>
       </section>
     )
@@ -199,9 +199,9 @@ export function TwoFactorPanel({
         </p>
         {proof('replace')}
         <div>
-          <button type="submit" className={BUTTON}>
+          <PendingButton showWorking className={BUTTON}>
             {fromCopy(copy, 'accountForm.twoFactor.replaceSubmit')}
-          </button>
+          </PendingButton>
         </div>
       </form>
 
@@ -215,9 +215,9 @@ export function TwoFactorPanel({
           <p className="text-sm font-medium">{fromCopy(copy, 'accountForm.twoFactor.offTitle')}</p>
           {proof('disable')}
           <div>
-            <Button type="submit" variant="destructive">
+            <PendingButton showWorking className={buttonVariants({ variant: 'destructive' })}>
               {fromCopy(copy, 'accountForm.twoFactor.offSubmit')}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       )}

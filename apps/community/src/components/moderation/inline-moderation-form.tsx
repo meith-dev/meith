@@ -7,7 +7,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { inlineModerateAction } from '@/server/inline-moderation-actions'
 import { splitSelectedAction } from '@/server/surgery-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -70,34 +70,34 @@ export function InlineModerationForm({
         </span>
 
         {rights.approve && (
-          <button type="submit" name="tool" value="approve" className={BUTTON}>
+          <PendingButton name="tool" value="approve" className={BUTTON}>
             {fromCopy(copy, 'moderationForm.inline.approve')}
-          </button>
+          </PendingButton>
         )}
         {rights.lock && scope === 'threads' && (
           <>
-            <button type="submit" name="tool" value="lock" className={BUTTON}>
+            <PendingButton name="tool" value="lock" className={BUTTON}>
               {fromCopy(copy, 'moderationForm.tool.lock')}
-            </button>
-            <button type="submit" name="tool" value="unlock" className={BUTTON}>
+            </PendingButton>
+            <PendingButton name="tool" value="unlock" className={BUTTON}>
               {fromCopy(copy, 'moderationForm.tool.unlock')}
-            </button>
+            </PendingButton>
           </>
         )}
         {rights.stick && scope === 'threads' && (
           <>
-            <button type="submit" name="tool" value="stick" className={BUTTON}>
+            <PendingButton name="tool" value="stick" className={BUTTON}>
               {fromCopy(copy, 'moderationForm.tool.pin')}
-            </button>
-            <button type="submit" name="tool" value="unstick" className={BUTTON}>
+            </PendingButton>
+            <PendingButton name="tool" value="unstick" className={BUTTON}>
               {fromCopy(copy, 'moderationForm.tool.unpin')}
-            </button>
+            </PendingButton>
           </>
         )}
         {rights.restore && (
-          <button type="submit" name="tool" value="restore" className={BUTTON}>
+          <PendingButton name="tool" value="restore" className={BUTTON}>
             {fromCopy(copy, 'moderationForm.inline.restore')}
-          </button>
+          </PendingButton>
         )}
 
         {rights.move && scope === 'threads' && moveTargets.length > 0 && (
@@ -115,9 +115,9 @@ export function InlineModerationForm({
                 ))}
               </select>
             </label>
-            <button type="submit" name="tool" value="move" className={BUTTON}>
+            <PendingButton name="tool" value="move" className={BUTTON}>
               {fromCopy(copy, 'moderationForm.tool.move')}
-            </button>
+            </PendingButton>
           </span>
         )}
 
@@ -136,21 +136,20 @@ export function InlineModerationForm({
                 className="h-8 w-48 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               />
             </label>
-            <button type="submit" formAction={splitAction} className={BUTTON}>
+            <PendingButton formAction={splitAction} className={BUTTON}>
               {fromCopy(copy, 'moderationForm.inline.splitOut')}
-            </button>
+            </PendingButton>
           </span>
         )}
 
         {rights.delete && (
-          <button
-            type="submit"
+          <PendingButton
             name="tool"
             value="delete"
             className={`${BUTTON} border-destructive/40 text-destructive`}
           >
             {fromCopy(copy, 'moderationForm.inline.delete')}
-          </button>
+          </PendingButton>
         )}
       </form>
     </div>

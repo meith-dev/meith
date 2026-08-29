@@ -2,12 +2,12 @@
 
 import { useActionState } from 'react'
 
-import { Button } from '@meith/ui/button'
+import { buttonVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removePasskeyAction, unlinkIdentityAction } from '@/server/federation-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
@@ -79,9 +79,12 @@ export function LinkedSignIns({
               {manageable ? (
                 <form action={action}>
                   <input type="hidden" name="identityId" value={identity.id} />
-                  <Button type="submit" variant="destructive" size="sm">
+                  <PendingButton
+                    showWorking
+                    className={buttonVariants({ variant: 'destructive', size: 'sm' })}
+                  >
                     {fromCopy(copy, 'accountForm.linked.unlink')}
-                  </Button>
+                  </PendingButton>
                 </form>
               ) : null}
             </li>
@@ -150,9 +153,12 @@ export function PasskeyList({
               {manageable ? (
                 <form action={action}>
                   <input type="hidden" name="passkeyId" value={passkey.id} />
-                  <Button type="submit" variant="destructive" size="sm">
+                  <PendingButton
+                    showWorking
+                    className={buttonVariants({ variant: 'destructive', size: 'sm' })}
+                  >
                     {fromCopy(copy, 'accountForm.passkeys.remove')}
-                  </Button>
+                  </PendingButton>
                 </form>
               ) : null}
             </li>

@@ -3,6 +3,7 @@ import { cn } from '@meith/ui'
 
 import { rateThreadAction } from '@/server/thread-rating-actions'
 
+import { PendingButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy-record'
 
 const STAR_PATH = 'M10 1.6l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.21l-4.94 2.6.94-5.5-4-3.9 5.53-.8z'
@@ -109,9 +110,8 @@ export function ThreadRatingForm({
               const chosen = rating.mine !== null && value <= rating.mine
 
               return (
-                <button
+                <PendingButton
                   key={value}
-                  type="submit"
                   name="rating"
                   value={value}
                   aria-label={
@@ -126,7 +126,7 @@ export function ThreadRatingForm({
                   )}
                 >
                   <Star fill={chosen ? 1 : 0} className="size-5" />
-                </button>
+                </PendingButton>
               )
             })}
           </span>

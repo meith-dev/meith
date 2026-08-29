@@ -9,7 +9,7 @@ import {
   setPluginEnabledAction,
 } from '@/server/plugin-admin-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -44,14 +44,14 @@ export function PluginEnableForm({
       <FormError message={state.error} />
       <input type="hidden" name="key" value={pluginKey} />
       <input type="hidden" name="enabled" value={enabled ? '0' : '1'} />
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm"
       >
         {enabled
           ? fromCopy(copy, 'adminPanel.plugin.disable')
           : fromCopy(copy, 'adminPanel.plugin.enable')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -63,12 +63,12 @@ export function PluginHealthResetForm({ pluginKey, copy }: { pluginKey: string; 
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
       <input type="hidden" name="key" value={pluginKey} />
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm"
       >
         {fromCopy(copy, 'adminPanel.plugin.clearFailures')}
-      </button>
+      </PendingButton>
     </form>
   )
 }

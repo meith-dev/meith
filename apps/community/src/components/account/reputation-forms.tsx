@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { rateMemberAction, withdrawRatingAction } from '@/server/reputation-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const FIELD =
@@ -72,20 +72,20 @@ export function RateMemberForm({
       </label>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" name="points" value="1" className={CHOICE}>
+        <PendingButton name="points" value="1" className={CHOICE}>
           {allowNegative
             ? fromCopy(copy, 'accountForm.rate.positive')
             : fromCopy(copy, 'accountForm.rate.thanks')}
-        </button>
-        <button type="submit" name="points" value="0" className={CHOICE}>
+        </PendingButton>
+        <PendingButton name="points" value="0" className={CHOICE}>
           {allowNegative
             ? fromCopy(copy, 'accountForm.rate.neutral')
             : fromCopy(copy, 'accountForm.rate.justComment')}
-        </button>
+        </PendingButton>
         {allowNegative && (
-          <button type="submit" name="points" value="-1" className={CHOICE}>
+          <PendingButton name="points" value="-1" className={CHOICE}>
             {fromCopy(copy, 'accountForm.rate.negative')}
-          </button>
+          </PendingButton>
         )}
       </div>
 
@@ -113,12 +113,12 @@ export function WithdrawRatingForm({
       <input type="hidden" name="ratingId" value={ratingId} />
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {fromCopy(copy, 'accountForm.rate.withdraw')}
-      </button>
+      </PendingButton>
     </form>
   )
 }

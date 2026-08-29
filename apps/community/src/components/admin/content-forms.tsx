@@ -24,7 +24,7 @@ import {
   updateWordFilterAction,
 } from '@/server/content-admin-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -87,9 +87,9 @@ export function WordFilterRowForm({ filter, copy }: { filter: WordFilterValues; 
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={filter.id} />
-        <button type="submit" className="text-xs text-muted-foreground hover:underline">
+        <PendingButton showWorking className="text-xs text-muted-foreground hover:underline">
           {fromCopy(copy, 'adminContent.filter.removeThis')}
-        </button>
+        </PendingButton>
       </form>
     </div>
   )
@@ -143,9 +143,9 @@ export function DeletePrefixForm({ prefix, copy }: { prefix: PrefixValues; copy:
     <form action={action} className="flex items-center gap-2">
       <FormError message={state.error} />
       <input type="hidden" name="id" value={prefix.id} />
-      <button type="submit" className="text-xs text-muted-foreground hover:underline">
+      <PendingButton showWorking className="text-xs text-muted-foreground hover:underline">
         {fromCopy(copy, 'admin.remove')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -252,9 +252,9 @@ export function SmileyRowForm({ smiley, copy }: { smiley: SmileyValues; copy: Co
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={smiley.id} />
-        <button type="submit" className="text-xs text-destructive hover:underline">
+        <PendingButton showWorking className="text-xs text-destructive hover:underline">
           {fromCopy(copy, 'admin.remove')}
-        </button>
+        </PendingButton>
       </form>
     </div>
   )
@@ -362,9 +362,9 @@ export function DirectiveRowForm({ directive, copy }: { directive: DirectiveValu
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={directive.id} />
-        <button type="submit" className="text-xs text-destructive hover:underline">
+        <PendingButton showWorking className="text-xs text-destructive hover:underline">
           {fromCopy(copy, 'admin.remove')}
-        </button>
+        </PendingButton>
       </form>
     </div>
   )
@@ -422,9 +422,9 @@ export function DeleteAttachmentForm({ attachmentId, copy }: { attachmentId: num
     <form action={action} className="shrink-0">
       <FormError message={state.error} />
       <input type="hidden" name="id" value={attachmentId} />
-      <button type="submit" className="text-xs text-destructive hover:underline">
+      <PendingButton showWorking className="text-xs text-destructive hover:underline">
         {fromCopy(copy, 'adminContent.attachment.delete')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -568,9 +568,9 @@ export function AnnouncementRowForm({
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={announcement.id} />
-        <button type="submit" className="text-xs text-destructive hover:underline">
+        <PendingButton showWorking className="text-xs text-destructive hover:underline">
           {fromCopy(copy, 'admin.remove')}
-        </button>
+        </PendingButton>
       </form>
     </div>
   )
@@ -670,9 +670,9 @@ export function CaptchaQuestionRowForm({
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={question.id} />
-        <button type="submit" className="text-xs text-destructive hover:underline">
+        <PendingButton showWorking className="text-xs text-destructive hover:underline">
           {fromCopy(copy, 'admin.remove')}
-        </button>
+        </PendingButton>
       </form>
     </div>
   )

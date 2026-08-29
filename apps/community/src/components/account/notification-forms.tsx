@@ -10,7 +10,7 @@ import {
   saveNotificationPreferencesAction,
 } from '@/server/notification-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -32,9 +32,9 @@ export function MarkNotificationReadForm({
     <form action={action} className="contents">
       <input type="hidden" name="notificationId" value={notificationId} />
       <FormError message={state.error} />
-      <button type="submit" className={LINK_BUTTON}>
+      <PendingButton showWorking className={LINK_BUTTON}>
         {fromCopy(copy, 'accountForm.notifications.markRead')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -47,9 +47,9 @@ export function MarkAllNotificationsReadForm({ unread, copy }: { unread: number;
   return (
     <form action={action}>
       <FormError message={state.error} />
-      <button type="submit" className={BUTTON}>
+      <PendingButton showWorking className={BUTTON}>
         {fromCopy(copy, 'accountForm.notifications.markAllRead')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -149,9 +149,9 @@ export function NotificationPreferencesForm({
       </p>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.notifications.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -193,9 +193,9 @@ export function AnnouncementsOptInForm({ optedIn, copy }: { optedIn: boolean; co
       </p>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.announcements.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )

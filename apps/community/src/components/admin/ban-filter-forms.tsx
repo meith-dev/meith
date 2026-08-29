@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { addBanFilterAction, removeBanFilterAction } from '@/server/ban-filter-admin-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -92,13 +92,13 @@ export function RemoveBanFilterForm({
     <form action={action} className="flex flex-col items-end gap-1">
       <FormError message={state.error} />
       <input type="hidden" name="id" value={id} />
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="text-xs text-destructive hover:underline"
         aria-label={formatFromCopy(copy, 'adminBanFilter.removeFilter', { pattern })}
       >
         {fromCopy(copy, 'admin.remove')}
-      </button>
+      </PendingButton>
     </form>
   )
 }

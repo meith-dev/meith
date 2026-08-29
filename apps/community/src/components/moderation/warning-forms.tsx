@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { issueWarningAction, revokeWarningAction } from '@/server/warning-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const FIELD =
@@ -80,9 +80,9 @@ export function IssueWarningForm({
       </label>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'moderationForm.warn.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -114,12 +114,12 @@ export function RevokeWarningForm({
           className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="inline-flex h-8 shrink-0 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {fromCopy(copy, 'moderationForm.warn.revoke')}
-      </button>
+      </PendingButton>
     </form>
   )
 }

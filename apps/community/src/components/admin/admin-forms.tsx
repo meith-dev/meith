@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { adminSignInAction, adminSignOutAction } from '@/server/admin-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { OtpField, otpRecoveryFromCopy } from '../auth/otp-field'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
@@ -59,12 +59,12 @@ export function AdminSignInForm({
         recovery={otpRecoveryFromCopy(copy)}
       />
 
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {fromCopy(copy, 'adminPanel.enter')}
-      </button>
+      </PendingButton>
 
       <p className="text-xs text-muted-foreground">
         {formatFromCopy(copy, 'adminPanel.idleNote', { minutes: idleMinutes })}
@@ -76,12 +76,12 @@ export function AdminSignInForm({
 export function AdminSignOutForm({ copy }: { copy: Copy }) {
   return (
     <form action={adminSignOutAction}>
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {fromCopy(copy, 'adminPanel.leave')}
-      </button>
+      </PendingButton>
     </form>
   )
 }

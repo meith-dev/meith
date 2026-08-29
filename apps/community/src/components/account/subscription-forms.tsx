@@ -9,7 +9,7 @@ import {
   unsubscribeByTokenAction,
 } from '@/server/subscription-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -77,11 +77,11 @@ export function FollowForm({
             </select>
           </label>
 
-          <button type="submit" className={QUIET_BUTTON}>
+          <PendingButton className={QUIET_BUTTON}>
             {mode === null
               ? fromCopy(copy, 'accountForm.follow.follow')
               : fromCopy(copy, 'accountForm.follow.save')}
-          </button>
+          </PendingButton>
         </form>
 
         {mode !== null && (
@@ -89,9 +89,9 @@ export function FollowForm({
             <input type="hidden" name="target" value={target} />
             <input type="hidden" name="targetId" value={targetId} />
             <input type="hidden" name="back" value={back} />
-            <button type="submit" className={GHOST_BUTTON}>
+            <PendingButton className={GHOST_BUTTON}>
               {fromCopy(copy, 'accountForm.follow.stop')}
-            </button>
+            </PendingButton>
           </form>
         )}
       </div>
@@ -142,9 +142,9 @@ export function UnsubscribeConfirmForm({
       <input type="hidden" name="token" value={token} />
       <p className="text-sm">{description}</p>
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.follow.unsubscribe')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )

@@ -12,7 +12,7 @@ import {
   saveSignatureAction,
 } from '@/server/usercp-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
 import { CustomField, type CustomFieldInput } from '../profile/custom-field'
 import { type Copy, fromCopy } from '../shell/copy'
@@ -75,9 +75,9 @@ export function ProfileForm({
       ))}
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.profile.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -116,9 +116,9 @@ export function DisplayGroupForm({
       </label>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.displayGroup.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -214,9 +214,9 @@ export function OptionsForm({
       </label>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.options.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -270,9 +270,9 @@ export function PasswordForm({ minLength, copy }: { minLength: number; copy: Cop
       <p className="text-xs text-muted-foreground">{fromCopy(copy, 'accountForm.password.note')}</p>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.password.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -313,9 +313,9 @@ export function EmailForm({ email, copy }: { email: string; copy: Copy }) {
       <p className="text-xs text-muted-foreground">{fromCopy(copy, 'accountForm.email.note')}</p>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.email.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -378,9 +378,9 @@ export function SignatureForm({
       />
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.signature.submit')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )

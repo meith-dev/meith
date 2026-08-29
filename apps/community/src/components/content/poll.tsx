@@ -3,6 +3,8 @@ import { POLL_CHOICES_UNLIMITED, type Poll } from '@meith/polls'
 import { getTranslator } from '@/server/i18n'
 import { votePollAction } from '@/server/poll-actions'
 
+import { PendingButton } from '../auth/form-controls'
+
 export async function PollForm({
   poll,
   threadId,
@@ -69,9 +71,9 @@ export async function PollForm({
           </div>
         ))}
         {mayCast ? (
-          <button type="submit">
+          <PendingButton showWorking>
             {hasVoted ? t.t('pollForm.changeVote') : t.t('pollForm.vote')}
-          </button>
+          </PendingButton>
         ) : (
           <p className="text-sm text-muted-foreground">
             {closed ? t.t('pollForm.closed') : t.t('pollForm.votes', { count: total })}

@@ -1,3 +1,4 @@
+import { PendingButton } from '@/components/auth/form-controls'
 import { MonitorIcon, MoonIcon, SunIcon } from '@/components/shell/appearance-icons'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import { setAppearanceAction } from '@/server/appearance-actions'
@@ -50,12 +51,12 @@ export async function ThemeSwitcher() {
                   </option>
                 ))}
               </select>
-              <button
-                type="submit"
+              <PendingButton
+                showWorking
                 className="h-8 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 {t.t('appearance.apply')}
-              </button>
+              </PendingButton>
             </form>
           )}
 
@@ -70,9 +71,8 @@ export async function ThemeSwitcher() {
                 const label = t.t(SCHEME_LABEL_KEY[option])
                 const selected = scheme === option
                 return (
-                  <button
+                  <PendingButton
                     key={option}
-                    type="submit"
                     name="scheme"
                     value={option}
                     title={label}
@@ -85,7 +85,7 @@ export async function ThemeSwitcher() {
                   >
                     <Icon />
                     <span className="sr-only">{label}</span>
-                  </button>
+                  </PendingButton>
                 )
               })}
             </span>
