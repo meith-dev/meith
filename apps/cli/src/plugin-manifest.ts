@@ -52,7 +52,7 @@ async function readManifestFor(board: Board): Promise<Manifest> {
           'repository carries — apps/community and boards/stock — and reruns the generator, ' +
           'so it needs a checkout of the repository, not the deployed image — run it where you ' +
           'would run `pnpm add`, commit both board.plugins.json files and both ' +
-          'community.plugins.ts files, then rebuild and redeploy.',
+          'meith.plugins.ts files, then rebuild and redeploy.',
       )
     }
     throw error

@@ -17,7 +17,7 @@ export async function purge(options: PurgeOptions): Promise<number> {
     options.log('')
     options.log('Purging runs the plugin’s own onUninstall before dropping its data, so it')
     options.log('has to happen while the code is still installed. Put the plugin back into')
-    options.log('community.plugins.ts, deploy, purge, and then remove it.')
+    options.log('meith.plugins.ts, deploy, purge, and then remove it.')
     return 1
   }
 
@@ -53,7 +53,7 @@ export async function purge(options: PurgeOptions): Promise<number> {
       `${result.navigation} navigation item(s).`,
   )
   options.log('')
-  options.log('Now take it out of community.plugins.ts, pnpm remove it, and redeploy.')
+  options.log('Now take it out of meith.plugins.ts, pnpm remove it, and redeploy.')
 
   return 0
 }

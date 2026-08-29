@@ -96,7 +96,7 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 
 ## Configuring
 
-- **`community.config.ts`** — installed themes and plugins. Everything installable
+- **`meith.config.ts`** — installed themes and plugins. Everything installable
   is named here so the bundler can see it; nothing is found by scanning a
   directory at runtime.
 - **`/admin`** — settings, forums, groups, members, themes, maintenance. An

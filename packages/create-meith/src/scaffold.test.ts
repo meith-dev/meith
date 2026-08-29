@@ -48,11 +48,11 @@ describe('what the scaffold writes', () => {
       'Dockerfile',
       'README.md',
       'board.plugins.json',
-      'community.config.ts',
-      'community.plugins.ts',
       'docker-compose.yaml',
       'docker-entrypoint.sh',
       'docker-healthcheck.sh',
+      'meith.config.ts',
+      'meith.plugins.ts',
       'package.json',
     ])
   })
@@ -69,7 +69,7 @@ describe('what the scaffold writes', () => {
   })
 
   it('registers the theme catalog, without which the board renders its message keys', () => {
-    const config = files.get('community.config.ts')!
+    const config = files.get('meith.config.ts')!
 
     expect(config).toMatch(/messages:\s*defaultMessages/)
     expect(config).toMatch(/\bdefaultMessages\b[\s\S]*from '@meith\/theme-default'/)
@@ -77,11 +77,11 @@ describe('what the scaffold writes', () => {
 
   it('registers every field of the theme entry that boards/stock registers, as a set rather than a checklist', () => {
     const stock = readFileSync(
-      join(import.meta.dirname, '../../../boards/stock/community.config.ts'),
+      join(import.meta.dirname, '../../../boards/stock/meith.config.ts'),
       'utf8',
     )
 
-    expect(themeEntryFields(files.get('community.config.ts')!)).toEqual(themeEntryFields(stock))
+    expect(themeEntryFields(files.get('meith.config.ts')!)).toEqual(themeEntryFields(stock))
   })
 
   it('names the project and pins the dependency versions', () => {
@@ -452,11 +452,11 @@ describe('the CLI', () => {
         'Dockerfile',
         'README.md',
         'board.plugins.json',
-        'community.config.ts',
-        'community.plugins.ts',
         'docker-compose.yaml',
         'docker-entrypoint.sh',
         'docker-healthcheck.sh',
+        'meith.config.ts',
+        'meith.plugins.ts',
         'package.json',
       ])
 
@@ -572,19 +572,19 @@ describe('the published bin, run the way npx actually runs it', () => {
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'package.json': 'fbe57f89349df4dee13155fdbe939e57ef35a551291762776be18d9acb6ab4b3',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
-  'community.config.ts': 'f12cfbee87a05c48116e57b005160ee0ebfb94366ea9a3f9cdbc20090795041f',
+  'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'community.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
+  'meith.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
   '.env.example': '83defc2c09c20a47010594dd89a2d602311e05179d756759aeac699302d170bb',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'ab6191e044aa267b73b8005fa66ba05d98542a454694a9af65ef542c4de6485f',
+  Dockerfile: '97522eb00e3cb3e3c77a7813e720570aad694e0cafb3908fe1736fb0728e7b7b',
   'docker-entrypoint.sh': 'cd1ef4a68be0005b31cbdb21bcd460035a157668550dbe3fca23cfd6d48321a0',
   'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
   '.github/workflows/build.yml': 'd61b4b1fe933e5fd4d584e63ec45a999e47145529c0c89f9bb9eef0580fb4915',
   'docker-compose.yaml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
-  'README.md': 'addfac59dc9912ef95571ed5a58689574e1fadb3b97bc2a8a098810d5f5d9de7',
+  'README.md': 'c2af780df2ca761943117adbe44c4ce464bb6781654dcb9928b78d21066221d4',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
@@ -642,8 +642,8 @@ describe('the Vercel target', () => {
       '.npmrc',
       'README.md',
       'board.plugins.json',
-      'community.config.ts',
-      'community.plugins.ts',
+      'meith.config.ts',
+      'meith.plugins.ts',
       'package.json',
       'vercel.json',
     ])
@@ -651,7 +651,7 @@ describe('the Vercel target', () => {
 
   it('leaves the board itself identical to the self-host tree, byte for byte', () => {
     const selfHost = scaffold(OPTIONS)
-    for (const path of ['.npmrc', 'community.config.ts', 'community.plugins.ts']) {
+    for (const path of ['.npmrc', 'meith.config.ts', 'meith.plugins.ts']) {
       expect(files.get(path)).toBe(selfHost.get(path))
     }
   })

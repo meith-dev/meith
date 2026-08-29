@@ -8,7 +8,7 @@ and browsable, a page per listing, at
 
 It is metadata only. **Nothing is fetched through this feed.** Installing
 a plugin or theme is still a package install, a line in
-`community.plugins.ts` or your theme selection, and a redeploy — the same
+`meith.plugins.ts` or your theme selection, and a redeploy — the same
 procedure described in [the plugin API](./plugins.md#writing-a-plugin) and
 [the theme API](./themes.md), whose `pnpm add` is this repository's own
 checkout speaking; a board of your own is a single package and installs
@@ -128,7 +128,7 @@ build time (`apps/web/app/marketplace`), with the screenshots served from
 the site's own public assets. Each listing page carries the description,
 the screenshots, the compatibility it declares, and the exact steps to
 install it: `npm install <package>` and `community plugin:add <package>`
-for a plugin, or the install plus a `community.config.ts` line for a
+for a plugin, or the install plus a `meith.config.ts` line for a
 theme, and a link back here. It is a page to read, not a button that
 pretends to act, because nothing installs a package but the operator, in
 the board repository they own.
@@ -315,10 +315,10 @@ never a surprise upgrade — the full deploy kit (`Dockerfile`,
 `docker-compose.yaml`, `.github/workflows/build.yml`, described in full in
 [Self-hosting § Custom boards](../getting-started/deployment/docker-compose.md#custom-boards)),
 `board.plugins.json` matching what this build actually compiled in, and
-`community.config.ts` matching the stock configuration. Every plugin the
+`meith.config.ts` matching the stock configuration. Every plugin the
 manifest names is also added to `package.json`'s own `dependencies`, at
 that same exact version, so the ejected workspace's first build can
-actually resolve the imports `community.plugins.ts` writes for it — a
+actually resolve the imports `meith.plugins.ts` writes for it — a
 manifest package `create-meith`'s scaffold already pins (`@meith/web`,
 `@meith/cli`, `@meith/theme-default`) is left exactly where it is rather
 than duplicated. It refuses to write into a directory that already exists
@@ -363,7 +363,7 @@ Once the redeploy is live, the board is an ordinary workspace — a single
 `pnpm add`: `forum-web`'s own startup check (`apps/community/bin/forum-web.mjs`)
 requires a hoisted `node_modules`, which pnpm's default isolated linker does
 not produce. Installing the plugin that started this is `npm install
-<package>` and a line in `community.plugins.ts` — the same concept [the
+<package>` and a line in `meith.plugins.ts` — the same concept [the
 plugin API](./plugins.md#writing-a-plugin) describes for this
 repository's own pnpm checkout, just without its workspace machinery —
 followed by a commit, a push, and the same redeploy.

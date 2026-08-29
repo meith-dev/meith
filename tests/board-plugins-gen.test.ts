@@ -146,7 +146,7 @@ describe('validateManifest', () => {
         wideDeps,
         MANIFEST_FILE,
       ),
-    ).toThrow(/"foo-" is a valid plugin key, but the identifier community\.plugins\.ts would/)
+    ).toThrow(/"foo-" is a valid plugin key, but the identifier meith\.plugins\.ts would/)
   })
 
   it('refuses two keys that collide on the same identifier ("foo-1" and "foo1" both become "foo1", MEI-87, was a Biome noRedeclare error)', () => {

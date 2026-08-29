@@ -66,7 +66,7 @@ export function validateManifest(plugins, dependencies, manifestFile, options = 
     if (!IDENTIFIER_PATTERN.test(identifier)) {
       throw new Error(
         `${manifestFile}: "${entry.key}" is a valid plugin key, but the identifier ` +
-          `community.plugins.ts would bind for it, "${identifier}", is not a valid TypeScript ` +
+          `meith.plugins.ts would bind for it, "${identifier}", is not a valid TypeScript ` +
           'identifier. Each hyphen must be followed by exactly one lower-case letter or digit, ' +
           'and a key cannot end in a hyphen.',
       )
@@ -76,7 +76,7 @@ export function validateManifest(plugins, dependencies, manifestFile, options = 
     if (collidingKey !== undefined) {
       throw new Error(
         `${manifestFile}: "${entry.key}" and "${collidingKey}" both generate the identifier ` +
-          `"${identifier}" for community.plugins.ts. Rename one of the keys so the generated ` +
+          `"${identifier}" for meith.plugins.ts. Rename one of the keys so the generated ` +
           'imports do not collide.',
       )
     }
@@ -114,7 +114,7 @@ export function renderPluginsModule(plugins) {
 import type { InstalledPlugin } from '@meith/core'
 ${importLines.length > 0 ? `${importLines.join('\n')}\n` : ''}import type { PluginDefinition } from '@meith/plugin-kit'
 
-import { showcasePlugins } from './community.demo.plugins'
+import { showcasePlugins } from './meith.demo.plugins'
 
 export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = [
 ${entryLines.length > 0 ? `${entryLines.join('\n')}\n` : ''}  ...showcasePlugins(),
@@ -130,7 +130,7 @@ export function installedPluginDefinitions(): readonly PluginDefinition[] {
 
 export async function formatWithBiome(source, options) {
   const dir = await mkdtemp(join(tmpdir(), 'board-plugins-'))
-  const file = join(dir, 'community.plugins.ts')
+  const file = join(dir, 'meith.plugins.ts')
   try {
     await writeFile(file, source, 'utf8')
     execFileSync(

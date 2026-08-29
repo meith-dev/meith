@@ -67,7 +67,7 @@ export const badges = definePlugin({
 The planner refuses a dependency cycle (naming the tangled keys) and a
 dependency on a plugin that is not installed (by name), rather than
 quietly running against a table that does not exist. Migrations are then
-applied plugin by plugin in the order `community.plugins.ts` lists them —
+applied plugin by plugin in the order `meith.plugins.ts` lists them —
 so list a plugin after the plugins it depends on.
 
 **An interrupted upgrade is safe to re-run.** Each plugin migration is
@@ -78,7 +78,7 @@ exists. Because the two are atomic, "try the upgrade again" is always a
 safe instruction: a re-run re-applies nothing it already did.
 
 **The plugin list is your board's.** `community upgrade` reads
-`community.plugins.ts`, compiled into the command when the image is
+`meith.plugins.ts`, compiled into the command when the image is
 built. A plugin listed with `enabled: false` is skipped — creating tables
 for code that will not run would leave your schema ahead of your board.
 

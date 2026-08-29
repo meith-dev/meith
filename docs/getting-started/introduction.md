@@ -35,7 +35,7 @@ A board is a small repository, not a snowflake server. What the board
 
 - `package.json` pins the engine — `@meith/web`, the CLI and the default
   theme, at one exact version that moves only when you upgrade.
-- `community.config.ts` registers the themes the board ships and which
+- `meith.config.ts` registers the themes the board ships and which
   one is the default, statically, so the compiler checks the lot.
 - `board.plugins.json` names the installed plugins, and a generated
   registry makes them part of the build.

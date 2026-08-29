@@ -74,7 +74,7 @@ export function validateEjectManifest(plugins: readonly ManifestEntry[], path: s
     if (!IDENTIFIER_PATTERN.test(identifier)) {
       throw new ValidationError(
         `${path}: "${entry.key}" is a valid plugin key, but the identifier ` +
-          `community.plugins.ts would bind for it, "${identifier}", is not a valid TypeScript ` +
+          `meith.plugins.ts would bind for it, "${identifier}", is not a valid TypeScript ` +
           'identifier. Each hyphen must be followed by exactly one lower-case letter or digit, ' +
           'and a key cannot end in a hyphen.',
       )
@@ -84,7 +84,7 @@ export function validateEjectManifest(plugins: readonly ManifestEntry[], path: s
     if (collidingKey !== undefined) {
       throw new ValidationError(
         `${path}: "${entry.key}" and "${collidingKey}" both generate the identifier ` +
-          `"${identifier}" for community.plugins.ts. Rename one of the keys so the generated ` +
+          `"${identifier}" for meith.plugins.ts. Rename one of the keys so the generated ` +
           'imports do not collide.',
       )
     }
@@ -208,7 +208,7 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   }
   files.set('package.json', mergePluginDependencies(packageJson, manifest.plugins))
   files.set('board.plugins.json', `${JSON.stringify({ plugins: manifest.plugins }, null, 2)}\n`)
-  files.set('community.plugins.ts', renderInstalledPluginsModule(manifest.plugins))
+  files.set('meith.plugins.ts', renderInstalledPluginsModule(manifest.plugins))
 
   for (const [relative, contents] of files) {
     const path = join(target, relative)

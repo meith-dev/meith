@@ -166,8 +166,8 @@ describe('materializing at the workspace root', () => {
 
   function board(): string {
     const dir = mkdtempSync(join(tmpdir(), 'forum-web-at-root-'))
-    writeFileSync(join(dir, 'community.config.ts'), 'export default {}\n')
-    writeFileSync(join(dir, 'community.plugins.ts'), 'export const INSTALLED_PLUGINS = []\n')
+    writeFileSync(join(dir, 'meith.config.ts'), 'export default {}\n')
+    writeFileSync(join(dir, 'meith.plugins.ts'), 'export const INSTALLED_PLUGINS = []\n')
     boards.push(dir)
     return dir
   }

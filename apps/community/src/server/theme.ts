@@ -25,7 +25,7 @@ export const buildTheme: ResolvedTheme = RESOLVED.get(forumConfig.defaultTheme)!
 
 if (buildTheme === undefined) {
   throw new Error(
-    `community.config.ts: defaultTheme "${forumConfig.defaultTheme}" fills no slots, so this ` +
+    `meith.config.ts: defaultTheme "${forumConfig.defaultTheme}" fills no slots, so this ` +
       'board cannot render a page. A token-only theme is legitimate as an alternate, ' +
       'never as the theme a build is made of.',
   )

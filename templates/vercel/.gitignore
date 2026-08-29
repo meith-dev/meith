@@ -23,7 +23,7 @@ node_modules
 # alone by the build and still never committed, so it works locally and is
 # simply absent from the deploy, which builds from what git has. Extend the
 # board with a plugin or a theme instead — the forum loads those from
-# community.config.ts, and they are yours to commit. forum-web prints a
+# meith.config.ts, and they are yours to commit. forum-web prints a
 # warning naming any file of yours it finds there.
 #
 # For the rest, a build refuses rather than overwriting a file it did not

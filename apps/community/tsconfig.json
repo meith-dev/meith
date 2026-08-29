@@ -5,8 +5,8 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@board/config": ["./community.config.ts"],
-      "@board/plugins": ["./community.plugins.ts"],
+      "@board/config": ["./meith.config.ts"],
+      "@board/plugins": ["./meith.plugins.ts"],
       "@meith/core": ["../../packages/core/src/index.ts"],
       "@meith/core/*": ["../../packages/core/src/*"],
       "@meith/db": ["../../packages/db/src/index.ts"],

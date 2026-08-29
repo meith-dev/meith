@@ -119,8 +119,8 @@ How the packages relate — the layers, what may import what, and why — is
 `packages/create-meith` scaffolds a board whose `package.json` depends on
 `@meith/web` and `@meith/cli` and whose scripts call `forum-web` and
 `community` — a board outside this monorepo, in a directory that holds only
-its own files: `community.config.ts`, `board.plugins.json`,
-`community.plugins.ts` and `package.json`. This section is how that actually
+its own files: `meith.config.ts`, `board.plugins.json`,
+`meith.plugins.ts` and `package.json`. This section is how that actually
 runs, for anyone changing `apps/community`, `apps/cli` or the scaffold and
 needing to know what still has to hold true outside this repository.
 
@@ -140,8 +140,8 @@ the app on every invocation:
    `public/` travels with them, so `/sw.js` and the placeholder assets it
    references are served from the materialized app too.
 2. Write a fresh `tsconfig.json` there whose `paths` point `@board/config`
-   and `@board/plugins` at *that workspace's own* `community.config.ts` /
-   `community.plugins.ts`. A tsconfig path alias is a compiler/bundler alias,
+   and `@board/plugins` at *that workspace's own* `meith.config.ts` /
+   `meith.plugins.ts`. A tsconfig path alias is a compiler/bundler alias,
    not a package boundary — nothing stops one from naming a path two
    directories up, which is the whole trick, and it is why this is a
    tsconfig path alias rather than a Node subpath import in the first place:
@@ -281,7 +281,7 @@ installed, and needs the same source-compilation treatment or the build
 fails with "Unknown module type" on a `.ts` file inside `node_modules`.
 `@meith/web` itself is in that list for the same reason, even though
 `apps/community` never imports its own package by name inside this
-monorepo — a materialized workspace's `community.config.ts` reaches it
+monorepo — a materialized workspace's `meith.config.ts` reaches it
 through the `@meith/web/config` subpath, which is real only once npm has
 resolved this package into another workspace's `node_modules`.
 
@@ -344,7 +344,7 @@ closures alongside the board closure, scaffolds a plugin and a theme with
 then installs, tests and typechecks both against the packed kits — not the
 workspace aliases — and finally scaffolds a board, installs both extension
 tarballs into it, registers them in `board.plugins.json`,
-`community.plugins.ts` and `community.config.ts`, and runs `forum-web build`
+`meith.plugins.ts` and `meith.config.ts`, and runs `forum-web build`
 in fixture mode. A kit whose `files` allowlist rotted, a scaffold that only
 compiles against `workspace:*`, or an extension a real board cannot build
 with fails here, before an author finds out.
@@ -409,7 +409,7 @@ So the app moves, not the output. Nothing about the
 [board-config seam](../reference/architecture.md#the-board-config-seam) changes — every
 path `forum-web` writes is computed from the materialization directory rather
 than assumed, so at depth zero the generated tsconfig's `paths` simply name
-`./community.config.ts` where at depth two they named `../../community.config.ts`.
+`./meith.config.ts` where at depth two they named `../../meith.config.ts`.
 Three things that used to be able to rely on the depth are now told the answer
 instead:
 
@@ -469,7 +469,7 @@ gitignores them as a unit.** Per-file ownership means a route dropped into
 works locally and is absent from a deploy built out of the checkout. Neither
 git nor Next can catch that, so `forum-web` warns at materialization time,
 naming every file it finds under those directories that is not its own. A
-board extends the forum through plugins and themes, which `community.config.ts`
+board extends the forum through plugins and themes, which `meith.config.ts`
 names and git tracks.
 
 **A board can therefore own files under `public/`.** `robots.txt`,
@@ -1087,7 +1087,7 @@ repository that nothing else reads:
 | `slots:check` | The server/client boundary in theme slots, in both directions. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
-| `board:gen:check` | Either board's `community.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](../customization/plugins.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
+| `board:gen:check` | Either board's `meith.plugins.ts` out of step with its `board.plugins.json` — see [the plugin API](../customization/plugins.md#writing-a-plugin) and [the board plugin manifests](#the-board-plugin-manifests). |
 | `marketplace:gen:check`, `board-installer:gen:check`, `templates:gen:check` | A published artifact generated from something in this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and `templates/self-host/` and `templates/vercel/`, which are generated from `create-meith`'s `scaffold()` and are what people actually deploy from. |
 | `extension:gen:check` | `create-meith`'s plugin and theme scaffold templates out of step with `examples/hello-plugin` and `examples/iris-theme`, which they are generated from — see [the plugin API](../customization/plugins.md#writing-a-plugin). The generated `extension-templates.ts` holds those sources as string data, so `slots:check` skips it by name: the theme manifest it appears to contain is a template, not a theme of this repository. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
@@ -1149,7 +1149,7 @@ directory read or the manifest parse throws.
 ## The board plugin manifests
 
 This repository carries two boards, and each has its own
-`board.plugins.json` and generated `community.plugins.ts`: `apps/community`,
+`board.plugins.json` and generated `meith.plugins.ts`: `apps/community`,
 the in-repo dev target, and `boards/stock`, the workspace
 `docker/Dockerfile` builds the official image from. `tests/boards-stock.test.ts`
 requires the two manifests to stay identical, so a plugin installed into one

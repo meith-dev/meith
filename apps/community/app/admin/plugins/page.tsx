@@ -33,7 +33,7 @@ export default async function AdminPluginsPage() {
       title={t.t('page.plugins')}
       lede={
         <>
-          {t.t('adminPlugins.ledeBefore')} <code className="text-xs">community.config.ts</code>{' '}
+          {t.t('adminPlugins.ledeBefore')} <code className="text-xs">meith.config.ts</code>{' '}
           {t.t('adminPlugins.ledeAfter')}
         </>
       }

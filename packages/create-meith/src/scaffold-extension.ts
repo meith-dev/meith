@@ -192,7 +192,7 @@ Scaffold a board next to this directory if you do not have one
 npm installs a local directory as a symlink, so edits here are picked up by
 the board's next build without reinstalling.
 
-Register the plugin in the board's \`community.plugins.ts\` — the comment at
+Register the plugin in the board's \`meith.plugins.ts\` — the comment at
 the top of that file shows the shape:
 
     import { messages as ${camel}Messages, plugin as ${camel}Plugin } from '${name}'
@@ -249,7 +249,7 @@ Scaffold a board next to this directory if you do not have one
 npm installs a local directory as a symlink, so edits here are picked up by
 the board's next build without reinstalling.
 
-Register the theme in the board's \`community.config.ts\`, beside the
+Register the theme in the board's \`meith.config.ts\`, beside the
 default entry:
 
     import { defaultMessages } from '@meith/theme-default'

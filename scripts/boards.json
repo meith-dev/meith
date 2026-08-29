@@ -2,14 +2,14 @@
   {
     "manifestFile": "apps/community/board.plugins.json",
     "packageFile": "apps/community/package.json",
-    "outputFile": "apps/community/community.plugins.ts",
+    "outputFile": "apps/community/meith.plugins.ts",
     "packageLabel": "apps/community",
     "filterName": "@meith/web"
   },
   {
     "manifestFile": "boards/stock/board.plugins.json",
     "packageFile": "boards/stock/package.json",
-    "outputFile": "boards/stock/community.plugins.ts",
+    "outputFile": "boards/stock/meith.plugins.ts",
     "packageLabel": "boards/stock",
     "filterName": "@meith/board-stock"
   }

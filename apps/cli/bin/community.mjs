@@ -21,12 +21,12 @@ function toPosixRelative(from, to) {
 }
 
 function materialize() {
-  const boardConfig = join(workspaceRoot, 'community.config.ts')
-  const boardPlugins = join(workspaceRoot, 'community.plugins.ts')
+  const boardConfig = join(workspaceRoot, 'meith.config.ts')
+  const boardPlugins = join(workspaceRoot, 'meith.plugins.ts')
 
   if (!existsSync(boardConfig)) {
     fail(
-      `no community.config.ts in ${workspaceRoot}. Run community from a board's own ` +
+      `no meith.config.ts in ${workspaceRoot}. Run community from a board's own ` +
         'directory — the one create-meith scaffolded, or one shaped like it.',
     )
   }

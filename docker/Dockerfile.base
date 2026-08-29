@@ -15,7 +15,7 @@
 # Framework only, by construction: the build context is empty (see the RUN
 # below — the manifest is written in the image, not copied in), so there is
 # no board config, no plugin, no secret and no COPY of anything this
-# repository owns for this to carry. It never reads community.config.ts,
+# repository owns for this to carry. It never reads meith.config.ts,
 # board.plugins.json or any environment variable a running board needs — it
 # does not even contain a Next.js app to run, only the dependency closure a
 # board needs to build one.

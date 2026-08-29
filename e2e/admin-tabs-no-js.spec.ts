@@ -748,7 +748,7 @@ test('the plugins screen names what is installed and how installing works', asyn
 
   await expect(page.locator('a[href="/admin/plugins/dues"]').first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Installing a plugin' })).toBeVisible()
-  await expect(page.getByText(/community\.config\.ts/).first()).toBeVisible()
+  await expect(page.getByText(/meith\.config\.ts/).first()).toBeVisible()
 })
 
 test('the system screen reports the scheduler, the volumes and its own sweeps', async ({

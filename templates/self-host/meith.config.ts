@@ -8,7 +8,7 @@
  * not there at all.
  *
  * Adding a theme is: `npm install` it, add a line here, redeploy. Adding a
- * plugin is the same, through board.plugins.json and community.plugins.ts —
+ * plugin is the same, through board.plugins.json and meith.plugins.ts —
  * see docs/customization/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
@@ -20,7 +20,7 @@ import {
   LIGHT_TOKENS,
 } from '@meith/theme-default'
 
-import { INSTALLED_PLUGINS } from './community.plugins'
+import { INSTALLED_PLUGINS } from './meith.plugins'
 
 export default defineForumConfig({
   themes: {

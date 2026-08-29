@@ -31,8 +31,8 @@ only what the bundler saw):
 
 1. Put the package in the workspace (these two already are; a copy of one, or a
    `pnpm add`-ed package, joins the same way).
-2. Name it in the registry: themes in `apps/community/community.config.ts`, plugins in
-   `apps/community/community.plugins.ts`. For these two that is
+2. Name it in the registry: themes in `apps/community/meith.config.ts`, plugins in
+   `apps/community/meith.plugins.ts`. For these two that is
    `{ key: 'hello', plugin: helloPlugin }` in the plugins list, and an `iris`
    entry beside `midnight` in the themes map — each file's comments show the
    shape.

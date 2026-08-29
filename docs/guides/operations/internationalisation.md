@@ -109,7 +109,7 @@ that became `{anzahl}` fails rather than rendering blank.
 
 ## Catalogs from a theme or a plugin
 
-Both contribute through `community.config.ts`, next to where they are installed:
+Both contribute through `meith.config.ts`, next to where they are installed:
 
 ```ts
 import { defineForumConfig } from '@meith/core'
@@ -181,7 +181,7 @@ belongs in its own catalog. [The theme API](../../customization/themes.md) has t
 
 A plugin is different: it renders arbitrary UI rather than filling a slot, so
 its page context carries the board `Translator` as `t` as well as its `locale`.
-Its catalog is registered from the plugin entry in `community.config.ts`; pages
+Its catalog is registered from the plugin entry in `meith.config.ts`; pages
 read `context.t.t('plugin.key')`, which lets the board override a plugin's words
 without the plugin needing to know how catalogs are assembled.
 

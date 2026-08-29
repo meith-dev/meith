@@ -22,8 +22,8 @@ async function main() {
     if (alias === '@board/config' || alias === '@board/plugins') continue
     paths[alias] = targets.map((target) => toPosixRelative(outputDir, resolve(ROOT, target)))
   }
-  paths['@board/config'] = [toPosixRelative(outputDir, join(BOARD_DIR, 'community.config.ts'))]
-  paths['@board/plugins'] = [toPosixRelative(outputDir, join(BOARD_DIR, 'community.plugins.ts'))]
+  paths['@board/config'] = [toPosixRelative(outputDir, join(BOARD_DIR, 'meith.config.ts'))]
+  paths['@board/plugins'] = [toPosixRelative(outputDir, join(BOARD_DIR, 'meith.plugins.ts'))]
 
   const tsconfig = {
     compilerOptions: {

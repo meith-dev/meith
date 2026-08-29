@@ -30,7 +30,7 @@
  * between the dev server, a serverless bundle and the worker.
  *
  * So ordering is **(priority, plugin key)**, both total and both declared: never
- * registration order, never the order `community.config.ts` happens to list plugins
+ * registration order, never the order `meith.config.ts` happens to list plugins
  * in, and never `Object.keys`. See `host.ts`.
  *
  * ## What is deliberately not here
