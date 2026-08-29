@@ -44,13 +44,13 @@ export default async function AdminMembershipsPage() {
           }))}
           copy={groupAdminCopy(translator)}
         />
-      </section>
 
-      <p className="text-xs text-muted-foreground">
-        {translator.t('adminGroups.membershipsBefore')}{' '}
-        <strong>{translator.t('adminGroups.primary')}</strong>
-        {translator.t('adminGroups.membershipsAfter')}
-      </p>
+        <p className="border-t border-border pt-4 text-xs text-muted-foreground">
+          {translator.t('adminGroups.membershipsBefore')}{' '}
+          <strong>{translator.t('adminGroups.primary')}</strong>
+          {translator.t('adminGroups.membershipsAfter')}
+        </p>
+      </section>
     </PanelPage>
   )
 }

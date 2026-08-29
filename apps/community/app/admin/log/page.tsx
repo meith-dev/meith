@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 
-import { PANEL_LIST } from '@/components/shell/panel-list'
+import { cn } from '@meith/ui'
+
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
 import { adminPageContext } from '@/server/admin'
@@ -52,7 +54,7 @@ export default async function AdminLogPage({
       lede={await tr('page.every-administrative-moderation-action-newest')}
       width="wide"
     >
-      <form method="get" className="flex flex-wrap items-end gap-2">
+      <form method="get" className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">{translator.t('adminLog.action')}</span>
           <select
@@ -77,7 +79,7 @@ export default async function AdminLogPage({
       </form>
 
       {view.rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{await tr('page.nothing-logged')}</p>
+        <p className={PANEL_NOTE}>{await tr('page.nothing-logged')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {view.rows.map((row) => (

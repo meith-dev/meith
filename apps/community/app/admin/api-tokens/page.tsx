@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { IssueTokenForm, RevokeTokenForm } from '@/components/admin/api-token-forms'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { buildApiTokenView } from '@/server/api-tokens-admin'
@@ -47,12 +48,12 @@ export default async function AdminApiTokensPage() {
       }
       gap="loose"
     >
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.issue-token')}</h2>
         <IssueTokenForm scopes={view.scopes} copy={copy} />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.existing-tokens')}</h2>
 
         {view.tokens.length === 0 ? (

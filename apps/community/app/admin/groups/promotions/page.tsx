@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
 
-import { cn } from '@meith/ui'
-
 import {
   ApplyPromotionsForm,
   NewPromotionRuleForm,
   PromotionRuleRowForm,
 } from '@/components/admin/group-forms'
-import { PANEL_CARD, PANEL_LIST, PANEL_NOTE } from '@/components/shell/panel-list'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import {
@@ -93,7 +91,7 @@ export default async function AdminPromotionsPage() {
         <NewPromotionRuleForm groups={options} copy={copy} />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">
           {await tr('page.what-would-happen-now')}
         </h2>
@@ -102,24 +100,24 @@ export default async function AdminPromotionsPage() {
         </p>
 
         {result.complete ? null : (
-          <p className={PANEL_NOTE}>
+          <p className="text-sm text-muted-foreground">
             {translator.t('adminGroups.previewCapped', { count: result.examined })}
           </p>
         )}
 
         {result.outcomes.length === 0 ? (
-          <p className={PANEL_NOTE}>
+          <p className="text-sm text-muted-foreground">
             {stored.length === 0
               ? translator.t('adminGroups.nobodyNoRules')
               : translator.t('adminGroups.nobodyQualified')}
           </p>
         ) : (
           <>
-            <ul className={cn(PANEL_LIST, 'text-sm')}>
+            <ul className="flex flex-col divide-y divide-border text-sm">
               {result.outcomes.map((outcome) => (
                 <li
                   key={`${outcome.userId}:${outcome.ruleId}`}
-                  className="flex flex-wrap items-baseline gap-2 px-4 py-2"
+                  className="flex flex-wrap items-baseline gap-2 py-2 first:pt-0 last:pb-0"
                 >
                   <span className="font-medium">
                     {translator.t('adminGroups.member', { id: outcome.userId })}
@@ -132,18 +130,18 @@ export default async function AdminPromotionsPage() {
               ))}
             </ul>
 
-            <section className={PANEL_CARD}>
-              <h3 className="font-heading text-lg font-semibold">{await tr('page.run-it')}</h3>
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <h3 className="font-heading text-base font-semibold">{await tr('page.run-it')}</h3>
               <ApplyPromotionsForm count={result.outcomes.length} copy={copy} />
-            </section>
+            </div>
           </>
         )}
-      </section>
 
-      <p className="text-xs text-muted-foreground">
-        {translator.t('adminGroups.promotionNoteBefore')} <code>promotions.apply</code>
-        {translator.t('adminGroups.promotionNoteEnd')}
-      </p>
+        <p className="border-t border-border pt-4 text-xs text-muted-foreground">
+          {translator.t('adminGroups.promotionNoteBefore')} <code>promotions.apply</code>
+          {translator.t('adminGroups.promotionNoteEnd')}
+        </p>
+      </section>
     </PanelPage>
   )
 }

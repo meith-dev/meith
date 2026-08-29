@@ -65,7 +65,9 @@ export default async function SubscriptionsPage({
       {notice !== null && <BoardNotice kind="info" message={notice} dismissHref="/subscriptions" />}
 
       {view.total === 0 ? (
-        <p className="text-sm text-muted-foreground">{await tr('page.subscriptions.none')}</p>
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          {await tr('page.subscriptions.none')}
+        </p>
       ) : (
         <>
           <Section
@@ -110,7 +112,9 @@ function Section({
       <h2 className="font-heading text-lg font-semibold">{title}</h2>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
+        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          {empty}
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {rows.map((row) => (

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 
 import { AUTH_EVENT_KINDS } from '@meith/accounts'
+import { cn } from '@meith/ui'
 
-import { PANEL_LIST, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardSecurityActivity } from '@/server/auth-events'
@@ -51,7 +52,7 @@ export default async function AdminSecurityPage({
       lede={translator.t('adminSecurity.lede')}
       width="wide"
     >
-      <form method="get" className="flex flex-wrap items-end gap-2">
+      <form method="get" className={cn(PANEL_CARD, 'flex-row flex-wrap items-end')}>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">{translator.t('adminSecurity.kind')}</span>
           <select
@@ -76,7 +77,7 @@ export default async function AdminSecurityPage({
       </form>
 
       {page.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{await tr('page.nothing-recorded-yet')}</p>
+        <p className={PANEL_NOTE}>{await tr('page.nothing-recorded-yet')}</p>
       ) : (
         <ul className={PANEL_LIST}>
           {page.map((event) => (

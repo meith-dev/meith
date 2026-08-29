@@ -47,28 +47,31 @@ export default async function AdminForumPage({ params }: { params: Promise<{ id:
       lede={t.t('adminForums.optionsLede')}
       gap="loose"
     >
-      <ForumOptionsForm
-        forum={{
-          id: forum.id,
-          type: forum.type,
-          title: options.title,
-          slug: options.slug,
-          description: options.description ?? '',
-          linkUrl: options.linkUrl ?? '',
-          displayOrder: options.displayOrder,
-          flags: {
-            isOpen: options.isOpen,
-            allowThreads: options.allowThreads,
-            allowReplies: options.allowReplies,
-            allowPolls: options.allowPolls,
-            allowAttachments: options.allowAttachments,
-            requiresPrefix: options.requiresPrefix,
-            moderateNewThreads: options.moderateNewThreads,
-            moderateNewPosts: options.moderateNewPosts,
-          },
-        }}
-        copy={forumAdminCopy(t)}
-      />
+      <section className={PANEL_CARD}>
+        <h2 className="font-heading text-lg font-semibold">{await tr('page.forum-options')}</h2>
+        <ForumOptionsForm
+          forum={{
+            id: forum.id,
+            type: forum.type,
+            title: options.title,
+            slug: options.slug,
+            description: options.description ?? '',
+            linkUrl: options.linkUrl ?? '',
+            displayOrder: options.displayOrder,
+            flags: {
+              isOpen: options.isOpen,
+              allowThreads: options.allowThreads,
+              allowReplies: options.allowReplies,
+              allowPolls: options.allowPolls,
+              allowAttachments: options.allowAttachments,
+              requiresPrefix: options.requiresPrefix,
+              moderateNewThreads: options.moderateNewThreads,
+              moderateNewPosts: options.moderateNewPosts,
+            },
+          }}
+          copy={forumAdminCopy(t)}
+        />
+      </section>
 
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{t.t('adminForums.move')}</h2>

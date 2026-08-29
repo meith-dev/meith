@@ -119,11 +119,11 @@ export default async function ReputationPage({
         )}
 
         {view.rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
             {await tr('page.nobody-has-rated-them-yet')}
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
             {view.rows.map((row) => (
               <li key={row.id} className="flex flex-col gap-1 px-4 py-3">
                 <div className="flex flex-wrap items-baseline gap-2 text-sm">
