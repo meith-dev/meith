@@ -2,12 +2,15 @@
 
 import { useActionState } from 'react'
 
+import { cn } from '@meith/ui'
+
 import { saveAdminSettingsAction } from '@/server/admin-settings-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import type { SettingFieldModel, SettingGroupModel } from '@/view/admin-settings'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
+import { PANEL_CARD } from '../shell/panel-list'
 import { INPUT, Saved } from './form-bits'
 
 function Control({ setting, copy }: { setting: SettingFieldModel; copy: Copy }) {
@@ -105,8 +108,8 @@ export function AdminSettingsForm({
       <input type="hidden" name="keys" value={keys.join(',')} />
 
       {groups.map((group) => (
-        <section key={group.group} className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold tracking-tight">{group.label}</h2>
+        <section key={group.group} className={cn(PANEL_CARD, 'gap-5')}>
+          <h2 className="font-heading text-lg font-semibold">{group.label}</h2>
           <div className="flex flex-col gap-5">
             {group.settings.map((setting) => (
               <div key={setting.key} className="flex flex-col gap-1">

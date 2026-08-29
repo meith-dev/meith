@@ -115,9 +115,11 @@ export function SearchResults({
         </CardContent>
       </Card>
 
-      <a href={newSearchHref} className={`text-sm font-medium text-foreground ${LINK}`}>
-        {c('startNewSearch')}
-      </a>
+      <div>
+        <a href={newSearchHref} className={buttonVariants({ variant: 'outline' })}>
+          {c('startNewSearch')}
+        </a>
+      </div>
     </main>
   )
 }

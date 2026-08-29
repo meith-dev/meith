@@ -11,7 +11,7 @@ import {
   ReindexSearchForm,
   RetryJobForm,
 } from '@/components/admin/system-forms'
-import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
+import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
@@ -122,7 +122,7 @@ export default async function AdminSystemPage() {
         </section>
       )}
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{translator.t('adminSystem.mail')}</h2>
         <p className="text-sm">
           {mail.summary}
@@ -152,14 +152,17 @@ export default async function AdminSystemPage() {
         <p className="text-sm text-muted-foreground">{translator.t('adminSystem.mailSchedule')}</p>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.scheduled-tasks')}</h2>
         {scheduler.tasks.length === 0 ? (
-          <p className={PANEL_NOTE}>{translator.t('adminSystem.noTasks')}</p>
+          <p className="text-sm text-muted-foreground">{translator.t('adminSystem.noTasks')}</p>
         ) : (
-          <ul className={PANEL_LIST}>
+          <ul className="flex flex-col divide-y divide-border">
             {scheduler.tasks.map((task) => (
-              <li key={task.key} className={PANEL_ROW}>
+              <li
+                key={task.key}
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0"
+              >
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">
                     {task.titleKey === undefined ? task.key : translator.t(task.titleKey)}
@@ -198,7 +201,7 @@ export default async function AdminSystemPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.recent-runs')}</h2>
         {view.runs.length === 0 ? (
           <p className="text-sm text-muted-foreground">{await tr('page.nothing-has-run-yet')}</p>
@@ -227,7 +230,7 @@ export default async function AdminSystemPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">
           {translator.t('adminSystem.volumes')}
         </h2>
@@ -243,7 +246,7 @@ export default async function AdminSystemPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">
           {translator.t('adminSystem.recount')}
         </h2>
@@ -266,7 +269,7 @@ export default async function AdminSystemPage() {
         <RecountForm copy={copy} />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.search-index')}</h2>
         <p className="text-sm text-muted-foreground">
           {translator.t('adminSystem.searchIndexHint')}
