@@ -189,11 +189,20 @@ async function main() {
     await pointAtVendoredTarballs(ejectedDir, tarballs)
 
     console.log(
-      '== building the ejected board image from its own (unmodified) scaffolded Dockerfile ==',
+      '== building the ejected board image from its own (unmodified) scaffolded Dockerfile.prebuilt ==',
     )
     run(
       'docker',
-      ['build', '--build-arg', `MEITH_VERSION=${version}`, '-t', BOARD_IMAGE_TAG, ejectedDir],
+      [
+        'build',
+        '-f',
+        join(ejectedDir, 'Dockerfile.prebuilt'),
+        '--build-arg',
+        `MEITH_VERSION=${version}`,
+        '-t',
+        BOARD_IMAGE_TAG,
+        ejectedDir,
+      ],
       ejectedDir,
     )
 
