@@ -1,6 +1,6 @@
 {
   "name": "@meith/theme-midnight",
-  "version": "0.25.1",
+  "version": "0.26.0",
   "description": "A dark theme for Meith, built on the default theme's slots.",
   "license": "MIT",
   "repository": {
