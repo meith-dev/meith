@@ -7,6 +7,7 @@ import { cn } from '@meith/ui'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { thankForPostAction } from '@/server/reputation-actions'
 
+import { PendingButton } from '../auth/form-controls'
 import { formatFromCopy, fromCopy, useCopy } from '../shell/copy'
 
 export function ThanksButton({
@@ -31,8 +32,7 @@ export function ThanksButton({
       <input type="hidden" name="userId" value={authorUserId} />
       <input type="hidden" name="returnTo" value={returnTo} />
 
-      <button
-        type="submit"
+      <PendingButton
         aria-pressed={thanked}
         className={cn(
           'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors',
@@ -55,7 +55,7 @@ export function ThanksButton({
             </span>
           </span>
         )}
-      </button>
+      </PendingButton>
 
       {state.error !== undefined && (
         <span className="ml-2 text-xs text-destructive">{state.error}</span>

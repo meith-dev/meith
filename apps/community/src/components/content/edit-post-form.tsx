@@ -6,7 +6,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { deletePostAction, editPostAction, restorePostAction } from '@/server/content-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 import { MarkdownEditor } from './markdown-editor'
 
@@ -53,14 +53,14 @@ export function EditPostForm({
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton>{fromCopy(copy, 'composer.edit.submit')}</SubmitButton>
-        <button
-          type="submit"
+        <PendingButton
           name="intent"
           value="preview"
+          showWorking
           className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'composer.preview')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -84,12 +84,12 @@ export function DeletePostForm({
       <input type="hidden" name="postId" value={postId} />
       <p className="text-sm text-muted-foreground">{fromCopy(copy, 'composer.edit.deleteBlurb')}</p>
       <div>
-        <button
-          type="submit"
+        <PendingButton
+          showWorking
           className="inline-flex h-10 items-center justify-center rounded-md border border-destructive/40 px-4 text-sm font-medium text-destructive transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'composer.edit.delete')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )

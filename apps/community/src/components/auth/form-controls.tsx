@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 
-import { Alert, AlertDescription, AlertTitle, Input, Field as UiField } from '@meith/ui'
+import { Alert, AlertDescription, AlertTitle, cn, Input, Field as UiField } from '@meith/ui'
 import { Button } from '@meith/ui/button'
 
 import { fromCopy, useCopy } from '../shell/copy'
@@ -28,6 +28,28 @@ export function SubmitButton({
     >
       {pending ? fromCopy(copy, 'form.working') : children}
     </Button>
+  )
+}
+
+export function PendingButton({
+  children,
+  showWorking = false,
+  className,
+  ...props
+}: React.ComponentProps<'button'> & { showWorking?: boolean }) {
+  const { pending } = useFormStatus()
+  const copy = useCopy()
+
+  return (
+    <button
+      {...props}
+      type="submit"
+      disabled={pending || props.disabled}
+      aria-busy={pending || undefined}
+      className={cn(className, 'disabled:cursor-not-allowed disabled:opacity-60')}
+    >
+      {pending && showWorking ? fromCopy(copy, 'form.working') : children}
+    </button>
   )
 }
 
