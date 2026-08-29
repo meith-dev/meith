@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { messageBulkAction, sendMessageAction } from '@/server/message-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
 import { type Copy, fromCopy } from '../shell/copy'
 
@@ -89,9 +89,9 @@ export function ComposeForm({
       </label>
 
       <div>
-        <button type="submit" className={BUTTON}>
+        <PendingButton className={BUTTON} showWorking>
           {fromCopy(copy, 'messageForm.send')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )
@@ -120,31 +120,31 @@ export function MessageActionBar({
 
         {folder === 'inbox' && (
           <>
-            <button type="submit" name="command" value="read" className={SECONDARY}>
+            <PendingButton name="command" value="read" className={SECONDARY}>
               {fromCopy(copy, 'messageForm.markRead')}
-            </button>
-            <button type="submit" name="command" value="unread" className={SECONDARY}>
+            </PendingButton>
+            <PendingButton name="command" value="unread" className={SECONDARY}>
               {fromCopy(copy, 'messageForm.markUnread')}
-            </button>
+            </PendingButton>
           </>
         )}
 
         {folder === 'trash' ? (
           <>
-            <button type="submit" name="command" value="restore" className={SECONDARY}>
+            <PendingButton name="command" value="restore" className={SECONDARY}>
               {fromCopy(copy, 'messageForm.restore')}
-            </button>
-            <button type="submit" name="command" value="delete" className={SECONDARY}>
+            </PendingButton>
+            <PendingButton name="command" value="delete" className={SECONDARY}>
               {fromCopy(copy, 'messageForm.deleteForever')}
-            </button>
-            <button type="submit" name="command" value="empty" className={SECONDARY}>
+            </PendingButton>
+            <PendingButton name="command" value="empty" className={SECONDARY}>
               {fromCopy(copy, 'messageForm.emptyTrash')}
-            </button>
+            </PendingButton>
           </>
         ) : (
-          <button type="submit" name="command" value="trash" className={SECONDARY}>
+          <PendingButton name="command" value="trash" className={SECONDARY}>
             {fromCopy(copy, 'messageForm.moveToTrash')}
-          </button>
+          </PendingButton>
         )}
       </div>
     </form>

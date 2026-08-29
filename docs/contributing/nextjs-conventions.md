@@ -286,6 +286,16 @@ list means adding a spec there.
   or screen-reader user lands on what went wrong instead of hunting for it.
   With JS off the same message renders in place, unfocused, from the
   server round-trip.
+- A submit is disabled while its action is in flight, so a double-click or an
+  impatient second press never fires the action twice. This too is a JS-on
+  enhancement built on `useFormStatus`: `SubmitButton` disables the primary
+  submit and swaps to the `form.working` label, and `PendingButton` — the same
+  primitive for the composer's secondary controls (preview, save draft,
+  delete), the thanks toggle, and the message compose and bulk bars — disables
+  every submit in the form while any one of them is pending, so a reply, post,
+  or private message is posted once and no other command in the same form
+  races it. With JS off the button is never disabled — the enhancement layers
+  on top of the native submit, it does not replace it.
 
 > [!IMPORTANT]
 > **Islands enhance; they never enable.** If removing a client component
