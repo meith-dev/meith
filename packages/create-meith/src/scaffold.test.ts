@@ -583,7 +583,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
   '.github/workflows/build.yml': 'd61b4b1fe933e5fd4d584e63ec45a999e47145529c0c89f9bb9eef0580fb4915',
-  'docker-compose.yaml': 'bb57c62317b1db6572a553f578bc2f603fa63cc69bc45d4ffdf938e044f19960',
+  'docker-compose.yaml': '42bc81028ffce83ae55ac407ece0607b144f73674822610064da3eabe77fc6d1',
   'README.md': 'c2af780df2ca761943117adbe44c4ce464bb6781654dcb9928b78d21066221d4',
 }
 

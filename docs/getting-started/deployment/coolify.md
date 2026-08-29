@@ -228,6 +228,18 @@ ceilings, which default to a small VPS: `WEB_MEM_LIMIT`, `WEB_CPUS`,
 `MEITH_IMAGE` does, so a larger server is a variable on the resource,
 never an edit to the file.
 
+> [!NOTE]
+> **Redeploys, and deploying without a gap.** The `web` and `migrate`
+> services set `pull_policy: always`, so every **Redeploy** fetches the
+> current image for the tag rather than reusing a `:latest` the host already
+> has — a rebuild on `main` is picked up without pinning a new digest.
+> Coolify recreates a compose stack by default, though: it stops the old
+> containers before starting the new ones, so the board is briefly down while
+> `web` boots. To close that gap, turn on **Rolling update** for the resource
+> (its **General** settings). `web` declares a `/api/ready` healthcheck for
+> exactly this — with rolling enabled Coolify waits for the new container to
+> pass it before retiring the old one, so the swap carries no downtime.
+
 ## 4. Run the installer
 
 Open `https://your-domain/install`.
