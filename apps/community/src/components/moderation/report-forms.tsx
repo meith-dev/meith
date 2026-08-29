@@ -7,7 +7,7 @@ import { Card, CardContent, Field, Textarea } from '@meith/ui'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { assignReportAction, closeReportAction, fileReportAction } from '@/server/report-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 export function ReportForm({
@@ -66,14 +66,14 @@ export function AssignReportForm({
       <FormError message={state.error} />
       <input type="hidden" name="reportId" value={reportId} />
       <input type="hidden" name="take" value={mine ? '0' : '1'} />
-      <button
-        type="submit"
+      <PendingButton
+        showWorking
         className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {mine
           ? fromCopy(copy, 'moderationForm.report.putBack')
           : fromCopy(copy, 'moderationForm.report.take')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -98,22 +98,20 @@ export function CloseReportForm({ reportId, copy }: { reportId: number; copy: Co
         />
       </label>
       <div className="flex flex-wrap gap-2">
-        <button
-          type="submit"
+        <PendingButton
           name="status"
           value="resolved"
           className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'moderationForm.report.resolve')}
-        </button>
-        <button
-          type="submit"
+        </PendingButton>
+        <PendingButton
           name="status"
           value="rejected"
           className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'moderationForm.report.dismiss')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )

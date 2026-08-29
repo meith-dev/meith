@@ -17,7 +17,7 @@ import {
   saveForumPermissionsAction,
 } from '@/server/forum-admin-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -561,12 +561,12 @@ export function ModeratorsPanel({
               <form action={remove}>
                 <input type="hidden" name="forumId" value={forumId} />
                 <input type="hidden" name="appointmentId" value={moderator.id} />
-                <button
-                  type="submit"
+                <PendingButton
+                  showWorking
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   {fromCopy(copy, 'admin.remove')}
-                </button>
+                </PendingButton>
               </form>
             </li>
           ))}

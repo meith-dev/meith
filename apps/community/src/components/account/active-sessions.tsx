@@ -2,12 +2,12 @@
 
 import { useActionState } from 'react'
 
-import { Button } from '@meith/ui/button'
+import { buttonVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { revokeOtherSessionsAction, revokeSessionAction } from '@/server/session-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
@@ -66,9 +66,12 @@ export function ActiveSessions({
             {session.current ? null : (
               <form action={revoke}>
                 <input type="hidden" name="sessionId" value={session.id} />
-                <Button type="submit" variant="destructive" size="sm">
+                <PendingButton
+                  showWorking
+                  className={buttonVariants({ variant: 'destructive', size: 'sm' })}
+                >
                   {fromCopy(copy, 'accountForm.sessions.signOut')}
-                </Button>
+                </PendingButton>
               </form>
             )}
           </li>
@@ -77,9 +80,9 @@ export function ActiveSessions({
 
       {others > 0 ? (
         <form action={revokeAll}>
-          <Button type="submit" variant="outline" size="sm">
+          <PendingButton showWorking className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             {fromCopy(copy, 'accountForm.sessions.signOutElsewhere')}
-          </Button>
+          </PendingButton>
         </form>
       ) : null}
     </section>

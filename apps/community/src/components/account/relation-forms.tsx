@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removeRelationAction, setRelationAction } from '@/server/relation-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 
 const LINK_BUTTON =
   'text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -35,9 +35,9 @@ export function SetRelationForm({
       <input type="hidden" name="username" value={username} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button type="submit" className={kind === 'buddy' ? LINK_BUTTON : QUIET_BUTTON}>
+      <PendingButton showWorking className={kind === 'buddy' ? LINK_BUTTON : QUIET_BUTTON}>
         {label}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -61,9 +61,9 @@ export function RemoveRelationForm({
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="username" value={username} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button type="submit" className={QUIET_BUTTON}>
+      <PendingButton showWorking className={QUIET_BUTTON}>
         {label}
-      </button>
+      </PendingButton>
     </form>
   )
 }

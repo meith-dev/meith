@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { moderateQueueAction } from '@/server/moderation-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
 export interface QueueFormRow {
@@ -74,22 +74,20 @@ export function QueueForm({ rows, copy }: { rows: readonly QueueFormRow[]; copy:
       </ul>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
+        <PendingButton
           name="decision"
           value="approve"
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'moderationForm.queue.approve')}
-        </button>
-        <button
-          type="submit"
+        </PendingButton>
+        <PendingButton
           name="decision"
           value="reject"
           className="inline-flex h-10 items-center justify-center rounded-md border border-destructive/40 px-4 text-sm font-medium text-destructive transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'moderationForm.queue.reject')}
-        </button>
+        </PendingButton>
       </div>
     </form>
   )

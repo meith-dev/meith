@@ -9,7 +9,7 @@ import {
   updateNavigationItemAction,
 } from '@/server/navigation-admin-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -193,9 +193,9 @@ export function NavigationItemRowForm({
 
       <form action={removeAction}>
         <input type="hidden" name="id" value={item.id} />
-        <button type="submit" className="text-xs text-destructive hover:underline">
+        <PendingButton showWorking className="text-xs text-destructive hover:underline">
           {fromCopy(copy, 'adminNavigation.removeThis')}
-        </button>
+        </PendingButton>
       </form>
     </div>
   )

@@ -2,13 +2,13 @@
 
 import { useActionState } from 'react'
 
-import { Button } from '@meith/ui/button'
+import { buttonVariants } from '@meith/ui'
 
 import { abandonSecondFactorAction, verifySecondFactorAction } from '@/server/auth-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { type Copy, fromCopy } from '../shell/copy'
-import { FormError, SubmitButton } from './form-controls'
+import { FormError, PendingButton, SubmitButton } from './form-controls'
 import { OtpField, otpRecoveryFromCopy } from './otp-field'
 
 export function SecondFactorForm({
@@ -43,9 +43,9 @@ export function SecondFactorForm({
       </form>
 
       <form action={abandonSecondFactorAction}>
-        <Button type="submit" variant="ghost" size="sm">
+        <PendingButton showWorking className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           {fromCopy(copy, 'authForm.secondFactor.cancel')}
-        </Button>
+        </PendingButton>
       </form>
     </div>
   )

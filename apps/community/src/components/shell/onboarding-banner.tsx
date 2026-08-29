@@ -1,3 +1,4 @@
+import { PendingButton } from '@/components/auth/form-controls'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import type { OnboardingNoticeModel } from '@/server/onboarding'
 import { dismissOnboardingAction } from '@/server/onboarding-actions'
@@ -29,9 +30,12 @@ export function OnboardingBanner({
 
         <form action={dismissOnboardingAction}>
           <input type="hidden" name="panel" value={panel} />
-          <button type="submit" className="text-xs text-muted-foreground hover:text-foreground">
+          <PendingButton
+            showWorking
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
             {dismissLabel}
-          </button>
+          </PendingButton>
         </form>
       </div>
     </div>

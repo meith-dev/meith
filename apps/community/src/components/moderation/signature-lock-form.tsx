@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { setAvatarLockAction, setSignatureLockAction } from '@/server/moderation-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const REASON_INPUT = 'h-8 rounded-md border border-border bg-background px-2 text-xs'
@@ -38,11 +38,11 @@ export function SignatureLockForm({
         />
       )}
 
-      <button type="submit" className={LOCK_BUTTON}>
+      <PendingButton showWorking className={LOCK_BUTTON}>
         {locked
           ? fromCopy(copy, 'moderationForm.lock.unlockSignature')
           : fromCopy(copy, 'moderationForm.lock.signature')}
-      </button>
+      </PendingButton>
     </form>
   )
 }
@@ -73,11 +73,11 @@ export function AvatarLockForm({
         />
       )}
 
-      <button type="submit" className={LOCK_BUTTON}>
+      <PendingButton showWorking className={LOCK_BUTTON}>
         {locked
           ? fromCopy(copy, 'moderationForm.lock.unlockAvatar')
           : fromCopy(copy, 'moderationForm.lock.avatar')}
-      </button>
+      </PendingButton>
     </form>
   )
 }

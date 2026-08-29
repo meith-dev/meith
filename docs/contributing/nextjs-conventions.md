@@ -288,14 +288,20 @@ list means adding a spec there.
   server round-trip.
 - A submit is disabled while its action is in flight, so a double-click or an
   impatient second press never fires the action twice. This too is a JS-on
-  enhancement built on `useFormStatus`: `SubmitButton` disables the primary
-  submit and swaps to the `form.working` label, and `PendingButton` — the same
-  primitive for the composer's secondary controls (preview, save draft,
-  delete), the thanks toggle, and the message compose and bulk bars — disables
-  every submit in the form while any one of them is pending, so a reply, post,
-  or private message is posted once and no other command in the same form
-  races it. With JS off the button is never disabled — the enhancement layers
-  on top of the native submit, it does not replace it.
+  enhancement built on `useFormStatus`, and every board action button carries
+  it: `SubmitButton` is the primary control — it disables and swaps to the
+  `form.working` label — and `PendingButton` is the same guard for every other
+  submit, from the composer's preview/save-draft/delete and the thanks toggle
+  to the account, admin, and moderation forms. Both disable *every* submit in
+  their form while any one of them is pending, so a reply, post, message, or
+  moderation command runs once and no sibling button races it. `PendingButton`
+  takes `showWorking` to swap a text button to `form.working` (omit it for
+  icon or compact command buttons); it reads that label from the board-wide
+  `CopyProvider`, so it works in a server-rendered form as a client island.
+  A form that already tracks `useActionState`'s `pending` itself (the install
+  wizard, the notification menu, the forum and navigation trees) keeps its own
+  handling. With JS off no button is ever disabled — the enhancement layers on
+  top of the native submit, it does not replace it.
 
 > [!IMPORTANT]
 > **Islands enhance; they never enable.** If removing a client component

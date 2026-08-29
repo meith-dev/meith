@@ -6,6 +6,7 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 import { sendTestMailAction } from '@/server/mail-test-actions'
 
+import { PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 import { Saved } from './form-bits'
 
@@ -66,15 +67,14 @@ export function MailTestCard({
 
       <form action={submit} className="flex flex-col gap-2">
         <div>
-          <button
-            type="submit"
+          <PendingButton
             disabled={pending || !sends}
             className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
           >
             {pending
               ? fromCopy(copy, 'adminPanel.mail.sending')
               : fromCopy(copy, 'adminPanel.mail.send')}
-          </button>
+          </PendingButton>
         </div>
         <p className="text-xs text-muted-foreground">
           {copy['adminPanel.mail.testNoteLead']}

@@ -16,7 +16,7 @@ import {
   updatePromotionRuleAction,
 } from '@/server/group-admin-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 import { OklchPicker } from './oklch-picker'
@@ -579,18 +579,18 @@ export function PromotionRuleRowForm({
         <form action={toggleAction} className="flex items-center">
           <input type="hidden" name="id" value={rule.id} />
           {!rule.enabled && <input type="hidden" name="enabled" value="1" />}
-          <button type="submit" className="text-xs text-muted-foreground hover:underline">
+          <PendingButton className="text-xs text-muted-foreground hover:underline">
             {rule.enabled
               ? fromCopy(copy, 'adminGroup.rule.disable')
               : fromCopy(copy, 'adminGroup.rule.enable')}
-          </button>
+          </PendingButton>
         </form>
 
         <form action={removeAction} className="flex items-center">
           <input type="hidden" name="id" value={rule.id} />
-          <button type="submit" className="text-xs text-destructive hover:underline">
+          <PendingButton className="text-xs text-destructive hover:underline">
             {fromCopy(copy, 'admin.remove')}
-          </button>
+          </PendingButton>
         </form>
       </div>
       <p className="text-xs text-muted-foreground">

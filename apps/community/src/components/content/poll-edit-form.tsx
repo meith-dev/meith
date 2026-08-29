@@ -3,6 +3,8 @@ import { POLL_OPTION_LENGTH_MAX, POLL_QUESTION_MAX, type Poll } from '@meith/pol
 import { getTranslator } from '@/server/i18n'
 import { editPollAction } from '@/server/poll-actions'
 
+import { PendingButton } from '../auth/form-controls'
+
 const NEW_OPTION_SLOTS = ['first', 'second', 'third'] as const
 
 function inputValue(at: Date | null): string {
@@ -89,7 +91,7 @@ export async function PollEditForm({ poll, threadId }: { poll: Poll; threadId: n
       </label>
 
       <div>
-        <button type="submit">{t.t('pollEdit.save')}</button>
+        <PendingButton showWorking>{t.t('pollEdit.save')}</PendingButton>
       </div>
     </form>
   )

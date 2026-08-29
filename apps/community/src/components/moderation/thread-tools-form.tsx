@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { threadToolAction } from '@/server/thread-tool-actions'
 
-import { FormError } from '../auth/form-controls'
+import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -49,38 +49,27 @@ export function ThreadToolsForm({
           <input type="hidden" name="threadId" value={threadId} />
 
           {rights.lock && (
-            <button
-              type="submit"
-              name="tool"
-              value={isLocked ? 'unlock' : 'lock'}
-              className={BUTTON}
-            >
+            <PendingButton name="tool" value={isLocked ? 'unlock' : 'lock'} className={BUTTON}>
               {isLocked
                 ? fromCopy(copy, 'moderationForm.tool.unlock')
                 : fromCopy(copy, 'moderationForm.tool.lock')}
-            </button>
+            </PendingButton>
           )}
           {rights.stick && (
-            <button
-              type="submit"
-              name="tool"
-              value={isSticky ? 'unstick' : 'stick'}
-              className={BUTTON}
-            >
+            <PendingButton name="tool" value={isSticky ? 'unstick' : 'stick'} className={BUTTON}>
               {isSticky
                 ? fromCopy(copy, 'moderationForm.tool.unpin')
                 : fromCopy(copy, 'moderationForm.tool.pin')}
-            </button>
+            </PendingButton>
           )}
           {rights.delete && (
-            <button
-              type="submit"
+            <PendingButton
               name="tool"
               value="delete"
               className={`${BUTTON} border-destructive/40 text-destructive`}
             >
               {fromCopy(copy, 'moderationForm.tool.deleteThread')}
-            </button>
+            </PendingButton>
           )}
 
           {rights.move && moveTargets.length > 0 && (
@@ -98,12 +87,12 @@ export function ThreadToolsForm({
                   ))}
                 </select>
               </label>
-              <button type="submit" name="tool" value="move" className={BUTTON}>
+              <PendingButton name="tool" value="move" className={BUTTON}>
                 {fromCopy(copy, 'moderationForm.tool.move')}
-              </button>
-              <button type="submit" name="tool" value="copy" className={BUTTON}>
+              </PendingButton>
+              <PendingButton name="tool" value="copy" className={BUTTON}>
                 {fromCopy(copy, 'moderationForm.tool.copy')}
-              </button>
+              </PendingButton>
             </span>
           )}
         </form>

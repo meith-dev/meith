@@ -8,7 +8,7 @@ import { PANEL_CARD } from '@/components/shell/panel-list'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removeBadgeAction, saveBadgeAction } from '@/server/group-badge-actions'
 
-import { FormError, SubmitButton } from '../auth/form-controls'
+import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { Saved } from './form-bits'
 
@@ -86,9 +86,9 @@ export function BadgeUploadForm({
         <form action={removeAction}>
           <input type="hidden" name="groupId" value={groupId} />
           <input type="hidden" name="scheme" value={scheme} />
-          <button type="submit" className={GHOST}>
+          <PendingButton showWorking className={GHOST}>
             {fromCopy(copy, 'admin.remove')}
-          </button>
+          </PendingButton>
         </form>
       )}
     </div>
