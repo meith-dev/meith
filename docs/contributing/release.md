@@ -425,9 +425,14 @@ clones.
 the cross-repository push authenticates as a **GitHub App** — chosen because,
 unlike a personal access token, it does not expire and so needs no scheduled
 rotation. Create an organisation-owned App with the **Contents: read and write**
-repository permission, install it on `meith-dev/template` and
-`meith-dev/vercel-template`, and store its **App ID** and a generated **private
-key** as the Actions secrets `TEMPLATE_SYNC_APP_ID` and
+and **Workflows: read and write** repository permissions — the mirror includes
+`.github/workflows/build.yml`, and GitHub rejects an App push that creates or
+updates any file under `.github/workflows/` without the Workflows permission, so
+`Contents` alone syncs every file until a workflow one changes and then fails the
+whole push. Install it on `meith-dev/template` and
+`meith-dev/vercel-template` (approving the Workflows permission on the
+installation if you add it later), and store its **App ID** and a generated
+**private key** as the Actions secrets `TEMPLATE_SYNC_APP_ID` and
 `TEMPLATE_SYNC_APP_PRIVATE_KEY` here. The `publish-templates` job mints a
 short-lived installation token from them on each run
 (`actions/create-github-app-token`, scoped to just those two repositories) and
