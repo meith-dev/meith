@@ -114,7 +114,20 @@ async function pointAtVendoredTarballs(
 
 function buildBoardImage(boardDir: string, tag: string): number {
   const started = Date.now()
-  run('docker', ['build', '--build-arg', `MEITH_VERSION=${VERSION}`, '-t', tag, boardDir], boardDir)
+  run(
+    'docker',
+    [
+      'build',
+      '-f',
+      join(boardDir, 'Dockerfile.prebuilt'),
+      '--build-arg',
+      `MEITH_VERSION=${VERSION}`,
+      '-t',
+      tag,
+      boardDir,
+    ],
+    boardDir,
+  )
   return Date.now() - started
 }
 
@@ -200,16 +213,21 @@ function runMigrate(tag: string) {
 }
 
 function checkComposeParses(boardDir: string, tag: string) {
-  console.log('== docker-compose.yaml parses ==')
-  run('docker', ['compose', '-f', join(boardDir, 'docker-compose.yaml'), 'config'], boardDir, {
-    ...process.env,
-    MEITH_IMAGE: tag,
-    SERVICE_PASSWORD_POSTGRES: 'stub',
-    SERVICE_BASE64_64_AUTH: 'stub',
-    SERVICE_BASE64_64_TICK: 'stub',
-    SERVICE_URL_WEB: 'http://127.0.0.1:3000',
-    SERVICE_FQDN_WEB_3000: '127.0.0.1',
-  })
+  console.log('== docker-compose.prebuilt.yaml parses ==')
+  run(
+    'docker',
+    ['compose', '-f', join(boardDir, 'docker-compose.prebuilt.yaml'), 'config'],
+    boardDir,
+    {
+      ...process.env,
+      MEITH_IMAGE: tag,
+      SERVICE_PASSWORD_POSTGRES: 'stub',
+      SERVICE_BASE64_64_AUTH: 'stub',
+      SERVICE_BASE64_64_TICK: 'stub',
+      SERVICE_URL_WEB: 'http://127.0.0.1:3000',
+      SERVICE_FQDN_WEB_3000: '127.0.0.1',
+    },
+  )
 }
 
 async function main() {
@@ -232,7 +250,9 @@ async function main() {
     await pointAtVendoredTarballs(boardDir, vendorDir, tarballs, { includePlugin: false })
 
     const tag = 'meith-board-deploy-kit:ci'
-    console.log('== building the board image from the (unmodified) scaffolded Dockerfile ==')
+    console.log(
+      '== building the board image from the (unmodified) scaffolded Dockerfile.prebuilt ==',
+    )
     const baselineMs = buildBoardImage(boardDir, tag)
 
     runMigrate(tag)

@@ -311,9 +311,11 @@ where `mkdir` made it.
 
 `my-board` becomes a complete workspace: `package.json` pinned to
 *this image's exact release version* — never `latest`, so graduating is
-never a surprise upgrade — the full deploy kit (`Dockerfile`,
-`docker-compose.yaml`, `.github/workflows/build.yml`, described in full in
-[Self-hosting § Custom boards](../getting-started/deployment/docker-compose.md#custom-boards)),
+never a surprise upgrade — the full deploy kit for both paths
+(`Dockerfile`, `docker-compose.yaml`, `Dockerfile.prebuilt`,
+`docker-compose.prebuilt.yaml`, `.github/workflows/build.yml`, described
+in full in [Self-hosting § Custom
+boards](../getting-started/deployment/docker-compose.md#custom-boards)),
 `board.plugins.json` matching what this build actually compiled in, and
 `meith.config.ts` matching the stock configuration. Every plugin the
 manifest names is also added to `package.json`'s own `dependencies`, at
@@ -341,12 +343,16 @@ branch is pushed to.
 
 ### 3. Point Coolify at it and redeploy
 
-From here it is the same three-step deploy [Self-hosting § Custom
-boards](../getting-started/deployment/docker-compose.md#custom-boards) describes for any scaffolded
-board: check the GitHub package is public, point Coolify at the new
-repository — `docker-compose.yaml` is the path its **Compose file** field
-already carries — and set `MEITH_IMAGE` to the image step 2 just pushed,
-then redeploy.
+From here it is the same three-step advanced/prebuilt deploy
+[Self-hosting § Custom boards](../getting-started/deployment/docker-compose.md#custom-boards)
+describes for any scaffolded board: check the GitHub package is public,
+point Coolify at the new repository with its **Compose file** field
+changed to `docker-compose.prebuilt.yaml`, and set `MEITH_IMAGE` to the
+image step 2 just pushed, then redeploy. (The workspace also carries
+`Dockerfile` and `docker-compose.yaml` for the quick-start path — Coolify
+building the image itself, from the repository — but step 2 already built
+one, so there is no reason to build it again on the server; delete the
+quick-start pair once you are settled on this path, or leave them.)
 
 ### What does not move
 

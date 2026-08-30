@@ -87,7 +87,7 @@ describe('boardEject', () => {
     expect(manifest.dependencies['@meith/theme-default']).toBe(CODE_VERSION)
     expect(manifest.version).not.toBe('latest')
 
-    await expect(readFile(join(target, 'Dockerfile'), 'utf8')).resolves.toContain(
+    await expect(readFile(join(target, 'Dockerfile.prebuilt'), 'utf8')).resolves.toContain(
       // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Dockerfile ARG syntax, not a template-string typo
       'ghcr.io/meith-dev/meith-base:${MEITH_VERSION}',
     )

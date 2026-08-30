@@ -1,7 +1,7 @@
-# Builds this board's image and pushes it to your own GHCR, on every push to
-# main. No secret to configure: GITHUB_TOKEN is provided automatically by
-# GitHub Actions and is enough to push to ghcr.io/<this repository>. See
-# README.md for the rest of the three-step deploy story.
+# The advanced/prebuilt path (see README.md, "Deploy"). Builds this board's
+# Dockerfile.prebuilt and pushes it to your own GHCR, on every push to main.
+# No secret to configure: GITHUB_TOKEN is provided automatically by GitHub
+# Actions and is enough to push to ghcr.io/<this repository>.
 name: Build and push
 
 on:
@@ -36,7 +36,7 @@ jobs:
             echo "::error::@meith/web in package.json is '$MEITH_VERSION', not an exact X.Y.Z version — that is not a legal Docker image tag. Upgrade with \`npm install --save-exact\` (see README.md, Upgrading) so this dependency always resolves to one."
             exit 1
           fi
-          docker build --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION="$MEITH_VERSION" -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
