@@ -50,12 +50,7 @@ export function ApplyMigrationsForm({ copy }: { copy: Copy }) {
     <form action={action} className="flex flex-col gap-2">
       <FormError message={state.error} />
       {state.notice === 'upgraded' && (
-        <Result>
-          {formatFromCopy(copy, 'adminPanel.system.upgradeApplied', {
-            core: state.values?.core ?? '0',
-            plugins: state.values?.plugins === '' ? '—' : (state.values?.plugins ?? '—'),
-          })}
-        </Result>
+        <Result>{fromCopy(copy, 'adminPanel.system.upgradeApplied')}</Result>
       )}
       <div>
         <SubmitButton>{fromCopy(copy, 'adminPanel.system.applyMigrations')}</SubmitButton>

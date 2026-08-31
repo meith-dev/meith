@@ -100,13 +100,10 @@ export async function applyUpgradeAction(): Promise<FormState> {
     revalidatePath('/admin')
     await recordAdminAction({
       action: 'system.upgrade_applied',
-      detail: { coreMigrations: result.coreMigrations, plugins: result.plugins },
+      detail: { plugins: result.plugins },
     })
 
-    return {
-      notice: 'upgraded',
-      values: { core: String(result.coreMigrations), plugins: result.plugins.join(', ') },
-    }
+    return { notice: 'upgraded' }
   } catch (err) {
     return toFormState(err)
   }
