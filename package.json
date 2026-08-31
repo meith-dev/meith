@@ -1,6 +1,6 @@
 {
   "name": "meith",
-  "version": "0.28.0",
+  "version": "0.28.1",
   "license": "MIT",
   "packageManager": "pnpm@10.6.0",
   "private": true,
