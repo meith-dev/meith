@@ -175,6 +175,24 @@ function hostOf(endpoint: string): string {
   }
 }
 
+export function mailEndpointProblem(value: string): string | null {
+  const trimmed = value.trim()
+  if (trimmed === '') return null
+
+  let url: URL
+  try {
+    url = new URL(trimmed)
+  } catch {
+    return 'That is not a URL.'
+  }
+
+  if (url.protocol !== 'https:') return 'The endpoint must be an https:// URL.'
+  if (url.username !== '' || url.password !== '') {
+    return 'The endpoint must not carry a username or password.'
+  }
+  return null
+}
+
 export interface MailPreset {
   readonly id: string
   readonly label: string

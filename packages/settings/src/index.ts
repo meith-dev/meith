@@ -48,6 +48,7 @@ export {
   mailConfigFromEnvironment,
   mailConfigFromSettings,
   mailConfigProblems,
+  mailEndpointProblem,
   NO_MAIL,
   resolveMailConfig,
   type SmtpMailConfig,

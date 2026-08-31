@@ -2888,7 +2888,7 @@
   "setting.mail.from.label": "Sender address",
   "setting.mail.from_name.description": "Display name shown beside the sender address. Empty sends the bare address.",
   "setting.mail.from_name.label": "Sender name",
-  "setting.mail.http_endpoint.description": "Only for the provider-API transport. The board posts Resend’s exact field names with a Bearer token, so this works for Resend and for anything that copies it — and not for Postmark or Mailgun, whose SMTP hosts are the way in.",
+  "setting.mail.http_endpoint.description": "Only for the provider-API transport. The board posts Resend’s exact field names with a Bearer token, so this works for Resend and for anything that copies it — and not for Postmark or Mailgun, whose SMTP hosts are the way in. It must be an https:// address with no embedded credentials, and the board refuses to reach one that resolves to a private or internal address.",
   "setting.mail.http_endpoint.label": "Provider API endpoint",
   "setting.mail.http_token.description": "Only for the provider-API transport. Stored on the board.",
   "setting.mail.http_token.label": "Provider API key",

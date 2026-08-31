@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { normaliseLocale, SOURCE_LOCALE } from '@meith/i18n'
 
 import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
+import { mailEndpointProblem } from './mail'
 import { isUsableFeedUrl, isUsableIssuer, isUsableOrigin } from './origin'
 
 export type SettingGroup =
@@ -417,14 +418,16 @@ export const SETTING_DEFINITIONS = [
       'Only for the provider-API transport. The board posts Resend’s exact ' +
       'field names with a Bearer token, so this works for Resend and for ' +
       'anything that copies it — and not for Postmark or Mailgun, whose SMTP ' +
-      'hosts are the way in.',
+      'hosts are the way in. It must be an https:// address with no embedded ' +
+      'credentials, and the board refuses to reach one that resolves to a ' +
+      'private or internal address.',
     schema: z
       .string()
       .trim()
-      .refine(
-        (value) => value === '' || z.string().url().safeParse(value).success,
-        'That is not a URL.',
-      ),
+      .superRefine((value, ctx) => {
+        const problem = mailEndpointProblem(value)
+        if (problem !== null) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem })
+      }),
     default: '',
   }),
   define({
