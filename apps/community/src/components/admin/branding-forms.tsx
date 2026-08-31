@@ -4,7 +4,12 @@ import { useActionState } from 'react'
 
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { EMPTY_STATE } from '@/server/auth-form-state'
-import { removeLogoAction, saveLogoAction } from '@/server/branding-actions'
+import {
+  removeFaviconAction,
+  removeLogoAction,
+  saveFaviconAction,
+  saveLogoAction,
+} from '@/server/branding-actions'
 
 import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
@@ -19,6 +24,69 @@ export interface LogoSlot {
 
 const GHOST =
   'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+export function FaviconUploadForm({
+  src,
+  maxKib,
+  copy,
+}: {
+  src: string | null
+  maxKib: number
+  copy: Copy
+}) {
+  const [saved, saveAction] = useActionState(saveFaviconAction, EMPTY_STATE)
+  const [removed, removeAction] = useActionState(removeFaviconAction, EMPTY_STATE)
+
+  return (
+    <div className={PANEL_CARD}>
+      <FormError message={saved.error ?? removed.error} />
+      <Saved when={saved.notice === 'saved'}>{fromCopy(copy, 'adminPanel.favicon.saved')}</Saved>
+      <Saved when={removed.notice === 'removed'}>
+        {fromCopy(copy, 'adminPanel.favicon.removed')}
+      </Saved>
+
+      <div className="flex min-h-16 items-center justify-center rounded-md border border-border bg-card p-3">
+        {src === null ? (
+          <span className="text-xs text-muted-foreground">
+            {fromCopy(copy, 'adminPanel.favicon.nothing')}
+          </span>
+        ) : (
+          <img src={src} alt="" className="size-8 object-contain" />
+        )}
+      </div>
+
+      <form action={saveAction} className="flex flex-col gap-2">
+        <label htmlFor="favicon" className="sr-only">
+          {fromCopy(copy, 'adminPanel.branding.upload')}
+        </label>
+        <input
+          id="favicon"
+          type="file"
+          name="favicon"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          required
+          className="w-full text-xs file:mr-3 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium"
+        />
+        <p className="text-xs text-muted-foreground">
+          {formatFromCopy(copy, 'adminPanel.favicon.formats', { maxKib })}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="min-w-32">
+            <SubmitButton>{fromCopy(copy, 'adminPanel.branding.upload')}</SubmitButton>
+          </span>
+        </div>
+      </form>
+
+      {src !== null && (
+        <form action={removeAction}>
+          <PendingButton showWorking className={GHOST}>
+            {fromCopy(copy, 'admin.remove')}
+          </PendingButton>
+        </form>
+      )}
+    </div>
+  )
+}
 
 export function LogoUploadForm({
   slot,

@@ -6,7 +6,7 @@ import { colourToHex } from '@meith/theme-kit'
 
 import { BOARD_TITLE } from '@/view/shell'
 
-import { logoKey } from './branding'
+import { faviconKey, logoKey } from './branding'
 import { contentTypeFor } from './image-upload'
 import { getSettings } from './settings'
 import { getBoardThemeStyle } from './theme-runtime'
@@ -32,6 +32,8 @@ export interface BrandInfo {
 }
 
 const EMBEDDABLE_LOGO_TYPES = new Set(['image/png', 'image/jpeg'])
+
+const EMBEDDABLE_FAVICON_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'])
 
 const MAX_EMBEDDED_LOGO_BYTES = 192 * 1024
 
@@ -104,6 +106,40 @@ export async function loadBrandInfo(): Promise<BrandInfo> {
   }
 }
 
+export interface FaviconAsset {
+  readonly type: string
+  readonly bytes: Uint8Array
+}
+
+export async function loadFaviconAsset(): Promise<FaviconAsset | null> {
+  try {
+    const key = await faviconKey()
+    if (key === null) return null
+
+    const type = contentTypeFor(key)
+    const bytes = await drivers().files.get(key)
+    if (bytes === undefined || bytes.byteLength === 0) return null
+    if (bytes.byteLength > MAX_EMBEDDED_LOGO_BYTES) return null
+
+    return { type, bytes: new Uint8Array(bytes) }
+  } catch {
+    return null
+  }
+}
+
+export function faviconDataUri(asset: FaviconAsset): string | null {
+  if (!EMBEDDABLE_FAVICON_TYPES.has(asset.type)) return null
+  return `data:${asset.type};base64,${Buffer.from(asset.bytes).toString('base64')}`
+}
+
+export async function loadMarkDataUri(): Promise<string | null> {
+  const asset = await loadFaviconAsset()
+  if (asset !== null && EMBEDDABLE_LOGO_TYPES.has(asset.type)) {
+    return `data:${asset.type};base64,${Buffer.from(asset.bytes).toString('base64')}`
+  }
+  return loadLogoDataUri('light')
+}
+
 export async function loadLogoDataUri(scheme: BrandScheme): Promise<string | null> {
   try {
     const key = (await logoKey(scheme)) ?? (await logoKey(scheme === 'light' ? 'dark' : 'light'))
@@ -131,7 +167,15 @@ function escapeXml(value: string): string {
     .replaceAll("'", '&#39;')
 }
 
-export function buildFaviconSvg(info: BrandInfo): string {
+export function buildFaviconSvg(info: BrandInfo, embedded?: string | null): string {
+  if (embedded !== undefined && embedded !== null && embedded !== '') {
+    return [
+      `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">`,
+      `<image href="${escapeXml(embedded)}" width="64" height="64" preserveAspectRatio="xMidYMid meet"/>`,
+      `</svg>`,
+    ].join('')
+  }
+
   const label = escapeXml(info.initials)
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">`,

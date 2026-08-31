@@ -180,6 +180,22 @@ export function brandingFormsCopy(
   }
 }
 
+export function faviconFormsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return {
+    ...adminSharedCopy(t),
+    ...copyFor(
+      [
+        'adminPanel.favicon.saved',
+        'adminPanel.favicon.removed',
+        'adminPanel.favicon.nothing',
+        'adminPanel.branding.upload',
+      ],
+      t,
+    ),
+    ...patternCopy(['adminPanel.favicon.formats'], t),
+  }
+}
+
 export function badgeFormsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
   return {
     ...adminSharedCopy(t),

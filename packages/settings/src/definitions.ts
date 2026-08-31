@@ -303,6 +303,19 @@ export const SETTING_DEFINITIONS = [
     ui: { managed: true },
   }),
   define({
+    key: 'board.favicon',
+    group: 'board',
+    label: 'Favicon',
+    description:
+      'The icon browser tabs, bookmarks and an installed shortcut show for this board. ' +
+      'Uploaded, not typed. Left empty, an icon is generated from the board name and its ' +
+      'theme colours.',
+    schema: z.string().max(300),
+    default: '',
+    invalidates: ['settings', 'layout'],
+    ui: { managed: true },
+  }),
+  define({
     key: 'board.logo_alt',
     group: 'board',
     label: 'Logo alt text',
