@@ -8,7 +8,6 @@ import {
   PostgresNavigationRepository,
   readVersion,
   recordVersion,
-  runMigrations,
 } from '@meith/db'
 import { msg } from '@meith/i18n'
 import { pluginNavigationPlacements } from '@meith/plugin-kit'
@@ -20,7 +19,6 @@ import { activeDefinitions } from './plugin-host'
 export const CODE_VERSION = '0.28.0'
 
 export interface UpgradeApplied {
-  readonly coreMigrations: number
   readonly plugins: readonly string[]
 }
 
@@ -59,8 +57,6 @@ export async function applyPendingUpgrade(): Promise<UpgradeApplied> {
     if ((await readVersion(db, `plugin:${plugin.key}`)) === null) fresh.add(plugin.key)
   }
 
-  const coreMigrations = await runMigrations()
-
   const touched: string[] = []
   for (const definition of definitions) {
     let changed = false
@@ -87,7 +83,7 @@ export async function applyPendingUpgrade(): Promise<UpgradeApplied> {
 
   await recordVersion(db, 'core', CODE_VERSION)
 
-  return { coreMigrations, plugins: touched }
+  return { plugins: touched }
 }
 
 export async function pendingUpgradeNotice(): Promise<string | null> {
