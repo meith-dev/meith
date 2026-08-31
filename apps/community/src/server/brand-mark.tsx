@@ -3,7 +3,7 @@ import 'server-only'
 import { ImageResponse } from 'next/og'
 import type { ReactElement } from 'react'
 
-import { type BrandInfo, loadBrandInfo, loadLogoDataUri } from './brand-assets'
+import { type BrandInfo, loadBrandInfo, loadLogoDataUri, loadMarkDataUri } from './brand-assets'
 
 interface MarkOptions {
   readonly size: number
@@ -94,7 +94,7 @@ function socialElement(info: BrandInfo, logo: string | null): ReactElement {
 
 export async function renderBrandMark(size: number, maskable = false): Promise<ImageResponse> {
   const info = await loadBrandInfo()
-  const logo = await loadLogoDataUri('light')
+  const logo = await loadMarkDataUri()
 
   return new ImageResponse(markElement(info, logo, { size, maskable }), {
     width: size,

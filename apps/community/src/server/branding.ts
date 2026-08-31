@@ -5,7 +5,14 @@ import { cache } from 'react'
 import { CacheTags } from '@meith/core'
 import { getDb, PostgresSettingsRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
-import { isLogoKey, type LogoScheme, logoPath, saveSettings } from '@meith/settings'
+import {
+  faviconPath,
+  isFaviconKey,
+  isLogoKey,
+  type LogoScheme,
+  logoPath,
+  saveSettings,
+} from '@meith/settings'
 
 import { forgetImage, storeImage } from './image-upload'
 import { getSettings } from './settings'
@@ -53,7 +60,32 @@ export async function logoKey(scheme: LogoScheme): Promise<string | null> {
   return isLogoKey(key) ? key : null
 }
 
+export const FAVICON_FIELD = 'favicon'
+
+export async function saveFavicon(file: File): Promise<void> {
+  const key = await storeImage('board', 'favicon', file)
+
+  const previous = (await getSettings()).get('board.favicon')
+  await writeSetting('board.favicon', key)
+
+  if (previous !== key) await forgetImage(previous)
+}
+
+export async function removeFavicon(): Promise<void> {
+  const previous = (await getSettings()).get('board.favicon')
+  await writeSetting('board.favicon', '')
+
+  await forgetImage(previous)
+}
+
+export async function faviconKey(): Promise<string | null> {
+  const key = (await getSettings()).get('board.favicon')
+  return isFaviconKey(key) ? key : null
+}
+
 export const logoSrc = logoPath
+
+export const faviconSrc = faviconPath
 
 export interface BoardLogo {
   readonly src: string

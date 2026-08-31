@@ -7,6 +7,9 @@ export {
   resolveBoardUrl,
 } from './board-url'
 export {
+  faviconFormat,
+  faviconPath,
+  isFaviconKey,
   isLogoKey,
   isLogoScheme,
   LOGO_SCHEMES,

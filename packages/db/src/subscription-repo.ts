@@ -275,7 +275,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         select * from (${pendingPosts(input.userId, input.mode, input.visibleForumIds)}) p
-         order by p.thread_id, p.post_id
+         order by p.post_id
          limit ${input.limit}
       `),
     ) as RawPending[]

@@ -3,16 +3,19 @@ import { redirect } from 'next/navigation'
 
 import { buttonVariants, Card, CardContent, CardFooter, cn, Input } from '@meith/ui'
 
+import { FaviconUploadForm } from '@/components/admin/branding-forms'
 import { MailTestCard } from '@/components/admin/mail-test-card'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { boardUrlResolution } from '@/server/board-url'
+import { faviconKey, faviconSrc } from '@/server/branding'
 import { getTranslator, tr } from '@/server/i18n'
+import { MAX_IMAGE_BYTES } from '@/server/image-upload'
 import { assessMailReadiness } from '@/server/mail-health'
 import { pushReadiness } from '@/server/push'
 import { getSettings } from '@/server/settings'
-import { mailTestCardCopy, settingsFormCopy } from '@/view/admin-panel-copy'
+import { faviconFormsCopy, mailTestCardCopy, settingsFormCopy } from '@/view/admin-panel-copy'
 import { buildAdminSettingsModel, DEFAULT_SETTING_GROUP, settingsHref } from '@/view/admin-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,6 +51,8 @@ export default async function AdminSettingsPage({
   const address = model.activeGroup === 'board' ? await boardUrlResolution() : null
 
   const push = model.activeGroup === 'push' ? await pushReadiness() : null
+
+  const favicon = model.activeGroup === 'board' ? await faviconKey() : null
 
   return (
     <PanelPage title={await tr('page.board-settings')} lede={t.t('adminSettings.lede')}>
@@ -181,6 +186,24 @@ export default async function AdminSettingsPage({
               ? t.t('adminSettings.pushNoContact')
               : t.t('adminSettings.pushNoKeys')}
           </p>
+        </section>
+      )}
+
+      {model.activeGroup === 'board' && (
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-heading text-lg font-semibold">
+              {t.t('setting.board.favicon.label')}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t.t('setting.board.favicon.description')}
+            </p>
+          </div>
+          <FaviconUploadForm
+            src={favicon === null ? null : faviconSrc(favicon)}
+            maxKib={MAX_IMAGE_BYTES / 1024}
+            copy={faviconFormsCopy(t)}
+          />
         </section>
       )}
 

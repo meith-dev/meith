@@ -135,6 +135,8 @@ Mail leaves the server, so a mail endpoint or SMTP host is an outbound destinati
 
 A relay on the same machine or a private network is the one legitimate internal destination. Set `MAIL_ALLOW_PRIVATE_HOSTS=true` to allow it; outside production the guard is relaxed already, so local development needs nothing. Prefer a genuinely reachable public provider to widening this in production.
 
+Two other requests the board makes on visitors' behalf cross the same boundary and are held to the same resolve-and-pin policy: webhook delivery (`WEBHOOK_ALLOW_PRIVATE_HOSTS`) and the web-push notification the worker posts to a subscriber's push service (`PUSH_ALLOW_PRIVATE_HOSTS`). A push endpoint comes from a member's own browser, so it is checked when the subscription is stored and again, against its freshly resolved address, every time a notification is sent — a name that later resolves inside your network cannot be used to reach an internal service. The marketplace catalog URL is deliberately exempt: it is an admin-only setting, in the same trust tier as the mail and OAuth destinations, and its handling is described in [the marketplace guide](../../customization/marketplace.md#the-feed-url-is-an-admin-trusted-setting).
+
 ## Scheduled tasks
 
 ```sh
