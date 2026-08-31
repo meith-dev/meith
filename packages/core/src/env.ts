@@ -110,6 +110,8 @@ const envSchema = z
     MAIL_SMTP_USERNAME: nonEmpty.optional(),
     MAIL_SMTP_PASSWORD: nonEmpty.optional(),
 
+    MAIL_ALLOW_PRIVATE_HOSTS: flag,
+
     ADMIN_IP_ALLOWLIST: z.string().optional(),
 
     TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(MAX_TRUSTED_PROXY_HOPS).default(1),

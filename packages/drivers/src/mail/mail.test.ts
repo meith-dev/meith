@@ -1,14 +1,23 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, type Mock, vi } from 'vitest'
 
-import type { OutgoingMail } from '@meith/core'
+import { ConfigurationError, type OutgoingMail } from '@meith/core'
 import type { MailConfig } from '@meith/settings'
 
+import type { MailRequest } from '../net/outbound'
 import { ConfiguredMailDriver, createMailDriver, formatSender, HttpMailDriver } from './index'
 
 const createTransport = vi.hoisted(() =>
   vi.fn(() => ({ sendMail: vi.fn().mockResolvedValue({}), close: vi.fn() })),
 )
 vi.mock('nodemailer', () => ({ default: { createTransport }, createTransport }))
+
+vi.mock('../net/outbound', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../net/outbound')>()),
+  guardedMailTransport: vi.fn(async () => ({ status: 200, diagnostic: '' })),
+}))
+
+const { guardedMailTransport } = await import('../net/outbound')
+const guardedTransport = guardedMailTransport as unknown as Mock
 
 const ADDRESS = 'noreply@board.example'
 
@@ -47,34 +56,61 @@ describe('formatSender', () => {
 })
 
 describe('HttpMailDriver', () => {
-  async function bodyOf(mail: OutgoingMail) {
-    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+  const CONFIG = {
+    transport: 'http' as const,
+    endpoint: 'https://api.example/emails',
+    token: 'key',
+    from: ADDRESS,
+  }
 
-    try {
-      await new HttpMailDriver({
-        transport: 'http',
-        endpoint: 'https://api.example/emails',
-        token: 'key',
-        from: ADDRESS,
-      }).send(mail)
-      const init = fetchMock.mock.calls[0]?.[1] as unknown as { body: string }
-      return JSON.parse(init.body) as Record<string, unknown>
-    } finally {
-      vi.unstubAllGlobals()
-    }
+  async function requestFor(mail: OutgoingMail): Promise<MailRequest> {
+    const transport = vi.fn(async (_request: MailRequest) => ({ status: 200, diagnostic: '' }))
+    await new HttpMailDriver(CONFIG, transport).send(mail)
+    return transport.mock.calls[0]![0]
   }
 
   const BASE = { to: 'ivan@example.test', subject: 'Hello', text: 'Hello.' }
 
-  it('sends the configured address when the board has no sender name', async () => {
-    expect((await bodyOf(BASE)).from).toBe(ADDRESS)
+  it('posts the message with a bearer token to the configured endpoint', async () => {
+    const request = await requestFor(BASE)
+    expect(request.url.href).toBe('https://api.example/emails')
+    expect(request.headers.authorization).toBe('Bearer key')
+    expect(JSON.parse(request.body)).toMatchObject({ from: ADDRESS, to: BASE.to, text: 'Hello.' })
   })
 
   it('carries the sender name per message, not per process', async () => {
-    expect((await bodyOf({ ...BASE, fromName: 'The Townland' })).from).toBe(
-      `"The Townland" <${ADDRESS}>`,
-    )
+    const request = await requestFor({ ...BASE, fromName: 'The Townland' })
+    expect(JSON.parse(request.body).from).toBe(`"The Townland" <${ADDRESS}>`)
+  })
+
+  it('treats a 4xx as a permanent configuration error without echoing the body', async () => {
+    const transport = vi.fn(async () => ({ status: 422, diagnostic: 'internal secret detail' }))
+    const send = new HttpMailDriver(CONFIG, transport).send(BASE)
+    await expect(send).rejects.toBeInstanceOf(ConfigurationError)
+    await expect(send).rejects.toThrow(/HTTP 422/)
+    await expect(send).rejects.not.toThrow(/secret/)
+  })
+
+  it('treats a 429 and a 5xx as transient errors', async () => {
+    const throttled = new HttpMailDriver(
+      CONFIG,
+      vi.fn(async () => ({ status: 429, diagnostic: '' })),
+    ).send(BASE)
+    await expect(throttled).rejects.not.toBeInstanceOf(ConfigurationError)
+    await expect(throttled).rejects.toThrow(/HTTP 429/)
+
+    const unavailable = new HttpMailDriver(
+      CONFIG,
+      vi.fn(async () => ({ status: 503, diagnostic: '' })),
+    ).send(BASE)
+    await expect(unavailable).rejects.toThrow(/HTTP 503/)
+  })
+
+  it('rejects a blocked endpoint before any request is made', async () => {
+    const transport = vi.fn(async () => ({ status: 200, diagnostic: '' }))
+    const driver = new HttpMailDriver({ ...CONFIG, endpoint: 'ftp://api.example/x' }, transport)
+    await expect(driver.send(BASE)).rejects.toBeInstanceOf(ConfigurationError)
+    expect(transport).not.toHaveBeenCalled()
   })
 })
 
@@ -89,27 +125,23 @@ describe('ConfiguredMailDriver', () => {
   const MESSAGE = { to: 'ivan@example.test', subject: 'Hello', text: 'Hello.' }
 
   async function sendThrough(configs: readonly MailConfig[]) {
-    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+    guardedTransport.mockClear()
+    guardedTransport.mockResolvedValue({ status: 200, diagnostic: '' })
 
     let call = 0
     const driver = new ConfiguredMailDriver(() =>
       Promise.resolve(configs[Math.min(call++, configs.length - 1)]!),
     )
 
-    try {
-      for (let i = 0; i < configs.length; i += 1) await driver.send(MESSAGE)
-      return fetchMock
-    } finally {
-      vi.unstubAllGlobals()
-    }
+    for (let i = 0; i < configs.length; i += 1) await driver.send(MESSAGE)
+    return guardedTransport
   }
 
   it('picks up a settings change on the next message, not the next deploy', async () => {
-    const fetchMock = await sendThrough([HTTP, { ...HTTP, endpoint: 'https://api.moved/emails' }])
+    const transport = await sendThrough([HTTP, { ...HTTP, endpoint: 'https://api.moved/emails' }])
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.example/emails')
-    expect(fetchMock.mock.calls[1]?.[0]).toBe('https://api.moved/emails')
+    expect((transport.mock.calls[0]![0] as MailRequest).url.href).toBe('https://api.example/emails')
+    expect((transport.mock.calls[1]![0] as MailRequest).url.href).toBe('https://api.moved/emails')
   })
 
   it('does not rebuild the transport when nothing changed', async () => {
@@ -156,31 +188,21 @@ describe('ConfiguredMailDriver', () => {
   })
 
   it('sends nothing, and does not throw, when the board has no mail', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    guardedTransport.mockClear()
 
-    try {
-      const driver = new ConfiguredMailDriver(() =>
-        Promise.resolve({ transport: 'log' } as MailConfig),
-      )
-      await expect(driver.send(MESSAGE)).resolves.toBeUndefined()
-      expect(fetchMock).not.toHaveBeenCalled()
-    } finally {
-      vi.unstubAllGlobals()
-    }
+    const driver = new ConfiguredMailDriver(() =>
+      Promise.resolve({ transport: 'log' } as MailConfig),
+    )
+    await expect(driver.send(MESSAGE)).resolves.toBeUndefined()
+    expect(guardedTransport).not.toHaveBeenCalled()
   })
 
   it('sends nothing when the configuration is half-filled', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    guardedTransport.mockClear()
 
-    try {
-      const driver = new ConfiguredMailDriver(() => Promise.resolve({ ...HTTP, token: '' }))
-      await expect(driver.send(MESSAGE)).resolves.toBeUndefined()
-      expect(fetchMock).not.toHaveBeenCalled()
-    } finally {
-      vi.unstubAllGlobals()
-    }
+    const driver = new ConfiguredMailDriver(() => Promise.resolve({ ...HTTP, token: '' }))
+    await expect(driver.send(MESSAGE)).resolves.toBeUndefined()
+    expect(guardedTransport).not.toHaveBeenCalled()
   })
 
   it('lets a failed configuration read reach the queue', async () => {

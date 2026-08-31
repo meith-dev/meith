@@ -129,6 +129,12 @@ After a change:
 
 A successful network connection is not proof of delivery.
 
+### Outbound address policy
+
+Mail leaves the server, so a mail endpoint or SMTP host is an outbound destination the board treats as a security boundary, not ordinary configuration. Before it connects, the board resolves the host and refuses any address in a private, loopback, link-local (including the `169.254.0.0/16` cloud-metadata range), unique-local, or reserved range; the resolved address is pinned for the connection, so a name that answers with a public address on one lookup and a private one on the next cannot slip through. An HTTP endpoint must additionally be an `https://` URL and carry no embedded credentials. When a provider returns an error, the board records a bounded diagnostic in its own log and surfaces only the status to the admin — an upstream response body is never echoed back through the mail-test result.
+
+A relay on the same machine or a private network is the one legitimate internal destination. Set `MAIL_ALLOW_PRIVATE_HOSTS=true` to allow it; outside production the guard is relaxed already, so local development needs nothing. Prefer a genuinely reachable public provider to widening this in production.
+
 ## Scheduled tasks
 
 ```sh

@@ -3,6 +3,7 @@ import nodemailer, { type Transporter } from 'nodemailer'
 import { ConfigurationError, logger, type MailDriver, type OutgoingMail } from '@meith/core'
 import type { SmtpMailConfig } from '@meith/settings'
 
+import { assertSafeSmtpHost, BlockedOutboundError, mailAllowsPrivateHosts } from '../net/outbound'
 import { formatSender } from './sender'
 
 const CONNECTION_TIMEOUT_MS = 10_000
@@ -52,6 +53,15 @@ export class SmtpMailDriver implements MailDriver {
   }
 
   async send(mail: OutgoingMail): Promise<void> {
+    try {
+      await assertSafeSmtpHost(this.config.host, mailAllowsPrivateHosts())
+    } catch (error) {
+      if (error instanceof BlockedOutboundError) {
+        throw new ConfigurationError(error.message, { cause: error })
+      }
+      throw error
+    }
+
     try {
       await this.transport.sendMail({
         from: formatSender(this.config.from, mail.fromName),

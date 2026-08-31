@@ -7,6 +7,13 @@ import {
   mailConfigProblems,
 } from '@meith/settings'
 
+import {
+  assertSafeMailEndpoint,
+  BlockedOutboundError,
+  guardedMailTransport,
+  type HttpMailTransport,
+  mailAllowsPrivateHosts,
+} from '../net/outbound'
 import { formatSender } from './sender'
 import { SmtpMailDriver } from './smtp'
 
@@ -37,15 +44,19 @@ export class MemoryMailDriver implements MailDriver {
 }
 
 export class HttpMailDriver implements MailDriver {
-  constructor(private readonly config: HttpMailConfig) {}
+  constructor(
+    private readonly config: HttpMailConfig,
+    private readonly transport: HttpMailTransport = guardedMailTransport,
+  ) {}
 
   async send(mail: OutgoingMail): Promise<void> {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10_000)
+    const allowPrivateHosts = mailAllowsPrivateHosts()
 
     try {
-      const response = await fetch(this.config.endpoint, {
-        method: 'POST',
+      const url = assertSafeMailEndpoint(this.config.endpoint, allowPrivateHosts)
+
+      const result = await this.transport({
+        url,
         headers: {
           'content-type': 'application/json',
           authorization: `Bearer ${this.config.token}`,
@@ -58,20 +69,26 @@ export class HttpMailDriver implements MailDriver {
           ...(mail.html ? { html: mail.html } : {}),
           ...(mail.replyTo ? { reply_to: mail.replyTo } : {}),
         }),
-        signal: controller.signal,
+        timeoutMs: 10_000,
+        allowPrivateHosts,
       })
 
-      if (!response.ok) {
-        const body = await response.text().catch(() => '')
-        const detail = `${response.status} ${body.slice(0, 200)}`
+      if (result.status >= 200 && result.status < 300) return
 
-        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          throw new ConfigurationError(`Mail provider rejected the message: ${detail}`)
-        }
-        throw new Error(`Mail provider error: ${detail}`)
+      logger({ driver: 'http', host: url.host }).warn(
+        { status: result.status, sample: result.diagnostic },
+        'mail provider returned a non-success status',
+      )
+
+      if (result.status >= 400 && result.status < 500 && result.status !== 429) {
+        throw new ConfigurationError(`Mail provider rejected the message (HTTP ${result.status}).`)
       }
-    } finally {
-      clearTimeout(timeout)
+      throw new Error(`Mail provider error (HTTP ${result.status}).`)
+    } catch (error) {
+      if (error instanceof BlockedOutboundError) {
+        throw new ConfigurationError(error.message, { cause: error })
+      }
+      throw error
     }
   }
 }
