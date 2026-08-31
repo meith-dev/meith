@@ -10,6 +10,7 @@ import { CopyProvider } from '@/components/shell/copy'
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
 import { DemoBanner } from '@/components/shell/demo-banner'
 import { GroupNameStyle } from '@/components/shell/group-name-style'
+import { ServiceWorkerRegistrar } from '@/components/shell/service-worker'
 import { ThemeRuntimeStyle } from '@/components/shell/theme-runtime-style'
 import { TimezoneProbe } from '@/components/shell/timezone-probe'
 import { crashNotice } from '@/server/error-notice'
@@ -104,6 +105,7 @@ export default async function RootLayout({
         <ThemeRuntimeStyle />
         <GroupNameStyle />
         <TimezoneProbe />
+        <ServiceWorkerRegistrar />
       </head>
       <body className="font-sans antialiased">
         <DemoBanner />

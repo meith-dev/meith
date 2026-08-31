@@ -36,6 +36,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
+self.addEventListener('fetch', () => {})
+
 self.addEventListener('push', (event) => {
   const payload = readPayload(event)
   if (payload === null) return
@@ -44,8 +46,8 @@ self.addEventListener('push', (event) => {
     body: typeof payload.body === 'string' ? payload.body : '',
     tag: typeof payload.id === 'number' ? `meith-${payload.id}` : 'meith',
     data: { href: targetUrl(payload.href) },
-    icon: '/apple-icon.png',
-    badge: '/icon-light-32x32.png',
+    icon: '/brand/icon-192.png',
+    badge: '/brand/icon-192.png',
     timestamp: Date.now(),
   }
 
