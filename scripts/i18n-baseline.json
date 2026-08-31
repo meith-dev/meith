@@ -98,7 +98,7 @@
   "packages/drivers/src/files/keys.ts": 3,
   "packages/drivers/src/images/locate-wasm.ts": 1,
   "packages/drivers/src/mail/index.ts": 1,
-  "packages/drivers/src/net/outbound.ts": 9,
+  "packages/drivers/src/net/outbound.ts": 2,
   "packages/drivers/src/resolve.ts": 1,
   "packages/groups/src/promotion-rules.ts": 10,
   "packages/import/src/mysql-source.ts": 1,
