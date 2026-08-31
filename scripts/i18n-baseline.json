@@ -1,7 +1,7 @@
 {
   "apps/community/app/api/metrics/route.ts": 5,
   "apps/community/app/api/system/tick/route.ts": 3,
-  "apps/community/app/api/v1/[...path]/route.ts": 6,
+  "apps/community/app/api/v1/[...path]/route.ts": 8,
   "apps/community/app/auth/resume/route.ts": 2,
   "apps/community/app/auth/sso/[provider]/callback/route.ts": 1,
   "apps/community/app/auth/sso/[provider]/go/route.ts": 2,
@@ -52,7 +52,7 @@
   "packages/accounts/src/webauthn/verify.ts": 1,
   "packages/admin/src/index.ts": 1,
   "packages/antispam/src/challenge.ts": 5,
-  "packages/api/src/openapi.ts": 19,
+  "packages/api/src/openapi.ts": 21,
   "packages/api/src/reference.ts": 93,
   "packages/api/src/routes.ts": 108,
   "packages/api/src/schema.ts": 118,

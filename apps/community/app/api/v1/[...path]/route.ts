@@ -16,6 +16,7 @@ import type { Actor } from '@meith/authorization'
 import { isAppError, metrics, statusForError, toPublicError, withSpan } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 
+import { readJsonBody } from '@/server/api/body'
 import { JSON_MEDIA_TYPE } from '@/server/api/http'
 import { handlerFor } from '@/server/api/registry'
 import {
@@ -161,13 +162,30 @@ async function respondTo(
     )
   }
 
+  let body: Record<string, unknown> | null = null
+  if (matched.route.request !== undefined) {
+    const outcome = await readJsonBody(request)
+    if (outcome.kind === 'too-large') {
+      return fail(
+        413,
+        'payload_too_large',
+        'The request body is larger than the API allows.',
+        headers,
+      )
+    }
+    if (outcome.kind === 'invalid') {
+      return fail(400, 'invalid_body', 'The request body is not valid JSON.', headers)
+    }
+    body = outcome.body
+  }
+
   try {
     const result = await handler({
       actor: caller.actor,
       token: caller.authenticated?.token ?? null,
       params: matched.params,
       url,
-      body: matched.route.request === undefined ? null : await readJsonBody(request),
+      body,
     })
 
     return json(result.body, result.status, headers)
@@ -177,17 +195,6 @@ async function respondTo(
       return fail(statusForError(err), error.code, error.message, headers)
     }
     throw err
-  }
-}
-
-async function readJsonBody(request: NextRequest): Promise<Record<string, unknown> | null> {
-  try {
-    const parsed: unknown = await request.json()
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : null
-  } catch {
-    return null
   }
 }
 

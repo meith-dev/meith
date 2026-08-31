@@ -137,8 +137,10 @@ describe('the OpenAPI document', () => {
   it('documents the refusal a write can meet and a read cannot', () => {
     for (const [method, , operation] of operations()) {
       const responses = Object.keys(operation.responses as Record<string, unknown>)
+      const hasBody = (operation as { requestBody?: unknown }).requestBody !== undefined
       expect(responses.includes('422')).toBe(method !== 'get')
-      expect(responses.includes('400')).toBe(method === 'get')
+      expect(responses.includes('400')).toBe(method === 'get' || hasBody)
+      expect(responses.includes('413')).toBe(hasBody)
     }
   })
 
