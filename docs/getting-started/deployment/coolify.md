@@ -452,6 +452,36 @@ board repository:
 full guide, and [Plugins](../../customization/plugins.md) and
 [Themes](../../customization/themes.md) are the authoring references.
 
+## Running commands (the CLI) without SSH
+
+Most day-to-day maintenance is in the browser admin panel — settings, users,
+forums, and, under **Admin → System**, the search reindex, recount, cache
+clearing and **applying a release's migrations**. What is left is the `meith`
+operator CLI, and Coolify runs it without a shell of your own.
+
+**A one-off command.** Open the board resource's **Terminal** in Coolify,
+choose the `web` container, and run `meith <command>` directly:
+
+```sh
+meith env:check
+meith settings:get board.name
+meith upgrade
+```
+
+`meith` is on the image's `PATH`, so there is no path to type and nothing to
+install first. (From a plain host shell on the server it is
+`docker compose exec web meith <command>` instead — the Terminal saves you
+that.)
+
+**Something recurring.** Add a **Scheduled Task** to the resource — a name, the
+command, the container (`web`), and a cron schedule — and Coolify runs it in the
+container on that schedule, with a button to run it now. `meith backup` (see
+below) is the usual one.
+
+The [operator CLI reference](../../guides/operations/operating.md#the-operator-cli)
+lists every command; `meith --help` inside the container lists what your
+installed release actually has.
+
 ## 6. Set up backups
 
 Not optional, and not the panel's job. Coolify's per-resource schedule

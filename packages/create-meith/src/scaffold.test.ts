@@ -253,6 +253,23 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
     expect(dockerfilePrebuilt).not.toContain('meith-base:1.2.3')
   })
 
+  it("puts the board's own meith CLI on PATH in both images, targeting /board", () => {
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('/usr/local/bin/meith')
+      expect(image).toContain('cd /board')
+      expect(image).toContain('exec node_modules/.bin/meith "$@"')
+    }
+  })
+
+  it('writes uploads to the volume mount path in both images, so a redeploy keeps them', () => {
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('ENV UPLOADS_DIR=/app/.uploads')
+      expect(image).toContain('mkdir -p /app/.uploads && chown node:node /app/.uploads')
+    }
+    expect(compose).toContain('uploads:/app/.uploads')
+    expect(composePrebuilt).toContain('uploads:/app/.uploads')
+  })
+
   it("reads that build arg from package.json's own @meith/web dependency, so upgrading is one file", () => {
     expect(buildWorkflow).toContain(
       "MEITH_VERSION=$(node -p \"require('./package.json').dependencies['@meith/web']\")",
@@ -623,9 +640,9 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
   '.env.example': '1f4611ff9689e37677a3d214fc47b945cd9aac7c032a81ffd6ebe3c463ccc028',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'b87b755e2db19f941b6b85360b73165d474d2626ef25abefdf64b8f795ebfa56',
-  'Dockerfile.prebuilt': '5e8816dc60ee89cd6639f5504311efe8f9517216b3b3cfef5d08a805a91e7bb5',
-  'docker-entrypoint.sh': '7f48965a034ca842f95eb38adf6258bcc536033c5805bc38ca07f99f9e0eb022',
+  Dockerfile: 'a4ef2c7b1349ec81d214bf0cf60d422cc2d5396c1c5cf3358968f5d69966768f',
+  'Dockerfile.prebuilt': '64c769aaa1f9362a324a85d6318156efde85b955287032d588000f7ee57d32f0',
+  'docker-entrypoint.sh': '7b8ce8a48ade0285f0954ed5dff3dd82a94586ec321e54fb1c65dec768258117',
   'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',

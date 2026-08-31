@@ -632,6 +632,14 @@ EXPOSE 3000
 ENV UPLOADS_DIR=/app/.uploads
 RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
 
+# \`meith <command>\` on PATH runs this board's own operator CLI — the same one
+# node_modules/.bin/meith is — so a Coolify terminal or \`docker compose exec web
+# meith ...\` needs no path. It cd's to /board so the CLI finds this board's
+# config, and overrides any wrapper an inherited base image installed, which
+# would target the board that image was built from, not this one.
+RUN printf '#!/bin/sh\\ncd /board\\nexec node_modules/.bin/meith "$@"\\n' > /usr/local/bin/meith \\
+  && chmod +x /usr/local/bin/meith
+
 # node:alpine already carries a non-root "node" user; the board's own files
 # are copied in as root above, so they need handing over before this drops
 # privilege.
@@ -719,6 +727,14 @@ EXPOSE 3000
 ENV UPLOADS_DIR=/app/.uploads
 RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
 
+# \`meith <command>\` on PATH runs this board's own operator CLI — the same one
+# node_modules/.bin/meith is — so a Coolify terminal or \`docker compose exec web
+# meith ...\` needs no path. It cd's to /board so the CLI finds this board's
+# config, and overrides any wrapper an inherited base image installed, which
+# would target the board that image was built from, not this one.
+RUN printf '#!/bin/sh\\ncd /board\\nexec node_modules/.bin/meith "$@"\\n' > /usr/local/bin/meith \\
+  && chmod +x /usr/local/bin/meith
+
 # node:alpine already carries a non-root "node" user; the board's own files
 # are copied in as root above, so they need handing over before this drops
 # privilege.
@@ -748,8 +764,8 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# \`docker run <image> node_modules/.bin/meith --help\` should still run
-# the CLI rather than silently starting the web server.
+# \`docker compose run --rm web meith --help\` (or \`exec\` into the running
+# container) should run the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi

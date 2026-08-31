@@ -103,10 +103,12 @@ Use `meith --help` for the exact commands supported by the installed release.
 
 | Deployment | Invocation |
 |---|---|
-| Compose — the supported stack, and the by-hand one | `docker compose run --rm web meith <command>` |
+| Compose, into the running board | `docker compose exec web meith <command>` |
+| Compose, as a fresh one-shot container | `docker compose run --rm web meith <command>` |
+| A local checkout of the board | `npm run meith -- <command>` |
 | A platform that only builds and serves | `meith <command>`, from a checkout of the board repository with the production environment in front of it — see [Running on Vercel](../../getting-started/deployment/vercel.md) |
 
-`--rm` stops the one-shot containers accumulating. Add `-T` when the command reads standard input, as creating a user does under [Account recovery](#account-recovery).
+`meith` is on `PATH` inside the board image, so `exec`-ing into the running `web` container is the quick way — nothing to build, and it shares the board the container is already serving. `run --rm` starts a fresh container instead, which is what you want when `web` is not up (a broken migration, say); `--rm` stops those accumulating, and `-T` is needed when the command reads standard input, as creating a user does under [Account recovery](#account-recovery). On Coolify, both run from the resource's **Terminal** with no SSH — see [Running commands on Coolify](../../getting-started/deployment/coolify.md#running-commands-the-cli-without-ssh).
 
 There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
