@@ -674,7 +674,7 @@ async function pushUploadsToStore(
 }
 
 const RESTORE_USAGE =
-  'Usage: RESTORE_DATABASE_URL=<postgres://…> community restore <bundle.tar.gz> ' +
+  'Usage: RESTORE_DATABASE_URL=<postgres://…> meith restore <bundle.tar.gz> ' +
   '[--uploads-dir <dir>] [--skip-uploads]'
 
 export function restoreDatabaseUrl(

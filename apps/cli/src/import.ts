@@ -125,7 +125,7 @@ function print(report: ImportReport, copiedFiles: boolean): void {
   console.log('')
   if (report.finished) {
     console.log(
-      'Import complete. Run `community task:run counters.reconcile` before opening the board.',
+      'Import complete. Run `meith task:run counters.reconcile` before opening the board.',
     )
     if (!copiedFiles) {
       console.log(

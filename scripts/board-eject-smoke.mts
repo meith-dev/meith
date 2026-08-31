@@ -137,8 +137,8 @@ async function main() {
   try {
     version = await codeVersion()
 
-    console.log('== migrating the database (community migrate, against this checkout) ==')
-    run('pnpm', ['community', 'migrate'], ROOT, {
+    console.log('== migrating the database (meith migrate, against this checkout) ==')
+    run('pnpm', ['meith', 'migrate'], ROOT, {
       ...process.env,
       DATABASE_URL,
       DATA_SOURCE: 'postgres',
@@ -146,10 +146,8 @@ async function main() {
       TICK_SECRET,
     })
 
-    console.log(
-      '== seeding a distinctive board (community demo:seed) — content before graduation ==',
-    )
-    run('pnpm', ['community', 'demo:seed'], ROOT, {
+    console.log('== seeding a distinctive board (meith demo:seed) — content before graduation ==')
+    run('pnpm', ['meith', 'demo:seed'], ROOT, {
       ...process.env,
       DATABASE_URL,
       DATA_SOURCE: 'postgres',
@@ -165,10 +163,8 @@ async function main() {
       throw new Error('board-eject-smoke: the seeded start-here thread is gone')
     console.log(`seeded thread: ${seededThread}`)
 
-    console.log(
-      '== community board:eject (against this checkout, standing in for a stock image) ==',
-    )
-    run('pnpm', ['community', 'board:eject', ejectedDir], ROOT, { ...process.env })
+    console.log('== meith board:eject (against this checkout, standing in for a stock image) ==')
+    run('pnpm', ['meith', 'board:eject', ejectedDir], ROOT, { ...process.env })
 
     const manifest = JSON.parse(await readFile(join(ejectedDir, 'package.json'), 'utf8'))
     if (manifest.dependencies['@meith/web'] !== version) {
@@ -206,7 +202,7 @@ async function main() {
       ejectedDir,
     )
 
-    console.log('== COMMUNITY_ROLE=migrate against the SAME database (should be a no-op) ==')
+    console.log('== MEITH_ROLE=migrate against the SAME database (should be a no-op) ==')
     run(
       'docker',
       [
@@ -215,7 +211,7 @@ async function main() {
         '--network',
         'host',
         '-e',
-        'COMMUNITY_ROLE=migrate',
+        'MEITH_ROLE=migrate',
         '-e',
         `DATABASE_URL=${DATABASE_URL}`,
         '-e',

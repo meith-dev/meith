@@ -29,7 +29,7 @@ export const MATERIALIZED_AT_ROOT = [
   'next-env.d.ts',
 ]
 
-export const VERCEL_BUILD_COMMAND = `community migrate && forum-web build ${AT_ROOT_FLAG}`
+export const VERCEL_BUILD_COMMAND = `meith migrate && forum-web build ${AT_ROOT_FLAG}`
 
 export const TICK_PATH = '/api/system/tick'
 
@@ -103,7 +103,7 @@ const ENV_DATABASE_URL_PROSE = `# Your Postgres connection string.
 # processes in front of it, does not need one.`
 
 const ENV_DIRECT_DATABASE_URL_PROSE = `# The other half of that pair: the DIRECT (non-pooler) string, used only by
-# \`community migrate\` and \`community backup\`. Migrations hold a session-level
+# \`meith migrate\` and \`meith backup\`. Migrations hold a session-level
 # advisory lock so that two deploys landing together queue instead of both
 # applying the same migration, and a transaction-mode pooler cannot hold that
 # lock: it takes the connection back the moment the lock statement ends, which
@@ -238,7 +238,7 @@ DATABASE_URL=
 ${ENV_DIRECT_DATABASE_URL_PROSE}
 #
 # On Vercel this is not optional, and it is no longer yours to copy. DATABASE_URL
-# here is the pooler string, the build runs \`community migrate\` against it, and
+# here is the pooler string, the build runs \`meith migrate\` against it, and
 # /install takes the second of those two session locks on first run. Left blank,
 # the board reads Neon's own direct string — \`DATABASE_URL_UNPOOLED\` first, then
 # \`POSTGRES_URL_NON_POOLING\` — and refuses to boot if neither is there, naming
@@ -275,7 +275,7 @@ CRON_SECRET=
 #
 # BLOB_READ_WRITE_TOKEN is the other way in, and you make it yourself on the
 # store. Set it when something has to reach the store from OUTSIDE a Vercel
-# deployment — \`community backup\` run on your own machine is the case that
+# deployment — \`meith backup\` run on your own machine is the case that
 # matters — because there is no OIDC identity there to borrow. Set both and the
 # board prefers the store id, unless the token names a different store, in which
 # case the token wins: naming another store is a deliberate act.
@@ -435,7 +435,7 @@ export function scaffold(options: ScaffoldOptions): ReadonlyMap<string, string> 
           dev: `forum-web dev${atRootFlag}`,
           build: `forum-web build${atRootFlag}`,
           start: `forum-web start${atRootFlag}`,
-          community: 'community',
+          meith: 'meith',
         },
         dependencies: {
           '@meith/web': version,
@@ -525,7 +525,7 @@ export default defineForumConfig({
  *   ]
  *
  * and the matching entry in board.plugins.json, which is what
- * \`community plugin:add\`/\`plugin:remove\` read inside the monorepo — kept
+ * \`meith plugin:add\`/\`plugin:remove\` read inside the monorepo — kept
  * here too so the two files agree about what is installed.
  */
 import type { InstalledPlugin } from '@meith/web/config'
@@ -592,8 +592,8 @@ updates:
 # "Custom boards").
 #
 # Two stages, not three: unlike the official image, this does not prune down
-# to Next's own standalone output. The migrate role below runs \`community
-# migrate\`, and \`community\` materializes @meith/cli's sources and runs them
+# to Next's own standalone output. The migrate role below runs \`meith
+# migrate\`, and \`meith\` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
 # docs/contributing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
@@ -669,8 +669,8 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 # of minutes rather than a cold toolchain build.
 #
 # Two stages, not three: unlike the official image, this does not prune down
-# to Next's own standalone output. The migrate role below runs \`community
-# migrate\`, and \`community\` materializes @meith/cli's sources and runs them
+# to Next's own standalone output. The migrate role below runs \`meith
+# migrate\`, and \`meith\` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
 # docs/contributing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
@@ -741,22 +741,22 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# \`docker run <image> node_modules/.bin/community --help\` should still run
+# \`docker run <image> node_modules/.bin/meith --help\` should still run
 # the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
-case "\${COMMUNITY_ROLE:-web}" in
+case "\${MEITH_ROLE:-web}" in
   migrate)
     # Runs to completion and exits; compose's one-shot service waits on it.
-    exec node_modules/.bin/community migrate
+    exec node_modules/.bin/meith migrate
     ;;
   web)
     exec node_modules/.bin/forum-web start
     ;;
   *)
-    echo "Unknown COMMUNITY_ROLE: \${COMMUNITY_ROLE}. Expected 'web' or 'migrate'." >&2
+    echo "Unknown MEITH_ROLE: \${MEITH_ROLE}. Expected 'web' or 'migrate'." >&2
     exit 1
     ;;
 esac
@@ -771,7 +771,7 @@ esac
 # a health probe taken while it runs has no opinion.
 set -e
 
-if [ "\${COMMUNITY_ROLE:-web}" = "migrate" ]; then
+if [ "\${MEITH_ROLE:-web}" = "migrate" ]; then
   exit 0
 fi
 
@@ -911,7 +911,7 @@ services:
     build: .
     image: ${name}
     environment:
-      COMMUNITY_ROLE: migrate
+      MEITH_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
@@ -1044,7 +1044,7 @@ services:
     # runs the old code.
     pull_policy: always
     environment:
-      COMMUNITY_ROLE: migrate
+      MEITH_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
@@ -1244,7 +1244,7 @@ Two things nothing configures for you, on either path:
   loop calling \`/api/system/tick\` once a minute, since \`@meith/web\`'s own
   worker package is not something a board outside the meith monorepo can
   depend on yet. Deploy some other way and something still has to call that
-  route (or run \`community task:run\`) every minute, or nothing catches up
+  route (or run \`meith task:run\`) every minute, or nothing catches up
   and nothing errors.
 
 ## Local
@@ -1262,8 +1262,8 @@ Posting needs Postgres. Copy \`.env.example\` to \`.env.local\`, set
 \`DATABASE_URL\` and the two secrets in it, then:
 
 \`\`\`sh
-npm run community -- migrate
-echo "<password>" | npm run community -- user:create --username <name> --email <address> --group administrators
+npm run meith -- migrate
+echo "<password>" | npm run meith -- user:create --username <name> --email <address> --group administrators
 \`\`\`
 
 ## Configuring
@@ -1274,8 +1274,50 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 - **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **\`npm run community -- --help\`** — the operator CLI. Everything the panel does
+- **\`npm run meith -- --help\`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
+
+## Installing plugins and themes
+
+Nothing installs into a running container — a plugin or theme has to be
+built into the image, the same as any other dependency:
+
+1. **In this repository**, install it:
+
+   \`\`\`sh
+   npm install --save-exact @meith/plugin-dues
+   \`\`\`
+
+   (a theme is the same command with its own package, e.g.
+   \`@meith/theme-midnight\`).
+
+2. **Register it.** A **theme** goes in \`meith.config.ts\`, in the \`themes\`
+   map, following the shape of the \`default\` entry already there. A
+   **plugin** goes in \`meith.plugins.ts\`: import its \`plugin\` and
+   \`messages\` exports and add \`{ key, enabled: true, plugin, messages }\`
+   to \`INSTALLED_PLUGINS\` — or run
+
+   \`\`\`sh
+   npm run meith -- plugin:add @meith/plugin-dues
+   \`\`\`
+
+   which edits \`board.plugins.json\` and regenerates \`meith.plugins.ts\`
+   for you.
+
+3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
+   not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
+   waits for \`.github/workflows/build.yml\` to finish first, and Redeploy is
+   what actually pulls the result.
+
+4. **Once it is up, run its migrations one time:**
+
+   \`\`\`sh
+   docker compose run --rm web meith upgrade
+   \`\`\`
+
+See [docs/customization/plugins.md](${repositoryUrl}/blob/main/docs/customization/plugins.md)
+and [docs/customization/themes.md](${repositoryUrl}/blob/main/docs/customization/themes.md)
+for the full reference.
 
 ## Upgrading
 
@@ -1317,7 +1359,7 @@ project's own \`.npmrc\` sets \`save-exact=true\` for the same reason, so an
 \`npm install\` of anything else here — a plugin, say — stays pinned too; the
 build workflow also refuses to build from anything but an exact version, as
 a second line of defense. Once the rebuilt image is deployed, run
-\`npm run community -- upgrade\` against it for the plugin migrations — see
+\`npm run meith -- upgrade\` against it for the plugin migrations — see
 [the operator CLI](${repositoryUrl}/blob/main/docs/guides/operations/operating.md#the-operator-cli)
 for running it against this deployment.
 
@@ -1577,9 +1619,9 @@ A board must stay movable, and the Blob store is the one part of this shape that
 is not portable: Neon and Upstash hand out ordinary Postgres and Redis strings
 that any host accepts, but a Vercel Blob store is reachable only through Vercel's
 own API and there is no bucket to sync out of it. **The uploads are the thing you
-have to carry out deliberately, and \`community backup\` is how.**
+have to carry out deliberately, and \`meith backup\` is how.**
 
-Under \`FILESTORE_DRIVER=blob\`, \`community backup\` includes the uploads **by
+Under \`FILESTORE_DRIVER=blob\`, \`meith backup\` includes the uploads **by
 default** — it walks the Blob store, pulls every object, and puts them in the
 bundle beside the database dump. This is the opposite of the \`s3\` default, which
 skips them, because a bucket has its own backup story you can drive yourself and
@@ -1590,7 +1632,7 @@ DATABASE_URL=…            # Neon's pooled string
 DIRECT_DATABASE_URL=…     # Neon's DATABASE_URL_UNPOOLED
 FILESTORE_DRIVER=blob
 BLOB_READ_WRITE_TOKEN=…   # create one on the store; see below
-npm run community -- backup
+npm run meith -- backup
 \`\`\`
 
 Run that from a checkout of this repository, with those four values in the
@@ -1611,10 +1653,10 @@ so the same bundle moves the board either onward or away:
 
 \`\`\`sh
 # onto a self-hosted board with a bucket
-FILESTORE_DRIVER=s3 S3_BUCKET=… RESTORE_DATABASE_URL=… npm run community -- restore bundle.tar.gz
+FILESTORE_DRIVER=s3 S3_BUCKET=… RESTORE_DATABASE_URL=… npm run meith -- restore bundle.tar.gz
 
 # onto a board that keeps uploads on its own disk
-RESTORE_DATABASE_URL=… npm run community -- restore bundle.tar.gz --uploads-dir ./uploads
+RESTORE_DATABASE_URL=… npm run meith -- restore bundle.tar.gz --uploads-dir ./uploads
 \`\`\`
 
 Take one before you need it. A Blob store deleted with the Vercel project takes

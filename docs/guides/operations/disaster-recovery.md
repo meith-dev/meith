@@ -17,7 +17,7 @@ machine is gone:
 
 | Artifact | Without it |
 |---|---|
-| The database dump — the `community backup` bundle carries it | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
+| The database dump — the `meith backup` bundle carries it | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
 | The uploads — in the same bundle on local disk, or the S3 bucket, or a Vercel Blob store | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./scaling.md#what-already-scales) skips this step entirely: the bucket never lived on the machine. A board on a Vercel Blob store cannot skip it — the store has no second copy and no way to sync one out, so the bundle is it. |
 | The environment — your `.env`, or the secrets the panel generated | The board boots with new secrets, but `AUTH_SECRET` seals members' two-factor secrets: lose it and every enrolled authenticator app is stranded, and every unsubscribe link in already-sent mail dies. Sessions survive either way — they are random tokens stored hashed in the database. |
 
@@ -74,7 +74,7 @@ RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/comm
 ```
 
 The fresh Postgres container created an empty `community` database, which
-is exactly what [`community restore`](./operating.md#restore) insists
+is exactly what [`meith restore`](./operating.md#restore) insists
 on. One command puts back the dump *and* the uploads — `docker compose
 run` mounts the same uploads volume the board serves from — and applies
 any migrations the bundle predates; on a bundle taken from the same
@@ -108,7 +108,7 @@ On a **Vercel Blob store** the asymmetry runs the other way, and it is the
 one case where the backup is the only copy. A Blob store is reachable only
 through Vercel's API — there is no bucket to sync, no credential to hand a
 second tool, and deleting the Vercel project deletes the attachments with
-it. So `community backup` includes the uploads by default under
+it. So `meith backup` includes the uploads by default under
 `FILESTORE_DRIVER=blob`, and the command runs from anywhere with the
 project's variables in the environment rather than having to run on
 Vercel:
@@ -118,7 +118,7 @@ DATABASE_URL=…            # the pooled string
 DIRECT_DATABASE_URL=…     # the direct string, for the dump
 FILESTORE_DRIVER=blob
 BLOB_READ_WRITE_TOKEN=…   # created on the store; see below
-community backup
+meith backup
 ```
 
 That token is the one value you make by hand. A Blob store attached to a
@@ -163,7 +163,7 @@ situation adds:
 
 1. `select count(*) from posts;` — the content is there.
 2. Sign in as an administrator — the credentials survived.
-3. `community upgrade --dry-run` — it reports nothing to do.
+3. `meith upgrade --dry-run` — it reports nothing to do.
 4. Open a thread with attachments and a page with avatars — the uploads
    restore actually met the database restore.
 5. `/admin/settings?group=mail` → **Send a test message** — mail is the

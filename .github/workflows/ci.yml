@@ -261,7 +261,7 @@ jobs:
       # MEI-90: docs/customization/marketplace.md documents `board:eject` as a bind-mounted,
       # non-root `docker run`/`docker compose run` invocation — this is what
       # proves that invocation against the real image this job just built,
-      # not board-eject-smoke.mts's stand-in (that script runs `community
+      # not board-eject-smoke.mts's stand-in (that script runs `meith
       # board:eject` from the checkout, never through the image at all, which
       # is exactly how MEI-90's bug went uncaught). Needs no database and no
       # network, so it runs here rather than in its own job.
@@ -270,7 +270,7 @@ jobs:
           mkdir eject-out
           docker run --rm --user "$(id -u):$(id -g)" \
             -v "$PWD/eject-out:/data/my-board" \
-            forum:ci community board:eject /data/my-board
+            forum:ci meith board:eject /data/my-board
 
           test -f eject-out/package.json \
             || { echo "::error::eject wrote nothing to the bind-mounted host directory"; exit 1; }
@@ -289,18 +289,18 @@ jobs:
 
           if docker run --rm --user "$(id -u):$(id -g)" \
             -v "$PWD/eject-out:/data/my-board" \
-            forum:ci community board:eject /data/my-board; then
+            forum:ci meith board:eject /data/my-board; then
             echo "::error::eject re-ran against a non-empty bind-mounted directory instead of refusing"
             exit 1
           fi
 
-      # COMMUNITY_ROLE=migrate, not `node node_modules/.bin/drizzle-kit` — drizzle-kit
+      # MEITH_ROLE=migrate, not `node node_modules/.bin/drizzle-kit` — drizzle-kit
       # is a development tool and is not in the pruned standalone node_modules,
       # so compose's migrate service had never worked either.
       - name: Apply migrations (migrate role)
         run: |
           docker run --rm --network host \
-            -e COMMUNITY_ROLE=migrate \
+            -e MEITH_ROLE=migrate \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
@@ -323,7 +323,7 @@ jobs:
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
-            forum:ci community backup --out /backup/ci.tar.gz
+            forum:ci meith backup --out /backup/ci.tar.gz
 
           test -f backups/ci.tar.gz \
             || { echo "::error::backup wrote nothing to the bind-mounted host directory"; exit 1; }
@@ -385,7 +385,7 @@ jobs:
       - name: Boot the worker role
         run: |
           docker run -d --name forum-worker --network host --restart=no \
-            -e COMMUNITY_ROLE=worker \
+            -e MEITH_ROLE=worker \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_test \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=ci-auth-secret-ci-auth-secret-32b \
@@ -524,7 +524,7 @@ jobs:
   # scaffold Dockerfile → boot against the *same* database → the board comes
   # up unchanged, before any plugin is added. Seeds a distinctive thread first
   # (the same "Start here" content the backup/restore job already checks
-  # for), runs `community board:eject` for real against this checkout
+  # for), runs `meith board:eject` for real against this checkout
   # standing in for a running stock image, then reuses the same local
   # stand-in base image trick as board-deploy-kit above to build the ejected
   # Dockerfile unmodified. See scripts/board-eject-smoke.mts.
@@ -728,16 +728,16 @@ jobs:
 
       # The operator CLI ships inside the image, so a server needs no checkout
       # and no toolchain. docs/guides/operations/operating.md documents every command as
-      # `community <cmd>` — checked here too (MEI-81), not just the
+      # `meith <cmd>` — checked here too (MEI-81), not just the
       # underlying `node apps/cli/cli.cjs` this comment used to call "the
       # guide's alias" back when nothing in the image actually put a
-      # `community` binary on PATH to make that alias real.
+      # `meith` binary on PATH to make that alias real.
       - name: The operator CLI runs from the image
         run: |
           docker compose run --rm --no-deps web node apps/cli/cli.cjs --help | grep -qi 'usage' \
             || { echo "::error::the operator CLI is not in the image"; exit 1; }
-          docker compose run --rm --no-deps web community --help | grep -qi 'usage' \
-            || { echo "::error::the documented \`community\` command is not in the image"; exit 1; }
+          docker compose run --rm --no-deps web meith --help | grep -qi 'usage' \
+            || { echo "::error::the documented \`meith\` command is not in the image"; exit 1; }
 
       - name: The image carries the postgres client tools backup needs
         run: |
@@ -986,7 +986,7 @@ jobs:
       - name: Seed a board with content and an upload
         run: |
           pnpm --filter @meith/db migrate
-          pnpm community demo:seed
+          pnpm meith demo:seed
           mkdir -p /tmp/uploads-live/avatars/ab
           cp apps/community/public/placeholder-user.jpg /tmp/uploads-live/avatars/ab/attachment.jpg
         env:
@@ -994,7 +994,7 @@ jobs:
 
       - name: Take a backup
         run: |
-          pnpm community backup --out /tmp/board-ci.tar.gz
+          pnpm meith backup --out /tmp/board-ci.tar.gz
           tar tzf /tmp/board-ci.tar.gz | sort | tee /tmp/bundle-members.txt
           for member in manifest.json db.dump uploads.tar.gz; do
             grep -qx "$member" /tmp/bundle-members.txt \
@@ -1004,7 +1004,7 @@ jobs:
       - name: Restore into a fresh database and a fresh uploads directory
         run: |
           createdb -h localhost -U postgres forum_restored
-          pnpm community restore /tmp/board-ci.tar.gz \
+          pnpm meith restore /tmp/board-ci.tar.gz \
             --uploads-dir /tmp/uploads-restored | tee /tmp/restore.log
           grep -q 'nothing to do' /tmp/restore.log \
             || { echo "::error::the restore had migrations to apply on a dump this build just took"; exit 1; }
@@ -1013,7 +1013,7 @@ jobs:
 
       - name: The restore refuses a database that is not empty
         run: |
-          if pnpm community restore /tmp/board-ci.tar.gz \
+          if pnpm meith restore /tmp/board-ci.tar.gz \
             --uploads-dir /tmp/uploads-refused 2>/tmp/refused.log; then
             echo "::error::a restore over a live database was accepted"; exit 1
           fi

@@ -190,7 +190,7 @@ async function bootAndRender(tag: string, containerName: string) {
 }
 
 function runMigrate(tag: string) {
-  console.log('== COMMUNITY_ROLE=migrate ==')
+  console.log('== MEITH_ROLE=migrate ==')
   run(
     'docker',
     [
@@ -199,7 +199,7 @@ function runMigrate(tag: string) {
       '--network',
       'host',
       '-e',
-      'COMMUNITY_ROLE=migrate',
+      'MEITH_ROLE=migrate',
       '-e',
       `DATABASE_URL=${DATABASE_URL}`,
       '-e',

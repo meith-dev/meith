@@ -9,8 +9,8 @@ brings, so nothing changes under you unannounced.
 Deploy the new code, then run the upgrade:
 
 ```sh
-community upgrade --dry-run   # read what it will do
-community upgrade
+meith upgrade --dry-run   # read what it will do
+meith upgrade
 ```
 
 On the documented deployments the *core* migrations are already applied by
@@ -18,7 +18,7 @@ then — the `migrate` container runs to completion before anything
 serves — so `upgrade` is what carries plugin migrations and records the
 version. The admin panel shows a notice until you run it.
 
-`community` is the operator CLI;
+`meith` is the operator CLI;
 [Operations § The operator CLI](./operating.md#the-operator-cli) has
 the invocation for each deployment.
 
@@ -38,7 +38,7 @@ Take a backup before every upgrade, and make sure it is one you have
 actually restored at least once. See
 [backup and restore](./operating.md#backup).
 
-## What `community upgrade` does
+## What `meith upgrade` does
 
 Four things, in this order:
 
@@ -77,7 +77,7 @@ on the next run; recorded-but-not-applied would be a column that never
 exists. Because the two are atomic, "try the upgrade again" is always a
 safe instruction: a re-run re-applies nothing it already did.
 
-**The plugin list is your board's.** `community upgrade` reads
+**The plugin list is your board's.** `meith upgrade` reads
 `meith.plugins.ts`, compiled into the command when the image is
 built. A plugin listed with `enabled: false` is skipped — creating tables
 for code that will not run would leave your schema ahead of your board.
@@ -97,9 +97,9 @@ A board further behind is not stuck — upgrade in stages, checking out the
 last release of each major in turn:
 
 ```sh
-git checkout v2.9.1 && docker compose up -d --build && community upgrade
-git checkout v3.6.0 && docker compose up -d --build && community upgrade
-git checkout v4.2.0 && docker compose up -d --build && community upgrade
+git checkout v2.9.1 && docker compose up -d --build && meith upgrade
+git checkout v3.6.0 && docker compose up -d --build && meith upgrade
+git checkout v4.2.0 && docker compose up -d --build && meith upgrade
 ```
 
 Each stage is an ordinary upgrade with an ordinary backup in front of it.
@@ -159,7 +159,7 @@ docker compose up -d --build
 Either way the ordering is handled for you: `migrate` runs to completion
 first, and `web` and `worker` wait for it, so the new code never serves
 against the old schema. That covers **core migrations only** — plugin
-migrations still go through `community upgrade`.
+migrations still go through `meith upgrade`.
 
 **A board scaffolded by `create-meith`** — one with its own `package.json`
 depending on `@meith/web`, whether it deploys as a container or to Vercel —
@@ -262,7 +262,7 @@ one-shot migration job, so the migration goes in the build command,
 ahead of the build:
 
 ```sh
-community migrate && forum-web build
+meith migrate && forum-web build
 ```
 
 The `&&` is the whole mechanism. A migration that fails exits non-zero,
@@ -304,7 +304,7 @@ the two-step exists to prevent. The two steps have to be two deploys:
 Shipping A and B as one release is the mistake this rule is for.
 
 The `&&` guards one direction only. It stops new code reaching an old
-schema; it does nothing about the reverse. If `community migrate`
+schema; it does nothing about the reverse. If `meith migrate`
 succeeds and `forum-web build` then fails, the deployment aborts with the
 migration already applied and the previous release still serving, and it
 stays that way until some later build succeeds. The window this section
@@ -323,10 +323,10 @@ on an advisory lock, and the second finds nothing left to do — see
 
 A rollback is not one of them. The instant rollback these platforms offer
 — promoting a previous deployment, re-pointing an alias at an artefact
-that was built already — runs no build, so it never calls `community
+that was built already — runs no build, so it never calls `meith
 migrate`. There is nothing to queue on the lock and nothing that could
 undo the schema. Rolling back the other way, by redeploying an older
-commit, does build and does run `community migrate`, which then applies
+commit, does build and does run `meith migrate`, which then applies
 nothing, because migrations are forward-only.
 
 Either route puts the old code back and leaves the schema where it is, so
@@ -341,7 +341,7 @@ limit, and a board further behind still upgrades in stages.
 
 The build command is the build command. It runs for every deployment the
 platform builds — the pull-request preview, the branch deployment, the
-redeploy of an old commit — and each of those runs `community migrate`
+redeploy of an old commit — and each of those runs `meith migrate`
 against whatever database that deployment's own environment variables
 name.
 
@@ -470,7 +470,7 @@ default is on, so an untouched board sees nothing change; **a board that
 stored `false` gets the closure it asked for on upgrade** — and if it has
 been quietly accepting registrations, its member list is worth a look.
 
-Neither the installer nor `community user:create` consults it: an
+Neither the installer nor `meith user:create` consults it: an
 operator at a terminal cannot be locked out of the board they are
 installing. See
 [The organiser's guide § Registration](../community/organiser-guide.md#registration).
@@ -516,7 +516,7 @@ another at `/verify/resend`.
 `registration.min_password_length`, `registration.username_min` and
 `registration.username_max` were served from constants — the form went on
 enforcing 8, 3 and 30 whatever the settings said. They are read now, by
-the board **and by `community user:create`** (a CLI that enforced
+the board **and by `meith user:create`** (a CLI that enforced
 different rules would create accounts the board itself would reject).
 
 The registry defaults are 10, 3 and 30, so an untouched board gets a
@@ -622,8 +622,8 @@ what a member may *keep*, not what they may send in a day.
 #### Backup is a verb
 
 The [backup and restore](./operating.md#backup) page used to
-be commands you copied; it is now `community backup` and
-`community restore` — one bundle carrying the database dump and the
+be commands you copied; it is now `meith backup` and
+`meith restore` — one bundle carrying the database dump and the
 uploads together, restored only into a new, empty database, with the
 post-restore checks run for you. Nothing changes for a cron built on
 `pg_dump`; the verb is the same dump with the uploads problem solved
@@ -719,12 +719,12 @@ address — a school, an office, a conference. `0` switches any of them
 off. See
 [the limits on pages nobody has signed in to](../community/antispam.md#the-limits-on-pages-nobody-has-signed-in-to).
 
-#### `community upgrade` now really applies plugin migrations
+#### `meith upgrade` now really applies plugin migrations
 
 The command used to pass no plugins at all, so a board could be told by
 the panel to run it and be no further on afterwards. It reads your
 board's plugin list now. If you have been running a plugin whose
-migrations the panel reported as pending, run `community upgrade` once
+migrations the panel reported as pending, run `meith upgrade` once
 more — re-running is safe, since applying and recording a migration are
 one transaction and a re-run of an applied one is a no-op.
 

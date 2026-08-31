@@ -8,9 +8,9 @@
 # Usage:
 #
 #   docker compose -f docker/compose.dev.yml up -d
-#   pnpm community migrate
-#   echo "<password>" | pnpm community user:create --username you --email you@example.test
-#   pnpm community user:promote --user you --group administrators
+#   pnpm meith migrate
+#   echo "<password>" | pnpm meith user:create --username you --email you@example.test
+#   pnpm meith user:promote --user you --group administrators
 #
 # and in `.env` at the workspace root — one file for the app, the CLI and the
 # worker alike:
@@ -23,8 +23,8 @@
 # *rows*, and two things a board needs are not rows, so both have to be built
 # afterwards:
 #
-#   pnpm community task:run counters.reconcile   # the counts the listings read
-#   pnpm community search:reindex                # the tsvector search matches on
+#   pnpm meith task:run counters.reconcile   # the counts the listings read
+#   pnpm meith search:reindex                # the tsvector search matches on
 #
 # Skipping the first gives a board index of zeroes, which looks wrong
 # immediately. Skipping the second gives a search that runs, succeeds and

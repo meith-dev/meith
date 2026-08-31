@@ -57,7 +57,7 @@ not agree to.
 **Cost, and it is an operational one, not just a product one:** if you do
 not re-promote at least one account after the import, your new board has
 no administrator at all. Do this **before** you open the board to
-members — `community user:promote` from the command line, or `/admin` once
+members — `meith user:promote` from the command line, or `/admin` once
 one account exists with panel access. This is true of a MyBB import too;
 it is worth restating here because phpBB gives an operator the least
 warning of anyone, since nothing on the sign-in screen hints that a

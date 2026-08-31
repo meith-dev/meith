@@ -14,7 +14,7 @@
     "dev": "FORUM_WORKSPACE_ROOT=../.. FORUM_ALIASES_FROM=../../tsconfig.base.json forum-web dev",
     "build": "FORUM_WORKSPACE_ROOT=../.. FORUM_ALIASES_FROM=../../tsconfig.base.json forum-web build",
     "start": "forum-web start",
-    "community": "community"
+    "meith": "meith"
   },
   "dependencies": {
     "@meith/cli": "workspace:*",

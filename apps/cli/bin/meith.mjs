@@ -11,7 +11,7 @@ const workspaceRoot = process.cwd()
 const materializedDir = join(workspaceRoot, '.meith', 'cli')
 
 function fail(message) {
-  console.error(`community: ${message}`)
+  console.error(`meith: ${message}`)
   process.exit(1)
 }
 
@@ -26,7 +26,7 @@ function materialize() {
 
   if (!existsSync(boardConfig)) {
     fail(
-      `no meith.config.ts in ${workspaceRoot}. Run community from a board's own ` +
+      `no meith.config.ts in ${workspaceRoot}. Run meith from a board's own ` +
         'directory — the one create-meith scaffolded, or one shaped like it.',
     )
   }

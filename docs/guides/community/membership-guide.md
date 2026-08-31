@@ -234,7 +234,7 @@ per [Operations](../operations/operating.md#plugins) and the plugin's own
 [README](https://github.com/meith-dev/meith/tree/main/plugins/dues):
 
 - **Installing and enabling the plugin**, and running its migrations
-  (`community upgrade`) — terminal work.
+  (`meith upgrade`) — terminal work.
 - **The Stripe keys** — `DUES_STRIPE_SECRET_KEY` and
   `DUES_STRIPE_WEBHOOK_SECRET`, set in the server's environment, or filled
   under **Admin → Plugins → Dues** in the settings form (the environment

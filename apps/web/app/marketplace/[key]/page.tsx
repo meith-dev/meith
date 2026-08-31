@@ -48,7 +48,7 @@ function installSteps(
     return [
       { code: `npm install ${listing.package}`, text: 'Add the package to your board.' },
       {
-        code: `community plugin:add ${listing.package}`,
+        code: `meith plugin:add ${listing.package}`,
         text: 'Register it in the plugin manifest.',
       },
       { text: 'Rebuild and redeploy for it to take effect.' },

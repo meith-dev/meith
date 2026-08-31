@@ -110,7 +110,7 @@ Two things nothing configures for you, on either path:
   loop calling `/api/system/tick` once a minute, since `@meith/web`'s own
   worker package is not something a board outside the meith monorepo can
   depend on yet. Deploy some other way and something still has to call that
-  route (or run `community task:run`) every minute, or nothing catches up
+  route (or run `meith task:run`) every minute, or nothing catches up
   and nothing errors.
 
 ## Local
@@ -128,8 +128,8 @@ Posting needs Postgres. Copy `.env.example` to `.env.local`, set
 `DATABASE_URL` and the two secrets in it, then:
 
 ```sh
-npm run community -- migrate
-echo "<password>" | npm run community -- user:create --username <name> --email <address> --group administrators
+npm run meith -- migrate
+echo "<password>" | npm run meith -- user:create --username <name> --email <address> --group administrators
 ```
 
 ## Configuring
@@ -140,8 +140,50 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 - **`/admin`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **`npm run community -- --help`** — the operator CLI. Everything the panel does
+- **`npm run meith -- --help`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
+
+## Installing plugins and themes
+
+Nothing installs into a running container — a plugin or theme has to be
+built into the image, the same as any other dependency:
+
+1. **In this repository**, install it:
+
+   ```sh
+   npm install --save-exact @meith/plugin-dues
+   ```
+
+   (a theme is the same command with its own package, e.g.
+   `@meith/theme-midnight`).
+
+2. **Register it.** A **theme** goes in `meith.config.ts`, in the `themes`
+   map, following the shape of the `default` entry already there. A
+   **plugin** goes in `meith.plugins.ts`: import its `plugin` and
+   `messages` exports and add `{ key, enabled: true, plugin, messages }`
+   to `INSTALLED_PLUGINS` — or run
+
+   ```sh
+   npm run meith -- plugin:add @meith/plugin-dues
+   ```
+
+   which edits `board.plugins.json` and regenerates `meith.plugins.ts`
+   for you.
+
+3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
+   not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
+   waits for `.github/workflows/build.yml` to finish first, and Redeploy is
+   what actually pulls the result.
+
+4. **Once it is up, run its migrations one time:**
+
+   ```sh
+   docker compose run --rm web meith upgrade
+   ```
+
+See [docs/customization/plugins.md](https://github.com/meith-dev/meith/blob/main/docs/customization/plugins.md)
+and [docs/customization/themes.md](https://github.com/meith-dev/meith/blob/main/docs/customization/themes.md)
+for the full reference.
 
 ## Upgrading
 
@@ -183,7 +225,7 @@ project's own `.npmrc` sets `save-exact=true` for the same reason, so an
 `npm install` of anything else here — a plugin, say — stays pinned too; the
 build workflow also refuses to build from anything but an exact version, as
 a second line of defense. Once the rebuilt image is deployed, run
-`npm run community -- upgrade` against it for the plugin migrations — see
+`npm run meith -- upgrade` against it for the plugin migrations — see
 [the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/guides/operations/operating.md#the-operator-cli)
 for running it against this deployment.
 

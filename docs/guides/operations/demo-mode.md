@@ -305,8 +305,8 @@ fix the most likely thing to need fixing.
 By hand, or from a cron of your own:
 
 ```sh
-community demo:reset --yes     # drop, migrate, seed
-community demo:seed            # seed an already-migrated empty database
+meith demo:reset --yes     # drop, migrate, seed
+meith demo:seed            # seed an already-migrated empty database
 ```
 
 Both refuse to run unless `DEMO_MODE` is set.

@@ -82,7 +82,7 @@ async function recoverSchema(deps: ResetDeps, migrate: () => Promise<number>): P
     log.error(
       { err: String(error) },
       'demo reset failed and the schema could not be rebuilt — this board needs ' +
-        '`community demo:reset --yes` run against it by hand',
+        '`meith demo:reset --yes` run against it by hand',
     )
   }
 }

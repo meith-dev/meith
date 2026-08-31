@@ -145,7 +145,7 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
         ? [
             'Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy.',
             'Something must run the tick every minute — the worker process, or',
-            '`community task:run`. Without it nothing catches up, and nothing errors.',
+            '`meith task:run`. Without it nothing catches up, and nothing errors.',
           ]
         : [
             `Then follow README.md — it walks through running the ${kind} inside a`,

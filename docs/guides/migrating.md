@@ -55,7 +55,7 @@ like before you point it at the real one.
 | Left behind | Do this after the import |
 |---|---|
 | Group permission matrices | Rebuild your usergroups and forum permissions in `/admin` — a deliberate gap, not an oversight: MyBB's and phpBB's permission columns do not line up cleanly with Meith's (see [Permissions and groups](../reference/mybb-parity.md#permissions-and-groups) if you are coming from MyBB), so a mechanical translation would produce permissions nobody chose. |
-| Custom profile-field values | Recreate the fields with `community profile-field:add` (they start editable by every group; narrow that in `/admin` if you want the old restrictions). The values members typed are not imported — the field has to exist on this board before anybody can be asked to fill it in again. |
+| Custom profile-field values | Recreate the fields with `meith profile-field:add` (they start editable by every group; narrow that in `/admin` if you want the old restrictions). The values members typed are not imported — the field has to exist on this board before anybody can be asked to fill it in again. |
 | Announcements | Re-post them — Meith's announcements are not threads (see [Announcements are not sticky threads](../reference/mybb-parity.md#announcements-are-not-sticky-threads) for why), so there is no source row to map them from. |
 | Smilies and custom BBCode/MyCode | Nothing to restore — Meith renders Markdown, not BBCode, and there is no admin-defined replacement-pattern equivalent. See [The markup language is Markdown, not BBCode](../reference/mybb-parity.md#the-markup-language-is-markdown-not-bbcode) for exactly what survives the conversion and what does not. |
 | Thread ratings | Not carried over; there is no equivalent to recreate them from. |
@@ -65,17 +65,17 @@ like before you point it at the real one.
 ## Run it
 
 ```sh
-docker compose run --rm web community import --help
+docker compose run --rm web meith import --help
 ```
 
 ```sh
-IMPORT_SOURCE_PASSWORD=… docker compose run --rm web community import \
+IMPORT_SOURCE_PASSWORD=… docker compose run --rm web meith import \
   --source mybb --host db.old --user reader --database mybb \
   --uploads-dir /mnt/old-board/uploads
 ```
 
 ```sh
-IMPORT_SOURCE_PASSWORD=… docker compose run --rm web community import \
+IMPORT_SOURCE_PASSWORD=… docker compose run --rm web meith import \
   --source phpbb --host db.old --user reader --database phpbb \
   --prefix phpbb_ --uploads-dir /mnt/old-board
 ```
@@ -143,8 +143,8 @@ pre-edit text here.
 ## After the import
 
 ```sh
-docker compose run --rm web community task:run counters.reconcile
-docker compose run --rm web community search:reindex
+docker compose run --rm web meith task:run counters.reconcile
+docker compose run --rm web meith search:reindex
 ```
 
 The first rebuilds post counts, thread counts, reputation totals and
@@ -171,7 +171,7 @@ Before you announce the move, check:
   membership across at all: every migrated account, including the old
   board's own administrators, lands in the ordinary registered group.
   Nothing about the sign-in page hints at this, so a board where nobody
-  runs `community user:promote` (or grants access in `/admin` from an
+  runs `meith user:promote` (or grants access in `/admin` from an
   account that already has it) has, silently, no administrator. Do this
   first.
 - **Sign in as a migrated member, using their old password.** The stored

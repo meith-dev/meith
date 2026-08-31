@@ -60,9 +60,9 @@ services:
     environment:
       # A role, not a command: drizzle-kit is a development tool and is not in
       # the pruned standalone node_modules, so `node node_modules/.bin/drizzle-kit`
-      # never worked here. `COMMUNITY_ROLE=migrate` runs the same runMigrations()
+      # never worked here. `MEITH_ROLE=migrate` runs the same runMigrations()
       # the operator CLI does.
-      COMMUNITY_ROLE: migrate
+      MEITH_ROLE: migrate
       DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
       DATA_SOURCE: postgres
       # The migration signs nothing, and still needs these.
@@ -133,7 +133,7 @@ services:
       migrate:
         condition: service_completed_successfully
 
-  # The worker: the same image, with COMMUNITY_ROLE=worker, running the scheduler
+  # The worker: the same image, with MEITH_ROLE=worker, running the scheduler
   # in-process on its own one-minute loop.
   #
   # It replaces the `tick` sidecar below rather than joining it — running both
@@ -154,7 +154,7 @@ services:
         max-size: 10m
         max-file: '3'
     environment:
-      COMMUNITY_ROLE: worker
+      MEITH_ROLE: worker
       DATABASE_URL: postgres://community:${POSTGRES_PASSWORD:-community}@postgres:5432/community
       DATA_SOURCE: postgres
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}

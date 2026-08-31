@@ -76,7 +76,7 @@ history behind it, and a checkout a visitor can actually go through. See
    - **`DUES_STRIPE_SECRET_KEY`** and **`DUES_STRIPE_WEBHOOK_SECRET`** — set
      in the environment, or filled in here. Environment wins, and the
      screen says which source is in force.
-4. **Migrations**: run `community upgrade`.
+4. **Migrations**: run `meith upgrade`.
 5. **Make the plans** under Admin → Plugins → Dues → plans — see
    [Plans](#plans) below.
 6. **The webhook**: in Stripe, add an endpoint at

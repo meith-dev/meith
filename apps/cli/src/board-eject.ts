@@ -101,7 +101,7 @@ async function readManifest(): Promise<Manifest> {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       throw new ValidationError(
         `board:eject could not find this build's plugin manifest at ${path}. This command ` +
-          'runs inside the official image (docker compose run --rm web community board:eject ' +
+          'runs inside the official image (docker compose run --rm web meith board:eject ' +
           '<dir>), where it is baked in — or, in this repository, against boards/stock. It is ' +
           'not meant to run against a workspace board:eject already produced.',
       )
@@ -179,7 +179,7 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   const [dir] = positional
 
   if (dir === undefined || positional.length > 1) {
-    throw new ValidationError('Usage: community board:eject <dir>')
+    throw new ValidationError('Usage: meith board:eject <dir>')
   }
 
   const target = resolve(process.cwd(), dir)

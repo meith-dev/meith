@@ -37,7 +37,7 @@ only what the bundler saw):
    entry beside `midnight` in the themes map — each file's comments show the
    shape.
 3. Add the package to `apps/community/package.json` and `pnpm install`, then
-   redeploy. If the plugin ships migrations, run `community upgrade`.
+   redeploy. If the plugin ships migrations, run `meith upgrade`.
 
 A registered theme is immediately offered to members on the appearance screen
 and to administrators under **Admin → Themes** — and is enrolled in the

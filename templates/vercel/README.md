@@ -24,7 +24,7 @@ A forum, built on [Meith](https://github.com/meith-dev/meith), running as Vercel
   directly: its mail driver already speaks Resend's request shape, so there is
   nothing to adapt, and the sending domain is what the sender is built from.
 - **A Vercel project** carrying `vercel.json` — the build command
-  `community migrate && forum-web build --at-root`,
+  `meith migrate && forum-web build --at-root`,
   which applies the schema before it builds, materializes the board's app at
   the project root so the artefact lands where Vercel reads it, and the cron
   entry that drives the tick.
@@ -204,9 +204,9 @@ A board must stay movable, and the Blob store is the one part of this shape that
 is not portable: Neon and Upstash hand out ordinary Postgres and Redis strings
 that any host accepts, but a Vercel Blob store is reachable only through Vercel's
 own API and there is no bucket to sync out of it. **The uploads are the thing you
-have to carry out deliberately, and `community backup` is how.**
+have to carry out deliberately, and `meith backup` is how.**
 
-Under `FILESTORE_DRIVER=blob`, `community backup` includes the uploads **by
+Under `FILESTORE_DRIVER=blob`, `meith backup` includes the uploads **by
 default** — it walks the Blob store, pulls every object, and puts them in the
 bundle beside the database dump. This is the opposite of the `s3` default, which
 skips them, because a bucket has its own backup story you can drive yourself and
@@ -217,7 +217,7 @@ DATABASE_URL=…            # Neon's pooled string
 DIRECT_DATABASE_URL=…     # Neon's DATABASE_URL_UNPOOLED
 FILESTORE_DRIVER=blob
 BLOB_READ_WRITE_TOKEN=…   # create one on the store; see below
-npm run community -- backup
+npm run meith -- backup
 ```
 
 Run that from a checkout of this repository, with those four values in the
@@ -238,10 +238,10 @@ so the same bundle moves the board either onward or away:
 
 ```sh
 # onto a self-hosted board with a bucket
-FILESTORE_DRIVER=s3 S3_BUCKET=… RESTORE_DATABASE_URL=… npm run community -- restore bundle.tar.gz
+FILESTORE_DRIVER=s3 S3_BUCKET=… RESTORE_DATABASE_URL=… npm run meith -- restore bundle.tar.gz
 
 # onto a board that keeps uploads on its own disk
-RESTORE_DATABASE_URL=… npm run community -- restore bundle.tar.gz --uploads-dir ./uploads
+RESTORE_DATABASE_URL=… npm run meith -- restore bundle.tar.gz --uploads-dir ./uploads
 ```
 
 Take one before you need it. A Blob store deleted with the Vercel project takes

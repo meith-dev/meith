@@ -15,8 +15,8 @@
 # of minutes rather than a cold toolchain build.
 #
 # Two stages, not three: unlike the official image, this does not prune down
-# to Next's own standalone output. The migrate role below runs `community
-# migrate`, and `community` materializes @meith/cli's sources and runs them
+# to Next's own standalone output. The migrate role below runs `meith
+# migrate`, and `meith` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
 # docs/contributing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next

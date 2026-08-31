@@ -45,12 +45,12 @@ describe('the Coolify compose file', () => {
   })
 
   it('runs the worker, which is the whole tick', () => {
-    expect(service('worker')).toContain('COMMUNITY_ROLE=worker')
+    expect(service('worker')).toContain('MEITH_ROLE=worker')
     expect(service('worker')).toContain('CACHE_DRIVER=memory')
   })
 
   it('migrates before the web server serves anything', () => {
-    expect(service('migrate')).toContain('COMMUNITY_ROLE: migrate')
+    expect(service('migrate')).toContain('MEITH_ROLE: migrate')
     expect(service('web')).toContain('condition: service_completed_successfully')
   })
 
