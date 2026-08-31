@@ -474,6 +474,12 @@ install first. (From a plain host shell on the server it is
 `docker compose exec web meith <command>` instead — the Terminal saves you
 that.)
 
+These are **runtime** commands — they act on the running board and its
+database. Installing a plugin or theme is different: it edits your board's
+repository and only takes effect on a rebuild, so it is done in your checkout,
+not here — `plugin:add` refuses in the container for that reason. See
+[Installing plugins and themes](../../customization/installing.md).
+
 **Something recurring.** Add a **Scheduled Task** to the resource — a name, the
 command, the container (`web`), and a cron schedule — and Coolify runs it in the
 container on that schedule, with a button to run it now. `meith backup` (see

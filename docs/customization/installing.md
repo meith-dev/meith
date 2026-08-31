@@ -35,6 +35,11 @@ name; pass `--key <key>` if the name does not fit that shape, or `--disabled`
 to install it switched off. `npm run meith -- plugin:remove <key>` is the
 reverse.
 
+Run it **in your board's checkout**, the place you commit from — not inside the
+deployed container. It edits files the image is built from, so a change made in
+a running container would not rebuild anything and would be lost on the next
+redeploy; `plugin:add` refuses there for that reason.
+
 If the new release also ships database changes, apply them once it is up from
 **Admin → System** (**Version & migrations**), or run `meith upgrade` — see
 [Operations](../guides/operations/operating.md#migrations).

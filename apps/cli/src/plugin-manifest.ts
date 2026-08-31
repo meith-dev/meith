@@ -38,9 +38,21 @@ interface GeneratorResult {
 interface Mode {
   readonly root: string
   readonly boards: readonly Board[]
+  assertEditable(): void
   installPackage(packageName: string): void
   regenerate(): GeneratorResult
   missingManifest(path: string): string
+}
+
+export function assertBoardCheckout(root: string): void {
+  if (existsSync(join(root, '.git'))) return
+  throw new ValidationError(
+    'plugin:add and plugin:remove edit this board’s source — package.json, board.plugins.json ' +
+      'and meith.plugins.ts — and only take effect when the image is rebuilt. This is not your ' +
+      'board’s git checkout (there is no .git here), which means it is most likely the deployed ' +
+      'container: a change made here would not rebuild anything and would be discarded on the next ' +
+      'redeploy. Run it where you edit and commit the board, then push and redeploy.',
+  )
 }
 
 export function installBoardPackage(root: string, packageName: string): void {
@@ -68,6 +80,7 @@ function monorepoMode(boardsFile: string): Mode {
   return {
     root,
     boards,
+    assertEditable: () => {},
     installPackage: () => {},
     regenerate: () => runGenerator(join(repoRoot(), 'scripts/board-plugins-gen.mjs')),
     missingManifest: (path) =>
@@ -85,6 +98,7 @@ function boardMode(): Mode {
   return {
     root,
     boards: [BOARD_MODE_BOARD],
+    assertEditable: () => assertBoardCheckout(root),
     installPackage: (packageName) => installBoardPackage(root, packageName),
     regenerate: () => regenerateBoard(root),
     missingManifest: (path) =>
@@ -298,6 +312,7 @@ export async function pluginAdd(args: readonly string[]): Promise<number> {
   }
 
   const mode = resolveMode()
+  mode.assertEditable()
   const originals = await Promise.all(mode.boards.map((board) => readManifestFor(mode, board)))
 
   originals.forEach(({ plugins }, index) => {
@@ -345,6 +360,7 @@ export async function pluginRemove(args: readonly string[]): Promise<number> {
   }
 
   const mode = resolveMode()
+  mode.assertEditable()
   const originals = await Promise.all(mode.boards.map((board) => readManifestFor(mode, board)))
 
   originals.forEach(({ plugins }, index) => {

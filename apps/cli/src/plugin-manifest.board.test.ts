@@ -1,10 +1,10 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { regenerateBoard, renderBoardModule } from './plugin-manifest'
+import { assertBoardCheckout, regenerateBoard, renderBoardModule } from './plugin-manifest'
 
 let dir: string
 
@@ -55,6 +55,17 @@ describe('renderBoardModule', () => {
       { key: 'dues', package: '@meith/plugin-dues', enabled: false },
     ])
     expect(source).toContain("{ key: 'dues', enabled: false,")
+  })
+})
+
+describe('assertBoardCheckout', () => {
+  it('passes when a .git is present — a real board checkout', async () => {
+    await mkdir(join(dir, '.git'))
+    expect(() => assertBoardCheckout(dir)).not.toThrow()
+  })
+
+  it('refuses when there is no .git, since that is most likely the deployed container', () => {
+    expect(() => assertBoardCheckout(dir)).toThrow(/only take effect when the image is rebuilt/)
   })
 })
 
