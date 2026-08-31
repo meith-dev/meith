@@ -19,6 +19,7 @@
     "./env-files": "./src/env-files.ts",
     "./logger": "./src/logger.ts",
     "./metrics": "./src/metrics.ts",
+    "./outbound": "./src/outbound.ts",
     "./tracing": "./src/tracing.ts"
   },
   "files": [
