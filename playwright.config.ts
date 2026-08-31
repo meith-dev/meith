@@ -48,6 +48,7 @@ const SHARED_ENV = {
   TICK_SECRET: E2E_TICK_SECRET,
   HOSTNAME: '127.0.0.1',
   NEXT_TELEMETRY_DISABLED: '1',
+  MAIL_ALLOW_PRIVATE_HOSTS: 'true',
 }
 
 export default defineConfig({
