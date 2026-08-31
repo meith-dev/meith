@@ -56,8 +56,10 @@ not on the board.
 A member who buys is shown as what they bought: the plan's group becomes
 their primary group, with its title, colour and badge, and their old group
 comes straight back when the membership ends. Staff are the exception —
-a moderator who buys gets the group and everything it carries, but stays
-shown as staff.
+a moderator who buys gets the group and everything it carries, but staff
+still lead as staff: the badge and colour stay the staff group's, and the
+bought group is at most an extra title under it, as far as
+[Maximum displayed groups](./groups.md#display-groups) allows.
 
 ## Plans
 

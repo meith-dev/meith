@@ -63,13 +63,18 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   const MemberProfile = requireSlot(await currentTheme(), 'MemberProfile')
   const translator = await getTranslator()
+  const identity = (await identitiesFor([id])).get(id)
 
   const profileModel = await filterView(
     'view.member-profile',
     {
       ...buildMemberProfileView(profile, new Date(), {
         avatarUrl: (await avatarsFor([id])).get(id) ?? null,
-        nameClass: (await identitiesFor([id])).get(id)?.nameClass ?? null,
+        nameClass: identity?.nameClass ?? null,
+        groups:
+          identity === undefined
+            ? []
+            : identity.groups.map((group) => ({ title: group.title, nameClass: group.nameClass })),
         canWarn: warnings !== null && actor.userId !== id && authorizer.can(actor, 'user.warn'),
         canMessage:
           messages !== null &&

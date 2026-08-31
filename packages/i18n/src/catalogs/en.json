@@ -2815,6 +2815,8 @@
   "setting.board.url.label": "Board address",
   "setting.display.default_locale.description": "The language a page is written in when the reader has expressed no preference — a BCP-47 tag such as en, de or pt-BR. A signed-in member overrides it in their control panel, and a visitor who has not is served whichever language their browser asks for that this board has a catalog for. Left at a language nothing translates, every message falls back to English rather than disappearing.",
   "setting.display.default_locale.label": "Default language",
+  "setting.display.max_displayed_groups.description": "How many of a member's groups are shown with their name, in the postbit and on their profile. The display group comes first and the rest follow in display order; 1 shows the display group alone.",
+  "setting.display.max_displayed_groups.label": "Maximum displayed groups",
   "setting.display.posts_per_page.description": "Capped to protect the thread-view query budget.",
   "setting.display.posts_per_page.label": "Posts per page",
   "setting.display.threads_per_page.description": "Capped to protect the forum-display query budget.",

@@ -56,4 +56,55 @@ describe('PostgresGroupIdentityRepository', () => {
     expect(standing?.title).toBe('Administrators')
     expect(standing?.nameColorLight).toBe('red')
   })
+
+  it('lists every held group, the display group first', async () => {
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (${ADA}, 5), (${ADA}, 3)
+    `)
+    await db.execute(sql`update users set display_group_id = 5 where id = ${ADA}`)
+
+    const standing = (await repo.forUsers([ADA])).get(ADA)
+    expect(standing?.groups.map((group) => group.title)).toEqual([
+      'Moderators',
+      'Registered',
+      'Administrators',
+    ])
+    expect(standing?.groups[0]).toMatchObject({ groupId: 5, title: 'Moderators' })
+  })
+
+  it('leads with the staff group and keeps the rest for staff', async () => {
+    await db.execute(
+      sql`update users set primary_group_id = 3, display_group_id = 2 where id = ${ADA}`,
+    )
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (${ADA}, 2)
+    `)
+
+    const standing = (await repo.forUsers([ADA])).get(ADA)
+    expect(standing?.groups.map((group) => group.title)).toEqual(['Administrators', 'Registered'])
+  })
+
+  it('holds only the display group for a member of one group', async () => {
+    const standing = (await repo.forUsers([ADA])).get(ADA)
+    expect(standing?.groups.map((group) => group.title)).toEqual(['Registered'])
+  })
+
+  it('does not list a lapsed membership', async () => {
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id, expires_at)
+      values (${ADA}, 5, now() - interval '1 day')
+    `)
+
+    const standing = (await repo.forUsers([ADA])).get(ADA)
+    expect(standing?.groups.map((group) => group.title)).toEqual(['Registered'])
+  })
+
+  it('carries each group colour so every shown group can be styled', async () => {
+    await db.execute(sql`
+      insert into user_group_memberships (user_id, group_id) values (${ADA}, 3)
+    `)
+
+    const standing = (await repo.forUsers([ADA])).get(ADA)
+    expect(standing?.groups.map((group) => group.nameColorLight)).toEqual(['green', 'red'])
+  })
 })

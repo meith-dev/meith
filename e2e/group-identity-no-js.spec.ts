@@ -74,6 +74,27 @@ test("the group's title, badge and reputation are in the postbit", async ({ page
     .toBeGreaterThan(0)
 })
 
+test('every displayed group is in the postbit, each in its own colour', async ({ page }) => {
+  await page.goto(THREAD)
+
+  const postbit = page.locator('article').first()
+  const staffTitle = postbit.getByText('Administrators', { exact: true })
+  const supportersTitle = postbit.getByText('Supporters', { exact: true })
+
+  await expect(staffTitle).toBeVisible()
+  await expect(supportersTitle).toBeVisible()
+  await expect(supportersTitle).toHaveCSS('color', await asRendered(page, 'oklch(0.5 0.11 165)'))
+})
+
+test('the displayed groups follow the member onto their profile', async ({ page }) => {
+  await page.goto('/member/1')
+
+  const heading = page.getByRole('heading', { level: 1, name: 'admin' })
+  await expect(heading).toBeVisible()
+  await expect(page.getByText('Administrators', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Supporters', { exact: true }).first()).toBeVisible()
+})
+
 test('the same member is the same colour in a listing', async ({ page }) => {
   await page.goto('/100-announcements')
 

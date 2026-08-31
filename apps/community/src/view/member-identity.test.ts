@@ -8,6 +8,7 @@ const CLASSED: MemberIdentity = {
   nameClass: 'gname-3',
   badge: null,
   reputation: 0,
+  groups: [{ groupId: 3, title: 'Moderator', nameClass: 'gname-3' }],
 }
 
 const PLAIN: MemberIdentity = { ...CLASSED, groupId: 5, title: 'Members', nameClass: null }

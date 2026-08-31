@@ -5,6 +5,7 @@ import { cn } from '@meith/ui'
 import {
   Circle,
   count,
+  groupTags,
   LINK,
   MUTED_LINK,
   NUMERIC,
@@ -155,7 +156,11 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[0.9375rem] leading-snug">
             <UserRef user={author} className="text-[0.9375rem]" />
             {author.badge != null && <GroupBadge badge={author.badge} />}
-            {author.title !== null && <Tag>{author.title}</Tag>}
+            {groupTags(author.groups, author.title).map((group) => (
+              <Tag key={group.title}>
+                <span className={group.nameClass ?? undefined}>{group.title}</span>
+              </Tag>
+            ))}
           </p>
 
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

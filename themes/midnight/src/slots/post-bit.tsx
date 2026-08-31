@@ -1,7 +1,7 @@
 import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
-import { UserRef } from '../shared'
+import { groupTags, UserRef } from '../shared'
 
 function GroupBadge({
   badge,
@@ -96,11 +96,11 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
                   <GroupBadge badge={post.author.badge} />
                 </p>
               )}
-              {post.author.title !== null && (
-                <p className="truncate font-mono text-xs text-muted-foreground">
-                  {post.author.title}
+              {groupTags(post.author.groups, post.author.title).map((group) => (
+                <p key={group.title} className="truncate font-mono text-xs text-muted-foreground">
+                  <span className={group.nameClass ?? undefined}>{group.title}</span>
                 </p>
-              )}
+              ))}
               <dl className="mt-2 font-mono text-xs text-muted-foreground">
                 <div className="flex gap-1 sm:justify-center">
                   <dt>{c('posts')}</dt>

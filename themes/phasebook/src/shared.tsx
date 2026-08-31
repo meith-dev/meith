@@ -1,4 +1,10 @@
-import type { CountModel, PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import type {
+  CountModel,
+  GroupTagModel,
+  PrefixModel,
+  TimeModel,
+  UserRefModel,
+} from '@meith/theme-kit'
 import { Avatar, cn } from '@meith/ui'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-3 sm:px-4'
@@ -182,4 +188,12 @@ export function count(value: CountModel): string {
 
 export function plural(value: CountModel, one: string, many: string): string {
   return value.value === 1 ? one : many
+}
+
+export function groupTags(
+  groups: readonly GroupTagModel[] | undefined,
+  title: string | null,
+): readonly GroupTagModel[] {
+  if (groups !== undefined && groups.length > 0) return groups
+  return title === null ? [] : [{ title }]
 }

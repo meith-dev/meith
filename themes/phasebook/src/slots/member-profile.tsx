@@ -2,12 +2,13 @@ import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
-import { Circle, count, FEED, NUMERIC, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
+import { Circle, count, FEED, groupTags, NUMERIC, PAGE, PILL, PILL_PRIMARY, Stamp } from '../shared'
 
 export function MemberProfile({
   user,
   avatarUrl,
   title,
+  groups,
   joinedAt,
   lastVisitAt,
   postCount,
@@ -43,7 +44,11 @@ export function MemberProfile({
                 >
                   {user.username}
                 </h1>
-                {title !== null && <p className="text-sm text-muted-foreground">{title}</p>}
+                {groupTags(groups, title).map((group) => (
+                  <p key={group.title} className="text-sm text-muted-foreground">
+                    <span className={group.nameClass ?? undefined}>{group.title}</span>
+                  </p>
+                ))}
               </div>
             </div>
 

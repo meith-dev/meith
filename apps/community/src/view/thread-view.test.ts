@@ -498,6 +498,10 @@ describe("the author's group standing", () => {
     nameClass: 'gname-3',
     badge: { src: '/group/3/badge/light?v=abc', darkSrc: null, alt: 'Moderator' },
     reputation: 42,
+    groups: [
+      { groupId: 3, title: 'Moderator', nameClass: 'gname-3' },
+      { groupId: 9, title: 'Supporters', nameClass: null },
+    ],
   }
 
   function authorOf(options: {
@@ -554,6 +558,7 @@ describe("the author's group standing", () => {
   it('is absent when the page resolved nothing', () => {
     expect(authorOf({})).toMatchObject({
       title: null,
+      groups: [],
       nameClass: null,
       badge: null,
       reputation: null,
@@ -566,6 +571,13 @@ describe("the author's group standing", () => {
       nameClass: 'gname-3',
       reputation: { value: 42, label: '42' },
     })
+  })
+
+  it('carries every shown group, without the ids the theme has no use for', () => {
+    expect(authorOf({ identities: new Map([[7, IDENTITY]]) }).groups).toEqual([
+      { title: 'Moderator', nameClass: 'gname-3' },
+      { title: 'Supporters', nameClass: null },
+    ])
   })
 
   it('is absent for a post whose author was deleted', () => {

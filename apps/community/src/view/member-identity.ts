@@ -1,3 +1,9 @@
+export interface MemberGroupTag {
+  readonly groupId: number
+  readonly title: string
+  readonly nameClass: string | null
+}
+
 export interface MemberIdentity {
   readonly groupId: number
   readonly title: string
@@ -8,6 +14,7 @@ export interface MemberIdentity {
     readonly alt: string
   } | null
   readonly reputation: number
+  readonly groups: readonly MemberGroupTag[]
 }
 
 export function nameClassOf(

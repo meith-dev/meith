@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.18.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.19.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -427,6 +427,7 @@ Props: `MemberProfileModel`
 | `user` | `UserRefModel` |  |
 | `avatarUrl` | `string \| null` |  |
 | `title` | `string \| null` | The member's group, shown under their name. The same rule the postbit follows: `users.display_group_id` where the member has chosen one, and their primary group otherwise. `null` only where the group behind it has gone. |
+| `groups` | `readonly GroupTagModel[] \| undefined` | optional — Every group shown with this member's name, on the same terms as `PostAuthorModel.groups`: display group first, the rest in display order, capped by the board's *Maximum displayed groups* setting. Render it instead of `title` when it is non-empty; fall back to `title` otherwise. |
 | `joinedAt` | `TimeModel` |  |
 | `lastVisitAt` | `TimeModel \| null` |  |
 | `postCount` | `CountModel` |  |
@@ -703,6 +704,15 @@ Submitted as the form value. Opaque to the theme. readonly value: string readonl
 | `isUnread` | `boolean` | `false` for a guest, who has no read state. |
 | `subforums` | `readonly LinkModel[]` |  |
 
+### GroupTagModel
+
+One of the groups shown with a member's name. `nameClass` works exactly like `UserRefModel.nameClass` and exists for the same reason: the group's colour differs between light and dark, so it arrives as a class the app's `<head>` stylesheet defines rather than as a colour. Put it on whatever renders the title; a theme that ignores it shows the title in its ordinary text colour and is still correct.
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | `string` |  |
+| `nameClass` | `string \| null \| undefined` | optional |
+
 ### HiddenFieldModel
 
 A form value carried across a submit without being shown.
@@ -860,6 +870,7 @@ The author block beside a post.
 | `nameClass` | `string \| null \| undefined` | from `UserRefModel` — optional — A class carrying this member's group colour, or `null` for most members. **A theme should put this on whatever renders the name**, wherever a name appears. It is a class rather than a colour because the value has to differ between light and dark, and a `style` attribute cannot hold two answers — a reader on "system" has no `.dark` class at all, so the only place both can live is the stylesheet the app emits into `<head>`. A theme that ignores it renders the name in the ordinary text colour and is still correct, which is what makes the field additive. It will simply not show the board's own hierarchy, which most boards will notice. |
 | `avatarUrl` | `string \| null` |  |
 | `title` | `string \| null` | The display group's title, or a custom user title. Was `null` on every post the board has ever rendered — the field was in the contract from the start and nothing populated it, so every theme's postbit had a place for a member's standing and nothing to put in it. It comes from `users.display_group_id`, falling back to the primary group. |
+| `groups` | `readonly GroupTagModel[] \| undefined` | optional — Every group shown with this member's name — the display group first, then the rest of the groups they hold in display order, cut off at the board's *Maximum displayed groups* setting. `title` is always the first entry's title, so a theme written before this field existed keeps showing the display group and is still correct; a theme that renders this list should render it *instead of* `title`, not as well. Empty where the board resolved no groups at all — fall back to `title` there, which is also what carries a custom user title. |
 | `badge` | `LogoModel \| null \| undefined` | optional — The board's badge for this member's group, or `null`. Shaped exactly like `LogoModel` and for the same reason: the app has already chosen which of the two images this reader gets, so `darkSrc` is non-null only for a reader on "system", where the server cannot know. |
 | `reputation` | `CountModel \| null \| undefined` | optional — This member's reputation, or `null` when the board has it switched off. A denormalised counter on `users`, so it costs the postbit nothing. |
 | `postCount` | `CountModel` |  |
@@ -1054,5 +1065,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.18. Nothing can be: this is the first
+Nothing is deprecated in v0.19. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

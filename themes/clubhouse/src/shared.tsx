@@ -1,4 +1,10 @@
-import type { CountModel, PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import type {
+  CountModel,
+  GroupTagModel,
+  PrefixModel,
+  TimeModel,
+  UserRefModel,
+} from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 export const PAGE = 'mx-auto w-full max-w-6xl px-4 sm:px-6'
@@ -214,4 +220,12 @@ export function prefixTone(token: string | null): PrefixTone | 'neutral' {
 
 export function Prefix({ prefix }: { prefix: PrefixModel }) {
   return <Badge tone={prefixTone(prefix.token)}>{prefix.label}</Badge>
+}
+
+export function groupTags(
+  groups: readonly GroupTagModel[] | undefined,
+  title: string | null,
+): readonly GroupTagModel[] {
+  if (groups !== undefined && groups.length > 0) return groups
+  return title === null ? [] : [{ title }]
 }

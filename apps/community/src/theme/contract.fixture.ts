@@ -66,6 +66,10 @@ const POST_AUTHOR = {
   ...AUTHOR,
   avatarUrl: '/avatar/12.png',
   title: 'Registered',
+  groups: [
+    { title: 'Registered', nameClass: null },
+    { title: 'Supporters', nameClass: 'gname-9' },
+  ],
   postCount: COUNT(318),
   joinedAt: OLDER,
   signatureHtml: '<p>Sent from a rotary telephone</p>',
@@ -368,6 +372,8 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
     requires: [
       'The shed should be teak.',
       'Marlow',
+      'Registered',
+      'Supporters',
       '#post-12',
       region('post-actions'),
       pluginRegion('postbit.badges'),
@@ -436,6 +442,10 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       user: AUTHOR,
       avatarUrl: '/avatar/12.png',
       title: 'Registered',
+      groups: [
+        { title: 'Registered', nameClass: null },
+        { title: 'Supporters', nameClass: 'gname-9' },
+      ],
       joinedAt: OLDER,
       lastVisitAt: TIME,
       postCount: COUNT(318),
@@ -444,7 +454,14 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       actions: [{ label: 'Send a message', href: '/messages/new?to=12' }],
       regions: { plugins: pluginRegion('profile.panel') },
     },
-    requires: ['Marlow', '318', 'Bristol', pluginRegion('profile.panel')],
+    requires: [
+      'Marlow',
+      '318',
+      'Bristol',
+      'Registered',
+      'Supporters',
+      pluginRegion('profile.panel'),
+    ],
   },
 
   SearchForm: {

@@ -2,12 +2,23 @@ import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 import { Avatar, Card, CardContent, cn } from '@meith/ui'
 
-import { BUTTON, ClubBar, HEADING, MICRO, NUMERIC, PAGE_BODY, PanelHead, Stamp } from '../shared'
+import {
+  BUTTON,
+  ClubBar,
+  groupTags,
+  HEADING,
+  MICRO,
+  NUMERIC,
+  PAGE_BODY,
+  PanelHead,
+  Stamp,
+} from '../shared'
 
 export function MemberProfile({
   user,
   avatarUrl,
   title,
+  groups,
   joinedAt,
   lastVisitAt,
   postCount,
@@ -38,7 +49,11 @@ export function MemberProfile({
                 <h1 className={cn(HEADING, 'text-xl break-words', user.nameClass)}>
                   {user.username}
                 </h1>
-                {title !== null && <p className={`${MICRO} mt-0.5`}>{title}</p>}
+                {groupTags(groups, title).map((group) => (
+                  <p key={group.title} className={`${MICRO} mt-0.5`}>
+                    <span className={group.nameClass ?? undefined}>{group.title}</span>
+                  </p>
+                ))}
               </div>
             </div>
 

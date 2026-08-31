@@ -1,6 +1,6 @@
 import type { MemberProfileRecord } from '@meith/accounts'
 import type { Translator } from '@meith/i18n'
-import type { MemberProfileModel } from '@meith/theme-kit'
+import type { GroupTagModel, MemberProfileModel } from '@meith/theme-kit'
 
 import { count } from './count'
 import { formatDate, formatTime, untranslated } from './time'
@@ -19,6 +19,7 @@ export function buildMemberProfileView(
     readonly canMessage?: boolean
     readonly avatarUrl?: string | null
     readonly nameClass?: string | null
+    readonly groups?: readonly GroupTagModel[]
   } = {},
 ): MemberProfileModel {
   const {
@@ -28,6 +29,7 @@ export function buildMemberProfileView(
     customFields = [],
     avatarUrl = null,
     nameClass = null,
+    groups = [],
   } = options
   return {
     user: {
@@ -38,6 +40,7 @@ export function buildMemberProfileView(
     },
     avatarUrl,
     title: profile.title,
+    groups,
     joinedAt: formatDate(profile.createdAt, t),
     lastVisitAt: profile.lastActiveAt === null ? null : formatTime(profile.lastActiveAt, now, t),
     postCount: count(profile.postCount, t),

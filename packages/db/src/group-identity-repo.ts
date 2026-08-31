@@ -15,6 +15,18 @@ export interface GroupIdentity {
 
 export interface MemberStanding extends GroupIdentity {
   readonly reputation: number
+  readonly groups: readonly GroupIdentity[]
+}
+
+function identityOf(row: Record<string, unknown>): GroupIdentity {
+  return {
+    groupId: Number(row.group_id),
+    title: String(row.title),
+    nameColorLight: row.name_color_light === null ? null : String(row.name_color_light),
+    nameColorDark: row.name_color_dark === null ? null : String(row.name_color_dark),
+    badgeImageLight: row.badge_image_light === null ? null : String(row.badge_image_light),
+    badgeImageDark: row.badge_image_dark === null ? null : String(row.badge_image_dark),
+  }
 }
 
 export class PostgresGroupIdentityRepository {
@@ -32,33 +44,47 @@ export class PostgresGroupIdentityRepository {
                g.name_color_light,
                g.name_color_dark,
                g.badge_image_light,
-               g.badge_image_dark
+               g.badge_image_dark,
+               (g.id = ${displayGroupIdSql('u', 'p')}) as is_display
           from users u
           join usergroups p
             on p.id = u.primary_group_id
           join usergroups g
             on g.id = ${displayGroupIdSql('u', 'p')}
+            or g.id = u.primary_group_id
+            or g.id in (
+              select m.group_id
+                from user_group_memberships m
+               where m.user_id = u.id
+                 and (m.expires_at is null or m.expires_at > now())
+            )
          where u.id in ${sql`(${sql.join(
            userIds.map((id) => sql`${id}`),
            sql`, `,
          )})`}
+         order by u.id, is_display desc, g.display_order, g.title, g.id
       `),
     ) as Array<Record<string, unknown>>
 
-    return new Map(
-      rows.map((row) => [
-        Number(row.user_id),
-        {
-          groupId: Number(row.group_id),
-          title: String(row.title),
-          nameColorLight: row.name_color_light === null ? null : String(row.name_color_light),
-          nameColorDark: row.name_color_dark === null ? null : String(row.name_color_dark),
-          badgeImageLight: row.badge_image_light === null ? null : String(row.badge_image_light),
-          badgeImageDark: row.badge_image_dark === null ? null : String(row.badge_image_dark),
-          reputation: Number(row.reputation ?? 0),
-        },
-      ]),
-    )
+    const byUser = new Map<number, { reputation: number; groups: GroupIdentity[] }>()
+
+    for (const row of rows) {
+      const userId = Number(row.user_id)
+      let entry = byUser.get(userId)
+      if (entry === undefined) {
+        entry = { reputation: Number(row.reputation ?? 0), groups: [] }
+        byUser.set(userId, entry)
+      }
+      entry.groups.push(identityOf(row))
+    }
+
+    const standings = new Map<number, MemberStanding>()
+    for (const [userId, entry] of byUser) {
+      const display = entry.groups[0]
+      if (display === undefined) continue
+      standings.set(userId, { ...display, reputation: entry.reputation, groups: entry.groups })
+    }
+    return standings
   }
 
   async styled(): Promise<readonly GroupIdentity[]> {
@@ -72,13 +98,6 @@ export class PostgresGroupIdentityRepository {
       `),
     ) as Array<Record<string, unknown>>
 
-    return rows.map((row) => ({
-      groupId: Number(row.group_id),
-      title: String(row.title),
-      nameColorLight: row.name_color_light === null ? null : String(row.name_color_light),
-      nameColorDark: row.name_color_dark === null ? null : String(row.name_color_dark),
-      badgeImageLight: row.badge_image_light === null ? null : String(row.badge_image_light),
-      badgeImageDark: row.badge_image_dark === null ? null : String(row.badge_image_dark),
-    }))
+    return rows.map(identityOf)
   }
 }

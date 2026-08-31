@@ -250,6 +250,7 @@ function seedSql(staffHash: string): string {
         name_color_dark: 'oklch(0.79 0.14 163)',
       },
     ]),
+    insert('user_group_memberships', [{ user_id: 1, group_id: 5001 }]),
   ]
 
   const pluginNavigation = [

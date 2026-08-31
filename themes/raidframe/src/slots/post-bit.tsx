@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
-import { HEADING, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
+import { groupTags, HEADING, MICRO, NUMERIC, Stamp, UserRef } from '../shared'
 
 function GroupBadge({
   badge,
@@ -119,9 +119,11 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
                   }`}
                 />
               </p>
-              {post.author.title !== null && (
-                <p className={`${MICRO} mt-0.5 text-primary/90`}>{post.author.title}</p>
-              )}
+              {groupTags(post.author.groups, post.author.title).map((group) => (
+                <p key={group.title} className={`${MICRO} mt-0.5 text-primary/90`}>
+                  <span className={group.nameClass ?? undefined}>{group.title}</span>
+                </p>
+              ))}
               {post.author.isOnline && (
                 <p className="mt-1 inline-flex items-center gap-1.5">
                   <span
