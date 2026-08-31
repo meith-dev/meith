@@ -375,6 +375,39 @@ describe('a forum subscription', () => {
     expect(pending.posts.map((p) => p.postId)).toEqual([100])
     expect(pending.watermarks).toHaveLength(2)
   })
+
+  it('does not skip later posts when a capped run spans several threads', async () => {
+    await db.execute(sql`
+      insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+                           visibility, created_at, last_post_at)
+      values (22, ${FORUM}, 'Second', 'second', ${MOD}, 'mod', 'visible', ${AT}, ${AT})
+    `)
+    await addPost({ id: 10, threadId: THREAD })
+    await addPost({ id: 5000, threadId: THREAD })
+    await addPost({ id: 20, threadId: 22 })
+    await addPost({ id: 30, threadId: 22 })
+
+    const first = await repo.pendingFor({
+      userId: IVAN,
+      mode: 'instant',
+      visibleForumIds: ALL_FORUMS,
+      limit: 3,
+    })
+    await repo.advanceWatermarks({ userId: IVAN, watermarks: first.watermarks })
+
+    const rest = await repo.pendingFor({
+      userId: IVAN,
+      mode: 'instant',
+      visibleForumIds: ALL_FORUMS,
+      limit: 50,
+    })
+
+    expect(first.posts.map((p) => p.postId)).toEqual([10, 20, 30])
+    expect(rest.posts.map((p) => p.postId)).toEqual([5000])
+    expect([...first.posts, ...rest.posts].map((p) => p.postId).sort((a, b) => a - b)).toEqual([
+      10, 20, 30, 5000,
+    ])
+  })
 })
 
 describe('watermarks', () => {
