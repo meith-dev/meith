@@ -225,7 +225,7 @@ containers come up, in order:
 |---|---|
 | `postgres` | The database. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. The next two wait for it, so the code never runs against a schema behind it. |
-| `web` | The board itself. |
+| `web` | The board itself. Uploaded files — avatars, board images, attachments — live in a named `uploads` volume, so a redeploy keeps them; point `FILESTORE_DRIVER` at S3 or a Blob store instead if you would rather they live outside the server. |
 | `worker` | Not the compiled tick process — `@meith/worker` is not published, so a board built this way calls `/api/system/tick` from a small loop instead. The catch-up it triggers still runs inside `web`, so `web`'s log, not this container's, is where a long `ran` list shows it working. This container only logs on failure. |
 
 Four things happen without your involvement, and they are the reason this
