@@ -157,6 +157,13 @@ export {
 } from './latest-repo'
 export { PostgresMaintenanceRepository } from './maintenance-repo'
 export { PostgresMarketplaceCacheRepository } from './marketplace-repo'
+export {
+  type MemberDirectoryPage,
+  type MemberDirectoryRow,
+  type MemberDirectorySort,
+  PostgresMemberDirectoryRepository,
+  type StaffGroupRow,
+} from './member-directory-repo'
 export { PostgresMemberProfileRepository } from './member-profile-repo'
 export { PostgresMemberSettingsRepository } from './member-settings-repo'
 export { PostgresMessageRepository } from './message-repo'

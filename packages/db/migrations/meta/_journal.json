@@ -414,6 +414,13 @@
       "when": 1787771682008,
       "tag": "0058_mass_mail_opt_in",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1788876000000,
+      "tag": "0059_member_directory_navigation",
+      "breakpoints": true
     }
   ]
 }

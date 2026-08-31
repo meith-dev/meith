@@ -105,7 +105,8 @@ All of it is optional:
 - **The title** — what shows under a member's name on every post, one
   line per displayed group.
 - **Display order**, and a **staff group** flag, which is what puts the
-  group on the board's staff page.
+  group on the board's staff page at `/staff` — groups appear there in
+  display order, each listing everyone who holds it.
 
 The colour reaches every username: the postbit, who started a thread, who
 posted last, the profile heading, who is online.
