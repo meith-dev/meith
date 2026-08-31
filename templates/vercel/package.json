@@ -10,9 +10,9 @@
     "meith": "meith"
   },
   "dependencies": {
-    "@meith/web": "0.29.1",
-    "@meith/cli": "0.29.1",
-    "@meith/theme-default": "0.29.1",
+    "@meith/web": "0.30.0",
+    "@meith/cli": "0.30.0",
+    "@meith/theme-default": "0.30.0",
     "next": "16.3.1"
   },
   "engines": {
