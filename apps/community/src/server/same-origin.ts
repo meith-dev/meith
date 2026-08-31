@@ -1,7 +1,21 @@
 import 'server-only'
 
-function boardHost(request: Request): string | null {
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+import { env } from '@meith/core'
+
+function canonicalOrigin(): URL | null {
+  const configured = env.APP_URL
+  if (configured === undefined || configured === '') return null
+
+  try {
+    return new URL(configured)
+  } catch {
+    return null
+  }
+}
+
+function requestHost(request: Request): string | null {
+  const forwarded = env.TRUSTED_PROXY_HOPS > 0 ? request.headers.get('x-forwarded-host') : null
+  const host = forwarded ?? request.headers.get('host')
   if (host === null) return null
 
   const trimmed = host.trim().toLowerCase()
@@ -12,14 +26,23 @@ export function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin')?.trim()
 
   if (origin !== undefined && origin !== '' && origin !== 'null') {
-    const host = boardHost(request)
-    if (host === null) return false
-
+    let presented: URL
     try {
-      return new URL(origin).host.toLowerCase() === host
+      presented = new URL(origin)
     } catch {
       return false
     }
+
+    const canonical = canonicalOrigin()
+    if (canonical !== null) {
+      return (
+        presented.host.toLowerCase() === canonical.host.toLowerCase() &&
+        presented.protocol === canonical.protocol
+      )
+    }
+
+    const host = requestHost(request)
+    return host !== null && presented.host.toLowerCase() === host
   }
 
   const site = request.headers.get('sec-fetch-site')
