@@ -36,22 +36,18 @@ Running your community — browser only, no shell access:
 - [Writing a post](./guides/community/formatting.md) — the composer's toolbar and its Markdown.
 - [Forums and permissions](./guides/community/forums.md) — the forum tree and the per-forum permission matrix.
 - [Groups and promotions](./guides/community/groups.md) — what a group carries board-wide.
-- [Spam controls and rate limits](./guides/community/antispam.md) — the registration challenge and every threshold.
+- [Spam controls and filters](./guides/community/antispam.md) — the registration challenge, every threshold, the render-time word filter, and the ban filters that turn somebody away before an account exists.
 - [Reputation](./guides/community/reputation.md) — members rating each other, and the two settings that decide what a post offers.
 - [Search](./guides/community/search.md) — switching it off without losing the index, and the two limits on how often.
-- [The word filter](./guides/community/word-filter.md) — rewriting words at render time, and exactly which surfaces it covers.
-- [Ban filters](./guides/community/ban-filters.md) — turning somebody away before an account exists, and why a pattern is a glob.
 
 Operating the server:
 
-- [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, and troubleshooting.
+- [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, web push, the cookies and security headers the board serves, and troubleshooting.
 - [Monitoring & alerting](./guides/operations/monitoring.md) — liveness versus readiness, metrics, tracing, and logs.
-- [Cookies and security headers](./guides/operations/cookies-and-headers.md) — every cookie the board sets, and the Content Security Policy.
 - [Upgrading](./guides/operations/upgrading.md) — move between released versions safely.
 - [Disaster recovery](./guides/operations/disaster-recovery.md) — restore a board when the original server is unavailable.
 - [Signing in](./guides/operations/single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.
 - [Languages](./guides/operations/internationalisation.md) — locale selection and translation packages.
-- [Web push](./guides/operations/web-push.md) — browser notifications and installable-board metadata.
 - [Scaling out](./guides/operations/scaling.md) — add web instances and a shared cache.
 - [Demo mode](./guides/operations/demo-mode.md) — run a public board that resets itself.
 

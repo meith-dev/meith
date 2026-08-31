@@ -1,12 +1,17 @@
-# Spam controls and rate limits
+# Spam controls and filters
 
-Everything a board has for keeping automated traffic out, and for
-bounding what one visitor can do in an hour. It lives in three places:
+Everything a board has for keeping automated traffic out, bounding what
+one visitor can do in an hour, rewriting words a reader should not meet,
+and turning somebody away before an account exists. The rate limits and
+challenges live in three places:
 
 - **`/admin/antispam`** — the registration questions themselves.
 - **`/admin/settings?group=antispam`** — every threshold on this page.
 - **`/admin/settings?group=security`** — two of the three login
   counters, which are account controls rather than volume ones.
+
+[The word filter](#the-word-filter) and [ban filters](#ban-filters), at
+the end of this page, have screens of their own under `/admin`.
 
 Most of it ships switched off — a fresh board has no spam on it, and a
 feature that arrives switched on introduces itself by breaking your
@@ -170,3 +175,198 @@ contacting a third party before they can join your board, which is a
 decision about your members rather than a setting. The provider seam
 (`CaptchaProvider` in `packages/antispam`) is there if you want one — a
 small module, not a fork. See [the plugin API](../../customization/plugins.md).
+
+## The word filter
+
+The word filter rewrites words as a page is rendered. It is the board's
+way of taking the sting out of language without editing anybody's post
+or standing over the composer.
+
+`/admin/content` holds it, under **Word filters**. It is an
+administrator's control: a moderator's route to bad language is the
+warning ladder or a hidden post, not this screen.
+
+### What a rule is
+
+Three fields:
+
+- **The pattern** — the word to look for.
+- **The replacement** — what to put in its place. It may be empty,
+  which removes the word.
+- **Whole word** — on, the pattern only matches when it stands alone as
+  a word; off, it matches anywhere inside a longer one.
+
+Matching is **case-insensitive**, and the replacement is inserted
+exactly as you typed it. A rule with an empty pattern is ignored.
+
+> [!IMPORTANT]
+> **A pattern is a literal, not a pattern language.** Every character is
+> matched as itself — `*`, `?`, `.` and the rest are just those
+> characters. There are no wildcards and no regular expressions, so
+> `.*` matches the two characters `.` and `*` and nothing else. If you
+> want to catch several spellings of a word, that is several rules.
+
+**Whole word is the setting that surprises people.** With it off, a rule
+for `ass` rewrites the middle of *class*, *passage* and *assessment*.
+With it on, only the word on its own is touched. Leave it on unless you
+have a reason.
+
+### What it changes, and what it does not
+
+**The filter runs at render time. It never edits stored text.** The post
+in the database is exactly what its author typed, and removing a rule
+brings the original word back everywhere immediately. Nothing is
+destroyed, so a rule is never a decision you have to live with.
+
+Two consequences worth knowing:
+
+- **A member who quotes a filtered post gets the original word**, because
+  the quote is built from the stored text.
+- **The moderation queue deliberately shows text unfiltered** — you are
+  judging the words, so you see them. See
+  [the moderator's guide](./moderation-guide.md#the-approval-queue).
+
+The filter only touches the text a reader sees. It steps over HTML tags,
+so it never rewrites a link's address, a class name or an attribute — a
+rule for `cat` cannot break a link to `example.com/catalogue`.
+
+#### Where it applies
+
+| Filtered | Not filtered |
+| --- | --- |
+| Post bodies | Signatures |
+| Thread titles, wherever a reader meets one | Custom profile fields |
+| Excerpts in the latest-posts lists | Usernames |
+| Search result excerpts, on the board and through the REST API | Forum names |
+| Feed summaries and feed entry titles (RSS and Atom) | |
+| The description in a page's metadata, which is what a link preview shows | |
+
+**Thread titles are filtered everywhere a reader meets one**: the
+heading of the thread page and its breadcrumb, every forum listing, the
+last-post line on the board index, the latest panels and discovery
+lists, search results, the list of threads a member follows, what
+somebody online is said to be reading, the heading over the reply form,
+feed entry titles, and the `<title>`, OpenGraph and structured-data tags
+a link preview and a search engine read.
+
+Two places see the stored title instead, each on purpose:
+
+- **The moderation queue, the report screens and the mod control
+  panel.** You are judging the words, so you see them.
+- **The thread resource the REST API returns** under `/threads`. It is
+  the record a client may write back, and a filtered title becoming the
+  stored one is a loss the filter must never cause. The search results
+  and subscription lists the API serves are display text, and they are
+  filtered.
+
+Nothing on the board offers a thread rename, so a filter rule is the
+only way to take a word out of a title that is already there.
+
+> [!NOTE]
+> Notification subjects are not filtered — "New reply in …" keeps the
+> stored title. A notification subject is composed once and becomes an
+> e-mail and a push payload as well as a line on the board, so whether
+> the filter should reach the mail a board sends is a separate question
+> from what a page renders.
+
+### What it costs
+
+Very little. The compiled rules are cached board-wide and rebuilt when
+you change one, and the substitution runs over text the board was
+rendering anyway. The real cost is judgement: a filter that rewrites a
+word into a joke reads as the board making light of something a member
+was serious about, and members can tell the difference between a board
+that removed a slur and one that made a punchline of it.
+
+## Ban filters
+
+A ban filter turns somebody away **before an account exists**. It is not
+a ban: there is no member to ban yet. A person a filter matches never
+registers, never appears in the member list, and never reaches the
+approval queue.
+
+`/admin/users/ban-filters` holds them. It is an administrator's screen —
+a moderator's route to keeping somebody out is the warning ladder, a
+ban, or asking an administrator. See
+[the moderator's guide](./moderation-guide.md#bans-and-what-you-can-reach).
+
+### What a filter is
+
+Three fields:
+
+- **Matches on** — one of three things a would-be member offers.
+- **The pattern** — what that thing is compared against.
+- **A note** — optional, seen only on this screen. Why the filter
+  exists, so whoever reads it in six months knows whether it still
+  needs to.
+
+The screen also records who added each filter and when, and both adding
+and removing one are written to the admin log.
+
+The three kinds:
+
+| Matches on | Compared against |
+| --- | --- |
+| **Username** | The name being registered, or the name of the account signing in |
+| **E-mail address** | The address being registered, or the address on the account signing in |
+| **Address the request came from** | The IP address the request arrived from |
+
+A username or e-mail filter is compared **ignoring case**, so
+`Spammer` and `spammer` are the same pattern.
+
+### Patterns are globs, not regular expressions
+
+This is the one thing worth reading twice.
+
+- `*` matches any run of characters, including none.
+- `?` matches exactly one character.
+- **Every other character matches itself**, a full stop included.
+
+So `.*` does not mean "everything". It matches the two characters `.`
+and `*`, and almost nothing else. The pattern for every address at a
+domain is `*@example.com`; the pattern for a range of addresses is
+`198.51.100.*`.
+
+> [!WARNING]
+> A pattern of nothing but `*` would match everybody and is refused. If
+> you want to stop all new members, close registration in the
+> settings rather than filtering everyone out.
+
+Two limits keep a pattern from being expensive or absolute: at most 200
+characters, and at most 20 wildcards. A pattern past either is refused
+when you save it. **A filter that would match you is refused too** —
+saving a pattern that matches your own username, address, or network
+would lock you out of the board with no way back through the interface,
+so the screen will not let you.
+
+### Where a filter is consulted
+
+Every route into an account:
+
+- A typed registration — the username, the address and the request's
+  address are all checked.
+- A sign-in — the request's address is checked before any password is
+  verified, and the account's username and address once it is.
+- A registration through a single sign-on provider, against the address
+  the provider returned and the username it asked for.
+
+Somebody a filter turns away is told the board cannot accept that
+account and to contact an administrator. **The message never says which
+of the three matched**, deliberately: naming the field would tell
+somebody trying to get in exactly what to change.
+
+Two places deliberately do not consult filters, because both are the
+board's own way back in: **the installer**, which creates the first
+administrator, and **`meith user create`** on the command line.
+
+### What a filter does not do
+
+- It does not touch an account that already exists. Somebody who
+  registered before you added the filter keeps their account — but the
+  filter is checked at sign-in too, so they cannot get back in. To
+  remove them properly, ban the member.
+- It does not tell you it matched. A refused registration leaves no
+  member and no report; the admin log records the filter being added,
+  not each person it turned away.
+- It does not expire. A filter stays until somebody removes it, which
+  is why the note field is worth filling in.

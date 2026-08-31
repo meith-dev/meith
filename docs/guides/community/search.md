@@ -61,8 +61,8 @@ cap is what stops a script.
 ## What a result shows
 
 Search results carry an excerpt from the post, and **the excerpt has the
-[word filter](./word-filter.md) applied**. The thread title beside it
-does not — see that page for what the filter covers.
+[word filter](./antispam.md#the-word-filter) applied**. The thread title
+beside it does not — see that section for what the filter covers.
 
 Results obey permissions. The scope is built from the same forum
 audience the rest of the board uses, so a member never sees a hit in a
