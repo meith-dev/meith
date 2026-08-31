@@ -43,7 +43,7 @@ services:
     # runs the old code.
     pull_policy: always
     environment:
-      COMMUNITY_ROLE: migrate
+      MEITH_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK

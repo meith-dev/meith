@@ -125,11 +125,11 @@ Then build, migrate and start:
 
 ```sh
 npm run build
-npx community migrate
+npx meith migrate
 npm run start
 ```
 
-The scaffold ships one migration, which is why `community migrate` is in
+The scaffold ships one migration, which is why `meith migrate` is in
 the list — it creates the plugin's own `plugin_first_light_wave` table,
 inside the namespace the host enforces. The plugin now appears under
 **Admin → Plugins**: its setting is editable there, its admin page renders

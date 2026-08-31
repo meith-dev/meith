@@ -9,22 +9,22 @@
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# `docker run <image> node_modules/.bin/community --help` should still run
+# `docker run <image> node_modules/.bin/meith --help` should still run
 # the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
-case "${COMMUNITY_ROLE:-web}" in
+case "${MEITH_ROLE:-web}" in
   migrate)
     # Runs to completion and exits; compose's one-shot service waits on it.
-    exec node_modules/.bin/community migrate
+    exec node_modules/.bin/meith migrate
     ;;
   web)
     exec node_modules/.bin/forum-web start
     ;;
   *)
-    echo "Unknown COMMUNITY_ROLE: ${COMMUNITY_ROLE}. Expected 'web' or 'migrate'." >&2
+    echo "Unknown MEITH_ROLE: ${MEITH_ROLE}. Expected 'web' or 'migrate'." >&2
     exit 1
     ;;
 esac

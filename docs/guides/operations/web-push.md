@@ -50,8 +50,8 @@ key, whose public half every browser stores when it subscribes, and
 whose private half signs every send.
 
 ```sh
-community push:keys           # prints a pair for you to paste in
-community push:keys --save    # generates one and writes it to the board
+meith push:keys           # prints a pair for you to paste in
+meith push:keys --save    # generates one and writes it to the board
 ```
 
 > [!WARNING]
@@ -179,7 +179,7 @@ operator action is needed; it is served whether or not push is on.
 |---|---|
 | No subscribe button at all | **Offer web push** is off, or the keys or the contact are missing. With push on and something missing, `/admin/settings?group=push` says which. |
 | The button appears and the browser refuses | Notifications are blocked for the site — the member has to allow them in the browser's own site settings first. On iOS, the board is not on the home screen yet. |
-| Subscribed, and nothing arrives | Check the worker is running: push goes out on the **tick**, like notification mail. `community task:list` shows when the outbox last relayed. |
+| Subscribed, and nothing arrives | Check the worker is running: push goes out on the **tick**, like notification mail. `meith task:list` shows when the outbox last relayed. |
 | It worked and then stopped, on one device | The push service dropped the endpoint and the board pruned it. The member resubscribes from the preferences screen. |
 | It worked and then stopped, for everybody | The VAPID key pair changed. See the warning above. |
 | Nothing on iOS, everything elsewhere | Safari pushes only to an installed board. |

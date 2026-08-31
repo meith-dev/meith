@@ -14,7 +14,7 @@
  *   ]
  *
  * and the matching entry in board.plugins.json, which is what
- * `community plugin:add`/`plugin:remove` read inside the monorepo — kept
+ * `meith plugin:add`/`plugin:remove` read inside the monorepo — kept
  * here too so the two files agree about what is installed.
  */
 import type { InstalledPlugin } from '@meith/web/config'

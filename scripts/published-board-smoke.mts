@@ -58,8 +58,8 @@ async function main() {
       env: { ...process.env, DATABASE_URL: '', DATA_SOURCE: '' },
     })
 
-    console.log('== community migrate ==')
-    run(join(boardDir, 'node_modules/.bin/community'), ['migrate'], {
+    console.log('== meith migrate ==')
+    run(join(boardDir, 'node_modules/.bin/meith'), ['migrate'], {
       cwd: boardDir,
       env: { ...process.env, DATABASE_URL, DATA_SOURCE: 'postgres' },
     })

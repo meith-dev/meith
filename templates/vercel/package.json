@@ -7,7 +7,7 @@
     "dev": "forum-web dev --at-root",
     "build": "forum-web build --at-root",
     "start": "forum-web start --at-root",
-    "community": "community"
+    "meith": "meith"
   },
   "dependencies": {
     "@meith/web": "0.26.1",

@@ -32,7 +32,7 @@ cat > "$BOARD_NAME/package.json" <<'MEITH_SCAFFOLD_EOF'
     "dev": "forum-web dev",
     "build": "forum-web build",
     "start": "forum-web start",
-    "community": "community"
+    "meith": "meith"
   },
   "dependencies": {
     "@meith/web": "0.26.1",
@@ -124,7 +124,7 @@ cat > "$BOARD_NAME/meith.plugins.ts" <<'MEITH_SCAFFOLD_EOF'
  *   ]
  *
  * and the matching entry in board.plugins.json, which is what
- * `community plugin:add`/`plugin:remove` read inside the monorepo — kept
+ * `meith plugin:add`/`plugin:remove` read inside the monorepo — kept
  * here too so the two files agree about what is installed.
  */
 import type { InstalledPlugin } from '@meith/web/config'
@@ -158,7 +158,7 @@ cat > "$BOARD_NAME/.env.example" <<'MEITH_SCAFFOLD_EOF'
 DATABASE_URL=
 
 # The other half of that pair: the DIRECT (non-pooler) string, used only by
-# `community migrate` and `community backup`. Migrations hold a session-level
+# `meith migrate` and `meith backup`. Migrations hold a session-level
 # advisory lock so that two deploys landing together queue instead of both
 # applying the same migration, and a transaction-mode pooler cannot hold that
 # lock: it takes the connection back the moment the lock statement ends, which
@@ -261,8 +261,8 @@ cat > "$BOARD_NAME/Dockerfile" <<'MEITH_SCAFFOLD_EOF'
 # "Custom boards").
 #
 # Two stages, not three: unlike the official image, this does not prune down
-# to Next's own standalone output. The migrate role below runs `community
-# migrate`, and `community` materializes @meith/cli's sources and runs them
+# to Next's own standalone output. The migrate role below runs `meith
+# migrate`, and `meith` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
 # docs/contributing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
@@ -337,8 +337,8 @@ cat > "$BOARD_NAME/Dockerfile.prebuilt" <<'MEITH_SCAFFOLD_EOF'
 # of minutes rather than a cold toolchain build.
 #
 # Two stages, not three: unlike the official image, this does not prune down
-# to Next's own standalone output. The migrate role below runs `community
-# migrate`, and `community` materializes @meith/cli's sources and runs them
+# to Next's own standalone output. The migrate role below runs `meith
+# migrate`, and `meith` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
 # docs/contributing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
@@ -408,22 +408,22 @@ cat > "$BOARD_NAME/docker-entrypoint.sh" <<'MEITH_SCAFFOLD_EOF'
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# `docker run <image> node_modules/.bin/community --help` should still run
+# `docker run <image> node_modules/.bin/meith --help` should still run
 # the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
-case "${COMMUNITY_ROLE:-web}" in
+case "${MEITH_ROLE:-web}" in
   migrate)
     # Runs to completion and exits; compose's one-shot service waits on it.
-    exec node_modules/.bin/community migrate
+    exec node_modules/.bin/meith migrate
     ;;
   web)
     exec node_modules/.bin/forum-web start
     ;;
   *)
-    echo "Unknown COMMUNITY_ROLE: ${COMMUNITY_ROLE}. Expected 'web' or 'migrate'." >&2
+    echo "Unknown MEITH_ROLE: ${MEITH_ROLE}. Expected 'web' or 'migrate'." >&2
     exit 1
     ;;
 esac
@@ -437,7 +437,7 @@ cat > "$BOARD_NAME/docker-healthcheck.sh" <<'MEITH_SCAFFOLD_EOF'
 # a health probe taken while it runs has no opinion.
 set -e
 
-if [ "${COMMUNITY_ROLE:-web}" = "migrate" ]; then
+if [ "${MEITH_ROLE:-web}" = "migrate" ]; then
   exit 0
 fi
 
@@ -574,7 +574,7 @@ services:
     build: .
     image: __MEITH_BOARD_NAME__
     environment:
-      COMMUNITY_ROLE: migrate
+      MEITH_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
@@ -706,7 +706,7 @@ services:
     # runs the old code.
     pull_policy: always
     environment:
-      COMMUNITY_ROLE: migrate
+      MEITH_ROLE: migrate
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
@@ -905,7 +905,7 @@ Two things nothing configures for you, on either path:
   loop calling `/api/system/tick` once a minute, since `@meith/web`'s own
   worker package is not something a board outside the meith monorepo can
   depend on yet. Deploy some other way and something still has to call that
-  route (or run `community task:run`) every minute, or nothing catches up
+  route (or run `meith task:run`) every minute, or nothing catches up
   and nothing errors.
 
 ## Local
@@ -923,8 +923,8 @@ Posting needs Postgres. Copy `.env.example` to `.env.local`, set
 `DATABASE_URL` and the two secrets in it, then:
 
 ```sh
-npm run community -- migrate
-echo "<password>" | npm run community -- user:create --username <name> --email <address> --group administrators
+npm run meith -- migrate
+echo "<password>" | npm run meith -- user:create --username <name> --email <address> --group administrators
 ```
 
 ## Configuring
@@ -935,8 +935,50 @@ echo "<password>" | npm run community -- user:create --username <name> --email <
 - **`/admin`** — settings, forums, groups, members, themes, maintenance. An
   administrator re-enters their password to get in, and again for anything
   destructive.
-- **`npm run community -- --help`** — the operator CLI. Everything the panel does
+- **`npm run meith -- --help`** — the operator CLI. Everything the panel does
   and a few things it cannot, without a browser.
+
+## Installing plugins and themes
+
+Nothing installs into a running container — a plugin or theme has to be
+built into the image, the same as any other dependency:
+
+1. **In this repository**, install it:
+
+   ```sh
+   npm install --save-exact @meith/plugin-dues
+   ```
+
+   (a theme is the same command with its own package, e.g.
+   `@meith/theme-midnight`).
+
+2. **Register it.** A **theme** goes in `meith.config.ts`, in the `themes`
+   map, following the shape of the `default` entry already there. A
+   **plugin** goes in `meith.plugins.ts`: import its `plugin` and
+   `messages` exports and add `{ key, enabled: true, plugin, messages }`
+   to `INSTALLED_PLUGINS` — or run
+
+   ```sh
+   npm run meith -- plugin:add @meith/plugin-dues
+   ```
+
+   which edits `board.plugins.json` and regenerates `meith.plugins.ts`
+   for you.
+
+3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
+   not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
+   waits for `.github/workflows/build.yml` to finish first, and Redeploy is
+   what actually pulls the result.
+
+4. **Once it is up, run its migrations one time:**
+
+   ```sh
+   docker compose run --rm web meith upgrade
+   ```
+
+See [docs/customization/plugins.md](https://github.com/meith-dev/meith/blob/main/docs/customization/plugins.md)
+and [docs/customization/themes.md](https://github.com/meith-dev/meith/blob/main/docs/customization/themes.md)
+for the full reference.
 
 ## Upgrading
 
@@ -978,7 +1020,7 @@ project's own `.npmrc` sets `save-exact=true` for the same reason, so an
 `npm install` of anything else here — a plugin, say — stays pinned too; the
 build workflow also refuses to build from anything but an exact version, as
 a second line of defense. Once the rebuilt image is deployed, run
-`npm run community -- upgrade` against it for the plugin migrations — see
+`npm run meith -- upgrade` against it for the plugin migrations — see
 [the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/guides/operations/operating.md#the-operator-cli)
 for running it against this deployment.
 
@@ -1022,4 +1064,4 @@ fi
 echo
 echo "Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy."
 echo "Something must run the tick every minute — the worker process, or"
-echo "community task:run. Without it nothing catches up, and nothing errors."
+echo "meith task:run. Without it nothing catches up, and nothing errors."

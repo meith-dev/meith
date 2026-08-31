@@ -112,8 +112,8 @@ async function main() {
       env: { ...process.env, DATABASE_URL: '', DATA_SOURCE: '' },
     })
 
-    console.log('== community migrate (against a real, disposable Postgres) ==')
-    run(join(boardDir, 'node_modules/.bin/community'), ['migrate'], {
+    console.log('== meith migrate (against a real, disposable Postgres) ==')
+    run(join(boardDir, 'node_modules/.bin/meith'), ['migrate'], {
       cwd: boardDir,
       env: {
         ...process.env,
@@ -124,9 +124,9 @@ async function main() {
       },
     })
 
-    console.log('== community migrate over DIRECT_DATABASE_URL, with DATABASE_URL unreachable ==')
+    console.log('== meith migrate over DIRECT_DATABASE_URL, with DATABASE_URL unreachable ==')
     const migrateOutput = runCapturingStdout(
-      join(boardDir, 'node_modules/.bin/community'),
+      join(boardDir, 'node_modules/.bin/meith'),
       ['migrate'],
       {
         cwd: boardDir,
@@ -141,9 +141,7 @@ async function main() {
       },
     )
     if (!migrateOutput.includes('Migrating over DIRECT_DATABASE_URL')) {
-      throw new Error(
-        `community migrate did not report using DIRECT_DATABASE_URL:\n${migrateOutput}`,
-      )
+      throw new Error(`meith migrate did not report using DIRECT_DATABASE_URL:\n${migrateOutput}`)
     }
 
     await bootAndCheck(boardDir, PORT, false, DATABASE_URL)

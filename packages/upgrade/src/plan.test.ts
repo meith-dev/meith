@@ -235,7 +235,7 @@ describe('the admin notice', () => {
     expect(notice).toContain('1.0.0')
     expect(notice).toContain('1.1.0')
     expect(notice).toContain('2 migration(s)')
-    expect(notice).toContain('community upgrade')
+    expect(notice).toContain('meith upgrade')
   })
 
   it('does not recite one version twice when only migrations are pending', () => {

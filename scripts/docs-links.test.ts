@@ -73,9 +73,7 @@ describe('headingAnchors', () => {
 
   it('reads through inline code and emphasis, as the renderer does', () => {
     expect(
-      headingAnchors('# T\n\n## What `community upgrade` does\n').has(
-        'what-community-upgrade-does',
-      ),
+      headingAnchors('# T\n\n## What `meith upgrade` does\n').has('what-meith-upgrade-does'),
     ).toBe(true)
   })
 })

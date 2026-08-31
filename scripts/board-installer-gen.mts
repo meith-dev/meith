@@ -98,7 +98,7 @@ fi
 echo
 echo "Then set DATABASE_URL, AUTH_SECRET and TICK_SECRET and deploy."
 echo "Something must run the tick every minute — the worker process, or"
-echo "community task:run. Without it nothing catches up, and nothing errors."
+echo "meith task:run. Without it nothing catches up, and nothing errors."
 `
 }
 

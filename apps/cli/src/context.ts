@@ -30,7 +30,7 @@ export function requirePostgres(): void {
   if (env.DATA_SOURCE !== 'postgres') {
     throw new ConfigurationError(
       'This command needs a database: DATA_SOURCE is "fixture".\n' +
-        'Set DATABASE_URL (see .env.example) and run `community migrate` first.',
+        'Set DATABASE_URL (see .env.example) and run `meith migrate` first.',
     )
   }
 }
@@ -39,7 +39,7 @@ export async function defaultMemberGroupId(admin: PostgresAdminRepository): Prom
   const id = await admin.registeredGroupId()
   if (id === null) {
     throw new ConfigurationError(
-      'No "registered" usergroup found. Run `community migrate` to seed the group ladder.',
+      'No "registered" usergroup found. Run `meith migrate` to seed the group ladder.',
     )
   }
   return id

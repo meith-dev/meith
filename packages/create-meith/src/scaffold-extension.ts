@@ -206,7 +206,7 @@ and add the matching entry to \`board.plugins.json\`:
     { "plugins": [{ "key": "${name}", "package": "${name}", "enabled": true }] }
 
 Rebuild the board (\`npm run build\`) and, because this plugin ships a
-migration, run \`npx community migrate\`. The plugin then appears under
+migration, run \`npx meith migrate\`. The plugin then appears under
 **Admin → Plugins**.
 
 ## Publish and list it

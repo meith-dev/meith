@@ -22,22 +22,22 @@ PostgreSQL and uploads use persistent volumes. A database-only backup does not i
 Applying the schema is always a separate step from starting the board. Under Compose the one-shot `migrate` service does it and `web` waits for that service to exit 0. Where the deployment has no place to run a one-shot job — a platform that only builds and serves — the same step belongs in the build command, ahead of the build:
 
 ```sh
-community migrate && forum-web build
+meith migrate && forum-web build
 ```
 
-`community migrate` applies every migration the installed release has that the board does not, reports how many it applied, and exits 0 having done nothing when the schema is already current. It needs no build output and no running board, so either end of a deploy is a valid place for it. A failure exits non-zero, which is what stops the `&&` and fails the deployment instead of serving new code against an old schema.
+`meith migrate` applies every migration the installed release has that the board does not, reports how many it applied, and exits 0 having done nothing when the schema is already current. It needs no build output and no running board, so either end of a deploy is a valid place for it. A failure exits non-zero, which is what stops the `&&` and fails the deployment instead of serving new code against an old schema.
 
 ### Two migrations at once
 
 The runner takes a session-level PostgreSQL advisory lock on a fixed key, holds it for the whole run, and releases it when the run ends — including when the run fails. Overlapping migrations therefore queue rather than race: the second waits for the first to finish, then finds the schema current and applies nothing. Two builds triggered close together cannot apply the same core migration twice.
 
-The lock covers the core migration run and nothing after it. `community upgrade` applies each installed plugin's migrations once `runMigrations()` has returned, which is to say once the lock is already released, so two upgrades running at the same instant are serialised through the core schema but not through the plugins'. Run one upgrade at a time.
+The lock covers the core migration run and nothing after it. `meith upgrade` applies each installed plugin's migrations once `runMigrations()` has returned, which is to say once the lock is already released, so two upgrades running at the same instant are serialised through the core schema but not through the plugins'. Run one upgrade at a time.
 
 Nothing has to clean up after a crash. PostgreSQL drops a session-level lock when the connection goes, so a process killed mid-run leaves the lock released and the next attempt proceeds. The lock is held in the database rather than by the board, which is what makes it cover migrations started from different machines against the same database.
 
 ### Which connection migrations use
 
-`community migrate` and `community backup` connect over `DIRECT_DATABASE_URL` when it is set and over `DATABASE_URL` when it is not. `community restore` is the exception in the other direction: it writes to `RESTORE_DATABASE_URL` and refuses to run without it, so a restore can never be aimed at the live board by accident. Everything else — web, worker, the tick — always uses `DATABASE_URL`.
+`meith migrate` and `meith backup` connect over `DIRECT_DATABASE_URL` when it is set and over `DATABASE_URL` when it is not. `meith restore` is the exception in the other direction: it writes to `RESTORE_DATABASE_URL` and refuses to run without it, so a restore can never be aimed at the live board by accident. Everything else — web, worker, the tick — always uses `DATABASE_URL`.
 
 ## Connection pooling
 
@@ -73,44 +73,44 @@ Environment variables hold deployment drivers, credentials, and values needed be
 Validate the environment:
 
 ```sh
-docker compose run --rm web community env:check
+docker compose run --rm web meith env:check
 ```
 
 Inspect settings:
 
 ```sh
-docker compose run --rm web community settings:list
-docker compose run --rm web community settings:get <key>
+docker compose run --rm web meith settings:list
+docker compose run --rm web meith settings:get <key>
 ```
 
 Set a value from the terminal only when the admin interface is unavailable:
 
 ```sh
-docker compose run --rm web community settings:set <key> <value>
+docker compose run --rm web meith settings:set <key> <value>
 ```
 
 The standard deployment requires a PostgreSQL password, `AUTH_SECRET`, `TICK_SECRET`, and the public `APP_URL`. Generate secrets independently, protect the `.env` file, and never commit it.
 
 `TICK_SECRET` protects `/api/system/tick`, the HTTP form of the worker's tick. A deployment with no long-lived worker process drives that endpoint from a cron scheduler instead, and `CRON_SECRET` is the second name the same endpoint accepts it under, for a scheduler that can only send `Authorization: Bearer` under that name. Either variable on its own protects the endpoint, and production refuses to boot with neither — see [Monitoring](./monitoring.md#driving-the-tick-over-http) for the request and response contract.
 
-Use `community --help` for the exact commands supported by the installed release.
+Use `meith --help` for the exact commands supported by the installed release.
 
 ## The operator CLI
 
-`community` is the operator CLI, and every maintenance command on this page is one of its subcommands. How you reach it depends on the deployment:
+`meith` is the operator CLI, and every maintenance command on this page is one of its subcommands. How you reach it depends on the deployment:
 
 | Deployment | Invocation |
 |---|---|
-| Compose — the supported stack, and the by-hand one | `docker compose run --rm web community <command>` |
-| A platform that only builds and serves | `community <command>`, from a checkout of the board repository with the production environment in front of it — see [Running on Vercel](../../getting-started/deployment/vercel.md) |
+| Compose — the supported stack, and the by-hand one | `docker compose run --rm web meith <command>` |
+| A platform that only builds and serves | `meith <command>`, from a checkout of the board repository with the production environment in front of it — see [Running on Vercel](../../getting-started/deployment/vercel.md) |
 
 `--rm` stops the one-shot containers accumulating. Add `-T` when the command reads standard input, as creating a user does under [Account recovery](#account-recovery).
 
-There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `community migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
+There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
 The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. It is also the only route for the commands that have no admin-panel equivalent: `backup`, `restore`, `migrate` and `upgrade`.
 
-`community --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
+`meith --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
 
 ## Mail
 
@@ -119,7 +119,7 @@ The worker sends queued mail, so web and worker need the same mail configuration
 After a change:
 
 1. recreate web and worker;
-2. run `community env:check`;
+2. run `meith env:check`;
 3. trigger a real board email;
 4. inspect worker logs and the receiving mailbox.
 
@@ -128,9 +128,9 @@ A successful network connection is not proof of delivery.
 ## Scheduled tasks
 
 ```sh
-docker compose run --rm web community task:list
-docker compose run --rm web community task:run
-docker compose run --rm web community task:run <task-id>
+docker compose run --rm web meith task:list
+docker compose run --rm web meith task:run
+docker compose run --rm web meith task:run <task-id>
 ```
 
 Manual execution follows the same due and claim rules as the worker. Use it for diagnosis, not as a permanent scheduler.
@@ -142,10 +142,10 @@ Create a restorable bundle with:
 ```sh
 mkdir -p backups
 docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/backups":/backup web \
-  community backup --out /backup/board.tar.gz
+  meith backup --out /backup/board.tar.gz
 ```
 
-`community backup --help` prints the flags the installed release actually has — include uploads when they use the local volume, and copy at least one version off the server.
+`meith backup --help` prints the flags the installed release actually has — include uploads when they use the local volume, and copy at least one version off the server.
 
 **Neither the `mkdir` nor the `--user` is optional**, and they are needed for the same reason `board:eject` needs them (see [the marketplace](../../customization/marketplace.md#moving-to-a-custom-board)). The image runs as a fixed, non-root account — `nextjs`, uid 1001 — which owns nothing on your host, so it can only write into a directory that account can already write to. Creating `backups` yourself first means it belongs to you rather than being auto-created root-owned by Docker; `--user "$(id -u):$(id -g)"` then makes the account doing the writing the account that owns the directory. Without them the run ends in `EACCES: permission denied`, saying which directory needs write access and pointing back here.
 
@@ -159,7 +159,7 @@ A useful policy records frequency, retention, off-server location, access owners
 
 On `s3` and `blob` the uploads are pulled object by object out of the store, and an object whose key the board cannot use — one that would escape the staging directory, one holding a `.` or `..` segment, an empty segment, surrounding whitespace, or a control character — cannot be written into the bundle. Such a key is not something the board itself produces; it arrives when something else writes into the same bucket or store, or when a key is mangled in a migration between them.
 
-`community backup` **skips that object and finishes the run**. The alternative — stopping — was the old behaviour, and it meant one malformed key out of ten thousand produced no backup at all, on the day the operator most needed one. A bundle missing one attachment is worth having; a bundle that does not exist is not.
+`meith backup` **skips that object and finishes the run**. The alternative — stopping — was the old behaviour, and it meant one malformed key out of ten thousand produced no backup at all, on the day the operator most needed one. A bundle missing one attachment is worth having; a bundle that does not exist is not.
 
 Skipping quietly would be its own failure, so a run that skips anything reports it three times over, and each one is aimed at a different reader:
 
@@ -178,7 +178,7 @@ The repair is in the store, not in the backup. Rename or remove the offending ob
 Restore only into a new, empty database. Stop traffic and review the installed command first:
 
 ```sh
-docker compose run --rm web community restore --help
+docker compose run --rm web meith restore --help
 ```
 
 After restore, apply migrations for the selected release, start web and worker, and verify sign-in, recent threads, uploads, mail, and scheduled tasks before changing DNS. See [Disaster recovery](./disaster-recovery.md) for the complete runbook.
@@ -203,19 +203,19 @@ At minimum:
 Create a user with a password on standard input:
 
 ```sh
-printf '%s' '<password>' | docker compose run --rm -T web community user:create --username <name> --email <address>
+printf '%s' '<password>' | docker compose run --rm -T web meith user:create --username <name> --email <address>
 ```
 
 Promote a user:
 
 ```sh
-docker compose run --rm web community user:promote --user <id-or-username> --group <key-or-id>
+docker compose run --rm web meith user:promote --user <id-or-username> --group <key-or-id>
 ```
 
 Clear a lost second factor and end that user's sessions:
 
 ```sh
-docker compose run --rm web community user:2fa-clear --user <id-or-username>
+docker compose run --rm web meith user:2fa-clear --user <id-or-username>
 ```
 
 Record who requested any recovery change.
@@ -225,7 +225,7 @@ Record who requested any recovery change.
 Rebuild missing full-text records with the resumable command:
 
 ```sh
-docker compose run --rm web community search:reindex
+docker compose run --rm web meith search:reindex
 ```
 
 Use it after an import or when diagnostics show posts without search data. It is safe to repeat.
@@ -240,14 +240,14 @@ what to do after it finishes, and troubleshooting — is
 somebody who has already read it:
 
 ```sh
-docker compose run --rm web community import --help
-IMPORT_SOURCE_PASSWORD=… community import --source mybb --host db.old --user reader --database mybb --uploads-dir /mnt/old-board/uploads
-IMPORT_SOURCE_PASSWORD=… community import --source phpbb --host db.old --user reader --database phpbb --prefix phpbb_ --uploads-dir /mnt/old-board
+docker compose run --rm web meith import --help
+IMPORT_SOURCE_PASSWORD=… meith import --source mybb --host db.old --user reader --database mybb --uploads-dir /mnt/old-board/uploads
+IMPORT_SOURCE_PASSWORD=… meith import --source phpbb --host db.old --user reader --database phpbb --prefix phpbb_ --uploads-dir /mnt/old-board
 ```
 
 `--source` selects the source forum software (`mybb` is the default; `phpbb` targets phpBB 3.1 or later). The database password comes from `IMPORT_SOURCE_PASSWORD` (`MYBB_PASSWORD` is still accepted) rather than a flag, so it never appears in shell history or `ps`. `--uploads-dir` copies attachments and avatars across as files; without it, attachment rows import marked failed and avatars are skipped, until the same command is run again with the flag.
 
-Back up the source, rehearse against a non-production board, and run the importer with a read-only database account. After it finishes, run `community task:run counters.reconcile`, reindex search, and verify users, forums, threads, attachments, permissions, and legacy URLs — [Migrating from MyBB or phpBB](../migrating.md#after-the-import) has the full checklist.
+Back up the source, rehearse against a non-production board, and run the importer with a read-only database account. After it finishes, run `meith task:run counters.reconcile`, reindex search, and verify users, forums, threads, attachments, permissions, and legacy URLs — [Migrating from MyBB or phpBB](../migrating.md#after-the-import) has the full checklist.
 
 ## Plugins
 
@@ -259,7 +259,7 @@ image is built from, not something run against the deployed image. On your own b
 
 ```sh
 npm install @meith/plugin-dues
-community plugin:add @meith/plugin-dues
+meith plugin:add @meith/plugin-dues
 ```
 
 In a checkout of *this* repository, where the board is one workspace among many, the first line reads
@@ -274,7 +274,7 @@ Before removing plugin code, purge its owned data through the lifecycle hook —
 run against the deployed board, because it needs the live database:
 
 ```sh
-docker compose run --rm web community plugin:purge <key> --yes
+docker compose run --rm web meith plugin:purge <key> --yes
 ```
 
 Removing files first can leave data without the code required to clean it up.
@@ -284,7 +284,7 @@ Removing files first can leave data without the code required to clean it up.
 Generate VAPID keys with:
 
 ```sh
-docker compose run --rm web community push:keys
+docker compose run --rm web meith push:keys
 ```
 
 Use `--save` only when you want the CLI to store the pair in board settings. Read [Web push](./web-push.md) for setup and privacy implications.
@@ -339,7 +339,7 @@ Set `APP_URL` to the public HTTPS origin, not an internal container address. Che
 ### A documented command is unavailable
 
 ```sh
-docker compose run --rm web community --help
+docker compose run --rm web meith --help
 ```
 
 Use documentation and CLI output from the version you operate.

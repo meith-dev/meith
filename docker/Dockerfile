@@ -32,7 +32,7 @@ COPY --parents ./*/*/package.json ./
 
 # MEI-76: `boards/stock` depends on `@meith/web` and `@meith/cli` as real
 # `workspace:*` dependencies (not path aliases), and both declare a `bin`
-# (`forum-web`, `community`) pnpm must link into `boards/stock/node_modules/
+# (`forum-web`, `meith`) pnpm must link into `boards/stock/node_modules/
 # .bin`. pnpm reads the target file to do that, so — same as the package.json
 # line above — the actual bin scripts have to exist at install time, not just
 # their package.json entries. Without this, install only warns (`Failed to
@@ -98,7 +98,7 @@ RUN pnpm --filter @meith/worker build
 # which finds this repository's root tsconfig.json — extending
 # tsconfig.base.json, whose `@board/*` aliases point at apps/community — long
 # before it would ever reach boards/stock. Left alone, that compiles
-# `community upgrade` and `community plugin:purge` (apps/cli/src/index.ts)
+# `meith upgrade` and `meith plugin:purge` (apps/cli/src/index.ts)
 # against apps/community's plugin registry while this same image's web app
 # (built just above, from boards/stock) serves boards/stock's. `pnpm
 # board:cli-tsconfig` (scripts/board-cli-tsconfig.mjs) writes a throwaway
@@ -170,20 +170,20 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/worker/dist/ ./apps/worker/
 # takes arguments and exits.
 COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
 
-# docs/guides/operations/operating.md documents every operator command as `community <cmd>` —
-# and until this line, nothing in this image put a `community` binary on
+# docs/guides/operations/operating.md documents every operator command as `meith <cmd>` —
+# and until this line, nothing in this image put a `meith` binary on
 # PATH to make that real (this is a runtime-only stage with no `pnpm
 # install`, so no bin symlink is ever created here). CI's own working
-# invocation was the giveaway: `node apps/cli/cli.cjs`, not `community`. A
+# invocation was the giveaway: `node apps/cli/cli.cjs`, not `meith`. A
 # one-line wrapper makes the documented command the actual one, for every
 # operator command this image has ever shipped — not just MEI-81's new
 # `board:eject`.
-RUN printf '#!/bin/sh\nexec node /app/apps/cli/cli.cjs "$@"\n' > /usr/local/bin/community \
-  && chmod +x /usr/local/bin/community
+RUN printf '#!/bin/sh\nexec node /app/apps/cli/cli.cjs "$@"\n' > /usr/local/bin/meith \
+  && chmod +x /usr/local/bin/meith
 # The generated SQL. Not part of the traced standalone output — it is data, not
 # a module — so the migrate role would find an empty folder without this.
 COPY --from=build --chown=nextjs:nodejs /repo/packages/db/migrations ./migrations
-# MEI-81: `community board:eject` reads this to write the manifest a graduated
+# MEI-81: `meith board:eject` reads this to write the manifest a graduated
 # board starts with — the plugins this exact build actually compiled in, not
 # an assumption. `BOARD_PLUGINS_MANIFEST` names it explicitly because a
 # bundled `dist/cli.cjs` does not sit the same distance from the repository
@@ -211,7 +211,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["/app/healthcheck.sh"]
 
-# COMMUNITY_ROLE picks which of the three programs in this image starts: `worker`
+# MEITH_ROLE picks which of the three programs in this image starts: `worker`
 # runs the scheduler loop, `migrate` applies the schema and exits, and unset —
 # the default — runs the web server, so existing deployments keep working
 # without setting anything. An unrecognised value exits rather than quietly

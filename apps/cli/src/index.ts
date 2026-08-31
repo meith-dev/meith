@@ -32,9 +32,9 @@ function usage(commands: readonly Command[]): string {
   const width = Math.max(...commands.map((c) => c.name.length))
   const lines = commands.map((c) => `  ${c.name.padEnd(width)}  ${c.summary}`)
   return [
-    'community — operator CLI',
+    'meith — operator CLI',
     '',
-    'Usage: community <command> [options]',
+    'Usage: meith <command> [options]',
     '',
     'Commands:',
     ...lines,
@@ -85,7 +85,7 @@ const commands: Command[] = [
     name: 'migrate',
     summary: 'Apply pending database migrations.',
     usage: [
-      'community migrate',
+      'meith migrate',
       '',
       'Applies every migration this release has that the board has not, then exits.',
       'Safe to run concurrently: the runner holds a Postgres advisory lock for the',
@@ -143,7 +143,7 @@ const commands: Command[] = [
   {
     name: 'upgrade',
     summary: 'Apply core and plugin migrations, then record the version.',
-    usage: 'community upgrade [--dry-run]',
+    usage: 'meith upgrade [--dry-run]',
     async run(args: readonly string[]) {
       const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
@@ -166,7 +166,7 @@ const commands: Command[] = [
   {
     name: 'backup',
     summary: 'Dump the database and the uploads into one restorable bundle.',
-    usage: 'community backup [--out <path>] [--uploads include|skip]',
+    usage: 'meith backup [--out <path>] [--uploads include|skip]',
     run: backupCommand,
   },
 
@@ -174,7 +174,7 @@ const commands: Command[] = [
     name: 'restore',
     summary: 'Restore a backup bundle into a new, empty database.',
     usage:
-      'RESTORE_DATABASE_URL=<postgres://…> community restore <bundle.tar.gz> ' +
+      'RESTORE_DATABASE_URL=<postgres://…> meith restore <bundle.tar.gz> ' +
       '[--uploads-dir <dir>] [--skip-uploads]',
     run: restoreCommand,
   },
@@ -182,7 +182,7 @@ const commands: Command[] = [
   {
     name: 'plugin:purge',
     summary: 'Run a plugin’s onUninstall and remove its data. Do this before removing the code.',
-    usage: 'community plugin:purge <key> [--yes]',
+    usage: 'meith plugin:purge <key> [--yes]',
     async run(args: readonly string[]) {
       const { assertEnv } = await import('@meith/core')
       const env = assertEnv()
@@ -194,7 +194,7 @@ const commands: Command[] = [
 
       const key = args.find((arg) => !arg.startsWith('--'))
       if (key === undefined) {
-        console.error('Usage: community plugin:purge <key> [--yes]')
+        console.error('Usage: meith plugin:purge <key> [--yes]')
         return 1
       }
 
@@ -212,7 +212,7 @@ const commands: Command[] = [
   {
     name: 'plugin:add',
     summary: 'Add a package to board.plugins.json and regenerate meith.plugins.ts.',
-    usage: 'community plugin:add <package> [--key <key>] [--disabled]',
+    usage: 'meith plugin:add <package> [--key <key>] [--disabled]',
     async run(args: readonly string[]) {
       const { pluginAdd } = await import('./plugin-manifest')
       return pluginAdd(args)
@@ -222,7 +222,7 @@ const commands: Command[] = [
   {
     name: 'plugin:remove',
     summary: 'Remove a plugin from board.plugins.json and regenerate meith.plugins.ts.',
-    usage: 'community plugin:remove <key>',
+    usage: 'meith plugin:remove <key>',
     async run(args: readonly string[]) {
       const { pluginRemove } = await import('./plugin-manifest')
       return pluginRemove(args)
@@ -233,7 +233,7 @@ const commands: Command[] = [
     name: 'board:eject',
     summary:
       'Write this build as a standalone workspace — the first step of graduating off the stock image.',
-    usage: 'community board:eject <dir>',
+    usage: 'meith board:eject <dir>',
     async run(args: readonly string[]) {
       const { boardEject } = await import('./board-eject')
       return boardEject(args)
@@ -264,22 +264,21 @@ const commands: Command[] = [
   {
     name: 'user:create',
     summary: 'Create a user account. Pipe the password in on stdin.',
-    usage:
-      'echo "<password>" | community user:create --username <name> --email <addr> [--group <key>]',
+    usage: 'echo "<password>" | meith user:create --username <name> --email <addr> [--group <key>]',
     run: userCreate,
   },
 
   {
     name: 'user:promote',
     summary: "Change a user's primary group.",
-    usage: 'community user:promote --user <id|username> --group <key|id>',
+    usage: 'meith user:promote --user <id|username> --group <key|id>',
     run: userPromote,
   },
 
   {
     name: 'user:2fa-clear',
     summary: "Clear a user's second factor when they have lost it, and sign them out.",
-    usage: 'community user:2fa-clear --user <id|username>',
+    usage: 'meith user:2fa-clear --user <id|username>',
     run: userClearSecondFactor,
   },
 
@@ -287,7 +286,7 @@ const commands: Command[] = [
     name: 'forum:create',
     summary: 'Create a category, forum or link.',
     usage:
-      'community forum:create --title <title> --slug <slug> [--parent <id>] ' +
+      'meith forum:create --title <title> --slug <slug> [--parent <id>] ' +
       '[--type category|forum|link] [--description <text>] [--link-url <url>]',
     run: forumCreate,
   },
@@ -295,7 +294,7 @@ const commands: Command[] = [
   {
     name: 'settings:get',
     summary: 'Print one resolved setting value.',
-    usage: 'community settings:get <key>',
+    usage: 'meith settings:get <key>',
     run: settingsGet,
   },
 
@@ -303,9 +302,9 @@ const commands: Command[] = [
     name: 'settings:set',
     summary: 'Set one setting, validated by the registry.',
     usage:
-      'community settings:set <key> <value>\n' +
-      'community settings:set <secret-key> --from-env <name>\n' +
-      'printf %s "$SECRET" | community settings:set <secret-key>',
+      'meith settings:set <key> <value>\n' +
+      'meith settings:set <secret-key> --from-env <name>\n' +
+      'printf %s "$SECRET" | meith settings:set <secret-key>',
     run: settingsSet,
   },
 
@@ -319,7 +318,7 @@ const commands: Command[] = [
     name: 'profile-field:add',
     summary: 'Define a custom profile field.',
     usage:
-      'community profile-field:add --key <key> --label <label> ' +
+      'meith profile-field:add --key <key> --label <label> ' +
       '--type text|textarea|select|checkbox|url|number ' +
       '[--options a,b,c] [--required] [--postbit] [--order <n>]',
     run: profileFieldAdd,
@@ -328,14 +327,14 @@ const commands: Command[] = [
   {
     name: 'profile-field:remove',
     summary: "Delete a custom profile field and every member's answer to it.",
-    usage: 'community profile-field:remove <key>',
+    usage: 'meith profile-field:remove <key>',
     run: profileFieldRemove,
   },
 
   {
     name: 'push:keys',
     summary: 'Generate a VAPID key pair for web push. --save writes it to the board.',
-    usage: 'community push:keys [--save]',
+    usage: 'meith push:keys [--save]',
     run: pushKeys,
   },
 
@@ -348,7 +347,7 @@ const commands: Command[] = [
   {
     name: 'task:run',
     summary: 'Run every task that is due now, or one named task if it is due.',
-    usage: 'community task:run [<task-id>]',
+    usage: 'meith task:run [<task-id>]',
     run: taskRun,
   },
 
@@ -367,7 +366,7 @@ const commands: Command[] = [
   {
     name: 'demo:reset',
     summary: 'Drop everything and rebuild the demo board. Needs DEMO_MODE.',
-    usage: 'community demo:reset --yes',
+    usage: 'meith demo:reset --yes',
     run: demoReset,
   },
 ]
@@ -392,7 +391,7 @@ async function main(): Promise<number> {
   }
 
   if (rest.includes('--help')) {
-    console.log(command.usage ?? `community ${command.name}`)
+    console.log(command.usage ?? `meith ${command.name}`)
     return 0
   }
 

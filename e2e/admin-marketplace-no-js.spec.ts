@@ -45,7 +45,7 @@ test('an available plugin update is flagged on the installed plugin, and non-ins
   await expect(dues.getByText(`Update available: ${AHEAD}`)).toBeVisible()
 
   await expect(page.getByText('Future Thing')).toHaveCount(0)
-  await expect(page.getByText('community plugin:add')).toHaveCount(0)
+  await expect(page.getByText('meith plugin:add')).toHaveCount(0)
 })
 
 test('an available theme update is flagged on the installed theme', async ({ page }) => {

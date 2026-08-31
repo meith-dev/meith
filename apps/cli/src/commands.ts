@@ -17,7 +17,7 @@ async function readPassword(flags: Flags): Promise<string> {
   if (inline !== undefined) {
     console.warn(
       'warning: --password is visible in shell history and to `ps`. ' +
-        'Prefer:  echo "secret" | community user:create --username u --email e@x.com',
+        'Prefer:  echo "secret" | meith user:create --username u --email e@x.com',
     )
     return inline
   }
@@ -25,7 +25,7 @@ async function readPassword(flags: Flags): Promise<string> {
   if (process.stdin.isTTY) {
     throw new ValidationError(
       'No password supplied. Pipe one in:\n' +
-        '  echo "correct horse battery staple" | community user:create --username u --email u@example.com',
+        '  echo "correct horse battery staple" | meith user:create --username u --email u@example.com',
     )
   }
 
@@ -159,7 +159,7 @@ export function settingDisplayValue(definition: SettingDefinition, value: unknow
 export async function settingsGet(args: readonly string[]): Promise<number> {
   const { positional } = parseFlags(args)
   const key = positional[0]
-  if (key === undefined) throw new ValidationError('Usage: community settings:get <key>')
+  if (key === undefined) throw new ValidationError('Usage: meith settings:get <key>')
 
   const definition = SETTING_DEFINITION_BY_KEY.get(key)
   if (!definition) throw new ValidationError(`Unknown setting "${key}".`)
@@ -212,9 +212,9 @@ export async function settingsSet(args: readonly string[]): Promise<number> {
   const [key, positionalValue, ...extra] = positional
   if (key === undefined || extra.length > 0) {
     throw new ValidationError(
-      'Usage: community settings:set <key> <value>\n' +
-        '       community settings:set <secret-key> --from-env <name>\n' +
-        '       printf %s "$SECRET" | community settings:set <secret-key>',
+      'Usage: meith settings:set <key> <value>\n' +
+        '       meith settings:set <secret-key> --from-env <name>\n' +
+        '       printf %s "$SECRET" | meith settings:set <secret-key>',
     )
   }
 
@@ -234,7 +234,7 @@ export async function settingsSet(args: readonly string[]): Promise<number> {
       throw new ValidationError('--from-env is only available for secret settings.')
     }
     if (positionalValue === undefined) {
-      throw new ValidationError('Usage: community settings:set <key> <value>')
+      throw new ValidationError('Usage: meith settings:set <key> <value>')
     }
     raw = positionalValue
   }

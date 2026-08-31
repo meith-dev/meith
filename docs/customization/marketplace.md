@@ -127,7 +127,7 @@ every listing and a page per listing, built from this same feed at site
 build time (`apps/web/app/marketplace`), with the screenshots served from
 the site's own public assets. Each listing page carries the description,
 the screenshots, the compatibility it declares, and the exact steps to
-install it: `npm install <package>` and `community plugin:add <package>`
+install it: `npm install <package>` and `meith plugin:add <package>`
 for a plugin, or the install plus a `meith.config.ts` line for a
 theme, and a link back here. It is a page to read, not a button that
 pretends to act, because nothing installs a package but the operator, in
@@ -285,7 +285,7 @@ writing the database:
 mkdir my-board
 docker compose run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD/my-board:/data/my-board" \
-  web community board:eject /data/my-board
+  web meith board:eject /data/my-board
 ```
 
 Run it from the same directory you already run `docker compose` in.

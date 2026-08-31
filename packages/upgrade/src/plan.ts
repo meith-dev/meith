@@ -190,7 +190,7 @@ export function upgradeNotice(plan: UpgradePlan, state: UpgradeState): string | 
       `The database and this deployment are both at ${state.recordedVersion}, but ` +
       `${migrations} migration(s) have never been applied` +
       (plugins.length > 0 ? ` (${plugins.join(', ')})` : '') +
-      '. Run `community upgrade`.'
+      '. Run `meith upgrade`.'
     )
   }
 
@@ -198,6 +198,6 @@ export function upgradeNotice(plan: UpgradePlan, state: UpgradeState): string | 
     `An upgrade is pending: the database is at ${state.recordedVersion} and this deployment ` +
     `is ${state.codeVersion}` +
     (migrations > 0 ? `, with ${migrations} migration(s) to apply` : '') +
-    '. Run `community upgrade`.'
+    '. Run `meith upgrade`.'
   )
 }

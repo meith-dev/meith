@@ -307,7 +307,7 @@ installing does**:
    migrate: the container entrypoint and the Vercel build command both do
    that before the board serves anything, so by the time you reach this
    form the work is done. If it does report missing tables, run
-   `community migrate` against the same database and reload.
+   `meith migrate` against the same database and reload.
 2. **Record the board's name and mail settings** — the only settings it
    writes.
 3. **Create the administrator** — your account.
@@ -428,12 +428,37 @@ problem into a board nobody can join.
 > the cost of a redeploy to rotate a key. See
 > [Operations § Mail](../../guides/operations/operating.md#mail).
 
+## Installing a plugin or theme
+
+Nothing installs into a running container — a plugin or theme has to be
+built into the image, the same as `npm install` anything else. In the
+board repository:
+
+1. `npm install --save-exact <package>` — a plugin, e.g.
+   `@meith/plugin-dues`, or a theme, e.g. `@meith/theme-midnight`.
+2. Register it: a **theme** goes in `meith.config.ts`'s `themes` map,
+   following the shape of the `default` entry already there; a
+   **plugin** goes in `meith.plugins.ts` — import its `plugin` and
+   `messages` exports and add `{ key, enabled: true, plugin, messages }`
+   to `INSTALLED_PLUGINS` — or run `npm run meith -- plugin:add <package>`,
+   which edits `board.plugins.json` and regenerates `meith.plugins.ts` for
+   you.
+3. `git commit` and `git push`, then press **Redeploy** in Coolify.
+   Pushing alone does not rebuild: quick-start builds the new image on
+   that redeploy; advanced/prebuilt waits for `.github/workflows/build.yml`
+   to finish first, and Redeploy is what actually pulls the result.
+4. Once it is up, run its migrations once:
+   `docker compose run --rm web meith upgrade`.
+
+See [Plugins](../../customization/plugins.md) and
+[Themes](../../customization/themes.md) for the full reference.
+
 ## 6. Set up backups
 
 Not optional, and not the panel's job. Coolify's per-resource schedule
 dumps the database and does **not** include the uploads volume — avatars
 and attachments — and finding that out during a restore is the worst
-possible time. The board's own `community backup` takes both in one
+possible time. The board's own `meith backup` takes both in one
 bundle; schedule it as a command on the `web` resource and copy the
 bundle off the machine.
 
@@ -468,7 +493,7 @@ can fix and retry:
   start again. If the only thing missing is administrator access on a
   board that otherwise works, do not reinstall: use the
   [operator CLI](../../guides/operations/operating.md#account-recovery) —
-  `community user:promote`.
+  `meith user:promote`.
 
 ## When something else goes wrong
 

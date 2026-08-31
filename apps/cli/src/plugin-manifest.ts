@@ -113,13 +113,13 @@ export async function pluginAdd(args: readonly string[]): Promise<number> {
   const [packageName, ...extraPositional] = positional
 
   if (packageName === undefined || extraPositional.length > 0) {
-    throw new ValidationError('Usage: community plugin:add <package> [--key <key>] [--disabled]')
+    throw new ValidationError('Usage: meith plugin:add <package> [--key <key>] [--disabled]')
   }
 
   const configFlags = [...flags.keys()].filter((name) => !ADD_FLAGS.has(name))
   if (configFlags.length > 0) {
     throw new ValidationError(
-      `community plugin:add does not take plugin configuration (--${configFlags[0]}). The ` +
+      `meith plugin:add does not take plugin configuration (--${configFlags[0]}). The ` +
         "manifest has no field for it — a plugin's own settings are the only place its " +
         "configuration lives now, the way MEI-74 moved plugins/dues's plans there. Export a " +
         'zero-argument plugin and add it with just its package name.',
@@ -173,7 +173,7 @@ export async function pluginRemove(args: readonly string[]): Promise<number> {
   const [key, ...extraPositional] = positional
 
   if (key === undefined || extraPositional.length > 0) {
-    throw new ValidationError('Usage: community plugin:remove <key>')
+    throw new ValidationError('Usage: meith plugin:remove <key>')
   }
 
   const originals = await Promise.all(BOARDS.map((board) => readManifestFor(board)))

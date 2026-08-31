@@ -39,7 +39,7 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test
 Then migrate and start:
 
 ```sh
-pnpm community migrate
+pnpm meith migrate
 pnpm dev
 ```
 
@@ -86,7 +86,7 @@ A pnpm workspace: applications in `apps/`, everything else in `packages/`,
 | `apps/community` | `@meith/web` | The board itself, and the in-repo dev target. `pnpm dev`, on port 3000. |
 | `apps/web` | `@meith/site` | meith.dev — the landing page and these documents. `pnpm site:dev`, on port 3100. |
 | `apps/worker` | `@meith/worker` | The background tick, as a long-running process. |
-| `apps/cli` | `@meith/cli` | The operator CLI. `pnpm community …`. |
+| `apps/cli` | `@meith/cli` | The operator CLI. `pnpm meith …`. |
 | `boards/stock` | `@meith/board-stock` | A second, create-meith-shaped board — the workspace `docker/Dockerfile` builds the official image from. See [Architecture](../reference/architecture.md#the-stock-board). |
 | `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
 | `themes/*` | `@meith/theme-*` | The default theme and four alternates: midnight, phasebook, raidframe, clubhouse. |
@@ -118,7 +118,7 @@ How the packages relate — the layers, what may import what, and why — is
 
 `packages/create-meith` scaffolds a board whose `package.json` depends on
 `@meith/web` and `@meith/cli` and whose scripts call `forum-web` and
-`community` — a board outside this monorepo, in a directory that holds only
+`meith` — a board outside this monorepo, in a directory that holds only
 its own files: `meith.config.ts`, `board.plugins.json`,
 `meith.plugins.ts` and `package.json`. This section is how that actually
 runs, for anyone changing `apps/community`, `apps/cli` or the scaffold and
@@ -131,10 +131,10 @@ need to run with the app's own directory as the project root, and the
 inside this monorepo, point at `apps/community`'s own files. Neither survives
 `npm install`ing `@meith/web` into somebody else's workspace unchanged. So
 `forum-web` (`apps/community/bin/forum-web.mjs`, `@meith/web`'s bin) and
-`community` (`apps/cli/bin/community.mjs`, `@meith/cli`'s bin) **materialize**
+`meith` (`apps/cli/bin/meith.mjs`, `@meith/cli`'s bin) **materialize**
 the app on every invocation:
 
-1. Copy the package's own Next app sources (or, for `community`, `apps/cli`'s
+1. Copy the package's own Next app sources (or, for `meith`, `apps/cli`'s
    sources) into `.meith/app/` (`.meith/cli/` for the CLI) inside the
    invoking workspace — gitignored, rebuilt every run, never a merge target.
    `public/` travels with them, so `/sw.js` and the placeholder assets it
@@ -148,7 +148,7 @@ the app on every invocation:
    a subpath import's target may not resolve outside the declaring package,
    which is exactly what this needs to do.
 3. Run `next dev|build|start` (`forum-web`) or `tsx` against the materialized
-   entry point (`community`) with that directory as the working root.
+   entry point (`meith`) with that directory as the working root.
 
 **`forum-web build` stages `.next/static` and `public/` into the standalone
 tree**, right after `next build` finishes. `next.config.mjs` sets
@@ -309,9 +309,9 @@ as today.
 `apps/cli/src/index.ts` reaches `@board/plugins` with a *dynamic*
 `await import('@board/plugins')` rather than a static one, so unlike the
 released image's own bundled CLI — which bakes in whichever board it was
-built next to — the `community` bin needs to resolve that seam at the moment
+built next to — the `meith` bin needs to resolve that seam at the moment
 it actually runs, against whichever workspace invoked it. Materializing
-`apps/cli`'s sources and running them with `tsx` (already how `pnpm community`
+`apps/cli`'s sources and running them with `tsx` (already how `pnpm meith`
 runs inside this monorepo) against a generated tsconfig is the same
 mechanism `forum-web` uses for the Next app, through the tool this package
 already runs through.
@@ -511,7 +511,7 @@ one version of the framework and builds with another.
 
 **The Vercel target turns the mode on; nothing else does.** `scaffold()`'s
 `target: 'vercel'` tree is where the flag lives — `vercel.json`'s `buildCommand`
-(`community migrate && forum-web build --at-root`) is what Vercel actually runs,
+(`meith migrate && forum-web build --at-root`) is what Vercel actually runs,
 and the same tree's `dev`, `build` and `start` scripts carry it too, so a board
 built locally and a board built on the platform materialize to the same place
 rather than quietly disagreeing. The self-host target is untouched: its scripts,
@@ -534,7 +534,7 @@ serves the traced output itself.
 |---|---|
 | `pnpm dev` | The board, on port 3000. |
 | `pnpm site:dev` | meith.dev, on port 3100. |
-| `pnpm community <command>` | The operator CLI against your `.env`. `--help` lists everything. |
+| `pnpm meith <command>` | The operator CLI against your `.env`. `--help` lists everything. |
 | `pnpm test` | The whole unit suite. `pnpm test:watch` while you work. |
 | `pnpm typecheck` | The workspace. `typecheck:app` and `typecheck:site` cover the two Next projects. |
 | `pnpm lint` | Biome: formatting, lint rules and import order, in one pass. `pnpm format` writes the fixes. |
@@ -1157,7 +1157,7 @@ and not the other fails `pnpm verify`.
 
 `scripts/boards.json` is the one place that list of boards is written down.
 Both `scripts/board-plugins-gen.mjs` (`pnpm board:gen`) and
-`apps/cli/src/plugin-manifest.ts` (`community plugin:add` / `plugin:remove`)
+`apps/cli/src/plugin-manifest.ts` (`meith plugin:add` / `plugin:remove`)
 read it, so a board added there is picked up by both without a second list
 to keep in step. Installing a plugin in this checkout means adding the
 dependency to both boards — see

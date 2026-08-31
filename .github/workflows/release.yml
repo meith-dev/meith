@@ -75,7 +75,7 @@ jobs:
       - name: Apply migrations (migrate role)
         run: |
           docker run --rm --network host \
-            -e COMMUNITY_ROLE=migrate \
+            -e MEITH_ROLE=migrate \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=release-boot-test-auth-secret-long-enough \
@@ -102,7 +102,7 @@ jobs:
       - name: Boot the worker role, and it survives a tick
         run: |
           docker run -d --name meith-worker --network host --restart=no \
-            -e COMMUNITY_ROLE=worker \
+            -e MEITH_ROLE=worker \
             -e DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/forum_release \
             -e DATA_SOURCE=postgres \
             -e AUTH_SECRET=release-boot-test-auth-secret-long-enough \

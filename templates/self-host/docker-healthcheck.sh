@@ -4,7 +4,7 @@
 # a health probe taken while it runs has no opinion.
 set -e
 
-if [ "${COMMUNITY_ROLE:-web}" = "migrate" ]; then
+if [ "${MEITH_ROLE:-web}" = "migrate" ]; then
   exit 0
 fi
 

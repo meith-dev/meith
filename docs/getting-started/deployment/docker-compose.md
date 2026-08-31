@@ -304,7 +304,7 @@ and recovery is by restore; see
 [backup and restore](../../guides/operations/operating.md#backup).
 
 That applies **core migrations only**. Plugin migrations run through
-`community upgrade` — see
+`meith upgrade` — see
 [the operator CLI](../../guides/operations/operating.md#the-operator-cli) for how to run it on
 this deployment, and [Upgrading a board](../../guides/operations/upgrading.md) for how far you
 can jump in one go.
@@ -323,7 +323,7 @@ editing the pin — the same deliberate act as checking out the next tag.
 Build on your own machine or in CI and push to your own registry only
 when you have patched the source; that is what this route is for.
 
-The image takes `COMMUNITY_ROLE` — `web`, `worker` or `migrate` — so one
+The image takes `MEITH_ROLE` — `web`, `worker` or `migrate` — so one
 image is all three services. That is what makes the roles impossible to
 drift apart, and why there is no second Dockerfile.
 
@@ -355,7 +355,7 @@ rather use it, and clicking **Use this template** on
 no local tooling at all — GitHub creates the repository and its first
 commit directly. See [Consuming the board
 from a workspace](../../contributing/development.md#consuming-the-board-from-a-workspace)
-for the mechanism (`forum-web`/`community` — the same bins this
+for the mechanism (`forum-web`/`meith` — the same bins this
 repository's own image is built through, see [the stock
 board](../../reference/architecture.md#the-stock-board)) and [the plugin
 API](../../customization/plugins.md) for installing a plugin once the workspace exists.
@@ -503,7 +503,7 @@ covers the failures that are about the board rather than the deployment.
 Worth being plain about, because this is the route with no panel behind
 it:
 
-- **Backups are yours.** Nobody else is taking one. `community backup`
+- **Backups are yours.** Nobody else is taking one. `meith backup`
   bundles the database *and* the uploads; the cron and the offsite copy
   are still yours to build. See
   [backup and restore](../../guides/operations/operating.md#backup), and the

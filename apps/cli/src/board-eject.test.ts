@@ -50,7 +50,7 @@ const { boardEject } = await import('./board-eject')
 
 describe('boardEject', () => {
   it('refuses no directory argument', async () => {
-    await expect(boardEject([])).rejects.toThrow(/Usage: community board:eject/)
+    await expect(boardEject([])).rejects.toThrow(/Usage: meith board:eject/)
   })
 
   it('refuses a directory whose basename is not a valid npm package name', async () => {

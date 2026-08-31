@@ -5,7 +5,7 @@
 # build; the only difference is which process starts. A flag rather than three
 # images means they cannot drift, which is the whole point of the acceptance
 # criterion — and it is why a board migrated by the `migrate` service has been
-# through the same `runMigrations()` as one migrated by `community migrate`.
+# through the same `runMigrations()` as one migrated by `meith migrate`.
 set -e
 
 # An explicit command wins over the role. `docker run image node
@@ -19,9 +19,9 @@ fi
 
 # Which build this container is, to stderr, before the role starts. Not
 # printed for an explicit command above — CLI output is sometimes piped.
-echo "meith ${MEITH_VERSION:-unknown} (${MEITH_COMMIT:-unknown}), role: ${COMMUNITY_ROLE:-web}" >&2
+echo "meith ${MEITH_VERSION:-unknown} (${MEITH_COMMIT:-unknown}), role: ${MEITH_ROLE:-web}" >&2
 
-case "${COMMUNITY_ROLE:-web}" in
+case "${MEITH_ROLE:-web}" in
   worker)
     exec node apps/worker/worker.cjs
     ;;
@@ -39,7 +39,7 @@ case "${COMMUNITY_ROLE:-web}" in
     # Every role this file handles, not two of the three. `migrate` is the one
     # `compose.coolify.yml` sets, so a typo in it was answered by a list
     # that did not contain the value the operator was trying to spell.
-    echo "Unknown COMMUNITY_ROLE: ${COMMUNITY_ROLE}. Expected 'web', 'worker' or 'migrate'." >&2
+    echo "Unknown MEITH_ROLE: ${MEITH_ROLE}. Expected 'web', 'worker' or 'migrate'." >&2
     exit 1
     ;;
 esac

@@ -104,7 +104,7 @@ describe('what the scaffold writes', () => {
 
   it('gives the project the three scripts an operator needs', () => {
     const manifest = JSON.parse(files.get('package.json')!)
-    expect(Object.keys(manifest.scripts).sort()).toEqual(['build', 'community', 'dev', 'start'])
+    expect(Object.keys(manifest.scripts).sort()).toEqual(['build', 'dev', 'meith', 'start'])
   })
 
   it('tells the reader which process runs the tick', () => {
@@ -118,8 +118,8 @@ describe('what the scaffold writes', () => {
     const manifest = JSON.parse(files.get('package.json')!)
     const readme = files.get('README.md')!
     expect(readme).not.toContain('npm run forum')
-    expect((readme.match(/npm run community --/g) ?? []).length).toBeGreaterThanOrEqual(4)
-    expect(manifest.scripts.community).toBeDefined()
+    expect((readme.match(/npm run meith --/g) ?? []).length).toBeGreaterThanOrEqual(4)
+    expect(manifest.scripts.meith).toBeDefined()
   })
 
   it('names every required secret in the env template, with no value', () => {
@@ -138,7 +138,7 @@ describe('what the scaffold writes', () => {
 
     expect(env).toMatch(/^# DIRECT_DATABASE_URL=$/m)
     expect(env.indexOf('DIRECT_DATABASE_URL')).toBeGreaterThan(env.indexOf('DATABASE_URL='))
-    expect(env).toMatch(/community migrate/)
+    expect(env).toMatch(/meith migrate/)
     expect(env).toMatch(/advisory lock/)
   })
 
@@ -312,13 +312,13 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
 
   it('the entrypoint runs the web role by default and migrate on request, and refuses anything else', () => {
     expect(entrypoint).toContain('node_modules/.bin/forum-web start')
-    expect(entrypoint).toContain('node_modules/.bin/community migrate')
-    expect(entrypoint).toMatch(/COMMUNITY_ROLE:-web/)
+    expect(entrypoint).toContain('node_modules/.bin/meith migrate')
+    expect(entrypoint).toMatch(/MEITH_ROLE:-web/)
     expect(entrypoint).toContain('exit 1')
   })
 
   it('the healthcheck has no opinion while migrate runs', () => {
-    expect(healthcheck).toMatch(/COMMUNITY_ROLE:-web.*=.*migrate/)
+    expect(healthcheck).toMatch(/MEITH_ROLE:-web.*=.*migrate/)
     expect(healthcheck).toContain('exit 0')
   })
 
@@ -616,24 +616,24 @@ describe('the published bin, run the way npx actually runs it', () => {
 })
 
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
-  'package.json': 'fbe57f89349df4dee13155fdbe939e57ef35a551291762776be18d9acb6ab4b3',
+  'package.json': '0cfc3fa53d8d1976c1b9e252e15672ff9f71e4741109a7fd2e475cf40d9c7ab1',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
   'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'meith.plugins.ts': 'ec19e2e919d67d790aaf90809215909a78ef28b22e76a5bc8ff4b297932c4975',
-  '.env.example': '83defc2c09c20a47010594dd89a2d602311e05179d756759aeac699302d170bb',
+  'meith.plugins.ts': '57ae372a7e032fbc34921e5c0c51367e6f0f4d93e028167345357fc833623c93',
+  '.env.example': '1f4611ff9689e37677a3d214fc47b945cd9aac7c032a81ffd6ebe3c463ccc028',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'a0ee5de6211bf529e4edaace3bc582bfbee5f2ae4f9357b80211907849e7b9bb',
-  'Dockerfile.prebuilt': '375ce5865892949abf94c96c2c6bba44112b85180d7c028fe8bda6f9916faee5',
-  'docker-entrypoint.sh': 'cd1ef4a68be0005b31cbdb21bcd460035a157668550dbe3fca23cfd6d48321a0',
-  'docker-healthcheck.sh': '2fcb2391ab88d9787ee4b90f9c69595419a67a22e9582d448cd6b6f0c5b59bd7',
+  Dockerfile: 'c57034cc41d0b569a9702162686e535f7a1f8814d4cf736a5a64fa6718b7a186',
+  'Dockerfile.prebuilt': '9c66aec9a984e343f4672012bd00fd5050872dbdc8a9c587ba3f01640ba113c0',
+  'docker-entrypoint.sh': '7f48965a034ca842f95eb38adf6258bcc536033c5805bc38ca07f99f9e0eb022',
+  'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
   '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
-  'docker-compose.yaml': '24c28833a810c7e2df48d38b601e6727712d0e88364a7a73848cfdc7514af8a5',
+  'docker-compose.yaml': 'e501228abef49101b838fb4801618087c5019d385ae0d3c63d83111ddbe9f94d',
   'docker-compose.prebuilt.yaml':
-    'adeeb9787a46360b00ca3cf047d8a4fa603a9dc726661649ba4ba20bb1ca161f',
-  'README.md': '30a6d4a2daaea441c66d55fc83858f8a181c6a0d93922653c1189256663154ab',
+    '5b7515079bcb7e226347950095c5419113d89383d4500910c5cec5c878b7c92e',
+  'README.md': '220ce5ffde36dad546aea77b85a05f1ff8ac0c5d9467e0b80913d14ef527f0b4',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
@@ -714,7 +714,7 @@ describe('the Vercel target', () => {
       dev: 'forum-web dev --at-root',
       build: 'forum-web build --at-root',
       start: 'forum-web start --at-root',
-      community: 'community',
+      meith: 'meith',
     })
   })
 
@@ -746,7 +746,7 @@ describe('the Vercel target', () => {
   it('parses as JSON and carries the cron path and the build command', () => {
     const config = JSON.parse(files.get('vercel.json')!)
 
-    expect(config.buildCommand).toBe('community migrate && forum-web build --at-root')
+    expect(config.buildCommand).toBe('meith migrate && forum-web build --at-root')
     expect(config.crons).toEqual([{ path: '/api/system/tick', schedule: '0 3 * * *' }])
   })
 
@@ -760,7 +760,7 @@ describe('the Vercel target', () => {
 
   it('applies the schema before it builds, in one command', () => {
     const { buildCommand } = JSON.parse(files.get('vercel.json')!)
-    expect(buildCommand.indexOf('community migrate')).toBeLessThan(
+    expect(buildCommand.indexOf('meith migrate')).toBeLessThan(
       buildCommand.indexOf('forum-web build'),
     )
   })
@@ -952,7 +952,7 @@ describe('the Vercel target', () => {
     const readme = files.get('README.md')!
 
     expect(readme).toContain('## Leaving Vercel')
-    expect(readme).toContain('community -- backup')
+    expect(readme).toContain('meith -- backup')
     expect(readme).toContain('BLOB_READ_WRITE_TOKEN')
     expect(readme).toMatch(/\*\*by\s+default\*\*/)
   })

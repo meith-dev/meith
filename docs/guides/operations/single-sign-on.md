@@ -140,7 +140,7 @@ lost theirs. That is what the operator CLI is for, and it needs no panel
 session:
 
 ```sh
-community user:2fa-clear --user ada
+meith user:2fa-clear --user ada
 ```
 
 It does the same work — clears the factor, ends every session, writes the

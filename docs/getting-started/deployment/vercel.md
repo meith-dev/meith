@@ -295,7 +295,7 @@ that tolerates it. Those have to be two deploys.
 
 The build command is the build command. It runs for every deployment the
 platform builds: the pull-request preview, the branch deployment, the
-redeploy of an old commit. Each one runs `community migrate` against
+redeploy of an old commit. Each one runs `meith migrate` against
 whatever database that deployment's own environment variables name.
 
 This is where the pattern cuts, and Vercel's default is on the wrong side
@@ -323,9 +323,9 @@ current and applies nothing.
 
 Vercel documents its instant rollback as promoting a previous deployment
 by re-pointing an alias at an artefact that was built already. That
-**runs no build**, so it never calls `community migrate`. There is nothing to undo
+**runs no build**, so it never calls `meith migrate`. There is nothing to undo
 the schema with. Rolling back the other way, by redeploying an older
-commit, does build and does run `community migrate`, which then applies
+commit, does build and does run `meith migrate`, which then applies
 nothing, because migrations are forward-only.
 
 Either route puts the old code back and leaves the schema where it is. A
@@ -356,7 +356,7 @@ then come back for the four things specific to this route:
 - **The installer checks the schema rather than applying it.** Its first
   step confirms every table the board needs is there and stops with the
   names of any that are not; it never migrates. The build command already
-  did that — `community migrate && forum-web build --at-root` — and a
+  did that — `meith migrate && forum-web build --at-root` — and a
   serverless function is the wrong place to try: several cold starts would
   contend for the same migration lock, and the function timeout bounds how
   long a migration is allowed to take. The step reads the table names out
@@ -370,7 +370,7 @@ then come back for the four things specific to this route:
   looks](../../contributing/development.md#building-where-vercel-looks)) — so
   this is a design choice rather than the only option: a schema check needs no
   files and cannot contend for the migration lock. If that step does report
-  missing tables, run `community migrate` against the same database and
+  missing tables, run `meith migrate` against the same database and
   reload — `MIGRATIONS_DIR` cannot help when the files are absent.
 - **The installer takes the same session-level advisory lock migrations
   do**, so it needs `DIRECT_DATABASE_URL` for the same reason. Run against
@@ -495,7 +495,7 @@ Two consequences worth knowing:
   in which case the token wins, because naming another store is a deliberate
   act and quietly writing to the linked one instead would be a data error.
 - **Off the platform there is no identity to borrow.** A command run on your
-  own machine — `community backup` against a Blob store is the case that
+  own machine — `meith backup` against a Blob store is the case that
   matters — has no OIDC token, so it needs `BLOB_READ_WRITE_TOKEN`. Create
   one on the store under **Storage**. The deployment never needs it.
 - **A token that names no store is refused at boot**, whether or not
@@ -513,7 +513,7 @@ against a live deploy**, because nobody has run this yet:
 
 - **Whether `VERCEL_OIDC_TOKEN` exists during a build.** The board is
   careful not to need it there: nothing in the environment rules asks for an
-  OIDC token, and `community migrate` — which runs in the build command and
+  OIDC token, and `meith migrate` — which runs in the build command and
   validates the environment — touches no object storage. Selecting the
   driver needs `BLOB_STORE_ID`, which is an ordinary project variable
   present at build. A build should therefore not be able to fail on a
@@ -611,7 +611,7 @@ string is asked of it.
 
 These refusals are runtime rules. `next build` is exempt from them, as it
 is from the production rules above, because a build serves no request —
-but `community migrate` runs in the same build command and is not exempt,
+but `meith migrate` runs in the same build command and is not exempt,
 so on Vercel a missing store stops the deploy rather than shipping a board
 that will refuse on its first request.
 
@@ -624,14 +624,14 @@ yourself, this is what the template would otherwise have set for you.
 The build command is the one setting that is not a default:
 
 ```sh
-community migrate && forum-web build --at-root
+meith migrate && forum-web build --at-root
 ```
 
 `--at-root` materializes the board's app at the project root, so the build
 artefact lands where Vercel reads it. Without it the app is materialized
 two directories down and Vercel finds nothing to serve.
 
-**The `&&` is the whole mechanism.** `community migrate` exits non-zero on
+**The `&&` is the whole mechanism.** `meith migrate` exits non-zero on
 a failed migration, the build never starts, and the deployment fails
 carrying the migration's own error instead of shipping new code onto an old
 schema. There is deliberately no `forum-web build --migrate`: two commands
@@ -645,7 +645,7 @@ one-shot job, so the same step goes in the build command, ahead of the
 build — this is the supported arrangement, described in
 [Operations § Migrations](../../guides/operations/operating.md#migrations).
 
-`community migrate` needs the database. `forum-web build` does not — Next
+`meith migrate` needs the database. `forum-web build` does not — Next
 sets `NEXT_PHASE` during a production build and the board's environment
 rules exempt that phase — but since they share one command line, the build
 environment needs the database variables anyway.
@@ -657,7 +657,7 @@ What you have to bring, which the Deploy Button would otherwise provision:
 
 | | |
 |---|---|
-| **A board repository** | A scaffolded board of your own, not a clone of the Meith repository — the same workspace [Quickstart § 2](./coolify.md#2-create-your-board) creates. It depends on the published `@meith/web` and `@meith/cli` packages, which is what puts the `forum-web` and `community` commands in the build. |
+| **A board repository** | A scaffolded board of your own, not a clone of the Meith repository — the same workspace [Quickstart § 2](./coolify.md#2-create-your-board) creates. It depends on the published `@meith/web` and `@meith/cli` packages, which is what puts the `forum-web` and `meith` commands in the build. |
 | **A managed PostgreSQL** | With both connection strings: the transaction-mode pooler and the direct one. Both are needed, for the reason under [why both database strings](#why-both-database-strings). |
 | **A managed Redis** | Reachable over TLS (`rediss://`). |
 | **Somewhere to put uploads** | Either a Vercel Blob store, which costs nothing to set up, or an S3-compatible bucket and a key pair for it. The choice has consequences for [leaving](#leaving-vercel); read that first. |
@@ -689,7 +689,7 @@ And the values those drivers need:
 | `DIRECT_DATABASE_URL` | The **direct** (session-mode) string. Required here, not optional — see below. Derived from the database integration's own variables when you leave it unset; see [what the board looks for](#what-the-board-looks-for-and-in-what-order). |
 | `REDIS_URL` | The cache. `rediss://` for TLS, which every managed provider requires. Derived from the cache integration's own variables when you leave it unset; see [what the board looks for](#what-the-board-looks-for-and-in-what-order). |
 | `BLOB_STORE_ID` | Under `FILESTORE_DRIVER=blob`: the store's id, and on a linked store the whole credential. A Blob store attached to the project publishes it under exactly this name, so there is nothing to copy — see [how the Blob store authenticates](#how-the-blob-store-authenticates). |
-| `BLOB_READ_WRITE_TOKEN` | The other way into the same store, created by you on the store itself. Needed only where there is no deployment identity to borrow — a `community backup` run on your own machine. |
+| `BLOB_READ_WRITE_TOKEN` | The other way into the same store, created by you on the store itself. Needed only where there is no deployment identity to borrow — a `meith backup` run on your own machine. |
 | `S3_BUCKET`, `S3_REGION` | Under `FILESTORE_DRIVER=s3`: the bucket and its region. `auto` is the region for R2; the real one for AWS. |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | The bucket's credentials. |
 | `S3_ENDPOINT` | The API endpoint for a non-AWS bucket (R2, Spaces, MinIO). Omit for AWS S3. |
@@ -770,7 +770,7 @@ From a checkout of your board repository, with the production environment
 in front of it:
 
 ```sh
-community backup --uploads include
+meith backup --uploads include
 ```
 
 That runs `pg_dump` over `DIRECT_DATABASE_URL` when it is set, and pulls
@@ -795,7 +795,7 @@ posts have broken images — which on `blob` is unrecoverable, because there
 is nowhere else the objects still exist.
 
 **And check the exit code.** An object whose key the board cannot use is
-skipped rather than allowed to stop the run, so `community backup` can
+skipped rather than allowed to stop the run, so `meith backup` can
 exit **2**: the bundle was written, it names the objects it is missing in
 its manifest, and on `blob` those objects are gone once the project is.
 Read the list before you delete anything —
@@ -811,7 +811,7 @@ DATABASE_URL=…            # the pooled string
 DIRECT_DATABASE_URL=…     # the direct string, for the dump
 FILESTORE_DRIVER=blob
 BLOB_READ_WRITE_TOKEN=…   # create one on the store — see below
-community backup --uploads include
+meith backup --uploads include
 ```
 
 That token is the one value here you make by hand. On the deployment the
@@ -836,7 +836,7 @@ docker compose up -d postgres
 
 **Stop there.** Do not run `docker compose up -d --build` yet, and do not
 open `/install`. The full `up` starts the `migrate` container, which
-applies the schema and exits 0 — and `community restore` refuses a target
+applies the schema and exits 0 — and `meith restore` refuses a target
 that already holds tables, saying so rather than writing over them. A
 fresh Postgres container gives you the empty database a restore insists
 on. This is the same sequence, for the same reason, as
@@ -849,10 +849,10 @@ You are restoring a board, not installing one.
 ### 3. Restore into it
 
 ```sh
-RESTORE_DATABASE_URL=postgres://… community restore <bundle.tar.gz>
+RESTORE_DATABASE_URL=postgres://… meith restore <bundle.tar.gz>
 ```
 
-`community restore` refuses to run without `RESTORE_DATABASE_URL` and
+`meith restore` refuses to run without `RESTORE_DATABASE_URL` and
 writes only there, so a restore can never be aimed at a live board by
 accident. It puts the uploads back where the **destination's** own
 `FILESTORE_DRIVER` says they go, whatever they came from — the local volume
@@ -898,13 +898,13 @@ restore run against a destination that keeps the objects.
 | What you see | What it is |
 |---|---|
 | The build fails on `maxDuration` | Fluid Compute is off and the plan caps functions below 300 seconds — see [above](#maxduration-is-checked-at-build-time). |
-| The build fails inside `community migrate` | The migration itself failed, and the `&&` stopped the build on purpose. Its error is in the build log, and nothing was deployed. |
-| `community migrate` hangs with no output | It is waiting for the advisory lock, or `DIRECT_DATABASE_URL` names the pooler rather than the direct string. See [Operations](../../guides/operations/operating.md#migration-does-not-complete). |
+| The build fails inside `meith migrate` | The migration itself failed, and the `&&` stopped the build on purpose. Its error is in the build log, and nothing was deployed. |
+| `meith migrate` hangs with no output | It is waiting for the advisory lock, or `DIRECT_DATABASE_URL` names the pooler rather than the direct string. See [Operations](../../guides/operations/operating.md#migration-does-not-complete). |
 | The board refuses to boot with a `FILESTORE_DRIVER` error | Either `local` was set explicitly, which Vercel refuses outright, or nothing published an object store to derive from — [when a derivation cannot resolve](#when-a-derivation-cannot-resolve). The message names what it looked at. |
-| The build fails naming `CACHE_DRIVER` or `REDIS_URL` | No Redis connection string resolved: no store is linked, it was linked after this build's environment was read, or it publishes a name not on the candidate list. `community migrate` runs in the build command and applies the same rules the running board does. |
+| The build fails naming `CACHE_DRIVER` or `REDIS_URL` | No Redis connection string resolved: no store is linked, it was linked after this build's environment was read, or it publishes a name not on the candidate list. `meith migrate` runs in the build command and applies the same rules the running board does. |
 | The build fails naming `DIRECT_DATABASE_URL` | `DATABASE_URL` is set but no unpooled string was published beside it. Set `DIRECT_DATABASE_URL` — to the same value, if `DATABASE_URL` is already the direct string. |
 | The build fails naming `BLOB_STORE_ID` and `BLOB_READ_WRITE_TOKEN` | `FILESTORE_DRIVER=blob` is set but no Blob store is attached to the project, or it was attached after this build's environment was read. Attach one under **Storage**, then redeploy. |
-| The board boots, then an upload fails saying the store was reached with no usable credential | The board is on the OIDC path and the platform supplied no identity token — OIDC is off for the project, or this is running off the platform, as a local `community backup` is. Create a read-write token on the store and set `BLOB_READ_WRITE_TOKEN`. |
+| The board boots, then an upload fails saying the store was reached with no usable credential | The board is on the OIDC path and the platform supplied no identity token — OIDC is off for the project, or this is running off the platform, as a local `meith backup` is. Create a read-write token on the store and set `BLOB_READ_WRITE_TOKEN`. |
 | A refusal names a variable your store does publish, under another name | The candidate list does not have that name. Set `REDIS_URL` or `DIRECT_DATABASE_URL` directly — an explicit value stands the derivation down — and [add the name to the list](#what-the-board-looks-for-and-in-what-order). |
 | The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the build log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. A sender is needed too: `RESEND_EMAIL_DOMAIN` derives one, or set `MAIL_FROM` by hand. |
 | Mail is rejected with a sender error | The sender is at a domain the provider has not verified — whether it came from `MAIL_FROM` or was derived from `RESEND_EMAIL_DOMAIN`. Verify it in the provider's dashboard; nothing on this side can work around it. |
@@ -915,7 +915,7 @@ restore run against a destination that keeps the objects.
 | Uploads 404 from the browser | On `s3`, `S3_PUBLIC_BASE_URL` is unset or wrong — R2 does not serve objects from the API endpoint `S3_ENDPOINT` names. On `blob` this does not arise: the board serves the bytes itself. |
 | Mail is queued and never sent | Either the tick is not running — `queue.drain` is what sends it — or `MAIL_DRIVER=smtp` is hanging on a blocked port. Use `http`. |
 | An upload fails on a large file | The function's memory limit, not the store. Lower the board's attachment limit. |
-| `community restore` says the target already holds tables | The destination's `migrate` container has already run, so the database is not empty. Bring up Postgres alone into a fresh volume — [leaving, step 2](#2-stand-up-the-destination). Nothing was written; it refused before touching anything. |
+| `meith restore` says the target already holds tables | The destination's `migrate` container has already run, so the database is not empty. Bring up Postgres alone into a fresh volume — [leaving, step 2](#2-stand-up-the-destination). Nothing was written; it refused before touching anything. |
 
 [Operations § Troubleshooting](../../guides/operations/operating.md#troubleshooting) covers the
 failures that are about the board rather than the platform.

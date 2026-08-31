@@ -49,7 +49,7 @@ there is no build step to ship and no compiled artifact to keep in sync.
 `scripts/extension-workspace-smoke.mts` proves this path end to end
 against a scaffolded plugin.
 
-Installing one in this checkout is then `pnpm add`, `community
+Installing one in this checkout is then `pnpm add`, `meith
 plugin:add <package>`, and a rebuild and redeploy. This repository carries
 two boards — `apps/community`, the in-repo dev target, and `boards/stock`,
 the workspace `docker/Dockerfile` builds the official image from (see
@@ -62,7 +62,7 @@ manifests:
 ```sh
 pnpm add @meith/plugin-greeter --filter @meith/web
 pnpm add @meith/plugin-greeter --filter @meith/board-stock
-community plugin:add @meith/plugin-greeter
+meith plugin:add @meith/plugin-greeter
 ```
 
 `plugin:add` infers the manifest key from a `@scope/plugin-<key>` package
@@ -74,7 +74,7 @@ install it switched off) and writes both `board.plugins.json` files:
 ```
 
 then runs `pnpm board:gen` for you, which writes the import and the list
-entry into both `meith.plugins.ts` files. `community plugin:remove <key>`
+entry into both `meith.plugins.ts` files. `meith plugin:remove <key>`
 is the reverse, on both boards. If the generator refuses one board's manifest
 — the package is not yet a dependency there, most often, or the two manifests
 already disagree before the command ran — neither `board.plugins.json` file
@@ -382,10 +382,10 @@ settings, a logger, and `grants`, `data`, `users` and `notify`.
 
 | Callback | When | If it throws |
 |---|---|---|
-| `onInstall` | The first `community upgrade` on a board that has never recorded this plugin, after its migrations | The upgrade stops |
+| `onInstall` | The first `meith upgrade` on a board that has never recorded this plugin, after its migrations | The upgrade stops |
 | `onEnable` | An operator switches the plugin on in the panel | The switch stands; counted as a plugin failure |
 | `onDisable` | An operator switches it off | The switch stands; counted as a plugin failure |
-| `onUninstall` | `community plugin:purge <key>`, before anything is dropped | Nothing is dropped |
+| `onUninstall` | `meith plugin:purge <key>`, before anything is dropped | Nothing is dropped |
 
 None of them runs inside the host's try/catch. That isolation exists to keep a
 page rendering, and none of these is on a page.
@@ -405,17 +405,17 @@ switch stands whatever they do — a callback that throws is the plugin's fault,
 so it is counted and shown in the plugin's health row rather than reported to
 the operator as their action having failed.
 
-**`onUninstall` needs `community plugin:purge`, and that is not a workaround.**
+**`onUninstall` needs `meith plugin:purge`, and that is not a workaround.**
 Removing a plugin is `pnpm remove`, taking it out of `meith.plugins.ts`
-(`community plugin:remove <key>` for a manifest entry, by hand for the escape
+(`meith plugin:remove <key>` for a manifest entry, by hand for the escape
 hatch) and a redeploy — and at the moment the board would call `onUninstall`,
 the function is no longer in the build. There is no point in time where the
 host holds both "this plugin is gone" and "this plugin's code". So the
 operator says when:
 
 ```sh
-community plugin:purge dues          # says what it would do
-community plugin:purge dues --yes    # runs onUninstall, then drops the data
+meith plugin:purge dues          # says what it would do
+meith plugin:purge dues --yes    # runs onUninstall, then drops the data
 ```
 
 It runs `onUninstall` first and drops nothing if that throws, then takes away
@@ -468,7 +468,7 @@ The rest follows from it being a real row:
   and a redeploy leaves their arrangement alone.
 - **The item disappears with the plugin.** Switch the plugin off and the
   link stops rendering; take the plugin out of the build and the row goes
-  at the next `community upgrade`. An operator's ordering is not lost in
+  at the next `meith upgrade`. An operator's ordering is not lost in
   between.
 
 Appending to `view.header` instead would put a link where no operator could
@@ -954,7 +954,7 @@ none of those surfaces can silently rot either.
 
 Everything declared runs today, the four lifecycle callbacks included — see
 [the lifecycle](#the-lifecycle) for when each fires and what a throw costs.
-Migrations are applied by `community upgrade` in
+Migrations are applied by `meith upgrade` in
 dependency order, one transaction each. Settings are stored at
 `plugin.<key>.<name>` and edited in the control panel, with environment
 overrides resolved as described above. Tasks are registered as
@@ -991,7 +991,7 @@ A few consequences, stated plainly:
   request, so both survive a redeploy: the plugin somebody switched off at
   2am is exactly the one that must stay off. Removing a plugin is still
   `pnpm remove`, a line out of `meith.plugins.ts`, and a redeploy, with
-  `community plugin:purge` before it when its data should go too. There is
+  `meith plugin:purge` before it when its data should go too. There is
   no button, because a button that dropped the rows while the code kept
   running would produce a state neither installing nor removing does.
 

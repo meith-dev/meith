@@ -31,9 +31,7 @@ export async function taskRun(args: readonly string[]): Promise<number> {
   const { repository, tasks, onTaskFailure } = scheduler()
   const selected = only === undefined ? tasks : tasks.filter((t) => t.id === only)
   if (only !== undefined && selected.length === 0) {
-    console.error(
-      `No such task: ${only}\n` + `Run \`community task:list\` to see what is registered.`,
-    )
+    console.error(`No such task: ${only}\n` + `Run \`meith task:list\` to see what is registered.`)
     return 1
   }
 

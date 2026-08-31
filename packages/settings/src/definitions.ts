@@ -127,7 +127,7 @@ export const SETTING_DEFINITIONS = [
       'says so instead of offering a form, and the action behind it refuses a ' +
       'submission sent straight to it. Existing members sign in as before, the ' +
       'installer still creates the first administrator, and ' +
-      '"community user:create" still works — closing the door is not the same ' +
+      '"meith user:create" still works — closing the door is not the same ' +
       'as locking yourself out.',
     schema: z.boolean(),
     default: true,
@@ -978,7 +978,7 @@ export const SETTING_DEFINITIONS = [
     description:
       'The board identifies itself to a push service with this key, and every ' +
       'browser stores it when it subscribes. Generate the pair with ' +
-      '`community push:keys`. Replacing it invalidates every subscription ' +
+      '`meith push:keys`. Replacing it invalidates every subscription ' +
       'already stored, because the browsers hold the old one.',
     schema: z.string().trim().max(200),
     default: '',

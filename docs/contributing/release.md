@@ -143,7 +143,7 @@ divide into two kinds, and the difference decides how each is kept honest:
 
 | Written in | What it is | Kept honest by |
 |---|---|---|
-| `apps/cli/src/upgrade.ts` (`CODE_VERSION`) | What `community upgrade` records in the database | `release:check` |
+| `apps/cli/src/upgrade.ts` (`CODE_VERSION`) | What `meith upgrade` records in the database | `release:check` |
 | `apps/community/src/server/upgrade-notice.ts` (`CODE_VERSION`) | What the admin panel compares the recorded version against | `release:check` |
 | `packages/create-meith/src/bin.ts` | The version written into a scaffolded project's dependencies | `release:check` |
 | `packages/marketplace/src/build-info.ts` (`MEITH_VERSION`) | This board's own version, checked against a listing's `meith` compatibility range | `release:check` |
@@ -222,7 +222,7 @@ in step, and `release:check`'s closing line counts them (52 at 0.23.0).
 
 | | What is in it |
 |---|---|
-| The board | `@meith/web`, `@meith/cli` — the Next.js app and the operator CLI. Each carries a bin (`forum-web`, `community`) that materializes its sources into an external workspace and points the [board-config seam](../reference/architecture.md#the-board-config-seam) at that workspace's own files — see [Consuming the board from a workspace](./development.md#consuming-the-board-from-a-workspace). Without these two on npm, `create-meith`'s scaffold would depend on a package that does not exist. |
+| The board | `@meith/web`, `@meith/cli` — the Next.js app and the operator CLI. Each carries a bin (`forum-web`, `meith`) that materializes its sources into an external workspace and points the [board-config seam](../reference/architecture.md#the-board-config-seam) at that workspace's own files — see [Consuming the board from a workspace](./development.md#consuming-the-board-from-a-workspace). Without these two on npm, `create-meith`'s scaffold would depend on a package that does not exist. |
 | The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against. |
 | The board's dependency closure | Every domain and infrastructure package under `packages/` that `@meith/web` or `@meith/cli` names in its own `dependencies`, transitively — `@meith/accounts` through `@meith/upgrade`. None is independently useful; each is here only because the board, or a theme in its closure, imports it. |
 | The themes | The five bundled themes: `default`, `midnight`, `phasebook`, `raidframe`, `clubhouse`. |
@@ -239,9 +239,9 @@ or not. To list them, `pnpm release:check` counts them and
   import anywhere in its source, so it needs no per-installation
   customization the way the web app and CLI do, and `create-meith`'s scaffold
   does not depend on it. Something has to run the tick every minute (the
-  worker process, or `community task:run`), but nothing about running it
+  worker process, or `meith task:run`), but nothing about running it
   requires `@meith/worker` on the registry. Giving it a bin for a scaffolded
-  workspace, the way `forum-web` and `community` have one, is orthogonal
+  workspace, the way `forum-web` and `meith` have one, is orthogonal
   follow-up work.
 - **`@meith/site`** (`apps/web`) — meith.dev itself. The project's own
   marketing site, not part of what an operator installs.

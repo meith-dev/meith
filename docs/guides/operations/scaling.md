@@ -313,7 +313,7 @@ The catch is portability, and it is the reason `s3` stays the documented
 default everywhere else. A Blob store is reachable only through Vercel's
 API: there is no bucket to point `rclone` or `aws s3 sync` at, and
 deleting the Vercel project deletes the attachments with it. So under
-`blob`, `community backup` carries the uploads **by default** — the
+`blob`, `meith backup` carries the uploads **by default** — the
 opposite of the `s3` default, which skips them because a bucket has its
 own backup story. [Disaster recovery](./disaster-recovery.md#4-the-uploads-when-they-lived-elsewhere)
 has the commands, and running one before you need it is the whole of the
