@@ -127,7 +127,7 @@ export interface OutboundRequest {
   readonly url: URL
   readonly method: string
   readonly headers: Readonly<Record<string, string>>
-  readonly body: string
+  readonly body: string | Uint8Array
   readonly timeoutMs: number
   readonly allowPrivateHosts: boolean
 }
@@ -141,7 +141,10 @@ export function guardedRequest(request: OutboundRequest): Promise<OutboundRespon
   return new Promise<OutboundResponse>((resolve, reject) => {
     const isHttps = request.url.protocol === 'https:'
     const send = isHttps ? httpsRequest : httpRequest
-    const payload = Buffer.from(request.body, 'utf8')
+    const payload =
+      typeof request.body === 'string'
+        ? Buffer.from(request.body, 'utf8')
+        : Buffer.from(request.body)
     const host = bareHost(request.url)
 
     if (!request.allowPrivateHosts && isIP(host) !== 0 && isBlockedAddress(host)) {

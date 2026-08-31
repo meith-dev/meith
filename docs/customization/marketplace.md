@@ -239,10 +239,15 @@ whatever network the board can reach.
 This is accepted, not fixed, on purpose. `marketplace.feed_url` sits at
 the same trust tier as every other admin-only setting a board already
 trusts outright — a custom SMTP host, a webhook URL, an OAuth issuer
-origin — none of which are resolved-IP checked either; singling this one
-out would be inconsistent without buying much, since an admin able to set
-it can already reach the network directly. It would also buy less than it
-looks like: `isUsableFeedUrl` is a synchronous, isomorphic `zod`
+origin — and an admin able to set it can already reach the network
+directly. The mail and webhook destinations are resolved-and-pinned before
+each connection, but they had to be: a mail endpoint is reached on a
+member's password-reset, and a webhook and a web-push endpoint carry
+member-supplied data outward, so those requests are made on a visitor's
+behalf and cannot inherit the admin's trust. The catalog fetch is
+different — it runs only from the daily task and the admin's own **Check
+for updates** button, never from a visitor's request. Guarding it would
+also buy less than it looks like: `isUsableFeedUrl` is a synchronous, isomorphic `zod`
 refinement shared between the browser-rendered settings form and the
 server-side save path (`packages/settings/src/definitions.ts`), so it has
 no way to resolve the hostname — Node's `dns` module does not exist in a

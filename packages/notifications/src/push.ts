@@ -1,5 +1,8 @@
 import { createCipheriv, hkdfSync, randomBytes } from 'node:crypto'
 
+import { env, isProduction } from '@meith/core'
+import { assertAllowedUrl, guardedRequest } from '@meith/core/outbound'
+
 export const PUSH_PAYLOAD_LIMIT = 3000
 
 export const PUSH_RECORD_SIZE = 4096
@@ -182,6 +185,24 @@ export function pushOutcomeFor(status: number): PushSendOutcome {
   return 'failed'
 }
 
+export function pushAllowsPrivateHosts(): boolean {
+  return env.PUSH_ALLOW_PRIVATE_HOSTS || !isProduction()
+}
+
+const guardedPushFetch: typeof fetch = (async (url: string, init: RequestInit) => {
+  const allowPrivateHosts = pushAllowsPrivateHosts()
+  const target = assertAllowedUrl(url, { allowPrivateHosts })
+  const { status } = await guardedRequest({
+    url: target,
+    method: 'POST',
+    headers: (init.headers ?? {}) as Record<string, string>,
+    body: init.body as Uint8Array,
+    timeoutMs: PUSH_REQUEST_TIMEOUT_MS,
+    allowPrivateHosts,
+  })
+  return { status } as Response
+}) as unknown as typeof fetch
+
 export async function sendWebPush(input: {
   readonly subscription: PushSubscriptionKeys
   readonly payload: string
@@ -190,7 +211,7 @@ export async function sendWebPush(input: {
   readonly now?: Date
   readonly fetchImpl?: typeof fetch
 }): Promise<PushSendResult> {
-  const doFetch = input.fetchImpl ?? fetch
+  const doFetch = input.fetchImpl ?? guardedPushFetch
 
   let encrypted: EncryptedPushPayload
   let authorization: string
