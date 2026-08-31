@@ -258,16 +258,17 @@ Back up the source, rehearse against a non-production board, and run the importe
 Installing a manifest-eligible plugin — one that ships a zero-argument `plugin` export, see
 [Writing a plugin](../../customization/plugins.md#writing-a-plugin) — is a change to the sources your
 image is built from, not something run against the deployed image. On your own board — scaffolded by
-`create-meith`, or graduated out of the stock image by `board:eject` — those sources are a single
-`package.json`, so it is `npm install`:
+`create-meith`, or graduated out of the stock image by `board:eject` — it is one command, which
+installs the package and registers it:
 
 ```sh
-npm install @meith/plugin-dues
 meith plugin:add @meith/plugin-dues
 ```
 
-In a checkout of *this* repository, where the board is one workspace among many, the first line reads
-`pnpm add @meith/plugin-dues --filter @meith/web` instead. Nothing else differs.
+In a checkout of *this* repository, where the board is one workspace among many, the package is added
+by hand with `pnpm add @meith/plugin-dues --filter @meith/web` (and `--filter @meith/board-stock` for
+the stock board) first, then `meith plugin:add @meith/plugin-dues` records it across both. See
+[Installing plugins and themes](../../customization/installing.md) for the board admin's walkthrough.
 
 `plugin:add` and `plugin:remove` edit `board.plugins.json` and regenerate
 `meith.plugins.ts`; commit both and rebuild and redeploy the image for the change to take

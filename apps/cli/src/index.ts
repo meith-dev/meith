@@ -211,7 +211,7 @@ const commands: Command[] = [
 
   {
     name: 'plugin:add',
-    summary: 'Add a package to board.plugins.json and regenerate meith.plugins.ts.',
+    summary: 'Install a plugin, add it to board.plugins.json, and regenerate meith.plugins.ts.',
     usage: 'meith plugin:add <package> [--key <key>] [--disabled]',
     async run(args: readonly string[]) {
       const { pluginAdd } = await import('./plugin-manifest')

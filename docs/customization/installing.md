@@ -18,10 +18,9 @@ anything — a board of your own is never required to look.
 
 ## Install a plugin
 
-Two commands, from your board's directory:
+One command, from your board's directory:
 
 ```sh
-npm install @meith/plugin-dues
 npm run meith -- plugin:add @meith/plugin-dues
 ```
 
@@ -29,11 +28,12 @@ Then **commit, push, and redeploy**. On Coolify that is one Redeploy; on any
 host it is a rebuild, because a plugin is code and has to be in the build
 before it can run.
 
-`plugin:add` records the package in `board.plugins.json` and regenerates
-`meith.plugins.ts` for you — you do not edit either by hand. It reads the
-plugin's key from a `@scope/plugin-<key>` package name; pass `--key <key>` if
-the name does not fit that shape, or `--disabled` to install it switched off.
-`npm run meith -- plugin:remove <key>` is the reverse.
+`plugin:add` installs the package (`npm install --save-exact`), records it in
+`board.plugins.json`, and regenerates `meith.plugins.ts` — you do not edit
+either by hand. It reads the plugin's key from a `@scope/plugin-<key>` package
+name; pass `--key <key>` if the name does not fit that shape, or `--disabled`
+to install it switched off. `npm run meith -- plugin:remove <key>` is the
+reverse.
 
 If the new release also ships database changes, apply them once it is up from
 **Admin → System** (**Version & migrations**), or run `meith upgrade` — see

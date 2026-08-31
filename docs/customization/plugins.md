@@ -53,10 +53,11 @@ against a scaffolded plugin.
 
 ### Installing a plugin
 
-Installing one into a board you run — `npm install` then `meith plugin:add`,
-commit, redeploy — is covered in
-[Installing plugins and themes](./installing.md). The rest of this section is
-the mechanics underneath it, and the two-board shape this repository carries.
+Installing one into a board you run — `meith plugin:add <package>`, which
+installs the package and registers it, then commit and redeploy — is covered
+in [Installing plugins and themes](./installing.md). The rest of this section
+is the mechanics underneath it, and the two-board shape this repository
+carries.
 
 `plugin:add` records the package in `board.plugins.json` and regenerates
 `meith.plugins.ts` — in a board the CLI writes the file itself, needing no

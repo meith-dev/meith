@@ -38,8 +38,19 @@ interface GeneratorResult {
 interface Mode {
   readonly root: string
   readonly boards: readonly Board[]
+  installPackage(packageName: string): void
   regenerate(): GeneratorResult
   missingManifest(path: string): string
+}
+
+export function installBoardPackage(root: string, packageName: string): void {
+  try {
+    execFileSync('npm', ['install', '--save-exact', packageName], { cwd: root, stdio: 'inherit' })
+  } catch {
+    throw new ValidationError(
+      `Could not install ${packageName} — npm reported the error above. Fix that and rerun.`,
+    )
+  }
 }
 
 const BOARD_MODE_BOARD: Board = {
@@ -57,6 +68,7 @@ function monorepoMode(boardsFile: string): Mode {
   return {
     root,
     boards,
+    installPackage: () => {},
     regenerate: () => runGenerator(join(repoRoot(), 'scripts/board-plugins-gen.mjs')),
     missingManifest: (path) =>
       `${path} does not exist. This command edits source files for every board this ` +
@@ -73,6 +85,7 @@ function boardMode(): Mode {
   return {
     root,
     boards: [BOARD_MODE_BOARD],
+    installPackage: (packageName) => installBoardPackage(root, packageName),
     regenerate: () => regenerateBoard(root),
     missingManifest: (path) =>
       `${path} does not exist. Run this from the board create-meith scaffolded — the ` +
@@ -292,6 +305,8 @@ export async function pluginAdd(args: readonly string[]): Promise<number> {
       throw new ValidationError(`"${key}" is already in ${mode.boards[index]?.manifestFile}.`)
     }
   })
+
+  mode.installPackage(packageName)
 
   const entry: ManifestEntry = { key, package: packageName, enabled: !flags.has('disabled') }
 

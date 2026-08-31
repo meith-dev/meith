@@ -434,17 +434,18 @@ Nothing installs into a running container — a plugin or theme has to be
 built into the image, the same as `npm install` anything else. In the
 board repository:
 
-1. `npm install --save-exact <package>` — a plugin, e.g.
-   `@meith/plugin-dues`, or a theme, e.g. `@meith/theme-midnight`.
-2. Register it: a **plugin** is `npm run meith -- plugin:add <package>`,
-   which records it in `board.plugins.json` and regenerates
-   `meith.plugins.ts` for you; a **theme** goes in `meith.config.ts`'s
-   `themes` map, following the shape of the `default` entry already there.
-3. `git commit` and `git push`, then press **Redeploy** in Coolify.
+1. Add it. A **plugin** is one command — it installs the package and
+   registers it: `npm run meith -- plugin:add <package>`, e.g.
+   `@meith/plugin-dues`. A **theme** is
+   `npm install --save-exact <package>` (e.g. `@meith/theme-midnight`), then
+   an entry in `meith.config.ts`'s `themes` map following the shape of the
+   `default` one there, with `defaultTheme` set to its key to make it the
+   board's default.
+2. `git commit` and `git push`, then press **Redeploy** in Coolify.
    Pushing alone does not rebuild: quick-start builds the new image on
    that redeploy; advanced/prebuilt waits for `.github/workflows/build.yml`
    to finish first, and Redeploy is what actually pulls the result.
-4. If it ships database changes, apply them once it is up from
+3. If it ships database changes, apply them once it is up from
    **Admin → System** (**Version & migrations**), or
    `docker compose run --rm web meith upgrade`.
 
