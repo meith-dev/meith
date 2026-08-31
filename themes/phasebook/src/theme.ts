@@ -70,7 +70,7 @@ import { WhoIsOnline } from './slots/who-is-online'
 export const phasebookTheme = defineTheme({
   key: 'phasebook',
   title: 'Phasebook',
-  version: '0.27.0',
+  version: '0.28.0',
   extends: defaultTheme,
   slots: {
     Shell,

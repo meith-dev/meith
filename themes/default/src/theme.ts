@@ -70,7 +70,7 @@ import { WhoIsOnline } from './slots/who-is-online'
 export const defaultTheme = defineTheme({
   key: 'default',
   title: 'Default',
-  version: '0.27.0',
+  version: '0.28.0',
   slots: {
     Shell,
     Header,
