@@ -131,7 +131,10 @@ export function MarkdownEditor({
     const element = field.current
     if (element === null) return
     element.style.height = 'auto'
-    element.style.height = `${element.scrollHeight}px`
+    const max = Math.max(240, Math.round(window.innerHeight * 0.6))
+    const overflowing = element.scrollHeight > max
+    element.style.height = `${overflowing ? max : element.scrollHeight}px`
+    element.style.overflowY = overflowing ? 'auto' : 'hidden'
   }, [])
 
   useEffect(() => {
