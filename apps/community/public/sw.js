@@ -36,8 +36,6 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-self.addEventListener('fetch', () => {})
-
 self.addEventListener('push', (event) => {
   const payload = readPayload(event)
   if (payload === null) return
