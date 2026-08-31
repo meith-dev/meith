@@ -4,6 +4,7 @@ import type { TaskHealthStatus } from '@meith/tasks'
 import { cn } from '@meith/ui'
 
 import {
+  ApplyMigrationsForm,
   ClearCacheForm,
   PruneSessionsForm,
   PruneTokensForm,
@@ -16,6 +17,7 @@ import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
 import { getTranslator, tr } from '@/server/i18n'
 import { buildSystemHealthView } from '@/server/system-admin'
+import { CODE_VERSION, pendingUpgradeNotice } from '@/server/upgrade-notice'
 import { systemFormsCopy } from '@/view/admin-panel-copy'
 import { formatTime } from '@/view/time'
 
@@ -36,7 +38,11 @@ export default async function AdminSystemPage() {
   if ((await adminPageContext()) === null) return null
 
   const now = new Date()
-  const [translator, view] = await Promise.all([getTranslator(), buildSystemHealthView(now)])
+  const [translator, view, upgradeNotice] = await Promise.all([
+    getTranslator(),
+    buildSystemHealthView(now),
+    pendingUpgradeNotice(),
+  ])
   const copy = systemFormsCopy(translator)
 
   if (view === null) {
@@ -244,6 +250,28 @@ export default async function AdminSystemPage() {
             {translator.t('adminSystem.deadLettered', { count: volumes.deadLetteredJobs })}
           </li>
         </ul>
+      </section>
+
+      <section className={PANEL_CARD}>
+        <h2 className="font-heading text-lg font-semibold">
+          {translator.t('adminSystem.migrations')}
+        </h2>
+        <p className="text-sm">
+          {translator.t('adminSystem.runningVersion')} <code>{CODE_VERSION}</code>.
+        </p>
+        {upgradeNotice === null ? (
+          <p className="text-sm text-muted-foreground">
+            {translator.t('adminSystem.migrationsUpToDate')}
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-destructive">{upgradeNotice}</p>
+            <p className="text-sm text-muted-foreground">
+              {translator.t('adminSystem.migrationsHint')}
+            </p>
+            <ApplyMigrationsForm copy={copy} />
+          </>
+        )}
       </section>
 
       <section className={PANEL_CARD}>

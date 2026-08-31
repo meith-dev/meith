@@ -509,25 +509,14 @@ export default defineForumConfig({
 
   files.set(
     'meith.plugins.ts',
-    `/**
- * The board's installed-plugin list.
- *
- * Inside the Meith monorepo this file is generated from board.plugins.json
- * by \`pnpm board:gen\` (see docs/customization/plugins.md) — that generator is
- * repository tooling, not something this workspace carries, so this file
- * starts as a plain, valid file with the same shape instead. Add a plugin by
- * importing its \`plugin\`/\`messages\` exports and adding an entry:
- *
- *   import { messages as greeterMessages, plugin as greeterPlugin } from '@meith/plugin-greeter'
- *
- *   export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = [
- *     { key: 'greeter', enabled: true, plugin: greeterPlugin, messages: greeterMessages },
- *   ]
- *
- * and the matching entry in board.plugins.json, which is what
- * \`meith plugin:add\`/\`plugin:remove\` read inside the monorepo — kept
- * here too so the two files agree about what is installed.
- */
+    `// Generated from board.plugins.json by \`meith plugin:add\` and \`meith plugin:remove\`.
+//
+// The simple path is those commands, or editing board.plugins.json and running one of
+// them. A plugin that does not fit that convention can be added here by hand instead —
+// keep it out of board.plugins.json so a regenerate does not drop it.
+//
+// docs/customization/plugins.md explains both.
+
 import type { InstalledPlugin } from '@meith/web/config'
 
 export const INSTALLED_PLUGINS: readonly InstalledPlugin[] = []
@@ -634,6 +623,23 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 
+# Uploaded files — avatars, board images, attachments — land here, and the
+# compose file mounts the persistent "uploads" volume over this path. Creating
+# it in the image, owned by node, is what lets the fresh volume inherit that
+# ownership; UPLOADS_DIR gives the board an absolute path so the working
+# directory never decides where uploads go. Without both, uploads land on the
+# container's own layer and a redeploy discards them.
+ENV UPLOADS_DIR=/app/.uploads
+RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
+
+# \`meith <command>\` on PATH runs this board's own operator CLI — the same one
+# node_modules/.bin/meith is — so a Coolify terminal or \`docker compose exec web
+# meith ...\` needs no path. It cd's to /board so the CLI finds this board's
+# config, and overrides any wrapper an inherited base image installed, which
+# would target the board that image was built from, not this one.
+RUN printf '#!/bin/sh\\ncd /board\\nexec node_modules/.bin/meith "$@"\\n' > /usr/local/bin/meith \\
+  && chmod +x /usr/local/bin/meith
+
 # node:alpine already carries a non-root "node" user; the board's own files
 # are copied in as root above, so they need handing over before this drops
 # privilege.
@@ -712,6 +718,23 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 
+# Uploaded files — avatars, board images, attachments — land here, and the
+# compose file mounts the persistent "uploads" volume over this path. Creating
+# it in the image, owned by node, is what lets the fresh volume inherit that
+# ownership; UPLOADS_DIR gives the board an absolute path so the working
+# directory never decides where uploads go. Without both, uploads land on the
+# container's own layer and a redeploy discards them.
+ENV UPLOADS_DIR=/app/.uploads
+RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
+
+# \`meith <command>\` on PATH runs this board's own operator CLI — the same one
+# node_modules/.bin/meith is — so a Coolify terminal or \`docker compose exec web
+# meith ...\` needs no path. It cd's to /board so the CLI finds this board's
+# config, and overrides any wrapper an inherited base image installed, which
+# would target the board that image was built from, not this one.
+RUN printf '#!/bin/sh\\ncd /board\\nexec node_modules/.bin/meith "$@"\\n' > /usr/local/bin/meith \\
+  && chmod +x /usr/local/bin/meith
+
 # node:alpine already carries a non-root "node" user; the board's own files
 # are copied in as root above, so they need handing over before this drops
 # privilege.
@@ -741,8 +764,8 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# \`docker run <image> node_modules/.bin/meith --help\` should still run
-# the CLI rather than silently starting the web server.
+# \`docker compose run --rm web meith --help\` (or \`exec\` into the running
+# container) should run the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
@@ -1280,44 +1303,36 @@ echo "<password>" | npm run meith -- user:create --username <name> --email <addr
 ## Installing plugins and themes
 
 Nothing installs into a running container — a plugin or theme has to be
-built into the image, the same as any other dependency:
+built into the image. In this repository:
 
-1. **In this repository**, install it:
-
-   \`\`\`sh
-   npm install --save-exact @meith/plugin-dues
-   \`\`\`
-
-   (a theme is the same command with its own package, e.g.
-   \`@meith/theme-midnight\`).
-
-2. **Register it.** A **theme** goes in \`meith.config.ts\`, in the \`themes\`
-   map, following the shape of the \`default\` entry already there. A
-   **plugin** goes in \`meith.plugins.ts\`: import its \`plugin\` and
-   \`messages\` exports and add \`{ key, enabled: true, plugin, messages }\`
-   to \`INSTALLED_PLUGINS\` — or run
+1. **Add it.** A **plugin** is one command, which installs the package and
+   registers it:
 
    \`\`\`sh
    npm run meith -- plugin:add @meith/plugin-dues
    \`\`\`
 
-   which edits \`board.plugins.json\` and regenerates \`meith.plugins.ts\`
-   for you.
+   It writes \`board.plugins.json\` and regenerates \`meith.plugins.ts\` for you
+   (\`npm run meith -- plugin:remove <key>\` reverses it). A **theme** is
+   \`npm install --save-exact @meith/theme-midnight\`, then an entry in
+   \`meith.config.ts\`'s \`themes\` map following the shape of the \`default\` one
+   already there — set \`defaultTheme\` to its key to make it the board's
+   default.
 
-3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
+2. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
    not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
    waits for \`.github/workflows/build.yml\` to finish first, and Redeploy is
    what actually pulls the result.
 
-4. **Once it is up, run its migrations one time:**
+3. **If it ships database changes, apply them once it is up** — from
+   **Admin → System** (**Version & migrations**) in the browser, or:
 
    \`\`\`sh
    docker compose run --rm web meith upgrade
    \`\`\`
 
-See [docs/customization/plugins.md](${repositoryUrl}/blob/main/docs/customization/plugins.md)
-and [docs/customization/themes.md](${repositoryUrl}/blob/main/docs/customization/themes.md)
-for the full reference.
+See [Installing plugins and themes](${repositoryUrl}/blob/main/docs/customization/installing.md)
+for the full guide.
 
 ## Upgrading
 

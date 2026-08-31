@@ -57,6 +57,23 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 
+# Uploaded files — avatars, board images, attachments — land here, and the
+# compose file mounts the persistent "uploads" volume over this path. Creating
+# it in the image, owned by node, is what lets the fresh volume inherit that
+# ownership; UPLOADS_DIR gives the board an absolute path so the working
+# directory never decides where uploads go. Without both, uploads land on the
+# container's own layer and a redeploy discards them.
+ENV UPLOADS_DIR=/app/.uploads
+RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
+
+# `meith <command>` on PATH runs this board's own operator CLI — the same one
+# node_modules/.bin/meith is — so a Coolify terminal or `docker compose exec web
+# meith ...` needs no path. It cd's to /board so the CLI finds this board's
+# config, and overrides any wrapper an inherited base image installed, which
+# would target the board that image was built from, not this one.
+RUN printf '#!/bin/sh\ncd /board\nexec node_modules/.bin/meith "$@"\n' > /usr/local/bin/meith \
+  && chmod +x /usr/local/bin/meith
+
 # node:alpine already carries a non-root "node" user; the board's own files
 # are copied in as root above, so they need handing over before this drops
 # privilege.

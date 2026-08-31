@@ -5,7 +5,9 @@
 This document is the policy: how to write a theme, what a theme may do, what
 the freeze covers, and how something is removed from it. The reference —
 every slot and every view model — is generated into
-[Theme slots](../reference/theme-slots.md).
+[Theme slots](../reference/theme-slots.md). To **install** an existing theme
+on a board you run, rather than write one, see
+[Installing plugins and themes](./installing.md).
 
 ## Writing a theme
 

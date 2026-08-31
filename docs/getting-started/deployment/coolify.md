@@ -225,7 +225,7 @@ containers come up, in order:
 |---|---|
 | `postgres` | The database. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. The next two wait for it, so the code never runs against a schema behind it. |
-| `web` | The board itself. |
+| `web` | The board itself. Uploaded files — avatars, board images, attachments — live in a named `uploads` volume, so a redeploy keeps them; point `FILESTORE_DRIVER` at S3 or a Blob store instead if you would rather they live outside the server. |
 | `worker` | Not the compiled tick process — `@meith/worker` is not published, so a board built this way calls `/api/system/tick` from a small loop instead. The catch-up it triggers still runs inside `web`, so `web`'s log, not this container's, is where a long `ran` list shows it working. This container only logs on failure. |
 
 Four things happen without your involvement, and they are the reason this
@@ -434,24 +434,60 @@ Nothing installs into a running container — a plugin or theme has to be
 built into the image, the same as `npm install` anything else. In the
 board repository:
 
-1. `npm install --save-exact <package>` — a plugin, e.g.
-   `@meith/plugin-dues`, or a theme, e.g. `@meith/theme-midnight`.
-2. Register it: a **theme** goes in `meith.config.ts`'s `themes` map,
-   following the shape of the `default` entry already there; a
-   **plugin** goes in `meith.plugins.ts` — import its `plugin` and
-   `messages` exports and add `{ key, enabled: true, plugin, messages }`
-   to `INSTALLED_PLUGINS` — or run `npm run meith -- plugin:add <package>`,
-   which edits `board.plugins.json` and regenerates `meith.plugins.ts` for
-   you.
-3. `git commit` and `git push`, then press **Redeploy** in Coolify.
+1. Add it. A **plugin** is one command — it installs the package and
+   registers it: `npm run meith -- plugin:add <package>`, e.g.
+   `@meith/plugin-dues`. A **theme** is
+   `npm install --save-exact <package>` (e.g. `@meith/theme-midnight`), then
+   an entry in `meith.config.ts`'s `themes` map following the shape of the
+   `default` one there, with `defaultTheme` set to its key to make it the
+   board's default.
+2. `git commit` and `git push`, then press **Redeploy** in Coolify.
    Pushing alone does not rebuild: quick-start builds the new image on
    that redeploy; advanced/prebuilt waits for `.github/workflows/build.yml`
    to finish first, and Redeploy is what actually pulls the result.
-4. Once it is up, run its migrations once:
+3. If it ships database changes, apply them once it is up from
+   **Admin → System** (**Version & migrations**), or
    `docker compose run --rm web meith upgrade`.
 
-See [Plugins](../../customization/plugins.md) and
-[Themes](../../customization/themes.md) for the full reference.
+[Installing plugins and themes](../../customization/installing.md) is the
+full guide, and [Plugins](../../customization/plugins.md) and
+[Themes](../../customization/themes.md) are the authoring references.
+
+## Running commands (the CLI) without SSH
+
+Most day-to-day maintenance is in the browser admin panel — settings, users,
+forums, and, under **Admin → System**, the search reindex, recount, cache
+clearing and **applying a release's migrations**. What is left is the `meith`
+operator CLI, and Coolify runs it without a shell of your own.
+
+**A one-off command.** Open the board resource's **Terminal** in Coolify,
+choose the `web` container, and run `meith <command>` directly:
+
+```sh
+meith env:check
+meith settings:get board.name
+meith upgrade
+```
+
+`meith` is on the image's `PATH`, so there is no path to type and nothing to
+install first. (From a plain host shell on the server it is
+`docker compose exec web meith <command>` instead — the Terminal saves you
+that.)
+
+These are **runtime** commands — they act on the running board and its
+database. Installing a plugin or theme is different: it edits your board's
+repository and only takes effect on a rebuild, so it is done in your checkout,
+not here — `plugin:add` refuses in the container for that reason. See
+[Installing plugins and themes](../../customization/installing.md).
+
+**Something recurring.** Add a **Scheduled Task** to the resource — a name, the
+command, the container (`web`), and a cron schedule — and Coolify runs it in the
+container on that schedule, with a button to run it now. `meith backup` (see
+below) is the usual one.
+
+The [operator CLI reference](../../guides/operations/operating.md#the-operator-cli)
+lists every command; `meith --help` inside the container lists what your
+installed release actually has.
 
 ## 6. Set up backups
 

@@ -329,6 +329,15 @@
       "group": "Operating the server"
     },
     {
+      "slug": "installing",
+      "file": "customization/installing.md",
+      "section": "customization",
+      "title": "Installing plugins and themes",
+      "blurb": "The board admin's guide to adding a plugin or theme: find one, install the package, register it, redeploy, and manage it from the panel.",
+      "generated": false,
+      "primary": true
+    },
+    {
       "slug": "first-plugin",
       "file": "customization/first-plugin.md",
       "section": "customization",
@@ -344,7 +353,7 @@
       "title": "Themes",
       "blurb": "How to write a theme, what a theme may do, and what the API freeze covers.",
       "generated": false,
-      "primary": true
+      "primary": false
     },
     {
       "slug": "plugins",

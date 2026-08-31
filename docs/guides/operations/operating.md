@@ -27,6 +27,8 @@ meith migrate && forum-web build
 
 `meith migrate` applies every migration the installed release has that the board does not, reports how many it applied, and exits 0 having done nothing when the schema is already current. It needs no build output and no running board, so either end of a deploy is a valid place for it. A failure exits non-zero, which is what stops the `&&` and fails the deployment instead of serving new code against an old schema.
 
+Once the board is up, an admin who deployed a release without running this can apply what is pending from **Admin → System** (**Version & migrations**) — the same core and plugin migrations `meith upgrade` runs, applied from the panel after a re-entered password. It is there for the forgotten step after a deploy, not a replacement for the deploy-time `migrate`, which is what keeps `web` from ever serving against an older schema.
+
 ### Two migrations at once
 
 The runner takes a session-level PostgreSQL advisory lock on a fixed key, holds it for the whole run, and releases it when the run ends — including when the run fails. Overlapping migrations therefore queue rather than race: the second waits for the first to finish, then finds the schema current and applies nothing. Two builds triggered close together cannot apply the same core migration twice.
@@ -101,14 +103,16 @@ Use `meith --help` for the exact commands supported by the installed release.
 
 | Deployment | Invocation |
 |---|---|
-| Compose — the supported stack, and the by-hand one | `docker compose run --rm web meith <command>` |
+| Compose, into the running board | `docker compose exec web meith <command>` |
+| Compose, as a fresh one-shot container | `docker compose run --rm web meith <command>` |
+| A local checkout of the board | `npm run meith -- <command>` |
 | A platform that only builds and serves | `meith <command>`, from a checkout of the board repository with the production environment in front of it — see [Running on Vercel](../../getting-started/deployment/vercel.md) |
 
-`--rm` stops the one-shot containers accumulating. Add `-T` when the command reads standard input, as creating a user does under [Account recovery](#account-recovery).
+`meith` is on `PATH` inside the board image, so `exec`-ing into the running `web` container is the quick way — nothing to build, and it shares the board the container is already serving. `run --rm` starts a fresh container instead, which is what you want when `web` is not up (a broken migration, say); `--rm` stops those accumulating, and `-T` is needed when the command reads standard input, as creating a user does under [Account recovery](#account-recovery). On Coolify, both run from the resource's **Terminal** with no SSH — see [Running commands on Coolify](../../getting-started/deployment/coolify.md#running-commands-the-cli-without-ssh).
 
 There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
-The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. It is also the only route for the commands that have no admin-panel equivalent: `backup`, `restore`, `migrate` and `upgrade`.
+The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. Applying a release's pending migrations — the `upgrade` step — is also on the panel now, under **Admin → System** (**Version & migrations**), so a routine upgrade needs no shell; `backup`, `restore` and the deploy-time `migrate` stay CLI-only.
 
 `meith --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
 
@@ -254,16 +258,17 @@ Back up the source, rehearse against a non-production board, and run the importe
 Installing a manifest-eligible plugin — one that ships a zero-argument `plugin` export, see
 [Writing a plugin](../../customization/plugins.md#writing-a-plugin) — is a change to the sources your
 image is built from, not something run against the deployed image. On your own board — scaffolded by
-`create-meith`, or graduated out of the stock image by `board:eject` — those sources are a single
-`package.json`, so it is `npm install`:
+`create-meith`, or graduated out of the stock image by `board:eject` — it is one command, which
+installs the package and registers it:
 
 ```sh
-npm install @meith/plugin-dues
 meith plugin:add @meith/plugin-dues
 ```
 
-In a checkout of *this* repository, where the board is one workspace among many, the first line reads
-`pnpm add @meith/plugin-dues --filter @meith/web` instead. Nothing else differs.
+In a checkout of *this* repository, where the board is one workspace among many, the package is added
+by hand with `pnpm add @meith/plugin-dues --filter @meith/web` (and `--filter @meith/board-stock` for
+the stock board) first, then `meith plugin:add @meith/plugin-dues` records it across both. See
+[Installing plugins and themes](../../customization/installing.md) for the board admin's walkthrough.
 
 `plugin:add` and `plugin:remove` edit `board.plugins.json` and regenerate
 `meith.plugins.ts`; commit both and rebuild and redeploy the image for the change to take

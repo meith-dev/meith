@@ -146,44 +146,36 @@ echo "<password>" | npm run meith -- user:create --username <name> --email <addr
 ## Installing plugins and themes
 
 Nothing installs into a running container — a plugin or theme has to be
-built into the image, the same as any other dependency:
+built into the image. In this repository:
 
-1. **In this repository**, install it:
-
-   ```sh
-   npm install --save-exact @meith/plugin-dues
-   ```
-
-   (a theme is the same command with its own package, e.g.
-   `@meith/theme-midnight`).
-
-2. **Register it.** A **theme** goes in `meith.config.ts`, in the `themes`
-   map, following the shape of the `default` entry already there. A
-   **plugin** goes in `meith.plugins.ts`: import its `plugin` and
-   `messages` exports and add `{ key, enabled: true, plugin, messages }`
-   to `INSTALLED_PLUGINS` — or run
+1. **Add it.** A **plugin** is one command, which installs the package and
+   registers it:
 
    ```sh
    npm run meith -- plugin:add @meith/plugin-dues
    ```
 
-   which edits `board.plugins.json` and regenerates `meith.plugins.ts`
-   for you.
+   It writes `board.plugins.json` and regenerates `meith.plugins.ts` for you
+   (`npm run meith -- plugin:remove <key>` reverses it). A **theme** is
+   `npm install --save-exact @meith/theme-midnight`, then an entry in
+   `meith.config.ts`'s `themes` map following the shape of the `default` one
+   already there — set `defaultTheme` to its key to make it the board's
+   default.
 
-3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
+2. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
    not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
    waits for `.github/workflows/build.yml` to finish first, and Redeploy is
    what actually pulls the result.
 
-4. **Once it is up, run its migrations one time:**
+3. **If it ships database changes, apply them once it is up** — from
+   **Admin → System** (**Version & migrations**) in the browser, or:
 
    ```sh
    docker compose run --rm web meith upgrade
    ```
 
-See [docs/customization/plugins.md](https://github.com/meith-dev/meith/blob/main/docs/customization/plugins.md)
-and [docs/customization/themes.md](https://github.com/meith-dev/meith/blob/main/docs/customization/themes.md)
-for the full reference.
+See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/customization/installing.md)
+for the full guide.
 
 ## Upgrading
 

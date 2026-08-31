@@ -167,8 +167,8 @@ export default async function AdminThemesPage() {
         </p>
         <p className="text-muted-foreground">
           {translator.t('adminThemes.deployBefore')} <em>exist</em>
-          {translator.t('adminThemes.deployAfterExist')} <code className="text-xs">pnpm add</code>{' '}
-          {translator.t('adminThemes.deployAfterAdd')}{' '}
+          {translator.t('adminThemes.deployAfterExist')}{' '}
+          <code className="text-xs">npm install</code> {translator.t('adminThemes.deployAfterAdd')}{' '}
           <code className="text-xs">meith.config.ts</code>
           {translator.t('adminThemes.deployAfterConfig')}{' '}
           <code className="text-xs">defaultTheme</code> {translator.t('adminThemes.deployEnd')}

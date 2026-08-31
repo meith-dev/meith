@@ -253,6 +253,23 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
     expect(dockerfilePrebuilt).not.toContain('meith-base:1.2.3')
   })
 
+  it("puts the board's own meith CLI on PATH in both images, targeting /board", () => {
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('/usr/local/bin/meith')
+      expect(image).toContain('cd /board')
+      expect(image).toContain('exec node_modules/.bin/meith "$@"')
+    }
+  })
+
+  it('writes uploads to the volume mount path in both images, so a redeploy keeps them', () => {
+    for (const image of [dockerfile, dockerfilePrebuilt]) {
+      expect(image).toContain('ENV UPLOADS_DIR=/app/.uploads')
+      expect(image).toContain('mkdir -p /app/.uploads && chown node:node /app/.uploads')
+    }
+    expect(compose).toContain('uploads:/app/.uploads')
+    expect(composePrebuilt).toContain('uploads:/app/.uploads')
+  })
+
   it("reads that build arg from package.json's own @meith/web dependency, so upgrading is one file", () => {
     expect(buildWorkflow).toContain(
       "MEITH_VERSION=$(node -p \"require('./package.json').dependencies['@meith/web']\")",
@@ -620,12 +637,12 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
   'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'meith.plugins.ts': '57ae372a7e032fbc34921e5c0c51367e6f0f4d93e028167345357fc833623c93',
+  'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
   '.env.example': '1f4611ff9689e37677a3d214fc47b945cd9aac7c032a81ffd6ebe3c463ccc028',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'c57034cc41d0b569a9702162686e535f7a1f8814d4cf736a5a64fa6718b7a186',
-  'Dockerfile.prebuilt': '9c66aec9a984e343f4672012bd00fd5050872dbdc8a9c587ba3f01640ba113c0',
-  'docker-entrypoint.sh': '7f48965a034ca842f95eb38adf6258bcc536033c5805bc38ca07f99f9e0eb022',
+  Dockerfile: 'a4ef2c7b1349ec81d214bf0cf60d422cc2d5396c1c5cf3358968f5d69966768f',
+  'Dockerfile.prebuilt': '64c769aaa1f9362a324a85d6318156efde85b955287032d588000f7ee57d32f0',
+  'docker-entrypoint.sh': '7b8ce8a48ade0285f0954ed5dff3dd82a94586ec321e54fb1c65dec768258117',
   'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
   '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
@@ -633,7 +650,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-compose.yaml': 'e501228abef49101b838fb4801618087c5019d385ae0d3c63d83111ddbe9f94d',
   'docker-compose.prebuilt.yaml':
     '5b7515079bcb7e226347950095c5419113d89383d4500910c5cec5c878b7c92e',
-  'README.md': '220ce5ffde36dad546aea77b85a05f1ff8ac0c5d9467e0b80913d14ef527f0b4',
+  'README.md': '1eab5b0c231cd51f15e63c6b0021302681f014e2b56558881560b6b806735856',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

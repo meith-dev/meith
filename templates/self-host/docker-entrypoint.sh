@@ -9,8 +9,8 @@
 set -e
 
 # An explicit command wins over the role, the same as the official image —
-# `docker run <image> node_modules/.bin/meith --help` should still run
-# the CLI rather than silently starting the web server.
+# `docker compose run --rm web meith --help` (or `exec` into the running
+# container) should run the CLI rather than silently starting the web server.
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
