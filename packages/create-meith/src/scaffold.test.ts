@@ -633,7 +633,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-compose.yaml': 'e501228abef49101b838fb4801618087c5019d385ae0d3c63d83111ddbe9f94d',
   'docker-compose.prebuilt.yaml':
     '5b7515079bcb7e226347950095c5419113d89383d4500910c5cec5c878b7c92e',
-  'README.md': '51500d10e71e61112539c9f4ebc5264b5f637170bb525231502e4372ad436d2c',
+  'README.md': '0fe16ca4cbc96a928bcb36518c7faedd52d7dc13602e33d5c5b8bfe9cf71893f',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

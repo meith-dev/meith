@@ -4,7 +4,9 @@
 
 This document is the policy: what a plugin is, what it may and may not do,
 and what the guarantees actually cover. The reference — every hook and every
-payload — is generated into [Plugin hooks](../reference/plugin-hooks.md).
+payload — is generated into [Plugin hooks](../reference/plugin-hooks.md). To
+**install** an existing plugin on a board you run, rather than write one, see
+[Installing plugins and themes](./installing.md).
 
 ## Writing a plugin
 
@@ -51,24 +53,18 @@ against a scaffolded plugin.
 
 ### Installing a plugin
 
-In a board `create-meith` scaffolded, installing a plugin is two commands
-and a redeploy:
-
-```sh
-npm install @meith/plugin-greeter
-meith plugin:add @meith/plugin-greeter
-```
+Installing one into a board you run — `npm install` then `meith plugin:add`,
+commit, redeploy — is covered in
+[Installing plugins and themes](./installing.md). The rest of this section is
+the mechanics underneath it, and the two-board shape this repository carries.
 
 `plugin:add` records the package in `board.plugins.json` and regenerates
-`meith.plugins.ts` — the CLI writes it itself, so a board needs no build
-tooling of its own — and `meith plugin:remove <key>` is the reverse. Commit
-both files, push, and redeploy; nothing installs into a running container.
-
-In **this repository's** checkout the command is the same, with one wrinkle:
-the repo carries two boards — `apps/community`, the in-repo dev target, and
-`boards/stock`, the workspace `docker/Dockerfile` builds the official image
-from (see `docs/reference/architecture.md`, "The board-config seam") — whose
-two `board.plugins.json` files are required to stay identical
+`meith.plugins.ts` — in a board the CLI writes the file itself, needing no
+build tooling of its own. In **this repository's** checkout there is one
+wrinkle: the repo carries two boards — `apps/community`, the in-repo dev
+target, and `boards/stock`, the workspace `docker/Dockerfile` builds the
+official image from (see `docs/reference/architecture.md`, "The board-config
+seam") — whose two `board.plugins.json` files are required to stay identical
 (`tests/boards-stock.test.ts` is the drift guard `pnpm verify` runs). So the
 package has to land as a dependency of both, and `plugin:add` writes both
 manifests:

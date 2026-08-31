@@ -174,15 +174,15 @@ built into the image, the same as any other dependency:
    waits for `.github/workflows/build.yml` to finish first, and Redeploy is
    what actually pulls the result.
 
-4. **Once it is up, run its migrations one time:**
+4. **If it ships database changes, apply them once it is up** — from
+   **Admin → System** (**Version & migrations**) in the browser, or:
 
    ```sh
    docker compose run --rm web meith upgrade
    ```
 
-See [docs/customization/plugins.md](https://github.com/meith-dev/meith/blob/main/docs/customization/plugins.md)
-and [docs/customization/themes.md](https://github.com/meith-dev/meith/blob/main/docs/customization/themes.md)
-for the full reference.
+See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/customization/installing.md)
+for the full guide.
 
 ## Upgrading
 
