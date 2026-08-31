@@ -63,6 +63,7 @@ export function forumAdminCopy(t: Translator = untranslated()): Readonly<Record<
         'adminForum.permGroup.approvals',
         'adminForum.permGroup.other',
         'adminForum.inheritsAll',
+        'adminForum.unsavedChanges',
         'adminForum.copied',
         'adminForum.copyNote',
         'adminForum.topLevel',
