@@ -585,17 +585,14 @@ deprecation cycle.
 
 ## Before opening a PR
 
-`pnpm verify` runs, in order: the workspace and root checks,
-`release:check`, the guards and their probes, the slot checks, the
-generated-document checks (`theme:docs`, `plugin:docs`, `hooks:wired`,
-`api:docs`, `perf:docs`, `docs:index`, `site:docs`), lint,
-dependency-cruiser, all three typechecks, and the tests.
+`pnpm verify` is the gate; [Development](./development.md#the-commands)
+lists everything it runs.
 
 The docs checks matter more than their position in that list suggests.
-`theme-slots.md`, `plugin-hooks.md`, `rest-api.md` and `performance.md`
-are generated from the code they describe, so when one of those checks
-fails, regenerate with the matching `pnpm <name>` rather than editing the
-page by hand — a hand-edit is overwritten by the next run.
+`theme-slots.md`, `plugin-hooks.md`, `api.md` and `performance.md` are
+generated from the code they describe, so when one of those checks fails,
+regenerate with the matching `pnpm <name>` rather than editing the page by
+hand — a hand-edit is overwritten by the next run.
 
 Run `pnpm build` as well if you touched anything under `app/` — and if you
 touched a theme or a plugin, check that the classes you used are actually

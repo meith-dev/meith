@@ -182,8 +182,8 @@
       "slug": "antispam",
       "file": "guides/community/antispam.md",
       "section": "guides",
-      "title": "Spam controls and rate limits",
-      "blurb": "The registration challenge, the limits on pages nobody has signed in to, the three login counters, and the hourly allowances — what each is worth and what it costs a real visitor.",
+      "title": "Spam controls and filters",
+      "blurb": "The registration challenge, the rate limits and login counters, the render-time word filter, and the ban filters that turn somebody away before an account exists — what each is worth and what it costs a real visitor.",
       "generated": false,
       "primary": false,
       "group": "Running your community"
@@ -209,31 +209,11 @@
       "group": "Running your community"
     },
     {
-      "slug": "word-filter",
-      "file": "guides/community/word-filter.md",
-      "section": "guides",
-      "title": "The word filter",
-      "blurb": "Rewriting words as a page renders, never in the stored post: what a rule is, why a pattern is a literal rather than a wildcard, and exactly which surfaces it covers.",
-      "generated": false,
-      "primary": false,
-      "group": "Running your community"
-    },
-    {
-      "slug": "ban-filters",
-      "file": "guides/community/ban-filters.md",
-      "section": "guides",
-      "title": "Ban filters",
-      "blurb": "Turning somebody away before an account exists: the three things a filter matches on, why a pattern is a glob rather than a regular expression, and every route into an account that consults one.",
-      "generated": false,
-      "primary": false,
-      "group": "Running your community"
-    },
-    {
       "slug": "operating",
       "file": "guides/operations/operating.md",
       "section": "guides",
       "title": "Operations",
-      "blurb": "Routine checks, configuration, maintenance commands, backups, recovery, and troubleshooting for a running board.",
+      "blurb": "Routine checks, configuration, maintenance commands, backups, recovery, web push, the cookies and security headers the board serves, and troubleshooting for a running board.",
       "generated": false,
       "primary": false,
       "group": "Operating the server"
@@ -244,16 +224,6 @@
       "section": "guides",
       "title": "Monitoring & alerting",
       "blurb": "Liveness versus readiness, the optional Prometheus metrics endpoint and what to alert on, distributed tracing, and shipping logs.",
-      "generated": false,
-      "primary": false,
-      "group": "Operating the server"
-    },
-    {
-      "slug": "cookies-and-headers",
-      "file": "guides/operations/cookies-and-headers.md",
-      "section": "guides",
-      "title": "Cookies and security headers",
-      "blurb": "What the board puts in a visitor's browser and what it tells the browser to refuse: every cookie and why it exists, the nonce Content Security Policy, and the one environment variable that changes it.",
       "generated": false,
       "primary": false,
       "group": "Operating the server"
@@ -294,16 +264,6 @@
       "section": "guides",
       "title": "Languages",
       "blurb": "How a page picks its language, how to add one, and how a theme or plugin ships its own words.",
-      "generated": false,
-      "primary": false,
-      "group": "Operating the server"
-    },
-    {
-      "slug": "web-push",
-      "file": "guides/operations/web-push.md",
-      "section": "guides",
-      "title": "Web push",
-      "blurb": "Notifications that reach a member who does not have the board open, and the manifest that makes the board installable — what it costs their privacy, and how to turn it on.",
       "generated": false,
       "primary": false,
       "group": "Operating the server"

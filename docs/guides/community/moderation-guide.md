@@ -228,7 +228,7 @@ lives in the admin panel, on the member's page under `/admin/users` — a
 moderator's route to a ban is the warning ladder, or asking an
 administrator. The same goes for **ban filters**, the patterns that
 block a registration or sign-in before an account exists — they live at
-`/admin/users/ban-filters`, and [Ban filters](./ban-filters.md)
+`/admin/users/ban-filters`, and [Ban filters](./antispam.md#ban-filters)
 describes what they match and how a pattern is written.
 
 Other things that look like moderation and are not yours to press:
@@ -257,7 +257,7 @@ system working, not a gap in your permissions.
 Two things do quiet work beside you, and neither needs anything from
 you day to day:
 
-- **[The word filter](./word-filter.md)** rewrites listed words as a
+- **[The word filter](./antispam.md#the-word-filter)** rewrites listed words as a
   page renders — post bodies, excerpts, thread titles, feeds and search
   results — without ever changing what is stored. You see the original
   in the queue and on the report screens, because you are judging the

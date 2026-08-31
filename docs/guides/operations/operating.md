@@ -1,6 +1,6 @@
 # Operations
 
-This guide is for the person responsible for a running Meith server. It covers routine checks, configuration, maintenance, backup, and common failures.
+This guide is for the person responsible for a running Meith server. It covers routine checks, configuration, maintenance, backup, web push, the cookies and security headers the board serves, and common failures.
 
 Installing a board? Use the [Quickstart](../../getting-started/deployment/coolify.md) or [Deploying by hand](../../getting-started/deployment/docker-compose.md). Community administration belongs in the [Organiser guide](../community/organiser-guide.md).
 
@@ -286,13 +286,128 @@ Removing files first can leave data without the code required to clean it up.
 
 ## Web push
 
-Generate VAPID keys with:
+A pushed notification reaches a member who does not have the board open —
+the operating system's own notification, raised on a phone or laptop
+doing something else. The same machinery makes the board installable: a
+board that can push and sit on a home screen is treated as an
+application by the browsers, and on iOS it must be installed before it
+may push at all. Push is off until an operator turns it on, and then off
+for every member until they turn it on themselves, per browser. There is
+no way to be pushed at by accident.
 
-```sh
-docker compose run --rm web meith push:keys
-```
+### What it costs a member's privacy
 
-Use `--save` only when you want the CLI to store the pair in board settings. Read [Web push](./web-push.md) for setup and privacy implications.
+A push travels from the board to **a push service run by the browser's
+maker** — Google for Chrome, Mozilla for Firefox, Apple for Safari — and
+from there to the device; there is no version of the standard where a
+board reaches a sleeping phone by itself. The push service learns that
+this board sent something to this endpoint, and when — nothing about
+what it said (the payload is encrypted end to end,
+[RFC 8291](https://www.rfc-editor.org/rfc/rfc8291), to a key only the
+browser holds) and nothing about who the member is (an endpoint is an
+opaque URL the browser minted). The board tells each member this on the
+preferences screen before they subscribe; repeat it in your privacy
+policy if your members would want it there.
+
+### Turning it on
+
+1. **Generate a VAPID key pair**
+   ([RFC 8292](https://www.rfc-editor.org/rfc/rfc8292)) — the public
+   half every browser stores when it subscribes, the private half signs
+   every send:
+
+   ```sh
+   docker compose run --rm web meith push:keys           # prints a pair to paste in
+   docker compose run --rm web meith push:keys --save    # generates and stores it
+   ```
+
+   > [!WARNING]
+   > Replacing a key pair that is already in use kills every stored
+   > subscription: the browsers hold the old public key and the push
+   > services will refuse the new signature. Each member's browser
+   > resubscribes on its next visit to the preferences screen, and until
+   > then they are pushed nothing. Generate once.
+
+2. **Fill in the settings** at `/admin/settings?group=push`:
+
+   | Setting | What it does |
+   |---|---|
+   | **Offer web push** | Off by default. On, members get a subscribe button on `/notifications/preferences` and a push column beside the e-mail one. |
+   | **VAPID public key** | The half every browser stores. |
+   | **VAPID private key** | The half that signs. Stored on the board, like the SMTP password. |
+   | **Contact for the push service** | A `mailto:` or `https:` address a push service can use to reach you. Left empty, the board sends the mail-from address, and failing that its own https address. With none of the three, push stays off, and the settings screen says so. |
+
+3. **Serve the board over HTTPS.** A service worker will not register
+   over plain HTTP, and without one there is no push and no install.
+   `localhost` is exempt, which is why development works without a
+   certificate.
+
+### What a member does
+
+On `/notifications/preferences`, a member subscribes the browser they
+are holding, ticks a push box per notification kind (independent of the
+e-mail box beside it), and can remove the subscription again. Every
+browser is subscribed separately — the subscription belongs to the
+browser, the per-kind preferences to the account. The subscribe button
+is the one part of the board that needs JavaScript to be useful, because
+a page cannot ask a browser for a push subscription in a form post;
+everything else on the screen is an ordinary no-JS form.
+
+On iPhone and iPad, Safari pushes only to a board that has been **added
+to the home screen**. Until then the subscribe button is refused by the
+browser; the board reports the refusal rather than pretending it worked,
+though Safari does not say the home-screen rule was the reason.
+
+### How a push is sent
+
+The path is the one notification mail already takes, with a second
+handler at the end: `raise()` writes the notification, an outbox row is
+written only when somebody wants the mail or the push, and the tick
+relays it to the `notifications.email` and `notifications.push` queue
+jobs — separate jobs, so a push service being down does not hold up the
+mail. A coalesced notification pushes nothing, on the same rule as mail;
+`push_sent_at` guards against a double send, exactly as `email_sent_at`
+does. Failures retry through the queue, and a push service answering
+`404` or `410` means the browser is gone for good — that subscription is
+pruned. The payload carries the notification's rendered subject and
+body in the member's own language, its id, the link it points at, and
+the member's unread count for the app badge — capped well under the 4 KB
+a push service will carry.
+
+### The service worker and the manifest
+
+`public/sw.js` has no `fetch` handler: it shows a notification when one
+is pushed and opens or focuses the right page when one is clicked — it
+caches nothing and intercepts nothing. That is deliberate: a cached page
+served to a signed-in member is a page with somebody else's name in the
+header, so an offline shell is a separate decision for a separate
+document, if ever. A click deep-links to the notification's own target
+and falls back to `/notifications`; off-origin links are refused.
+
+`/manifest.webmanifest` is generated per request from the board's own
+settings, so the installed application carries the board's name,
+description and theme colour and follows them when they change. It is
+served whether or not push is on.
+
+### When push does not work
+
+| What you see | What it is |
+|---|---|
+| No subscribe button at all | **Offer web push** is off, or the keys or the contact are missing. With push on and something missing, `/admin/settings?group=push` says which. |
+| The button appears and the browser refuses | Notifications are blocked in the browser's own site settings — or, on iOS, the board is not on the home screen yet. |
+| Subscribed, and nothing arrives | Check the worker is running: push goes out on the **tick**, like notification mail. `meith task:list` shows when the outbox last relayed. |
+| It worked and then stopped, on one device | The push service dropped the endpoint and the board pruned it. The member resubscribes from the preferences screen. |
+| It worked and then stopped, for everybody | The VAPID key pair changed. See the warning above. |
+| Nothing on iOS, everything elsewhere | Safari pushes only to an installed board. |
+
+What is stored: `push_subscriptions` holds one row per subscribed
+browser — the endpoint, the browser's two keys, the member, and when it
+was last successfully pushed to — deleted with the member, deleted when
+the push service says the endpoint is gone, and moved to the surviving
+account on a merge. `notification_preferences` gains a nullable `push`
+column beside `email` (null means the registry's default for that kind),
+and `notifications` gains `push_sent_at`. Nothing here is readable by
+anybody but the board.
 
 ## Scaling
 
@@ -311,6 +426,100 @@ posting clears the server draft through the normal create flow.
 
 Browser storage is crash recovery, not the durable record. Clearing site data
 removes that local copy, while server drafts remain in PostgreSQL.
+
+## Cookies and security headers
+
+What the board puts in a visitor's browser, and what it tells the
+browser to refuse — the section to read when somebody asks what you
+store about them, when a cookie banner is being drafted, or when
+something on the board is being blocked and you need to know by what.
+None of it is configurable from the admin panel; the one thing that
+changes it is an environment variable, named below.
+
+### The cookies
+
+**The board sets no third-party cookies, runs no analytics, and stores
+nothing for advertising.** Every cookie below is first-party, set by the
+board itself, and there to make a specific thing work.
+
+| Cookie | What it is for | Lifetime |
+| --- | --- | --- |
+| `fs_session` | The signed-in session | Until it expires or you sign out |
+| `fs_remember` | *Remember me* on the sign-in form | The remember period |
+| `fs_guest` | Counts one reader once, for "who's online" | 1 day |
+| `fs_admin` | Admin-panel re-authentication | The admin session |
+| `fs_2fa` | A sign-in that has given a password and owes a second factor | Short |
+| `fs_sso` | The single sign-on handshake | 10 minutes |
+| `fs_passkey` | The passkey exchange | Short |
+
+Every one is **`HttpOnly`** — script cannot read any of them — and every
+one is **`Secure`** wherever the board is served over HTTPS, where they
+also carry the **`__Host-` prefix** (`__Host-fs_session` and so on),
+binding each cookie to the exact origin that set it. `SameSite` differs
+by purpose: **`Lax`** for the session, remember, guest and SSO cookies —
+the SSO one has to be, because an identity provider returns the member
+with a top-level navigation from another site, which a `Strict` cookie
+is not sent on — and **`Strict`** for the admin, second-factor and
+passkey cookies, whose exchanges never start on another site. The admin
+cookie is also scoped to `/admin`, so it is not sent with ordinary board
+requests at all.
+
+`fs_guest` is the only cookie a visitor gets without signing in, and it
+exists for one figure: "37 guests reading". It is **an opaque random
+value and nothing else** — no code path turns it into an identity, and
+the session lookup refuses a row with no user behind it. Whether it
+needs consent where you operate is a question for you, but "strictly
+necessary" is an argument you can actually make about it, which is not
+true of an analytics cookie.
+
+### The Content Security Policy
+
+Every page is served under a **nonce-based policy**, generated fresh per
+request:
+
+```
+default-src 'self';
+img-src 'self' data:;
+style-src 'self' 'unsafe-inline';
+script-src 'self' 'nonce-<per-request>' 'strict-dynamic';
+connect-src 'self'; worker-src 'self'; manifest-src 'self';
+frame-ancestors 'self'; object-src 'none';
+base-uri 'self'; form-action 'self'
+```
+
+In practice: an injected `<script>` does not run — it has no nonce, and
+`'strict-dynamic'` trusts only what the board's own nonced scripts load;
+nothing loads from another origin — no CDN, no font host, no embedded
+widget, and a theme or plugin that reaches for one is blocked, with the
+browser console saying so; a form on your board cannot be made to post
+somewhere else; and the board cannot be framed by another site.
+
+**One environment variable changes it.** `REMOTE_IMAGES=1` adds `https:`
+to `img-src`, which is what lets members hotlink images from elsewhere.
+It is off by default: allowing remote images means every post can make a
+reader's browser fetch from a third party, which leaks the reader's IP
+address to whoever hosts it.
+
+The e2e suite asserts that every page carries the policy **and that
+nothing on the page is refused under it**, so a change that would have
+needed `unsafe-inline` fails before it ships.
+
+### The other headers
+
+Sent on every response:
+
+| Header | Value | What it stops |
+| --- | --- | --- |
+| `X-Content-Type-Options` | `nosniff` | A browser guessing a type and running an upload as script |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | A full path leaking to another site |
+| `Strict-Transport-Security` | `max-age=63072000` | A downgrade to HTTP for two years |
+| `X-Frame-Options` | `SAMEORIGIN` | Framing, for browsers older than `frame-ancestors` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Anything asking for hardware the board never uses |
+
+If you terminate TLS at a reverse proxy, it has to pass these through
+rather than replace them — see
+[Docker Compose](../../getting-started/deployment/docker-compose.md) for
+the CSP note on proxying.
 
 ## Troubleshooting
 

@@ -817,7 +817,7 @@ contained from the server.
 
 `context.notify` — on every runtime context — sends a member a notification
 through the board's own system: the bell, an e-mail if the member wants one,
-and a [pushed notification](../guides/operations/web-push.md) if the board offers push and the
+and a [pushed notification](../guides/operations/operating.md#web-push) if the board offers push and the
 member asked for it. A plugin first declares its kinds as data:
 
 ```ts
