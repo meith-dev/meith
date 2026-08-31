@@ -5,7 +5,7 @@
   "name": "Midnight",
   "description": "A dark theme for Meith, built on the default theme's slots.",
   "screenshots": ["midnight-light.png"],
-  "version": "0.26.1",
+  "version": "0.27.0",
   "apiVersion": 0,
   "meith": ">=0.16 <1",
   "repository": "https://github.com/meith-dev/meith",

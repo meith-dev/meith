@@ -1,6 +1,6 @@
 {
   "name": "@meith/plugin-dues",
-  "version": "0.26.1",
+  "version": "0.27.0",
   "description": "Membership dues for a Meith board: Stripe-backed subscriptions as a contained plugin.",
   "license": "MIT",
   "repository": {
