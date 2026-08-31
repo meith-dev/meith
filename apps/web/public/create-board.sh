@@ -108,25 +108,14 @@ MEITH_SCAFFOLD_EOF
 
 mkdir -p "$(dirname -- "$BOARD_NAME/meith.plugins.ts")"
 cat > "$BOARD_NAME/meith.plugins.ts" <<'MEITH_SCAFFOLD_EOF'
-/**
- * The board's installed-plugin list.
- *
- * Inside the Meith monorepo this file is generated from board.plugins.json
- * by `pnpm board:gen` (see docs/customization/plugins.md) — that generator is
- * repository tooling, not something this workspace carries, so this file
- * starts as a plain, valid file with the same shape instead. Add a plugin by
- * importing its `plugin`/`messages` exports and adding an entry:
- *
- *   import { messages as greeterMessages, plugin as greeterPlugin } from '@meith/plugin-greeter'
- *
- *   export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = [
- *     { key: 'greeter', enabled: true, plugin: greeterPlugin, messages: greeterMessages },
- *   ]
- *
- * and the matching entry in board.plugins.json, which is what
- * `meith plugin:add`/`plugin:remove` read inside the monorepo — kept
- * here too so the two files agree about what is installed.
- */
+// Generated from board.plugins.json by `meith plugin:add` and `meith plugin:remove`.
+//
+// The simple path is those commands, or editing board.plugins.json and running one of
+// them. A plugin that does not fit that convention can be added here by hand instead —
+// keep it out of board.plugins.json so a regenerate does not drop it.
+//
+// docs/customization/plugins.md explains both.
+
 import type { InstalledPlugin } from '@meith/web/config'
 
 export const INSTALLED_PLUGINS: readonly InstalledPlugin[] = []
@@ -952,18 +941,17 @@ built into the image, the same as any other dependency:
    (a theme is the same command with its own package, e.g.
    `@meith/theme-midnight`).
 
-2. **Register it.** A **theme** goes in `meith.config.ts`, in the `themes`
-   map, following the shape of the `default` entry already there. A
-   **plugin** goes in `meith.plugins.ts`: import its `plugin` and
-   `messages` exports and add `{ key, enabled: true, plugin, messages }`
-   to `INSTALLED_PLUGINS` — or run
+2. **Register it.** A **plugin** is one command:
 
    ```sh
    npm run meith -- plugin:add @meith/plugin-dues
    ```
 
-   which edits `board.plugins.json` and regenerates `meith.plugins.ts`
-   for you.
+   which records it in `board.plugins.json` and regenerates
+   `meith.plugins.ts` for you (`plugin:remove <key>` is the reverse). A
+   **theme** goes in `meith.config.ts`, in the `themes` map, following the
+   shape of the `default` entry already there — set `defaultTheme` to its key
+   to make it the board's default.
 
 3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
    not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt

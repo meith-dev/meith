@@ -49,13 +49,27 @@ there is no build step to ship and no compiled artifact to keep in sync.
 `scripts/extension-workspace-smoke.mts` proves this path end to end
 against a scaffolded plugin.
 
-Installing one in this checkout is then `pnpm add`, `meith
-plugin:add <package>`, and a rebuild and redeploy. This repository carries
-two boards — `apps/community`, the in-repo dev target, and `boards/stock`,
-the workspace `docker/Dockerfile` builds the official image from (see
-`docs/reference/architecture.md`, "The board-config seam") — and their two
-`board.plugins.json` files are required to stay identical
-(`tests/boards-stock.test.ts` is the drift guard `pnpm verify` runs), so the
+### Installing a plugin
+
+In a board `create-meith` scaffolded, installing a plugin is two commands
+and a redeploy:
+
+```sh
+npm install @meith/plugin-greeter
+meith plugin:add @meith/plugin-greeter
+```
+
+`plugin:add` records the package in `board.plugins.json` and regenerates
+`meith.plugins.ts` — the CLI writes it itself, so a board needs no build
+tooling of its own — and `meith plugin:remove <key>` is the reverse. Commit
+both files, push, and redeploy; nothing installs into a running container.
+
+In **this repository's** checkout the command is the same, with one wrinkle:
+the repo carries two boards — `apps/community`, the in-repo dev target, and
+`boards/stock`, the workspace `docker/Dockerfile` builds the official image
+from (see `docs/reference/architecture.md`, "The board-config seam") — whose
+two `board.plugins.json` files are required to stay identical
+(`tests/boards-stock.test.ts` is the drift guard `pnpm verify` runs). So the
 package has to land as a dependency of both, and `plugin:add` writes both
 manifests:
 
@@ -67,35 +81,38 @@ meith plugin:add @meith/plugin-greeter
 
 `plugin:add` infers the manifest key from a `@scope/plugin-<key>` package
 name (pass `--key` when it does not fit that shape, or `--disabled` to
-install it switched off) and writes both `board.plugins.json` files:
+install it switched off) and writes the manifest — one `board.plugins.json`
+in a board, both of them in this checkout:
 
 ```json
 { "plugins": [{ "key": "greeter", "package": "@meith/plugin-greeter", "enabled": true }] }
 ```
 
-then runs `pnpm board:gen` for you, which writes the import and the list
-entry into both `meith.plugins.ts` files. `meith plugin:remove <key>`
-is the reverse, on both boards. If the generator refuses one board's manifest
-— the package is not yet a dependency there, most often, or the two manifests
-already disagree before the command ran — neither `board.plugins.json` file
-is touched: `plugin:add`/`plugin:remove` roll every board back together, so a
-failed attempt never leaves one manifest edited and the other not. Neither
-command takes plugin configuration — the manifest has no field for it, on
-purpose, and `plugin:add` refuses an attempt to pass any: a plugin that needs
-arguments is not manifest-installable until its configuration moves into its
-own settings, the way `plugins/dues`'s did.
+then regenerates `meith.plugins.ts` from it, writing the import and the list
+entry: a board's CLI writes the file directly, and this repository runs
+`pnpm board:gen` across both boards. `meith plugin:remove <key>` is the
+reverse. If regenerating refuses a manifest — the package is not yet a
+dependency, most often, or in this repo the two manifests already disagree —
+the `board.plugins.json` edit is rolled back (every board together, in the
+repo), so a failed attempt never leaves a manifest edited and its
+`meith.plugins.ts` not. Neither command takes plugin configuration — the
+manifest has no field for it, on purpose, and `plugin:add` refuses an attempt
+to pass any: a plugin that needs arguments is not manifest-installable until
+its configuration moves into its own settings, the way `plugins/dues`'s did.
 
 **The escape hatch is still real code, and it is honest about being one.**
 A plugin that cannot yet fit the manifest — it takes constructor
-configuration, or you are still writing it — is registered by hand, exactly
-as before: a line in `meith.plugins.ts`. Because that file is generated,
-a hand-written entry cannot live there directly; it goes in
-`meith.demo.plugins.ts` instead (this repository's own demo and test
-boards keep their plugins there already), spread into the generated list
-through `showcasePlugins()`, which the generator preserves as a fixed
-extension point. Nothing about `meith.plugins.ts` being generated
-changes what runs — it changes how the manifest-installable, common case
-gets there without hand-editing TypeScript.
+configuration, or you are still writing it — is registered by hand. In a
+board, add its import and `INSTALLED_PLUGINS` entry to `meith.plugins.ts`
+directly, and keep it out of `board.plugins.json` so a later `plugin:add`
+does not regenerate the file and drop it. In **this repository**, where
+`meith.plugins.ts` is generated across two boards, a hand-written entry
+cannot live there directly; it goes in `meith.demo.plugins.ts` instead (this
+repository's own demo and test boards keep their plugins there already),
+spread into the generated list through `showcasePlugins()`, which the
+generator preserves as a fixed extension point. Either way, nothing about
+`meith.plugins.ts` being generated changes what runs — it changes how the
+manifest-installable, common case gets there without hand-editing TypeScript.
 
 `pnpm board:gen:check`, wired into `pnpm verify`, fails when either board's
 manifest and its `meith.plugins.ts` disagree — run `pnpm board:gen` and

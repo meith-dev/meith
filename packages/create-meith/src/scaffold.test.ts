@@ -620,7 +620,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
   'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'meith.plugins.ts': '57ae372a7e032fbc34921e5c0c51367e6f0f4d93e028167345357fc833623c93',
+  'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
   '.env.example': '1f4611ff9689e37677a3d214fc47b945cd9aac7c032a81ffd6ebe3c463ccc028',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
   Dockerfile: 'c57034cc41d0b569a9702162686e535f7a1f8814d4cf736a5a64fa6718b7a186',
@@ -633,7 +633,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-compose.yaml': 'e501228abef49101b838fb4801618087c5019d385ae0d3c63d83111ddbe9f94d',
   'docker-compose.prebuilt.yaml':
     '5b7515079bcb7e226347950095c5419113d89383d4500910c5cec5c878b7c92e',
-  'README.md': '220ce5ffde36dad546aea77b85a05f1ff8ac0c5d9467e0b80913d14ef527f0b4',
+  'README.md': '51500d10e71e61112539c9f4ebc5264b5f637170bb525231502e4372ad436d2c',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

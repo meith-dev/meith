@@ -157,18 +157,17 @@ built into the image, the same as any other dependency:
    (a theme is the same command with its own package, e.g.
    `@meith/theme-midnight`).
 
-2. **Register it.** A **theme** goes in `meith.config.ts`, in the `themes`
-   map, following the shape of the `default` entry already there. A
-   **plugin** goes in `meith.plugins.ts`: import its `plugin` and
-   `messages` exports and add `{ key, enabled: true, plugin, messages }`
-   to `INSTALLED_PLUGINS` — or run
+2. **Register it.** A **plugin** is one command:
 
    ```sh
    npm run meith -- plugin:add @meith/plugin-dues
    ```
 
-   which edits `board.plugins.json` and regenerates `meith.plugins.ts`
-   for you.
+   which records it in `board.plugins.json` and regenerates
+   `meith.plugins.ts` for you (`plugin:remove <key>` is the reverse). A
+   **theme** goes in `meith.config.ts`, in the `themes` map, following the
+   shape of the `default` entry already there — set `defaultTheme` to its key
+   to make it the board's default.
 
 3. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
    not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
