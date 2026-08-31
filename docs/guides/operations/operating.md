@@ -27,6 +27,8 @@ meith migrate && forum-web build
 
 `meith migrate` applies every migration the installed release has that the board does not, reports how many it applied, and exits 0 having done nothing when the schema is already current. It needs no build output and no running board, so either end of a deploy is a valid place for it. A failure exits non-zero, which is what stops the `&&` and fails the deployment instead of serving new code against an old schema.
 
+Once the board is up, an admin who deployed a release without running this can apply what is pending from **Admin → System** (**Version & migrations**) — the same core and plugin migrations `meith upgrade` runs, applied from the panel after a re-entered password. It is there for the forgotten step after a deploy, not a replacement for the deploy-time `migrate`, which is what keeps `web` from ever serving against an older schema.
+
 ### Two migrations at once
 
 The runner takes a session-level PostgreSQL advisory lock on a fixed key, holds it for the whole run, and releases it when the run ends — including when the run fails. Overlapping migrations therefore queue rather than race: the second waits for the first to finish, then finds the schema current and applies nothing. Two builds triggered close together cannot apply the same core migration twice.
@@ -108,7 +110,7 @@ Use `meith --help` for the exact commands supported by the installed release.
 
 There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
-The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. It is also the only route for the commands that have no admin-panel equivalent: `backup`, `restore`, `migrate` and `upgrade`.
+The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. Applying a release's pending migrations — the `upgrade` step — is also on the panel now, under **Admin → System** (**Version & migrations**), so a routine upgrade needs no shell; `backup`, `restore` and the deploy-time `migrate` stay CLI-only.
 
 `meith --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
 

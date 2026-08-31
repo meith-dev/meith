@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
+  applyUpgradeAction,
   clearCacheAction,
   pruneSessionsAction,
   pruneTokensAction,
@@ -37,6 +38,27 @@ export function PruneSessionsForm({ prunable, copy }: { prunable: number; copy: 
         <SubmitButton>
           {formatFromCopy(copy, 'adminPanel.system.pruneSessions', { prunable })}
         </SubmitButton>
+      </div>
+    </form>
+  )
+}
+
+export function ApplyMigrationsForm({ copy }: { copy: Copy }) {
+  const [state, action] = useActionState(applyUpgradeAction, EMPTY_STATE)
+
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <FormError message={state.error} />
+      {state.notice === 'upgraded' && (
+        <Result>
+          {formatFromCopy(copy, 'adminPanel.system.upgradeApplied', {
+            core: state.values?.core ?? '0',
+            plugins: state.values?.plugins === '' ? '—' : (state.values?.plugins ?? '—'),
+          })}
+        </Result>
+      )}
+      <div>
+        <SubmitButton>{fromCopy(copy, 'adminPanel.system.applyMigrations')}</SubmitButton>
       </div>
     </form>
   )

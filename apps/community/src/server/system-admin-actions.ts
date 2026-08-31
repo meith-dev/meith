@@ -6,12 +6,13 @@ import { NotFoundError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { msg } from '@meith/i18n'
 
-import { recordAdminAction, requireAdmin } from './admin'
+import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { clearableTag } from './cache-targets'
 import { formStateReporter } from './form-state-reporter'
 import { requireSearch } from './search'
 import { requireMaintenance, requireRecount } from './system-admin'
+import { applyPendingUpgrade } from './upgrade-notice'
 
 const SWEEP_LIMIT = 5_000
 
@@ -83,6 +84,28 @@ export async function reindexSearchAction(): Promise<FormState> {
     return {
       notice: progress.pending > 0 ? 'more' : 'finished',
       values: { indexed: String(result.indexed), pending: String(progress.pending) },
+    }
+  } catch (err) {
+    return toFormState(err)
+  }
+}
+
+export async function applyUpgradeAction(): Promise<FormState> {
+  try {
+    await requireFreshAdmin()
+
+    const result = await applyPendingUpgrade()
+
+    refreshSystemScreen()
+    revalidatePath('/admin')
+    await recordAdminAction({
+      action: 'system.upgrade_applied',
+      detail: { coreMigrations: result.coreMigrations, plugins: result.plugins },
+    })
+
+    return {
+      notice: 'upgraded',
+      values: { core: String(result.coreMigrations), plugins: result.plugins.join(', ') },
     }
   } catch (err) {
     return toFormState(err)
