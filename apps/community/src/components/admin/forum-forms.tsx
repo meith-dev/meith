@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 
 import type { MatrixCell, MatrixRow } from '@meith/authorization'
 import { cn, Disclosure } from '@meith/ui'
@@ -301,10 +301,19 @@ export function ForumPermissionRowForm({
   copy: Copy
 }) {
   const [state, action] = useActionState(saveForumPermissionsAction, EMPTY_STATE)
+  const [dirty, setDirty] = useState(false)
+
+  useEffect(() => {
+    if (state.notice === 'saved') setDirty(false)
+  }, [state])
 
   return (
-    <Disclosure summary={row.groupTitle} aside={overridesAside(row, copy)}>
-      <form action={action} className="flex flex-col gap-5">
+    <Disclosure
+      summary={row.groupTitle}
+      aside={overridesAside(row, copy)}
+      className="overflow-visible"
+    >
+      <form action={action} className="flex flex-col gap-5" onChange={() => setDirty(true)}>
         <FormError message={state.error} />
         <input type="hidden" name="forumId" value={forumId} />
         <input type="hidden" name="groupId" value={row.groupId} />
@@ -333,14 +342,20 @@ export function ForumPermissionRowForm({
           </section>
         ))}
 
-        <div className="flex items-center gap-3">
-          <SubmitButton>
+        <div className="sticky bottom-0 -mx-4 -mb-4 flex items-center gap-3 rounded-b-lg border-t border-border bg-card/95 px-4 py-3 supports-[backdrop-filter]:bg-card/80 supports-[backdrop-filter]:backdrop-blur">
+          <SubmitButton className="w-auto">
             {formatFromCopy(copy, 'adminForum.saveGroup', { group: row.groupTitle })}
           </SubmitButton>
-          {state.notice === 'saved' && (
-            <span className="text-xs font-medium text-moderation-approved">
-              {fromCopy(copy, 'admin.saved')}
+          {dirty ? (
+            <span className="text-xs font-medium text-muted-foreground">
+              {fromCopy(copy, 'adminForum.unsavedChanges')}
             </span>
+          ) : (
+            state.notice === 'saved' && (
+              <span className="text-xs font-medium text-moderation-approved">
+                {fromCopy(copy, 'admin.saved')}
+              </span>
+            )
           )}
         </div>
       </form>

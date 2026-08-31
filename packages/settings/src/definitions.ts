@@ -18,7 +18,6 @@ export type SettingGroup =
   | 'antispam'
   | 'push'
   | 'legal'
-  | 'marketplace'
 
 interface SettingDefinitionBase<T> {
   readonly key: string
@@ -1061,7 +1060,7 @@ export const SETTING_DEFINITIONS = [
 
   define({
     key: 'marketplace.feed_url',
-    group: 'marketplace',
+    group: 'board',
     label: 'Catalog feed URL',
     description:
       'Where the daily catalog fetch and the Browse tab’s Refresh button read the ' +
@@ -1073,6 +1072,7 @@ export const SETTING_DEFINITIONS = [
       .trim()
       .refine(isUsableFeedUrl, 'Give an https URL — or http to a loopback address, for testing.'),
     default: 'https://www.meith.dev/marketplace/v1.json',
+    ui: { advanced: true },
   }),
 ] as const
 

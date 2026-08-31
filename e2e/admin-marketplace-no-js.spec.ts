@@ -15,7 +15,7 @@ function oneMinorAhead(version: string): string {
 const AHEAD = oneMinorAhead(MEITH_VERSION)
 
 async function pointFeedAt(page: import('@playwright/test').Page, url: string): Promise<void> {
-  await page.goto('/admin/settings?group=marketplace')
+  await page.goto('/admin/settings?group=board&advanced=1')
   await page.getByLabel('Catalog feed URL').fill(url)
   await page.getByRole('button', { name: 'Save settings', exact: true }).click()
 }

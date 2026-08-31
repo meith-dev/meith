@@ -150,9 +150,9 @@ above are for. What the board itself does with the feed is narrower and
 specific to what it already runs — it tells the operator when something
 installed has a newer version worth moving to.
 
-`marketplace.feed_url` is a board setting (**Settings → Marketplace**),
-defaulting to the URL above, so a self-hosted mirror serving the same
-shape works as a drop-in replacement. **The board fetches it, never the
+`marketplace.feed_url` is a board setting (**Settings → Board**, under
+**Show advanced**), defaulting to the URL above, so a self-hosted mirror
+serving the same shape works as a drop-in replacement. **The board fetches it, never the
 member's or the operator's browser** — a `marketplace.refresh_catalog`
 task (`packages/tasks`) fetches, validates against the same shape this
 document describes, and caches the result once a day; the **Check for
