@@ -1,6 +1,6 @@
 {
   "name": "@meith/core",
-  "version": "0.29.0",
+  "version": "0.29.1",
   "description": "Environment, logging, caching and errors — the base layer every Meith package stands on.",
   "license": "MIT",
   "repository": {
