@@ -15,6 +15,7 @@ import type { MemberIdentity } from '@/view/member-identity'
 
 import { getContainer } from './container'
 import { badgeSrc } from './group-badge'
+import { getSettings } from './settings'
 import { currentColourScheme } from './theme'
 import { groupNameClass, renderGroupNameStyle } from './theme-style'
 
@@ -78,13 +79,24 @@ const load = cache(async (key: string): Promise<ReadonlyMap<number, MemberStandi
   return repo.forUsers(key.split(',').map(Number)).catch(() => new Map<number, MemberStanding>())
 })
 
+function nameClassFor(group: GroupIdentity): string | null {
+  return group.nameColorLight === null && group.nameColorDark === null
+    ? null
+    : groupNameClass(group.groupId)
+}
+
 export async function identitiesFor(
   userIds: readonly number[],
 ): Promise<ReadonlyMap<number, MemberIdentity>> {
   const ids = [...new Set(userIds)].sort((a, b) => a - b)
   if (ids.length === 0) return new Map()
 
-  const [rows, scheme] = await Promise.all([load(ids.join(',')), currentColourScheme()])
+  const [rows, scheme, settings] = await Promise.all([
+    load(ids.join(',')),
+    currentColourScheme(),
+    getSettings(),
+  ])
+  const maxShown = settings.get('display.max_displayed_groups')
 
   return new Map(
     [...rows].map(([userId, group]) => [
@@ -92,12 +104,14 @@ export async function identitiesFor(
       {
         groupId: group.groupId,
         title: group.title,
-        nameClass:
-          group.nameColorLight === null && group.nameColorDark === null
-            ? null
-            : groupNameClass(group.groupId),
+        nameClass: nameClassFor(group),
         badge: resolveBadge(group, scheme),
         reputation: group.reputation,
+        groups: group.groups.slice(0, maxShown).map((held) => ({
+          groupId: held.groupId,
+          title: held.title,
+          nameClass: nameClassFor(held),
+        })),
       },
     ]),
   )

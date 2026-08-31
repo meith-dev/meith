@@ -102,9 +102,11 @@ All of it is optional:
 - **A badge**, as two uploads, light and dark, on the same terms as the
   colours: an icon drawn for a white page usually disappears on a black
   one. Upload only the light one and it is used in both.
-- **The title** — what shows under a member's name on every post.
+- **The title** — what shows under a member's name on every post, one
+  line per displayed group.
 - **Display order**, and a **staff group** flag, which is what puts the
-  group on the board's staff page.
+  group on the board's staff page at `/staff` — groups appear there in
+  display order, each listing everyone who holds it.
 
 The colour reaches every username: the postbit, who started a thread, who
 posted last, the profile heading, who is online.
@@ -117,10 +119,22 @@ Profile**, from the groups they actually hold; picking their primary
 group stores nothing, so the choice keeps following that group. The
 picker is not shown to a member who holds only one group.
 
+The display group leads, but it is not necessarily alone. **Maximum
+displayed groups**, under the board's display settings, says how many of
+a member's groups appear with their name in the postbit and on the
+profile heading: the display group first, then the rest of the groups
+they hold in display order, cut off at the cap. Each title renders in
+its own group's colour, so an administrator who is also a supporter
+shows as both, each line unmistakably itself. Set it to `1` to show the
+display group alone — exactly the old behaviour; it ships at `3`. The
+lead group still speaks for the member everywhere only one group fits:
+the badge and the name colour are the display group's.
+
 **Staff are shown as staff, and have no choice about it.** A member whose
 primary group is a staff group — or any group carrying administrative or
-moderation power — is displayed as that group everywhere, gets no picker,
-and is refused if they submit the form anyway. The badge is a claim about
+moderation power — leads as that group everywhere: it is always the first
+group shown and the one whose badge and colour speak for them. They get
+no picker, and are refused if they submit the form anyway. The badge is a claim about
 who is answerable for the board, and a moderator posting as an ordinary
 member is that claim withdrawn exactly when it matters. This is a display
 rule, not a membership one: staff can hold any other group — including

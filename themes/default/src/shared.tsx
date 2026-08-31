@@ -1,4 +1,10 @@
-import type { CountModel, PrefixModel, TimeModel, UserRefModel } from '@meith/theme-kit'
+import type {
+  CountModel,
+  GroupTagModel,
+  PrefixModel,
+  TimeModel,
+  UserRefModel,
+} from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
 const PAGE_WIDTH = 'max-w-6xl'
@@ -97,4 +103,12 @@ export function Counts({ items, className }: { items: readonly CountItem[]; clas
       ))}
     </dl>
   )
+}
+
+export function groupTags(
+  groups: readonly GroupTagModel[] | undefined,
+  title: string | null,
+): readonly GroupTagModel[] {
+  if (groups !== undefined && groups.length > 0) return groups
+  return title === null ? [] : [{ title }]
 }

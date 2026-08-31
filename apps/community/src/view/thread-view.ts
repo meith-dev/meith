@@ -112,6 +112,10 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
           ? null
           : (context.avatars.get(post.authorUserId) ?? null),
       title: identity?.title ?? null,
+      groups:
+        identity === undefined
+          ? []
+          : identity.groups.map((group) => ({ title: group.title, nameClass: group.nameClass })),
       nameClass: identity?.nameClass ?? null,
       badge: identity?.badge ?? null,
       reputation: identity?.reputation === undefined ? null : count(identity.reputation, t),

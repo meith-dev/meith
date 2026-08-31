@@ -568,9 +568,11 @@ things the host refuses, checked on every call:
   trail.
 
 A grant is an additive secondary membership by default: the member's primary
-and display groups are left alone, so nothing the plugin does changes how
-they are shown, and when the grant ends everything falls back to exactly
-what it was.
+and display groups are left alone, so the group leading their name does not
+change — though the granted group can appear as an extra title, as far as
+[Maximum displayed groups](../guides/community/groups.md#display-groups)
+allows — and when the grant ends everything falls back to exactly what it
+was.
 
 **Expiry is true at the read, not enforced by a sweep.** Actor assembly
 skips a lapsed row, so access ends at the boundary even if no task ever runs

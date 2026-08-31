@@ -60,4 +60,19 @@ describe('buildMemberProfileView', () => {
       { label: 'Warn this member', href: '/moderation/warn?user=3' },
     ])
   })
+
+  it('carries the shown groups through, and stays empty without them', () => {
+    expect(buildMemberProfileView(PROFILE, NOW).groups).toEqual([])
+    expect(
+      buildMemberProfileView(PROFILE, NOW, {
+        groups: [
+          { title: 'Member', nameClass: null },
+          { title: 'Supporters', nameClass: 'gname-9' },
+        ],
+      }).groups,
+    ).toEqual([
+      { title: 'Member', nameClass: null },
+      { title: 'Supporters', nameClass: 'gname-9' },
+    ])
+  })
 })

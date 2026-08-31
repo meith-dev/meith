@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { TimeModel, UserRefModel } from '@meith/theme-kit'
+import type { GroupTagModel, TimeModel, UserRefModel } from '@meith/theme-kit'
 
 export const MICRO =
   'font-mono text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground'
@@ -129,4 +129,12 @@ export function UserRef({
       {user.username}
     </a>
   )
+}
+
+export function groupTags(
+  groups: readonly GroupTagModel[] | undefined,
+  title: string | null,
+): readonly GroupTagModel[] {
+  if (groups !== undefined && groups.length > 0) return groups
+  return title === null ? [] : [{ title }]
 }

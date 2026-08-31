@@ -257,6 +257,8 @@ describe('the built-in menu', () => {
       'my-posts',
       'search',
       'online',
+      'members',
+      'staff',
     ])
   })
 })

@@ -1,4 +1,4 @@
-import type { UserRefModel } from '@meith/theme-kit'
+import type { GroupTagModel, UserRefModel } from '@meith/theme-kit'
 
 export function UserRef({
   user,
@@ -19,4 +19,12 @@ export function UserRef({
       {user.username}
     </a>
   )
+}
+
+export function groupTags(
+  groups: readonly GroupTagModel[] | undefined,
+  title: string | null,
+): readonly GroupTagModel[] {
+  if (groups !== undefined && groups.length > 0) return groups
+  return title === null ? [] : [{ title }]
 }

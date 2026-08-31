@@ -3,7 +3,17 @@ import type { ReactNode } from 'react'
 import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
-import { BUTTON, Frame, HEADING, MICRO, NUMERIC, PanelHead, RULE, Stamp } from '../shared'
+import {
+  BUTTON,
+  Frame,
+  groupTags,
+  HEADING,
+  MICRO,
+  NUMERIC,
+  PanelHead,
+  RULE,
+  Stamp,
+} from '../shared'
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -18,6 +28,7 @@ export function MemberProfile({
   user,
   avatarUrl,
   title,
+  groups,
   joinedAt,
   lastVisitAt,
   postCount,
@@ -56,7 +67,11 @@ export function MemberProfile({
             >
               {user.username}
             </h1>
-            {title !== null && <p className={`${MICRO} mt-0.5 text-primary/90`}>{title}</p>}
+            {groupTags(groups, title).map((group) => (
+              <p key={group.title} className={`${MICRO} mt-0.5 text-primary/90`}>
+                <span className={group.nameClass ?? undefined}>{group.title}</span>
+              </p>
+            ))}
           </div>
         </div>
         <div className={RULE} aria-hidden="true" />

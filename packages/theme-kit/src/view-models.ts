@@ -206,6 +206,20 @@ export interface UserRefModel {
   readonly nameClass?: string | null | undefined
 }
 
+/**
+ * One of the groups shown with a member's name.
+ *
+ * `nameClass` works exactly like `UserRefModel.nameClass` and exists for the
+ * same reason: the group's colour differs between light and dark, so it
+ * arrives as a class the app's `<head>` stylesheet defines rather than as a
+ * colour. Put it on whatever renders the title; a theme that ignores it shows
+ * the title in its ordinary text colour and is still correct.
+ */
+export interface GroupTagModel {
+  readonly title: string
+  readonly nameClass?: string | null | undefined
+}
+
 /** The last post in a forum or thread, as a listing shows it. */
 export interface LastPostModel {
   readonly threadTitle: string
@@ -329,6 +343,18 @@ export interface PostAuthorModel extends UserRefModel {
    * `users.display_group_id`, falling back to the primary group.
    */
   readonly title: string | null
+  /**
+   * Every group shown with this member's name — the display group first, then
+   * the rest of the groups they hold in display order, cut off at the board's
+   * *Maximum displayed groups* setting.
+   *
+   * `title` is always the first entry's title, so a theme written before this
+   * field existed keeps showing the display group and is still correct; a
+   * theme that renders this list should render it *instead of* `title`, not as
+   * well. Empty where the board resolved no groups at all — fall back to
+   * `title` there, which is also what carries a custom user title.
+   */
+  readonly groups?: readonly GroupTagModel[] | undefined
   /**
    * The board's badge for this member's group, or `null`.
    *
@@ -1019,6 +1045,13 @@ export interface MemberProfileModel {
    * where the group behind it has gone.
    */
   readonly title: string | null
+  /**
+   * Every group shown with this member's name, on the same terms as
+   * `PostAuthorModel.groups`: display group first, the rest in display order,
+   * capped by the board's *Maximum displayed groups* setting. Render it
+   * instead of `title` when it is non-empty; fall back to `title` otherwise.
+   */
+  readonly groups?: readonly GroupTagModel[] | undefined
   readonly joinedAt: TimeModel
   readonly lastVisitAt: TimeModel | null
   readonly postCount: CountModel

@@ -82,6 +82,7 @@ export type {
   ForumJumpOption,
   ForumRowModel,
   ForumRowSlotModel,
+  GroupTagModel,
   HeaderModel,
   HiddenFieldModel,
   LastPostModel,

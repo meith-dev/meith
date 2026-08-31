@@ -173,7 +173,7 @@ test('a moderator who buys keeps their standing, and gets no display picker', as
 
   await page.goto(`/member/by-name/${username}`)
   await expect(page.getByText('Super Moderators', { exact: true })).toBeVisible()
-  await expect(page.getByText('Supporters', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Supporters', { exact: true })).toBeVisible()
 
   await page.goto('/usercp/profile')
   await expect(page.getByText('Shown under your name')).toHaveCount(0)

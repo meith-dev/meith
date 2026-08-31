@@ -66,7 +66,7 @@ function input(over: Partial<NavigationItemInput> = {}): NavigationItemInput {
 }
 
 describe('the seeded menu', () => {
-  it('carries the six items a board starts with, in order', async () => {
+  it('carries the eight items a board starts with, in order', async () => {
     const rows = (await repo.list()).filter((row) => row.key !== null)
 
     expect(rows.map((row) => row.key)).toEqual([
@@ -76,6 +76,8 @@ describe('the seeded menu', () => {
       'my-posts',
       'search',
       'online',
+      'members',
+      'staff',
     ])
   })
 
@@ -236,7 +238,7 @@ describe('arranging', () => {
     await repo.arrange(await idOf('online'), { parentId: null, afterId: await idOf('home') })
 
     const top = (await repo.list()).filter((row) => row.parentId === null)
-    expect(top.map((row) => row.displayOrder)).toEqual([0, 10, 20, 30, 40, 50])
+    expect(top.map((row) => row.displayOrder)).toEqual([0, 10, 20, 30, 40, 50, 60, 70])
   })
 
   it('nests an item under a top-level one', async () => {

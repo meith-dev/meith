@@ -2,7 +2,17 @@ import type { PostBitSlotModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 import { Alert, AlertDescription, AlertTitle, Avatar, Card } from '@meith/ui'
 
-import { HEADING, LINK, MICRO, MICRO_BARE, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
+import {
+  groupTags,
+  HEADING,
+  LINK,
+  MICRO,
+  MICRO_BARE,
+  MUTED_LINK,
+  NUMERIC,
+  Stamp,
+  UserRef,
+} from '../shared'
 
 const VISIBILITY_TINT = {
   visible: '',
@@ -98,7 +108,11 @@ function AuthorBlock({
           <UserRef user={author} className={`${HEADING} text-sm`} />
         </p>
 
-        {author.title !== null && <p className={`${MICRO} mt-0.5 truncate`}>{author.title}</p>}
+        {groupTags(author.groups, author.title).map((group) => (
+          <p key={group.title} className={`${MICRO} mt-0.5 truncate`}>
+            <span className={group.nameClass ?? undefined}>{group.title}</span>
+          </p>
+        ))}
 
         {author.isOnline && (
           <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved">

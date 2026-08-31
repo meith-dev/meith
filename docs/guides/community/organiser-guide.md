@@ -223,16 +223,30 @@ glance: showing now, scheduled, expired, or switched off.
 ### The navigation menu
 
 **Admin → Content → Navigation** is the menu across the top of every
-page. A new board starts with six items — Home, New posts, Unanswered,
-My posts, Search and Who's online — and they are ordinary rows: rename
-one, move it, hide it, or delete it, and add links of your own beside
-them. A link can point at a page on the board or at any web address —
-the community's main site, the fixtures list, an events calendar.
+page. A new board starts with eight items — Home, New posts, Unanswered,
+My posts, Search, Who's online, Members and Staff — and they are
+ordinary rows: rename one, move it, hide it, or delete it, and add links
+of your own beside them. A link can point at a page on the board or at
+any web address — the community's main site, the fixtures list, an
+events calendar.
 
 Each item can be shown to everyone, only signed-out visitors, only
 signed-in members, or only staff — and, more narrowly, only to members
 of groups you tick. Items can be nested one level deep into sub-menus by
 dragging.
+
+### The member list and the staff page
+
+**`/members`** lists every account on the board — searchable by name,
+sortable by name, post count or newest arrival — with each member's
+displayed groups beside their name. It is shown to anyone whose groups
+carry the *Browse the member list* permission, which every shipped group
+grants; untick it on Guests to keep the list to signed-in members.
+
+**`/staff`** is the other half of the [staff group flag](./groups.md#how-a-group-looks):
+every group marked as a staff group appears there in its display order,
+listing everyone who holds it — by primary group or live membership.
+A staff group nobody is in stays off the page.
 
 ### Mass mail
 

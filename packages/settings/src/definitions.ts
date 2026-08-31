@@ -250,6 +250,20 @@ export const SETTING_DEFINITIONS = [
   }),
 
   define({
+    key: 'display.max_displayed_groups',
+    group: 'display',
+    label: 'Maximum displayed groups',
+    description:
+      "How many of a member's groups are shown with their name, in the postbit " +
+      'and on their profile. The display group comes first and the rest follow ' +
+      'in display order; 1 shows the display group alone.',
+    schema: z.number().int().min(1).max(10),
+    default: 3,
+    invalidates: ['settings'],
+    ui: { min: 1, max: 10 },
+  }),
+
+  define({
     key: 'display.default_locale',
     group: 'display',
     label: 'Default language',

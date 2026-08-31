@@ -41,6 +41,8 @@ export const BUILT_IN_NAVIGATION: readonly BuiltInNavigationItem[] = [
   },
   { key: 'search', messageKey: 'nav.search', href: '/search', audience: 'all' },
   { key: 'online', messageKey: 'nav.online', href: '/online', audience: 'all' },
+  { key: 'members', messageKey: 'nav.members', href: '/members', audience: 'all' },
+  { key: 'staff', messageKey: 'nav.staff', href: '/staff', audience: 'all' },
 ]
 
 const SEARCH_KEY = 'search'

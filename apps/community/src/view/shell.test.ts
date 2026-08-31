@@ -307,6 +307,8 @@ describe('buildBoardNavigation', () => {
       '/discover/participated',
       '/search',
       '/online',
+      '/members',
+      '/staff',
     ])
   })
 

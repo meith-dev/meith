@@ -1,10 +1,13 @@
 import type { MemberProfileModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
+import { groupTags } from '../shared'
+
 export function MemberProfile({
   user,
   avatarUrl,
   title,
+  groups,
   joinedAt,
   lastVisitAt,
   postCount,
@@ -36,7 +39,11 @@ export function MemberProfile({
           >
             {user.username}
           </h1>
-          {title !== null && <p className="font-mono text-xs text-muted-foreground">{title}</p>}
+          {groupTags(groups, title).map((group) => (
+            <p key={group.title} className="font-mono text-xs text-muted-foreground">
+              <span className={group.nameClass ?? undefined}>{group.title}</span>
+            </p>
+          ))}
         </div>
       </header>
 
