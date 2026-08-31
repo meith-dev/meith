@@ -1,5 +1,6 @@
 import { deliveryHeaders, nextRetryDelaySeconds, verdictFor, type WebhookTopic } from '@meith/api'
-import { logger } from '@meith/core'
+import { env, isProduction, logger } from '@meith/core'
+import { assertAllowedUrl, BlockedOutboundError, guardedRequest } from '@meith/core/outbound'
 
 export interface ClaimedDelivery {
   readonly id: number
@@ -28,10 +29,36 @@ export interface DeliverWebhooksResult {
   readonly dead: number
 }
 
+export interface DeliveryAttempt {
+  readonly url: string
+  readonly headers: Readonly<Record<string, string>>
+  readonly body: string
+}
+
+export type DeliverAttemptFn = (attempt: DeliveryAttempt) => Promise<{ readonly status: number }>
+
 export interface DeliverWebhooksOptions {
   readonly now?: Date
   readonly random?: () => number
-  readonly fetchImpl?: typeof fetch
+  readonly deliver?: DeliverAttemptFn
+}
+
+export function webhookAllowsPrivateHosts(): boolean {
+  return env.WEBHOOK_ALLOW_PRIVATE_HOSTS || !isProduction()
+}
+
+const guardedDelivery: DeliverAttemptFn = async (attempt) => {
+  const allowPrivateHosts = webhookAllowsPrivateHosts()
+  const url = assertAllowedUrl(attempt.url, { allowPrivateHosts })
+  const { status } = await guardedRequest({
+    url,
+    method: 'POST',
+    headers: attempt.headers,
+    body: attempt.body,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    allowPrivateHosts,
+  })
+  return { status }
 }
 
 export async function deliverWebhooks(
@@ -40,7 +67,7 @@ export async function deliverWebhooks(
   options: DeliverWebhooksOptions = {},
 ): Promise<DeliverWebhooksResult> {
   const now = options.now ?? new Date()
-  const doFetch = options.fetchImpl ?? fetch
+  const deliver = options.deliver ?? guardedDelivery
   const log = () => logger({ module: 'webhooks' })
 
   const claimed = await store.claimDue(now, limit)
@@ -66,22 +93,19 @@ export async function deliverWebhooks(
 
     let status: number | null = null
     let failure = ''
+    let blocked = false
 
     try {
-      const response = await doFetch(row.url, {
-        method: 'POST',
-        headers,
-        body,
-        redirect: 'manual',
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      })
+      const response = await deliver({ url: row.url, headers, body })
       status = response.status
     } catch (err) {
       failure = err instanceof Error ? err.message : String(err)
+      blocked = err instanceof BlockedOutboundError
     }
 
-    const verdict =
-      status === null
+    const verdict = blocked
+      ? 'dead'
+      : status === null
         ? nextRetryDelaySeconds(row.attempts, options.random) === null
           ? 'dead'
           : 'retry'

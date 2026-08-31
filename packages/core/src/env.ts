@@ -112,6 +112,8 @@ const envSchema = z
 
     ADMIN_IP_ALLOWLIST: z.string().optional(),
 
+    WEBHOOK_ALLOW_PRIVATE_HOSTS: flag,
+
     TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(MAX_TRUSTED_PROXY_HOPS).default(1),
 
     REMOTE_IMAGES: flag,

@@ -63,6 +63,7 @@
   "packages/core/src/env.ts": 55,
   "packages/core/src/errors.ts": 7,
   "packages/core/src/metrics.ts": 1,
+  "packages/core/src/outbound.ts": 7,
   "packages/core/src/permissions.ts": 53,
   "packages/core/src/tracing.ts": 2,
   "packages/db/src/admin-session-repo.ts": 1,
