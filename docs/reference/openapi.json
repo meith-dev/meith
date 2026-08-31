@@ -456,6 +456,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -478,6 +488,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -845,6 +865,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -867,6 +897,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1013,6 +1053,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -1035,6 +1085,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1403,6 +1463,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -1425,6 +1495,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1690,6 +1770,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -1712,6 +1802,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2054,6 +2154,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -2076,6 +2186,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2232,6 +2352,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -2254,6 +2384,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2500,6 +2640,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request body is missing, malformed, or not valid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "401": {
             "description": "No bearer token, or the token is not valid.",
             "content": {
@@ -2522,6 +2672,16 @@
           },
           "404": {
             "description": "No such resource, or none the caller may see.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than the API allows.",
             "content": {
               "application/json": {
                 "schema": {

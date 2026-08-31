@@ -103,6 +103,11 @@ function responses(route: RouteSpec): JsonSchema {
     out['422'] = errorResponse('The board refused the contents by its own posting rules.')
   }
 
+  if (route.request !== undefined) {
+    out['400'] = errorResponse('The request body is missing, malformed, or not valid JSON.')
+    out['413'] = errorResponse('The request body is larger than the API allows.')
+  }
+
   return out
 }
 
