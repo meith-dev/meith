@@ -192,6 +192,73 @@ using the command in [Backup](./operating.md#backup), run it once by
 hand, and copy the result off the machine — the next disaster does not
 care how recent the last one was.
 
+## Under Coolify
+
+The order above assumes a shell and a compose file. A board deployed by
+[the Coolify guide](../../getting-started/deployment/coolify.md) has a
+panel instead, and its backups — if its
+[backup section](../../getting-started/deployment/coolify.md#6-set-up-backups)
+was followed — live in an S3-compatible bucket the new machine can fetch
+from itself. The same order, mapped:
+
+1. **Provision** — a new server, Coolify installed on it (the guide's
+   step 1), and the board resource created from the same repository (its
+   steps 2–3) — **stopping before the first deploy**. Deploy the release
+   the board was running, not a newer one: on the quick-start path your
+   repository's `main` pins it already unless you have pushed since; on
+   the prebuilt path set `MEITH_IMAGE` to the version the old board ran.
+
+2. **Write the environment** — on the new resource's **Environment
+   Variables**, Coolify has generated *fresh* values for
+   `SERVICE_BASE64_64_AUTH`, `SERVICE_BASE64_64_TICK` and
+   `SERVICE_PASSWORD_POSTGRES`. Paste your day-one copies over all three
+   **before the first deploy** — the database password is baked into the
+   data volume on its first boot, and a fresh `AUTH_SECRET` costs what
+   the table at the top says even when everything else restores
+   perfectly. Set the `BACKUP_S3_*` values too, so this machine can reach
+   the bundles.
+
+3. **Deploy once** — the four containers come up and `migrate` writes a
+   fresh, empty schema. The board now serves `/install`; **do not open
+   it**. The restore below brings back the installed, sealed board, and
+   an installer run here would create a second board you would only have
+   to drop again.
+
+4. **Restore** — fetch the newest bundle, replace the empty schema with
+   it, and let the uploads land on the fresh volume (nothing to clear —
+   the resource has never served an upload):
+
+   In the resource's **Terminal**, container `web`:
+
+   ```sh
+   meith backup:list
+   meith backup:fetch <the newest bundle> --out /backups/restore.tar.gz
+   ```
+
+   Container `postgres`:
+
+   ```sh
+   psql -U community -d postgres -c 'drop database community with (force)'
+   createdb -U community community
+   ```
+
+   Container `web` again:
+
+   ```sh
+   RESTORE_DATABASE_URL="$DATABASE_URL" meith restore /backups/restore.tar.gz
+   ```
+
+5. **Restart the resource and verify** — step 5's checks, unchanged,
+   against the resource's generated domain or a hosts-file entry while
+   the world still resolves to the old address.
+
+6. **Cut over, then resume the backups** — steps 6 and 7 above. The
+   Scheduled Task is panel configuration the old server took with it:
+   re-create it from the
+   [backup section's table](../../getting-started/deployment/coolify.md#6-set-up-backups),
+   press its run-now button once, and check `meith backup:list` shows
+   today.
+
 ## Partial losses are smaller pages
 
 Full loss is rare; most bad days are one of these, and each has a shorter

@@ -94,6 +94,13 @@ const envSchema = z
     S3_ENDPOINT: z.string().url().optional(),
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
+    BACKUP_S3_BUCKET: nonEmpty.optional(),
+    BACKUP_S3_REGION: nonEmpty.optional(),
+    BACKUP_S3_ACCESS_KEY_ID: nonEmpty.optional(),
+    BACKUP_S3_SECRET_ACCESS_KEY: nonEmpty.optional(),
+    BACKUP_S3_ENDPOINT: z.string().url().optional(),
+    BACKUP_S3_PREFIX: nonEmpty.optional(),
+
     BLOB_READ_WRITE_TOKEN: blobReadWriteToken.optional(),
     BLOB_STORE_ID: nonEmpty.optional(),
 

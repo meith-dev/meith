@@ -167,6 +167,42 @@ Reading a bundle back needs neither addition: files inside the image are world-r
 
 A useful policy records frequency, retention, off-server location, access ownership, and the last successful restore rehearsal. A backup is not proven until it restores into an empty target.
 
+### A ring of bundles
+
+`--out` names one file and refuses to write over anything. A scheduled backup wants the other shape, and `--dir` is it:
+
+```sh
+meith backup --dir /backups --keep 7
+```
+
+Each run writes a fresh bundle into the directory, named for the moment it started (`meith-backup-2026-09-01T02-00-00Z.tar.gz`), and then — only after the new bundle is safely written — deletes the oldest bundles beyond the newest `--keep` (7 when the flag is not given). The order is the point: a run that fails never prunes, so a week of failed backups leaves the last good bundles untouched rather than eating them one night at a time. Pruning matches the bundle name pattern exactly and touches nothing else in the directory.
+
+Retention is also the disk knob. A bundle carries the uploads when they live on the local volume, so on a small server the ring's size is roughly `--keep` times the board's data; if the disk fills, lower the count rather than skipping uploads.
+
+This is the shape [the Coolify guide](../../getting-started/deployment/coolify.md#6-set-up-backups) schedules: its compose file mounts a named `backups` volume at `/backups` so the ring survives redeploys.
+
+### Shipping bundles off the server
+
+A ring on the server protects against a bad upgrade or a deleted thread, not against losing the server. Set four variables and every backup also ships its bundle to an S3-compatible bucket, pruned there to the same `--keep`:
+
+```sh
+BACKUP_S3_BUCKET=board-backups
+BACKUP_S3_REGION=auto
+BACKUP_S3_ACCESS_KEY_ID=…
+BACKUP_S3_SECRET_ACCESS_KEY=…
+```
+
+`BACKUP_S3_ENDPOINT` points it at anything S3-compatible — R2, MinIO, Spaces, Backblaze B2 — the same way `S3_ENDPOINT` does for the filestore, and `BACKUP_S3_PREFIX` shares one bucket between boards. All four required values must be set together: a partial set fails the backup run, loudly, and never affects the board itself. Use a bucket of its own — never the bucket the uploads live in, or a backup of the uploads sits where losing the uploads loses it too. Give the credential only what it needs: write and list on that bucket alone.
+
+Two commands close the loop:
+
+```sh
+meith backup:list --dir /backups
+meith backup:fetch meith-backup-2026-09-01T02-00-00Z.tar.gz
+```
+
+`backup:list` prints the local ring and what the bucket actually holds — run it after the first shipped backup, because an upload nobody has listed is a hope, not an off-site copy. `backup:fetch` downloads one bundle back, which is how a [disaster recovery](./disaster-recovery.md) on a fresh machine reaches its backup without `scp`: set the same `BACKUP_S3_*` values there and fetch.
+
 ### When a bundle is incomplete
 
 On `s3` and `blob` the uploads are pulled object by object out of the store, and an object whose key the board cannot use — one that would escape the staging directory, one holding a `.` or `..` segment, an empty segment, surrounding whitespace, or a control character — cannot be written into the bundle. Such a key is not something the board itself produces; it arrives when something else writes into the same bucket or store, or when a key is mangled in a migration between them.
@@ -193,7 +229,7 @@ Restore only into a new, empty database. Stop traffic and review the installed c
 docker compose run --rm web meith restore --help
 ```
 
-After restore, apply migrations for the selected release, start web and worker, and verify sign-in, recent threads, uploads, mail, and scheduled tasks before changing DNS. See [Disaster recovery](./disaster-recovery.md) for the complete runbook.
+After restore, apply migrations for the selected release, start web and worker, and verify sign-in, recent threads, uploads, mail, and scheduled tasks before changing DNS. See [Disaster recovery](./disaster-recovery.md) for the complete runbook. A bundle that lives at the off-site destination comes back with [`meith backup:fetch`](#shipping-bundles-off-the-server) first; `restore` itself only reads local files.
 
 A bundle whose manifest records skipped objects — see [When a bundle is incomplete](#when-a-bundle-is-incomplete) — restores normally, and the restore names those objects as it finishes. Posts referring to them have broken images, and no other copy of them exists; the restore still exits 0, because the restore did everything it was given.
 
