@@ -991,12 +991,15 @@ tasks: [
   reader's](../reference/mybb-parity.md)), so UTC is the only honest anchor,
   and it is stated in the type, in the error `definePlugin` throws, and here.
 
-The expression is validated at `definePlugin` time, not at first tick: a
-board with a bad schedule fails to start rather than logging a stuck task
-weeks later. Fields are numeric (no `MON` or `JAN` names); `*`, ranges
-(`1-5`), lists (`0,30`) and steps (`*/15`) are understood; `0` and `7` both
-mean Sunday; and when both day-of-month and day-of-week are restricted a day
-matching **either** one runs, the standard cron rule.
+The expression is validated at `definePlugin` time, not at first tick — both
+that it parses and that it can ever occur, so a well-formed impossibility
+like `0 0 30 2 *` (February 30th) is refused rather than left to starve the
+tick when its next-run time cannot be computed. A board with a bad schedule
+fails to start rather than logging a stuck task weeks later. Fields are
+numeric (no `MON` or `JAN` names); `*`, ranges (`1-5`), lists (`0,30`) and
+steps (`*/15`) are understood; `0` and `7` both mean Sunday; and when both
+day-of-month and day-of-week are restricted a day matching **either** one
+runs, the standard cron rule.
 
 - **The 60-second floor holds for cron too.** A five-field expression is
   minute-granular by construction — the finest it can ask for is

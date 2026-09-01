@@ -12,7 +12,12 @@ export class PostgresTaskRepository implements TaskRepository {
   constructor(private readonly db: Database) {}
 
   async ensureRegistered(
-    definitions: readonly { id: string; intervalSeconds: number; firstRunAt?: Date }[],
+    definitions: readonly {
+      id: string
+      intervalSeconds: number
+      schedule?: string
+      firstRunAt?: Date
+    }[],
   ): Promise<void> {
     if (definitions.length === 0) return
 
@@ -22,6 +27,7 @@ export class PostgresTaskRepository implements TaskRepository {
         definitions.map((d) => ({
           key: d.id,
           intervalSeconds: d.intervalSeconds,
+          schedule: d.schedule ?? null,
           nextRunAt: d.firstRunAt ?? NEVER_RUN,
         })),
       )
@@ -29,8 +35,11 @@ export class PostgresTaskRepository implements TaskRepository {
         target: tasks.key,
         set: {
           intervalSeconds: sql`excluded.interval_seconds`,
+          schedule: sql`excluded.schedule`,
           nextRunAt: sql`
-            case when ${tasks.intervalSeconds} is distinct from excluded.interval_seconds
+            case when excluded.schedule is not null
+                 then ${tasks.nextRunAt}
+                 when ${tasks.intervalSeconds} is distinct from excluded.interval_seconds
                  then coalesce(${tasks.lastRunAt}, now())
                       + make_interval(secs => excluded.interval_seconds)
                  else ${tasks.nextRunAt}

@@ -353,6 +353,21 @@ describe('definePlugin', () => {
         plugin({ tasks: [{ id: 'digest', schedule: '0 9 * * MON', run: () => {} }] }),
       ).toThrow(/whole number/)
     })
+
+    it('refuses a well-formed but unsatisfiable schedule', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 30 2 *', run: () => {} }] }),
+      ).toThrow(/satisfiable/)
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 31 4 *', run: () => {} }] }),
+      ).toThrow(/satisfiable/)
+    })
+
+    it('accepts a leap-day schedule, which is satisfiable within four years', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 29 2 *', run: () => {} }] }),
+      ).not.toThrow()
+    })
   })
 
   describe('notification kinds', () => {

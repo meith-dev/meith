@@ -2,7 +2,7 @@ export type { HookRuntime, PluginRuntimeContext } from './runtime'
 
 import type { ReactNode } from 'react'
 
-import { parseCron } from '@meith/core'
+import { CADENCE_REFERENCE, nextRun, parseCron } from '@meith/core'
 import type { Translator } from '@meith/theme-kit'
 
 import { type HOOKS, type HookName, isHookName } from './hooks'
@@ -462,7 +462,7 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
 
     if (task.schedule !== undefined) {
       try {
-        parseCron(task.schedule)
+        nextRun(parseCron(task.schedule), CADENCE_REFERENCE)
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
         throw new Error(`${where}: task "${task.id}" ${detail}.`)

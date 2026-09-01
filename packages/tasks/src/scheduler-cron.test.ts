@@ -5,6 +5,7 @@ import type { TaskDefinition } from './types'
 
 interface Row {
   intervalSeconds: number
+  schedule: string | null
   lastRunAt: Date | null
   nextRunAt: Date | null
   runningSince: Date | null
@@ -14,16 +15,34 @@ class CronFakeRepository implements TaskRepository {
   rows = new Map<string, Row>()
 
   async ensureRegistered(
-    tasks: readonly { id: string; intervalSeconds: number; firstRunAt?: Date }[],
+    tasks: readonly {
+      id: string
+      intervalSeconds: number
+      schedule?: string
+      firstRunAt?: Date
+    }[],
   ): Promise<void> {
     for (const task of tasks) {
-      if (this.rows.has(task.id)) continue
-      this.rows.set(task.id, {
-        intervalSeconds: task.intervalSeconds,
-        lastRunAt: null,
-        nextRunAt: task.firstRunAt ?? null,
-        runningSince: null,
-      })
+      const existing = this.rows.get(task.id)
+      if (existing === undefined) {
+        this.rows.set(task.id, {
+          intervalSeconds: task.intervalSeconds,
+          schedule: task.schedule ?? null,
+          lastRunAt: null,
+          nextRunAt: task.firstRunAt ?? null,
+          runningSince: null,
+        })
+        continue
+      }
+
+      existing.schedule = task.schedule ?? null
+      if (task.schedule === undefined && existing.intervalSeconds !== task.intervalSeconds) {
+        existing.nextRunAt =
+          existing.lastRunAt === null
+            ? null
+            : new Date(existing.lastRunAt.getTime() + task.intervalSeconds * 1000)
+      }
+      existing.intervalSeconds = task.intervalSeconds
     }
   }
 
@@ -123,5 +142,40 @@ describe('a cron-scheduled task', () => {
     const following = new Date('2026-09-28T09:00:00Z')
     expect((await tick({ repository, tasks, now: following }))[0]?.status).toBe('ran')
     expect(run).toHaveBeenCalledTimes(2)
+  })
+
+  it('isolates an unsatisfiable schedule so one bad task cannot starve the tick', async () => {
+    const repository = new CronFakeRepository()
+    const alive = vi.fn()
+
+    const impossible: TaskDefinition = {
+      id: 'impossible',
+      title: 'Impossible',
+      description: 'A schedule that never matches.',
+      intervalSeconds: 86_400,
+      schedule: '0 0 30 2 *',
+      maxDurationSeconds: 30,
+      async run() {
+        return {}
+      },
+    }
+    const interval: TaskDefinition = {
+      id: 'keepalive',
+      title: 'Keepalive',
+      description: 'A plain interval task.',
+      intervalSeconds: 60,
+      maxDurationSeconds: 30,
+      async run() {
+        alive()
+        return {}
+      },
+    }
+
+    const outcomes = await tick({ repository, tasks: [impossible, interval], now: MONDAY })
+    const byId = new Map(outcomes.map((outcome) => [outcome.taskId, outcome]))
+
+    expect(byId.get('impossible')?.status).toBe('failed')
+    expect(byId.get('keepalive')?.status).toBe('ran')
+    expect(alive).toHaveBeenCalledTimes(1)
   })
 })

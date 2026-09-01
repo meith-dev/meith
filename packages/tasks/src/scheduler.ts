@@ -19,7 +19,12 @@ export interface TaskRepository {
   }): Promise<void>
 
   ensureRegistered(
-    tasks: readonly { id: string; intervalSeconds: number; firstRunAt?: Date }[],
+    tasks: readonly {
+      id: string
+      intervalSeconds: number
+      schedule?: string
+      firstRunAt?: Date
+    }[],
   ): Promise<void>
 }
 
@@ -49,18 +54,35 @@ export async function tick({
   onError,
   signal,
 }: TickDeps): Promise<TickOutcome[]> {
-  const schedules = new Map<string, CronSchedule>()
+  const schedules = new Map<string, { expression: string; parsed: CronSchedule }>()
+  const broken = new Map<string, string>()
   for (const task of tasks) {
-    if (task.schedule !== undefined) schedules.set(task.id, parseCron(task.schedule))
+    if (task.schedule === undefined) continue
+    try {
+      const parsed = parseCron(task.schedule)
+      nextRun(parsed, now)
+      schedules.set(task.id, { expression: task.schedule, parsed })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      broken.set(task.id, message)
+      onError?.(task.id, error)
+    }
   }
 
   await repository.ensureRegistered(
-    tasks.map((t) => {
-      const schedule = schedules.get(t.id)
-      return schedule === undefined
-        ? { id: t.id, intervalSeconds: t.intervalSeconds }
-        : { id: t.id, intervalSeconds: t.intervalSeconds, firstRunAt: nextRun(schedule, now) }
-    }),
+    tasks
+      .filter((t) => !broken.has(t.id))
+      .map((t) => {
+        const entry = schedules.get(t.id)
+        return entry === undefined
+          ? { id: t.id, intervalSeconds: t.intervalSeconds }
+          : {
+              id: t.id,
+              intervalSeconds: t.intervalSeconds,
+              schedule: entry.expression,
+              firstRunAt: nextRun(entry.parsed, now),
+            }
+      }),
   )
 
   const outcomes: TickOutcome[] = []
@@ -68,6 +90,12 @@ export async function tick({
 
   for (const task of tasks) {
     const startedAt = Date.now()
+
+    const brokenReason = broken.get(task.id)
+    if (brokenReason !== undefined) {
+      outcomes.push({ taskId: task.id, status: 'failed', durationMs: 0, error: brokenReason })
+      continue
+    }
 
     if (signal?.aborted === true) {
       outcomes.push({ taskId: task.id, status: 'skipped', durationMs: 0 })
@@ -104,14 +132,14 @@ export async function tick({
       const result: TaskResult = await task.run(context)
 
       const finishedAt = elapsedSince()
-      const schedule = schedules.get(task.id)
+      const entry = schedules.get(task.id)
 
       await repository.release({
         taskId: task.id,
         finishedAt,
         success: true,
         ...(result.detail ? { detail: result.detail } : {}),
-        ...(schedule ? { nextRunAt: nextRun(schedule, finishedAt) } : {}),
+        ...(entry ? { nextRunAt: nextRun(entry.parsed, finishedAt) } : {}),
       })
 
       outcomes.push({
@@ -126,14 +154,14 @@ export async function tick({
       onError?.(task.id, error)
 
       const finishedAt = elapsedSince()
-      const schedule = schedules.get(task.id)
+      const entry = schedules.get(task.id)
 
       await repository.release({
         taskId: task.id,
         finishedAt,
         success: false,
         error: message,
-        ...(schedule ? { nextRunAt: nextRun(schedule, finishedAt) } : {}),
+        ...(entry ? { nextRunAt: nextRun(entry.parsed, finishedAt) } : {}),
       })
 
       outcomes.push({

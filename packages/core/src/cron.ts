@@ -17,6 +17,8 @@ interface FieldBounds {
 const MINUTE_MS = 60_000
 const HORIZON_MS = 366 * 4 * 24 * 60 * MINUTE_MS
 
+export const CADENCE_REFERENCE = new Date('2024-01-01T00:00:00Z')
+
 const MINUTE_BOUNDS: FieldBounds = { name: 'minute', min: 0, max: 59 }
 const HOUR_BOUNDS: FieldBounds = { name: 'hour', min: 0, max: 23 }
 const DAY_OF_MONTH_BOUNDS: FieldBounds = { name: 'day-of-month', min: 1, max: 31 }
@@ -82,7 +84,7 @@ export function nextRun(schedule: CronSchedule, from: Date): Date {
   )
 }
 
-export function cronCadenceSeconds(schedule: CronSchedule, from: Date = new Date()): number {
+export function cronCadenceSeconds(schedule: CronSchedule, from: Date = CADENCE_REFERENCE): number {
   const first = nextRun(schedule, from)
   const second = nextRun(schedule, first)
   return Math.max(60, Math.round((second.getTime() - first.getTime()) / 1000))
