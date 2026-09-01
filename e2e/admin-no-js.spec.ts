@@ -131,6 +131,7 @@ test('an announcement written in the panel renders above the forums', async ({ p
     .filter({ has: page.locator(`input[name="id"][value="${announcementId}"]`) })
     .getByRole('button', { name: 'Remove', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
   await expect(page.locator(`input[name="title"][value="${title}"]`)).toHaveCount(0)
 
   await page.goto('/')

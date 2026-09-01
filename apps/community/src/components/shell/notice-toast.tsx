@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { Toast, type ToastTone } from '@meith/ui/toast'
 
@@ -16,11 +16,16 @@ export function NoticeToast({
   dismissHref: string | null
 }) {
   const copy = useCopy()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   const clearNotice = useCallback(() => {
     if (dismissHref === null || typeof window === 'undefined') return
     window.history.replaceState(window.history.state, '', dismissHref)
   }, [dismissHref])
+
+  if (!mounted) return null
 
   return (
     <div

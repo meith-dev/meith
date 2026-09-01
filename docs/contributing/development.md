@@ -521,10 +521,10 @@ token revocation, attachment / announcement / prefix / word-filter / smiley
 / captcha-question / directive deletion, navigation-link deletion, and
 ban-filter removal. Admin operations already guarded by the
 preview-and-undo pattern (`admin-undo.tsx`) or a fresh-password re-check
-(group deletion) keep those guards instead, and four one-click removals are
-deliberately left un-gated because they destroy nothing that cannot be put
-straight back — the favicon and logo (re-upload), a promotion rule, and a
-badge definition.
+(group and promotion-rule deletion) keep those guards instead, and three
+one-click removals are deliberately left un-gated because they destroy
+nothing that cannot be put straight back — the favicon and logo (re-upload)
+and a badge definition.
 
 A **notice is a toast, with the banner as its fallback.** Actions still
 redirect carrying the notice in the query string; `BoardNotice` renders the

@@ -162,45 +162,59 @@ export function NavigationItemRowForm({
   groups,
   parents,
   copy,
+  summary,
+  className,
+  style,
 }: {
   item: NavigationItemValues
   audiences: readonly AudienceChoice[]
   groups: readonly GroupChoice[]
   parents: readonly ParentChoice[]
   copy: Copy
+  summary: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
 }) {
   const [state, action] = useActionState(updateNavigationItemAction, EMPTY_STATE)
   const [removeState, removeAction] = useActionState(deleteNavigationItemAction, EMPTY_STATE)
 
   return (
-    <div className="flex flex-col gap-3 py-4">
-      <FormError message={state.error ?? removeState.error} />
-      <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
+    <>
+      <details className={className} style={style}>
+        <summary className="cursor-pointer py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+          {summary}
+        </summary>
 
-      <form action={action} className="flex flex-col gap-3" noValidate>
-        <input type="hidden" name="id" value={item.id} />
-        <NavigationFields
-          audiences={audiences}
-          groups={groups}
-          parents={parents}
-          values={item}
-          copy={copy}
-        />
+        <div className="flex flex-col gap-3 py-4">
+          <FormError message={state.error ?? removeState.error} />
+          <Saved when={state.notice === 'saved'}>{fromCopy(copy, 'admin.saved')}</Saved>
 
-        <span className="min-w-28">
-          <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
-        </span>
-      </form>
+          <form action={action} className="flex flex-col gap-3" noValidate>
+            <input type="hidden" name="id" value={item.id} />
+            <NavigationFields
+              audiences={audiences}
+              groups={groups}
+              parents={parents}
+              values={item}
+              copy={copy}
+            />
 
-      <form action={removeAction}>
-        <input type="hidden" name="id" value={item.id} />
-        <PendingButton showWorking className="text-xs text-destructive hover:underline">
-          {fromCopy(copy, 'adminNavigation.removeThis')}
-        </PendingButton>
-      </form>
+            <span className="min-w-28">
+              <SubmitButton>{fromCopy(copy, 'adminContent.save')}</SubmitButton>
+            </span>
+          </form>
+
+          <form action={removeAction}>
+            <input type="hidden" name="id" value={item.id} />
+            <PendingButton showWorking className="text-xs text-destructive hover:underline">
+              {fromCopy(copy, 'adminNavigation.removeThis')}
+            </PendingButton>
+          </form>
+        </div>
+      </details>
 
       <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
-    </div>
+    </>
   )
 }
 

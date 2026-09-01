@@ -178,6 +178,7 @@ test('a revoked token is refused on the next request', async ({ page, request })
   const row = page.getByRole('row', { name: new RegExp(name) })
   await expect(row).toBeVisible()
   await row.getByRole('button', { name: /Revoke/ }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
   await expect(page.getByRole('row', { name: new RegExp(name) })).toContainText('revoked')
 

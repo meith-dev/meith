@@ -81,6 +81,7 @@ test('an announcement added in the panel is in the list without a reload', async
     .filter({ has: page.locator(`input[name="id"][value="${announcementId}"]`) })
     .getByRole('button', { name: 'Remove', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
   await expect.poll(titles, { timeout: 15_000 }).not.toContain(title)
 })
 
