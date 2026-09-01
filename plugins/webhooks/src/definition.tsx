@@ -33,7 +33,7 @@ export const webhooksPlugin = definePlugin({
   key: 'webhooks',
   name: en['webhooks.definition.name'],
   nameKey: 'webhooks.definition.name',
-  version: '0.30.1',
+  version: '0.31.0',
   description: en['webhooks.definition.description'],
   descriptionKey: 'webhooks.definition.description',
   apiVersion: '0',

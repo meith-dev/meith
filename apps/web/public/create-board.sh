@@ -35,9 +35,9 @@ cat > "$BOARD_NAME/package.json" <<'MEITH_SCAFFOLD_EOF'
     "meith": "meith"
   },
   "dependencies": {
-    "@meith/web": "0.30.1",
-    "@meith/cli": "0.30.1",
-    "@meith/theme-default": "0.30.1",
+    "@meith/web": "0.31.0",
+    "@meith/cli": "0.31.0",
+    "@meith/theme-default": "0.31.0",
     "next": "16.3.1"
   },
   "engines": {
