@@ -155,7 +155,7 @@ share a module without one of them changing what it is.
 | `hooks` | Handlers for named hooks. Filters change a value; events observe. |
 | `settings` | Settings the admin panel renders, stored under `plugin.<key>.<name>`. |
 | `migrations` | Forward-only SQL, applied in ascending id order and recorded per plugin. |
-| `tasks` | Scheduled work, registered as `plugin.<key>.<id>` and run by the same tick as core's tasks. |
+| `tasks` | Timed work on a fixed cadence or a [UTC cron schedule](#scheduled-tasks), registered as `plugin.<key>.<id>` and run by the same tick as core's tasks. |
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
 | `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
@@ -969,6 +969,65 @@ Ids look like `0001_add_table` and are applied in sort order.
 > applies everything, an upgraded board skips the id that sorts before the
 > last one applied, and the two boards end up with different schemas and no
 > error anywhere.
+
+## Scheduled tasks
+
+A task declares **exactly one** of two cadences, and `definePlugin` refuses
+one that sets neither or both:
+
+```ts
+tasks: [
+  { id: 'sweep', intervalSeconds: 900, run: async (ctx) => { /* … */ } },
+  { id: 'digest', schedule: '0 9 * * 1', run: async (ctx) => { /* … */ } },
+]
+```
+
+- **`intervalSeconds`** is a fixed cadence measured from the end of the last
+  run, with a 60-second floor — the tick is minute-granular at best, so
+  anything under a minute claims a frequency the scheduler cannot deliver.
+- **`schedule`** is a five-field cron expression — `minute hour
+  day-of-month month day-of-week` — **evaluated in UTC**. There is no board
+  timezone to evaluate it against (see [the default timezone is the
+  reader's](../reference/mybb-parity.md)), so UTC is the only honest anchor,
+  and it is stated in the type, in the error `definePlugin` throws, and here.
+
+The expression is validated at `definePlugin` time, not at first tick: a
+board with a bad schedule fails to start rather than logging a stuck task
+weeks later. Fields are numeric (no `MON` or `JAN` names); `*`, ranges
+(`1-5`), lists (`0,30`) and steps (`*/15`) are understood; `0` and `7` both
+mean Sunday; and when both day-of-month and day-of-week are restricted a day
+matching **either** one runs, the standard cron rule.
+
+- **The 60-second floor holds for cron too.** A five-field expression is
+  minute-granular by construction — the finest it can ask for is
+  `* * * * *`, once a minute. A sixth (seconds) field is refused for exactly
+  that reason: it would ask for a cadence faster than the tick can deliver.
+- **A scheduled task's first run is its next matching time _after_ it is
+  registered.** It does not fire on install: a `0 9 * * 1` task added on a
+  Wednesday first runs the coming Monday at 09:00 UTC, not the moment it
+  ships.
+- **A missed window fires once, not once per occurrence.** If the worker is
+  down across one scheduled moment — or across several — the task runs a
+  single time on the next tick and is then scheduled forward to its next
+  future occurrence. There is no backfill; a weekly digest that slept
+  through two Mondays sends one digest, not two.
+
+> [!IMPORTANT]
+> **Task idempotency is unchanged, and a cron schedule does not relax it.**
+> The scheduler can still run a task more than once — two workers racing a
+> claim, a retried tick, a missed window collapsing to a single catch-up
+> run — so a task must be safe to double-fire and resumable from a partial
+> run. Make the work idempotent (upsert, mark-then-act, a claimed cursor);
+> the schedule decides _when_ a run may start, never that a run happens
+> exactly once.
+
+The admin panel and the scheduler's health view describe a scheduled task by
+a cadence derived from the gap between its upcoming runs, so a weekly task
+reads as weekly rather than as a task that has not run in seven days.
+
+> Core's own tasks are interval-only today. Giving them cron schedules is a
+> possible follow-up; this change adds the capability to the plugin API
+> without converting them.
 
 ## Versioning
 

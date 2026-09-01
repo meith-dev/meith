@@ -2,7 +2,7 @@ import 'server-only'
 
 import forumConfig from '@board/config'
 
-import { env, logger, readPluginEnv } from '@meith/core'
+import { cronCadenceSeconds, env, logger, parseCron, readPluginEnv } from '@meith/core'
 import {
   appliedPluginMigrations,
   getDb,
@@ -58,6 +58,7 @@ export interface PluginTaskRow {
   readonly id: string
   readonly registeredId: string
   readonly intervalSeconds: number
+  readonly schedule: string | null
 }
 
 export interface PluginPageRow {
@@ -228,7 +229,11 @@ export async function pluginInventory(t?: Translator): Promise<PluginInventory> 
         (task): PluginTaskRow => ({
           id: task.id,
           registeredId: pluginTaskId(entry.key, task.id),
-          intervalSeconds: task.intervalSeconds,
+          intervalSeconds:
+            task.schedule === undefined
+              ? task.intervalSeconds
+              : cronCadenceSeconds(parseCron(task.schedule)),
+          schedule: task.schedule ?? null,
         }),
       ),
 

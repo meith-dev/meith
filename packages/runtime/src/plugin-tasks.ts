@@ -1,3 +1,4 @@
+import { cronCadenceSeconds, parseCron } from '@meith/core'
 import { type Database, PostgresSettingsRepository, readPluginHealth } from '@meith/db'
 import { type PluginDefinition, pluginEnabledKey, pluginTaskId } from '@meith/plugin-kit'
 import type { TaskDefinition } from '@meith/tasks'
@@ -16,11 +17,19 @@ export function pluginTasks(options: {
     for (const task of plugin.tasks ?? []) {
       const id = pluginTaskId(plugin.key, task.id)
 
+      const cadence =
+        task.schedule === undefined
+          ? { intervalSeconds: task.intervalSeconds }
+          : {
+              intervalSeconds: cronCadenceSeconds(parseCron(task.schedule)),
+              schedule: task.schedule,
+            }
+
       definitions.push({
         id,
         title: `${plugin.name}: ${task.id}`,
         description: `Scheduled task contributed by the "${plugin.key}" plugin.`,
-        intervalSeconds: task.intervalSeconds,
+        ...cadence,
         maxDurationSeconds: MAX_DURATION_SECONDS,
         async run() {
           const overrides = await new PostgresSettingsRepository(options.db).loadAll()

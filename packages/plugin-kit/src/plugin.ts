@@ -2,6 +2,7 @@ export type { HookRuntime, PluginRuntimeContext } from './runtime'
 
 import type { ReactNode } from 'react'
 
+import { parseCron } from '@meith/core'
 import type { Translator } from '@meith/theme-kit'
 
 import { type HOOKS, type HookName, isHookName } from './hooks'
@@ -61,11 +62,22 @@ export interface PluginMigration {
   readonly statements: readonly string[]
 }
 
-export interface PluginTask {
+interface PluginTaskBase {
   readonly id: string
-  readonly intervalSeconds: number
   readonly run: (context: PluginRuntimeContext) => Promise<void> | void
 }
+
+export interface PluginIntervalTask extends PluginTaskBase {
+  readonly intervalSeconds: number
+  readonly schedule?: undefined
+}
+
+export interface PluginScheduledTask extends PluginTaskBase {
+  readonly schedule: string
+  readonly intervalSeconds?: undefined
+}
+
+export type PluginTask = PluginIntervalTask | PluginScheduledTask
 
 export interface PluginAdminPage {
   readonly path: string
@@ -438,7 +450,24 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
         `${where}: task id "${task.id}" must be lower-case letters, digits and hyphens.`,
       )
     }
-    if (!Number.isInteger(task.intervalSeconds) || task.intervalSeconds < 60) {
+
+    const hasInterval = task.intervalSeconds !== undefined
+    const hasSchedule = task.schedule !== undefined
+    if (hasInterval === hasSchedule) {
+      throw new Error(
+        `${where}: task "${task.id}" must set exactly one of intervalSeconds (a fixed cadence) ` +
+          'or schedule (a five-field cron expression evaluated in UTC).',
+      )
+    }
+
+    if (task.schedule !== undefined) {
+      try {
+        parseCron(task.schedule)
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        throw new Error(`${where}: task "${task.id}" ${detail}.`)
+      }
+    } else if (!Number.isInteger(task.intervalSeconds) || task.intervalSeconds < 60) {
       throw new Error(
         `${where}: task "${task.id}" has an interval of ${task.intervalSeconds}s. The tick ` +
           'is minute-granular at best on a serverless platform; anything under 60s is a ' +

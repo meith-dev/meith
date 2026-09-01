@@ -232,7 +232,9 @@ export default async function AdminPluginPage({
               <li key={task.id} className="flex justify-between gap-3 py-2">
                 <code className="text-xs">{task.registeredId}</code>
                 <span className="text-xs text-muted-foreground">
-                  {t.t('adminPluginDetail.every', { seconds: task.intervalSeconds })}
+                  {task.schedule === null
+                    ? t.t('adminPluginDetail.every', { seconds: task.intervalSeconds })
+                    : t.t('adminPluginDetail.schedule', { schedule: task.schedule })}
                 </span>
               </li>
             ))}

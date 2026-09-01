@@ -715,6 +715,7 @@
   "adminPluginDetail.runningNoDisabled": "no — an administrator turned it off",
   "adminPluginDetail.runningRegisteredDisabled": "registered, but disabled in meith.config.ts",
   "adminPluginDetail.runningUndefined": "a key with no definition",
+  "adminPluginDetail.schedule": "at {schedule} UTC",
   "adminPluginDetail.screens": "{plugin} screens",
   "adminPluginDetail.settings": "Settings",
   "adminPluginDetail.settingsHint": "Stored under this plugin’s own namespace, so two plugins cannot collide and neither can reach a board setting.",

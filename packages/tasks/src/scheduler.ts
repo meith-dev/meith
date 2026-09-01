@@ -1,3 +1,5 @@
+import { type CronSchedule, nextRun, parseCron } from '@meith/core'
+
 import type { TaskContext, TaskDefinition, TaskResult } from './types'
 
 export interface TaskRepository {
@@ -13,9 +15,12 @@ export interface TaskRepository {
     success: boolean
     detail?: Record<string, unknown>
     error?: string
+    nextRunAt?: Date
   }): Promise<void>
 
-  ensureRegistered(tasks: readonly { id: string; intervalSeconds: number }[]): Promise<void>
+  ensureRegistered(
+    tasks: readonly { id: string; intervalSeconds: number; firstRunAt?: Date }[],
+  ): Promise<void>
 }
 
 export interface TickOutcome {
@@ -44,8 +49,18 @@ export async function tick({
   onError,
   signal,
 }: TickDeps): Promise<TickOutcome[]> {
+  const schedules = new Map<string, CronSchedule>()
+  for (const task of tasks) {
+    if (task.schedule !== undefined) schedules.set(task.id, parseCron(task.schedule))
+  }
+
   await repository.ensureRegistered(
-    tasks.map((t) => ({ id: t.id, intervalSeconds: t.intervalSeconds })),
+    tasks.map((t) => {
+      const schedule = schedules.get(t.id)
+      return schedule === undefined
+        ? { id: t.id, intervalSeconds: t.intervalSeconds }
+        : { id: t.id, intervalSeconds: t.intervalSeconds, firstRunAt: nextRun(schedule, now) }
+    }),
   )
 
   const outcomes: TickOutcome[] = []
@@ -88,11 +103,15 @@ export async function tick({
 
       const result: TaskResult = await task.run(context)
 
+      const finishedAt = elapsedSince()
+      const schedule = schedules.get(task.id)
+
       await repository.release({
         taskId: task.id,
-        finishedAt: elapsedSince(),
+        finishedAt,
         success: true,
         ...(result.detail ? { detail: result.detail } : {}),
+        ...(schedule ? { nextRunAt: nextRun(schedule, finishedAt) } : {}),
       })
 
       outcomes.push({
@@ -106,11 +125,15 @@ export async function tick({
       const message = error instanceof Error ? error.message : String(error)
       onError?.(task.id, error)
 
+      const finishedAt = elapsedSince()
+      const schedule = schedules.get(task.id)
+
       await repository.release({
         taskId: task.id,
-        finishedAt: elapsedSince(),
+        finishedAt,
         success: false,
         error: message,
+        ...(schedule ? { nextRunAt: nextRun(schedule, finishedAt) } : {}),
       })
 
       outcomes.push({

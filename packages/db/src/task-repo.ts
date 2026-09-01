@@ -12,7 +12,7 @@ export class PostgresTaskRepository implements TaskRepository {
   constructor(private readonly db: Database) {}
 
   async ensureRegistered(
-    definitions: readonly { id: string; intervalSeconds: number }[],
+    definitions: readonly { id: string; intervalSeconds: number; firstRunAt?: Date }[],
   ): Promise<void> {
     if (definitions.length === 0) return
 
@@ -22,7 +22,7 @@ export class PostgresTaskRepository implements TaskRepository {
         definitions.map((d) => ({
           key: d.id,
           intervalSeconds: d.intervalSeconds,
-          nextRunAt: NEVER_RUN,
+          nextRunAt: d.firstRunAt ?? NEVER_RUN,
         })),
       )
       .onConflictDoUpdate({
@@ -79,15 +79,18 @@ export class PostgresTaskRepository implements TaskRepository {
     success: boolean
     detail?: Record<string, unknown>
     error?: string
+    nextRunAt?: Date
   }): Promise<void> {
+    const nextRunExpr =
+      input.nextRunAt === undefined
+        ? sql`${input.finishedAt}::timestamptz + make_interval(secs => interval_seconds)`
+        : sql`${input.nextRunAt}::timestamptz`
+
     await this.db.transaction(async (tx) => {
       await tx.execute(sql`
         update tasks
            set locked_until = null,
-               -- Explicit cast: an untyped bind parameter leaves Postgres
-               -- unable to resolve timestamp-plus-interval at parse time.
-               next_run_at = ${input.finishedAt}::timestamptz
-                             + make_interval(secs => interval_seconds),
+               next_run_at = ${nextRunExpr},
                consecutive_failures = ${input.success ? sql`0` : sql`consecutive_failures + 1`}
          where key = ${input.taskId}
       `)

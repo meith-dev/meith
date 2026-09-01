@@ -58,6 +58,12 @@ describe('every kind of extension point', () => {
     expect((referencePlugin.migrations ?? []).length).toBeGreaterThan(1)
   })
 
+  it('declares both an interval task and a cron-scheduled one', () => {
+    const tasks = referencePlugin.tasks ?? []
+    expect(tasks.some((task) => task.intervalSeconds !== undefined)).toBe(true)
+    expect(tasks.some((task) => task.schedule !== undefined)).toBe(true)
+  })
+
   it('uses the explicit priority form at least once', () => {
     const withPriority = Object.values(referencePlugin.hooks ?? {}).filter(
       (entry) => typeof entry === 'object' && entry !== null && 'priority' in entry,

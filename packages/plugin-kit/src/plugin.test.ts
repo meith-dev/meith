@@ -316,6 +316,43 @@ describe('definePlugin', () => {
     it('refuses a duplicate id', () => {
       expect(() => plugin({ tasks: [task('sweep'), task('sweep')] })).toThrow(/declared twice/)
     })
+
+    it('accepts a five-field cron schedule', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 9 * * 1', run: () => {} }] }),
+      ).not.toThrow()
+    })
+
+    it('refuses a task that sets neither a cadence nor a schedule', () => {
+      expect(() => plugin({ tasks: [{ id: 'sweep', run: () => {} } as never] })).toThrow(
+        /exactly one/,
+      )
+    })
+
+    it('refuses a task that sets both a cadence and a schedule', () => {
+      expect(() =>
+        plugin({
+          tasks: [
+            { id: 'sweep', intervalSeconds: 300, schedule: '0 9 * * 1', run: () => {} } as never,
+          ],
+        }),
+      ).toThrow(/exactly one/)
+    })
+
+    it('refuses a six-field schedule, which would breach the minute floor', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 9 * * 1', run: () => {} }] }),
+      ).toThrow(/sixth field/)
+    })
+
+    it('refuses a malformed schedule at definePlugin time, not at first tick', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '99 9 * * 1', run: () => {} }] }),
+      ).toThrow(/minute/)
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 9 * * MON', run: () => {} }] }),
+      ).toThrow(/whole number/)
+    })
   })
 
   describe('notification kinds', () => {
