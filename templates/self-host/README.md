@@ -179,27 +179,52 @@ for the full guide.
 
 ## Upgrading
 
+`.github/workflows/update.yml` does this for you: once a week — and
+whenever you press **Run workflow** on the Actions tab — it checks for a new
+Meith release and opens a pull request that moves every `@meith/*` package
+and `next` together, and rewrites the deploy files this scaffold owns
+(`Dockerfile`, the compose files, the workflows) to the new release's
+shape. A file you have edited yourself is never rewritten; the run's log
+names any it left for you. One-time setup: under
+**Settings → Actions → General**, enable **Allow GitHub Actions to create
+and approve pull requests**, or the workflow cannot open one.
+
+Merging that pull request is still an upgrade, not a formality: read the
+release notes it links, take a backup first, and press **Redeploy** in
+Coolify after the merge — pushing alone does not rebuild. Once the new
+version serves, run `npm run meith -- upgrade` against it for the plugin
+migrations.
+
+The same update, by hand and without waiting for the schedule:
+
 ```sh
-npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
-npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
-git commit -am "Upgrade Meith and the Next.js version it builds with"
+npx create-meith@latest update
+git commit -am "Update Meith"
 git push
 ```
 
-The second command is not optional. This board pins `next` itself, and
-nothing bumps it for you: upgrading only the `@meith/*` packages leaves the
-board's own pin on the old Next while `@meith/web` depends on the new one,
-which npm resolves by installing both — the build then runs on one version
-while everything reading `package.json` sees the other. Reading the version
-out of the freshly installed `@meith/web` is what keeps the two the same
-without anybody having to know the number.
+Under the hood, the version move is these two commands, plus the deploy-file
+rewrite neither of them can do:
 
-This upgrade is deliberate and manual for that reason: `next` and
-`@meith/web` move together or not at all. What *is* kept current for you is
-this repository's own GitHub Actions — `.github/dependabot.yml` opens a
-weekly pull request bumping the actions pinned in
-`.github/workflows/build.yml`, which is a safe, independent update the two
-commands above never touch.
+```sh
+npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+```
+
+The second command is not optional. This board pins `next` itself, and
+the npm commands alone never bump it: upgrading only the `@meith/*` packages
+leaves the board's own pin on the old Next while `@meith/web` depends on the
+new one, which npm resolves by installing both — the build then runs on one
+version while everything reading `package.json` sees the other. Reading the
+version out of the freshly installed `@meith/web` is what keeps the two the
+same without anybody having to know the number.
+
+`next` and `@meith/web` move together or not at all, which is why one
+updater owns the whole move and no dependency bot bumps either on its own.
+What Dependabot *does* keep current is this repository's own GitHub Actions —
+`.github/dependabot.yml` opens a weekly pull request bumping the actions
+pinned under `.github/workflows`, a safe, independent update the updater
+leaves to it.
 
 On the quick-start path there is no version to keep in sync by hand:
 `Dockerfile` runs `npm install` straight from this `package.json` on every

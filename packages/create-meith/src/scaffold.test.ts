@@ -43,6 +43,7 @@ describe('what the scaffold writes', () => {
       '.env.example',
       '.github/dependabot.yml',
       '.github/workflows/build.yml',
+      '.github/workflows/update.yml',
       '.gitignore',
       '.npmrc',
       'Dockerfile',
@@ -491,6 +492,79 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
   })
 })
 
+describe('the update workflow — releases arrive as pull requests', () => {
+  const selfHost = scaffold(OPTIONS).get('.github/workflows/update.yml')!
+
+  it('ships identically on both targets, since the updater detects the target itself', () => {
+    expect(scaffold({ ...OPTIONS, target: 'vercel' }).get('.github/workflows/update.yml')).toBe(
+      selfHost,
+    )
+  })
+
+  it('runs the published updater at latest, never a pinned copy that would age', () => {
+    expect(selfHost).toContain('npx --yes create-meith@latest update')
+  })
+
+  it('runs weekly and on demand, with the two permissions a pull request needs', () => {
+    expect(selfHost).toMatch(/schedule:\s*\n\s*- cron: '30 4 \* \* 1'/)
+    expect(selfHost).toContain('workflow_dispatch:')
+    expect(selfHost).toContain('contents: write')
+    expect(selfHost).toContain('pull-requests: write')
+  })
+
+  it('uses only the automatic token — no secret to configure', () => {
+    expect(selfHost).not.toMatch(/secrets\.(?!GITHUB_TOKEN)[A-Z_]+/)
+    expect(selfHost).toMatch(/GH_TOKEN: \$\{\{ github\.token \}\}/)
+  })
+
+  it('does nothing when the updater changed nothing', () => {
+    expect(selfHost).toContain('git status --porcelain')
+  })
+
+  it('opens or refreshes one pull request per update, on a branch of its own', () => {
+    expect(selfHost).toContain('git checkout -B meith-update')
+    expect(selfHost).toContain('git push -f origin meith-update')
+    expect(selfHost).toContain('gh pr create')
+    expect(selfHost).toContain('gh pr edit meith-update')
+  })
+
+  it('reads the version it announces from package.json, not from a number typed by hand', () => {
+    expect(selfHost).toContain("require('./package.json').dependencies['@meith/web']")
+    expect(selfHost).not.toMatch(/Meith 1\.2\.3/)
+  })
+
+  it('links the release notes and tells the operator to back up and run meith upgrade', () => {
+    expect(selfHost).toContain('https://github.com/meith-dev/meith/releases/tag/v$VERSION')
+    expect(selfHost).toMatch(/backup/i)
+    expect(selfHost).toMatch(/meith upgrade/)
+  })
+
+  it('names the repository setting that gates pull-request creation', () => {
+    expect(selfHost).toContain('Allow GitHub')
+    expect(selfHost).toContain('Actions → General')
+  })
+
+  it('keeps Dependabot beside it on both targets, to move the action this workflow pins', () => {
+    const dependabot = scaffold(OPTIONS).get('.github/dependabot.yml')
+    expect(dependabot).toBeDefined()
+    expect(scaffold({ ...OPTIONS, target: 'vercel' }).get('.github/dependabot.yml')).toBe(
+      dependabot,
+    )
+  })
+
+  it('leads the README Upgrading section with the workflow, keeping the by-hand path beneath', () => {
+    for (const target of ['self-host', 'vercel'] as const) {
+      const readme = scaffold({ ...OPTIONS, target }).get('README.md')!
+      const upgrading = readme.slice(readme.indexOf('## Upgrading'))
+      expect(upgrading).toContain('.github/workflows/update.yml')
+      expect(upgrading.indexOf('update.yml')).toBeLessThan(
+        upgrading.indexOf('npx create-meith@latest update'),
+      )
+      expect(upgrading).toContain('npm install --save-exact @meith/web@latest')
+    }
+  })
+})
+
 describe('the CLI', () => {
   async function inTemp<T>(body: (dir: string) => Promise<T>): Promise<T> {
     const dir = await mkdtemp(join(tmpdir(), 'create-meith-'))
@@ -662,12 +736,14 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-entrypoint.sh': '7b8ce8a48ade0285f0954ed5dff3dd82a94586ec321e54fb1c65dec768258117',
   'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
-  '.github/dependabot.yml': '6cae93a9aa7b08a6f62e94db7c940d74b3657ff81454e6dc6b6e485b1afa3ac8',
+  '.github/dependabot.yml': '613f8570b971bfc38276ad9fa5e90c9b0214e21bf791e5493c00d7a8ee2b41ea',
   '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
+  '.github/workflows/update.yml':
+    '5c56ff79b04d29928645b49be82bc47fac65d88a84cfc066d64b932123c620f0',
   'docker-compose.yaml': 'bccd80e5ff0b72aabc9ac23042640687b1077b1bf16ea7572a406fdc326a26b5',
   'docker-compose.prebuilt.yaml':
     '63b34b5d1686c643c93a2e67f6c3114c3b40b80b322f68e7a5da393ac54d6d93',
-  'README.md': '1eab5b0c231cd51f15e63c6b0021302681f014e2b56558881560b6b806735856',
+  'README.md': 'de94525ed6946dbf792ded665fd3f2dd5c7299a12b25688915b0083e36fb66af',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
@@ -721,6 +797,8 @@ describe('the Vercel target', () => {
   it('writes the board, its platform configuration, and nothing that builds a container', () => {
     expect([...files.keys()].sort()).toEqual([
       '.env.example',
+      '.github/dependabot.yml',
+      '.github/workflows/update.yml',
       '.gitignore',
       '.npmrc',
       'README.md',

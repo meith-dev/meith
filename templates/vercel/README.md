@@ -177,20 +177,38 @@ each retry into another attempt against whatever it is failing against.
 
 ## Upgrading
 
+`.github/workflows/update.yml` does this for you: once a week — and
+whenever you press **Run workflow** on the Actions tab — it checks for a new
+Meith release and opens a pull request that moves every `@meith/*` package
+and `next` together. A file you have edited yourself is never rewritten; the
+run's log names any it left for you. One-time setup: under
+**Settings → Actions → General**, enable **Allow GitHub Actions to create and
+approve pull requests**, or the workflow cannot open one. Read the release
+notes the pull request links and take a backup before merging; Vercel
+rebuilds on the merge, and the build command applies the new migrations
+before it builds.
+
+The same update, by hand and without waiting for the schedule:
+
 ```sh
-npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
-npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
-git commit -am "Upgrade Meith and the Next.js version it builds with"
+npx create-meith@latest update
+git commit -am "Update Meith"
 git push
 ```
 
-Vercel rebuilds on the push, and the build command applies the new migrations
-before it builds. `--save-exact` matters and `.npmrc` already sets it for
-everything else installed here.
+Under the hood, the version move is these two commands:
+
+```sh
+npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
+npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
+```
+
+`--save-exact` matters and `.npmrc` already sets it for everything else
+installed here.
 
 The second command is not optional. This board pins `next` itself — Vercel
-reads that pin to pick its Next.js builder — and nothing bumps it for you.
-Upgrading only the `@meith/*` packages leaves two versions of Next
+reads that pin to pick its Next.js builder — and the npm commands alone never
+bump it. Upgrading only the `@meith/*` packages leaves two versions of Next
 installed, the board built with one and the platform configured for the
 other. Reading the version out of the freshly installed `@meith/web` keeps
 them the same without anybody having to know the number.

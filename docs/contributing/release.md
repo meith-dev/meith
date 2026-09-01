@@ -327,10 +327,12 @@ against one major keeps working against every release on that major.
 `@meith/web`, `@meith/cli` and `@meith/theme-default` are not exempt from [the
 version policy](#the-version-policy) just because they are new to npm. A
 scaffolded board pins all three to an exact version rather than a range,
-deliberately: `create-meith`'s scaffold upgrades by `npm install --save-exact
-@meith/web@latest @meith/cli@latest @meith/theme-default@latest`, an explicit
-act, never a silent range resolution on a board process holding a database
-migration. The scaffolded `.npmrc` sets `save-exact=true` so the same holds
+deliberately: `create-meith`'s scaffold upgrades by `npx create-meith@latest
+update` — under the hood `npm install --save-exact @meith/web@latest
+@meith/cli@latest @meith/theme-default@latest`, plus the deploy-file rewrite —
+an explicit act, or an explicitly merged pull request from the scaffold's
+update workflow, never a silent range resolution on a board process holding
+a database migration. The scaffolded `.npmrc` sets `save-exact=true` so the same holds
 for an install run by hand, and the generated `build.yml` refuses to build
 from anything but an exact version regardless.
 
@@ -413,6 +415,19 @@ when anything changed, and tags the repository `vX.Y.Z`. It runs after
 `publish`, so a release that did not ship never pushes a template, and it is
 idempotent: a re-run with nothing to change makes no commit.
 
+Those `vX.Y.Z` tags are more than provenance. `npx create-meith@latest
+update` fetches the tag of the version a board is *on* to tell the
+operator's edits from files the scaffold wrote — a file still matching that
+tree is the scaffold's to rewrite, one that differs is the operator's to
+keep ([Upgrading § Upgrading each deployment route](../guides/operations/upgrading.md#upgrading-each-deployment-route)).
+A release whose template sync did not run leaves the *next* update degraded:
+`package.json` still moves, but every other file is handed back to the
+operator to review. One more reason the App secrets belong in place before
+the first release that should propagate templates. The repository names are
+one constant, `TEMPLATE_REPOSITORIES` in `packages/create-meith/src/update.ts`,
+which both the mirror and the updater read — they cannot disagree about
+where a template lives.
+
 The tracked content of each repository is **owned entirely** by its
 `templates/<target>/` source — anything the source does not contain, the mirror
 removes. A file a repository needs, such as a `LICENSE`, belongs in the scaffold
@@ -449,6 +464,7 @@ repository* in its settings so the "Use this template" button appears.
 |---|---|---|
 | [Quickstart](../getting-started/deployment/coolify.md) (Coolify) | The `release` branch; the compose pin on the exact version, held per resource by `MEITH_IMAGE` | Every release moves the pin, so an upgrade is a **Redeploy** after the branch moves — or automatic, with the webhook on. Never from a push to `main`. Coolify's **Restart** re-runs the deployment from the branch head, so unpinned it upgrades too — the Quickstart has the operator pin `MEITH_IMAGE` so it cannot. |
 | [By hand](../getting-started/deployment/docker-compose.md) (Compose) | A release tag in a clone | `git fetch --tags && git checkout vX.Y.Z`, rebuild. Building from source is the point of that route; the published image is the alternative for small machines. |
+| A scaffolded or template board ([Upgrading](../guides/operations/upgrading.md#upgrading-each-deployment-route)) | Its own `package.json`, pinned exact | Its `.github/workflows/update.yml` opens a pull request on its weekly run — or `npx create-meith@latest update` by hand. Either moves the pins and the scaffold-owned deploy files together; the backup, the deploy and `meith upgrade` stay the operator's. |
 | meith.dev and demo.meith.dev | `main` | The project's own resources, deliberately ahead of any release: the demo shows what is coming, and both redeploy on push. Nobody self-hosting should copy this arrangement. |
 
 ### Deploys are deterministic, and that is load-bearing

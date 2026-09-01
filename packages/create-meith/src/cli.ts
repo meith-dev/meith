@@ -10,6 +10,7 @@ import {
   scaffoldExtension,
   validateExtensionName,
 } from './scaffold-extension'
+import { type RunUpdateOptions, runUpdate } from './update'
 
 const execFileAsync = promisify(execFile)
 
@@ -36,7 +37,11 @@ async function initGit(target: string): Promise<boolean> {
   }
 }
 
-export async function run(argv: readonly string[], version: string): Promise<CliResult> {
+export async function run(
+  argv: readonly string[],
+  version: string,
+  updateOptions: RunUpdateOptions = {},
+): Promise<CliResult> {
   const positional: string[] = []
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] as string
@@ -52,20 +57,30 @@ export async function run(argv: readonly string[], version: string): Promise<Cli
     return {
       code: 0,
       lines: [
-        'create-meith — scaffold a forum project, a plugin or a theme.',
+        'create-meith — scaffold a forum project, a plugin or a theme, or update one.',
         '',
         '  npx create-meith <name> [--repo <url>] [--no-git]',
         '  npx create-meith --plugin <name> [--repo <url>] [--no-git]',
         '  npx create-meith --theme <name> [--repo <url>] [--no-git]',
+        '  npx create-meith@latest update',
         '',
         'The first form writes a deployable board into ./<name>, then tells you',
         'what to run. --plugin and --theme write an extension workspace instead:',
         'source and a passing test copied from the meith repository’s worked',
         'examples, plus a README and a marketplace listing.json.',
         '',
+        '`update`, run inside a board, moves it to this release: every @meith/*',
+        'pin and next together in package.json, and the deploy files the scaffold',
+        'owns rewritten to the new shape — files you have edited are left alone',
+        'and named. `update` is a reserved word, so a board cannot take it as a name.',
+        '',
         '--no-git skips initializing a git repository in the new directory.',
       ],
     }
+  }
+
+  if (name === 'update') {
+    return await runUpdate(version, updateOptions)
   }
 
   const wantsPlugin = argv.includes('--plugin')
