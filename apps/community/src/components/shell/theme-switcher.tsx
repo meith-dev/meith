@@ -1,6 +1,5 @@
 import { PendingButton } from '@/components/auth/form-controls'
 import { MonitorIcon, MoonIcon, SunIcon } from '@/components/shell/appearance-icons'
-import { BOARD_MEASURE } from '@/components/shell/measure'
 import { setAppearanceAction } from '@/server/appearance-actions'
 import { getTranslator } from '@/server/i18n'
 import { currentColourScheme, currentThemeKey } from '@/server/theme'
@@ -31,67 +30,61 @@ export async function ThemeSwitcher() {
   ])
 
   return (
-    <div className="border-t border-border bg-card text-card-foreground">
-      <div
-        className={`${BOARD_MEASURE} flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-2`}
-      >
-        <section
-          aria-label={t.t('appearance.section')}
-          className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
-        >
-          {choices.length > 1 && (
-            <form action={setAppearanceAction} className="flex items-center gap-2">
-              <label htmlFor="appearance-theme" className="text-xs text-muted-foreground">
-                {t.t('appearance.theme')}
-              </label>
-              <select id="appearance-theme" name="theme" defaultValue={theme} className={CONTROL}>
-                {choices.map((choice) => (
-                  <option key={choice.key} value={choice.key}>
-                    {choice.title}
-                  </option>
-                ))}
-              </select>
-              <PendingButton
-                showWorking
-                className="h-8 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                {t.t('appearance.apply')}
-              </PendingButton>
-            </form>
-          )}
+    <section
+      aria-label={t.t('appearance.section')}
+      className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
+    >
+      {choices.length > 1 && (
+        <form action={setAppearanceAction} className="flex items-center gap-2">
+          <label htmlFor="appearance-theme" className="text-xs text-muted-foreground">
+            {t.t('appearance.theme')}
+          </label>
+          <select id="appearance-theme" name="theme" defaultValue={theme} className={CONTROL}>
+            {choices.map((choice) => (
+              <option key={choice.key} value={choice.key}>
+                {choice.title}
+              </option>
+            ))}
+          </select>
+          <PendingButton
+            showWorking
+            className="h-8 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {t.t('appearance.apply')}
+          </PendingButton>
+        </form>
+      )}
 
-          <form action={setAppearanceAction}>
-            <span
-              role="group"
-              aria-label={t.t('appearance.schemeGroup')}
-              className="inline-flex items-center overflow-hidden rounded-md border border-border text-muted-foreground"
-            >
-              {COLOUR_SCHEMES.map((option) => {
-                const Icon = SCHEME_ICON[option]
-                const label = t.t(SCHEME_LABEL_KEY[option])
-                const selected = scheme === option
-                return (
-                  <PendingButton
-                    key={option}
-                    name="scheme"
-                    value={option}
-                    title={label}
-                    aria-pressed={selected}
-                    className={`inline-flex h-8 items-center justify-center border-border px-2.5 transition-colors [&:not(:first-child)]:border-l focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
-                      selected
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <Icon />
-                    <span className="sr-only">{label}</span>
-                  </PendingButton>
-                )
-              })}
-            </span>
-          </form>
-        </section>
-      </div>
-    </div>
+      <form action={setAppearanceAction}>
+        <span
+          role="group"
+          aria-label={t.t('appearance.schemeGroup')}
+          className="inline-flex items-center overflow-hidden rounded-md border border-border text-muted-foreground"
+        >
+          {COLOUR_SCHEMES.map((option) => {
+            const Icon = SCHEME_ICON[option]
+            const label = t.t(SCHEME_LABEL_KEY[option])
+            const selected = scheme === option
+            return (
+              <PendingButton
+                key={option}
+                name="scheme"
+                value={option}
+                title={label}
+                aria-pressed={selected}
+                className={`inline-flex h-8 items-center justify-center border-border px-2.5 transition-colors [&:not(:first-child)]:border-l focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
+                  selected
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <Icon />
+                <span className="sr-only">{label}</span>
+              </PendingButton>
+            )
+          })}
+        </span>
+      </form>
+    </section>
   )
 }

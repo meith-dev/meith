@@ -179,6 +179,16 @@ clear. The raster home-screen icons are drawn from a PNG or JPEG only — an
 SVG or WebP favicon still shows in the browser tab, and the home-screen
 icons fall back to the logo, then to the board's initials and name.
 
+Installing is something a reader has to discover in their browser's menu,
+so the board can point at it for you: **Offer to install the board**, under
+**`/admin/settings?group=board`**, pins a dismissable bar to the bottom of
+small screens inviting the reader to add the board to their home screen —
+with an Install button that opens the browser's own prompt where one
+exists, and brief directions where none does. It never shows inside the
+installed app, dismissing it keeps it away on that device for a year, and
+it is off by default: turn it on while you want installs encouraged, and
+off again once the point is made.
+
 ### Colours, fonts and themes
 
 The same **Admin → Themes** screen holds, per theme:

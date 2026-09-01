@@ -180,8 +180,9 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       links: [{ label: 'Contact', href: '/contact' }],
       timezoneLabel: 'Europe/London',
       poweredBy: { label: 'Powered by Meith', href: 'https://meith.dev' },
+      regions: { controls: region('footer-controls') },
     },
-    requires: ['Europe/London', '/contact'],
+    requires: ['Europe/London', '/contact', region('footer-controls')],
   },
 
   Notice: {

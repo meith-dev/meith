@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.19.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.20.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -135,6 +135,7 @@ Props: `FooterModel`
 | `links` | `readonly LinkModel[]` |  |
 | `timezoneLabel` | `string` | Which zone `TimeModel.label`s were formatted in, for the footer note. |
 | `poweredBy` | `LinkModel` | optional — What the board runs on, and where to read about it (0.8). A `LinkModel` and not a hardcoded string in each theme, for the reason every other piece of footer text is one: the app owns the words and the URL, so they are written once and a theme that wants to place the attribution somewhere else in its layout can, without owning a copy of them. Optional, which is what makes it a minor rather than a major: a theme written against 0.7 compiles and runs unchanged, and simply does not render it. The two themes in this repository do. |
+| `regions` | `{ readonly controls?: ReactNode }` | optional — App-rendered controls the footer hosts: the forum-jump form and the appearance switcher (0.20). Both used to be full-width bars of their own stacked above the footer, which left the foot of every page reading as three separate rules. They are a GET form and Server-Action forms the app owns, so they cross the contract the way the log-out form does — as a rendered node the theme places, not data it could rebuild. Optional the way `poweredBy` is: a theme written against 0.19 compiles and runs unchanged — but one that never renders it costs its readers the jump box and the appearance controls, so place it rather than drop it. The bundled themes render it as a right-aligned row above the footer's own line of text. |
 
 ### Notice
 
@@ -1065,5 +1066,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.19. Nothing can be: this is the first
+Nothing is deprecated in v0.20. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

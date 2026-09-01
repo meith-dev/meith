@@ -3,6 +3,7 @@ import { currentRequestId } from '@meith/core/logger'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { InstallBanner } from '@/components/shell/install-banner'
 import { NotificationMenu } from '@/components/shell/notification-menu'
 import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
@@ -10,6 +11,7 @@ import { avatarsFor } from '@/server/avatars'
 import { currentLogo } from '@/server/branding'
 import { getContainer } from '@/server/container'
 import { getTranslator } from '@/server/i18n'
+import { installBanner } from '@/server/install-banner'
 import { legalFooterLinks } from '@/server/legal'
 import { unreadMessageCount } from '@/server/messages'
 import { boardNavigation } from '@/server/navigation'
@@ -119,6 +121,7 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
   const jump = built === null ? null : await filterView('view.forum-jump', built, pluginContext)
 
   const onboarding = await onboardingBanner(actor).catch(() => null)
+  const install = await installBanner().catch(() => null)
 
   const translator = await getTranslator()
 
@@ -151,17 +154,25 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
 
       {await boardRegion('header.notice', actor)}
 
+      {install !== null && <InstallBanner {...install} />}
       {onboarding !== null && <OnboardingBanner {...onboarding} />}
 
       {children}
 
-      {jump !== null && jump.forums.length > 0 && (
-        <ForumJump {...jump} copy={slotCopy(theme, 'ForumJump', translator)} />
-      )}
-
-      <ThemeSwitcher />
-
-      <Footer {...footerModel} copy={slotCopy(theme, 'Footer', translator)} />
+      <Footer
+        {...footerModel}
+        regions={{
+          controls: (
+            <>
+              {jump !== null && jump.forums.length > 0 && (
+                <ForumJump {...jump} copy={slotCopy(theme, 'ForumJump', translator)} />
+              )}
+              <ThemeSwitcher />
+            </>
+          ),
+        }}
+        copy={slotCopy(theme, 'Footer', translator)}
+      />
     </Shell>
   )
 }

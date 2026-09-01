@@ -640,6 +640,23 @@ export interface FooterModel {
    * it. The two themes in this repository do.
    */
   readonly poweredBy?: LinkModel
+  /**
+   * App-rendered controls the footer hosts: the forum-jump form and the
+   * appearance switcher (0.20).
+   *
+   * Both used to be full-width bars of their own stacked above the footer,
+   * which left the foot of every page reading as three separate rules. They
+   * are a GET form and Server-Action forms the app owns, so they cross the
+   * contract the way the log-out form does — as a rendered node the theme
+   * places, not data it could rebuild. Optional the way `poweredBy` is: a
+   * theme written against 0.19 compiles and runs unchanged — but one that
+   * never renders it costs its readers the jump box and the appearance
+   * controls, so place it rather than drop it. The bundled themes render it
+   * as a right-aligned row above the footer's own line of text.
+   */
+  readonly regions?: {
+    readonly controls?: ReactNode
+  }
 }
 
 export interface NoticeModel {
