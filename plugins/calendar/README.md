@@ -34,11 +34,18 @@ every signed-in member; guests never may.
 
 Removing an event is allowed to whoever added it, and to any organiser.
 
-This is a roster rather than a usergroup on purpose. `@meith/plugin-kit`
-gives a plugin no way to read a member's groups, and the board's own guard
-says why: group membership is the Authorizer's business, and a plugin never
-gets an `Actor` to ask with. A roster the plugin owns keeps the decision
-inside the plugin's own surface, where it belongs.
+This is a roster rather than a usergroup, and the roster is what this plugin
+ships with. It keeps the decision inside the plugin's own surface, where a
+plugin never gets an `Actor` and cannot see a member's groups at large.
+
+There is now an alternative for a board that would rather run its organisers
+as a usergroup. `context.grants.holds(userId, groupKey)` reads whether a
+member holds a group, but only one the operator has marked **"may be granted
+by plugins"** — the same opt-in the write side needs, and the same privacy
+line: every other group stays invisible. A board could mark an
+`organisers` group grantable and ask `holds` instead of consulting the
+roster. Doing that migration is not part of this plugin as shipped; the
+roster remains the default, and the choice is the operator's.
 
 In the downloaded `.ics`, the event's own link becomes the calendar entry's
 `URL` — it is the one a reader wants to act on from their calendar app — and

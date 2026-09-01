@@ -25,13 +25,15 @@ export interface PluginGrants {
   }): Promise<void>
 
   list(userId: number): Promise<readonly PluginGrantRow[]>
+
+  holds(userId: number, groupKey: string): Promise<boolean>
 }
 
 export function unavailablePluginGrants(reason: string): PluginGrants {
   const refuse = async (): Promise<never> => {
     throw new Error(`Plugin grants are unavailable: ${reason}`)
   }
-  return { grant: refuse, extend: refuse, revoke: refuse, list: refuse }
+  return { grant: refuse, extend: refuse, revoke: refuse, list: refuse, holds: refuse }
 }
 
 export interface PluginData {

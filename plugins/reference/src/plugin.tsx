@@ -10,16 +10,27 @@ import en from './messages/en.json'
 export const RECORDED: {
   hooks: { name: string; value: unknown }[]
   hookRuntimes: { hook: string; settings: readonly string[] }[]
+  grants: { userId: number; groupKey: string; held: boolean }[]
   regions: PluginRegion[]
   lifecycle: string[]
   tasks: string[]
   routes: { path: string; method: string }[]
   pages: string[]
-} = { hooks: [], hookRuntimes: [], regions: [], lifecycle: [], tasks: [], routes: [], pages: [] }
+} = {
+  hooks: [],
+  hookRuntimes: [],
+  grants: [],
+  regions: [],
+  lifecycle: [],
+  tasks: [],
+  routes: [],
+  pages: [],
+}
 
 export function resetRecorder(): void {
   RECORDED.hooks = []
   RECORDED.hookRuntimes = []
+  RECORDED.grants = []
   RECORDED.regions = []
   RECORDED.lifecycle = []
   RECORDED.tasks = []
@@ -178,14 +189,17 @@ export const referencePlugin = definePlugin({
       rateLimit: { limit: 2, windowSeconds: 60 },
       handler: async (request, context) => {
         RECORDED.routes.push({ path: request.path, method: request.method })
+        const userId = request.viewer.userId ?? 0
+        const supporter = await context.grants.holds(userId, 'supporters')
+        RECORDED.grants.push({ userId, groupKey: 'supporters', held: supporter })
         await context.notify.send({
-          userId: request.viewer.userId ?? 0,
+          userId,
           kind: 'poked',
           subjectKey: 'reference.notification.poked.subject',
           bodyKey: 'reference.notification.poked.body',
           href: '/reference',
         })
-        return { kind: 'json', body: { poked: true } }
+        return { kind: 'json', body: { poked: true, supporter } }
       },
     },
     {

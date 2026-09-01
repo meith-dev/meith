@@ -488,6 +488,112 @@ describe('pluginGrants — the primary group', () => {
   })
 })
 
+describe('pluginGrants — holds', () => {
+  it('is true for an allow-listed group that is the member’s primary', async () => {
+    await group('members')
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', paid)
+
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'supporters')).toBe(true)
+  })
+
+  it('is true for an allow-listed group held as a plain secondary', async () => {
+    const members = await group('members')
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+    await h.db.insert(userGroupMemberships).values({ userId: uid, groupId: paid })
+
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'supporters')).toBe(true)
+  })
+
+  it('is true for a membership a plugin granted, whoever granted it', async () => {
+    const members = await group('members')
+    await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'other').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(24),
+      reason: 'theirs',
+    })
+
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'supporters')).toBe(true)
+  })
+
+  it('is false, and tells nothing apart, for a group not opted in', async () => {
+    const members = await group('members')
+    const secret = await group('supporters')
+    const uid = await user('Alice', members)
+    await h.db.insert(userGroupMemberships).values({ userId: uid, groupId: secret })
+
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'supporters')).toBe(false)
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'nowhere')).toBe(false)
+  })
+
+  it('is false when the plugin grant has lapsed, before any sweep runs', async () => {
+    const members = await group('members')
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await h.db
+      .update(userGroupMemberships)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(userGroupMemberships.groupId, paid))
+
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'supporters')).toBe(false)
+  })
+
+  it('still holds the group it falls back to when a promoted grant lapses', async () => {
+    const members = await group('members', { pluginGrantable: true })
+    const paid = await group('supporters', { pluginGrantable: true })
+    const uid = await user('Alice', members)
+
+    await pluginGrants(h.db, 'dues').grant({
+      userId: uid,
+      groupKey: 'supporters',
+      until: inHours(1),
+      reason: 'order 42 paid',
+      primary: true,
+    })
+    await h.db
+      .update(userGroupMemberships)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(userGroupMemberships.groupId, paid))
+
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'members')).toBe(true)
+    expect(await pluginGrants(h.db, 'dues').holds(uid, 'supporters')).toBe(false)
+  })
+
+  it('is false for an unknown user', async () => {
+    await group('members')
+    await group('supporters', { pluginGrantable: true })
+
+    expect(await pluginGrants(h.db, 'dues').holds(999, 'supporters')).toBe(false)
+  })
+
+  it.each([
+    ['a system group', { isSystem: true, pluginGrantable: true }, /system group/],
+    ['a staff group', { isStaffGroup: true, pluginGrantable: true }, /staff group/],
+    ['an administrator group', { isAdministrator: true, pluginGrantable: true }, /power/],
+    ['a moderation group', { canAccessModCp: true, pluginGrantable: true }, /power/],
+  ])('refuses %s even when the flag is set', async (_kind, extra, message) => {
+    const members = await group('members')
+    const target = await group('target', extra)
+    const uid = await user('Alice', members)
+    await h.db.insert(userGroupMemberships).values({ userId: uid, groupId: target })
+
+    await expect(pluginGrants(h.db, 'dues').holds(uid, 'target')).rejects.toThrow(message)
+  })
+})
+
 describe('expireTimedGroupMemberships', () => {
   it('deletes only lapsed rows, bumps once, and is idempotent', async () => {
     const members = await group('members')

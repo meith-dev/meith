@@ -24,6 +24,7 @@ vi.mock('@meith/db', () => ({
     extend: async () => {},
     revoke: async () => {},
     list: async () => [],
+    holds: async () => false,
   }),
   pluginData: () => ({
     query: async () => [],
