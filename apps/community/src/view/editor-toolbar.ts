@@ -32,6 +32,12 @@ const TOOLS: readonly ToolSpec[] = [
     placeholderKey: 'composer.placeholder.struck',
   },
   { tag: 'link', key: 'composer.tool.link', shortcut: 'k', placeholderKey: null },
+  {
+    tag: 'image',
+    key: 'composer.tool.image',
+    shortcut: null,
+    placeholderKey: 'composer.placeholder.image',
+  },
   { tag: 'quote', key: 'composer.tool.quote', shortcut: null, placeholderKey: null },
   { tag: 'code', key: 'composer.tool.code', shortcut: null, placeholderKey: null },
   {
@@ -42,7 +48,14 @@ const TOOLS: readonly ToolSpec[] = [
   },
   { tag: 'bulletedList', key: 'composer.tool.bulletedList', shortcut: null, placeholderKey: null },
   { tag: 'numberedList', key: 'composer.tool.numberedList', shortcut: null, placeholderKey: null },
+  { tag: 'taskList', key: 'composer.tool.taskList', shortcut: null, placeholderKey: null },
   { tag: 'heading', key: 'composer.tool.heading', shortcut: null, placeholderKey: null },
+  {
+    tag: 'table',
+    key: 'composer.tool.table',
+    shortcut: null,
+    placeholderKey: 'composer.placeholder.table',
+  },
 ]
 
 function button(spec: ToolSpec, t: Translator): EditorToolbarButtonModel {

@@ -19,12 +19,15 @@ export type EditorTag =
   | 'italic'
   | 'strikethrough'
   | 'link'
+  | 'image'
   | 'quote'
   | 'code'
   | 'spoiler'
   | 'bulletedList'
   | 'numberedList'
+  | 'taskList'
   | 'heading'
+  | 'table'
 
 const URL_ONLY = /^(https?:\/\/|mailto:)\S+$/i
 
@@ -156,6 +159,30 @@ export function spoilerEdit(value: string, start: number, end: number, placehold
   }
 }
 
+export function imageEdit(value: string, start: number, end: number, placeholder: string): Edit {
+  const selected = value.slice(start, end)
+  const alt = selected === '' ? placeholder : selected
+  const text = `![${alt}](url)`
+  const caret = start + alt.length + 4
+
+  return { from: start, to: end, text, selectionStart: caret, selectionEnd: caret + 3 }
+}
+
+export function tableEdit(value: string, start: number, end: number, placeholder: string): Edit {
+  const lead = start === 0 || value[start - 1] === '\n' ? '' : '\n'
+  const tail = end === value.length || value[end] === '\n' ? '' : '\n'
+  const text = `${lead}| ${placeholder} | ${placeholder} |\n| --- | --- |\n|  |  |${tail}`
+  const caret = start + lead.length + 2
+
+  return {
+    from: start,
+    to: end,
+    text,
+    selectionStart: caret,
+    selectionEnd: caret + placeholder.length,
+  }
+}
+
 const WRAP_TAGS: Readonly<
   Record<'bold' | 'italic' | 'strikethrough', { marker: string; length: number }>
 > = {
@@ -165,11 +192,12 @@ const WRAP_TAGS: Readonly<
 }
 
 const PREFIX_TAGS: Readonly<
-  Record<'quote' | 'bulletedList' | 'numberedList' | 'heading', LineMarker>
+  Record<'quote' | 'bulletedList' | 'numberedList' | 'taskList' | 'heading', LineMarker>
 > = {
   quote: '> ',
   bulletedList: '- ',
   numberedList: (index: number) => `${index + 1}. `,
+  taskList: '- [ ] ',
   heading: '## ',
 }
 
@@ -196,7 +224,13 @@ export function applyEditorTag(
     return
   }
 
-  if (tag === 'quote' || tag === 'bulletedList' || tag === 'numberedList' || tag === 'heading') {
+  if (
+    tag === 'quote' ||
+    tag === 'bulletedList' ||
+    tag === 'numberedList' ||
+    tag === 'taskList' ||
+    tag === 'heading'
+  ) {
     applyEditorEdit(field, togglePrefix(value, start, end, PREFIX_TAGS[tag]))
     return
   }
@@ -206,8 +240,18 @@ export function applyEditorTag(
     return
   }
 
+  if (tag === 'image') {
+    applyEditorEdit(field, imageEdit(value, start, end, placeholder ?? ''))
+    return
+  }
+
   if (tag === 'code') {
     applyEditorEdit(field, fenceEdit(value, start, end))
+    return
+  }
+
+  if (tag === 'table') {
+    applyEditorEdit(field, tableEdit(value, start, end, placeholder ?? ''))
     return
   }
 
