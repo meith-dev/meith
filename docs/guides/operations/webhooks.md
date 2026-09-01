@@ -29,12 +29,40 @@ with the last status code or error.
 
 | Topic | Fires when |
 |---|---|
-| `thread.created` | A new thread is posted. |
-| `post.created` | A new post (reply or a thread's first post) is added. |
-| `post.edited` | A post is edited. |
-| `post.deleted` | A post is removed. |
-| `user.registered` | An account is created. |
+| `thread.created` | A new thread is created **visible** — one held for approval does not fire it. |
+| `post.created` | A new post (a reply, or a thread's first post) is created **visible**. |
+| `post.edited` | A visible post is edited and stays visible. |
+| `post.deleted` | A post that was **visible** is removed. |
+| `user.registered` | An account is created through registration or the admin. |
 | `report.created` | A member reports content. |
+
+### The visibility contract
+
+A subscriber only ever hears about content it could have received a
+`post.created` (or `thread.created`) for. Content held for approval, and the
+approval and restore moments themselves, are deliberately quiet:
+
+- `thread.created` and `post.created` fire the moment content is created
+  **visible**. A thread or post held for approval fires nothing on creation.
+- **A held post that is later approved does not emit `post.created`** — the
+  approval is a `post.visibility_changed` internally, not a creation. Treat
+  the absence of a delivery as "not visible yet", not as "never posted".
+- `post.edited` fires only while the post is visible. An edit that sends a
+  post back for approval, or an edit to an already-unapproved post, fires
+  nothing.
+- `post.deleted` fires only when the post being removed was visible. Deleting
+  an unapproved post — one no subscriber was told about — fires nothing.
+- **Restoring a deleted post does not re-emit `post.created`.**
+
+### What the ids mean
+
+- `report.created` carries `targetKind`, one of `post`, `thread`, `user` or
+  `private_message`, with the matching `targetId`. `reporterId` is `null` for
+  a report filed by a guest.
+- `user.registered` is emitted for an account created interactively —
+  registration or an administrator adding a member. **Bulk import and the
+  demo-board seed do not emit it**, so restoring a backup or reseeding a demo
+  board does not flood every subscriber with one delivery per member.
 
 ## Payload format
 

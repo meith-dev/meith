@@ -188,13 +188,15 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
         )
       }
 
-      await tx.execute(sql`
-        insert into outbox (topic, payload)
-        values (
-          'post.edited',
-          ${JSON.stringify({ postId: record.postId, threadId: record.threadId })}::jsonb
-        )
-      `)
+      if (record.toVisibility === 'visible') {
+        await tx.execute(sql`
+          insert into outbox (topic, payload)
+          values (
+            'post.edited',
+            ${JSON.stringify({ postId: record.postId, threadId: record.threadId })}::jsonb
+          )
+        `)
+      }
     })
   }
 
@@ -229,7 +231,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
         )
       }
 
-      if (record.to === 'deleted') {
+      if (record.to === 'deleted' && record.from === 'visible') {
         await tx.execute(sql`
           insert into outbox (topic, payload)
           values (

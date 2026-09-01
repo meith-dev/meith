@@ -806,3 +806,7 @@ and `x-forum-signature` (the plugin sent `x-meith-*`). Update your
 receiver's header names when you move the secret across. After the
 subscription is delivering, remove the plugin from your board's plugin list
 and drop its `WEBHOOKS_*` environment variables.
+
+One Discord difference to expect: the plugin posted a rich embed (a titled
+card) for a new thread, while core posts a plain `content` link. The message
+still links straight to the thread; it is not boxed in an embed.

@@ -119,6 +119,26 @@ describe('webhook fan-out', () => {
     })
   })
 
+  it('carries a private-message report with the real target kind', async () => {
+    const { impl, calls } = fakeWebhooks([{ id: 6, topics: ['report.created'], format: 'json' }])
+    const registry = buildEventRegistry({ counters: counters(), webhooks: impl })
+
+    await fire(registry, 'report.created', {
+      reportId: 91,
+      targetKind: 'private_message',
+      targetId: 12,
+      reporterId: null,
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.payload).toMatchObject({
+      event: 'report.created',
+      targetKind: 'private_message',
+      targetId: 12,
+      reporterId: null,
+    })
+  })
+
   it('registers no webhook handlers when no fan-out is wired', async () => {
     const registry = buildEventRegistry({ counters: counters() })
     expect(registry.ids().some((id) => id.startsWith('webhooks.'))).toBe(false)

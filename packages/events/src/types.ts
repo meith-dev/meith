@@ -15,7 +15,7 @@ export interface DomainEventMap {
 
   'report.created': {
     reportId: number
-    targetKind: 'post' | 'thread' | 'user' | 'pm'
+    targetKind: 'post' | 'thread' | 'user' | 'private_message'
     targetId: number
     reporterId: number | null
   }
