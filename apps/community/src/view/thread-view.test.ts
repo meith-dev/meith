@@ -6,7 +6,12 @@ import type { PostListingRow } from '@meith/posts'
 import type { ThreadListingRow } from '@meith/threads'
 
 import type { MemberIdentity } from './member-identity'
-import { buildThreadView, revealedFrom, threadToolsHeading } from './thread-view'
+import {
+  type AuthorPresence,
+  buildThreadView,
+  revealedFrom,
+  threadToolsHeading,
+} from './thread-view'
 
 const forum: ForumRow = {
   id: 2,
@@ -629,6 +634,97 @@ describe("the author's group standing", () => {
     expect(author.title).toBe('Moderator')
     expect(author.badge).not.toBeNull()
     expect(author.reputation).toEqual({ value: 42, label: '42' })
+  })
+})
+
+describe("the author's online indicator", () => {
+  const NOW = new Date('2026-07-30T09:00:00Z')
+  const RECENT = new Date('2026-07-30T08:50:00Z')
+  const STALE = new Date('2026-07-30T08:40:00Z')
+
+  function onlineOf(options: {
+    presence?: ReadonlyMap<number, AuthorPresence>
+    viewerSeesInvisible?: boolean
+    authorUserId?: number | null
+  }): boolean {
+    const view = buildThreadView({
+      thread,
+      forum,
+      page: {
+        rows: [
+          {
+            id: 4,
+            threadId: 3,
+            forumId: 2,
+            number: 1,
+            authorUserId: options.authorUserId === undefined ? 7 : options.authorUserId,
+            authorUsername: 'ada',
+            authorPostCount: 1,
+            authorJoinedAt: null,
+            message: 'body',
+            messageHtml: null,
+            renderVersion: 0,
+            bodyFormat: BodyFormat.Markdown,
+            editedAt: null,
+            editedByUsername: null,
+            editReason: null,
+            isFirstPost: true,
+            visibility: 'visible',
+            createdAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextAfterId: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      now: NOW,
+      ...(options.presence === undefined ? {} : { presence: options.presence }),
+      ...(options.viewerSeesInvisible === undefined
+        ? {}
+        : { viewerSeesInvisible: options.viewerSeesInvisible }),
+    })
+    return view.posts[0]!.author.isOnline
+  }
+
+  it('lights up an author seen inside the window', () => {
+    expect(onlineOf({ presence: new Map([[7, { lastActiveAt: RECENT, invisible: false }]]) })).toBe(
+      true,
+    )
+  })
+
+  it('stays dark for an author last seen before the window', () => {
+    expect(onlineOf({ presence: new Map([[7, { lastActiveAt: STALE, invisible: false }]]) })).toBe(
+      false,
+    )
+  })
+
+  it('stays dark when the board has no presence for the author', () => {
+    expect(onlineOf({ presence: new Map() })).toBe(false)
+    expect(onlineOf({})).toBe(false)
+  })
+
+  it('hides an invisible author from a regular reader, however recently seen', () => {
+    expect(onlineOf({ presence: new Map([[7, { lastActiveAt: RECENT, invisible: true }]]) })).toBe(
+      false,
+    )
+  })
+
+  it('shows an invisible author to a reader who may see the invisible', () => {
+    expect(
+      onlineOf({
+        presence: new Map([[7, { lastActiveAt: RECENT, invisible: true }]]),
+        viewerSeesInvisible: true,
+      }),
+    ).toBe(true)
+  })
+
+  it('stays dark for a post whose author was deleted', () => {
+    expect(
+      onlineOf({
+        authorUserId: null,
+        presence: new Map([[7, { lastActiveAt: RECENT, invisible: false }]]),
+      }),
+    ).toBe(false)
   })
 })
 

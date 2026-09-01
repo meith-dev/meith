@@ -2,7 +2,7 @@ import type { ForumRow } from '@meith/forums'
 import type { Translator } from '@meith/i18n'
 import { type BoardVocabulary, type CompiledWordFilter, postBodyHtml } from '@meith/markdown'
 import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
-import { suppress } from '@meith/relations'
+import { isOnline, suppress } from '@meith/relations'
 import type {
   PaginationModel,
   PostAttachmentModel,
@@ -58,6 +58,11 @@ function withinEditWindow(
   return elapsed <= capabilities.editWindowMinutes
 }
 
+export interface AuthorPresence {
+  readonly lastActiveAt: Date | null
+  readonly invisible: boolean
+}
+
 interface PostContext {
   readonly now: Date
   readonly replyHref: string | null
@@ -67,6 +72,8 @@ interface PostContext {
   readonly signatures: ReadonlyMap<number, string>
   readonly avatars: ReadonlyMap<number, string>
   readonly identities: ReadonlyMap<number, MemberIdentity>
+  readonly presence: ReadonlyMap<number, AuthorPresence>
+  readonly viewerSeesInvisible: boolean
   readonly ignoredIds: ReadonlySet<number>
   readonly revealedPostIds: ReadonlySet<number>
   readonly revealHref: (postId: number, number: number) => string
@@ -91,6 +98,12 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
 
   const identity =
     post.authorUserId === null ? undefined : context.identities.get(post.authorUserId)
+
+  const presence = post.authorUserId === null ? undefined : context.presence.get(post.authorUserId)
+  const authorIsOnline =
+    presence !== undefined &&
+    (!presence.invisible || context.viewerSeesInvisible) &&
+    isOnline(presence.lastActiveAt, now)
 
   const mayEdit =
     post.visibility !== 'deleted' &&
@@ -123,7 +136,7 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
       joinedAt: post.authorJoinedAt === null ? null : formatDate(post.authorJoinedAt, t),
       signatureHtml:
         hidden || post.authorUserId === null ? null : (signatures.get(post.authorUserId) ?? null),
-      isOnline: false,
+      isOnline: authorIsOnline,
       fields: hidden || post.authorUserId === null ? [] : (fields.get(post.authorUserId) ?? []),
     },
     bodyHtml: hidden
@@ -199,6 +212,8 @@ export interface ThreadViewInput {
   readonly signatures?: ReadonlyMap<number, string>
   readonly avatars?: ReadonlyMap<number, string>
   readonly identities?: ReadonlyMap<number, MemberIdentity>
+  readonly presence?: ReadonlyMap<number, AuthorPresence>
+  readonly viewerSeesInvisible?: boolean
   readonly attachments?: ReadonlyMap<number, readonly PostAttachmentModel[]>
   readonly ignoredIds?: ReadonlySet<number>
   readonly revealedPostIds?: ReadonlySet<number>
@@ -212,6 +227,7 @@ const EMPTY_SIGNATURES: ReadonlyMap<number, string> = new Map()
 const EMPTY_ATTACHMENTS: ReadonlyMap<number, readonly PostAttachmentModel[]> = new Map()
 const EMPTY_AVATARS: ReadonlyMap<number, string> = new Map()
 const EMPTY_IDENTITIES: ReadonlyMap<number, MemberIdentity> = new Map()
+const EMPTY_PRESENCE: ReadonlyMap<number, AuthorPresence> = new Map()
 
 export function revealHref(currentHref: string, postId: number, number: number): string {
   const [path = '', hash] = currentHref.split('#')
@@ -265,6 +281,8 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
         attachments: input.attachments ?? EMPTY_ATTACHMENTS,
         avatars: input.avatars ?? EMPTY_AVATARS,
         identities: input.identities ?? EMPTY_IDENTITIES,
+        presence: input.presence ?? EMPTY_PRESENCE,
+        viewerSeesInvisible: input.viewerSeesInvisible ?? false,
         ignoredIds: input.ignoredIds ?? EMPTY_IDS,
         revealedPostIds: input.revealedPostIds ?? EMPTY_IDS,
         revealHref: (postId, number) => revealHref(input.currentHref ?? '', postId, number),
