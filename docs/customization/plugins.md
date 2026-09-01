@@ -336,6 +336,22 @@ query there is fifty queries on a fifty-post page, and the region's own
 entry in the reference says so. A contribution that rejects is contained,
 counted and auto-disabled exactly like one that throws.
 
+**A contribution's context also carries `locale` and `t`,** the reader's
+resolved language tag and a translator, the same pair a page context gets. A
+region contribution shows text the same way a page does — resolve a key through
+`t`, falling back to the plugin's own bundled string when the catalogue has not
+translated it — rather than rendering a fixed English literal that ignores the
+reader's language:
+
+```ts
+{
+  region: 'thread.header',
+  render: ({ t, locale }) => (
+    <p>{t.has('example.card.title') ? t.t('example.card.title') : en['example.card.title']}</p>
+  ),
+}
+```
+
 ## Changing how content renders
 
 Seven filters reach the render pipeline, and they divide on **when** they
@@ -525,10 +541,12 @@ which is a feature when you mean it and a collision when you do not. Namespace
 your keys with your plugin key, the way settings and tasks are namespaced, and
 name a board key only when overriding it is the point.
 
-A page context also carries `locale`, the language tag the board resolved for
-this reader. A plugin renders arbitrary UI rather than filling a slot, so unlike
-a theme it formats its own dates and numbers — `new Intl.NumberFormat(context.locale)`
-rather than `toLocaleString()`, which the `no-fixed-locale-format` guard refuses.
+A page context — and a [region contribution](#ui-regions)'s context — also
+carries `locale`, the language tag the board resolved for this reader, and `t`,
+the translator built from that language. A plugin renders arbitrary UI rather
+than filling a slot, so unlike a theme it formats its own dates and numbers —
+`new Intl.NumberFormat(context.locale)` rather than `toLocaleString()`, which the
+`no-fixed-locale-format` guard refuses.
 
 Nothing about a plugin's own text is required to be translatable; a plugin that
 ships only `en` works, and its messages fall back to English for every reader.

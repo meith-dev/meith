@@ -11,6 +11,7 @@ import type {
   PluginRegionContext,
 } from '@meith/plugin-kit'
 
+import { getTranslator } from './i18n'
 import { pluginHost, syncPluginEnablement } from './plugin-host'
 
 export function viewerRef(actor: Actor): { userId: number | null; isGuest: boolean } {
@@ -37,11 +38,12 @@ export async function emitEvent<K extends HookName>(
 
 export async function pluginRegion(
   region: PluginRegion,
-  context: Omit<PluginRegionContext, 'region' | 'runtime'>,
+  context: Omit<PluginRegionContext, 'region' | 'runtime' | 'locale' | 't'>,
 ): Promise<React.ReactNode> {
   await syncPluginEnablement()
 
-  const nodes = await pluginHost.renderRegion(region, { ...context, region })
+  const t = await getTranslator()
+  const nodes = await pluginHost.renderRegion(region, { ...context, region, locale: t.locale, t })
   if (nodes.length === 0) return null
 
   return (

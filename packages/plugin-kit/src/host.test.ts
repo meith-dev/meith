@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { sourceTranslator } from '@meith/i18n'
+
 import { type HostLogger, PluginHost } from './host'
 import { definePlugin, type PluginDefinition, type PluginHooks } from './plugin'
 import { unavailablePluginRuntime } from './runtime'
@@ -382,6 +384,8 @@ describe('UI regions', () => {
     viewer: VIEWER,
     subjectId: 42,
     authorId: 7,
+    locale: 'en',
+    t: sourceTranslator({}),
   }
 
   it('collects contributions in priority then key order', async () => {
@@ -690,6 +694,8 @@ describe('what a region contribution can reach', () => {
     viewer: VIEWER,
     subjectId: 42,
     authorId: 7,
+    locale: 'en',
+    t: sourceTranslator({}),
   }
 
   it('awaits a contribution that renders asynchronously', async () => {

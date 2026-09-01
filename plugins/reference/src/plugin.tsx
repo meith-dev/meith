@@ -12,6 +12,7 @@ export const RECORDED: {
   hookRuntimes: { hook: string; settings: readonly string[] }[]
   grants: { userId: number; groupKey: string; held: boolean }[]
   regions: PluginRegion[]
+  regionContexts: { region: PluginRegion; locale: string; label: string }[]
   lifecycle: string[]
   tasks: string[]
   routes: { path: string; method: string }[]
@@ -21,6 +22,7 @@ export const RECORDED: {
   hookRuntimes: [],
   grants: [],
   regions: [],
+  regionContexts: [],
   lifecycle: [],
   tasks: [],
   routes: [],
@@ -32,6 +34,7 @@ export function resetRecorder(): void {
   RECORDED.hookRuntimes = []
   RECORDED.grants = []
   RECORDED.regions = []
+  RECORDED.regionContexts = []
   RECORDED.lifecycle = []
   RECORDED.tasks = []
   RECORDED.routes = []
@@ -48,10 +51,14 @@ function contribution(region: PluginRegion) {
   return {
     region,
     render: (context: PluginRegionContext) => {
+      const label = context.t.has('reference.region.label')
+        ? context.t.t('reference.region.label')
+        : MARK
       RECORDED.regions.push(context.region)
+      RECORDED.regionContexts.push({ region: context.region, locale: context.locale, label })
       return (
-        <span data-plugin={MARK} data-region={context.region}>
-          {MARK}:{context.region}
+        <span data-plugin={MARK} data-region={context.region} data-locale={context.locale}>
+          {label}:{context.region}
         </span>
       )
     },
