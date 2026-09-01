@@ -134,6 +134,29 @@ export async function onlineScopeFor(actor: Actor): Promise<OnlineScope> {
   }
 }
 
+export interface AuthorPresence {
+  readonly lastActiveAt: Date | null
+  readonly invisible: boolean
+}
+
+export async function presenceFor(
+  userIds: readonly number[],
+): Promise<ReadonlyMap<number, AuthorPresence>> {
+  const repo = presenceRepository()
+  if (repo === null || userIds.length === 0) return new Map()
+
+  try {
+    const rows = await repo.lastActiveFor(userIds)
+    const out = new Map<number, AuthorPresence>()
+    for (const row of rows) {
+      out.set(row.userId, { lastActiveAt: row.lastActiveAt, invisible: row.invisible })
+    }
+    return out
+  } catch {
+    return new Map()
+  }
+}
+
 export async function readOnline(actor: Actor, now: Date): Promise<OnlineSnapshot | null> {
   const repo = presenceRepository()
   if (repo === null) return null

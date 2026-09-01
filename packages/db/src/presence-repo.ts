@@ -4,7 +4,7 @@ import type { ContentScope } from '@meith/core'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-import { toDate } from './row-values'
+import { toDate, toNullableDate } from './row-values'
 import { inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
@@ -40,6 +40,12 @@ export interface OnlineSnapshot {
 export interface OnlineRecord {
   readonly count: number
   readonly at: Date | null
+}
+
+export interface MemberPresence {
+  readonly userId: number
+  readonly lastActiveAt: Date | null
+  readonly invisible: boolean
 }
 
 export class PostgresPresenceRepository {
@@ -116,6 +122,28 @@ export class PostgresPresenceRepository {
       total: guestCount + members.length,
       invisibleCount: scope.seesInvisible ? invisibleCount : 0,
     }
+  }
+
+  async lastActiveFor(userIds: readonly number[]): Promise<readonly MemberPresence[]> {
+    if (userIds.length === 0) return []
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select id, last_active_at, invisible
+          from users
+         where id in (${sql.join(
+           userIds.map((id) => sql`${id}`),
+           sql`, `,
+         )})
+           and state = 'active'
+      `),
+    ) as Array<Record<string, unknown>>
+
+    return rows.map((row) => ({
+      userId: Number(row.id),
+      lastActiveAt: toNullableDate(row.last_active_at),
+      invisible: row.invisible === true,
+    }))
   }
 
   async touchGuest(input: {

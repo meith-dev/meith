@@ -373,6 +373,14 @@ export interface PostAuthorModel extends UserRefModel {
   readonly joinedAt: TimeModel | null
   /** Pre-rendered Markdown. Trusted output of the board's own renderer. */
   readonly signatureHtml: string | null
+  /**
+   * Whether this author has been active inside the online window.
+   *
+   * Already resolved against the reader, the same way the who's-online list
+   * is: an author browsing invisibly reads as offline for everyone without
+   * `modcp.access`, so a theme renders this flag as given and cannot light up
+   * a dot the board means to keep dark.
+   */
   readonly isOnline: boolean
   /**
    * Custom profile fields, for the ones an operator marked for the postbit and

@@ -30,6 +30,7 @@ import { cspNonce } from '@/server/nonce'
 import { pageMetadata } from '@/server/page-metadata'
 import { filterView, pluginRegion, viewerRef } from '@/server/plugin-view'
 import { resolvePollScope } from '@/server/poll-scope'
+import { presenceFor } from '@/server/presence'
 import { postbitProfileFields } from '@/server/profile-fields'
 import { viewerIgnoredIds } from '@/server/relations'
 import { reputationSettings, thanksForPosts } from '@/server/reputation'
@@ -350,6 +351,8 @@ export default async function ThreadPage({
 
   const identities = await identitiesFor(authorIds)
 
+  const presence = await presenceFor(authorIds)
+
   const attachments = attachmentsByPost(
     await attachmentsForPosts(postPage.rows.map((row) => row.id)),
   )
@@ -378,6 +381,8 @@ export default async function ThreadPage({
     attachments,
     avatars,
     identities,
+    presence,
+    viewerSeesInvisible: authorizer.can(actor, 'modcp.access'),
     ignoredIds,
     revealedPostIds: revealedFrom(query.reveal),
     currentHref:

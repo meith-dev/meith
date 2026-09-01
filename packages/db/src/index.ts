@@ -211,6 +211,7 @@ export { PostgresPollRepository } from './poll-repo'
 export { PostgresPostRepository } from './post-repo'
 export { PostgresPostWriteRepository } from './post-writes'
 export {
+  type MemberPresence,
   ONLINE_WINDOW_MINUTES,
   type OnlineMember,
   type OnlineRecord,
