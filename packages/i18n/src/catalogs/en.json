@@ -1503,6 +1503,7 @@
   "composer.help.spoiler": "a spoiler, hidden until clicked",
   "composer.help.struck": "struck out",
   "composer.help.summary": "Formatting help",
+  "composer.mention.available": "{count, plural, one {# suggestion available} other {# suggestions available}}",
   "composer.mention.suggestions": "Mention suggestions",
   "composer.message": "Message",
   "composer.multiquote.addToReply": "Add to reply",

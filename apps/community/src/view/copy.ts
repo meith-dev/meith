@@ -80,6 +80,7 @@ const CHROME_KEYS = [
 ] as const
 
 const CHROME_PATTERN_KEYS = [
+  'composer.mention.available',
   'composer.toolShortcut',
   'composer.attachments.hint',
   'composer.thanks.count',

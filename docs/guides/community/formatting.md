@@ -59,6 +59,19 @@ still notifies the member. Suggestions never include a member on your
 ignore list, and only appear for people whose profile you are allowed to
 see.
 
+## Addressing a private message
+
+A private message's **To** and **Bcc** fields take one or more usernames
+separated by commas. Start typing a name and the same suggestion list the
+composer offers for mentions appears; pick one and it is added to the
+comma-separated list, ready for you to type the next. This is an
+enhancement only — the field is a plain comma-separated text box
+underneath, so typing the names in by hand, with JavaScript off or on,
+works exactly the same. The list completes usernames the same way a
+mention does, and nothing more: whether a message can actually reach
+somebody is decided when you send it, identically for a name you typed
+and one you picked from the list.
+
 ## Link previews
 
 A link to YouTube or Vimeo, alone on its own line, unfurls into a small
@@ -113,6 +126,6 @@ empty. With scripting off there is no autosave and no recovery offer;
 None of the above needed a client-side markup renderer, a syntax-
 highlighting library shipped to the browser, or a script tag on the
 rendered post itself. What changes with JavaScript off is only the
-*composing* experience — the toolbar, the mention list, the "Insert
-attachment" button, the live preview tab — never what a saved post looks
-like once someone reads it.
+*composing* experience — the toolbar, the mention list, a private
+message's recipient suggestions, the "Insert attachment" button, the live
+preview tab — never what a saved post looks like once someone reads it.

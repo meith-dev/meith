@@ -13,14 +13,12 @@ import {
   uploadInlineAttachmentAction,
 } from '@/server/attachment-upload-actions'
 import { type PreviewScope, renderPreviewAction } from '@/server/content-actions'
-import { searchMentionCandidatesAction } from '@/server/mention-actions'
 
 import { type Copy, formatFromCopy, fromCopy, useCopy } from '../shell/copy'
 import { attachmentFieldId, MESSAGE_TEXTAREA_ID } from './composer-ids'
 import { listContinuation, pasteAsLink } from './markdown-syntax'
+import { useMentionCombobox } from './mention-combobox'
 import { activeMentionToken, type MentionToken } from './mention-token'
-
-const MENTION_DEBOUNCE_MS = 150
 
 interface Tool {
   readonly tag: EditorTag
@@ -122,10 +120,14 @@ export function MarkdownEditor({
 
   const mentions = scope === 'post'
   const [mentionToken, setMentionToken] = useState<MentionToken | null>(null)
-  const [mentionMatches, setMentionMatches] = useState<readonly MemberSuggestion[]>([])
-  const [mentionActive, setMentionActive] = useState(0)
-  const latestMentionToken = useRef(mentionToken)
-  latestMentionToken.current = mentionToken
+
+  const combobox = useMentionCombobox({
+    query: mentionToken?.query ?? null,
+    onChoose: (candidate) => {
+      if (field.current !== null) applyMention(field.current, candidate)
+    },
+    onDismiss: () => setMentionToken(null),
+  })
 
   const fit = useCallback(() => {
     const element = field.current
@@ -158,23 +160,6 @@ export function MarkdownEditor({
       setPreviewState('failed')
     }
   }
-
-  useEffect(() => {
-    if (mentionToken === null) {
-      setMentionMatches([])
-      return
-    }
-
-    const handle = setTimeout(() => {
-      void searchMentionCandidatesAction(mentionToken.query).then((matches) => {
-        if (latestMentionToken.current !== mentionToken) return
-        setMentionMatches(matches)
-        setMentionActive(0)
-      })
-    }, MENTION_DEBOUNCE_MS)
-
-    return () => clearTimeout(handle)
-  }, [mentionToken])
 
   function syncMentionToken(element: HTMLTextAreaElement): void {
     if (!mentions) return
@@ -243,28 +228,7 @@ export function MarkdownEditor({
   function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     const element = event.currentTarget
 
-    if (mentionToken !== null && mentionMatches.length > 0) {
-      if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        setMentionActive((index) => (index + 1) % mentionMatches.length)
-        return
-      }
-      if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        setMentionActive((index) => (index - 1 + mentionMatches.length) % mentionMatches.length)
-        return
-      }
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setMentionToken(null)
-        return
-      }
-      if ((event.key === 'Enter' || event.key === 'Tab') && !event.metaKey && !event.ctrlKey) {
-        event.preventDefault()
-        applyMention(element, mentionMatches[mentionActive]!)
-        return
-      }
-    }
+    if (combobox.handleKeyDown(event)) return
 
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       element.form?.requestSubmit()
@@ -449,52 +413,15 @@ export function MarkdownEditor({
             }}
             onSelect={(event) => syncMentionToken(event.currentTarget)}
             onBlur={() => setMentionToken(null)}
-            {...(enhanced && mentionToken !== null && mentionMatches.length > 0
-              ? {
-                  role: 'combobox',
-                  'aria-expanded': true,
-                  'aria-controls': `${panelId}-mentions`,
-                  'aria-activedescendant': `${panelId}-mention-${mentionActive}`,
-                  'aria-autocomplete': 'list' as const,
-                }
-              : {})}
+            {...(enhanced ? combobox.anchorProps : {})}
             className={cn(
               'w-full rounded-md border border-input bg-card px-3 py-2 font-normal text-sm leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
               onWriteTab && 'rounded-t-none border-t-0',
             )}
           />
 
-          {enhanced && mentionToken !== null && mentionMatches.length > 0 && (
-            <div
-              id={`${panelId}-mentions`}
-              role="listbox"
-              aria-label={fromCopy(copy, 'composer.mention.suggestions')}
-              className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-card py-1 text-sm shadow-lg"
-            >
-              {mentionMatches.map((candidate, index) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  id={`${panelId}-mention-${index}`}
-                  role="option"
-                  aria-selected={index === mentionActive}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => {
-                    if (field.current !== null) applyMention(field.current, candidate)
-                  }}
-                  onMouseEnter={() => setMentionActive(index)}
-                  className={cn(
-                    'block w-full px-3 py-1.5 text-start',
-                    index === mentionActive
-                      ? 'bg-muted text-foreground'
-                      : 'text-foreground hover:bg-muted',
-                  )}
-                >
-                  @{candidate.username}
-                </button>
-              ))}
-            </div>
-          )}
+          {enhanced && combobox.listbox}
+          {enhanced && combobox.liveRegion}
         </div>
       </div>
 
