@@ -19,5 +19,7 @@
   "reference.setting.mode.label": "Mode",
   "reference.setting.mode.record": "Record",
   "reference.setting.mode.replay": "Replay",
-  "reference.setting.noisy.label": "Log every hook"
+  "reference.setting.noisy.label": "Log every hook",
+  "reference.staff.body": "reference-plugin staff page for viewer {viewer}",
+  "reference.staff.title": "Reference (staff)"
 }

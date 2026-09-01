@@ -8,7 +8,9 @@ import {
   deepestNavHref,
   MODCP_OVERVIEW,
   modCpNav,
+  modCpNavWithPlugin,
   modCpSections,
+  pluginKeyAtModCp,
 } from './modcp-nav'
 import { flattenNav, isUnder, visibleChildren } from './panel-nav'
 
@@ -124,5 +126,71 @@ describe('the tree itself', () => {
         expect(isUnder(child.href, section.href)).toBe(true)
       }
     }
+  })
+})
+
+describe('pluginKeyAtModCp', () => {
+  it('reads the plugin key out of a modcp plugin path', () => {
+    expect(pluginKeyAtModCp('/modcp/plugins/dues')).toBe('dues')
+    expect(pluginKeyAtModCp('/modcp/plugins/dues/triage')).toBe('dues')
+    expect(pluginKeyAtModCp('/modcp/plugins/dues?tab=open')).toBe('dues')
+  })
+
+  it('is null anywhere but the modcp plugin mount', () => {
+    expect(pluginKeyAtModCp('/modcp')).toBeNull()
+    expect(pluginKeyAtModCp('/modcp/forums')).toBeNull()
+    expect(pluginKeyAtModCp('/admin/plugins/dues')).toBeNull()
+  })
+})
+
+describe('modCpNavWithPlugin', () => {
+  const section = {
+    key: 'dues',
+    name: 'Dues',
+    pages: [
+      { href: '/modcp/plugins/dues/triage', titleText: 'Triage' },
+      { href: '/modcp/plugins/dues/audit', titleText: 'Audit' },
+    ],
+  }
+
+  it('gives the plugin its own rail section under the panel, headed by its mount', () => {
+    const added = modCpNavWithPlugin(FULL, section).find((s) => s.href === '/modcp/plugins/dues')
+    expect(added?.titleText).toBe('Dues')
+    expect(added?.children?.map((c) => c.href)).toEqual([
+      '/modcp/plugins/dues/triage',
+      '/modcp/plugins/dues/audit',
+    ])
+  })
+
+  it('does not repeat a staff index page — the header already reaches it', () => {
+    const withIndex = {
+      key: 'dues',
+      name: 'Dues',
+      pages: [
+        { href: '/modcp/plugins/dues', titleText: 'Overview' },
+        { href: '/modcp/plugins/dues/triage', titleText: 'Triage' },
+      ],
+    }
+    const added = modCpNavWithPlugin(FULL, withIndex).find((s) => s.href === '/modcp/plugins/dues')
+    expect(added?.children?.map((c) => c.href)).toEqual(['/modcp/plugins/dues/triage'])
+  })
+
+  it('nests every plugin page under the section header, so the rail opens on it', () => {
+    const added = modCpNavWithPlugin(FULL, section).find((s) => s.href === '/modcp/plugins/dues')!
+    for (const child of added.children ?? []) {
+      expect(isUnder(child.href, added.href)).toBe(true)
+    }
+  })
+
+  it('is the plain nav when there is no plugin or it declares no staff pages', () => {
+    expect(modCpNavWithPlugin(FULL, null)).toEqual(modCpNav(FULL))
+    expect(modCpNavWithPlugin(FULL, { key: 'dues', name: 'Dues', pages: [] })).toEqual(
+      modCpNav(FULL),
+    )
+  })
+
+  it('adds no duplicate address when the plugin section joins', () => {
+    const hrefs = flattenNav(modCpNavWithPlugin(FULL, section)).map((item) => item.href)
+    expect(new Set(hrefs).size).toBe(hrefs.length)
   })
 })
