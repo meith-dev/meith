@@ -19,6 +19,13 @@ import { migrationUrl, runMigrations } from '@meith/db'
 import { BlobFileStore, S3FileStore, unusableKeyReason } from '@meith/drivers'
 
 import { optional, parseFlags } from './args'
+import {
+  BackupStore,
+  backupDestinationFromEnv,
+  isBundleName,
+  pruneCandidates,
+  resolveKeep,
+} from './backup-store'
 import { requirePostgres } from './context'
 import { CODE_VERSION } from './upgrade'
 import { translateWriteError } from './write-errors'
@@ -537,8 +544,24 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
   requirePostgres()
 
   const mode = resolveUploadsMode(env.FILESTORE_DRIVER, optional(flags, 'uploads'))
+  const outFlag = optional(flags, 'out')
+  const dirFlag = optional(flags, 'dir')
+  if (outFlag !== undefined && dirFlag !== undefined) {
+    throw new ValidationError('--out and --dir are two answers to one question; pass one.')
+  }
+  const offsite = backupDestinationFromEnv(process.env)
+  const keepFlag = optional(flags, 'keep')
+  if (keepFlag !== undefined && dirFlag === undefined && offsite === undefined) {
+    throw new ValidationError(
+      '--keep prunes a ring of bundles, so it needs --dir, an off-site destination ' +
+        '(BACKUP_S3_*), or both.',
+    )
+  }
+  const keep = resolveKeep(keepFlag)
   const now = new Date()
-  const out = path.resolve(optional(flags, 'out') ?? bundleName(now))
+  const name = bundleName(now)
+  if (dirFlag !== undefined) await mkdir(path.resolve(dirFlag), { recursive: true })
+  const out = path.resolve(dirFlag === undefined ? (outFlag ?? name) : path.join(dirFlag, name))
 
   const stage = await mkdtemp(path.join(tmpdir(), 'meith-backup-'))
   let destinationCreated = false
@@ -579,6 +602,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
     await chmod(out, 0o600)
 
     const size = (await stat(out)).size
+    destinationCreated = false
     console.log(
       `Wrote ${out} (${formatBytes(size)}): the database dump${
         uploads === 'included' ? ' and the uploads' : ', no uploads'
@@ -593,11 +617,37 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
     if (uploads === 'skipped' && mode === 'skip') {
       console.log('Restoring this bundle gives a board whose posts have broken images.')
     }
-    console.log(
-      'Copy the bundle off this machine: a backup on the server is a backup of the ' +
-        'thing most likely to fail.',
-    )
-    destinationCreated = false
+
+    if (offsite !== undefined) {
+      const store = new BackupStore(offsite)
+      await store.putFile(name, out, size)
+      console.log(`Shipped ${name} to ${store.destination}.`)
+      const prunedRemote = await store.prune(keep)
+      if (prunedRemote.length > 0) {
+        console.log(
+          `Pruned ${prunedRemote.length} bundle(s) there beyond the newest ${keep}: ` +
+            `${prunedRemote.join(', ')}.`,
+        )
+      }
+    } else {
+      console.log(
+        'Copy the bundle off this machine: a backup on the server is a backup of the ' +
+          'thing most likely to fail.',
+      )
+    }
+
+    if (dirFlag !== undefined) {
+      const dir = path.resolve(dirFlag)
+      const stale = pruneCandidates(await readdir(dir), keep)
+      for (const staleName of stale) await rm(path.join(dir, staleName), { force: true })
+      if (stale.length > 0) {
+        console.log(
+          `Pruned ${stale.length} bundle(s) in ${dir} beyond the newest ${keep}: ` +
+            `${stale.join(', ')}.`,
+        )
+      }
+    }
+
     if (skippedKeys.length === 0) return 0
 
     console.warn(
@@ -820,4 +870,88 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
   } finally {
     await rm(stage, { recursive: true, force: true })
   }
+}
+
+async function localBundles(dir: string): Promise<readonly { name: string; size: number }[]> {
+  const names = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return []
+    throw error
+  })
+  const bundles = []
+  for (const name of names.filter((entry) => isBundleName(entry)).sort()) {
+    bundles.push({ name, size: (await stat(path.join(dir, name))).size })
+  }
+  return bundles
+}
+
+export async function backupListCommand(args: readonly string[]): Promise<number> {
+  const { flags } = parseFlags(args)
+  const dirFlag = optional(flags, 'dir')
+  const offsite = backupDestinationFromEnv(process.env)
+  if (dirFlag === undefined && offsite === undefined) {
+    throw new ValidationError(
+      'Nothing to list: pass --dir <dir> for a local ring, or set BACKUP_S3_BUCKET, ' +
+        'BACKUP_S3_REGION, BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY ' +
+        'for the off-site destination.',
+    )
+  }
+
+  if (dirFlag !== undefined) {
+    const dir = path.resolve(dirFlag)
+    const bundles = await localBundles(dir)
+    console.log(`${dir}:`)
+    if (bundles.length === 0) console.log('  no bundles')
+    for (const bundle of bundles) {
+      console.log(`  ${bundle.name}  ${formatBytes(bundle.size)}`)
+    }
+  }
+
+  if (offsite !== undefined) {
+    const store = new BackupStore(offsite)
+    const bundles = await store.list()
+    console.log(`${store.destination}:`)
+    if (bundles.length === 0) console.log('  no bundles')
+    for (const bundle of bundles) {
+      console.log(`  ${bundle.name}  ${formatBytes(bundle.size)}`)
+    }
+  }
+
+  return 0
+}
+
+const FETCH_USAGE = 'Usage: meith backup:fetch <meith-backup-….tar.gz> [--out <path>]'
+
+export async function backupFetchCommand(args: readonly string[]): Promise<number> {
+  const { flags, positional } = parseFlags(args)
+
+  const name = positional[0]
+  if (name === undefined) throw new ValidationError(FETCH_USAGE)
+  if (!isBundleName(path.basename(name))) {
+    throw new ValidationError(
+      `Not a backup bundle name: ${JSON.stringify(name)}. meith backup:list names what ` +
+        'the destination holds.',
+    )
+  }
+
+  const offsite = backupDestinationFromEnv(process.env)
+  if (offsite === undefined) {
+    throw new ConfigurationError(
+      'backup:fetch downloads from the off-site destination, so it needs BACKUP_S3_BUCKET, ' +
+        'BACKUP_S3_REGION, BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY.',
+    )
+  }
+
+  const store = new BackupStore(offsite)
+  const out = path.resolve(optional(flags, 'out') ?? path.basename(name))
+  await claimBackupDestination(out)
+  try {
+    await store.getToFile(path.basename(name), out)
+  } catch (error) {
+    await rm(out, { force: true })
+    throw error
+  }
+
+  console.log(`Fetched ${out} (${formatBytes((await stat(out)).size)}) from ${store.destination}.`)
+  console.log(`Restore it with: ${RESTORE_USAGE.replace('Usage: ', '')}`)
+  return 0
 }

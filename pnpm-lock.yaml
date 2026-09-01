@@ -48,6 +48,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1111.0
+        version: 3.1111.0
       '@meith/accounts':
         specifier: workspace:*
         version: link:../../packages/accounts

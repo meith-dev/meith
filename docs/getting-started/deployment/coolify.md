@@ -491,16 +491,183 @@ installed release actually has.
 
 ## 6. Set up backups
 
-Not optional, and not the panel's job. Coolify's per-resource schedule
-dumps the database and does **not** include the uploads volume — avatars
-and attachments — and finding that out during a restore is the worst
-possible time. The board's own `meith backup` takes both in one
-bundle; schedule it as a command on the `web` resource and copy the
-bundle off the machine.
+Not optional, and not the panel's job. Coolify's own per-resource backup
+schedule dumps the database and does **not** include the uploads volume —
+avatars, attachments, board images — and finding that out during a restore
+is the worst possible time. The board's own `meith backup` takes both in
+one bundle, and the compose file already mounts a named `backups` volume
+at `/backups` inside the `web` container for it to write into, so the
+bundles survive every redeploy. Three steps, and the first one is not a
+schedule at all.
 
-[Backup](../../guides/operations/operating.md#backup) has the command and
-[Restore](../../guides/operations/operating.md#restore) the way back. A backup nobody has
-restored is a file, not a backup.
+### First, copy the generated secrets off this server
+
+Coolify generated three values on the first deploy and holds them nowhere
+but this machine: `SERVICE_BASE64_64_AUTH` (the board's `AUTH_SECRET`),
+`SERVICE_BASE64_64_TICK` (`TICK_SECRET`) and `SERVICE_PASSWORD_POSTGRES`
+(the database password). Open the resource's **Environment Variables**,
+and put all three in the community's password manager now, before the
+first nightly backup ever runs. No backup schedule replaces this step:
+the bundles deliberately do not contain the secrets, and losing
+`AUTH_SECRET` with the server strands every member's authenticator-app
+enrolment even after a perfect restore —
+[Disaster recovery](../../guides/operations/disaster-recovery.md#what-recovery-consumes)
+prices each of the three.
+
+### Schedule the nightly bundle
+
+Add a **Scheduled Task** to the resource — the same panel feature the
+[CLI section](#running-commands-the-cli-without-ssh) introduced:
+
+| Field | Value |
+|---|---|
+| Name | `nightly-backup` |
+| Command | `meith backup --dir /backups` |
+| Container | `web` |
+| Frequency | `0 2 * * *` |
+
+That is 02:00 every night in your Coolify instance's timezone, writing a
+timestamped bundle — database dump and uploads together — into the
+`backups` volume and keeping the newest **7**, a week of nightly restore
+points. Retention is one flag: `--keep 14` in the command keeps two weeks.
+Pruning runs only after a new bundle is safely written, so a run that
+fails never eats the good bundles — but note the ring's appetite: each
+bundle carries every upload, so seven bundles is roughly seven times the
+board's data, and `--keep` is the knob if the disk gets tight.
+
+Read a run's output in the task's own view now and then (the button to
+run it immediately is next to it — press it once today rather than
+waiting for 02:00). Exit **0** is a clean bundle; exit **2** means the
+bundle was written but is missing objects it names —
+[worth understanding](../../guides/operations/operating.md#when-a-bundle-is-incomplete),
+not worth discarding. Coolify's **Notifications** (Telegram, Discord,
+e-mail, webhook) can tell you when a scheduled task fails, which beats
+discovering it the day you need the bundle.
+
+### Then ship the bundles off the server
+
+The ring on `/backups` shares a disk with the board, so it protects
+against a bad upgrade or a deleted forum — not against losing the server.
+Give the same scheduled command an off-site destination and every backup
+also ships its bundle to an S3-compatible bucket, pruned there to the
+same `--keep`:
+
+1. Create a bucket at any S3-compatible provider — Backblaze B2,
+   Cloudflare R2, Hetzner, Scaleway, MinIO on a machine you trust — a few
+   euro a month at forum size. **A bucket of its own**: never the bucket
+   uploads live in, if you moved those to S3. Give its credential write
+   and list on that bucket only.
+2. On the resource's **Environment Variables**, set `BACKUP_S3_BUCKET`,
+   `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID` and
+   `BACKUP_S3_SECRET_ACCESS_KEY` — plus `BACKUP_S3_ENDPOINT` for anything
+   that is not AWS itself (with `BACKUP_S3_REGION=auto` for R2), and
+   `BACKUP_S3_PREFIX` if one bucket serves several boards. All four
+   required values or none: a partial set fails the backup run loudly and
+   never touches the board itself.
+3. **Redeploy** (the compose file passes these six variables through to
+   the container), run the task once from its panel button, then prove
+   the shipping happened: open the resource's **Terminal**, choose `web`,
+   and run `meith backup:list --dir /backups`. It prints the local ring
+   and what the bucket actually holds. An upload nobody has listed is a
+   hope, not an off-site copy.
+
+[Backup](../../guides/operations/operating.md#backup) is the full
+reference for the command and the variables.
+
+## 7. Prove the restore
+
+A backup nobody has restored is a file, not a backup. This rehearsal
+takes ten minutes in the panel's Terminal, touches nothing the live board
+uses, and turns your bundles from files into backups. Do it once now, and
+again whenever the deployment changes shape.
+
+1. **Terminal → `postgres`**: create a scratch database beside the real
+   one.
+
+   ```sh
+   createdb -U community rehearsal
+   ```
+
+2. **Terminal → `web`**: pick a bundle and restore it into the scratch
+   database. `meith restore` refuses to run without an explicit
+   `RESTORE_DATABASE_URL` and refuses any database that is not empty, so
+   it cannot be aimed at the live board by accident; the substitution
+   below reuses the connection string the board already has, swapping the
+   database name on the end.
+
+   ```sh
+   meith backup:list --dir /backups
+   RESTORE_DATABASE_URL="${DATABASE_URL%community}rehearsal" \
+     meith restore /backups/<the newest bundle> --skip-uploads
+   ```
+
+   Read what it prints: the backup's date and version, migrations (on a
+   fresh bundle: nothing to do), and **the restored post count** — the
+   number that tells you the bundle is real. `--skip-uploads` keeps the
+   rehearsal off the live uploads directory; the bundle's uploads half is
+   validated as part of reading the bundle either way.
+
+3. **Terminal → `postgres`**: drop the evidence.
+
+   ```sh
+   dropdb -U community rehearsal
+   ```
+
+Note the date and the post count somewhere that is not this server. If
+step 2 failed, today is the cheap day to find out why.
+
+## Restoring for real
+
+Two situations, one rule for both: `meith restore` only ever writes into
+an empty database, so the restore is always *replace, then verify* —
+never patch in place.
+
+**Rolling the board back** — a bad upgrade, a plugin gone wrong, a
+mistake that deleted real content. Warn the members if you can; the board
+is down from the drop until the restart.
+
+1. **Terminal → `postgres`** — drop the live database and recreate it
+   empty. `with (force)` disconnects the running board, which errors
+   until the restart below and no further:
+
+   ```sh
+   psql -U community -d postgres -c 'drop database community with (force)'
+   createdb -U community community
+   ```
+
+2. **Terminal → `web`** — for a full restore including uploads, empty the
+   uploads volume first (the restore insists on a fresh directory for the
+   same reason it insists on an empty database), then restore. When the
+   uploads are fine — a database-only incident — keep them and add
+   `--skip-uploads` instead:
+
+   ```sh
+   find /app/.uploads -mindepth 1 -delete
+   RESTORE_DATABASE_URL="$DATABASE_URL" meith restore /backups/<bundle>
+   ```
+
+   Restoring a bundle older than the deployed release applies the
+   migrations in between itself; restoring after a bad upgrade should
+   instead go back to the release the bundle was taken from — pin
+   `MEITH_IMAGE` accordingly, and read
+   [Downgrades](../../guides/operations/upgrading.md#downgrades) before
+   deciding which.
+
+3. **Restart** the resource, then verify before announcing anything:
+   sign in, open a thread with attachments, check
+   `/admin/settings?group=mail` still sends. (On this compose resource
+   the panel's Restart re-runs the deployment from your branch's head —
+   the [redeploys note](#3-set-your-domain-and-deploy) explains when that
+   also moves the version.)
+
+**The server is gone** — follow
+[Disaster recovery](../../guides/operations/disaster-recovery.md), which
+has the order of operations and the verification list; its
+[Under Coolify](../../guides/operations/disaster-recovery.md#under-coolify)
+section maps each step onto a fresh panel, including the one trap worth
+knowing in advance: paste your saved secrets over the newly generated
+ones **before** the first deploy, and fetch the bundle back with
+`meith backup:fetch` rather than reaching for `scp`.
 
 ## If the install fails halfway
 

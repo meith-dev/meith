@@ -3,7 +3,7 @@ import process from 'node:process'
 
 import { type LoadedEnvFiles, loadEnvFiles } from '@meith/core/env-files'
 
-import { backupCommand, restoreCommand } from './backup'
+import { backupCommand, backupFetchCommand, backupListCommand, restoreCommand } from './backup'
 import {
   forumCreate,
   settingDisplayValue,
@@ -166,8 +166,31 @@ const commands: Command[] = [
   {
     name: 'backup',
     summary: 'Dump the database and the uploads into one restorable bundle.',
-    usage: 'meith backup [--out <path>] [--uploads include|skip]',
+    usage: [
+      'meith backup [--out <path> | --dir <dir>] [--keep <n>] [--uploads include|skip]',
+      '',
+      '--dir writes a timestamped bundle into a directory and, after a successful',
+      'write, prunes bundles there beyond the newest --keep (7 unless set).',
+      'With BACKUP_S3_BUCKET, BACKUP_S3_REGION, BACKUP_S3_ACCESS_KEY_ID and',
+      'BACKUP_S3_SECRET_ACCESS_KEY set (BACKUP_S3_ENDPOINT and BACKUP_S3_PREFIX',
+      'optional), every bundle is also shipped to that S3-compatible destination',
+      'and pruned there to the same --keep.',
+    ].join('\n'),
     run: backupCommand,
+  },
+
+  {
+    name: 'backup:list',
+    summary: 'List the backup bundles on local disk and at the off-site destination.',
+    usage: 'meith backup:list [--dir <dir>]',
+    run: backupListCommand,
+  },
+
+  {
+    name: 'backup:fetch',
+    summary: 'Download one bundle from the off-site destination (BACKUP_S3_*).',
+    usage: 'meith backup:fetch <meith-backup-….tar.gz> [--out <path>]',
+    run: backupFetchCommand,
   },
 
   {

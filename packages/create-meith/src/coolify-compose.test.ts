@@ -67,4 +67,22 @@ describe('the Coolify compose file', () => {
     expect(compose).toMatch(/DATABASE_URL[=:] ?postgres:\/\/community:\$SERVICE_PASSWORD_POSTGRES@/)
     expect(compose).not.toMatch(/postgres:\/\/community:\$SERVICE_BASE64/)
   })
+
+  it('gives the backup ring a volume of its own, mounted where the scheduled task writes', () => {
+    expect(service('web')).toContain('backups:/backups')
+    expect(compose).toMatch(/volumes:\n(.*\n)*\s{2}backups:/)
+  })
+
+  it('hands the scheduled backup the off-site destination the operator sets on the resource', () => {
+    for (const variable of [
+      'BACKUP_S3_BUCKET',
+      'BACKUP_S3_REGION',
+      'BACKUP_S3_ACCESS_KEY_ID',
+      'BACKUP_S3_SECRET_ACCESS_KEY',
+      'BACKUP_S3_ENDPOINT',
+      'BACKUP_S3_PREFIX',
+    ]) {
+      expect(service('web')).toContain(`${variable}=\${${variable}:-}`)
+    }
+  })
 })

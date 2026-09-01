@@ -149,6 +149,19 @@ const ENV_SMTP_MAIL_BLOCK = `# Mail. Leave these alone and the installer asks fo
 # MAIL_SMTP_PASSWORD=
 # MAIL_FROM=noreply@yourdomain.com`
 
+const ENV_BACKUP_BLOCK = `# The off-site backup destination: an S3-compatible bucket \`meith backup\`
+# ships every bundle to, pruned there to the newest --keep (7 unless set).
+# All four required together — a partial set fails the backup, never the board.
+# BACKUP_S3_ENDPOINT is for anything S3-compatible (R2, MinIO, Spaces;
+# BACKUP_S3_REGION=auto for R2); BACKUP_S3_PREFIX shares one bucket between
+# boards. Use a bucket of its own, never the bucket the uploads live in.
+# BACKUP_S3_BUCKET=
+# BACKUP_S3_REGION=
+# BACKUP_S3_ACCESS_KEY_ID=
+# BACKUP_S3_SECRET_ACCESS_KEY=
+# BACKUP_S3_ENDPOINT=
+# BACKUP_S3_PREFIX=`
+
 function selfHostEnvExample(name: string): string {
   return `# ${name} — environment.
 #
@@ -178,6 +191,8 @@ ${ENV_APP_URL_PROSE}
 APP_URL=
 
 ${ENV_SMTP_MAIL_BLOCK}
+
+${ENV_BACKUP_BLOCK}
 
 `
 }
@@ -980,8 +995,24 @@ services:
       - MAIL_SMTP_USERNAME=\${MAIL_SMTP_USERNAME:-}
       - MAIL_SMTP_PASSWORD=\${MAIL_SMTP_PASSWORD:-}
       - MAIL_FROM=\${MAIL_FROM:-}
+      # The off-site backup destination, unset until the four required values
+      # are filled in on the Coolify resource. Coolify only hands a compose
+      # service the variables the file names, so a Scheduled Task running
+      # \`meith backup\` in this container would never see them without these
+      # lines — see the meith repository's
+      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      - BACKUP_S3_BUCKET=\${BACKUP_S3_BUCKET:-}
+      - BACKUP_S3_REGION=\${BACKUP_S3_REGION:-}
+      - BACKUP_S3_ACCESS_KEY_ID=\${BACKUP_S3_ACCESS_KEY_ID:-}
+      - BACKUP_S3_SECRET_ACCESS_KEY=\${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      - BACKUP_S3_ENDPOINT=\${BACKUP_S3_ENDPOINT:-}
+      - BACKUP_S3_PREFIX=\${BACKUP_S3_PREFIX:-}
     volumes:
       - uploads:/app/.uploads
+      # Where \`meith backup --dir /backups\` writes its ring of bundles. A
+      # named volume rather than the container filesystem, so the ring survives
+      # every redeploy.
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -1017,6 +1048,7 @@ services:
 volumes:
   pgdata:
   uploads:
+  backups:
 `,
   )
 
@@ -1113,8 +1145,24 @@ services:
       - MAIL_SMTP_USERNAME=\${MAIL_SMTP_USERNAME:-}
       - MAIL_SMTP_PASSWORD=\${MAIL_SMTP_PASSWORD:-}
       - MAIL_FROM=\${MAIL_FROM:-}
+      # The off-site backup destination, unset until the four required values
+      # are filled in on the Coolify resource. Coolify only hands a compose
+      # service the variables the file names, so a Scheduled Task running
+      # \`meith backup\` in this container would never see them without these
+      # lines — see the meith repository's
+      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      - BACKUP_S3_BUCKET=\${BACKUP_S3_BUCKET:-}
+      - BACKUP_S3_REGION=\${BACKUP_S3_REGION:-}
+      - BACKUP_S3_ACCESS_KEY_ID=\${BACKUP_S3_ACCESS_KEY_ID:-}
+      - BACKUP_S3_SECRET_ACCESS_KEY=\${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      - BACKUP_S3_ENDPOINT=\${BACKUP_S3_ENDPOINT:-}
+      - BACKUP_S3_PREFIX=\${BACKUP_S3_PREFIX:-}
     volumes:
       - uploads:/app/.uploads
+      # Where \`meith backup --dir /backups\` writes its ring of bundles. A
+      # named volume rather than the container filesystem, so the ring survives
+      # every redeploy.
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -1150,6 +1198,7 @@ services:
 volumes:
   pgdata:
   uploads:
+  backups:
 `,
   )
 
