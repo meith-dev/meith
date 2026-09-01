@@ -11,6 +11,7 @@
   "reference.page.guest": "guest",
   "reference.page.title": "Reference",
   "reference.page.viewer": "reference-plugin page for viewer {viewer}",
+  "reference.region.label": "Reference region",
   "reference.setting.apiSecret.description": "Exists to exercise the write-only secret path.",
   "reference.setting.apiSecret.label": "API secret",
   "reference.setting.badgeLimit.label": "Badge limit",
