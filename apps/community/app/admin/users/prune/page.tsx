@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { TextLink } from '@meith/ui'
+
 import { PruneForm, SelectedPruneForm } from '@/components/admin/user-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -72,12 +74,7 @@ export default async function AdminPrunePage({
           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
             {selectedPreview.sample.map((row) => (
               <li key={row.id}>
-                <a
-                  href={`/admin/users/${row.id}`}
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
-                  {row.username}
-                </a>{' '}
+                <TextLink href={`/admin/users/${row.id}`}>{row.username}</TextLink>{' '}
                 {translator.t('adminUsers.pruneMemberMeta', {
                   email: row.email,
                   date: row.createdAt.toISOString().slice(0, 10),
@@ -150,12 +147,7 @@ export default async function AdminPrunePage({
               <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
                 {preview.sample.map((row) => (
                   <li key={row.id}>
-                    <a
-                      href={`/admin/users/${row.id}`}
-                      className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                    >
-                      {row.username}
-                    </a>{' '}
+                    <TextLink href={`/admin/users/${row.id}`}>{row.username}</TextLink>{' '}
                     {translator.t('adminUsers.pruneMemberMeta', {
                       email: row.email,
                       date: row.createdAt.toISOString().slice(0, 10),

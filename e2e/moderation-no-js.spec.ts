@@ -111,6 +111,7 @@ test('inline moderation submits the posts a moderator ticked, with scripting off
       .locator('form#inline-moderation')
       .getByRole('button', { name: 'Delete', exact: true })
       .click()
+    await modPage.getByRole('button', { name: 'Confirm' }).click()
 
     await memberPage.goto(threadUrl)
     await expect(memberPage.getByText('Something a moderator will want to look at.')).toHaveCount(0)
@@ -298,6 +299,7 @@ test('a deleted thread stays in the forum listing for staff, marked as deleted',
   try {
     await modPage.goto(threadUrl)
     await modPage.getByRole('button', { name: 'Delete thread', exact: true }).click()
+    await modPage.getByRole('button', { name: 'Confirm' }).click()
 
     await modPage.goto('/200-general')
 

@@ -68,3 +68,28 @@ export const badgeVariants = cva(
 )
 
 export type BadgeVariants = VariantProps<typeof badgeVariants>
+
+export const textLinkVariants = cva(
+  'underline decoration-border underline-offset-2 hover:decoration-foreground',
+  {
+    variants: {
+      tone: {
+        default: 'text-foreground',
+        muted: 'text-muted-foreground hover:text-foreground',
+        inherit: '',
+      },
+      weight: {
+        medium: 'font-medium',
+        normal: '',
+      },
+      size: {
+        default: '',
+        sm: 'text-sm',
+        xs: 'text-xs',
+      },
+    },
+    defaultVariants: { tone: 'default', weight: 'medium', size: 'default' },
+  },
+)
+
+export type TextLinkVariants = VariantProps<typeof textLinkVariants>

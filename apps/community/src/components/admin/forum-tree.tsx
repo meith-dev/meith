@@ -15,7 +15,7 @@ import {
   subtreeOfOutline,
   withoutSubtree,
 } from '@meith/forums/arrange'
-import { buttonVariants, cn } from '@meith/ui'
+import { buttonVariants, cn, TextLink } from '@meith/ui'
 
 import { PANEL_LIST } from '@/components/shell/panel-list'
 import { EMPTY_STATE } from '@/server/auth-form-state'
@@ -412,24 +412,22 @@ export function ForumTree({ rows, copy }: { rows: readonly ForumOutlineRow[]; co
               </form>
 
               <span className="ml-auto flex shrink-0 items-center gap-3 text-xs sm:ml-0 sm:gap-2 sm:pl-1">
-                <a
+                <TextLink
                   href={`/admin/forums/${row.id}`}
                   aria-label={formatFromCopy(copy, 'adminForum.tree.optionsFor', {
                     title: row.title,
                   })}
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
                   {fromCopy(copy, 'adminForum.options')}
-                </a>
-                <a
+                </TextLink>
+                <TextLink
                   href={`/admin/forums/${row.id}/permissions`}
                   aria-label={formatFromCopy(copy, 'adminForum.tree.permissionsFor', {
                     title: row.title,
                   })}
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                 >
                   {fromCopy(copy, 'adminForum.tree.permissions')}
-                </a>
+                </TextLink>
               </span>
             </li>
           )

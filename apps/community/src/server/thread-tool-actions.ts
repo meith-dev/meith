@@ -8,6 +8,7 @@ import { msg } from '@meith/i18n'
 import { parseThreadTool, type ThreadToolRights, ThreadTools } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
@@ -62,6 +63,11 @@ export async function threadToolAction(_prev: FormState, form: FormData): Promis
       (tool === 'move' || tool === 'copy') && toForumId !== null
         ? await resolveRights(toForumId, threadAuthorId)
         : undefined
+
+    if (tool === 'delete' && rights.delete) {
+      const confirm = requireConfirmation(form, await tr('moderationForm.confirm.deleteThread'))
+      if (confirm !== null) return confirm
+    }
 
     outcome = await new ThreadTools({ threads: threadTools }).apply({
       threadId,

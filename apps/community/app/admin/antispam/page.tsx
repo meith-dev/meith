@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { cn } from '@meith/ui'
+import { cn, TextLink } from '@meith/ui'
 
 import { CaptchaQuestionRowForm, NewCaptchaQuestionForm } from '@/components/admin/content-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
@@ -34,12 +34,9 @@ export default async function AdminAntispamPage() {
       lede={
         <>
           The thresholds are in{' '}
-          <a
-            href="/admin/settings?group=antispam"
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href="/admin/settings?group=antispam">
             {await tr('page.settings-anti-spam')}
-          </a>
+          </TextLink>
           {translator.t('adminAntispam.ledeEnd')}
         </>
       }
@@ -115,12 +112,7 @@ export default async function AdminAntispamPage() {
             </dt>
             <dd>
               {translator.t('adminAntispam.firstPostsBefore')}{' '}
-              <a
-                href="/modcp"
-                className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-              >
-                {translator.t('adminAntispam.moderationQueue')}
-              </a>
+              <TextLink href="/modcp">{translator.t('adminAntispam.moderationQueue')}</TextLink>
               {translator.t('adminAntispam.firstPostsAfter')}
             </dd>
           </div>

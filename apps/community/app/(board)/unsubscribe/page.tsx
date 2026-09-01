@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { env } from '@meith/core'
 import { readUnsubscribeToken } from '@meith/subscriptions'
+import { TextLink } from '@meith/ui'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -36,24 +37,18 @@ export default async function UnsubscribePage({
             <BoardNotice kind="info" message={done} dismissHref="/" />
             <p className="text-sm text-muted-foreground">
               {translator.t('unsubscribePage.doneBefore')}{' '}
-              <a
-                href="/subscriptions"
-                className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-              >
+              <TextLink href="/subscriptions">
                 {translator.t('unsubscribePage.subscriptions')}
-              </a>
+              </TextLink>
               {translator.t('unsubscribePage.doneAfter')}
             </p>
           </>
         ) : claim === null ? (
           <p className="text-sm text-muted-foreground">
             {translator.t('unsubscribePage.invalidBefore')}{' '}
-            <a
-              href="/subscriptions"
-              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-            >
+            <TextLink href="/subscriptions">
               {translator.t('unsubscribePage.subscriptions')}
-            </a>{' '}
+            </TextLink>{' '}
             {translator.t('unsubscribePage.invalidAfter')}
           </p>
         ) : (

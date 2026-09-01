@@ -1,6 +1,14 @@
 import type { Metadata } from 'next'
 
-import { Card, CardFooter, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+import {
+  Card,
+  CardFooter,
+  CardRows,
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+  TextLink,
+} from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { activeWordFilter } from '@/server/content-admin'
@@ -72,14 +80,12 @@ export default async function OnlinePage() {
                   className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
                 >
                   <span className="text-sm font-medium">
-                    <a
+                    <TextLink
                       href={`/member/${member.userId}`}
-                      className={`font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${
-                        identities.get(member.userId)?.nameClass ?? ''
-                      }`}
+                      className={identities.get(member.userId)?.nameClass ?? ''}
                     >
                       {member.username}
-                    </a>
+                    </TextLink>
                     {member.invisible && (
                       <span className="ml-1 text-xs text-muted-foreground">
                         {translator.t('board.online.invisible')}

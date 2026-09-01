@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MESSAGES_PAGE_SIZE, parseFolder } from '@meith/messages'
+import { TextLink } from '@meith/ui'
 
 import { MessageActionBar } from '@/components/messages/message-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -72,12 +73,9 @@ export default async function MessagesPage({
     <PanelPage
       title={await tr('page.private-messages')}
       actions={
-        <a
-          href={view.composeHref}
-          className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
+        <TextLink href={view.composeHref} size="sm">
           {await tr('page.write-message')}
-        </a>
+        </TextLink>
       }
     >
       {notice !== null && (

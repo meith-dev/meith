@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 
+import { TextLink } from '@meith/ui'
 import { Popover } from '@meith/ui/popover'
 import { Tabs } from '@meith/ui/tabs'
 
@@ -223,12 +224,13 @@ function Panel({ tab, copy }: { tab: NotificationMenuTab; copy: Copy }) {
       )}
 
       <div className="flex items-center justify-between gap-2 border-t border-border px-2 pt-2">
-        <a
+        <TextLink
           href={tab.allHref}
-          className="rounded-md px-2 py-1 text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          size="xs"
+          className="rounded-md px-2 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {fromCopy(copy, 'board.notificationMenu.viewAll')}
-        </a>
+        </TextLink>
 
         {unreadRows.length > 0 && (
           <SeenForm

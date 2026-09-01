@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { cn } from '@meith/ui'
+import { cn, TextLink } from '@meith/ui'
 
 import {
   DeletePrefixForm,
@@ -107,23 +107,13 @@ export default async function AdminContentPage() {
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">{t.t('contentPage.announcements')}</h2>
         <p className="text-muted-foreground">{t.t('contentPage.announcementsHelp')}</p>
-        <a
-          href="/admin/content/announcements"
-          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          {await tr('page.announcements-b')}
-        </a>
+        <TextLink href="/admin/content/announcements">{await tr('page.announcements-b')}</TextLink>
       </section>
 
       <section className={cn(PANEL_CARD, 'gap-2 text-sm')}>
         <h2 className="font-heading text-lg font-semibold">{t.t('contentPage.attachments')}</h2>
         <p className="text-muted-foreground">{t.t('contentPage.attachmentsHelp')}</p>
-        <a
-          href="/admin/content/attachments"
-          className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-        >
-          {await tr('page.attachments-b')}
-        </a>
+        <TextLink href="/admin/content/attachments">{await tr('page.attachments-b')}</TextLink>
       </section>
 
       <section className={PANEL_CARD}>

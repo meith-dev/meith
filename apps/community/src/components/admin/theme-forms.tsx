@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react'
 
+import { textLinkVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   importThemeAction,
@@ -43,8 +45,7 @@ const INPUT =
 const GHOST_BUTTON =
   'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const LINK =
-  'text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const LINK = `${textLinkVariants({ tone: 'inherit', size: 'xs' })} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`
 
 export type TokenValue = EditableToken
 

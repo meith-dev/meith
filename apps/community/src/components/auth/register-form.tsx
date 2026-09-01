@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { TextLink } from '@meith/ui'
+
 import { registerAction } from '@/server/auth-actions'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
@@ -135,14 +137,9 @@ export function RegisterForm({
           />
           <span>
             {copy['authForm.register.termsLead']}
-            <a
-              href={terms.href}
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-            >
+            <TextLink href={terms.href} target="_blank" rel="noreferrer">
               {terms.label}
-            </a>
+            </TextLink>
             {copy['authForm.register.termsTail']}
           </span>
         </label>

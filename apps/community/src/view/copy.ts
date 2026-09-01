@@ -23,6 +23,10 @@ export function patternCopy(
 const CHROME_KEYS = [
   'form.working',
   'form.notSaved',
+  'confirm.confirm',
+  'confirm.cancel',
+  'confirm.heading',
+  'notice.dismiss',
   'composer.message',
   'composer.tabs',
   'composer.write',
@@ -67,6 +71,7 @@ const CHROME_KEYS = [
   'composer.thanks.thanked',
   'composer.thanks.thanks',
   'composer.multiquote.button',
+  'composer.multiquote.tooltip',
   'composer.multiquote.addToReply',
   'composer.multiquote.adding',
   'composer.multiquote.clear',

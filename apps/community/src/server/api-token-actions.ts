@@ -8,6 +8,7 @@ import { msg } from '@meith/i18n'
 import { recordAdminAction, requireAdmin, requireFreshAdmin } from './admin'
 import { apiTokenStore, issueApiToken } from './api-tokens-admin'
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { getMessageResolver, tr } from './i18n'
 
 function field(form: FormData, name: string): string {
@@ -68,6 +69,9 @@ export async function revokeApiTokenAction(_prev: FormState, form: FormData): Pr
 
     const id = Number(field(form, 'tokenId'))
     if (!Number.isSafeInteger(id) || id <= 0) return { error: await tr('notice.app.such-token') }
+
+    const confirm = requireConfirmation(form, await tr('adminPanel.token.confirmRevoke'))
+    if (confirm !== null) return confirm
 
     const store = apiTokenStore()
     if (store === null) return { error: await tr('notice.app.board-database-api') }

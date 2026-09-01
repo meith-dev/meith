@@ -426,11 +426,51 @@ describe('the folder action bar', () => {
       form([
         ['folder', 'trash'],
         ['command', 'empty'],
+        ['confirmed', '1'],
       ]),
     )
 
     expect(result.redirectedTo).toBe('/messages?folder=trash&emptied=1')
     expect(messages.copies).toEqual([])
+  })
+
+  it('asks to confirm before emptying the trash, and deletes nothing until it is', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, BOB)
+    messages.copies.push({
+      id: 7,
+      messageId: 1,
+      ownerUserId: BOB,
+      folder: 'trash',
+      role: 'to',
+      readAt: null,
+    })
+
+    const state = await messageBulkAction(
+      EMPTY_STATE,
+      form([
+        ['folder', 'trash'],
+        ['command', 'empty'],
+      ]),
+    )
+
+    expect(state.confirm).toBeDefined()
+    expect(messages.copies).toHaveLength(1)
+  })
+
+  it('asks to confirm before deleting messages forever, and removes nothing until it is', async () => {
+    const copyId = await seedInbox()
+
+    const state = await messageBulkAction(
+      EMPTY_STATE,
+      form([
+        ['folder', 'inbox'],
+        ['command', 'delete'],
+        ['copyId', String(copyId)],
+      ]),
+    )
+
+    expect(state.confirm).toBeDefined()
+    expect(messages.copies).toHaveLength(1)
   })
 
   it('asks for a selection rather than acting on everything', async () => {
@@ -464,6 +504,7 @@ describe('the folder action bar', () => {
         ['folder', 'inbox'],
         ['command', 'delete'],
         ['copyId', '99'],
+        ['confirmed', '1'],
       ]),
     )
 

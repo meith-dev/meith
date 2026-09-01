@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { cn } from '@meith/ui'
+import { cn, TextLink } from '@meith/ui'
 
 import { MarketplaceRefreshForm } from '@/components/admin/marketplace-forms'
 import { PluginEnableForm, PluginHealthResetForm } from '@/components/admin/plugin-forms'
@@ -128,12 +128,9 @@ export default async function AdminPluginsPage() {
                 </span>
 
                 <span className="flex shrink-0 items-center gap-3">
-                  <a
-                    href={`/admin/plugins/${plugin.key}`}
-                    className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                  >
+                  <TextLink href={`/admin/plugins/${plugin.key}`} size="sm">
                     {t.t('adminPlugins.details')}
-                  </a>
+                  </TextLink>
                   {plugin.durableHealth?.disabledAt != null && (
                     <PluginHealthResetForm pluginKey={plugin.key} copy={copy} />
                   )}

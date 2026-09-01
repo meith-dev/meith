@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { Card, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+import { Card, CardRows, Empty, EmptyDescription, EmptyTitle, TextLink } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { PanelPagination } from '@/components/shell/panel-pagination'
@@ -112,14 +112,9 @@ export default async function MembersPage({
                   className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
                 >
                   <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-                    <a
-                      href={`/member/${row.id}`}
-                      className={`font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${
-                        identity?.nameClass ?? ''
-                      }`}
-                    >
+                    <TextLink href={`/member/${row.id}`} className={identity?.nameClass ?? ''}>
                       {row.username}
-                    </a>
+                    </TextLink>
                     {identity?.groups.map((group) => (
                       <span
                         key={group.groupId}

@@ -2,6 +2,8 @@
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
+import { textLinkVariants } from '@meith/ui'
+
 export interface LiveRegionProps {
   readonly children: ReactNode
   readonly refresh: () => Promise<ReactNode>
@@ -63,7 +65,7 @@ export function LiveRegion({ children, refresh, seconds, label }: LiveRegionProp
           <button
             type="button"
             onClick={() => setPaused((was) => !was)}
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+            className={textLinkVariants()}
           >
             {paused ? 'Resume' : 'Pause'}
           </button>

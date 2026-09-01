@@ -42,6 +42,7 @@ test('a token issued and then revoked is listed and then marked, without a reloa
   await expect(row).toContainText('live')
 
   await row.getByRole('button', { name: /Revoke/ }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
   await expect(page.getByRole('row', { name: new RegExp(name) })).toContainText('revoked', {
     timeout: 15_000,

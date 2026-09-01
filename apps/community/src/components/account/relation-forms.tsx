@@ -2,13 +2,14 @@
 
 import { useActionState } from 'react'
 
+import { textLinkVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removeRelationAction, setRelationAction } from '@/server/relation-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
 
-const LINK_BUTTON =
-  'text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const LINK_BUTTON = `${textLinkVariants({ size: 'sm' })} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`
 
 const QUIET_BUTTON =
   'text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'

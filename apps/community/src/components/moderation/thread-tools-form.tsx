@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { threadToolAction } from '@/server/thread-tool-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -101,6 +102,7 @@ export function ThreadToolsForm({
       </div>
 
       <FormError message={state.error} />
+      <ConfirmDialog confirm={state.confirm} action={action} />
     </section>
   )
 }

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { WarningService } from '@meith/moderation'
-import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+import { Card, Empty, EmptyDescription, EmptyTitle, TextLink } from '@meith/ui'
 
 import { IssueWarningForm, RevokeWarningForm } from '@/components/moderation/warning-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -145,12 +145,9 @@ export default async function WarnPage({
         )}
 
         {view.nextHref !== null && (
-          <a
-            href={view.nextHref}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href={view.nextHref} size="sm">
             {await tr('page.older-warnings')}
-          </a>
+          </TextLink>
         )}
       </PanelSection>
     </PanelPage>

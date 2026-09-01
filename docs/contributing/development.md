@@ -495,6 +495,40 @@ without documenting the reason in the same change. (`packages/drafts` is
 interfaces only — erased at runtime, checked by `index.type-test.ts`, and
 due a floor when it grows runtime behavior.)
 
+## UI primitives and destructive actions
+
+App components share the primitives in `@meith/ui` rather than re-declaring
+the same class strings. A link that is prose — underlined, not a button —
+is a `TextLink` (`@meith/ui`), whose `textLinkVariants` carries the one
+underline recipe the whole board used to repeat inline; a link-styled
+`<button>` reuses `textLinkVariants(...)` for the same reason. Reach for
+these instead of writing `underline decoration-border …` again.
+
+A **destructive action confirms itself, fallback-first.** The server action
+calls `requireConfirmation(form, message)` (`server/confirm.ts`): when the
+submission carries no `confirmed` field it returns the message and a
+snapshot of the submitted fields as `state.confirm` and does nothing else.
+The client `ConfirmDialog` renders that state two ways from one markup — a
+`@meith/ui/dialog` `AlertDialog` when scripting is on, and, under
+`<noscript>`, a plain interstitial that re-submits the snapshot with
+`confirmed=1`. **The interstitial is the real path; the dialog is the
+enhancement**, which is why the no-JS specs step through the confirm page
+rather than skipping it (empty trash and delete-forever in
+`undo-no-js.spec.ts`, post and thread deletion in `moderation-no-js.spec.ts`,
+token revocation on the enhanced path in `admin-panel-live.spec.ts`). Admin
+operations already guarded by the preview-and-undo pattern
+(`admin-undo.tsx`) or a fresh-password re-check keep those guards instead.
+
+A **notice is a toast, with the banner as its fallback.** Actions still
+redirect carrying the notice in the query string; `BoardNotice` renders the
+`@meith/ui/toast` `Toast` island — dismissible, auto-dismissing,
+`role="status"` — and keeps the theme's `Notice` banner under `<noscript>`,
+toggled by the same `data-`attribute-and-`<noscript>`-style pattern the
+notification and user menus use. **Tooltips** (`@meith/ui/tooltip`) label
+cramped icon controls such as the multiquote toggle; they open on hover and
+focus, so the control still needs its own accessible name for touch and
+screen readers.
+
 ## The browser suite
 
 `pnpm test:e2e` starts everything it needs: a PGlite serving the Postgres

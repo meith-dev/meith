@@ -87,12 +87,19 @@ describe('the admin gate', () => {
   })
 
   it('lets a revocation through on the panel session alone', async () => {
-    const state = await revokeApiTokenAction({}, form({ tokenId: '4' }))
+    const state = await revokeApiTokenAction({}, form({ tokenId: '4', confirmed: '1' }))
 
     expect(state.notice).toBe('revoked')
     expect(requireAdminMock).toHaveBeenCalledTimes(1)
     expect(requireFreshAdminMock).not.toHaveBeenCalled()
     expect(revocations).toEqual([4])
+  })
+
+  it('asks to confirm a revocation before it happens', async () => {
+    const state = await revokeApiTokenAction({}, form({ tokenId: '4' }))
+
+    expect(state.confirm).toBeDefined()
+    expect(revocations).toEqual([])
   })
 })
 

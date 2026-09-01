@@ -1,5 +1,7 @@
 'use client'
 
+import { textLinkVariants } from '@meith/ui'
+
 import { type ContrastCheck, checkContrast, contrastGrade, formatRatio } from '@/view/contrast'
 import {
   changeCounts,
@@ -14,8 +16,7 @@ import {
 
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
-const LINK =
-  'text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const LINK = `${textLinkVariants({ tone: 'inherit', size: 'xs' })} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`
 
 function StateBadge({ change, copy }: { change: TokenChange; copy: Copy }) {
   const [label, tone] =

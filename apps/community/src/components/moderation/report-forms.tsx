@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 
-import { Card, CardContent, Field, Textarea } from '@meith/ui'
+import { Card, CardContent, Field, Textarea, textLinkVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { assignReportAction, closeReportAction, fileReportAction } from '@/server/report-actions'
@@ -68,7 +68,7 @@ export function AssignReportForm({
       <input type="hidden" name="take" value={mine ? '0' : '1'} />
       <PendingButton
         showWorking
-        className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={`${textLinkVariants({ size: 'xs' })} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
       >
         {mine
           ? fromCopy(copy, 'moderationForm.report.putBack')
