@@ -158,7 +158,7 @@ share a module without one of them changing what it is.
 | `tasks` | Scheduled work, registered as `plugin.<key>.<id>` and run by the same tick as core's tasks. |
 | `adminPages` | Pages mounted under `/admin/plugins/<key>/`. |
 | `routes` | HTTP endpoints mounted under `/api/plugins/<key>/`, dispatched by the host. |
-| `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell. |
+| `pages` | Member-facing pages mounted under `/plugins/<key>/`, rendered inside the board's shell; a page marked `access: 'staff'` mounts inside the moderation panel instead. |
 | `navigation` | Board navigation entries the operator then owns — see [below](#asking-for-a-place-in-the-navigation). |
 | `notifications` | Notification kinds this plugin may send, each a line on the member's preferences screen. |
 | `allowedRedirectHosts` | The only hosts an absolute redirect from this plugin's routes may point at. |
@@ -744,9 +744,13 @@ signature verification needs.
 The host owns every decision a plugin must not:
 
 - **`access` is enforced before the handler runs.** `'member'` answers 401
-  to a guest; `'admin'` answers 403 to anyone without a live control-panel
-  session — the same check the panel's own screens make, including its
-  re-authentication window. The handler never sees a refused request.
+  to a guest; `'staff'` answers 403 to anyone without the `modcp.access`
+  permission — the same board-staff check a staff page makes, so a staff
+  page's form can post to its own route; `'admin'` answers 403 to anyone
+  without a live control-panel session — the same check the panel's own
+  screens make, including its re-authentication window. A `'staff'` route
+  mounts on the board, next to `'member'` routes, because that is where a
+  staff page's request comes from. The handler never sees a refused request.
 - **Admin routes mount under the panel, not the board.** An
   `access: 'admin'` route answers at `/admin/api/plugins/<key>/<path>` and
   is a 404 on the board mount, and the reverse. The panel's session token
@@ -853,6 +857,48 @@ As with contributions: build your markup in the render function rather than
 returning a component that does work — the host's try/catch is around the
 call, and a component that throws later inside React's own render cannot be
 contained from the server.
+
+## Staff pages
+
+A board page marked `access: 'staff'` is a moderation-helper screen: the
+place for a plugin's triage list or its report tooling, above an ordinary
+member but below the operator. It is still a `pages` entry — the same
+`render`, the same `PluginPageContext` — with one difference in who may see
+it and where it appears.
+
+```ts
+pages: [
+  { path: 'triage', title: 'Triage', access: 'staff', render },
+]
+```
+
+- **The host enforces it before the render runs.** A staff page answers only
+  to a viewer who holds `modcp.access` — the same board-staff resolution the
+  moderation panel's own screens make (`resolveModCpAccess`), never a check
+  the plugin makes. Anyone else is a 404; the render is never called. This is
+  the page half of the rule that [a plugin never decides
+  authorization](#what-a-plugin-cannot-do): a staff page changes *who* may
+  look at a screen, not *what* the plugin may do once they are looking.
+- **It mounts inside the moderation panel**, at
+  `/modcp/plugins/<key>/<path>`, framed by the modcp `PanelShell` and rail —
+  not on the board, where a `'staff'` page is a 404. A plugin with staff
+  pages becomes its own section in that rail, headed by the plugin's name,
+  exactly as `adminPages` do in the admin rail; declaring the pages is the
+  whole of it.
+- **The context does not widen.** A staff page gets the same
+  `PluginPageContext` as any other — locale, translator, and a `viewer` that
+  is still a `ViewerRef`, never an `Actor`. In particular `context.data` and
+  `context.users` are unchanged: standing in the moderation panel lets more
+  people *reach* the screen, it does not let the plugin *read* more. What a
+  plugin may query is decided where it always was, not by where its page is
+  mounted.
+
+> [!NOTE]
+> **`modcp.access` is board-wide staff, and that is the whole of the gate in
+> this version.** A per-forum moderator who does not also hold `modcp.access`
+> will not see plugin staff pages, even in a forum they moderate. This is the
+> deliberate v1 boundary — the panel itself draws the same line — rather than
+> a finer per-forum gate a plugin could ask for.
 
 ## Notifications
 

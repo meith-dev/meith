@@ -18,6 +18,9 @@ vi.mock('./settings', () => ({ getSettingOverrides: async () => overrides.curren
 
 vi.mock('./notifications', () => ({ notificationService: () => null }))
 
+const modcp = { current: null as null | { hasGroupAccess: boolean } }
+vi.mock('./modcp', () => ({ resolveModCpAccess: async () => modcp.current }))
+
 const logged: unknown[] = []
 vi.mock(import('@meith/core'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -30,9 +33,12 @@ vi.mock(import('@meith/core'), async (importOriginal) => ({
   })) as never,
 }))
 
-const { renderPluginAdminPage, renderPluginBoardPage, pluginBoardPageTitle } = await import(
-  './plugin-pages'
-)
+const {
+  renderPluginAdminPage,
+  renderPluginBoardPage,
+  renderPluginStaffPage,
+  pluginBoardPageTitle,
+} = await import('./plugin-pages')
 
 let handed: unknown = null
 
@@ -61,6 +67,7 @@ beforeEach(() => {
   overrides.current = new Map()
   logged.length = 0
   handed = null
+  modcp.current = null
 })
 
 describe('finding a page', () => {
@@ -278,5 +285,125 @@ describe('board pages', () => {
     overrides.current = new Map([['plugin.alpha._enabled', '0']])
     expect(pluginBoardPageTitle('alpha', '')).toBe('Membership')
     expect(pluginBoardPageTitle('alpha', 'nope')).toBeNull()
+  })
+})
+
+describe('staff pages', () => {
+  const staffPlugin = (overridesToApply: Record<string, unknown> = {}) =>
+    plugin({
+      pages: [
+        {
+          path: 'triage',
+          title: 'Triage',
+          access: 'staff',
+          render: (context: unknown) => {
+            handed = context
+            return 'staff-markup'
+          },
+        },
+        {
+          path: 'open',
+          title: 'Open page',
+          access: 'anonymous',
+          render: () => 'open-markup',
+        },
+      ],
+      ...overridesToApply,
+    })
+
+  const request = { viewer: { userId: 9, isGuest: false }, query: { s: '1' }, boardUrl: '' }
+
+  beforeEach(() => {
+    config.current.plugins = [{ key: 'alpha', plugin: staffPlugin() }]
+  })
+
+  it('refuses a guest and a member, before the render runs', async () => {
+    modcp.current = null
+    expect((await renderPluginStaffPage('alpha', 'triage', request)).outcome).toBe('forbidden')
+    expect(handed).toBeNull()
+  })
+
+  it('refuses a per-forum moderator who lacks board-staff access', async () => {
+    modcp.current = { hasGroupAccess: false }
+    expect((await renderPluginStaffPage('alpha', 'triage', request)).outcome).toBe('forbidden')
+    expect(handed).toBeNull()
+  })
+
+  it('renders for a modcp.access holder, handing the render its page context', async () => {
+    modcp.current = { hasGroupAccess: true }
+    const result = await renderPluginStaffPage('alpha', 'triage', request)
+    expect(result).toEqual({ outcome: 'rendered', title: 'Triage', node: 'staff-markup' })
+
+    const context = handed as Record<string, unknown>
+    expect(context.viewer).toEqual({ userId: 9, isGuest: false })
+    expect(context.query).toEqual({ s: '1' })
+    expect(Object.keys(context).sort()).toEqual([
+      'boardUrl',
+      'data',
+      'grants',
+      'locale',
+      'logger',
+      'notify',
+      'path',
+      'query',
+      'settings',
+      't',
+      'users',
+      'viewer',
+    ])
+  })
+
+  it('serves a staff page only under the modcp mount', async () => {
+    modcp.current = { hasGroupAccess: true }
+
+    const onBoardMount = await renderPluginBoardPage('alpha', 'triage', {
+      viewer: { userId: 9, isGuest: false },
+      query: {},
+      boardUrl: '',
+    })
+    expect(onBoardMount.outcome).toBe('missing')
+
+    expect((await renderPluginStaffPage('alpha', 'open', request)).outcome).toBe('missing')
+  })
+
+  it('treats unknown, config-disabled and operator-disabled as missing', async () => {
+    modcp.current = { hasGroupAccess: true }
+    expect((await renderPluginStaffPage('ghost', 'triage', request)).outcome).toBe('missing')
+    expect((await renderPluginStaffPage('alpha', 'nope', request)).outcome).toBe('missing')
+
+    config.current.plugins = [{ key: 'alpha', enabled: false, plugin: staffPlugin() }]
+    expect((await renderPluginStaffPage('alpha', 'triage', request)).outcome).toBe('missing')
+
+    config.current.plugins = [{ key: 'alpha', plugin: staffPlugin() }]
+    overrides.current = new Map([['plugin.alpha._enabled', '0']])
+    expect((await renderPluginStaffPage('alpha', 'triage', request)).outcome).toBe('missing')
+  })
+
+  it('contains a throwing render: title survives, node is null, error is logged', async () => {
+    modcp.current = { hasGroupAccess: true }
+    config.current.plugins = [
+      {
+        key: 'alpha',
+        plugin: staffPlugin({
+          pages: [
+            {
+              path: 'triage',
+              title: 'Triage',
+              access: 'staff',
+              render: () => {
+                throw new Error('staff render blew up')
+              },
+            },
+          ],
+        }),
+      },
+    ]
+
+    expect(await renderPluginStaffPage('alpha', 'triage', request)).toEqual({
+      outcome: 'rendered',
+      title: 'Triage',
+      node: null,
+    })
+    expect(logged.length).toBeGreaterThan(0)
   })
 })

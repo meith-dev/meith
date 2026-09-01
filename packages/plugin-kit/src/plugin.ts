@@ -108,8 +108,8 @@ export type PluginResponse =
     }
   | { readonly kind: 'redirect'; readonly to: string }
 
-export type PluginRouteAccess = 'anonymous' | 'member' | 'admin'
-export type PluginPageAccess = 'anonymous' | 'member'
+export type PluginRouteAccess = 'anonymous' | 'member' | 'staff' | 'admin'
+export type PluginPageAccess = 'anonymous' | 'member' | 'staff'
 
 export interface PluginRouteRateLimit {
   readonly limit: number
@@ -487,9 +487,14 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     if (route.method !== 'GET' && route.method !== 'POST') {
       throw new Error(`${where}: route "${route.path}" method must be GET or POST.`)
     }
-    if (route.access !== 'anonymous' && route.access !== 'member' && route.access !== 'admin') {
+    if (
+      route.access !== 'anonymous' &&
+      route.access !== 'member' &&
+      route.access !== 'staff' &&
+      route.access !== 'admin'
+    ) {
       throw new Error(
-        `${where}: route "${route.path}" access must be "anonymous", "member" or "admin".`,
+        `${where}: route "${route.path}" access must be "anonymous", "member", "staff" or "admin".`,
       )
     }
     if (typeof route.handler !== 'function') {
@@ -539,8 +544,10 @@ export function definePlugin(plugin: PluginDefinition): PluginDefinition {
     if (page.title.trim() === '') {
       throw new Error(`${where}: the page at "${page.path}" needs a title.`)
     }
-    if (page.access !== 'anonymous' && page.access !== 'member') {
-      throw new Error(`${where}: page "${page.path}" access must be "anonymous" or "member".`)
+    if (page.access !== 'anonymous' && page.access !== 'member' && page.access !== 'staff') {
+      throw new Error(
+        `${where}: page "${page.path}" access must be "anonymous", "member" or "staff".`,
+      )
     }
     if (typeof page.render !== 'function') {
       throw new Error(`${where}: page "${page.path}" needs a render function.`)
@@ -672,6 +679,10 @@ export function pluginAdminRoutePath(pluginKey: string, path: string): string {
 
 export function pluginPagePath(pluginKey: string, path: string): string {
   return `/plugins/${pluginKey}${path === '' ? '' : `/${path}`}`
+}
+
+export function pluginStaffPagePath(pluginKey: string, path: string): string {
+  return `/modcp/plugins/${pluginKey}${path === '' ? '' : `/${path}`}`
 }
 
 export function pluginNavigationKey(pluginKey: string, itemKey: string): string {

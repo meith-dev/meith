@@ -76,6 +76,7 @@ export {
   pluginPagePath,
   pluginRoutePath,
   pluginSettingKey,
+  pluginStaffPagePath,
   pluginTablePrefix,
   pluginTaskId,
 } from './plugin'

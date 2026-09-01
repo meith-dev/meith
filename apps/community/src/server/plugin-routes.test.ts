@@ -42,6 +42,9 @@ vi.mock('./admin', () => ({
   },
 }))
 
+const modcp = { current: null as null | { hasGroupAccess: boolean } }
+vi.mock('./modcp', () => ({ resolveModCpAccess: async () => modcp.current }))
+
 const { definePlugin } = await import('@meith/plugin-kit')
 const handled: unknown[] = []
 
@@ -108,6 +111,15 @@ const alpha = definePlugin({
       handler: (request) => {
         handled.push(request)
         return { kind: 'text', body: 'received', status: 200 }
+      },
+    },
+    {
+      path: 'staff-only',
+      method: 'GET',
+      access: 'staff',
+      handler: (request) => {
+        handled.push(request)
+        return { kind: 'json', body: { staff: true } }
       },
     },
     {
@@ -183,6 +195,7 @@ beforeEach(() => {
   overrides.current = new Map()
   actor.current = { userId: null }
   admin.isAdmin = false
+  modcp.current = null
   adminLog.length = 0
   handled.length = 0
   raised.length = 0
@@ -324,6 +337,42 @@ describe('access', () => {
     )
     expect(asAdmin.status).toBe(303)
     expect(asAdmin.headers.get('location')).toBe('/admin/plugins/alpha/status')
+  })
+
+  it('403s a staff route for anyone without board-staff access, and answers a holder', async () => {
+    const asGuest = await dispatchPluginRoute(request('/api/plugins/alpha/staff-only'), 'alpha', [
+      'staff-only',
+    ])
+    expect(asGuest.status).toBe(403)
+    expect(handled).toHaveLength(0)
+
+    modcp.current = { hasGroupAccess: false }
+    const asScopedMod = await dispatchPluginRoute(
+      request('/api/plugins/alpha/staff-only'),
+      'alpha',
+      ['staff-only'],
+    )
+    expect(asScopedMod.status).toBe(403)
+    expect(handled).toHaveLength(0)
+
+    modcp.current = { hasGroupAccess: true }
+    const asStaff = await dispatchPluginRoute(request('/api/plugins/alpha/staff-only'), 'alpha', [
+      'staff-only',
+    ])
+    expect(asStaff.status).toBe(200)
+    expect(await asStaff.json()).toEqual({ staff: true })
+  })
+
+  it('mounts a staff route on the board surface, not the admin one', async () => {
+    modcp.current = { hasGroupAccess: true }
+    const adminMount = await dispatchPluginRoute(
+      request('/admin/api/plugins/alpha/staff-only'),
+      'alpha',
+      ['staff-only'],
+      'admin',
+    )
+    expect(adminMount.status).toBe(404)
+    expect(handled).toHaveLength(0)
   })
 
   it('an admin route does not exist on the board mount, nor the reverse', async () => {
