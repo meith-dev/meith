@@ -84,6 +84,7 @@ export function buildSchedulerBundle(deps: {
   const threadViews = new PostgresThreadViewBuffer(db)
   const notifications = new PostgresNotificationRepository(db)
   const mail = deps.mail
+  const webhookRepo = env.DEMO_MODE ? undefined : new PostgresWebhookRepository(db)
 
   const attachmentService =
     deps.files === undefined || deps.images === undefined
@@ -186,6 +187,14 @@ export function buildSchedulerBundle(deps: {
             ...optional(avatarService, (avatars) => ({
               avatars: { process: (id: number) => avatars.process(id) },
             })),
+            ...optional(webhookRepo, (repo) => ({
+              webhooks: {
+                listActiveByTopic: (topic) => repo.listActiveByTopic(topic),
+                enqueue: (webhookId, topic, deliveryId, payload) =>
+                  repo.enqueue(webhookId, topic, deliveryId, payload),
+                boardUrl: async () => (await resolveMailBrand({ db, ...themeDeps })).boardUrl,
+              },
+            })),
             notifications: {
               ...optional(mail, (mail) => ({
                 async deliverEmail(notificationId: number) {
@@ -273,7 +282,7 @@ export function buildSchedulerBundle(deps: {
             },
           },
           searchIndex: new PostgresSearchRepository(db),
-          ...(env.DEMO_MODE ? {} : { webhooks: new PostgresWebhookRepository(db) }),
+          ...optional(webhookRepo, (webhooks) => ({ webhooks })),
           statistics: {
             stats: new PostgresStatsRepository(db),
             presence: new PostgresPresenceRepository(db),

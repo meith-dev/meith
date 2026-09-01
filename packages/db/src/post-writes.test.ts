@@ -269,6 +269,21 @@ describe('applyEdit', () => {
     expect((await postRow(postIds[1]!)).visibility).toBe('unapproved')
   })
 
+  it('announces a visible edit but not one that sends the post back for approval', async () => {
+    const { threadId, postIds } = await seedThread()
+    await db.execute(sql`delete from outbox`)
+
+    await repo.applyEdit(edit(postIds[1]!, threadId))
+    await repo.applyEdit(edit(postIds[1]!, threadId, { toVisibility: 'unapproved', revision: 2 }))
+
+    const topics = (
+      resultRows(await db.execute(sql`select topic from outbox order by id`)) as Array<{
+        topic: string
+      }>
+    ).map((row) => row.topic)
+    expect(topics).toEqual(['post.edited', 'post.visibility_changed'])
+  })
+
   it('keeps the thread’s title in the opening post’s index across an edit', async () => {
     const { threadId, postIds } = await seedThread()
     const first = postIds[0]!
@@ -507,16 +522,37 @@ describe('applyVisibility', () => {
 
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
 
-    const events = resultRows(await db.execute(sql`select topic, payload from outbox`)) as Array<{
+    const events = resultRows(
+      await db.execute(sql`select topic, payload from outbox order by id`),
+    ) as Array<{
       topic: string
-      payload: { postId: number; visible: boolean }
+      payload: { postId: number; visible?: boolean }
     }>
 
-    expect(events).toHaveLength(1)
+    expect(events).toHaveLength(2)
     expect(events[0]).toMatchObject({
       topic: 'post.visibility_changed',
       payload: { postId: postIds[1], visible: false },
     })
+    expect(events[1]).toMatchObject({
+      topic: 'post.deleted',
+      payload: { postId: postIds[1] },
+    })
+  })
+
+  it('does not announce deleting a post that was never visible', async () => {
+    const { threadId, postIds } = await seedThread()
+    await db.execute(sql`update posts set visibility = 'unapproved' where id = ${postIds[1]!}`)
+    await db.execute(sql`delete from outbox`)
+
+    expect(await repo.applyVisibility(move(postIds[1]!, threadId, 'unapproved', 'deleted'))).toBe(
+      true,
+    )
+
+    const topics = (
+      resultRows(await db.execute(sql`select topic from outbox`)) as Array<{ topic: string }>
+    ).map((row) => row.topic)
+    expect(topics).not.toContain('post.deleted')
   })
 })
 

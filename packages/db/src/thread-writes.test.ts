@@ -94,6 +94,7 @@ describe('PostgresThreadWriteRepository.create', () => {
 
     expect(await db.select({ topic: outbox.topic }).from(outbox)).toEqual([
       { topic: 'post.created' },
+      { topic: 'thread.created' },
     ])
   })
 
@@ -157,7 +158,7 @@ describe('PostgresThreadWriteRepository replies', () => {
     const [user] = await db.select().from(users).where(eq(users.id, 1))
     expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
 
-    expect(await db.select({ topic: outbox.topic }).from(outbox)).toHaveLength(2)
+    expect(await db.select({ topic: outbox.topic }).from(outbox)).toHaveLength(3)
   })
 
   it('holds an unapproved reply out of every counter', async () => {

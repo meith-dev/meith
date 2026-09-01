@@ -13,6 +13,13 @@ export interface DomainEventMap {
   'post.deleted': { postId: number; threadId: number; forumId: number }
   'post.visibility_changed': { postId: number; threadId: number; forumId: number; visible: boolean }
 
+  'report.created': {
+    reportId: number
+    targetKind: 'post' | 'thread' | 'user' | 'private_message'
+    targetId: number
+    reporterId: number | null
+  }
+
   'notification.created': { notificationId: number; userId: number; kind: string }
 
   'attachment.uploaded': { attachmentId: number }

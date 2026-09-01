@@ -36,7 +36,10 @@ export {
   PostgresApiTokenRepository,
   PostgresRateLimitStore,
   PostgresWebhookRepository,
+  type WebhookActiveSubscription,
+  type WebhookDeliveryLogRow,
   type WebhookDeliveryRow,
+  type WebhookSummary,
 } from './api-repo'
 export {
   type AttachmentAdminFilter,

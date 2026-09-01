@@ -98,21 +98,38 @@ export class PostgresAccountRepository implements AccountRepository {
   }
 
   async create(input: NewAccount): Promise<AccountRecord> {
-    const rows = await this.db
-      .insert(users)
-      .values({
-        username: input.username,
-        usernameLower: input.usernameLower,
-        email: input.email,
-        emailLower: input.emailLower,
-        passwordHash: input.passwordHash,
-        passwordAlgo: input.passwordAlgo,
-        state: input.state,
-        primaryGroupId: input.primaryGroupId,
-        registrationIpPrefix: input.registrationIpPrefix ?? null,
-      })
-      .returning(ACCOUNT_COLUMNS)
-    return toAccountRecord(rows[0]!)
+    return this.db.transaction(async (tx) => {
+      const rows = await tx
+        .insert(users)
+        .values({
+          username: input.username,
+          usernameLower: input.usernameLower,
+          email: input.email,
+          emailLower: input.emailLower,
+          passwordHash: input.passwordHash,
+          passwordAlgo: input.passwordAlgo,
+          state: input.state,
+          primaryGroupId: input.primaryGroupId,
+          registrationIpPrefix: input.registrationIpPrefix ?? null,
+        })
+        .returning(ACCOUNT_COLUMNS)
+
+      const record = toAccountRecord(rows[0]!)
+
+      await tx.execute(sql`
+        insert into outbox (topic, payload)
+        values (
+          'user.registered',
+          ${JSON.stringify({
+            userId: record.id,
+            email: input.email,
+            requiresActivation: input.state === 'awaiting_activation',
+          })}::jsonb
+        )
+      `)
+
+      return record
+    })
   }
 
   async recordLastIpPrefix(userId: number, prefix: string): Promise<void> {

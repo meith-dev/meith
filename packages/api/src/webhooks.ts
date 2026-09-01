@@ -1,4 +1,10 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+
+export const WEBHOOK_SECRET_PREFIX = 'whsec_'
+
+export function generateWebhookSecret(): string {
+  return `${WEBHOOK_SECRET_PREFIX}${randomBytes(24).toString('base64url')}`
+}
 
 export const SIGNATURE_HEADER = 'x-forum-signature'
 export const TIMESTAMP_HEADER = 'x-forum-timestamp'
@@ -93,4 +99,52 @@ export function verdictFor(status: number, attempt: number): DeliveryVerdict {
   if (status >= 200 && status < 300) return 'delivered'
   if (status === 410) return 'dead'
   return nextRetryDelaySeconds(attempt) === null ? 'dead' : 'retry'
+}
+
+export const WEBHOOK_FORMATS = ['json', 'discord'] as const
+
+export type WebhookFormat = (typeof WEBHOOK_FORMATS)[number]
+
+export function isWebhookFormat(value: string): value is WebhookFormat {
+  return (WEBHOOK_FORMATS as readonly string[]).includes(value)
+}
+
+export function webhookEventUrl(
+  boardUrl: string,
+  topic: WebhookTopic,
+  ids: Readonly<Record<string, unknown>>,
+): string | null {
+  const base = boardUrl.replace(/\/+$/, '')
+  if (base === '') return null
+
+  const threadId = ids.threadId
+  const postId = ids.postId
+
+  if (topic === 'thread.created' && typeof threadId === 'number') {
+    return `${base}/threads/${threadId}`
+  }
+  if (
+    (topic === 'post.created' || topic === 'post.edited' || topic === 'post.deleted') &&
+    typeof threadId === 'number' &&
+    typeof postId === 'number'
+  ) {
+    return `${base}/threads/${threadId}#post-${postId}`
+  }
+  return null
+}
+
+export function formatWebhookPayload(
+  topic: WebhookTopic,
+  ids: Readonly<Record<string, unknown>>,
+  format: WebhookFormat,
+  boardUrl: string,
+): Record<string, unknown> {
+  const url = webhookEventUrl(boardUrl, topic, ids)
+
+  if (format === 'discord') {
+    const base = boardUrl.replace(/\/+$/, '')
+    return { content: url ?? (base === '' ? topic : `${topic} — ${base}`) }
+  }
+
+  return { event: topic, ...ids, ...(url === null ? {} : { url }) }
 }

@@ -47,6 +47,29 @@ export function apiTokenFormsCopy(
   )
 }
 
+export function webhookFormsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return copyFor(
+    [
+      'adminPanel.webhook.copyNow',
+      'adminPanel.webhook.url',
+      'adminPanel.webhook.urlPlaceholder',
+      'adminPanel.webhook.urlHint',
+      'adminPanel.webhook.topics',
+      'adminPanel.webhook.topicsHint',
+      'adminPanel.webhook.format',
+      'adminPanel.webhook.formatHint',
+      'adminPanel.webhook.format.json',
+      'adminPanel.webhook.format.discord',
+      'adminPanel.webhook.active',
+      'adminPanel.webhook.create',
+      'adminPanel.webhook.enable',
+      'adminPanel.webhook.disable',
+      'adminPanel.webhook.delete',
+    ],
+    t,
+  )
+}
+
 export function systemFormsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
   return {
     ...copyFor(

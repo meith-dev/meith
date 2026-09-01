@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   DELIVERY_HEADER,
   deliveryHeaders,
+  formatWebhookPayload,
+  generateWebhookSecret,
+  isWebhookFormat,
   isWebhookTopic,
   MAX_ATTEMPTS,
   nextRetryDelaySeconds,
@@ -11,8 +14,10 @@ import {
   TIMESTAMP_HEADER,
   verdictFor,
   verifySignature,
+  WEBHOOK_SECRET_PREFIX,
   WEBHOOK_TOPICS,
   type WebhookSubscription,
+  webhookEventUrl,
 } from './webhooks'
 
 const SECRET = 'whsec_example'
@@ -153,5 +158,56 @@ describe('topics', () => {
 
   it('is a short list, not a mirror of the hook registry', () => {
     expect(WEBHOOK_TOPICS.length).toBeLessThan(12)
+  })
+})
+
+describe('payload formats', () => {
+  const BOARD = 'https://board.test/'
+
+  it('recognises the declared formats only', () => {
+    expect(isWebhookFormat('json')).toBe(true)
+    expect(isWebhookFormat('discord')).toBe(true)
+    expect(isWebhookFormat('slack')).toBe(false)
+  })
+
+  it('builds a thread link and a post anchor from ids', () => {
+    expect(webhookEventUrl(BOARD, 'thread.created', { threadId: 12 })).toBe(
+      'https://board.test/threads/12',
+    )
+    expect(webhookEventUrl(BOARD, 'post.created', { threadId: 12, postId: 40 })).toBe(
+      'https://board.test/threads/12#post-40',
+    )
+    expect(webhookEventUrl(BOARD, 'user.registered', { userId: 5 })).toBeNull()
+  })
+
+  it('carries ids and a link in the JSON body', () => {
+    expect(
+      formatWebhookPayload('post.created', { postId: 40, threadId: 12, forumId: 3 }, 'json', BOARD),
+    ).toEqual({
+      event: 'post.created',
+      postId: 40,
+      threadId: 12,
+      forumId: 3,
+      url: 'https://board.test/threads/12#post-40',
+    })
+  })
+
+  it('posts a Discord message with the link as content', () => {
+    expect(
+      formatWebhookPayload('thread.created', { threadId: 12, forumId: 3 }, 'discord', BOARD),
+    ).toEqual({ content: 'https://board.test/threads/12' })
+  })
+
+  it('falls back to the board for a Discord topic with no link', () => {
+    expect(formatWebhookPayload('user.registered', { userId: 5 }, 'discord', BOARD)).toEqual({
+      content: 'user.registered — https://board.test',
+    })
+  })
+
+  it('generates a prefixed, high-entropy signing secret', () => {
+    const secret = generateWebhookSecret()
+    expect(secret.startsWith(WEBHOOK_SECRET_PREFIX)).toBe(true)
+    expect(secret.length).toBeGreaterThan(WEBHOOK_SECRET_PREFIX.length + 20)
+    expect(generateWebhookSecret()).not.toBe(secret)
   })
 })

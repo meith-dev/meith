@@ -105,6 +105,12 @@ export const ADMIN_SECTIONS: PanelNav = [
     blurbKey: 'adminNav.admin-api-tokens.blurb',
   },
   {
+    href: '/admin/webhooks',
+    titleKey: 'adminNav.admin-webhooks.title',
+    icon: 'subscriptions',
+    blurbKey: 'adminNav.admin-webhooks.blurb',
+  },
+  {
     href: '/admin/system',
     titleKey: 'adminNav.admin-system.title',
     icon: 'system',
