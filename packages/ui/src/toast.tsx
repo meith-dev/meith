@@ -1,7 +1,7 @@
 'use client'
 
 import { cva, type VariantProps } from 'class-variance-authority'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { cn } from './utils'
 
@@ -29,6 +29,7 @@ export interface ToastProps {
   readonly dismissLabel: string
   readonly duration?: number
   readonly className?: string
+  readonly onDismiss?: () => void
 }
 
 export function Toast({
@@ -37,23 +38,35 @@ export function Toast({
   dismissLabel,
   duration = 6000,
   className,
+  onDismiss,
 }: ToastProps) {
   const [open, setOpen] = useState(true)
 
+  const dismiss = useCallback(() => {
+    setOpen(false)
+    onDismiss?.()
+  }, [onDismiss])
+
   useEffect(() => {
     if (duration <= 0) return
-    const timer = setTimeout(() => setOpen(false), duration)
+    const timer = setTimeout(dismiss, duration)
     return () => clearTimeout(timer)
-  }, [duration])
+  }, [duration, dismiss])
 
   if (!open) return null
 
+  const assertive = tone === 'error'
+
   return (
-    <div role="status" aria-live="polite" className={cn(toastVariants({ tone }), className)}>
+    <div
+      role={assertive ? 'alert' : 'status'}
+      aria-live={assertive ? 'assertive' : 'polite'}
+      className={cn(toastVariants({ tone }), className)}
+    >
       <div className="min-w-0 flex-1">{children}</div>
       <button
         type="button"
-        onClick={() => setOpen(false)}
+        onClick={dismiss}
         aria-label={dismissLabel}
         className="-mr-1 -mt-1 inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >

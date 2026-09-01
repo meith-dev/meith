@@ -515,9 +515,16 @@ The client `ConfirmDialog` renders that state two ways from one markup — a
 enhancement**, which is why the no-JS specs step through the confirm page
 rather than skipping it (empty trash and delete-forever in
 `undo-no-js.spec.ts`, post and thread deletion in `moderation-no-js.spec.ts`,
-token revocation on the enhanced path in `admin-panel-live.spec.ts`). Admin
-operations already guarded by the preview-and-undo pattern
-(`admin-undo.tsx`) or a fresh-password re-check keep those guards instead.
+token revocation on the enhanced path in `admin-panel-live.spec.ts`). It is
+applied to every destructive admin action that has no other guard: API
+token revocation, attachment / announcement / prefix / word-filter / smiley
+/ captcha-question / directive deletion, navigation-link deletion, and
+ban-filter removal. Admin operations already guarded by the
+preview-and-undo pattern (`admin-undo.tsx`) or a fresh-password re-check
+(group deletion) keep those guards instead, and four one-click removals are
+deliberately left un-gated because they destroy nothing that cannot be put
+straight back — the favicon and logo (re-upload), a promotion rule, and a
+badge definition.
 
 A **notice is a toast, with the banner as its fallback.** Actions still
 redirect carrying the notice in the query string; `BoardNotice` renders the

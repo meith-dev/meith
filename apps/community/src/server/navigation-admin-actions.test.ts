@@ -190,12 +190,19 @@ describe('editing and removing a menu item', () => {
   })
 
   it('removes a row and clears the cached menu', async () => {
-    const state = await deleteNavigationItemAction({}, form({ id: '4' }))
+    const state = await deleteNavigationItemAction({}, form({ id: '4', confirmed: '1' }))
 
     expect(state.notice).toBe('deleted')
     expect(deleted).toEqual([4])
     expect(invalidated[0]).toEqual(['navigation'])
     expect(adminCalls[0]?.action).toBe('content.navigation_item_removed')
+  })
+
+  it('asks to confirm before removing a row', async () => {
+    const state = await deleteNavigationItemAction({}, form({ id: '4' }))
+
+    expect(state.confirm).toBeDefined()
+    expect(deleted).toHaveLength(0)
   })
 
   it('refuses a row id that is not one', async () => {

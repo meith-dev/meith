@@ -165,6 +165,7 @@ async function removeMenuItem(page: Page, label: string): Promise<void> {
 
   const editor = await openMenuEditor(page, label)
   await editor.getByRole('button', { name: 'Remove this item' }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 }
 
 test('a menu item added in the panel appears in the navigation, and one hidden leaves it', async ({

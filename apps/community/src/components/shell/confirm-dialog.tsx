@@ -31,14 +31,10 @@ export function ConfirmDialog({
 
   if (confirm === undefined) return null
 
-  const hidden = confirm.fields.map((field) => (
-    <input
-      key={`${field.name}=${field.value}`}
-      type="hidden"
-      name={field.name}
-      value={field.value}
-    />
-  ))
+  const hidden = confirm.fields.map((field, index) => {
+    const fieldKey = `${index}:${field.name}`
+    return <input key={fieldKey} type="hidden" name={field.name} value={field.value} />
+  })
 
   const confirmLabel = fromCopy(copy, 'confirm.confirm')
 

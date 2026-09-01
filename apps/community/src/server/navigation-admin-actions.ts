@@ -16,8 +16,10 @@ import { NAVIGATION_AUDIENCE_VALUES, outlineOf } from '../view/navigation'
 import { isNavigationNudge, isWhereItIs, nudgeTarget } from '../view/navigation-arrange'
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { formStateReporter } from './form-state-reporter'
 import { checkbox, trimmedText } from './form-values'
+import { tr } from './i18n'
 import { navigationRepository } from './navigation'
 import { isSafeLocalPath } from './safe-path'
 
@@ -150,6 +152,10 @@ export async function deleteNavigationItemAction(
     await requireAdmin()
 
     const navigationItemId = itemId(form)
+
+    const confirm = requireConfirmation(form, await tr('adminNavigation.confirm.delete'))
+    if (confirm !== null) return confirm
+
     await requireNavigation().delete(navigationItemId)
 
     await refresh()

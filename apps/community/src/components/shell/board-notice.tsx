@@ -32,7 +32,7 @@ export async function BoardNotice({ kind, message, dismissHref }: NoticeModel) {
         }}
       />
 
-      <NoticeToast kind={kind} message={message} />
+      <NoticeToast kind={kind} message={message} dismissHref={dismissHref} />
 
       <div data-notice="banner" className="hidden">
         <NoticeBanner kind={kind} message={message} dismissHref={dismissHref} />

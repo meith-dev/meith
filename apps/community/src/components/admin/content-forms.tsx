@@ -25,6 +25,7 @@ import {
 } from '@/server/content-admin-actions'
 
 import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -91,6 +92,8 @@ export function WordFilterRowForm({ filter, copy }: { filter: WordFilterValues; 
           {fromCopy(copy, 'adminContent.filter.removeThis')}
         </PendingButton>
       </form>
+
+      <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
     </div>
   )
 }
@@ -140,13 +143,16 @@ export function DeletePrefixForm({ prefix, copy }: { prefix: PrefixValues; copy:
   const [state, action] = useActionState(deletePrefixAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex items-center gap-2">
-      <FormError message={state.error} />
-      <input type="hidden" name="id" value={prefix.id} />
-      <PendingButton showWorking className="text-xs text-muted-foreground hover:underline">
-        {fromCopy(copy, 'admin.remove')}
-      </PendingButton>
-    </form>
+    <>
+      <form action={action} className="flex items-center gap-2">
+        <FormError message={state.error} />
+        <input type="hidden" name="id" value={prefix.id} />
+        <PendingButton showWorking className="text-xs text-muted-foreground hover:underline">
+          {fromCopy(copy, 'admin.remove')}
+        </PendingButton>
+      </form>
+      <ConfirmDialog confirm={state.confirm} action={action} />
+    </>
   )
 }
 
@@ -256,6 +262,8 @@ export function SmileyRowForm({ smiley, copy }: { smiley: SmileyValues; copy: Co
           {fromCopy(copy, 'admin.remove')}
         </PendingButton>
       </form>
+
+      <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
     </div>
   )
 }
@@ -366,6 +374,8 @@ export function DirectiveRowForm({ directive, copy }: { directive: DirectiveValu
           {fromCopy(copy, 'admin.remove')}
         </PendingButton>
       </form>
+
+      <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
     </div>
   )
 }
@@ -419,13 +429,16 @@ export function DeleteAttachmentForm({ attachmentId, copy }: { attachmentId: num
   const [state, action] = useActionState(deleteAttachmentAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="shrink-0">
-      <FormError message={state.error} />
-      <input type="hidden" name="id" value={attachmentId} />
-      <PendingButton showWorking className="text-xs text-destructive hover:underline">
-        {fromCopy(copy, 'adminContent.attachment.delete')}
-      </PendingButton>
-    </form>
+    <div className="shrink-0">
+      <form action={action}>
+        <FormError message={state.error} />
+        <input type="hidden" name="id" value={attachmentId} />
+        <PendingButton showWorking className="text-xs text-destructive hover:underline">
+          {fromCopy(copy, 'adminContent.attachment.delete')}
+        </PendingButton>
+      </form>
+      <ConfirmDialog confirm={state.confirm} action={action} />
+    </div>
   )
 }
 
@@ -572,6 +585,8 @@ export function AnnouncementRowForm({
           {fromCopy(copy, 'admin.remove')}
         </PendingButton>
       </form>
+
+      <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
     </div>
   )
 }
@@ -674,6 +689,8 @@ export function CaptchaQuestionRowForm({
           {fromCopy(copy, 'admin.remove')}
         </PendingButton>
       </form>
+
+      <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
     </div>
   )
 }

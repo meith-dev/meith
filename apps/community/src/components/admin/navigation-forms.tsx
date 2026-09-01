@@ -10,6 +10,7 @@ import {
 } from '@/server/navigation-admin-actions'
 
 import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -197,6 +198,8 @@ export function NavigationItemRowForm({
           {fromCopy(copy, 'adminNavigation.removeThis')}
         </PendingButton>
       </form>
+
+      <ConfirmDialog confirm={removeState.confirm} action={removeAction} />
     </div>
   )
 }

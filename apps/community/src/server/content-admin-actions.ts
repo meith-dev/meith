@@ -17,10 +17,12 @@ import { recordAdminAction, requireAdmin } from './admin'
 import { announcementRepository } from './announcements'
 import { captchaQuestionRepository } from './antispam'
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { requireAttachmentAdmin, requireContentAdmin } from './content-admin'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
+import { tr } from './i18n'
 import { emitEvent, viewerRef } from './plugin-view'
 
 function id(form: FormData, name = 'id'): number {
@@ -88,6 +90,9 @@ export async function deleteWordFilterAction(_prev: FormState, form: FormData): 
     await requireAdmin()
     const filterId = id(form)
 
+    const confirm = requireConfirmation(form, await tr('adminContent.confirm.deleteWordFilter'))
+    if (confirm !== null) return confirm
+
     await requireContentAdmin().deleteWordFilter(filterId)
 
     await invalidateWordFilters()
@@ -130,6 +135,9 @@ export async function deletePrefixAction(_prev: FormState, form: FormData): Prom
   try {
     await requireAdmin()
     const prefixId = id(form)
+
+    const confirm = requireConfirmation(form, await tr('adminContent.confirm.deletePrefix'))
+    if (confirm !== null) return confirm
 
     await requireContentAdmin().deletePrefix(prefixId)
 
@@ -223,6 +231,10 @@ export async function deleteSmileyAction(_prev: FormState, form: FormData): Prom
     await requireAdmin()
 
     const smileyId = id(form)
+
+    const confirm = requireConfirmation(form, await tr('adminContent.confirm.deleteSmiley'))
+    if (confirm !== null) return confirm
+
     await requireContentAdmin().deleteSmiley(smileyId)
 
     await invalidateVocabulary()
@@ -299,6 +311,10 @@ export async function deleteDirectiveAction(_prev: FormState, form: FormData): P
     await requireAdmin()
 
     const tagId = id(form)
+
+    const confirm = requireConfirmation(form, await tr('adminContent.confirm.deleteDirective'))
+    if (confirm !== null) return confirm
+
     await requireContentAdmin().deleteDirective(tagId)
 
     await invalidateVocabulary()
@@ -315,6 +331,10 @@ export async function deleteAttachmentAction(_prev: FormState, form: FormData): 
     await requireAdmin()
 
     const attachmentId = id(form)
+
+    const confirm = requireConfirmation(form, await tr('adminContent.confirm.deleteAttachment'))
+    if (confirm !== null) return confirm
+
     const removed = await requireAttachmentAdmin().delete(attachmentId)
     if (!removed) return { notice: 'deleted' }
 
@@ -404,6 +424,10 @@ export async function deleteAnnouncementAction(
     await requireAdmin()
 
     const announcementId = id(form)
+
+    const confirm = requireConfirmation(form, await tr('adminContent.confirm.deleteAnnouncement'))
+    if (confirm !== null) return confirm
+
     await requireAnnouncements().delete(announcementId)
 
     await recordAdminAction({ action: 'content.announcement_removed', detail: { announcementId } })
@@ -480,6 +504,13 @@ export async function deleteCaptchaQuestionAction(
     await requireAdmin()
 
     const questionId = id(form)
+
+    const confirm = requireConfirmation(
+      form,
+      await tr('adminContent.confirm.deleteCaptchaQuestion'),
+    )
+    if (confirm !== null) return confirm
+
     await requireCaptcha().delete(questionId)
 
     await recordAdminAction({ action: 'content.captcha_removed', detail: { questionId } })
