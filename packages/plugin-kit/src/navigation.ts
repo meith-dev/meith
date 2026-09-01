@@ -3,6 +3,7 @@ import {
   type PluginNavigationAudience,
   pluginNavigationKey,
   pluginPagePath,
+  pluginStaffPagePath,
 } from './plugin'
 
 export interface PluginNavigationPlacement {
@@ -21,7 +22,9 @@ export function pluginNavigationPlacements(
   return plugins.flatMap((plugin) =>
     (plugin.navigation ?? []).map((item) => ({
       key: pluginNavigationKey(plugin.key, item.key),
-      href: pluginPagePath(plugin.key, item.path),
+      href: ((plugin.pages ?? []).find((page) => page.path === item.path)?.access === 'staff'
+        ? pluginStaffPagePath
+        : pluginPagePath)(plugin.key, item.path),
       audience: item.audience ?? ('all' as const),
       parentKey: item.under === undefined ? null : pluginNavigationKey(plugin.key, item.under),
       label: item.label,

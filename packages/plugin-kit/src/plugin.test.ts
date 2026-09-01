@@ -5,6 +5,7 @@ import {
   type PluginDefinition,
   pluginAdminPath,
   pluginSettingKey,
+  pluginStaffPagePath,
   pluginTaskId,
 } from './plugin'
 
@@ -236,13 +237,17 @@ describe('definePlugin', () => {
     })
 
     it('refuses a bad access value, a bad method, and a missing handler', () => {
-      expect(() => plugin({ routes: [route({ access: 'staff' })] })).toThrow(/access/)
+      expect(() => plugin({ routes: [route({ access: 'nobody' })] })).toThrow(/access/)
       expect(() => plugin({ routes: [route({ method: 'DELETE' })] })).toThrow(/method/)
       expect(() => plugin({ routes: [route({ handler: undefined })] })).toThrow(/handler/)
     })
 
     it('accepts an admin route — the panel is a caller, not a special case', () => {
       expect(() => plugin({ routes: [route({ access: 'admin' })] })).not.toThrow()
+    })
+
+    it('accepts a staff route — a moderator surface is a caller too', () => {
+      expect(() => plugin({ routes: [route({ access: 'staff' })] })).not.toThrow()
     })
 
     it('bounds a route rate limit', () => {
@@ -291,6 +296,10 @@ describe('definePlugin', () => {
 
     it('refuses an admin board page — the panel renders adminPages, not pages', () => {
       expect(() => plugin({ pages: [page({ access: 'admin' })] })).toThrow(/access/)
+    })
+
+    it('accepts a staff board page — it mounts in the moderation panel', () => {
+      expect(() => plugin({ pages: [page({ access: 'staff' })] })).not.toThrow()
     })
 
     it('accepts bare redirect hosts and refuses anything with more than a host in it', () => {
@@ -423,5 +432,10 @@ describe('namespacing', () => {
     expect(pluginTaskId('akismet', 'retrain')).toBe('plugin.akismet.retrain')
     expect(pluginAdminPath('akismet', 'settings')).toBe('/admin/plugins/akismet/settings')
     expect(pluginAdminPath('akismet', '')).toBe('/admin/plugins/akismet')
+  })
+
+  it('mounts a staff page under the moderation panel, not the board', () => {
+    expect(pluginStaffPagePath('akismet', 'triage')).toBe('/modcp/plugins/akismet/triage')
+    expect(pluginStaffPagePath('akismet', '')).toBe('/modcp/plugins/akismet')
   })
 })

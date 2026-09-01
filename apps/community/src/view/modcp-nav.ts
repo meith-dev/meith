@@ -1,3 +1,6 @@
+import type { Translator } from '@meith/i18n'
+
+import type { PluginNavSection } from './admin-nav'
 import {
   currentProps,
   deepestHrefIn,
@@ -6,6 +9,7 @@ import {
   type PanelSection,
   sectionHrefIn,
 } from './panel-nav'
+import { untranslated } from './time'
 
 export { currentProps, isUnder }
 
@@ -65,6 +69,34 @@ export function modCpSections(access: ModCpNavAccess): PanelNav {
 
 export function modCpNav(access: ModCpNavAccess): PanelNav {
   return [MODCP_OVERVIEW, ...modCpSections(access)]
+}
+
+export const MODCP_PLUGINS_HREF = '/modcp/plugins'
+
+const MODCP_PLUGIN_KEY_PATTERN = /^\/modcp\/plugins\/([a-z][a-z0-9-]*)(?:\/|$|\?)/
+
+export function pluginKeyAtModCp(pathname: string): string | null {
+  return MODCP_PLUGIN_KEY_PATTERN.exec(pathname)?.[1] ?? null
+}
+
+export function modCpNavWithPlugin(
+  access: ModCpNavAccess,
+  plugin: PluginNavSection | null,
+  t: Translator = untranslated(),
+): PanelNav {
+  const base = modCpNav(access)
+  if (plugin === null || plugin.pages.length === 0) return base
+
+  const href = `${MODCP_PLUGINS_HREF}/${plugin.key}`
+  const section: PanelSection = {
+    href,
+    titleText: plugin.name,
+    icon: 'plugins',
+    blurbText: t.t('modCpNav.plugin.blurb', { name: plugin.name }),
+    children: plugin.pages.filter((page) => page.href !== href),
+  }
+
+  return [...base, section]
 }
 
 export function activeSectionHref(access: ModCpNavAccess, pathname: string): string | null {

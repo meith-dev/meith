@@ -114,6 +114,19 @@ describe('pluginNavigationPlacements', () => {
   it('has nothing to place for a plugin that asked for nothing', () => {
     expect(pluginNavigationPlacements([dues(undefined)])).toEqual([])
   })
+
+  it('sends a staff-page item to the moderation panel, not the board', () => {
+    const withTriage = definePlugin({
+      key: 'dues',
+      name: 'Dues',
+      version: '1.0.0',
+      apiVersion: '0',
+      pages: [{ path: 'triage', title: 'Triage', access: 'staff', render: () => null }],
+      navigation: [{ key: 'triage', label: 'Triage', path: 'triage', audience: 'staff' }],
+    })
+
+    expect(pluginNavigationPlacements([withTriage])[0]?.href).toBe('/modcp/plugins/dues/triage')
+  })
 })
 
 describe('reading a key back', () => {

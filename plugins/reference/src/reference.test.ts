@@ -5,6 +5,7 @@ import {
   HOOKS,
   type HookName,
   PluginHost,
+  pluginStaffPagePath,
   REGION_NAMES,
   unavailablePluginData,
   unavailablePluginGrants,
@@ -216,6 +217,34 @@ describe('routes and pages', () => {
     expect(routes.some((route) => route.access === 'admin')).toBe(true)
     expect(routes.some((route) => route.rateLimit !== undefined)).toBe(true)
     expect((referencePlugin.pages ?? []).length).toBeGreaterThan(0)
+  })
+
+  it('declares a staff board page that mounts under the moderation panel', () => {
+    const staff = (referencePlugin.pages ?? []).find((page) => page.access === 'staff')
+    expect(staff).toBeDefined()
+    expect(pluginStaffPagePath('reference', staff!.path)).toBe('/modcp/plugins/reference/staff')
+  })
+
+  it('renders its staff page with the page context', async () => {
+    resetRecorder()
+    const staff = (referencePlugin.pages ?? []).find((page) => page.access === 'staff')!
+
+    const node = await staff.render({
+      settings: {},
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+      grants: unavailablePluginGrants('test'),
+      data: unavailablePluginData('test'),
+      users: unavailablePluginUsers('test'),
+      viewer: { userId: 3, isGuest: false },
+      path: 'staff',
+      query: {},
+      boardUrl: '',
+      locale: 'en',
+      t: sourceTranslator(en),
+    })
+
+    expect(node).not.toBeNull()
+    expect(RECORDED.pages).toEqual(['staff'])
   })
 
   it('asks for navigation that points at a page it declares', () => {

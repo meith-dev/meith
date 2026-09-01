@@ -16,6 +16,7 @@ import {
 import { recordAdminAction, requireAdmin } from './admin'
 import { boardUrl } from './board-url'
 import { getActor } from './context'
+import { resolveModCpAccess } from './modcp'
 import { activeDefinitions, pluginHost, syncPluginEnablement } from './plugin-host'
 import { runtimeContextFor } from './plugin-runtime'
 import { viewerRef } from './plugin-view'
@@ -211,6 +212,13 @@ export async function dispatchPluginRoute(
   const actor = await getActor()
   if (route.access === 'member' && actor.userId === null) {
     return fail(401, 'unauthenticated', 'Sign in to use this.')
+  }
+
+  if (route.access === 'staff') {
+    const access = await resolveModCpAccess()
+    if (access === null || !access.hasGroupAccess) {
+      return fail(403, 'staff_only', await tr('notice.app.moderators-only-endpoint'))
+    }
   }
 
   if (route.access === 'admin') {

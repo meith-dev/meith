@@ -7,6 +7,7 @@ import { logger } from '@meith/core'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
 import { getTranslator } from './i18n'
+import { resolveModCpAccess } from './modcp'
 import { runtimeContextFor } from './plugin-runtime'
 import { getSettingOverrides } from './settings'
 
@@ -25,6 +26,11 @@ export type BoardPageResult =
   | { readonly outcome: 'rendered'; readonly title: string; readonly node: ReactNode | null }
   | { readonly outcome: 'missing' }
   | { readonly outcome: 'sign-in-first'; readonly title: string }
+
+export type StaffPageResult =
+  | { readonly outcome: 'rendered'; readonly title: string; readonly node: ReactNode | null }
+  | { readonly outcome: 'missing' }
+  | { readonly outcome: 'forbidden' }
 
 function translated(
   t: Awaited<ReturnType<typeof getTranslator>> | undefined,
@@ -59,6 +65,7 @@ export async function renderPluginBoardPage(
 
   const page = (definition.pages ?? []).find((candidate) => candidate.path === path)
   if (page === undefined) return { outcome: 'missing' }
+  if (page.access === 'staff') return { outcome: 'missing' }
 
   const overrides = await getSettingOverrides()
   if (overrides.get(`plugin.${pluginKey}._enabled`) === '0') return { outcome: 'missing' }
@@ -86,6 +93,49 @@ export async function renderPluginBoardPage(
     }
   } catch (error) {
     log.error({ err: error, path }, 'plugin board page failed to render')
+    return { outcome: 'rendered', title, node: null }
+  }
+}
+
+export async function renderPluginStaffPage(
+  pluginKey: string,
+  path: string,
+  request: BoardPageRequest,
+): Promise<StaffPageResult> {
+  const entry = (forumConfig.plugins ?? []).find((candidate) => candidate.key === pluginKey)
+  const definition = entry?.plugin as PluginDefinition | undefined
+
+  if (entry === undefined || definition === undefined) return { outcome: 'missing' }
+  if (entry.enabled === false) return { outcome: 'missing' }
+
+  const page = (definition.pages ?? []).find((candidate) => candidate.path === path)
+  if (page === undefined || page.access !== 'staff') return { outcome: 'missing' }
+
+  const overrides = await getSettingOverrides()
+  if (overrides.get(`plugin.${pluginKey}._enabled`) === '0') return { outcome: 'missing' }
+
+  const access = await resolveModCpAccess()
+  if (access === null || !access.hasGroupAccess) return { outcome: 'forbidden' }
+
+  const [log, t] = [logger({ component: 'plugin-page', plugin: pluginKey }), await getTranslator()]
+  const title = translated(t, page.titleKey, page.title, page.titleArgs)
+
+  try {
+    return {
+      outcome: 'rendered',
+      title,
+      node: await page.render({
+        ...runtimeContextFor(pluginKey, definition, overrides, log),
+        viewer: request.viewer,
+        path,
+        query: request.query,
+        boardUrl: request.boardUrl,
+        locale: t.locale,
+        t,
+      }),
+    }
+  } catch (error) {
+    log.error({ err: error, path }, 'plugin staff page failed to render')
     return { outcome: 'rendered', title, node: null }
   }
 }

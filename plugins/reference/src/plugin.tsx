@@ -249,6 +249,22 @@ export const referencePlugin = definePlugin({
         )
       },
     },
+    {
+      path: 'staff',
+      title: en['reference.staff.title'],
+      titleKey: 'reference.staff.title',
+      access: 'staff',
+      render: (context) => {
+        RECORDED.pages.push(context.path)
+        return (
+          <p data-plugin={MARK} data-access="staff">
+            {context.t.t('reference.staff.body', {
+              viewer: String(context.viewer.userId ?? context.t.t('reference.page.guest')),
+            })}
+          </p>
+        )
+      },
+    },
   ],
 
   navigation: [

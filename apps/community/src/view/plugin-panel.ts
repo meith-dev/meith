@@ -37,6 +37,19 @@ export function pluginPanelTabs(input: {
   ]
 }
 
+export function pluginStaffPanelTabs(input: {
+  readonly pages: readonly PluginPage[]
+  readonly current: string | null
+}): readonly PluginPanelTab[] {
+  if (input.pages.length < 2) return []
+
+  return input.pages.map((page) => ({
+    href: page.href,
+    label: page.title,
+    isCurrent: page.path === input.current,
+  }))
+}
+
 export function pluginNavChildren(pages: readonly PluginPage[]): readonly PanelSubsection[] {
   return pages.map((page) => ({ href: page.href, titleText: page.title }))
 }
