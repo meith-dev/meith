@@ -53,6 +53,25 @@ export async function createEvent(
   )
 }
 
+export async function updateEvent(data: PluginData, id: string, draft: EventDraft): Promise<void> {
+  await data.query(
+    `update plugin_calendar_event
+        set title = $2, starts_at = $3, ends_at = $4, location = $5, thread_id = $6,
+            link_url = $7, link_label = $8
+      where id = $1`,
+    [
+      id,
+      draft.title,
+      draft.startsAt,
+      draft.endsAt,
+      draft.location,
+      draft.threadId,
+      draft.linkUrl,
+      draft.linkLabel,
+    ],
+  )
+}
+
 export async function upcomingEvents(
   data: PluginData,
   limit: number,

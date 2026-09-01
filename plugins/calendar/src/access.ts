@@ -20,10 +20,9 @@ export function mayAdd(input: {
   return input.organisers.includes(input.userId) ? 'allowed' : 'not-an-organiser'
 }
 
-export function mayDelete(input: {
+export function mayManage(input: {
   readonly userId: number | null
   readonly createdByUserId: number | null
-  readonly config: CalendarConfig
   readonly organisers: readonly number[]
 }): boolean {
   if (input.userId === null) return false

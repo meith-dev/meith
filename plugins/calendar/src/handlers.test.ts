@@ -6,17 +6,25 @@ import {
   unavailablePluginRuntime,
 } from '@meith/plugin-kit'
 
-import { handleAddOrganiser, handleCreateEvent } from './handlers'
+import {
+  handleAddOrganiser,
+  handleCreateEvent,
+  handleDeleteEvent,
+  handleUpdateEvent,
+} from './handlers'
 
 interface Recorded {
   inserts: unknown[][]
   organisers: number[]
+  updates?: unknown[][]
+  deletes?: unknown[][]
 }
 
 function fakeContext(
   recorded: Recorded,
   settings: Record<string, string | boolean> = {},
   member: { userId: number; username: string } | null = null,
+  eventRow: Record<string, unknown> | null = null,
 ): PluginRuntimeContext {
   return {
     ...unavailablePluginRuntime('a test'),
@@ -27,13 +35,21 @@ function fakeContext(
           return recorded.organisers.map((user_id) => ({ user_id }))
         }
         if (text.includes('insert into plugin_calendar_event')) recorded.inserts.push([...params])
+        if (text.includes('update plugin_calendar_event')) {
+          recorded.updates ??= []
+          recorded.updates.push([...params])
+        }
+        if (text.includes('delete from plugin_calendar_event')) {
+          recorded.deletes ??= []
+          recorded.deletes.push([...params])
+        }
         if (text.includes('insert into plugin_calendar_organiser')) {
           recorded.organisers.push(Number(params[0]))
         }
         return []
       },
       async one() {
-        return null
+        return eventRow
       },
       async tx<T>(work: (inner: unknown) => Promise<T>) {
         return work(null)
@@ -132,6 +148,114 @@ describe('adding an event', () => {
     )
 
     expect(response).toMatchObject({ kind: 'json', status: 400 })
+  })
+})
+
+const EVENT_ROW = {
+  id: 5,
+  title: 'Raid night',
+  starts_at: '2026-09-01T19:00:00Z',
+  ends_at: null,
+  location: '',
+  thread_id: null,
+  created_by_user_id: 7,
+  link_url: '',
+  link_label: '',
+}
+
+describe('changing an event', () => {
+  it('lets the member who added it rewrite it', async () => {
+    const recorded: Recorded = { inserts: [], organisers: [], updates: [], deletes: [] }
+
+    const response = await handleUpdateEvent(
+      request({ ...GOOD, id: '5', title: 'Raid night, moved' }, 7),
+      fakeContext(recorded, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toEqual({ kind: 'redirect', to: '/plugins/calendar' })
+    expect(recorded.updates).toHaveLength(1)
+    expect(recorded.updates?.[0]?.[0]).toBe('5')
+    expect(recorded.updates?.[0]?.[1]).toBe('Raid night, moved')
+  })
+
+  it('refuses an unrelated member and changes nothing', async () => {
+    const recorded: Recorded = { inserts: [], organisers: [], updates: [], deletes: [] }
+
+    const response = await handleUpdateEvent(
+      request({ ...GOOD, id: '5' }, 8),
+      fakeContext(recorded, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toMatchObject({ kind: 'json', status: 403 })
+    expect(recorded.updates).toEqual([])
+  })
+
+  it('reports a draft problem rather than storing half an edit', async () => {
+    const recorded: Recorded = { inserts: [], organisers: [], updates: [], deletes: [] }
+
+    const response = await handleUpdateEvent(
+      request({ ...GOOD, id: '5', title: '  ' }, 7),
+      fakeContext(recorded, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toMatchObject({ kind: 'json', status: 400 })
+    expect(recorded.updates).toEqual([])
+  })
+
+  it('refuses an id that is not one', async () => {
+    const response = await handleUpdateEvent(
+      request({ ...GOOD, id: 'abc' }, 7),
+      fakeContext({ inserts: [], organisers: [] }, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toMatchObject({ kind: 'json', status: 400 })
+  })
+})
+
+describe('removing an event', () => {
+  it('lets the member who added it remove it', async () => {
+    const recorded: Recorded = { inserts: [], organisers: [], updates: [], deletes: [] }
+
+    const response = await handleDeleteEvent(
+      request({ id: '5' }, 7),
+      fakeContext(recorded, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toEqual({ kind: 'redirect', to: '/plugins/calendar' })
+    expect(recorded.deletes).toEqual([['5']])
+  })
+
+  it('lets an organiser remove somebody else’s', async () => {
+    const recorded: Recorded = { inserts: [], organisers: [9], updates: [], deletes: [] }
+
+    const response = await handleDeleteEvent(
+      request({ id: '5' }, 9),
+      fakeContext(recorded, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toMatchObject({ kind: 'redirect' })
+    expect(recorded.deletes).toHaveLength(1)
+  })
+
+  it('refuses an unrelated member and removes nothing', async () => {
+    const recorded: Recorded = { inserts: [], organisers: [], updates: [], deletes: [] }
+
+    const response = await handleDeleteEvent(
+      request({ id: '5' }, 8),
+      fakeContext(recorded, {}, null, EVENT_ROW),
+    )
+
+    expect(response).toMatchObject({ kind: 'json', status: 403 })
+    expect(recorded.deletes).toEqual([])
+  })
+
+  it('says so when the event has gone', async () => {
+    const response = await handleDeleteEvent(
+      request({ id: '5' }, 7),
+      fakeContext({ inserts: [], organisers: [] }),
+    )
+
+    expect(response).toMatchObject({ kind: 'json', status: 404 })
   })
 })
 
