@@ -12,6 +12,7 @@ import {
   Empty,
   EmptyDescription,
   EmptyTitle,
+  TextLink,
 } from '@meith/ui'
 
 import { PanelSectionGrid, PanelWaitingList } from '@/components/shell/panel-overview'
@@ -186,12 +187,7 @@ export default async function AdminHomePage() {
                 ))}
               </CardRows>
               <CardFooter>
-                <a
-                  href="/admin/log"
-                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
-                  {await tr('page.whole-log')}
-                </a>
+                <TextLink href="/admin/log">{await tr('page.whole-log')}</TextLink>
               </CardFooter>
             </>
           )}

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { TextLink } from '@meith/ui'
+
 import { PluginEnableForm, PluginSettingsForm } from '@/components/admin/plugin-forms'
 import { PANEL_CARD, PANEL_NOTE } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -219,12 +221,7 @@ export default async function AdminPluginPage({
           <h2 className="font-heading text-lg font-semibold">{await tr('page.scheduled-tasks')}</h2>
           <p className="text-sm text-muted-foreground">
             {t.t('adminPluginDetail.tasksHintBefore')}{' '}
-            <a
-              href="/admin/system"
-              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-            >
-              {t.t('page.system-health')}
-            </a>{' '}
+            <TextLink href="/admin/system">{t.t('page.system-health')}</TextLink>{' '}
             {t.t('adminPluginDetail.tasksHintAfter')}
           </p>
           <ul className="flex flex-col divide-y divide-border text-sm">

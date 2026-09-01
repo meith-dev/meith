@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
-import { Card, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+import { Card, Empty, EmptyDescription, EmptyTitle, TextLink } from '@meith/ui'
 
 import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -99,12 +99,7 @@ export default async function ReportsPage({
                   {href === null ? (
                     <span className="font-medium">{report.targetLabel}</span>
                   ) : (
-                    <a
-                      href={href}
-                      className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                    >
-                      {report.targetLabel}
-                    </a>
+                    <TextLink href={href}>{report.targetLabel}</TextLink>
                   )}
                   <span className="text-xs text-muted-foreground">
                     {translator.t('board.reports.reportedBy', {

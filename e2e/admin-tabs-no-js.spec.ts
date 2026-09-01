@@ -52,6 +52,7 @@ async function removeRow(page: Page, field: string, value: string): Promise<void
 
   if ((await row.count()) === 0) return
   await row.getByRole('button', { name: 'Remove', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
   await page.waitForLoadState()
 }
 
@@ -571,6 +572,7 @@ test('a prefix, a smiley and a directive added in the panel reach the board', as
     const listed = page.locator('li').filter({ hasText: label })
     if ((await listed.count()) > 0) {
       await listed.getByRole('button', { name: 'Remove' }).click()
+      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
       await page.waitForLoadState()
     }
 

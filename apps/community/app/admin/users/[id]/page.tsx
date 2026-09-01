@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { TextLink } from '@meith/ui'
+
 import {
   BanMemberForm,
   ClearSecondFactorForm,
@@ -151,12 +153,9 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
         <h2 className="font-heading text-lg font-semibold">{translator.t('adminUsers.merge')}</h2>
         <p className="text-sm text-muted-foreground">{translator.t('adminUsers.mergeLede')}</p>
         <p>
-          <a
-            href={`/admin/users/${member.id}/merge`}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href={`/admin/users/${member.id}/merge`} size="sm">
             {translator.t('adminUsers.mergeLink', { username: member.username })}
-          </a>
+          </TextLink>
         </p>
       </section>
 
@@ -185,12 +184,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             <ul className="flex flex-col gap-1 text-sm">
               {view.sharedNetwork.map((row) => (
                 <li key={row.id}>
-                  <a
-                    href={`/admin/users/${row.id}`}
-                    className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                  >
-                    {row.username}
-                  </a>{' '}
+                  <TextLink href={`/admin/users/${row.id}`}>{row.username}</TextLink>{' '}
                   <span className="text-xs text-muted-foreground">
                     {row.state === 'active'
                       ? ''

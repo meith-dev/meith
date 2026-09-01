@@ -131,6 +131,7 @@ test('an announcement written in the panel renders above the forums', async ({ p
     .filter({ has: page.locator(`input[name="id"][value="${announcementId}"]`) })
     .getByRole('button', { name: 'Remove', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
   await expect(page.locator(`input[name="title"][value="${title}"]`)).toHaveCount(0)
 
   await page.goto('/')
@@ -165,6 +166,7 @@ async function removeMenuItem(page: Page, label: string): Promise<void> {
 
   const editor = await openMenuEditor(page, label)
   await editor.getByRole('button', { name: 'Remove this item' }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 }
 
 test('a menu item added in the panel appears in the navigation, and one hidden leaves it', async ({

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { requireSlot, slotCopy } from '@meith/theme-kit'
+import { TextLink } from '@meith/ui'
 
 import { RemoveRelationForm, SetRelationForm } from '@/components/account/relation-forms'
 import { AvatarLockForm, SignatureLockForm } from '@/components/moderation/signature-lock-form'
@@ -114,12 +115,9 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   {translator.t('board.member.reputation')}
                 </span>
                 <span className="font-medium">{reputationLabel(repSummary, translator)}</span>
-                <a
-                  href={`/member/${id}/reputation`}
-                  className="ms-auto font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
+                <TextLink href={`/member/${id}/reputation`} className="ms-auto">
                   {await tr('page.see-all-ratings')}
-                </a>
+                </TextLink>
               </div>
             )}
 

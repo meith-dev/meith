@@ -8,6 +8,7 @@ import {
   Empty,
   EmptyDescription,
   EmptyTitle,
+  TextLink,
 } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
@@ -62,14 +63,12 @@ export default async function StaffPage() {
           <CardRows>
             {group.members.map((member) => (
               <li key={member.id} className="px-4 py-3 text-sm">
-                <a
+                <TextLink
                   href={`/member/${member.id}`}
-                  className={`font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${
-                    identities.get(member.id)?.nameClass ?? ''
-                  }`}
+                  className={identities.get(member.id)?.nameClass ?? ''}
                 >
                   {member.username}
-                </a>
+                </TextLink>
               </li>
             ))}
           </CardRows>

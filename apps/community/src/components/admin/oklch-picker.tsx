@@ -10,6 +10,7 @@ import {
   parseColour,
   rgbToHex,
 } from '@meith/theme-kit'
+import { textLinkVariants } from '@meith/ui'
 
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 
@@ -167,7 +168,7 @@ export function OklchPicker({
               <button
                 type="button"
                 onClick={() => onChange('')}
-                className="text-xs font-medium underline decoration-border underline-offset-2 hover:decoration-foreground"
+                className={textLinkVariants({ tone: 'inherit', size: 'xs' })}
               >
                 {fromCopy(copy, 'adminTheme.oklch.clear')}
               </button>

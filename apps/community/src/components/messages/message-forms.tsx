@@ -7,6 +7,7 @@ import { messageBulkAction, sendMessageAction } from '@/server/message-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const FIELD =
@@ -109,44 +110,47 @@ export function MessageActionBar({
   const [state, action] = useActionState(messageBulkAction, EMPTY_STATE)
 
   return (
-    <form id={formId} action={action} className="flex flex-col gap-2">
-      <FormError message={state.error} />
-      <input type="hidden" name="folder" value={folder} />
+    <>
+      <form id={formId} action={action} className="flex flex-col gap-2">
+        <FormError message={state.error} />
+        <input type="hidden" name="folder" value={folder} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">
-          {fromCopy(copy, 'messageForm.withSelected')}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {fromCopy(copy, 'messageForm.withSelected')}
+          </span>
 
-        {folder === 'inbox' && (
-          <>
-            <PendingButton name="command" value="read" className={SECONDARY}>
-              {fromCopy(copy, 'messageForm.markRead')}
-            </PendingButton>
-            <PendingButton name="command" value="unread" className={SECONDARY}>
-              {fromCopy(copy, 'messageForm.markUnread')}
-            </PendingButton>
-          </>
-        )}
+          {folder === 'inbox' && (
+            <>
+              <PendingButton name="command" value="read" className={SECONDARY}>
+                {fromCopy(copy, 'messageForm.markRead')}
+              </PendingButton>
+              <PendingButton name="command" value="unread" className={SECONDARY}>
+                {fromCopy(copy, 'messageForm.markUnread')}
+              </PendingButton>
+            </>
+          )}
 
-        {folder === 'trash' ? (
-          <>
-            <PendingButton name="command" value="restore" className={SECONDARY}>
-              {fromCopy(copy, 'messageForm.restore')}
+          {folder === 'trash' ? (
+            <>
+              <PendingButton name="command" value="restore" className={SECONDARY}>
+                {fromCopy(copy, 'messageForm.restore')}
+              </PendingButton>
+              <PendingButton name="command" value="delete" className={SECONDARY}>
+                {fromCopy(copy, 'messageForm.deleteForever')}
+              </PendingButton>
+              <PendingButton name="command" value="empty" className={SECONDARY}>
+                {fromCopy(copy, 'messageForm.emptyTrash')}
+              </PendingButton>
+            </>
+          ) : (
+            <PendingButton name="command" value="trash" className={SECONDARY}>
+              {fromCopy(copy, 'messageForm.moveToTrash')}
             </PendingButton>
-            <PendingButton name="command" value="delete" className={SECONDARY}>
-              {fromCopy(copy, 'messageForm.deleteForever')}
-            </PendingButton>
-            <PendingButton name="command" value="empty" className={SECONDARY}>
-              {fromCopy(copy, 'messageForm.emptyTrash')}
-            </PendingButton>
-          </>
-        ) : (
-          <PendingButton name="command" value="trash" className={SECONDARY}>
-            {fromCopy(copy, 'messageForm.moveToTrash')}
-          </PendingButton>
-        )}
-      </div>
-    </form>
+          )}
+        </div>
+      </form>
+      <ConfirmDialog confirm={state.confirm} action={action} />
+    </>
   )
 }

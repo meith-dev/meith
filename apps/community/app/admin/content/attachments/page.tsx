@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { cn } from '@meith/ui'
+import { cn, TextLink } from '@meith/ui'
 
 import { DeleteAttachmentForm } from '@/components/admin/content-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
@@ -160,12 +160,9 @@ export default async function AdminAttachmentsPage({
                   {row.threadSlug !== null && (
                     <>
                       {' · '}
-                      <a
-                        href={postLink(`/thread/${row.threadSlug}`, row.postId)}
-                        className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                      >
+                      <TextLink href={postLink(`/thread/${row.threadSlug}`, row.postId)}>
                         {translator.t('adminAttachments.post')}
-                      </a>
+                      </TextLink>
                     </>
                   )}
                 </span>

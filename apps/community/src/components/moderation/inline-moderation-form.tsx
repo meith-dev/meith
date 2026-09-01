@@ -8,6 +8,7 @@ import { inlineModerateAction } from '@/server/inline-moderation-actions'
 import { splitSelectedAction } from '@/server/surgery-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -152,6 +153,7 @@ export function InlineModerationForm({
           </PendingButton>
         )}
       </form>
+      <ConfirmDialog confirm={state.confirm} action={action} />
     </div>
   )
 }

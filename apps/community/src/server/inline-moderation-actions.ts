@@ -16,6 +16,7 @@ import {
 } from '@meith/moderation'
 
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
@@ -69,6 +70,11 @@ export async function inlineModerateAction(_prev: FormState, form: FormData): Pr
     const scopeForumIds = await scopeFor(tool, actor)
     if (scopeForumIds.length === 0) {
       throw new ForbiddenError(msg('error.app.moderate-anything-here'))
+    }
+
+    if (tool === 'delete') {
+      const confirm = requireConfirmation(form, await tr('moderationForm.confirm.delete'))
+      if (confirm !== null) return confirm
     }
 
     outcome = await new InlineModeration({ inline: inlineModeration }).apply({

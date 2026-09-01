@@ -6,6 +6,7 @@ import { issueApiTokenAction, revokeApiTokenAction } from '@/server/api-token-ac
 import { EMPTY_STATE } from '@/server/auth-form-state'
 
 import { FormError, SubmitButton } from '../auth/form-controls'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 
 export function IssueTokenForm({ scopes, copy }: { scopes: readonly string[]; copy: Copy }) {
@@ -78,12 +79,15 @@ export function RevokeTokenForm({ tokenId, copy }: { tokenId: number; copy: Copy
   const [state, action] = useActionState(revokeApiTokenAction, EMPTY_STATE)
 
   return (
-    <form action={action}>
-      <input type="hidden" name="tokenId" value={tokenId} />
-      <SubmitButton>{fromCopy(copy, 'adminPanel.token.revoke')}</SubmitButton>
-      {state.error !== undefined && (
-        <span className="ml-2 text-xs text-destructive">{state.error}</span>
-      )}
-    </form>
+    <>
+      <form action={action}>
+        <input type="hidden" name="tokenId" value={tokenId} />
+        <SubmitButton>{fromCopy(copy, 'adminPanel.token.revoke')}</SubmitButton>
+        {state.error !== undefined && (
+          <span className="ml-2 text-xs text-destructive">{state.error}</span>
+        )}
+      </form>
+      <ConfirmDialog confirm={state.confirm} action={action} />
+    </>
   )
 }

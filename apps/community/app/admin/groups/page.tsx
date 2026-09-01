@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import { TextLink } from '@meith/ui'
+
 import { CreateGroupForm } from '@/components/admin/group-forms'
 import { PANEL_CARD, PANEL_LIST, PANEL_ROW, PanelActionLink } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
@@ -36,12 +38,7 @@ export default async function AdminGroupsPage() {
         <>
           {translator.t('adminGroups.ledeBefore')} <em>{translator.t('adminGroups.default')}</em>
           {translator.t('adminGroups.ledeBetween')}{' '}
-          <a
-            href="/admin/forums"
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            {translator.t('adminGroups.forumPermissions')}
-          </a>{' '}
+          <TextLink href="/admin/forums">{translator.t('adminGroups.forumPermissions')}</TextLink>{' '}
           {translator.t('adminGroups.ledeEnd')}
         </>
       }
@@ -68,13 +65,14 @@ export default async function AdminGroupsPage() {
                 {group.description === null ? '' : ` · ${group.description}`}
               </span>
             </span>
-            <a
+            <TextLink
               href={`/admin/groups/${group.id}`}
               aria-label={translator.t('adminGroups.editLabel', { title: group.title })}
-              className="shrink-0 text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+              size="sm"
+              className="shrink-0"
             >
               {translator.t('adminGroups.edit')}
-            </a>
+            </TextLink>
           </li>
         ))}
       </ul>

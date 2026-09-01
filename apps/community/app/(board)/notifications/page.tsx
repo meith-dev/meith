@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { NOTIFICATIONS_PAGE_SIZE } from '@meith/notifications'
+import { TextLink } from '@meith/ui'
 
 import {
   MarkAllNotificationsReadForm,
@@ -60,12 +61,9 @@ export default async function NotificationsPage({
       lede={
         <>
           {translator.t('board.notifications.unread', { count: view.unread })}{' '}
-          <a
-            href={view.preferencesHref}
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href={view.preferencesHref}>
             {await tr('page.choose-which-these-receive-by')}
-          </a>
+          </TextLink>
           .
         </>
       }
@@ -115,12 +113,9 @@ export default async function NotificationsPage({
 
               <div className="mt-3 flex items-center gap-4">
                 {row.href !== null && (
-                  <a
-                    href={row.href}
-                    className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                  >
+                  <TextLink href={row.href} size="sm">
                     {translator.t('board.notifications.view')}
-                  </a>
+                  </TextLink>
                 )}
                 {!row.isRead && (
                   <MarkNotificationReadForm

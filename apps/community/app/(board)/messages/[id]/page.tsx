@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { postBodyHtml } from '@meith/markdown'
-import { Card, CardContent, CardFooter } from '@meith/ui'
+import { Card, CardContent, CardFooter, TextLink } from '@meith/ui'
 
 import { PanelPage } from '@/components/shell/panel-page'
 import { getContainer } from '@/server/container'
@@ -74,13 +74,9 @@ export default async function MessagePage({ params }: { params: Promise<{ id: st
 
         <CardFooter className="gap-4">
           {view.actions.map((action) => (
-            <a
-              key={action.href}
-              href={action.href}
-              className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-            >
+            <TextLink key={action.href} href={action.href} size="sm">
               {action.label}
-            </a>
+            </TextLink>
           ))}
           {view.reportHref !== null && (
             <a

@@ -265,11 +265,25 @@ describe('inlineModerateAction', () => {
     const where = await redirectOf(
       inlineModerateAction(
         EMPTY_STATE,
-        form({ tool: 'delete', returnTo: '/thread/20-hello' }, ['post:7']),
+        form({ tool: 'delete', returnTo: '/thread/20-hello', confirmed: '1' }, ['post:7']),
       ),
     )
     expect(where).toBe('/thread/20-hello?did=delete&n=1')
     expect(inline.applied).toEqual([{ tool: 'delete', threadIds: [], postIds: [7] }])
+  })
+
+  it('asks to confirm a delete before it removes anything', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, 3)
+    installContainer([appointment(SEED_FORUM.general, { canSoftDeletePosts: true })])
+    inline.rows = [target({ kind: 'post', id: 7 })]
+
+    const state = await inlineModerateAction(
+      EMPTY_STATE,
+      form({ tool: 'delete', returnTo: '/thread/20-hello' }, ['post:7']),
+    )
+
+    expect(state.confirm).toBeDefined()
+    expect(inline.applied).toEqual([])
   })
 
   it('lets an appointee who may only restore put a deleted post back', async () => {

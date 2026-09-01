@@ -28,6 +28,7 @@ async function addFilter(
 async function removeFilter(page: Page, pattern: string): Promise<void> {
   await page.goto('/admin/users/ban-filters')
   await page.getByRole('button', { name: `Remove ${pattern}` }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
   await expect(page.getByRole('button', { name: `Remove ${pattern}` })).toHaveCount(0)
 }

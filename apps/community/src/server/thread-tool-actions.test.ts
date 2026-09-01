@@ -394,9 +394,18 @@ describe('deleting a thread you started', () => {
 
   it('lets the author take it down when the forum grants it', async () => {
     expect(
-      await redirectOf(threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))),
+      await redirectOf(
+        threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete', confirmed: '1' })),
+      ),
     ).toBe(`/${SEED_FORUM.general}?thread=deleted`)
     expect(tools.calls).toEqual(['setVisibility'])
+  })
+
+  it('asks the author to confirm first, and takes nothing down until they do', async () => {
+    const state = await threadToolAction(EMPTY_STATE, form({ threadId: '20', tool: 'delete' }))
+
+    expect(state.confirm).toBeDefined()
+    expect(tools.calls).toEqual([])
   })
 
   it('refuses somebody who did not start it', async () => {

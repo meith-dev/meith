@@ -9,9 +9,11 @@ import { parseFolder } from '@meith/messages'
 import { folderHref } from '../view/messages'
 import { dailyLimitMessage, limitMessage, spendDailyLimit, spendLimit } from './antispam'
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
+import { tr } from './i18n'
 import { requireMessaging } from './messages'
 
 const toFormState = formStateReporter('message-actions', 'unexpected error in a message action')
@@ -65,11 +67,18 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
     const { service, userId } = await requireMessaging(await getActor())
 
     if (command === 'empty') {
+      const confirm = requireConfirmation(form, await tr('messageForm.confirm.emptyTrash'))
+      if (confirm !== null) return confirm
       query = `emptied=${await service.emptyTrash(userId)}`
     } else {
       const copyIds = selectedIds(form)
       if (copyIds.length === 0)
         throw new ValidationError(msg('error.app.select-at-least-one-message'))
+
+      if (command === 'delete') {
+        const confirm = requireConfirmation(form, await tr('messageForm.confirm.deleteForever'))
+        if (confirm !== null) return confirm
+      }
 
       switch (command) {
         case 'read':

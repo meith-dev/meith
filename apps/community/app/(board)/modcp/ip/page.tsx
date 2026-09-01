@@ -14,6 +14,7 @@ import {
   EmptyTitle,
   Field,
   Input,
+  TextLink,
 } from '@meith/ui'
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
@@ -95,12 +96,9 @@ export default async function IpLookupPage({
           title={translator.t('board.ip.matches', { username: subject.username })}
           description={
             <>
-              <a
-                href={memberHref(subject.id)}
-                className="underline decoration-border underline-offset-2 hover:decoration-foreground"
-              >
+              <TextLink href={memberHref(subject.id)} tone="inherit" weight="normal">
                 {subject.username}
-              </a>
+              </TextLink>
               . {translator.t('board.ip.ranges')} {translator.t('board.ip.registration')}{' '}
               <code className="font-mono">
                 {result.prefixes.registration ?? translator.t('board.ip.none')}

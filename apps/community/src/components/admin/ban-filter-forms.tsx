@@ -6,6 +6,7 @@ import { EMPTY_STATE } from '@/server/auth-form-state'
 import { addBanFilterAction, removeBanFilterAction } from '@/server/ban-filter-admin-actions'
 
 import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
+import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { INPUT, Saved } from './form-bits'
 
@@ -89,16 +90,19 @@ export function RemoveBanFilterForm({
   const [state, action] = useActionState(removeBanFilterAction, EMPTY_STATE)
 
   return (
-    <form action={action} className="flex flex-col items-end gap-1">
-      <FormError message={state.error} />
-      <input type="hidden" name="id" value={id} />
-      <PendingButton
-        showWorking
-        className="text-xs text-destructive hover:underline"
-        aria-label={formatFromCopy(copy, 'adminBanFilter.removeFilter', { pattern })}
-      >
-        {fromCopy(copy, 'admin.remove')}
-      </PendingButton>
-    </form>
+    <div className="flex flex-col items-end gap-1">
+      <form action={action} className="flex flex-col items-end gap-1">
+        <FormError message={state.error} />
+        <input type="hidden" name="id" value={id} />
+        <PendingButton
+          showWorking
+          className="text-xs text-destructive hover:underline"
+          aria-label={formatFromCopy(copy, 'adminBanFilter.removeFilter', { pattern })}
+        >
+          {fromCopy(copy, 'admin.remove')}
+        </PendingButton>
+      </form>
+      <ConfirmDialog confirm={state.confirm} action={action} />
+    </div>
   )
 }

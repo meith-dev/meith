@@ -14,10 +14,13 @@
   "exports": {
     ".": "./src/index.ts",
     "./button": "./src/button.tsx",
+    "./dialog": "./src/dialog.tsx",
     "./input-otp": "./src/input-otp.tsx",
     "./menu": "./src/menu.tsx",
     "./popover": "./src/popover.tsx",
     "./tabs": "./src/tabs.tsx",
+    "./toast": "./src/toast.tsx",
+    "./tooltip": "./src/tooltip.tsx",
     "./utils": "./src/utils.ts",
     "./variants": "./src/variants.ts"
   },

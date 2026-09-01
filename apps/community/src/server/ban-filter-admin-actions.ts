@@ -14,9 +14,11 @@ import { msg } from '@meith/i18n'
 import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { boardBanFilters } from './ban-filter-admin'
+import { requireConfirmation } from './confirm'
 import { getContainer } from './container'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
+import { tr } from './i18n'
 import { remoteAddress } from './request-fingerprint'
 
 const BAN_FILTER_SCREEN = '/admin/users/ban-filters'
@@ -99,6 +101,9 @@ export async function removeBanFilterAction(_prev: FormState, form: FormData): P
   try {
     await requireAdmin()
     const id = filterId(form)
+
+    const confirm = requireConfirmation(form, await tr('adminBanFilter.confirm.remove'))
+    if (confirm !== null) return confirm
 
     await boardBanFilters().remove(id)
 

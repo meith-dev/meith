@@ -404,21 +404,16 @@ export function NavigationTree({
                 </form>
               </div>
 
-              <details
+              <NavigationItemRowForm
+                item={row}
+                audiences={audiences}
+                groups={groups}
+                parents={parents}
+                copy={copy}
+                summary={formatFromCopy(copy, 'adminNavigation.tree.edit', { name: row.name })}
                 className="rounded-md border border-border bg-card px-3"
                 style={{ marginLeft: `${row.depth * INDENT_PX}px` }}
-              >
-                <summary className="cursor-pointer py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-                  {formatFromCopy(copy, 'adminNavigation.tree.edit', { name: row.name })}
-                </summary>
-                <NavigationItemRowForm
-                  item={row}
-                  audiences={audiences}
-                  groups={groups}
-                  parents={parents}
-                  copy={copy}
-                />
-              </details>
+              />
             </li>
           )
         })}

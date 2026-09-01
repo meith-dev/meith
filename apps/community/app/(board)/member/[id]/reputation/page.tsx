@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { TextLink } from '@meith/ui'
+
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
 import { getContainer } from '@/server/container'
@@ -96,12 +98,9 @@ export default async function ReputationPage({
           <p className="text-sm text-muted-foreground">
             {reputationLabel(view.summary, translator)}
           </p>
-          <a
-            href={`/member/${id}`}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href={`/member/${id}`} size="sm">
             {await tr('page.back-their-profile')}
-          </a>
+          </TextLink>
         </div>
 
         {mayRate && (
@@ -152,12 +151,9 @@ export default async function ReputationPage({
                     {row.at.label}
                   </time>
                   {row.postHref !== null && (
-                    <a
-                      href={row.postHref}
-                      className="text-xs font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                    >
+                    <TextLink href={row.postHref} size="xs">
                       on a post
-                    </a>
+                    </TextLink>
                   )}
                   {row.isMine && (
                     <span className="ml-auto">
@@ -182,12 +178,9 @@ export default async function ReputationPage({
         )}
 
         {view.nextHref !== null && (
-          <a
-            href={view.nextHref}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href={view.nextHref} size="sm">
             {await tr('page.older-ratings')}
-          </a>
+          </TextLink>
         )}
       </div>
     </main>

@@ -114,7 +114,7 @@ describe('word filter writes', () => {
   it('clears the render-path tag on create, update and delete', async () => {
     await createWordFilterAction({}, form({ pattern: 'a' }))
     await updateWordFilterAction({}, form({ id: '1', pattern: 'a' }))
-    await deleteWordFilterAction({}, form({ id: '1' }))
+    await deleteWordFilterAction({}, form({ id: '1', confirmed: '1' }))
 
     expect(invalidated).toEqual([['word-filters'], ['word-filters'], ['word-filters']])
   })
@@ -122,7 +122,7 @@ describe('word filter writes', () => {
   it('refreshes the screen it was posted from, not only the board cache', async () => {
     await createWordFilterAction({}, form({ pattern: 'a' }))
     await updateWordFilterAction({}, form({ id: '1', pattern: 'a' }))
-    await deleteWordFilterAction({}, form({ id: '1' }))
+    await deleteWordFilterAction({}, form({ id: '1', confirmed: '1' }))
 
     expect(revalidated).toEqual(['/admin/content', '/admin/content', '/admin/content'])
   })
@@ -173,9 +173,15 @@ describe('prefix writes', () => {
   })
 
   it('deletes by id, and refreshes the screen it was posted from', async () => {
-    const state = await deletePrefixAction({}, form({ id: '3' }))
+    const state = await deletePrefixAction({}, form({ id: '3', confirmed: '1' }))
     expect(state.notice).toBe('removed')
     expect(prefixDeletes).toEqual([3])
     expect(revalidated).toEqual(['/admin/content'])
+  })
+
+  it('asks to confirm a delete before it removes the prefix', async () => {
+    const state = await deletePrefixAction({}, form({ id: '3' }))
+    expect(state.confirm).toBeDefined()
+    expect(prefixDeletes).toEqual([])
   })
 })

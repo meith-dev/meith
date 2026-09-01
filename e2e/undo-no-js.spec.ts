@@ -56,6 +56,7 @@ test('a member trashes a message, restores it, and empties the folder', async ({
     await reader.getByRole('button', { name: 'Move to trash' }).click()
     await reader.goto('/messages?folder=trash')
     await reader.getByRole('button', { name: 'Empty trash' }).click()
+    await reader.getByRole('button', { name: 'Confirm' }).click()
     await expect(reader.getByRole('link', { name: binned })).toHaveCount(0)
 
     await reader.goto('/messages')

@@ -1,6 +1,14 @@
 import type { Metadata } from 'next'
 
-import { Card, CardContent, CardRows, Empty, EmptyDescription, EmptyTitle } from '@meith/ui'
+import {
+  Card,
+  CardContent,
+  CardRows,
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+  textLinkVariants,
+} from '@meith/ui'
 
 import { PanelPage, PanelSection } from '@/components/shell/panel-page'
 import { getActor } from '@/server/context'
@@ -13,8 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.board-statistics') }
 }
 
-const LINK =
-  'font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground'
+const LINK = textLinkVariants()
 
 const ROW = 'flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm'
 

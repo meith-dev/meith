@@ -205,12 +205,25 @@ describe('removing a filter', () => {
       createdByUserId: null,
     })
 
-    const state = await removeBanFilterAction({}, form({ id: String(id) }))
+    const state = await removeBanFilterAction({}, form({ id: String(id), confirmed: '1' }))
 
     expect(state.notice).toBe('removed')
     expect(await filters.current.listForAdmin()).toHaveLength(0)
     expect(revalidated).toEqual(['/admin/users/ban-filters'])
     expect(adminCalls).toEqual([{ action: 'user.ban_filter_removed', detail: { filterId: id } }])
+  })
+
+  it('asks to confirm before removing a filter', async () => {
+    const id = await filters.current.create({
+      type: 'email',
+      pattern: '*@blocked.example',
+      createdByUserId: null,
+    })
+
+    const state = await removeBanFilterAction({}, form({ id: String(id) }))
+
+    expect(state.confirm).toBeDefined()
+    expect(await filters.current.listForAdmin()).toHaveLength(1)
   })
 
   it('refuses an id that is not one', async () => {

@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { TextLink } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { moderateQueueAction } from '@/server/moderation-actions'
 
@@ -45,12 +47,7 @@ export function QueueForm({ rows, copy }: { rows: readonly QueueFormRow[]; copy:
                       forum: row.forumTitle,
                     })}
                   </span>
-                  <a
-                    href={row.href}
-                    className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                  >
-                    {row.threadTitle}
-                  </a>
+                  <TextLink href={row.href}>{row.threadTitle}</TextLink>
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {copy['moderationForm.queue.byLead']}

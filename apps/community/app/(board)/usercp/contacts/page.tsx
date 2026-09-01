@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MAX_RELATIONS } from '@meith/relations'
+import { TextLink } from '@meith/ui'
 
 import { RemoveRelationForm } from '@/components/account/relation-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -123,12 +124,9 @@ async function ContactLine({ row }: { row: ContactRowView }) {
 
       <span className="ml-auto flex items-center gap-4">
         {row.messageHref !== null && (
-          <a
-            href={row.messageHref}
-            className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href={row.messageHref} size="sm">
             {translator.t('board.contacts.message')}
-          </a>
+          </TextLink>
         )}
         <RemoveRelationForm userId={row.userId} username={row.username} returnTo={RETURN_TO} />
       </span>

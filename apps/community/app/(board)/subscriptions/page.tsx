@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { SubscriptionService } from '@meith/subscriptions'
+import { TextLink } from '@meith/ui'
 
 import { SubscriptionRowForm } from '@/components/account/subscription-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -52,12 +53,9 @@ export default async function SubscriptionsPage({
       lede={
         <>
           What you follow, and how often you hear about it.{' '}
-          <a
-            href="/notifications/preferences"
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
+          <TextLink href="/notifications/preferences">
             {await tr('page.whether-any-it-also-arrives')}
-          </a>{' '}
+          </TextLink>{' '}
           is a separate setting.
         </>
       }
@@ -120,12 +118,9 @@ function Section({
           {rows.map((row) => (
             <li key={row.key} className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <a
-                  href={row.href}
-                  className="text-sm font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
+                <TextLink href={row.href} size="sm">
                   {row.title}
-                </a>
+                </TextLink>
                 <span className="text-xs text-muted-foreground">
                   {since[0]}
                   <time dateTime={row.since.iso}>{row.since.label}</time>
