@@ -1,6 +1,9 @@
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
+
 import { describe, expect, it, vi } from 'vitest'
 
-import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifySignature } from '@meith/api'
+import { EVENT_HEADER, SIGNATURE_HEADER, TIMESTAMP_HEADER, verifySignature } from '@meith/api'
 import { BlockedOutboundError } from '@meith/core/outbound'
 
 import {
@@ -158,5 +161,51 @@ describe('deliverWebhooks', () => {
 
     expect(result).toEqual({ attempted: 0, delivered: 0, retried: 0, dead: 0 })
     expect(deliver).not.toHaveBeenCalled()
+  })
+
+  it('posts a signed body a real local listener can verify end to end', async () => {
+    const received: Array<{ headers: Record<string, string | undefined>; body: string }> = []
+    const server = createServer((req, res) => {
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk
+      })
+      req.on('end', () => {
+        received.push({ headers: req.headers as Record<string, string | undefined>, body })
+        res.statusCode = 204
+        res.end()
+      })
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const { port } = server.address() as AddressInfo
+
+    try {
+      const { impl } = store([
+        claimed({
+          url: `http://127.0.0.1:${port}/hook`,
+          payload: { event: 'post.created', postId: 42 },
+        }),
+      ])
+
+      const result = await deliverWebhooks(impl, 10, { now: NOW })
+
+      expect(result).toMatchObject({ attempted: 1, delivered: 1 })
+      expect(received).toHaveLength(1)
+
+      const { headers, body } = received[0]!
+      expect(headers[EVENT_HEADER]).toBe('post.created')
+      expect(body).toBe(JSON.stringify({ event: 'post.created', postId: 42 }))
+      expect(
+        verifySignature(
+          'shhh-a-long-enough-secret',
+          Number(headers[TIMESTAMP_HEADER]),
+          body,
+          headers[SIGNATURE_HEADER]!,
+          Math.floor(NOW.getTime() / 1000),
+        ),
+      ).toBe(true)
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
   })
 })

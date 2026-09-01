@@ -187,6 +187,14 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
           record.editedAt,
         )
       }
+
+      await tx.execute(sql`
+        insert into outbox (topic, payload)
+        values (
+          'post.edited',
+          ${JSON.stringify({ postId: record.postId, threadId: record.threadId })}::jsonb
+        )
+      `)
     })
   }
 
@@ -219,6 +227,20 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
           scopedDetail(record),
           record.at,
         )
+      }
+
+      if (record.to === 'deleted') {
+        await tx.execute(sql`
+          insert into outbox (topic, payload)
+          values (
+            'post.deleted',
+            ${JSON.stringify({
+              postId: record.postId,
+              threadId: record.threadId,
+              forumId: record.forumId,
+            })}::jsonb
+          )
+        `)
       }
 
       return true

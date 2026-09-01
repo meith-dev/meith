@@ -226,7 +226,7 @@ in step, and `release:check`'s closing line counts them (52 at 0.23.0).
 | The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against. |
 | The board's dependency closure | Every domain and infrastructure package under `packages/` that `@meith/web` or `@meith/cli` names in its own `dependencies`, transitively — `@meith/accounts` through `@meith/upgrade`. None is independently useful; each is here only because the board, or a theme in its closure, imports it. |
 | The themes | The five bundled themes: `default`, `midnight`, `phasebook`, `raidframe`, `clubhouse`. |
-| The plugins | The first-party plugins: `dues`, `reference`, `webhooks`, `calendar`. |
+| The plugins | The first-party plugins: `dues`, `reference`, `calendar`. |
 | The initializer | `create-meith` — `npx create-meith` scaffolds a board whose `package.json` depends on `@meith/web`, `@meith/cli` and `@meith/theme-default`. An npx-able initializer that is not itself on npm does not exist. |
 
 To ask whether a given package publishes, read its manifest: `private: true`

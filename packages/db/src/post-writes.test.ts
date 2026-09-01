@@ -507,15 +507,21 @@ describe('applyVisibility', () => {
 
     await repo.applyVisibility(move(postIds[1]!, threadId, 'visible', 'deleted'))
 
-    const events = resultRows(await db.execute(sql`select topic, payload from outbox`)) as Array<{
+    const events = resultRows(
+      await db.execute(sql`select topic, payload from outbox order by id`),
+    ) as Array<{
       topic: string
-      payload: { postId: number; visible: boolean }
+      payload: { postId: number; visible?: boolean }
     }>
 
-    expect(events).toHaveLength(1)
+    expect(events).toHaveLength(2)
     expect(events[0]).toMatchObject({
       topic: 'post.visibility_changed',
       payload: { postId: postIds[1], visible: false },
+    })
+    expect(events[1]).toMatchObject({
+      topic: 'post.deleted',
+      payload: { postId: postIds[1] },
     })
   })
 })

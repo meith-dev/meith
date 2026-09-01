@@ -781,3 +781,28 @@ renders the top level and drops the entries under it, so a theme meant to
 follow the board navigation should render one level of nested links,
 revealed on both `:hover` and `:focus-within`. See
 [the theme API](../../customization/themes.md#versioning).
+
+#### Webhooks moved into the board
+
+The `@meith/plugin-webhooks` plugin is gone; outbound webhooks are a core
+feature now, with an admin screen at **Admin → Webhooks** and more topics
+than the plugin carried. See [Webhooks](./webhooks.md). Nothing migrates
+automatically — the plugin stored its configuration in plugin settings, not
+in the board's tables — so recreate the plugin's single delivery as a
+subscription. It is a five-minute job, once:
+
+| The plugin's setting | Recreate it as |
+|---|---|
+| **Endpoint** (`WEBHOOKS_ENDPOINT_URL`) | The subscription's **Endpoint**. Still `https://` only. |
+| **Payload format** (Discord / Plain JSON) | The subscription's **Payload format** — the same two choices, unchanged. |
+| **What to send** (new threads, or threads and replies) | The **Topics** checkboxes: `thread.created`, and `post.created` for replies too. |
+| **Signing secret** (`WEBHOOKS_SIGNING_SECRET`) | Generated for you and shown once when you add the subscription. Put the new secret into your receiver. |
+| **Board address** (`WEBHOOKS_BOARD_URL`) | Not needed — deliveries use the board's own configured address. |
+
+The signature is verified the same way, over the same
+`HMAC-SHA256(secret, "<timestamp>.<body>")` material, but the delivery
+headers are now `x-forum-event`, `x-forum-delivery`, `x-forum-timestamp`
+and `x-forum-signature` (the plugin sent `x-meith-*`). Update your
+receiver's header names when you move the secret across. After the
+subscription is delivering, remove the plugin from your board's plugin list
+and drop its `WEBHOOKS_*` environment variables.

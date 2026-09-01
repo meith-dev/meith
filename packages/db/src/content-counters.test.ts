@@ -100,6 +100,7 @@ describe('applyCreatedContentCounters', () => {
     expect(user).toMatchObject({ threadCount: 1, postCount: 2 })
     expect(await db.select({ topic: outbox.topic }).from(outbox)).toEqual([
       { topic: 'post.created' },
+      { topic: 'thread.created' },
       { topic: 'post.created' },
     ])
   })

@@ -105,21 +105,6 @@
       "meith": ">=0.16 <1",
       "repository": "https://github.com/meith-dev/meith",
       "licence": "MIT"
-    },
-    {
-      "key": "webhooks",
-      "kind": "plugin",
-      "package": "@meith/plugin-webhooks",
-      "name": "Webhooks",
-      "description": "New threads and posts delivered to an endpoint of your choosing, with a Discord-compatible preset.",
-      "screenshots": [
-        "/marketplace/screenshots/webhooks-light.png"
-      ],
-      "version": "0.31.0",
-      "apiVersion": 0,
-      "meith": ">=0.16 <1",
-      "repository": "https://github.com/meith-dev/meith",
-      "licence": "MIT"
     }
   ]
 }

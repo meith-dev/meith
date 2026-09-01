@@ -77,6 +77,20 @@ export async function applyCreatedContentCounters(
       })}::jsonb
     )
   `)
+
+  if (content.isNewThread) {
+    await tx.execute(sql`
+      insert into outbox (topic, payload)
+      values (
+        'thread.created',
+        ${JSON.stringify({
+          threadId: content.threadId,
+          forumId: content.forumId,
+          authorId: content.authorId,
+        })}::jsonb
+      )
+    `)
+  }
 }
 
 export async function rollUpAncestorCounters(db: Database, postId: number): Promise<boolean> {

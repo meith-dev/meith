@@ -446,7 +446,7 @@ the feed itself.
 
 ## What is seeded today
 
-Eight first-party listings: **Dues**, **Webhooks**, **Calendar** and the five themes
+Seven first-party listings: **Dues**, **Calendar** and the five themes
 described in [Development](../contributing/development.md#the-workspace) — default,
 midnight, phasebook, raidframe and clubhouse. Their `version` and `licence` fields
 are read from each package's own `package.json`, and `pnpm release:check`

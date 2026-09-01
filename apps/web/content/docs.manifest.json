@@ -229,6 +229,16 @@
       "group": "Operating the server"
     },
     {
+      "slug": "webhooks",
+      "file": "guides/operations/webhooks.md",
+      "section": "guides",
+      "title": "Webhooks",
+      "blurb": "Deliver board events to an endpoint you choose: creating a subscription, the topics and payload formats, verifying a delivery's signature, and how retries and dead-lettering work.",
+      "generated": false,
+      "primary": false,
+      "group": "Operating the server"
+    },
+    {
       "slug": "upgrading",
       "file": "guides/operations/upgrading.md",
       "section": "guides",

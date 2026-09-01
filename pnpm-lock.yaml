@@ -1083,19 +1083,6 @@ importers:
         specifier: ^19.2.18
         version: 19.2.18
 
-  plugins/webhooks:
-    dependencies:
-      '@meith/plugin-kit':
-        specifier: workspace:^
-        version: link:../../packages/plugin-kit
-      react:
-        specifier: ^19.2.0
-        version: 19.2.8
-    devDependencies:
-      '@types/react':
-        specifier: ^19.2.18
-        version: 19.2.18
-
   themes/clubhouse:
     dependencies:
       '@meith/theme-default':

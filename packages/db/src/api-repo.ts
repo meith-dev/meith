@@ -1,8 +1,9 @@
 import { sql } from 'drizzle-orm'
 
-import type { ApiTokenRecord, RateLimitStore, Scope } from '@meith/api'
+import type { ApiTokenRecord, RateLimitStore, Scope, WebhookFormat, WebhookTopic } from '@meith/api'
 
 import type { Database } from './client'
+import { resultRows } from './result-rows'
 
 interface TokenRow {
   id: number
@@ -182,28 +183,204 @@ export interface WebhookDeliveryRow {
   readonly secret: string
 }
 
+export interface WebhookActiveSubscription {
+  readonly id: number
+  readonly format: WebhookFormat
+}
+
+export interface WebhookSummary {
+  readonly id: number
+  readonly url: string
+  readonly topics: readonly WebhookTopic[]
+  readonly active: boolean
+  readonly format: WebhookFormat
+  readonly createdAt: Date
+  readonly delivered: number
+  readonly pending: number
+  readonly dead: number
+}
+
+export interface WebhookDeliveryLogRow {
+  readonly id: number
+  readonly deliveryId: string
+  readonly topic: string
+  readonly status: string
+  readonly attempts: number
+  readonly lastStatusCode: number | null
+  readonly lastError: string | null
+  readonly createdAt: Date
+  readonly completedAt: Date | null
+}
+
+function parseTopics(raw: unknown): readonly WebhookTopic[] {
+  return Array.isArray(raw)
+    ? (raw.filter((value) => typeof value === 'string') as WebhookTopic[])
+    : []
+}
+
+function parseFormat(raw: unknown): WebhookFormat {
+  return raw === 'discord' ? 'discord' : 'json'
+}
+
 export class PostgresWebhookRepository {
   constructor(private readonly db: Database) {}
 
   async enqueue(
+    webhookId: number,
     topic: string,
     deliveryId: string,
     payload: Record<string, unknown>,
-  ): Promise<number> {
-    const rows = (await this.db.execute(sql`
+  ): Promise<boolean> {
+    const rows = resultRows(
+      await this.db.execute(sql`
       insert into webhook_deliveries (webhook_id, delivery_id, topic, payload)
-      select w.id, ${deliveryId}, ${topic}, ${JSON.stringify(payload)}::jsonb
-      from webhooks w
-      where w.active = true and w.topics ? ${topic}
+      values (${webhookId}, ${deliveryId}, ${topic}, ${JSON.stringify(payload)}::jsonb)
       on conflict (webhook_id, delivery_id) do nothing
       returning id
-    `)) as unknown as unknown[]
+    `),
+    )
 
-    return rows.length
+    return rows.length > 0
+  }
+
+  async listActiveByTopic(topic: string): Promise<readonly WebhookActiveSubscription[]> {
+    const rows = resultRows<{ id: number; format: unknown }>(
+      await this.db.execute(sql`
+      select id, format
+      from webhooks
+      where active = true and topics ? ${topic}
+      order by id
+    `),
+    )
+
+    return rows.map((row) => ({ id: Number(row.id), format: parseFormat(row.format) }))
+  }
+
+  async listAll(limit = 200): Promise<readonly WebhookSummary[]> {
+    const rows = resultRows<{
+      id: number
+      url: string
+      topics: unknown
+      active: boolean
+      format: unknown
+      created_at: Date | string
+      delivered: number | string
+      pending: number | string
+      dead: number | string
+    }>(
+      await this.db.execute(sql`
+      select w.id, w.url, w.topics, w.active, w.format, w.created_at,
+             count(d.id) filter (where d.status = 'delivered') as delivered,
+             count(d.id) filter (where d.status = 'pending') as pending,
+             count(d.id) filter (where d.status = 'dead') as dead
+      from webhooks w
+      left join webhook_deliveries d on d.webhook_id = w.id
+      group by w.id
+      order by w.created_at desc, w.id desc
+      limit ${limit}
+    `),
+    )
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      url: row.url,
+      topics: parseTopics(row.topics),
+      active: row.active,
+      format: parseFormat(row.format),
+      createdAt: new Date(row.created_at),
+      delivered: Number(row.delivered),
+      pending: Number(row.pending),
+      dead: Number(row.dead),
+    }))
+  }
+
+  async recentDeliveries(webhookId: number, limit = 20): Promise<readonly WebhookDeliveryLogRow[]> {
+    const rows = resultRows<{
+      id: number
+      delivery_id: string
+      topic: string
+      status: string
+      attempts: number
+      last_status_code: number | null
+      last_error: string | null
+      created_at: Date | string
+      completed_at: Date | string | null
+    }>(
+      await this.db.execute(sql`
+      select id, delivery_id, topic, status, attempts, last_status_code, last_error,
+             created_at, completed_at
+      from webhook_deliveries
+      where webhook_id = ${webhookId}
+      order by created_at desc, id desc
+      limit ${limit}
+    `),
+    )
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      deliveryId: row.delivery_id,
+      topic: row.topic,
+      status: row.status,
+      attempts: Number(row.attempts),
+      lastStatusCode: row.last_status_code === null ? null : Number(row.last_status_code),
+      lastError: row.last_error,
+      createdAt: new Date(row.created_at),
+      completedAt: row.completed_at === null ? null : new Date(row.completed_at),
+    }))
+  }
+
+  async create(input: {
+    readonly url: string
+    readonly secret: string
+    readonly topics: readonly WebhookTopic[]
+    readonly active: boolean
+    readonly format: WebhookFormat
+    readonly createdBy: number | null
+  }): Promise<number> {
+    const rows = resultRows<{ id: number }>(
+      await this.db.execute(sql`
+      insert into webhooks (url, secret, topics, active, format, created_by)
+      values (${input.url}, ${input.secret}, ${JSON.stringify(input.topics)}::jsonb,
+              ${input.active}, ${input.format}, ${input.createdBy})
+      returning id
+    `),
+    )
+
+    return rows[0]!.id
+  }
+
+  async setActive(id: number, active: boolean): Promise<boolean> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+      update webhooks set active = ${active}
+      where id = ${id}
+      returning id
+    `),
+    )
+    return rows.length > 0
+  }
+
+  async remove(id: number): Promise<boolean> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+      delete from webhooks where id = ${id} returning id
+    `),
+    )
+    return rows.length > 0
   }
 
   async claimDue(now: Date, limit: number): Promise<readonly WebhookDeliveryRow[]> {
-    const rows = (await this.db.execute(sql`
+    const rows = resultRows<{
+      id: number
+      webhook_id: number
+      delivery_id: string
+      topic: string
+      payload: Record<string, unknown>
+      attempts: number
+      url: string
+      secret: string
+    }>(
+      await this.db.execute(sql`
       with due as (
         select d.id
         from webhook_deliveries d
@@ -217,16 +394,8 @@ export class PostgresWebhookRepository {
       from due, webhooks w
       where d.id = due.id and w.id = d.webhook_id
       returning d.id, d.webhook_id, d.delivery_id, d.topic, d.payload, d.attempts, w.url, w.secret
-    `)) as unknown as {
-      id: number
-      webhook_id: number
-      delivery_id: string
-      topic: string
-      payload: Record<string, unknown>
-      attempts: number
-      url: string
-      secret: string
-    }[]
+    `),
+    )
 
     return rows.map((row) => ({
       id: row.id,
@@ -265,12 +434,14 @@ export class PostgresWebhookRepository {
   }
 
   async retryDead(id: number, at: Date): Promise<boolean> {
-    const rows = (await this.db.execute(sql`
+    const rows = resultRows(
+      await this.db.execute(sql`
       update webhook_deliveries
       set status = 'pending', attempts = 0, next_attempt_at = ${at}, last_error = null
       where id = ${id} and status = 'dead'
       returning id
-    `)) as unknown as unknown[]
+    `),
+    )
     return rows.length > 0
   }
 }

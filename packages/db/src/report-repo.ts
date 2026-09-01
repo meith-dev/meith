@@ -192,6 +192,19 @@ export class PostgresReportRepository implements ReportRepository {
         insert into report_events (report_id, actor_user_id, kind, created_at)
         values (${row.id}, ${report.reporterUserId}, 'opened', ${report.at})
       `)
+
+      await tx.execute(sql`
+        insert into outbox (topic, payload)
+        values (
+          'report.created',
+          ${JSON.stringify({
+            reportId: Number(row.id),
+            targetKind: report.target.kind,
+            targetId: report.target.id,
+            reporterId: report.reporterUserId,
+          })}::jsonb
+        )
+      `)
       return Number(row.id)
     })
   }

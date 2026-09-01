@@ -44,6 +44,7 @@ Operating the server:
 
 - [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, web push, the cookies and security headers the board serves, and troubleshooting.
 - [Monitoring & alerting](./guides/operations/monitoring.md) — liveness versus readiness, metrics, tracing, and logs.
+- [Webhooks](./guides/operations/webhooks.md) — deliver board events to an endpoint you choose, and verify the signatures.
 - [Upgrading](./guides/operations/upgrading.md) — move between released versions safely.
 - [Disaster recovery](./guides/operations/disaster-recovery.md) — restore a board when the original server is unavailable.
 - [Signing in](./guides/operations/single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.
