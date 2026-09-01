@@ -157,6 +157,38 @@ async function grantableGroup(
   return { id: Number(row.id), key: String(row.key) }
 }
 
+async function readableGroup(
+  db: Database,
+  pluginKey: string,
+  groupKey: string,
+): Promise<GrantableGroup | null> {
+  const rows = resultRows(
+    await db.execute(sql`select * from usergroups where key = ${groupKey} limit 1`),
+  ) as Array<Record<string, unknown>>
+
+  const row = rows[0]
+  if (row === undefined || row.plugin_grantable !== true) return null
+
+  const where = `plugin "${pluginKey}"`
+  if (row.is_system === true) {
+    throw new ValidationError(
+      `${where}: "${groupKey}" is a system group. The board resolves it by key; its membership is not a plugin's to read.`,
+    )
+  }
+  if (row.is_staff_group === true) {
+    throw new ValidationError(
+      `${where}: "${groupKey}" is a staff group, and staff standing is not a plugin's to read.`,
+    )
+  }
+  if (permissionsCarryPower(groupRowToPermissionSet(camelise(row)))) {
+    throw new ValidationError(
+      `${where}: "${groupKey}" carries administrative or moderation power, so no plugin may read its membership.`,
+    )
+  }
+
+  return { id: Number(row.id), key: String(row.key) }
+}
+
 function checkedUntil(pluginKey: string, until: Date, now: Date): Date {
   if (!(until instanceof Date) || Number.isNaN(until.getTime())) {
     throw new ValidationError(`plugin "${pluginKey}": the grant needs a valid expiry date.`)
@@ -329,6 +361,57 @@ export function pluginGrants(
       return rows
         .filter((row): row is { groupKey: string; expiresAt: Date } => row.expiresAt !== null)
         .map((row): PluginGrantRow => ({ groupKey: row.groupKey, expiresAt: row.expiresAt }))
+    },
+
+    async holds(userId, groupKey) {
+      const group = await readableGroup(db, pluginKey, groupKey)
+      if (group === null) return false
+
+      const now = clock()
+
+      const userRows = resultRows(
+        await db.execute(
+          sql`select primary_group_id from users where id = ${userId} and deleted_at is null limit 1`,
+        ),
+      ) as Array<{ primary_group_id: number }>
+      const user = userRows[0]
+      if (user === undefined) return false
+
+      const membershipRows = resultRows(
+        await db.execute(sql`
+          select group_id, expires_at, previous_primary_group_id
+            from user_group_memberships
+           where user_id = ${userId}
+        `),
+      ) as Array<{
+        group_id: number
+        expires_at: Date | string | null
+        previous_primary_group_id: number | null
+      }>
+
+      const rows = membershipRows.map((row) => ({
+        groupId: Number(row.group_id),
+        expiresAt: row.expires_at === null ? null : new Date(row.expires_at),
+        previousPrimary:
+          row.previous_primary_group_id === null ? null : Number(row.previous_primary_group_id),
+      }))
+
+      const held = Number(user.primary_group_id)
+      const lapsed = rows.find(
+        (row) =>
+          row.groupId === held &&
+          row.previousPrimary !== null &&
+          row.expiresAt !== null &&
+          row.expiresAt.getTime() <= now.getTime(),
+      )
+      const effectivePrimary = lapsed?.previousPrimary ?? held
+      if (effectivePrimary === group.id) return true
+
+      return rows.some(
+        (row) =>
+          row.groupId === group.id &&
+          (row.expiresAt === null || row.expiresAt.getTime() > now.getTime()),
+      )
     },
   }
 }

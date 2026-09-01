@@ -261,6 +261,36 @@ describe('routes and pages', () => {
     expect(board.health()[0]).toMatchObject({ calls: 1, failures: 0 })
   })
 
+  it('reads whether the viewer holds a group through grants.holds', async () => {
+    resetRecorder()
+    const route = (referencePlugin.routes ?? []).find((entry) => entry.path === 'poke')!
+
+    const answer = await route.handler(
+      {
+        viewer: { userId: 7, isGuest: false },
+        method: 'POST',
+        path: 'poke',
+        query: {},
+        headers: {},
+        rawBody: null,
+        form: null,
+        json: null,
+        boardUrl: '',
+      },
+      {
+        settings: {},
+        logger: { info: () => {}, warn: () => {}, error: () => {} },
+        grants: { ...unavailablePluginGrants('test'), holds: async () => true },
+        data: unavailablePluginData('test'),
+        users: unavailablePluginUsers('test'),
+        notify: { send: async () => {} },
+      },
+    )
+
+    expect(answer).toEqual({ kind: 'json', body: { poked: true, supporter: true } })
+    expect(RECORDED.grants).toEqual([{ userId: 7, groupKey: 'supporters', held: true }])
+  })
+
   it('hands the raw-body route its exact bytes', async () => {
     resetRecorder()
     const route = (referencePlugin.routes ?? []).find((entry) => entry.path === 'hook/echo')!

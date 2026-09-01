@@ -127,10 +127,14 @@ describe('what crosses the boundary', () => {
   it('hands out grants and data that refuse cleanly when the board runs on sample data', async () => {
     await renderPluginAdminPage('alpha', 'report')
     const context = handed as {
-      grants: { list(userId: number): Promise<unknown> }
+      grants: {
+        list(userId: number): Promise<unknown>
+        holds(userId: number, groupKey: string): Promise<unknown>
+      }
       data: { query(text: string): Promise<unknown> }
     }
     await expect(context.grants.list(1)).rejects.toThrow(/sample data/)
+    await expect(context.grants.holds(1, 'supporters')).rejects.toThrow(/sample data/)
     await expect(context.data.query('select 1')).rejects.toThrow(/sample data/)
   })
 })

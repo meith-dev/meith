@@ -549,7 +549,8 @@ care which of these a plugin is building.
 await context.grants.grant({ userId, groupKey: 'supporters', until, reason: 'order 42 paid' })
 await context.grants.extend({ userId, groupKey: 'supporters', until })
 await context.grants.revoke({ userId, groupKey: 'supporters', reason: 'refunded' })
-const held = await context.grants.list(userId)
+const granted = await context.grants.list(userId)
+const isSupporter = await context.grants.holds(userId, 'supporters')
 ```
 
 What keeps this from being "a plugin deciding authorization" is the list of
@@ -582,6 +583,44 @@ task deletes lapsed rows afterwards and bumps the permission version so
 derived caches follow. Re-granting and extending only ever move an expiry
 **forward**: a stale or replayed call cannot shorten what a member already
 holds.
+
+### Reading whether a member holds a group
+
+`list` reports only the grants **this plugin** made. `holds` answers a
+different question — *does this member hold this group right now* — and it
+does not care how the membership arose: a primary group, a plain secondary,
+a grant from an administrator or from another plugin all count. The question
+is "holds", not "was granted by me".
+
+```ts
+const isSupporter = await context.grants.holds(userId, 'supporters')
+```
+
+It is **read-side of the same privacy line as the write.** A plugin is never
+handed group membership — the viewer on a payload is `{ userId, isGuest }`,
+never an `Actor` — and `holds` does not widen that. It reads only groups the
+operator has ticked **"may be granted by plugins"**, the same opt-in `grant`
+requires. Ticking it is the operator's consent to make that one group's
+membership plugin-visible, in both directions; every other group stays
+invisible.
+
+So the refusals mirror the write side:
+
+- A group the operator has **not** opted in returns `false` — the same answer
+  as a member who is not in it, and deliberately so. A plugin cannot tell an
+  opted-out group apart from one nobody holds, and cannot probe for a group's
+  existence. A group key that names nothing returns `false` for the same
+  reason.
+- A **system** or **staff** group, or one whose permissions carry
+  administrative or moderation power, is **refused** even if it has somehow
+  been marked grantable — membership of those is never a plugin's to read,
+  exactly as it is never a plugin's to grant.
+
+`holds` reads standing the same way the board itself does: a grant that has
+lapsed confers nothing from the moment it expires, before any sweep deletes
+its row, and a promotion whose grant has lapsed falls back to the group
+behind it. On a fixture-mode board, where there is no membership table, it
+refuses with a clear error rather than guessing.
 
 ### Selling the group a member wears
 
