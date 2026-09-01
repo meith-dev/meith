@@ -325,6 +325,58 @@ describe('definePlugin', () => {
     it('refuses a duplicate id', () => {
       expect(() => plugin({ tasks: [task('sweep'), task('sweep')] })).toThrow(/declared twice/)
     })
+
+    it('accepts a five-field cron schedule', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 9 * * 1', run: () => {} }] }),
+      ).not.toThrow()
+    })
+
+    it('refuses a task that sets neither a cadence nor a schedule', () => {
+      expect(() => plugin({ tasks: [{ id: 'sweep', run: () => {} } as never] })).toThrow(
+        /exactly one/,
+      )
+    })
+
+    it('refuses a task that sets both a cadence and a schedule', () => {
+      expect(() =>
+        plugin({
+          tasks: [
+            { id: 'sweep', intervalSeconds: 300, schedule: '0 9 * * 1', run: () => {} } as never,
+          ],
+        }),
+      ).toThrow(/exactly one/)
+    })
+
+    it('refuses a six-field schedule, which would breach the minute floor', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 9 * * 1', run: () => {} }] }),
+      ).toThrow(/sixth field/)
+    })
+
+    it('refuses a malformed schedule at definePlugin time, not at first tick', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '99 9 * * 1', run: () => {} }] }),
+      ).toThrow(/minute/)
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 9 * * MON', run: () => {} }] }),
+      ).toThrow(/whole number/)
+    })
+
+    it('refuses a well-formed but unsatisfiable schedule', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 30 2 *', run: () => {} }] }),
+      ).toThrow(/satisfiable/)
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 31 4 *', run: () => {} }] }),
+      ).toThrow(/satisfiable/)
+    })
+
+    it('accepts a leap-day schedule, which is satisfiable within four years', () => {
+      expect(() =>
+        plugin({ tasks: [{ id: 'digest', schedule: '0 0 29 2 *', run: () => {} }] }),
+      ).not.toThrow()
+    })
   })
 
   describe('notification kinds', () => {

@@ -65,6 +65,71 @@ describe('ensureRegistered', () => {
     expect(row?.next?.getTime()).toBeLessThanOrEqual(new Date('2000-01-01').getTime())
   })
 
+  it('honours a firstRunAt so a scheduled task waits for its next window', async () => {
+    const firstRunAt = new Date('2026-08-31T09:00:00Z')
+    await repo.ensureRegistered([
+      { id: 'a', intervalSeconds: 604_800, schedule: '0 9 * * 1', firstRunAt },
+    ])
+
+    const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
+    expect(row?.next?.toISOString()).toBe(firstRunAt.toISOString())
+    expect(await repo.claim(claimArgs('a', new Date('2026-08-30T09:00:00Z')))).toBeNull()
+  })
+
+  it('keeps a scheduled task cron-accurate when its derived cadence changes on restart', async () => {
+    const firstRunAt = new Date('2026-09-07T09:00:00Z')
+    await repo.ensureRegistered([
+      { id: 'a', intervalSeconds: 604_800, schedule: '0 9 * * 1', firstRunAt },
+    ])
+
+    await repo.ensureRegistered([
+      {
+        id: 'a',
+        intervalSeconds: 86_400,
+        schedule: '0 9 * * 1',
+        firstRunAt: new Date('2026-09-14T09:00:00Z'),
+      },
+    ])
+
+    const [row] = await db
+      .select({ next: tasks.nextRunAt, interval: tasks.intervalSeconds, schedule: tasks.schedule })
+      .from(tasks)
+    expect(row?.next?.toISOString()).toBe(firstRunAt.toISOString())
+    expect(row?.interval).toBe(86_400)
+    expect(row?.schedule).toBe('0 9 * * 1')
+  })
+
+  it('lets release own a scheduled task next run, undisturbed by a later re-registration', async () => {
+    await repo.ensureRegistered([
+      {
+        id: 'a',
+        intervalSeconds: 604_800,
+        schedule: '0 9 * * 1',
+        firstRunAt: new Date('2026-09-07T09:00:00Z'),
+      },
+    ])
+    await repo.claim(claimArgs('a', new Date('2026-09-07T09:00:00Z')))
+    const releaseNext = new Date('2026-09-14T09:00:00Z')
+    await repo.release({
+      taskId: 'a',
+      finishedAt: new Date('2026-09-07T09:00:05Z'),
+      success: true,
+      nextRunAt: releaseNext,
+    })
+
+    await repo.ensureRegistered([
+      {
+        id: 'a',
+        intervalSeconds: 86_400,
+        schedule: '0 9 * * 1',
+        firstRunAt: new Date('2026-09-21T09:00:00Z'),
+      },
+    ])
+
+    const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
+    expect(row?.next?.toISOString()).toBe(releaseNext.toISOString())
+  })
+
   it('moves the due time when the cadence changes, rather than honouring the old one', async () => {
     await repo.ensureRegistered([{ id: 'a', intervalSeconds: 86_400 }])
     await repo.claim(claimArgs('a'))
@@ -210,6 +275,14 @@ describe('release', () => {
 
     const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
     expect(row?.next?.toISOString()).toBe(new Date(finished.getTime() + 60_000).toISOString())
+  })
+
+  it('honours an explicit next run, which is how a cron schedule is respected', async () => {
+    const nextRunAt = new Date('2026-08-31T09:00:00Z')
+    await repo.release({ taskId: 'a', finishedAt: NOW, success: true, nextRunAt })
+
+    const [row] = await db.select({ next: tasks.nextRunAt }).from(tasks)
+    expect(row?.next?.toISOString()).toBe(nextRunAt.toISOString())
   })
 
   it('records a successful run in the log', async () => {

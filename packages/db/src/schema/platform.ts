@@ -122,6 +122,8 @@ export const tasks = pgTable('tasks', {
 
   intervalSeconds: integer('interval_seconds').notNull(),
 
+  schedule: text('schedule'),
+
   enabled: boolean('enabled').notNull().default(true),
 
   lastRunAt: timestamp('last_run_at', { withTimezone: true }),

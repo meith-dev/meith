@@ -4,7 +4,8 @@ import { definePlugin, pluginEnabledKey } from '@meith/plugin-kit'
 
 const stored = { current: new Map<string, string>() }
 
-vi.mock('@meith/core', () => ({
+vi.mock('@meith/core', async (importActual) => ({
+  ...(await importActual<typeof import('@meith/core')>()),
   logger: () => ({ info: () => {}, warn: () => {}, error: () => {} }),
   readPluginEnv: () => undefined,
 }))
@@ -76,6 +77,19 @@ describe('registration', () => {
     })
 
     expect(pluginTasks({ db, plugins: [plugin] })[0]?.description).toContain('alpha')
+  })
+
+  it('passes a cron schedule through and derives a health cadence from it', () => {
+    const plugin = definePlugin({
+      key: 'alpha',
+      name: 'Alpha',
+      version: '1.0.0',
+      tasks: [{ id: 'digest', schedule: '0 9 * * 1', run: () => {} }],
+    })
+
+    const [task] = pluginTasks({ db, plugins: [plugin] })
+    expect(task?.schedule).toBe('0 9 * * 1')
+    expect(task?.intervalSeconds).toBe(604_800)
   })
 })
 

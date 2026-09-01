@@ -140,6 +140,13 @@ export const referencePlugin = definePlugin({
         RECORDED.tasks.push('sweep')
       },
     },
+    {
+      id: 'digest',
+      schedule: '0 9 * * 1',
+      run: () => {
+        RECORDED.tasks.push('digest')
+      },
+    },
   ],
 
   adminPages: [

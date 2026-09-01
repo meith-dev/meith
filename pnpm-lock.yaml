@@ -957,7 +957,11 @@ importers:
         specifier: workspace:*
         version: link:../i18n
 
-  packages/tasks: {}
+  packages/tasks:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:^
+        version: link:../core
 
   packages/testkit:
     dependencies:

@@ -60,6 +60,7 @@
   "packages/avatars/src/index.ts": 4,
   "packages/core/src/cache.ts": 2,
   "packages/core/src/config.ts": 2,
+  "packages/core/src/cron.ts": 5,
   "packages/core/src/env.ts": 55,
   "packages/core/src/errors.ts": 7,
   "packages/core/src/metrics.ts": 1,

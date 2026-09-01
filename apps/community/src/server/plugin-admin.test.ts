@@ -62,7 +62,8 @@ vi.mock('./plugin-host', async (importOriginal) => ({
 const dataSource = { current: 'postgres' as 'postgres' | 'fixture' }
 const applied = { current: ['0001_first'] as readonly string[], throws: false }
 
-vi.mock('@meith/core', () => ({
+vi.mock('@meith/core', async (importActual) => ({
+  ...(await importActual<typeof import('@meith/core')>()),
   get env() {
     return { DATA_SOURCE: dataSource.current }
   },
@@ -97,7 +98,10 @@ const ALPHA = {
     { id: '0001_first', statements: ['create table plugin_alpha_first (id int)'] },
     { id: '0002_second', statements: ['create table plugin_alpha_second (id int)'] },
   ],
-  tasks: [{ id: 'sweep', intervalSeconds: 300, run: () => {} }],
+  tasks: [
+    { id: 'sweep', intervalSeconds: 300, run: () => {} },
+    { id: 'digest', schedule: '0 9 * * 1', run: () => {} },
+  ],
   adminPages: [{ path: 'report', title: 'Report', render: () => null }],
   contributions: [{ region: 'board-index', render: () => null }],
 }
@@ -274,7 +278,13 @@ describe('the rest of the manifest', () => {
   it('namespaces the task ids the way the registry will', async () => {
     const [row] = (await pluginInventory()).plugins
     expect(row?.tasks).toEqual([
-      { id: 'sweep', registeredId: 'plugin.alpha.sweep', intervalSeconds: 300 },
+      { id: 'sweep', registeredId: 'plugin.alpha.sweep', intervalSeconds: 300, schedule: null },
+      {
+        id: 'digest',
+        registeredId: 'plugin.alpha.digest',
+        intervalSeconds: 604_800,
+        schedule: '0 9 * * 1',
+      },
     ])
   })
 

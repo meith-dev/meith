@@ -10,6 +10,9 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "dependencies": {
+    "@meith/core": "workspace:^"
+  },
   "files": [
     "src",
     "!src/**/*.test.*",
