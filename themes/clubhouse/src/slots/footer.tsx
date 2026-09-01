@@ -8,6 +8,7 @@ export function Footer({
   links,
   timezoneLabel,
   poweredBy,
+  regions,
   copy,
 }: FooterModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `clubhouse.footer.${key}`)
@@ -16,6 +17,13 @@ export function Footer({
     <footer className="mt-auto">
       <ClubRule />
       <div className="bg-card">
+        {regions?.controls && (
+          <div
+            className={`${PAGE} flex flex-wrap items-center justify-end gap-x-6 gap-y-2 border-b border-border py-3`}
+          >
+            {regions.controls}
+          </div>
+        )}
         <div
           className={`${PAGE} flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6`}
         >
@@ -36,7 +44,7 @@ export function Footer({
               {c('timesShownIn')} {timezoneLabel}
             </span>
             {poweredBy && (
-              <a href={poweredBy.href} className={MUTED_LINK}>
+              <a href={poweredBy.href} target="_blank" rel="noreferrer" className={MUTED_LINK}>
                 {poweredBy.label}
               </a>
             )}

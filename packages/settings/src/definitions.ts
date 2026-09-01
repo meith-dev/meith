@@ -91,6 +91,21 @@ export const SETTING_DEFINITIONS = [
     ui: { multiline: true },
   }),
   define({
+    key: 'board.install_banner',
+    group: 'board',
+    label: 'Offer to install the board',
+    description:
+      'Pins a dismissable bar to the bottom of small screens inviting the reader ' +
+      'to add this board to their home screen, with an Install button that opens ' +
+      'the browser prompt where one exists and brief directions where none does. ' +
+      'It never shows inside the installed app, and dismissing it keeps it away ' +
+      'on that device for a year. Off by default: turn it on while you want ' +
+      'installs encouraged, and off again once the point is made.',
+    schema: z.boolean(),
+    default: false,
+    invalidates: ['settings', 'layout'],
+  }),
+  define({
     key: 'board.offline',
     group: 'board',
     label: 'Board offline',

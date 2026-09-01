@@ -6,7 +6,7 @@ import {
   pluginTabClass,
 } from '@meith/plugin-kit'
 
-import { mayAdd, resolveCalendarConfig } from '../access'
+import { mayAdd, mayManage, resolveCalendarConfig } from '../access'
 import {
   type CalendarEvent,
   dayParts,
@@ -16,7 +16,7 @@ import {
   relativeHint,
 } from '../events'
 import en from '../messages/en.json'
-import { organiserIds, pastEvents, upcomingEvents } from '../store'
+import { eventById, organiserIds, pastEvents, upcomingEvents } from '../store'
 import { EventLink } from './event-link'
 
 export const UPCOMING_LIMIT = 50
@@ -45,11 +45,13 @@ function EventRow({
   locale,
   now,
   context,
+  manageable,
 }: {
   event: CalendarEvent
   locale: string
   now: Date
   context: PluginPageContext
+  manageable: boolean
 }) {
   const href = eventHref(event)
 
@@ -67,7 +69,7 @@ function EventRow({
           {event.location !== '' && <span> · {event.location}</span>}
         </p>
 
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <span className="text-muted-foreground">{relativeHint(event.startsAt, now, locale)}</span>
           {href !== null && (
             <a className="underline underline-offset-2" href={href}>
@@ -80,7 +82,23 @@ function EventRow({
           >
             {translated(context, 'calendar.event.download')}
           </a>
-        </p>
+          {manageable && (
+            <>
+              <a
+                className="underline underline-offset-2"
+                href={`/plugins/calendar?edit=${event.id}`}
+              >
+                {translated(context, 'calendar.event.edit')}
+              </a>
+              <form method="post" action="/api/plugins/calendar/events/delete">
+                <input type="hidden" name="id" value={event.id} />
+                <button type="submit" className="underline underline-offset-2">
+                  {translated(context, 'calendar.event.delete')}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
 
         <EventLink event={event} label={translated(context, 'calendar.event.linkFallback')} />
       </div>
@@ -93,11 +111,13 @@ function Agenda({
   locale,
   now,
   context,
+  organisers,
 }: {
   events: readonly CalendarEvent[]
   locale: string
   now: Date
   context: PluginPageContext
+  organisers: readonly number[]
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -108,7 +128,18 @@ function Agenda({
           </h2>
           <ul className="divide-border divide-y">
             {month.events.map((event) => (
-              <EventRow key={event.id} event={event} locale={locale} now={now} context={context} />
+              <EventRow
+                key={event.id}
+                event={event}
+                locale={locale}
+                now={now}
+                context={context}
+                manageable={mayManage({
+                  userId: context.viewer.userId,
+                  createdByUserId: event.createdByUserId,
+                  organisers,
+                })}
+              />
             ))}
           </ul>
         </section>
@@ -117,31 +148,76 @@ function Agenda({
   )
 }
 
-function AddForm({ context }: { context: PluginPageContext }) {
+function toDateTimeInput(date: Date | null): string {
+  return date === null ? '' : date.toISOString().slice(0, 16)
+}
+
+function EventForm({
+  context,
+  event,
+}: {
+  context: PluginPageContext
+  event: CalendarEvent | null
+}) {
+  const action =
+    event === null ? '/api/plugins/calendar/events' : '/api/plugins/calendar/events/update'
+  const heading = translated(
+    context,
+    event === null ? 'calendar.event.add' : 'calendar.event.editTitle',
+  )
+  const submit = translated(context, event === null ? 'calendar.event.add' : 'calendar.event.save')
+
   return (
-    <form method="post" action="/api/plugins/calendar/events" className={PLUGIN_CARD}>
-      <h2 className="font-semibold">{translated(context, 'calendar.event.add')}</h2>
+    <form method="post" action={action} className={PLUGIN_CARD}>
+      <h2 className="font-semibold">{heading}</h2>
+      {event !== null && <input type="hidden" name="id" value={event.id} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
           {translated(context, 'calendar.event.title')}
-          <input name="title" required maxLength={120} className="rounded border p-1.5" />
+          <input
+            name="title"
+            required
+            maxLength={120}
+            defaultValue={event?.title ?? ''}
+            className="rounded border p-1.5"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.starts')}
-          <input name="starts_at" type="datetime-local" required className="rounded border p-1.5" />
+          <input
+            name="starts_at"
+            type="datetime-local"
+            required
+            defaultValue={toDateTimeInput(event?.startsAt ?? null)}
+            className="rounded border p-1.5"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.until')}
-          <input name="ends_at" type="datetime-local" className="rounded border p-1.5" />
+          <input
+            name="ends_at"
+            type="datetime-local"
+            defaultValue={toDateTimeInput(event?.endsAt ?? null)}
+            className="rounded border p-1.5"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.location')}
-          <input name="location" maxLength={120} className="rounded border p-1.5" />
+          <input
+            name="location"
+            maxLength={120}
+            defaultValue={event?.location ?? ''}
+            className="rounded border p-1.5"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.thread')}
-          <input name="thread" className="rounded border p-1.5" />
+          <input
+            name="thread"
+            defaultValue={event?.threadId == null ? '' : String(event.threadId)}
+            className="rounded border p-1.5"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.link')}
@@ -150,6 +226,7 @@ function AddForm({ context }: { context: PluginPageContext }) {
             type="url"
             maxLength={500}
             placeholder="https://"
+            defaultValue={event?.linkUrl ?? ''}
             className="rounded border p-1.5"
           />
           <span className="text-muted-foreground text-xs">
@@ -158,16 +235,28 @@ function AddForm({ context }: { context: PluginPageContext }) {
         </label>
         <label className="flex flex-col gap-1 text-sm">
           {translated(context, 'calendar.event.linkText')}
-          <input name="link_text" maxLength={40} className="rounded border p-1.5" />
+          <input
+            name="link_text"
+            maxLength={40}
+            defaultValue={event?.linkLabel ?? ''}
+            className="rounded border p-1.5"
+          />
           <span className="text-muted-foreground text-xs">
             {translated(context, 'calendar.event.linkTextHint')}
           </span>
         </label>
       </div>
 
-      <button type="submit" className="bg-muted self-start rounded border px-3 py-1.5 text-sm">
-        {translated(context, 'calendar.event.add')}
-      </button>
+      <div className="flex items-center gap-3">
+        <button type="submit" className="bg-muted rounded border px-3 py-1.5 text-sm">
+          {submit}
+        </button>
+        {event !== null && (
+          <a className="text-sm underline underline-offset-2" href="/plugins/calendar">
+            {translated(context, 'calendar.event.cancel')}
+          </a>
+        )}
+      </div>
     </form>
   )
 }
@@ -186,6 +275,22 @@ export async function CalendarPage(context: PluginPageContext) {
   ])
 
   const verdict = mayAdd({ userId: context.viewer.userId, config, organisers })
+
+  const editId = context.query.edit?.trim() ?? ''
+  let editing: CalendarEvent | null = null
+  if (/^\d+$/.test(editId)) {
+    const found = await eventById(context.data, editId).catch(() => null)
+    if (
+      found !== null &&
+      mayManage({
+        userId: context.viewer.userId,
+        createdByUserId: found.createdByUserId,
+        organisers,
+      })
+    ) {
+      editing = found
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -217,12 +322,24 @@ export async function CalendarPage(context: PluginPageContext) {
           {translated(context, showingPast ? 'calendar.page.emptyPast' : 'calendar.page.empty')}
         </p>
       ) : (
-        <Agenda events={events} locale={context.locale} now={now} context={context} />
+        <Agenda
+          events={events}
+          locale={context.locale}
+          now={now}
+          context={context}
+          organisers={organisers}
+        />
       )}
 
-      {!showingPast && verdict === 'allowed' && <AddForm context={context} />}
-      {!showingPast && verdict === 'not-an-organiser' && (
-        <p className={PLUGIN_NOTE}>{translated(context, 'calendar.error.notAnOrganiser')}</p>
+      {editing !== null ? (
+        <EventForm context={context} event={editing} />
+      ) : (
+        <>
+          {!showingPast && verdict === 'allowed' && <EventForm context={context} event={null} />}
+          {!showingPast && verdict === 'not-an-organiser' && (
+            <p className={PLUGIN_NOTE}>{translated(context, 'calendar.error.notAnOrganiser')}</p>
+          )}
+        </>
       )}
     </div>
   )

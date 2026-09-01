@@ -1,9 +1,17 @@
 import type { PluginRequest, PluginResponse, PluginRuntimeContext } from '@meith/plugin-kit'
 
-import { mayAdd, resolveCalendarConfig } from './access'
-import { readDraft } from './events'
+import { mayAdd, mayManage, resolveCalendarConfig } from './access'
+import { type CalendarEvent, readDraft } from './events'
 import { ICS_CONTENT_TYPE, toIcs } from './ics'
-import { addOrganiser, createEvent, eventById, organiserIds, removeOrganiser } from './store'
+import {
+  addOrganiser,
+  createEvent,
+  deleteEvent,
+  eventById,
+  organiserIds,
+  removeOrganiser,
+  updateEvent,
+} from './store'
 
 export const CALENDAR_PATH = '/plugins/calendar'
 
@@ -35,6 +43,56 @@ export async function handleCreateEvent(
   if (draft === null) return refused(400, problems.join(','))
 
   await createEvent(context.data, draft, request.viewer.userId)
+  return seeCalendar()
+}
+
+async function manageableEvent(
+  request: PluginRequest,
+  context: PluginRuntimeContext,
+): Promise<{ event: CalendarEvent } | { refusal: PluginResponse }> {
+  const id = request.form?.id?.trim() ?? ''
+  if (!/^\d+$/.test(id)) return { refusal: refused(400, 'id-required') }
+
+  const event = await eventById(context.data, id)
+  if (event === null) return { refusal: refused(404, 'no-such-event') }
+
+  const allowed = mayManage({
+    userId: request.viewer.userId,
+    createdByUserId: event.createdByUserId,
+    organisers: await organiserIds(context.data),
+  })
+  if (!allowed) return { refusal: refused(403, 'not-yours') }
+
+  return { event }
+}
+
+export async function handleUpdateEvent(
+  request: PluginRequest,
+  context: PluginRuntimeContext,
+): Promise<PluginResponse> {
+  const form = request.form
+  if (form === null) return refused(400, 'form-required')
+
+  const found = await manageableEvent(request, context)
+  if ('refusal' in found) return found.refusal
+
+  const { draft, problems } = readDraft(form)
+  if (draft === null) return refused(400, problems.join(','))
+
+  await updateEvent(context.data, found.event.id, draft)
+  return seeCalendar()
+}
+
+export async function handleDeleteEvent(
+  request: PluginRequest,
+  context: PluginRuntimeContext,
+): Promise<PluginResponse> {
+  if (request.form === null) return refused(400, 'form-required')
+
+  const found = await manageableEvent(request, context)
+  if ('refusal' in found) return found.refusal
+
+  await deleteEvent(context.data, found.event.id)
   return seeCalendar()
 }
 
