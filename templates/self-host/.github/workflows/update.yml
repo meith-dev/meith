@@ -1,0 +1,72 @@
+# Opens a pull request whenever a new Meith release is out — see README.md,
+# "Upgrading". Once a week, and on the Run workflow button, it runs the same
+# updater you can run by hand, `npx create-meith@latest update`: every
+# @meith/* pin and next moved together in package.json, and the deploy files
+# the scaffold owns rewritten to the new release's shape. A file you have
+# edited yourself is never rewritten; the run's log names any it left alone.
+#
+# One-time setup: under Settings → Actions → General, enable "Allow GitHub
+# Actions to create and approve pull requests" — without it the last step
+# fails, saying GitHub Actions is not permitted to create pull requests.
+#
+# Merging is still an upgrade, not a formality: read the release notes the
+# pull request links, take a backup first, and once the new version serves,
+# run `meith upgrade` against it. Migrations are forward-only — the backup
+# is the rollback.
+name: Meith update
+
+on:
+  schedule:
+    - cron: '30 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Update Meith
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Run the updater
+        run: npx --yes create-meith@latest update
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Already up to date."
+            exit 0
+          fi
+          VERSION=$(node -p "require('./package.json').dependencies['@meith/web']")
+          BODY="$RUNNER_TEMP/meith-update-body.md"
+          {
+            echo "Updates this board to Meith $VERSION — every @meith/* package and"
+            echo "next moved together, and the scaffold-owned deploy files rewritten"
+            echo "to this release's shape. Files with local edits were left alone;"
+            echo "this workflow run's log names any it skipped."
+            echo
+            echo "Before merging and deploying:"
+            echo
+            echo "1. Read the release notes — their Migrations line says what this"
+            echo "   release does to the schema:"
+            echo "   https://github.com/meith-dev/meith/releases/tag/v$VERSION"
+            echo "2. Take a backup. Migrations are forward-only; the backup is the"
+            echo "   rollback."
+            echo
+            echo "After the new version deploys, run 'meith upgrade' once against the"
+            echo "board — the admin panel shows a notice until it has run. See"
+            echo "README.md, \"Upgrading\"."
+          } > "$BODY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B meith-update
+          git add -A
+          git commit -m "Update Meith to $VERSION"
+          git push -f origin meith-update
+          gh pr create --title "Update Meith to $VERSION" --body-file "$BODY" \
+            || gh pr edit meith-update --title "Update Meith to $VERSION" --body-file "$BODY"

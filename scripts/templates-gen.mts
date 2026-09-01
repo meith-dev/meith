@@ -9,9 +9,10 @@ import {
   type ScaffoldTarget,
   scaffold,
 } from '../packages/create-meith/src/scaffold.ts'
+import { TEMPLATE_BOARD_NAME, TEMPLATE_REPOSITORIES } from '../packages/create-meith/src/update.ts'
 import { ROOT } from './workspace-packages.mjs'
 
-export const TEMPLATE_BOARD_NAME = 'meith-board'
+export { TEMPLATE_BOARD_NAME }
 
 export interface TemplateTarget {
   readonly target: ScaffoldTarget
@@ -20,8 +21,8 @@ export interface TemplateTarget {
 }
 
 export const TEMPLATES: readonly TemplateTarget[] = [
-  { target: 'self-host', dir: 'templates/self-host', repo: 'meith-dev/template' },
-  { target: 'vercel', dir: 'templates/vercel', repo: 'meith-dev/vercel-template' },
+  { target: 'self-host', dir: 'templates/self-host', repo: TEMPLATE_REPOSITORIES['self-host'] },
+  { target: 'vercel', dir: 'templates/vercel', repo: TEMPLATE_REPOSITORIES.vercel },
 ]
 
 export function scaffoldOptionsFor(target: ScaffoldTarget, version: string): ScaffoldOptions {

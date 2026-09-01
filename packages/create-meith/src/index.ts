@@ -26,3 +26,22 @@ export {
   scaffoldTheme,
   validateExtensionName,
 } from './scaffold-extension'
+export {
+  compareExactVersions,
+  fetchPreviousTree,
+  mergeManifest,
+  normalizeActionPins,
+  parseExactVersion,
+  planUpdate,
+  RELEASE_NOTES_URL,
+  type RunUpdateOptions,
+  runUpdate,
+  substituteBoardName,
+  TEMPLATE_BOARD_NAME,
+  TEMPLATE_REPOSITORIES,
+  templateTarballUrl,
+  type UpdateInputs,
+  type UpdatePlan,
+  type UpdateResult,
+  unpackTemplateTarball,
+} from './update'

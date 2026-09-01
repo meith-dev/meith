@@ -163,7 +163,37 @@ migrations still go through `meith upgrade`.
 
 **A board scaffolded by `create-meith`** — one with its own `package.json`
 depending on `@meith/web`, whether it deploys as a container or to Vercel —
-upgrades by moving that manifest, since nothing else names the version:
+upgrades through the updater, because more than the manifest can move
+between releases:
+
+```sh
+npx create-meith@latest update
+```
+
+Run in the board's own directory, it does three things: moves every
+`@meith/*` pin and `next` together in `package.json`, rewrites the deploy
+files the scaffold owns — the Dockerfiles, the compose files, the workflows,
+the README — to the new release's shape, and refreshes `package-lock.json`
+where one exists. To tell your edits from files the scaffold wrote, it reads
+the tree your *current* version shipped, from the deploy template
+repository's tag for that version
+([Releasing § Deploy template repositories](../../contributing/release.md#deploy-template-repositories)):
+a file that still matches it is the scaffold's to rewrite, and a file that
+does not is yours and is left alone, by name, with the template repository
+to compare against. When that tag cannot be reached — the board predates the
+tags, or there is no network — only `package.json` moves, and every deploy
+file that differs from the new release's shape is listed for review instead.
+
+A board does not even have to run it: the scaffold ships
+`.github/workflows/update.yml`, which runs the same updater once a week (and
+whenever the Actions tab's **Run workflow** button is pressed) and opens a
+pull request with the result — after a one-time
+**Settings → Actions → General → Allow GitHub Actions to create and approve
+pull requests** on the board's repository. The pull request links the
+release notes; the backup before deploying and the `meith upgrade` after it
+stay yours, exactly as on every other route.
+
+Under the updater, the version move itself is still these two commands:
 
 ```sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
