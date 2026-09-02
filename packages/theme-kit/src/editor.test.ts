@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { type Edit, fenceEdit, linkEdit, spoilerEdit, togglePrefix, toggleWrap } from './editor'
+import {
+  type Edit,
+  fenceEdit,
+  imageEdit,
+  linkEdit,
+  spoilerEdit,
+  tableEdit,
+  togglePrefix,
+  toggleWrap,
+} from './editor'
 
 const BOLD = { marker: '*', length: 2, placeholder: 'bold text' }
 const ITALIC = { marker: '*', length: 1, placeholder: 'italic text' }
@@ -124,5 +133,64 @@ describe('spoilers', () => {
     const out = press('‹›', (v, s, e) => spoilerEdit(v, s, e, 'hidden text'))
     expect(out?.text).toBe(':::spoiler\nhidden text\n:::')
     expect(out?.selected).toBe('hidden text')
+  })
+})
+
+describe('images', () => {
+  it('inserts a placeholder alt and puts the caret on the URL when nothing is selected', () => {
+    const out = press('‹›', (v, s, e) => imageEdit(v, s, e, 'alt text'))
+    expect(out?.text).toBe('![alt text](url)')
+    expect(out?.selected).toBe('url')
+  })
+
+  it('wraps a selection as the alt text and puts the caret on the URL', () => {
+    const out = press('‹the logo›', (v, s, e) => imageEdit(v, s, e, 'alt text'))
+    expect(out?.text).toBe('![the logo](url)')
+    expect(out?.selected).toBe('url')
+  })
+
+  it('inserts around a caret in the middle of a word', () => {
+    const out = press('a‹b›c', (v, s, e) => imageEdit(v, s, e, 'alt text'))
+    expect(out?.text).toBe('a![b](url)c')
+    expect(out?.selected).toBe('url')
+  })
+})
+
+describe('tables', () => {
+  it('inserts a 2×2 skeleton and selects the first header cell when nothing is selected', () => {
+    const out = press('‹›', (v, s, e) => tableEdit(v, s, e, 'Heading'))
+    expect(out?.text).toBe('| Heading | Heading |\n| --- | --- |\n|  |  |')
+    expect(out?.selected).toBe('Heading')
+  })
+
+  it('replaces a selection with the skeleton, first header cell selected', () => {
+    const out = press('‹draft›', (v, s, e) => tableEdit(v, s, e, 'Heading'))
+    expect(out?.text).toBe('| Heading | Heading |\n| --- | --- |\n|  |  |')
+    expect(out?.selected).toBe('Heading')
+  })
+
+  it('starts the block on its own line from a caret mid-line, keeping the trailing text', () => {
+    const out = press('hel‹›lo', (v, s, e) => tableEdit(v, s, e, 'Heading'))
+    expect(out?.text).toBe('hel\n| Heading | Heading |\n| --- | --- |\n|  |  |\nlo')
+    expect(out?.selected).toBe('Heading')
+  })
+})
+
+describe('task lists', () => {
+  it('marks an empty line with an unchecked box', () => {
+    expect(press('‹›', (v, s, e) => togglePrefix(v, s, e, '- [ ] '))?.text).toBe('- [ ] ')
+  })
+
+  it('marks a selected line, and unmarks it when pressed again', () => {
+    expect(press('‹take out the bins›', (v, s, e) => togglePrefix(v, s, e, '- [ ] '))?.text).toBe(
+      '- [ ] take out the bins',
+    )
+    expect(
+      press('‹- [ ] take out the bins›', (v, s, e) => togglePrefix(v, s, e, '- [ ] '))?.text,
+    ).toBe('take out the bins')
+  })
+
+  it('marks the whole line from a caret inside it', () => {
+    expect(press('ta‹s›k', (v, s, e) => togglePrefix(v, s, e, '- [ ] '))?.text).toBe('- [ ] task')
   })
 })

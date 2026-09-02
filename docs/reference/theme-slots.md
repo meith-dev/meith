@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.20.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.21.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -877,7 +877,7 @@ The author block beside a post.
 | `postCount` | `CountModel` |  |
 | `joinedAt` | `TimeModel \| null` |  |
 | `signatureHtml` | `string \| null` | Pre-rendered Markdown. Trusted output of the board's own renderer. |
-| `isOnline` | `boolean` |  |
+| `isOnline` | `boolean` | Whether this author has been active inside the online window. Already resolved against the reader, the same way the who's-online list is: an author browsing invisibly reads as offline for everyone without `modcp.access`, so a theme renders this flag as given and cannot light up a dot the board means to keep dark. |
 | `fields` | `readonly { readonly label: string; readonly value: string }[]` | Custom profile fields, for the ones an operator marked for the postbit and this viewer may see. The same `{label, value}` shape `MemberProfileModel.fields` uses, and **plain text** for the same reason: it is rendered as text by the theme, and a field that could carry markup is stored XSS on the board's heaviest page. Empty on a board with no custom fields, which is most of them. |
 
 ### PostBitModel
@@ -1066,5 +1066,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.20. Nothing can be: this is the first
+Nothing is deprecated in v0.21. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

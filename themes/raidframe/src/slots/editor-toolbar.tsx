@@ -14,12 +14,15 @@ const GLYPHS: Readonly<Record<EditorTag, string>> = {
   italic: 'I',
   strikethrough: 'S',
   link: 'LINK',
+  image: 'IMG',
   quote: 'QUOTE',
   code: 'CODE',
   spoiler: 'SPLR',
   bulletedList: 'UL',
   numberedList: 'OL',
+  taskList: 'TASK',
   heading: 'H',
+  table: 'TBL',
 }
 
 const BUTTON =

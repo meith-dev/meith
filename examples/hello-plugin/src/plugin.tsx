@@ -62,13 +62,17 @@ export const helloPlugin = definePlugin({
   contributions: [
     {
       region: 'index.footer',
-      render: (context) => (
-        <p className="text-xs text-muted-foreground" data-plugin="hello">
-          {context.viewer.isGuest
-            ? 'Hello, guest — this line comes from the example plugin.'
-            : 'Hello, member — this line comes from the example plugin.'}
-        </p>
-      ),
+      render: (context) => {
+        const key = context.viewer.isGuest ? 'hello.footer.guest' : 'hello.footer.member'
+        const fallback = context.viewer.isGuest
+          ? 'Hello, guest — this line comes from the example plugin.'
+          : 'Hello, member — this line comes from the example plugin.'
+        return (
+          <p className="text-xs text-muted-foreground" data-plugin="hello">
+            {context.t.has(key) ? context.t.t(key) : fallback}
+          </p>
+        )
+      },
     },
   ],
 

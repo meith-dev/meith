@@ -50,6 +50,12 @@ const TOOLS: readonly Tool[] = [
     placeholderKey: 'composer.placeholder.struck',
   },
   { tag: 'link', labelKey: 'composer.tool.link', glyph: 'Link', shortcut: 'k' },
+  {
+    tag: 'image',
+    labelKey: 'composer.tool.image',
+    glyph: 'Image',
+    placeholderKey: 'composer.placeholder.image',
+  },
   { tag: 'quote', labelKey: 'composer.tool.quote', glyph: '“”' },
   { tag: 'code', labelKey: 'composer.tool.code', glyph: '</>' },
   {
@@ -60,7 +66,14 @@ const TOOLS: readonly Tool[] = [
   },
   { tag: 'bulletedList', labelKey: 'composer.tool.bulletedList', glyph: '•' },
   { tag: 'numberedList', labelKey: 'composer.tool.numberedList', glyph: '1.' },
+  { tag: 'taskList', labelKey: 'composer.tool.taskList', glyph: '☑' },
   { tag: 'heading', labelKey: 'composer.tool.heading', glyph: 'H' },
+  {
+    tag: 'table',
+    labelKey: 'composer.tool.table',
+    glyph: 'Table',
+    placeholderKey: 'composer.placeholder.table',
+  },
 ]
 
 function runTool(field: HTMLTextAreaElement, tool: Tool, copy: Copy): void {
@@ -504,8 +517,11 @@ function FormattingHelp({ scope }: { scope: PreviewScope }) {
     ['```', 'composer.help.codeBlock'],
     ['> quoted', 'composer.help.quote'],
     ['- item', 'composer.help.list'],
+    ['- [ ] task', 'composer.help.taskList'],
     ['## Heading', 'composer.help.heading'],
+    ['| a | b |', 'composer.help.table'],
     [':::spoiler', 'composer.help.spoiler'],
+    ['![alt](url)', 'composer.help.image'],
     ['@name', 'composer.help.mention'],
     ['[attachment=id]', 'composer.help.attachment'],
   ]

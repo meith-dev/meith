@@ -299,13 +299,13 @@ deterministic order as hooks.
 
 | Region | What it is handed |
 |---|---|
-| `header.notice` | The viewer. |
-| `index.footer` | The viewer. |
-| `postbit.badges` | The viewer, the post id and the author id. |
-| `postbit.footer` | The viewer, the post id and the author id. |
-| `thread.header` | The viewer, the thread id and the thread author’s id. |
-| `profile.panel` | The viewer and the profile’s member id. |
-| `admin.dashboard` | The viewer. |
+| `header.notice` | The viewer, with the reader’s locale and a translator. |
+| `index.footer` | The viewer, with the reader’s locale and a translator. |
+| `postbit.badges` | The viewer, the post id and the author id, with the reader’s locale and a translator. |
+| `postbit.footer` | The viewer, the post id and the author id, with the reader’s locale and a translator. |
+| `thread.header` | The viewer, the thread id and the thread author’s id, with the reader’s locale and a translator. |
+| `profile.panel` | The viewer and the profile’s member id, with the reader’s locale and a translator. |
+| `admin.dashboard` | The viewer, with the reader’s locale and a translator. |
 
 - **`header.notice`** — Directly below the board header, above the page body. Board-wide notices.
 - **`index.footer`** — The bottom of the board index, below the statistics block.

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { contentScopeFrom, PUBLIC_CONTENT } from '@meith/core'
 
@@ -208,6 +208,39 @@ describe('invisible members', () => {
     expect(snapshot.members.find((m) => m.userId === BOB)?.invisible).toBe(true)
     expect(snapshot.total).toBe(2)
     expect(snapshot.invisibleCount).toBe(1)
+  })
+})
+
+describe('presence for a set of authors', () => {
+  it('reads last-active and invisibility for the ids in a single query', async () => {
+    await db.execute(sql`update users set last_active_at = ${ago(5)} where id = ${ANN}`)
+    await db.execute(
+      sql`update users set last_active_at = ${ago(1)}, invisible = true where id = ${BOB}`,
+    )
+
+    const spy = vi.spyOn(db, 'execute')
+    const rows = await repo.lastActiveFor([ANN, BOB, CID])
+    expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
+
+    const byId = new Map(rows.map((row) => [row.userId, row]))
+    expect(byId.get(ANN)).toEqual({ userId: ANN, lastActiveAt: ago(5), invisible: false })
+    expect(byId.get(BOB)).toEqual({ userId: BOB, lastActiveAt: ago(1), invisible: true })
+    expect(byId.get(CID)).toEqual({ userId: CID, lastActiveAt: null, invisible: false })
+  })
+
+  it('omits an account that is not active', async () => {
+    await db.execute(sql`update users set state = 'banned' where id = ${CID}`)
+
+    const rows = await repo.lastActiveFor([ANN, CID])
+    expect(rows.map((row) => row.userId)).toEqual([ANN])
+  })
+
+  it('asks nothing of the database for an empty set', async () => {
+    const spy = vi.spyOn(db, 'execute')
+    expect(await repo.lastActiveFor([])).toEqual([])
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
   })
 })
 

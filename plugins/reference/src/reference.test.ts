@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { sourceTranslator } from '@meith/i18n'
+import { createTranslator, sourceTranslator } from '@meith/i18n'
 import {
   HOOKS,
   type HookName,
@@ -188,12 +188,37 @@ describe('driven through a real host', () => {
         viewer: { userId: 7, isGuest: false },
         subjectId: 1,
         authorId: 2,
+        locale: 'en',
+        t: sourceTranslator(en),
       })
       expect(nodes).toHaveLength(1)
       expect(nodes[0]?.key).toBe('reference')
     }
 
     expect([...RECORDED.regions].sort()).toEqual([...REGION_NAMES].sort())
+  })
+
+  it('hands each region the reader’s locale and a translator', async () => {
+    resetRecorder()
+    const board = host()
+    const t = createTranslator({ locale: 'de', catalog: en })
+
+    for (const region of REGION_NAMES) {
+      await board.renderRegion(region, {
+        region,
+        viewer: { userId: 7, isGuest: false },
+        subjectId: 1,
+        authorId: 2,
+        locale: t.locale,
+        t,
+      })
+    }
+
+    expect(RECORDED.regionContexts).toHaveLength(REGION_NAMES.length)
+    for (const recorded of RECORDED.regionContexts) {
+      expect(recorded.locale).toBe('de')
+      expect(recorded.label).toBe('Reference region')
+    }
   })
 
   it('never leaves the host in a failed state on a clean run', async () => {
