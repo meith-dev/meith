@@ -120,6 +120,11 @@ jobs:
       - name: Hook call sites resolve
         run: pnpm hooks:wired
 
+      # The same asymmetry for regions: a region declared in the registry that
+      # no call site renders is a promise in the reference no operator can see.
+      - name: Region call sites resolve
+        run: pnpm regions:wired
+
       # The REST reference is read by people who cannot see the source, on
       # a board they do not run. A stale endpoint list is a client that 404s.
       - name: REST API reference is current

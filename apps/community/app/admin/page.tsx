@@ -1,4 +1,5 @@
 import { ModerationQueue } from '@meith/moderation'
+import { PLUGIN_CARD } from '@meith/plugin-kit'
 import {
   Alert,
   AlertDescription,
@@ -21,6 +22,7 @@ import { adminPageContext } from '@/server/admin'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { boardRegion } from '@/server/plugin-view'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
 import { readTotals } from '@/server/stats'
 import { pendingUpgradeNotice } from '@/server/upgrade-notice'
@@ -57,6 +59,8 @@ export default async function AdminHomePage() {
   ])
 
   const allClear = pending === 0 && openReports === 0 && upgradeNotice === null
+
+  const dashboard = await boardRegion('admin.dashboard', actor, PLUGIN_CARD)
 
   return (
     <PanelPage
@@ -155,6 +159,12 @@ export default async function AdminHomePage() {
               </>
             )}
           </Card>
+        </PanelSection>
+      )}
+
+      {dashboard !== null && (
+        <PanelSection id="plugins-heading" title={await tr('page.plugins')}>
+          <div className="flex flex-col gap-4">{dashboard}</div>
         </PanelSection>
       )}
 

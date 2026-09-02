@@ -331,7 +331,7 @@ generated `templates/self-host/` and `templates/vercel/` trees back to
 check and the verify/CI parity check, the root and release checks, the
 guards and their probes, the message-catalog check, the slot checks, the
 generated-document and documentation checks (`theme:docs`, `plugin:docs`,
-`board:gen`, `hooks:wired`, `api:docs`, `perf:docs`, `docs:index`,
+`board:gen`, `hooks:wired`, `regions:wired`, `api:docs`, `perf:docs`, `docs:index`,
 `docs:links`, `site:docs`, `marketplace:gen`, `board-installer:gen`,
 `templates:gen`, `extension:gen`), lint, dependency-cruiser, all three
 typecheck projects, and the full test suite.
@@ -694,6 +694,7 @@ repository that nothing else reads:
 | `i18n:check` | A message the code names and the catalog does not carry, a message nothing reads any more, a mirrored setting label that has drifted from the catalog, or a view builder that gained a hardcoded English string. See [Languages](../guides/operations/internationalisation.md). |
 | `slots:check` | The server/client boundary in theme slots, in both directions. |
 | `hooks:wired` | A hook fired by name that the registry does not declare — the typo that would otherwise be a call nothing listens to. It also derives the wired/unwired list that `pnpm plugin:docs` publishes. |
+| `regions:wired` | A UI region declared in the registry that no call site in `apps/community` renders — the asymmetry that let `admin.dashboard` sit in the reference while rendering nowhere. It also flags a call site that renders a region the registry does not declare. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `board:gen:check` | Either board's `meith.plugins.ts` out of step with its `board.plugins.json` — see [the board plugin manifests](#the-board-plugin-manifests). |
 | `marketplace:gen:check`, `board-installer:gen:check`, `templates:gen:check` | A published artifact generated from this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and the `templates/` trees people actually deploy from. |
