@@ -9,6 +9,8 @@ export const PUSH_RECORD_SIZE = 4096
 
 export const PUSH_REQUEST_TIMEOUT_MS = 10_000
 
+export const PUSH_MAX_RESPONSE_BYTES = 8_192
+
 export const PUSH_TTL_SECONDS = 86_400
 
 const VAPID_EXPIRY_SECONDS = 12 * 60 * 60
@@ -199,6 +201,8 @@ const guardedPushFetch: typeof fetch = (async (url: string, init: RequestInit) =
     body: init.body as Uint8Array,
     timeoutMs: PUSH_REQUEST_TIMEOUT_MS,
     allowPrivateHosts,
+    maxResponseBytes: PUSH_MAX_RESPONSE_BYTES,
+    ...(init.signal ? { signal: init.signal } : {}),
   })
   return { status } as Response
 }) as unknown as typeof fetch
@@ -210,6 +214,7 @@ export async function sendWebPush(input: {
   readonly ttlSeconds?: number
   readonly now?: Date
   readonly fetchImpl?: typeof fetch
+  readonly signal?: AbortSignal
 }): Promise<PushSendResult> {
   const doFetch = input.fetchImpl ?? guardedPushFetch
 
@@ -238,7 +243,10 @@ export async function sendWebPush(input: {
       },
       body: bytes(encrypted.body),
       redirect: 'manual',
-      signal: AbortSignal.timeout(PUSH_REQUEST_TIMEOUT_MS),
+      signal:
+        input.signal === undefined
+          ? AbortSignal.timeout(PUSH_REQUEST_TIMEOUT_MS)
+          : AbortSignal.any([input.signal, AbortSignal.timeout(PUSH_REQUEST_TIMEOUT_MS)]),
     })
 
     const outcome = pushOutcomeFor(response.status)

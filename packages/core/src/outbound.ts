@@ -1,5 +1,5 @@
 import { lookup as dnsLookup } from 'node:dns'
-import { request as httpRequest } from 'node:http'
+import { type ClientRequest, request as httpRequest, type IncomingMessage } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import { BlockList, isIP, type LookupFunction } from 'node:net'
 
@@ -123,6 +123,12 @@ function pinnedLookup(allowPrivateHosts: boolean): LookupFunction {
   }
 }
 
+export const OUTBOUND_MAX_RESPONSE_BYTES = 65_536
+
+const DIAGNOSTIC_MAX = 200
+
+const REQUEST_TIMED_OUT = 'The outbound request timed out.'
+
 export interface OutboundRequest {
   readonly url: URL
   readonly method: string
@@ -130,11 +136,19 @@ export interface OutboundRequest {
   readonly body: string | Uint8Array
   readonly timeoutMs: number
   readonly allowPrivateHosts: boolean
+  readonly signal?: AbortSignal
+  readonly maxResponseBytes?: number
 }
 
 export interface OutboundResponse {
   readonly status: number
   readonly diagnostic: string
+}
+
+function abortError(signal: AbortSignal): Error {
+  const reason = signal.reason
+  if (reason instanceof Error) return reason
+  return new Error(typeof reason === 'string' && reason !== '' ? reason : REQUEST_TIMED_OUT)
 }
 
 export function guardedRequest(request: OutboundRequest): Promise<OutboundResponse> {
@@ -152,7 +166,41 @@ export function guardedRequest(request: OutboundRequest): Promise<OutboundRespon
       return
     }
 
-    const clientRequest = send(
+    if (request.signal?.aborted === true) {
+      reject(abortError(request.signal))
+      return
+    }
+
+    const maxResponseBytes = request.maxResponseBytes ?? OUTBOUND_MAX_RESPONSE_BYTES
+
+    let settled = false
+    let clientRequest: ClientRequest | undefined
+    let currentResponse: IncomingMessage | undefined
+
+    const teardown = () => {
+      clearTimeout(deadline)
+      request.signal?.removeEventListener('abort', onAbort)
+      currentResponse?.destroy()
+      clientRequest?.destroy()
+    }
+    const fail = (error: Error) => {
+      if (settled) return
+      settled = true
+      teardown()
+      reject(error)
+    }
+    const succeed = (value: OutboundResponse) => {
+      if (settled) return
+      settled = true
+      teardown()
+      resolve(value)
+    }
+
+    const deadline = setTimeout(() => fail(new Error(REQUEST_TIMED_OUT)), request.timeoutMs)
+    const onAbort = () => fail(abortError(request.signal as AbortSignal))
+    request.signal?.addEventListener('abort', onAbort, { once: true })
+
+    clientRequest = send(
       {
         protocol: request.url.protocol,
         hostname: host,
@@ -164,22 +212,34 @@ export function guardedRequest(request: OutboundRequest): Promise<OutboundRespon
         timeout: request.timeoutMs,
       },
       (response) => {
+        currentResponse = response
         let diagnostic = ''
+        let received = 0
         response.setEncoding('utf8')
         response.on('data', (chunk: string) => {
-          if (diagnostic.length < 200) diagnostic += chunk
+          received += Buffer.byteLength(chunk, 'utf8')
+          if (diagnostic.length < DIAGNOSTIC_MAX) diagnostic += chunk
+          if (received > maxResponseBytes) {
+            succeed({
+              status: response.statusCode ?? 0,
+              diagnostic: diagnostic.slice(0, DIAGNOSTIC_MAX),
+            })
+          }
         })
         response.on('end', () =>
-          resolve({ status: response.statusCode ?? 0, diagnostic: diagnostic.slice(0, 200) }),
+          succeed({
+            status: response.statusCode ?? 0,
+            diagnostic: diagnostic.slice(0, DIAGNOSTIC_MAX),
+          }),
         )
-        response.on('error', reject)
+        response.on('error', fail)
       },
     )
 
     clientRequest.on('timeout', () => {
-      clientRequest.destroy(new Error('The outbound request timed out.'))
+      fail(new Error(REQUEST_TIMED_OUT))
     })
-    clientRequest.on('error', reject)
+    clientRequest.on('error', fail)
     clientRequest.end(payload)
   })
 }

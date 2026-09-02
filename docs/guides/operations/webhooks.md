@@ -135,4 +135,7 @@ go through the board's outbound guard: the endpoint must resolve to a public
 address, and a name that resolves to a private one is refused. In
 development the guard allows private hosts; in production set
 `WEBHOOK_ALLOW_PRIVATE_HOSTS=1` only if you deliberately deliver to an
-internal address.
+internal address. Each attempt runs against a wall-clock deadline and reads
+only a bounded response, so a slow or hostile subscriber cannot hold the
+delivery task open — see [the outbound address
+policy](./operating.md#outbound-address-policy).

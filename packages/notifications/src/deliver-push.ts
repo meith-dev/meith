@@ -7,6 +7,25 @@ import type { NotificationRepository } from './types'
 
 const BODY_LIMIT = 300
 
+export const PUSH_DELIVERY_CONCURRENCY = 4
+
+async function mapBounded<T, R>(
+  items: readonly T[],
+  limit: number,
+  run: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      results[index] = await run(items[index]!)
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
 export interface PushDeliveryResult {
   readonly outcome: DeliveryOutcome
   readonly sent: number
@@ -47,6 +66,7 @@ export async function deliverNotificationPush(deps: {
   readonly translatorForLocale?: NotificationTranslatorResolver
   readonly now?: () => Date
   readonly send?: typeof sendWebPush
+  readonly signal?: AbortSignal
 }): Promise<PushDeliveryResult> {
   const nothing = { sent: 0, pruned: 0, failed: 0 }
 
@@ -73,12 +93,8 @@ export async function deliverNotificationPush(deps: {
     badge: await deps.notifications.unreadCount(deliverable.recipient.userId),
   })
 
-  let sent = 0
-  let pruned = 0
-  let failed = 0
-
-  for (const subscription of subscriptions) {
-    const result = await send({
+  const outcomes = await mapBounded(subscriptions, PUSH_DELIVERY_CONCURRENCY, (subscription) =>
+    send({
       subscription: {
         endpoint: subscription.endpoint,
         p256dh: subscription.p256dh,
@@ -87,7 +103,16 @@ export async function deliverNotificationPush(deps: {
       payload,
       vapid: deps.vapid,
       now: now(),
-    })
+      ...(deps.signal === undefined ? {} : { signal: deps.signal }),
+    }),
+  )
+
+  let sent = 0
+  let pruned = 0
+  let failed = 0
+
+  for (const [index, subscription] of subscriptions.entries()) {
+    const result = outcomes[index]!
 
     if (result.outcome === 'sent') {
       sent += 1

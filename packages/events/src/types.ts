@@ -55,5 +55,5 @@ export interface OutboxRecord {
 export interface EventHandler<N extends DomainEventName = DomainEventName> {
   readonly id: string
   readonly event: N
-  handle(payload: DomainEventMap[N]): Promise<void>
+  handle(payload: DomainEventMap[N], signal?: AbortSignal): Promise<void>
 }

@@ -45,7 +45,7 @@ export interface EventHandlerDeps {
   }
   readonly notifications?: {
     deliverEmail?(notificationId: number): Promise<void>
-    deliverPush?(notificationId: number): Promise<void>
+    deliverPush?(notificationId: number, signal?: AbortSignal): Promise<void>
   }
   readonly attachments?: {
     process(attachmentId: number): Promise<unknown>
@@ -198,8 +198,8 @@ export function buildEventRegistry(deps: EventHandlerDeps): EventRegistry {
     registry.register({
       id: 'notifications.push',
       event: 'notification.created',
-      async handle(payload) {
-        await notifications.deliverPush!(payload.notificationId)
+      async handle(payload, signal) {
+        await notifications.deliverPush!(payload.notificationId, signal)
       },
     })
   }

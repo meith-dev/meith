@@ -29,7 +29,7 @@ export class EventRegistry {
     return this.byId.get(id)
   }
 
-  async dispatch(handlerId: string, payload: unknown): Promise<void> {
+  async dispatch(handlerId: string, payload: unknown, signal?: AbortSignal): Promise<void> {
     const handler = this.byId.get(handlerId)
 
     if (!handler) {
@@ -40,7 +40,7 @@ export class EventRegistry {
       return
     }
 
-    await handler.handle(payload as DomainEventMap[DomainEventName])
+    await handler.handle(payload as DomainEventMap[DomainEventName], signal)
   }
 
   ids(): readonly string[] {
