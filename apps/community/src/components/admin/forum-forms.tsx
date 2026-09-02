@@ -2,8 +2,9 @@
 
 import { useActionState, useEffect, useState } from 'react'
 
-import type { MatrixCell, MatrixRow } from '@meith/authorization'
-import { cn, Disclosure } from '@meith/ui'
+import type { FieldMatrixCell, FieldMatrixRow, MatrixColumn } from '@meith/authorization'
+import type { PermissionField } from '@meith/core'
+import { cn } from '@meith/ui'
 
 import { PANEL_CARD, PANEL_LIST, PANEL_NOTE, PANEL_ROW } from '@/components/shell/panel-list'
 import { EMPTY_STATE } from '@/server/auth-form-state'
@@ -14,7 +15,7 @@ import {
   moveForumAction,
   removeModeratorAction,
   saveForumOptionsAction,
-  saveForumPermissionsAction,
+  saveForumPermissionMatrixAction,
 } from '@/server/forum-admin-actions'
 
 import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
@@ -122,26 +123,34 @@ export function ForumOptionsForm({ forum, copy }: { forum: ForumOptionsValues; c
   )
 }
 
-function effectiveValue(cell: MatrixCell, copy: Copy): string {
-  if (cell.kind === 'boolean')
-    return cell.effective
-      ? fromCopy(copy, 'adminForum.perm.allowed')
-      : fromCopy(copy, 'adminForum.perm.denied')
-  if (cell.kind === 'negative')
-    return cell.effective
-      ? fromCopy(copy, 'adminForum.perm.required')
-      : fromCopy(copy, 'adminForum.perm.notRequired')
-  return String(cell.effective)
+function firstSentence(text: string): string {
+  const at = text.indexOf('. ')
+  return at === -1 ? text : text.slice(0, at + 1)
 }
 
-function effectiveLabel(
-  cell: MatrixCell,
+function effectiveValue(
+  kind: PermissionField['kind'],
+  effective: boolean | number,
+  copy: Copy,
+): string {
+  if (kind === 'boolean')
+    return effective
+      ? fromCopy(copy, 'adminForum.perm.allowed')
+      : fromCopy(copy, 'adminForum.perm.denied')
+  if (kind === 'negative')
+    return effective
+      ? fromCopy(copy, 'adminForum.perm.required')
+      : fromCopy(copy, 'adminForum.perm.notRequired')
+  return String(effective)
+}
+
+function inheritedTitle(
+  row: FieldMatrixRow,
+  cell: FieldMatrixCell,
   forumTitles: ReadonlyMap<number, string>,
   copy: Copy,
 ): string {
-  const value = effectiveValue(cell, copy)
-
-  if (cell.stored !== null) return formatFromCopy(copy, 'adminForum.perm.setHere', { value })
+  const value = effectiveValue(row.kind, cell.effective, copy)
   if (cell.inheritedFrom === null)
     return formatFromCopy(copy, 'adminForum.perm.inheritedDefault', { value })
   return formatFromCopy(copy, 'adminForum.perm.inheritedFrom', {
@@ -150,7 +159,10 @@ function effectiveLabel(
   })
 }
 
-const PERM_GROUPS: readonly { readonly labelKey: string; readonly fields: readonly string[] }[] = [
+const BOOLEAN_PERM_GROUPS: readonly {
+  readonly labelKey: string
+  readonly fields: readonly string[]
+}[] = [
   {
     labelKey: 'adminForum.permGroup.viewing',
     fields: ['canView', 'canViewThreads', 'canViewOthersThreads', 'canSearch'],
@@ -168,7 +180,7 @@ const PERM_GROUPS: readonly { readonly labelKey: string; readonly fields: readon
   },
   {
     labelKey: 'adminForum.permGroup.ownContent',
-    fields: ['canEditOwnPosts', 'canDeleteOwnPosts', 'canDeleteOwnThreads', 'editTimeLimitMinutes'],
+    fields: ['canEditOwnPosts', 'canDeleteOwnPosts', 'canDeleteOwnThreads'],
   },
   {
     labelKey: 'adminForum.permGroup.moderation',
@@ -182,12 +194,7 @@ const PERM_GROUPS: readonly { readonly labelKey: string; readonly fields: readon
   },
   {
     labelKey: 'adminForum.permGroup.attachments',
-    fields: [
-      'canUploadAttachments',
-      'canDownloadAttachments',
-      'maxAttachmentsPerPost',
-      'maxAttachmentSizeKb',
-    ],
+    fields: ['canUploadAttachments', 'canDownloadAttachments'],
   },
   {
     labelKey: 'adminForum.permGroup.approvals',
@@ -195,37 +202,47 @@ const PERM_GROUPS: readonly { readonly labelKey: string; readonly fields: readon
   },
 ]
 
-function firstSentence(text: string): string {
-  const at = text.indexOf('. ')
-  return at === -1 ? text : text.slice(0, at + 1)
-}
-
-function groupCells(
-  cells: readonly MatrixCell[],
-): readonly { readonly labelKey: string; readonly cells: readonly MatrixCell[] }[] {
-  const byKey = new Map(cells.map((cell) => [cell.key, cell]))
+function groupFieldRows(
+  rows: readonly FieldMatrixRow[],
+  groups: readonly { readonly labelKey: string; readonly fields: readonly string[] }[],
+): readonly { readonly labelKey: string; readonly rows: readonly FieldMatrixRow[] }[] {
+  const byKey = new Map(rows.map((row) => [row.key, row]))
   const taken = new Set<string>()
-  const sections = PERM_GROUPS.map((group) => {
-    const found = group.fields.flatMap((key) => {
-      const cell = byKey.get(key)
-      if (cell === undefined) return []
-      taken.add(key)
-      return [cell]
+  const sections = groups
+    .map((group) => {
+      const found = group.fields.flatMap((key) => {
+        const row = byKey.get(key)
+        if (row === undefined) return []
+        taken.add(key)
+        return [row]
+      })
+      return { labelKey: group.labelKey, rows: found }
     })
-    return { labelKey: group.labelKey, cells: found }
-  }).filter((section) => section.cells.length > 0)
+    .filter((section) => section.rows.length > 0)
 
-  const leftover = cells.filter((cell) => !taken.has(cell.key))
+  const leftover = rows.filter((row) => !taken.has(row.key))
   return leftover.length === 0
     ? sections
-    : [...sections, { labelKey: 'adminForum.permGroup.other', cells: leftover }]
+    : [...sections, { labelKey: 'adminForum.permGroup.other', rows: leftover }]
 }
 
 const SEGMENT =
-  'flex-1 cursor-pointer px-2.5 py-1 text-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground has-[:checked]:font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ring'
+  'flex-1 cursor-pointer px-2 py-1 text-center text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground has-[:checked]:font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ring'
 
-function TriState({ cell, copy }: { cell: MatrixCell; copy: Copy }) {
-  const negative = cell.kind === 'negative'
+function MatrixTriState({
+  row,
+  cell,
+  groupTitle,
+  forumTitles,
+  copy,
+}: {
+  row: FieldMatrixRow
+  cell: FieldMatrixCell
+  groupTitle: string
+  forumTitles: ReadonlyMap<number, string>
+  copy: Copy
+}) {
+  const negative = row.kind === 'negative'
   const options = [
     {
       value: 'inherit',
@@ -248,118 +265,213 @@ function TriState({ cell, copy }: { cell: MatrixCell; copy: Copy }) {
     },
   ]
 
+  const legend =
+    cell.stored === null
+      ? `${firstSentence(row.description)} — ${groupTitle}. ${inheritedTitle(row, cell, forumTitles, copy)}`
+      : `${firstSentence(row.description)} — ${groupTitle}`
+
   return (
-    <fieldset className="flex w-full shrink-0 divide-x divide-border overflow-hidden rounded-md border border-border sm:w-56">
-      <legend className="sr-only">{firstSentence(cell.description)}</legend>
-      {options.map((option) => (
-        <label key={option.value} className={cn(SEGMENT, option.on)}>
-          <input
-            type="radio"
-            name={cell.key}
-            value={option.value}
-            defaultChecked={cell.control === option.value}
-            className="sr-only"
-          />
-          {option.label}
-        </label>
-      ))}
-    </fieldset>
+    <div className="flex flex-col gap-1">
+      <fieldset className="flex w-28 shrink-0 divide-x divide-border overflow-hidden rounded-md border border-border">
+        <legend className="sr-only">{legend}</legend>
+        {options.map((option) => (
+          <label key={option.value} className={cn(SEGMENT, option.on)}>
+            <input
+              type="radio"
+              name={cell.name}
+              value={option.value}
+              defaultChecked={cell.control === option.value}
+              className="sr-only"
+            />
+            {option.label}
+          </label>
+        ))}
+      </fieldset>
+      {cell.stored === null && (
+        <span className="text-[10px] text-muted-foreground">
+          {effectiveValue(row.kind, cell.effective, copy)}
+        </span>
+      )}
+    </div>
   )
 }
 
-function CellControl({ cell, copy }: { cell: MatrixCell; copy: Copy }) {
-  if (cell.kind !== 'numeric') return <TriState cell={cell} copy={copy} />
-
-  return (
-    <input
-      type="number"
-      name={cell.key}
-      min={0}
-      placeholder={fromCopy(copy, 'adminForum.perm.inherit')}
-      defaultValue={cell.control}
-      className={cn(INPUT, 'w-full shrink-0 sm:w-56')}
-    />
-  )
-}
-
-function overridesAside(row: MatrixRow, copy: Copy): string {
-  const count = row.cells.filter((cell) => cell.stored !== null).length
-  return count === 0
-    ? fromCopy(copy, 'adminForum.inheritsAll')
-    : formatFromCopy(copy, 'adminForum.overridesSet', { count })
-}
-
-export function ForumPermissionRowForm({
-  forumId,
+function MatrixNumericInput({
   row,
+  cell,
+  groupTitle,
+  copy,
+}: {
+  row: FieldMatrixRow
+  cell: FieldMatrixCell
+  groupTitle: string
+  copy: Copy
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <input
+        type="number"
+        name={cell.name}
+        min={0}
+        placeholder={fromCopy(copy, 'adminForum.perm.inherit')}
+        defaultValue={cell.control}
+        aria-label={`${firstSentence(row.description)} — ${groupTitle}`}
+        className={cn(INPUT, 'w-20')}
+      />
+      {cell.stored === null && (
+        <span className="text-[10px] text-muted-foreground">
+          {effectiveValue(row.kind, cell.effective, copy)}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function MatrixSection({
+  title,
+  columns,
+  rows,
+  forumTitles,
+  copy,
+}: {
+  title: string
+  columns: readonly MatrixColumn[]
+  rows: readonly FieldMatrixRow[]
+  forumTitles: ReadonlyMap<number, string>
+  copy: Copy
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h3>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th
+                scope="col"
+                className="sticky top-0 left-0 z-20 min-w-48 border-b border-border bg-card px-3 py-2 text-left font-medium"
+              >
+                {fromCopy(copy, 'adminForum.permission')}
+              </th>
+              {columns.map((column) => (
+                <th
+                  key={column.groupId}
+                  scope="col"
+                  className="sticky top-0 z-10 border-b border-border bg-card px-3 py-2 text-left font-medium whitespace-nowrap"
+                >
+                  {column.groupTitle}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key} className="border-b border-border/60 last:border-b-0">
+                <th
+                  scope="row"
+                  title={row.description}
+                  className="sticky left-0 z-10 border-r border-border/60 bg-card px-3 py-2 text-left align-top font-normal"
+                >
+                  {firstSentence(row.description)}
+                </th>
+                {row.cells.map((cell, index) => (
+                  <td key={cell.groupId} className="px-2 py-2 align-top">
+                    {row.kind === 'numeric' ? (
+                      <MatrixNumericInput
+                        row={row}
+                        cell={cell}
+                        groupTitle={columns[index]?.groupTitle ?? ''}
+                        copy={copy}
+                      />
+                    ) : (
+                      <MatrixTriState
+                        row={row}
+                        cell={cell}
+                        groupTitle={columns[index]?.groupTitle ?? ''}
+                        forumTitles={forumTitles}
+                        copy={copy}
+                      />
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+export function ForumPermissionMatrixForm({
+  forumId,
+  columns,
+  fields,
   forumTitles,
   copy,
 }: {
   forumId: number
-  row: MatrixRow
+  columns: readonly MatrixColumn[]
+  fields: readonly FieldMatrixRow[]
   forumTitles: ReadonlyMap<number, string>
   copy: Copy
 }) {
-  const [state, action] = useActionState(saveForumPermissionsAction, EMPTY_STATE)
+  const [state, action] = useActionState(saveForumPermissionMatrixAction, EMPTY_STATE)
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
     if (state.notice === 'saved') setDirty(false)
   }, [state])
 
+  const booleanSections = groupFieldRows(
+    fields.filter((field) => field.kind !== 'numeric'),
+    BOOLEAN_PERM_GROUPS,
+  )
+  const numericFields = fields.filter((field) => field.kind === 'numeric')
+
   return (
-    <Disclosure
-      summary={row.groupTitle}
-      aside={overridesAside(row, copy)}
-      className="overflow-visible"
-    >
-      <form action={action} className="flex flex-col gap-5" onChange={() => setDirty(true)}>
-        <FormError message={state.error} />
-        <input type="hidden" name="forumId" value={forumId} />
-        <input type="hidden" name="groupId" value={row.groupId} />
+    <form action={action} className="flex flex-col gap-6" onChange={() => setDirty(true)}>
+      <FormError message={state.error} />
+      <input type="hidden" name="forumId" value={forumId} />
 
-        {groupCells(row.cells).map((section) => (
-          <section key={section.labelKey} className="flex flex-col gap-2.5">
-            <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {fromCopy(copy, section.labelKey)}
-            </h4>
-            {section.cells.map((cell) => (
-              <div
-                key={cell.key}
-                className="flex flex-col gap-1.5 border-b border-border/60 pb-2.5 last:border-b-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium" title={cell.description}>
-                    {firstSentence(cell.description)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {effectiveLabel(cell, forumTitles, copy)}
-                  </p>
-                </div>
-                <CellControl cell={cell} copy={copy} />
-              </div>
-            ))}
-          </section>
-        ))}
+      {booleanSections.map((section) => (
+        <MatrixSection
+          key={section.labelKey}
+          title={fromCopy(copy, section.labelKey)}
+          columns={columns}
+          rows={section.rows}
+          forumTitles={forumTitles}
+          copy={copy}
+        />
+      ))}
 
-        <div className="sticky bottom-0 -mx-4 -mb-4 flex items-center gap-3 rounded-b-lg border-t border-border bg-card/95 px-4 py-3 supports-[backdrop-filter]:bg-card/80 supports-[backdrop-filter]:backdrop-blur">
-          <SubmitButton className="w-auto">
-            {formatFromCopy(copy, 'adminForum.saveGroup', { group: row.groupTitle })}
-          </SubmitButton>
-          {dirty ? (
-            <span className="text-xs font-medium text-muted-foreground">
-              {fromCopy(copy, 'adminForum.unsavedChanges')}
+      {numericFields.length > 0 && (
+        <MatrixSection
+          title={fromCopy(copy, 'adminForum.permGroup.numeric')}
+          columns={columns}
+          rows={numericFields}
+          forumTitles={forumTitles}
+          copy={copy}
+        />
+      )}
+
+      <div className="sticky bottom-0 z-30 flex items-center gap-3 rounded-b-lg border-t border-border bg-card/95 px-4 py-3 supports-[backdrop-filter]:bg-card/80 supports-[backdrop-filter]:backdrop-blur">
+        <SubmitButton className="w-auto">{fromCopy(copy, 'adminForum.saveMatrix')}</SubmitButton>
+        {dirty ? (
+          <span className="text-xs font-medium text-muted-foreground">
+            {fromCopy(copy, 'adminForum.unsavedChanges')}
+          </span>
+        ) : (
+          state.notice === 'saved' && (
+            <span className="text-xs font-medium text-moderation-approved">
+              {fromCopy(copy, 'admin.saved')}
             </span>
-          ) : (
-            state.notice === 'saved' && (
-              <span className="text-xs font-medium text-moderation-approved">
-                {fromCopy(copy, 'admin.saved')}
-              </span>
-            )
-          )}
-        </div>
-      </form>
-    </Disclosure>
+          )
+        )}
+      </div>
+    </form>
   )
 }
 

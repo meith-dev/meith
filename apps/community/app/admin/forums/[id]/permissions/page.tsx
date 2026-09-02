@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { CopyPermissionsForm, ForumPermissionRowForm } from '@/components/admin/forum-forms'
+import { CopyPermissionsForm, ForumPermissionMatrixForm } from '@/components/admin/forum-forms'
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
@@ -42,18 +42,15 @@ export default async function ForumPermissionsPage({
         </>
       }
       gap="loose"
+      width="wide"
     >
-      <div className="flex flex-col gap-6">
-        {view.rows.map((row) => (
-          <ForumPermissionRowForm
-            key={row.groupId}
-            forumId={view.forum.id}
-            row={row}
-            forumTitles={forumTitles}
-            copy={forumAdminCopy(t)}
-          />
-        ))}
-      </div>
+      <ForumPermissionMatrixForm
+        forumId={view.forum.id}
+        columns={view.columns}
+        fields={view.fields}
+        forumTitles={forumTitles}
+        copy={forumAdminCopy(t)}
+      />
 
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">{await tr('page.copy-subforums')}</h2>

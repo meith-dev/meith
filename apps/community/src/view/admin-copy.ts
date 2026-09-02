@@ -61,8 +61,10 @@ export function forumAdminCopy(t: Translator = untranslated()): Readonly<Record<
         'adminForum.permGroup.moderation',
         'adminForum.permGroup.attachments',
         'adminForum.permGroup.approvals',
+        'adminForum.permGroup.numeric',
         'adminForum.permGroup.other',
-        'adminForum.inheritsAll',
+        'adminForum.permission',
+        'adminForum.saveMatrix',
         'adminForum.unsavedChanges',
         'adminForum.copied',
         'adminForum.copyNote',
@@ -102,14 +104,7 @@ export function forumAdminCopy(t: Translator = untranslated()): Readonly<Record<
       t,
     ),
     ...patternCopy(
-      [
-        'adminForum.perm.setHere',
-        'adminForum.perm.inheritedDefault',
-        'adminForum.perm.inheritedFrom',
-        'adminForum.saveGroup',
-        'adminForum.copyTo',
-        'adminForum.overridesSet',
-      ],
+      ['adminForum.perm.inheritedDefault', 'adminForum.perm.inheritedFrom', 'adminForum.copyTo'],
       t,
     ),
   }

@@ -25,6 +25,50 @@ export interface MatrixInput {
   readonly overrides: readonly ForumOverride[]
 }
 
+export interface MatrixColumn {
+  readonly groupId: number
+  readonly groupTitle: string
+}
+
+export interface FieldMatrixCell {
+  readonly groupId: number
+  readonly name: string
+  readonly stored: boolean | number | null
+  readonly control: string
+  readonly effective: boolean | number
+  readonly inheritedFrom: number | null
+}
+
+export interface FieldMatrixRow {
+  readonly key: string
+  readonly description: string
+  readonly kind: PermissionField['kind']
+  readonly cells: readonly FieldMatrixCell[]
+}
+
+export function matrixColumns(rows: readonly MatrixRow[]): readonly MatrixColumn[] {
+  return rows.map((row) => ({ groupId: row.groupId, groupTitle: row.groupTitle }))
+}
+
+export function buildFieldMatrix(rows: readonly MatrixRow[]): readonly FieldMatrixRow[] {
+  return FORUM_PERMISSION_FIELDS.map((field) => ({
+    key: field.key,
+    description: field.description,
+    kind: field.kind,
+    cells: rows.map((row) => {
+      const found = row.cells.find((cell) => cell.key === field.key)
+      return {
+        groupId: row.groupId,
+        name: matrixCellName(row.groupId, field.key),
+        stored: found?.stored ?? null,
+        control: found?.control ?? matrixCellValue({ kind: field.kind, stored: null }),
+        effective: found?.effective ?? false,
+        inheritedFrom: found?.inheritedFrom ?? null,
+      }
+    }),
+  }))
+}
+
 function index(overrides: readonly ForumOverride[]): Map<string, ForumOverride> {
   const map = new Map<string, ForumOverride>()
   for (const override of overrides) map.set(`${override.forumId}:${override.groupId}`, override)
@@ -142,4 +186,37 @@ export function matrixCellValue(cell: Pick<MatrixCell, 'kind' | 'stored'>): stri
   if (cell.stored === null) return cell.kind === 'numeric' ? '' : 'inherit'
   if (cell.kind === 'numeric') return String(cell.stored)
   return cell.stored === true ? 'grant' : 'deny'
+}
+
+export function matrixCellName(groupId: number, key: string): string {
+  return `${groupId}:${key}`
+}
+
+export interface MatrixGroupSubmission {
+  readonly groupId: number
+  readonly values: Readonly<Record<string, boolean | number | null>>
+}
+
+export function diffMatrixSubmission(
+  current: readonly ForumOverride[],
+  forumId: number,
+  submissions: readonly MatrixGroupSubmission[],
+): readonly MatrixGroupSubmission[] {
+  const byGroup = new Map(
+    current
+      .filter((override) => override.forumId === forumId)
+      .map((override) => [override.groupId, override.overrides]),
+  )
+
+  return submissions.filter((submission) => {
+    const stored = byGroup.get(submission.groupId) ?? {}
+    return FORUM_PERMISSION_FIELDS.some((field) => {
+      const before = (stored[field.key as keyof ForumPermissions] ?? null) as
+        | boolean
+        | number
+        | null
+      const after = submission.values[field.key] ?? null
+      return !Object.is(before, after)
+    })
+  })
 }

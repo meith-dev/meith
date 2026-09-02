@@ -227,32 +227,57 @@ export class PostgresForumAdminRepository {
     })
   }
 
+  private async writeOverrides(
+    executor: Pick<Database, 'execute'>,
+    forumId: number,
+    groupId: number,
+    values: Readonly<Record<string, boolean | number | null>>,
+  ): Promise<void> {
+    if (FORUM_PERMISSION_FIELDS.every((field) => values[field.key] == null)) {
+      await executor.execute(sql`
+        delete from forum_permissions
+         where forum_id = ${forumId} and group_id = ${groupId}
+      `)
+      return
+    }
+
+    const columns = FORUM_PERMISSION_FIELDS.map((field) => sql.raw(columnName(field.key)))
+    const literals = FORUM_PERMISSION_FIELDS.map((field) => sql`${values[field.key] ?? null}`)
+    const assignments = FORUM_PERMISSION_FIELDS.map(
+      (field) =>
+        sql`${sql.raw(columnName(field.key))} = excluded.${sql.raw(columnName(field.key))}`,
+    )
+
+    await executor.execute(sql`
+      insert into forum_permissions (forum_id, group_id, ${sql.join(columns, sql`, `)})
+      values (${forumId}, ${groupId}, ${sql.join(literals, sql`, `)})
+      on conflict (forum_id, group_id) do update set ${sql.join(assignments, sql`, `)}
+    `)
+  }
+
   async saveOverrides(
     forumId: number,
     groupId: number,
     values: Readonly<Record<string, boolean | number | null>>,
   ): Promise<void> {
     await this.db.transaction(async (tx) => {
-      if (FORUM_PERMISSION_FIELDS.every((field) => values[field.key] == null)) {
-        await tx.execute(sql`
-          delete from forum_permissions
-           where forum_id = ${forumId} and group_id = ${groupId}
-        `)
-        return
+      await this.writeOverrides(tx, forumId, groupId, values)
+    })
+  }
+
+  async saveOverridesForGroups(
+    forumId: number,
+    changes: readonly {
+      readonly groupId: number
+      readonly values: Readonly<Record<string, boolean | number | null>>
+    }[],
+  ): Promise<void> {
+    if (changes.length === 0) return
+
+    await this.db.transaction(async (tx) => {
+      for (const change of changes) {
+        await this.writeOverrides(tx, forumId, change.groupId, change.values)
       }
-
-      const columns = FORUM_PERMISSION_FIELDS.map((field) => sql.raw(columnName(field.key)))
-      const literals = FORUM_PERMISSION_FIELDS.map((field) => sql`${values[field.key] ?? null}`)
-      const assignments = FORUM_PERMISSION_FIELDS.map(
-        (field) =>
-          sql`${sql.raw(columnName(field.key))} = excluded.${sql.raw(columnName(field.key))}`,
-      )
-
-      await tx.execute(sql`
-        insert into forum_permissions (forum_id, group_id, ${sql.join(columns, sql`, `)})
-        values (${forumId}, ${groupId}, ${sql.join(literals, sql`, `)})
-        on conflict (forum_id, group_id) do update set ${sql.join(assignments, sql`, `)}
-      `)
     })
   }
 

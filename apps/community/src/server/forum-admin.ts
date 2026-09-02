@@ -2,10 +2,14 @@ import { msg } from '@meith/i18n'
 import 'server-only'
 
 import {
+  buildFieldMatrix,
   buildPermissionMatrix,
   type CopyPlan,
+  type FieldMatrixRow,
   type ForumOverride,
+  type MatrixColumn,
   type MatrixRow,
+  matrixColumns,
   planCopyToDescendants,
 } from '@meith/authorization'
 import { ForbiddenError, type PermissionSet } from '@meith/core'
@@ -37,6 +41,8 @@ export function ancestorChain(forum: ForumRow): readonly number[] {
 export interface ForumMatrixView {
   readonly forum: ForumRow
   readonly rows: readonly MatrixRow[]
+  readonly columns: readonly MatrixColumn[]
+  readonly fields: readonly FieldMatrixRow[]
   readonly chain: readonly number[]
   readonly overrides: readonly ForumOverride[]
   readonly groups: readonly { readonly groupId: number; readonly title: string }[]
@@ -77,6 +83,7 @@ export async function buildForumMatrixView(forumId: number): Promise<ForumMatrix
   const descendants = all.filter((row) => row.path.startsWith(`${forum.path}.`))
 
   const overrides = await repository.readOverrides([...chain, ...descendants.map((row) => row.id)])
+  const rows = buildPermissionMatrix({ chain, groups, overrides })
 
   return {
     forum,
@@ -84,7 +91,9 @@ export async function buildForumMatrixView(forumId: number): Promise<ForumMatrix
     overrides,
     descendants,
     groups: groups.map(({ groupId, title }) => ({ groupId, title })),
-    rows: buildPermissionMatrix({ chain, groups, overrides }),
+    rows,
+    columns: matrixColumns(rows),
+    fields: buildFieldMatrix(rows),
   }
 }
 
