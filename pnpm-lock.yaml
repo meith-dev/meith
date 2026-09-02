@@ -118,6 +118,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../../packages/avatars
+      '@meith/board-digest':
+        specifier: workspace:*
+        version: link:../../packages/board-digest
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
