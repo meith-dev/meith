@@ -768,10 +768,96 @@ export async function saveCodeCoupon(
   )
 }
 
-export async function countCodeRedemption(data: PluginData, id: number): Promise<void> {
+export async function reserveCodeRedemption(
+  data: PluginData,
+  codeId: number,
+  orderId: number,
+): Promise<boolean> {
+  return data.tx(async (tx) => {
+    const locked = await tx.one(
+      `select max_redemptions from plugin_dues_code where id = $1 for update`,
+      [codeId],
+    )
+    if (locked === null) return false
+
+    const existing = await tx.one(
+      `select status from plugin_dues_code_reservation where order_id = $1`,
+      [orderId],
+    )
+    if (existing !== null) return String(existing.status) !== 'released'
+
+    const max =
+      locked.max_redemptions === null || locked.max_redemptions === undefined
+        ? null
+        : Number(locked.max_redemptions)
+    if (max !== null) {
+      const active = await tx.one(
+        `select count(*)::int as taken from plugin_dues_code_reservation
+          where code_id = $1 and status in ('held', 'consumed')`,
+        [codeId],
+      )
+      if (active !== null && Number(active.taken) >= max) return false
+    }
+
+    await tx.query(
+      `insert into plugin_dues_code_reservation (code_id, order_id)
+       values ($1, $2)
+       on conflict (order_id) do nothing`,
+      [codeId, orderId],
+    )
+    return true
+  })
+}
+
+export async function consumeCodeReservation(
+  data: PluginData,
+  orderId: number,
+  codeId: number,
+): Promise<void> {
+  await data.tx(async (tx) => {
+    const consumed = await tx.one(
+      `update plugin_dues_code_reservation
+          set status = 'consumed', updated_at = now()
+        where order_id = $1 and status = 'held'
+        returning code_id`,
+      [orderId],
+    )
+    if (consumed !== null) {
+      await tx.query(
+        `update plugin_dues_code set redeemed_count = redeemed_count + 1 where id = $1`,
+        [Number(consumed.code_id)],
+      )
+      return
+    }
+
+    const present = await tx.one(
+      `select id from plugin_dues_code_reservation where order_id = $1`,
+      [orderId],
+    )
+    if (present !== null) return
+
+    const recorded = await tx.one(
+      `insert into plugin_dues_code_reservation (code_id, order_id, status)
+       values ($1, $2, 'consumed')
+       on conflict (order_id) do nothing
+       returning id`,
+      [codeId, orderId],
+    )
+    if (recorded !== null) {
+      await tx.query(
+        `update plugin_dues_code set redeemed_count = redeemed_count + 1 where id = $1`,
+        [codeId],
+      )
+    }
+  })
+}
+
+export async function releaseCodeReservation(data: PluginData, orderId: number): Promise<void> {
   await data.query(
-    `update plugin_dues_code set redeemed_count = redeemed_count + 1 where id = $1`,
-    [id],
+    `update plugin_dues_code_reservation
+        set status = 'released', updated_at = now()
+      where order_id = $1 and status = 'held'`,
+    [orderId],
   )
 }
 

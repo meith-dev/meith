@@ -9,6 +9,7 @@ import {
   markEventProcessed,
   membershipsPastPeriod,
   pendingOrdersOlderThan,
+  releaseCodeReservation,
   setMembershipStatus,
   settleOrder,
   unprocessedEvents,
@@ -61,6 +62,7 @@ export async function runReconcile(
   for (const order of await pendingOrdersOlderThan(deps.data, PENDING_AFTER_MINUTES, BATCH)) {
     if (order.stripeSessionId === null) {
       await settleOrder(deps.data, order.id, { status: 'cancelled' })
+      if (order.codeId !== null) await releaseCodeReservation(deps.data, order.id)
       ordersClosed += 1
       continue
     }
@@ -76,6 +78,7 @@ export async function runReconcile(
       ordersSettled += 1
     } else if (session.status === 'expired') {
       await settleOrder(deps.data, order.id, { status: 'cancelled' })
+      if (order.codeId !== null) await releaseCodeReservation(deps.data, order.id)
       ordersClosed += 1
     }
   }

@@ -5,7 +5,7 @@ import { moneyMatches } from './money'
 import { addBillingInterval, addDays, addPeriod, parsePeriod } from './period'
 import { clampGrantUntil, isLifetime, LIFETIME_END } from './plans'
 import {
-  countCodeRedemption,
+  consumeCodeReservation,
   extendMembership,
   flagMembership,
   insertLedger,
@@ -18,6 +18,7 @@ import {
   orderBySessionId,
   type PlanRow,
   planRowByKey,
+  releaseCodeReservation,
   setMembershipStatus,
   settleOrder,
 } from './store'
@@ -157,7 +158,7 @@ export async function settlePaidOrder(
     stripePaymentIntentId: info.paymentIntentId,
   })
 
-  if (order.codeId !== null) await countCodeRedemption(deps.data, order.codeId)
+  if (order.codeId !== null) await consumeCodeReservation(deps.data, order.id, order.codeId)
 
   if (order.buyerUserId !== order.recipientUserId && outcome === 'granted') {
     await tryNotify(deps, {
@@ -221,6 +222,7 @@ export async function applyInternalEvent(
       if (order === null) return 'unmatched-session'
       if (order.status === 'paid') return 'already-settled'
       await settleOrder(deps.data, order.id, { status: 'failed' })
+      if (order.codeId !== null) await releaseCodeReservation(deps.data, order.id)
       return 'order-failed'
     }
 
@@ -229,6 +231,7 @@ export async function applyInternalEvent(
       if (order === null) return 'unmatched-session'
       if (order.status !== 'created' && order.status !== 'pending') return 'already-settled'
       await settleOrder(deps.data, order.id, { status: 'cancelled' })
+      if (order.codeId !== null) await releaseCodeReservation(deps.data, order.id)
       return 'order-expired'
     }
 
