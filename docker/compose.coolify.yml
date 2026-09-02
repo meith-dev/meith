@@ -119,6 +119,10 @@ services:
       # forge, and a shipped TICK_SECRET is a tick anybody can drive.
       - AUTH_SECRET=$SERVICE_BASE64_64_AUTH
       - TICK_SECRET=$SERVICE_BASE64_64_TICK
+      # Coolify's own proxy is the one hop between the internet and this
+      # container — see "Count your proxies" in
+      # docs/getting-started/deployment/docker-compose.md.
+      - TRUSTED_PROXY_HOPS=1
       - QUEUE_DRIVER=postgres
       - CACHE_DRIVER=next
       # A real disk, shared with the worker below, which is what makes `local`

@@ -237,17 +237,22 @@ pick.
 ### Count your proxies
 
 The board only sees a visitor's address because the proxy forwards it,
-and it has to be told how many proxies did the forwarding. One — the
-setup above — is the default, so **there is nothing to set for this
-Caddyfile**.
+and it has to be told how many proxies did the forwarding. `TRUSTED_PROXY_HOPS`
+defaults to `0` — nothing trusted, the header ignored outright — because
+that is the only safe default for an image that can also be run with its
+port published directly. The `web` service in `compose.yml` (and in the
+Coolify compose files) sets it to `1` for you, matching the one reverse
+proxy — Caddy, in the setup above — that those files assume, so **there is
+nothing to set for this Caddyfile**.
 
 Put a CDN or a second load balancer in front of Caddy and the chain grows
-by one: set `TRUSTED_PROXY_HOPS=2`. Whatever the number, it must match
-reality — too high and a visitor can forge their address by sending a
-forwarding header of their own, walking past `ADMIN_IP_ALLOWLIST` and the
-login lockout. If you expose the board's port directly with nothing in
-front — do not, but if you do — set `TRUSTED_PROXY_HOPS=0` so the header
-is ignored outright.
+by one: set `TRUSTED_PROXY_HOPS=2` in your `.env`. Whatever the number, it
+must match reality — too high and a visitor can forge their address by
+sending a forwarding header of their own, walking past
+`ADMIN_IP_ALLOWLIST` and the login lockout. If you expose the board's port
+directly with nothing in front — do not, but if you do — leave
+`TRUSTED_PROXY_HOPS` unset, or set it to `0` explicitly, so the header is
+ignored outright.
 
 Whatever you put in front must pass the board's
 `Content-Security-Policy` response header through untouched: it carries a
