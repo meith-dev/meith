@@ -13,10 +13,20 @@ export interface ConfirmRequest {
   readonly fields: readonly ConfirmField[]
 }
 
+export interface PollDraftValues {
+  readonly question: string
+  readonly options: readonly string[]
+  readonly closesAt: string
+  readonly maxOptions: string
+  readonly allowRevote: boolean
+  readonly publicVotes: boolean
+}
+
 export interface FormState {
   readonly error?: string | undefined
   readonly notice?: string | undefined
   readonly values?: Record<string, string> | undefined
+  readonly poll?: PollDraftValues | undefined
   readonly preview?: string | undefined
   readonly undo?: UndoState | undefined
   readonly confirm?: ConfirmRequest | undefined

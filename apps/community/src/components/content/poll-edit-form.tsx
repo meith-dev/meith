@@ -1,4 +1,7 @@
+import { Fragment } from 'react'
+
 import { POLL_OPTION_LENGTH_MAX, POLL_QUESTION_MAX, type Poll } from '@meith/polls'
+import { Field, Input } from '@meith/ui'
 
 import { getTranslator } from '@/server/i18n'
 import { editPollAction } from '@/server/poll-actions'
@@ -20,56 +23,75 @@ export async function PollEditForm({ poll, threadId }: { poll: Poll; threadId: n
       <input type="hidden" name="threadId" value={threadId} />
       <input type="hidden" name="pollId" value={poll.id} />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{t.t('pollEdit.question')}</span>
-        <input
-          type="text"
-          name="question"
-          required
-          maxLength={POLL_QUESTION_MAX}
-          defaultValue={poll.question}
-        />
-      </label>
+      <Field label={t.t('pollEdit.question')} name="question">
+        {(control) => (
+          <Input
+            {...control}
+            type="text"
+            required
+            maxLength={POLL_QUESTION_MAX}
+            defaultValue={poll.question}
+          />
+        )}
+      </Field>
 
       {poll.options.map((option, index) => (
-        <label key={option.id} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">{t.t('pollEdit.option', { number: index + 1 })}</span>
+        <Fragment key={option.id}>
           <input type="hidden" name="optionRef" value={option.id} />
-          <input
-            type="text"
+          <Field
+            id={`field-optionLabel-${option.id}`}
+            label={t.t('pollEdit.option', { number: index + 1 })}
             name="optionLabel"
-            maxLength={POLL_OPTION_LENGTH_MAX}
-            defaultValue={option.label}
-          />
-          <span className="text-xs text-muted-foreground">
-            {option.votes > 0
-              ? t.t('pollEdit.optionVoted', { count: option.votes })
-              : t.t('pollEdit.optionEmpty')}
-          </span>
-        </label>
+            description={
+              option.votes > 0
+                ? t.t('pollEdit.optionVoted', { count: option.votes })
+                : t.t('pollEdit.optionEmpty')
+            }
+          >
+            {(control) => (
+              <Input
+                {...control}
+                type="text"
+                maxLength={POLL_OPTION_LENGTH_MAX}
+                defaultValue={option.label}
+              />
+            )}
+          </Field>
+        </Fragment>
       ))}
 
       {NEW_OPTION_SLOTS.map((slot, index) => (
-        <label key={slot} className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">
-            {t.t('pollEdit.option', { number: poll.options.length + index + 1 })}
-          </span>
+        <Fragment key={slot}>
           <input type="hidden" name="optionRef" value="" />
-          <input type="text" name="optionLabel" maxLength={POLL_OPTION_LENGTH_MAX} />
-        </label>
+          <Field
+            id={`field-optionLabel-${slot}`}
+            label={t.t('pollEdit.option', { number: poll.options.length + index + 1 })}
+            name="optionLabel"
+          >
+            {(control) => <Input {...control} type="text" maxLength={POLL_OPTION_LENGTH_MAX} />}
+          </Field>
+        </Fragment>
       ))}
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{t.t('pollEdit.maxOptions')}</span>
-        <input type="number" name="maxOptions" min={0} step={1} defaultValue={poll.maxOptions} />
-        <span className="text-xs text-muted-foreground">{t.t('pollEdit.maxOptionsHint')}</span>
-      </label>
+      <Field
+        label={t.t('pollEdit.maxOptions')}
+        name="maxOptions"
+        description={t.t('pollEdit.maxOptionsHint')}
+      >
+        {(control) => (
+          <Input {...control} type="number" min={0} step={1} defaultValue={poll.maxOptions} />
+        )}
+      </Field>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{t.t('pollEdit.closesAt')}</span>
-        <input type="datetime-local" name="closesAt" defaultValue={inputValue(poll.closesAt)} />
-        <span className="text-xs text-muted-foreground">{t.t('pollEdit.closesAtHint')}</span>
-      </label>
+      <Field
+        label={t.t('pollEdit.closesAt')}
+        name="closesAt"
+        description={t.t('pollEdit.closesAtHint')}
+      >
+        {(control) => (
+          <Input {...control} type="datetime-local" defaultValue={inputValue(poll.closesAt)} />
+        )}
+      </Field>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="allowRevote" value="1" defaultChecked={poll.allowRevote} />

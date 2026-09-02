@@ -1,16 +1,18 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 
 import type { UploadLimits } from '@meith/attachments/limits'
 import type { Draft } from '@meith/drafts'
-import { Disclosure } from '@meith/ui'
+import { POLL_OPTION_MAX } from '@meith/polls/limits'
+import { buttonVariants, Disclosure } from '@meith/ui'
 
+import type { PollDraftValues } from '@/server/auth-form-state'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { createThreadAction } from '@/server/content-actions'
 
-import { Field, FormError, SubmitButton } from '../auth/form-controls'
+import { Field, FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 import { AttachmentField } from './attachment-field'
 import { ComposerIntents } from './composer-intents'
@@ -20,6 +22,55 @@ import { MarkdownEditor } from './markdown-editor'
 export interface PrefixOption {
   readonly id: number
   readonly label: string
+}
+
+const POLL_OPTION_STARTING_SLOTS = 4
+const POLL_OPTION_ADD_STEP = 4
+
+function PollOptionFields({
+  pollDraft,
+  copy,
+}: {
+  pollDraft: PollDraftValues | undefined
+  copy: Copy
+}) {
+  const [slots, setSlots] = useState(() =>
+    Math.max(pollDraft?.options.length ?? 0, POLL_OPTION_STARTING_SLOTS),
+  )
+
+  useEffect(() => {
+    setSlots(Math.max(pollDraft?.options.length ?? 0, POLL_OPTION_STARTING_SLOTS))
+  }, [pollDraft])
+
+  const atMax = slots >= POLL_OPTION_MAX
+
+  return (
+    <>
+      {Array.from({ length: slots }, (_, index) => (
+        <Field
+          // biome-ignore lint/suspicious/noArrayIndexKey: slots are appended only, in stable order — the index is the slot number
+          key={index}
+          id={`field-pollOption-${index + 1}`}
+          label={formatFromCopy(copy, 'composer.newThread.option', { number: index + 1 })}
+          name="pollOption"
+          maxLength={200}
+          defaultValue={pollDraft?.options[index]}
+        />
+      ))}
+      <PendingButton
+        name="intent"
+        value="more_options"
+        disabled={atMax}
+        onClick={(event) => {
+          event.preventDefault()
+          setSlots((current) => Math.min(current + POLL_OPTION_ADD_STEP, POLL_OPTION_MAX))
+        }}
+        className={buttonVariants({ variant: 'outline', size: 'sm', className: 'w-auto' })}
+      >
+        {fromCopy(copy, 'composer.newThread.morePollOptions')}
+      </PendingButton>
+    </>
+  )
 }
 
 export function NewThreadForm({
@@ -44,9 +95,11 @@ export function NewThreadForm({
   copy: Copy
 }) {
   const [state, action] = useActionState(createThreadAction, EMPTY_STATE)
+  const pollDraft = state.poll
 
   const hasPollDraft =
-    (state.values?.pollQuestion ?? '') !== '' || (state.values?.pollOption ?? '') !== ''
+    (pollDraft?.question ?? '') !== '' ||
+    (pollDraft?.options.some((option) => option.trim() !== '') ?? false)
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
@@ -117,16 +170,9 @@ export function NewThreadForm({
             label={fromCopy(copy, 'composer.newThread.question')}
             name="pollQuestion"
             maxLength={250}
+            defaultValue={pollDraft?.question}
           />
-          {[1, 2, 3, 4].map((number) => (
-            <Field
-              key={number}
-              id={`field-pollOption-${number}`}
-              label={formatFromCopy(copy, 'composer.newThread.option', { number })}
-              name="pollOption"
-              maxLength={200}
-            />
-          ))}
+          <PollOptionFields pollDraft={pollDraft} copy={copy} />
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">{fromCopy(copy, 'composer.newThread.pollChoices')}</span>
             <input
@@ -134,7 +180,7 @@ export function NewThreadForm({
               name="pollMaxOptions"
               min={0}
               step={1}
-              defaultValue="1"
+              defaultValue={pollDraft?.maxOptions ?? '1'}
               className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
             <span className="text-xs text-muted-foreground">
@@ -142,12 +188,36 @@ export function NewThreadForm({
             </span>
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="pollAllowRevote" value="1" className="size-4" />
+            <input
+              type="checkbox"
+              name="pollAllowRevote"
+              value="1"
+              defaultChecked={pollDraft?.allowRevote ?? false}
+              className="size-4"
+            />
             <span>{fromCopy(copy, 'composer.newThread.pollRevote')}</span>
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="pollPublicVotes" value="1" className="size-4" />
+            <input
+              type="checkbox"
+              name="pollPublicVotes"
+              value="1"
+              defaultChecked={pollDraft?.publicVotes ?? false}
+              className="size-4"
+            />
             <span>{fromCopy(copy, 'composer.newThread.pollPublic')}</span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">{fromCopy(copy, 'pollEdit.closesAt')}</span>
+            <input
+              type="datetime-local"
+              name="pollClosesAt"
+              defaultValue={pollDraft?.closesAt ?? ''}
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+            <span className="text-xs text-muted-foreground">
+              {fromCopy(copy, 'pollEdit.closesAtHint')}
+            </span>
           </label>
         </Disclosure>
       )}

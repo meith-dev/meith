@@ -453,6 +453,103 @@ describe('createThreadAction', () => {
   })
 })
 
+function pollForm(entries: Record<string, string>, options: readonly string[]): FormData {
+  const body = form(entries)
+  for (const option of options) body.append('pollOption', option)
+  return body
+}
+
+const BOARD_WITH_POLLS = {
+  ...SEED_BOARD,
+  overrides: [
+    ...SEED_BOARD.overrides,
+    {
+      forumId: SEED_FORUM.general,
+      groupId: SEED_GROUP.registered,
+      overrides: { canPostPolls: true },
+    },
+  ],
+}
+
+describe('a poll attached to a new thread', () => {
+  beforeEach(() => {
+    installContainer({}, BOARD_WITH_POLLS)
+  })
+
+  it('reads a UTC closing time from the same wall-clock text the poll edit form uses', async () => {
+    const to = await redirectOf(
+      createThreadAction(
+        EMPTY_STATE,
+        pollForm({ ...VALID, pollQuestion: 'Ship it?', pollClosesAt: '2026-09-10T12:00' }, [
+          'Yes',
+          'No',
+        ]),
+      ),
+    )
+
+    expect(to).toBe('/thread/77-a-thread-about-testing')
+    expect(writes.written[0]?.poll).toMatchObject({
+      question: 'Ship it?',
+      options: ['Yes', 'No'],
+      closesAt: new Date('2026-09-10T12:00:00Z'),
+    })
+  })
+
+  it('attaches no poll at all when the question and every option are blank', async () => {
+    await redirectOf(createThreadAction(EMPTY_STATE, pollForm(VALID, ['', ''])))
+
+    expect(writes.written[0]?.poll).toBeUndefined()
+  })
+
+  it('grows the option slots on a "more options" round trip without creating a thread', async () => {
+    const state = await createThreadAction(
+      EMPTY_STATE,
+      pollForm({ ...VALID, pollQuestion: 'Ship it?', intent: 'more_options' }, [
+        'Yes',
+        'No',
+        '',
+        '',
+      ]),
+    )
+
+    expect(state.poll).toMatchObject({
+      question: 'Ship it?',
+      options: ['Yes', 'No', '', '', '', '', '', ''],
+    })
+    expect(writes.written).toEqual([])
+  })
+
+  it('rejects a closing time that is not a valid date', async () => {
+    const state = await createThreadAction(
+      EMPTY_STATE,
+      pollForm({ ...VALID, pollQuestion: 'Ship it?', pollClosesAt: 'not-a-date' }, ['Yes', 'No']),
+    )
+
+    expect(state.error).toBeTruthy()
+    expect(state.poll).toMatchObject({ question: 'Ship it?', closesAt: 'not-a-date' })
+    expect(writes.written).toEqual([])
+  })
+
+  it('rejects a bad closing time before staging an attached file, so nothing is left orphaned', async () => {
+    storedObjects.clear()
+    const attachments = new FakeAttachments()
+    installContainer({ attachments }, BOARD_WITH_POLLS)
+
+    const body = pollForm({ ...VALID, pollQuestion: 'Ship it?', pollClosesAt: 'not-a-date' }, [
+      'Yes',
+      'No',
+    ])
+    body.append('attachments', new File([PNG], 'photo.png', { type: 'image/png' }))
+
+    const state = await createThreadAction(EMPTY_STATE, body)
+
+    expect(state.error).toBeTruthy()
+    expect(storedObjects.size).toBe(0)
+    expect(attachments.created).toEqual([])
+    expect(writes.written).toEqual([])
+  })
+})
+
 describe('the daily post cap', () => {
   it('refuses a new thread once maxPostsPerDay is spent, and writes nothing', async () => {
     daily.outcome = { ...CAPPED }

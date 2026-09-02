@@ -1,4 +1,5 @@
-import { POLL_CHOICES_UNLIMITED, type Poll } from '@meith/polls'
+import { POLL_CHOICES_UNLIMITED, type Poll, pollOptionShares } from '@meith/polls'
+import { TextLink } from '@meith/ui'
 
 import { getTranslator } from '@/server/i18n'
 import { votePollAction } from '@/server/poll-actions'
@@ -17,6 +18,7 @@ export async function PollForm({
   editHref?: string | null
 }) {
   const total = poll.options.reduce((sum, option) => sum + option.votes, 0)
+  const shares = pollOptionShares(poll.options.map((option) => option.votes))
   const t = await getTranslator()
 
   const closed = poll.closesAt !== null && poll.closesAt <= new Date()
@@ -45,7 +47,7 @@ export async function PollForm({
       <form action={votePollAction} className="mt-3 flex flex-col gap-2">
         <input type="hidden" name="threadId" value={threadId} />
         <input type="hidden" name="pollId" value={poll.id} />
-        {poll.options.map((option) => (
+        {poll.options.map((option, index) => (
           <div key={option.id} className="flex flex-col gap-1">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -59,6 +61,17 @@ export async function PollForm({
                 {option.label} ({option.votes})
               </span>
             </label>
+            <div className="flex items-center gap-2 pl-6">
+              <div aria-hidden="true" className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${shares[index] ?? 0}%` }}
+                />
+              </div>
+              <span className="w-9 shrink-0 text-right text-xs text-muted-foreground">
+                {shares[index] ?? 0}%
+              </span>
+            </div>
             {poll.publicVotes && option.voters.length > 0 && (
               <p className="pl-6 text-sm text-muted-foreground">
                 {t.t('pollForm.votedBy', {
@@ -70,20 +83,19 @@ export async function PollForm({
             )}
           </div>
         ))}
+        <p className="text-sm text-muted-foreground">{t.t('pollForm.votes', { count: total })}</p>
         {mayCast ? (
           <PendingButton showWorking>
             {hasVoted ? t.t('pollForm.changeVote') : t.t('pollForm.vote')}
           </PendingButton>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            {closed ? t.t('pollForm.closed') : t.t('pollForm.votes', { count: total })}
-          </p>
+          closed && <p className="text-sm text-muted-foreground">{t.t('pollForm.closed')}</p>
         )}
       </form>
 
       {typeof editHref === 'string' && (
         <p className="mt-3 text-sm">
-          <a href={editHref}>{t.t('pollForm.edit')}</a>
+          <TextLink href={editHref}>{t.t('pollForm.edit')}</TextLink>
         </p>
       )}
     </section>
