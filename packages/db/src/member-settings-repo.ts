@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import type { MemberGroupChoice, MemberSettings, MemberSettingsRepository } from '@meith/accounts'
+import { parseSubscriptionMode } from '@meith/subscriptions'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
@@ -20,6 +21,8 @@ interface RawSettings {
   display_group_id: number | null
   mass_mail_opt_in_at: Date | string | null
   board_digest_cadence: string
+  auto_watch_own_threads: string
+  auto_watch_replied_threads: string
 }
 
 interface RawGroupChoice {
@@ -37,7 +40,8 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       await this.db.execute(sql`
         select id, email, timezone, locale, posts_per_page, threads_per_page,
                invisible, location, website, bio, display_group_id,
-               mass_mail_opt_in_at, board_digest_cadence
+               mass_mail_opt_in_at, board_digest_cadence,
+               auto_watch_own_threads, auto_watch_replied_threads
           from users
          where id = ${userId} and state <> 'deleted'
       `),
@@ -60,6 +64,8 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       displayGroupId: row.display_group_id === null ? null : Number(row.display_group_id),
       massMailOptInAt: row.mass_mail_opt_in_at === null ? null : new Date(row.mass_mail_opt_in_at),
       boardDigestCadence: row.board_digest_cadence,
+      autoWatchOwnThreads: parseSubscriptionMode(row.auto_watch_own_threads) ?? 'none',
+      autoWatchRepliedThreads: parseSubscriptionMode(row.auto_watch_replied_threads) ?? 'none',
     }
   }
 
@@ -125,6 +131,8 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     readonly postsPerPage: number | null
     readonly threadsPerPage: number | null
     readonly invisible: boolean
+    readonly autoWatchOwnThreads: string
+    readonly autoWatchRepliedThreads: string
   }): Promise<void> {
     await this.db.execute(sql`
       update users
@@ -133,6 +141,8 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
              posts_per_page = ${input.postsPerPage},
              threads_per_page = ${input.threadsPerPage},
              invisible = ${input.invisible},
+             auto_watch_own_threads = ${input.autoWatchOwnThreads},
+             auto_watch_replied_threads = ${input.autoWatchRepliedThreads},
              updated_at = now()
        where id = ${input.userId}
     `)

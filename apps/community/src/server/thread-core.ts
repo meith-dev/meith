@@ -4,7 +4,12 @@ import type { Actor } from '@meith/authorization'
 import { ForbiddenError, type ForumPermissions, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import { restrictsPosting } from '@meith/moderation'
-import { type AuthorRestriction, type ForumPostingTarget, ThreadComposer } from '@meith/threads'
+import {
+  type AuthorRestriction,
+  type ForumPostingTarget,
+  type SubscriptionCadence,
+  ThreadComposer,
+} from '@meith/threads'
 
 import {
   dailyLimitMessage,
@@ -58,6 +63,7 @@ export interface SubmitThreadInput {
   readonly message: string
   readonly prefixId?: number | null
   readonly subscribe?: boolean
+  readonly subscribeMode?: SubscriptionCadence
   readonly poll?:
     | {
         readonly question: string
@@ -126,6 +132,7 @@ export async function submitThread(
       message: draft.body,
       prefixId: draft.prefixId,
       subscribe: input.subscribe ?? false,
+      ...(input.subscribeMode === undefined ? {} : { subscribeMode: input.subscribeMode }),
       heldAsNewMember: await holdsNewMember({
         actor,
         postCount: profile.postCount,

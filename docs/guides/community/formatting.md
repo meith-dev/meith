@@ -193,6 +193,21 @@ the forum or thread it belongs to, when it last saved, a **Resume** link
 back into the composer with the text still there, and a **Delete** to
 discard it without ever opening it.
 
+## Following what you post in
+
+The composer's **Notify me of replies** checkbox follows the thread at
+the "as it happens" cadence the moment your post is saved — the same
+subscription a thread's own **Follow** button creates, and it lands the
+thread on your **Subscriptions** page.
+
+Two preferences on your account's **Options** page — **Follow threads I
+start** and **Follow threads I reply to** — pre-tick this box for you and
+let you pick a gentler cadence than instant: a daily or weekly digest
+instead, or off. Either preference only sets what the box starts as;
+unticking it before you post always wins for that one post, whatever the
+preference says. And it never reopens a thread you have gone out of your
+way to mute — replying to one does not start following it again.
+
 ## Everything else stays server-rendered
 
 None of the above needed a client-side markup renderer, a syntax-

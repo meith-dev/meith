@@ -4,7 +4,12 @@ import 'server-only'
 import type { Actor } from '@meith/authorization'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { restrictsPosting } from '@meith/moderation'
-import { type AuthorRestriction, ReplyComposer, type ReplyTarget } from '@meith/threads'
+import {
+  type AuthorRestriction,
+  ReplyComposer,
+  type ReplyTarget,
+  type SubscriptionCadence,
+} from '@meith/threads'
 
 import {
   dailyLimitMessage,
@@ -65,6 +70,7 @@ export async function resolveReplyTarget(
 export interface SubmitReplyInput {
   readonly message: string
   readonly subscribe?: boolean
+  readonly subscribeMode?: SubscriptionCadence
   readonly seenLastPostId?: number | null
 }
 
@@ -125,6 +131,7 @@ export async function submitReply(
     {
       message: draft.body,
       subscribe: input.subscribe ?? false,
+      ...(input.subscribeMode === undefined ? {} : { subscribeMode: input.subscribeMode }),
       seenLastPostId: input.seenLastPostId ?? null,
       bypassesModeration: authorizer.can(actor, 'content.viewUnapproved', scope),
       bypassesFlood: authorizer.can(actor, 'flood.bypass'),

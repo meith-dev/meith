@@ -22,6 +22,7 @@ export function ReplyForm({
   seenLastPostId,
   prefill,
   canSubscribe,
+  subscribeDefault = false,
   attachmentLimits,
   draft,
   collapsible = false,
@@ -32,6 +33,7 @@ export function ReplyForm({
   seenLastPostId: number | null
   prefill: string
   canSubscribe: boolean
+  subscribeDefault?: boolean
   attachmentLimits: UploadLimits | null
   draft: Draft | null
   collapsible?: boolean
@@ -79,7 +81,13 @@ export function ReplyForm({
 
       {canSubscribe && (
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="subscribe" value="1" className="size-4 accent-primary" />
+          <input
+            type="checkbox"
+            name="subscribe"
+            value="1"
+            defaultChecked={subscribeDefault}
+            className="size-4 accent-primary"
+          />
           <span>{fromCopy(copy, 'composer.notifyReplies')}</span>
         </label>
       )}

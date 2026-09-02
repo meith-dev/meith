@@ -359,9 +359,36 @@ describe('createThreadAction', () => {
   it('subscribes when the box is ticked, and not when it is absent', async () => {
     await redirectOf(createThreadAction(EMPTY_STATE, form({ ...VALID, subscribe: '1' })))
     expect(writes.written[0]!.subscribe).toBe(true)
+    expect(writes.written[0]!.subscribeMode).toBe('instant')
 
     await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
     expect(writes.written[1]!.subscribe).toBe(false)
+  })
+
+  it('subscribes at the cadence the "follow threads I start" preference names', async () => {
+    installContainer({
+      memberSettings: {
+        read: async () => ({ autoWatchOwnThreads: 'weekly', autoWatchRepliedThreads: 'none' }),
+      },
+    })
+
+    await redirectOf(createThreadAction(EMPTY_STATE, form({ ...VALID, subscribe: '1' })))
+
+    expect(writes.written[0]).toMatchObject({ subscribe: true, subscribeMode: 'weekly' })
+  })
+
+  it('does not look up the preference at all when the box is unticked', async () => {
+    installContainer({
+      memberSettings: {
+        read: () => {
+          throw new Error('should not be read when the checkbox is unticked')
+        },
+      },
+    })
+
+    await redirectOf(createThreadAction(EMPTY_STATE, form(VALID)))
+
+    expect(writes.written[0]!.subscribe).toBe(false)
   })
 
   it('refuses a guest, however the form was submitted', async () => {
@@ -578,6 +605,36 @@ describe('createReplyAction', () => {
     expect(state.error).toBeTruthy()
     expect(state.values?.message).toBe('')
     expect(writes.replies).toEqual([])
+  })
+
+  it('subscribes at instant when the box is ticked and no preference is on', async () => {
+    await redirectOf(createReplyAction(EMPTY_STATE, form({ ...REPLY, subscribe: '1' })))
+
+    expect(writes.replies[0]).toMatchObject({ subscribe: true, subscribeMode: 'instant' })
+  })
+
+  it('subscribes at the cadence the "follow threads I reply to" preference names', async () => {
+    installContainer({
+      memberSettings: {
+        read: async () => ({ autoWatchOwnThreads: 'none', autoWatchRepliedThreads: 'daily' }),
+      },
+    })
+
+    await redirectOf(createReplyAction(EMPTY_STATE, form({ ...REPLY, subscribe: '1' })))
+
+    expect(writes.replies[0]).toMatchObject({ subscribe: true, subscribeMode: 'daily' })
+  })
+
+  it('does not subscribe, whatever the preference, once the box is unticked', async () => {
+    installContainer({
+      memberSettings: {
+        read: async () => ({ autoWatchOwnThreads: 'none', autoWatchRepliedThreads: 'daily' }),
+      },
+    })
+
+    await redirectOf(createReplyAction(EMPTY_STATE, form(REPLY)))
+
+    expect(writes.replies[0]!.subscribe).toBe(false)
   })
 })
 

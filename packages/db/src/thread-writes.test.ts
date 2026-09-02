@@ -102,7 +102,18 @@ describe('PostgresThreadWriteRepository.create', () => {
     const created = await repo.create({ ...RECORD, subscribe: true })
 
     const rows = await db.select().from(threadSubscriptions)
-    expect(rows).toEqual([expect.objectContaining({ userId: 1, threadId: created.threadId })])
+    expect(rows).toEqual([
+      expect.objectContaining({ userId: 1, threadId: created.threadId, mode: 'instant' }),
+    ])
+  })
+
+  it('subscribes the author at the requested cadence', async () => {
+    const created = await repo.create({ ...RECORD, subscribe: true, subscribeMode: 'weekly' })
+
+    const rows = await db.select().from(threadSubscriptions)
+    expect(rows).toEqual([
+      expect.objectContaining({ userId: 1, threadId: created.threadId, mode: 'weekly' }),
+    ])
   })
 
   it('holds an unapproved thread out of every counter, and emits nothing', async () => {
@@ -195,7 +206,53 @@ describe('PostgresThreadWriteRepository replies', () => {
       createdAt: new Date(AT.getTime() + 60_000),
     })
 
-    expect(await db.select().from(threadSubscriptions)).toHaveLength(1)
+    const rows = await db.select().from(threadSubscriptions)
+    expect(rows).toEqual([expect.objectContaining({ mode: 'instant' })])
+  })
+
+  it('subscribes the replier at the cadence a preference chose', async () => {
+    const thread = await repo.create(RECORD)
+    await repo.createReply({
+      threadId: thread.threadId,
+      forumId: FORUM,
+      threadTitle: RECORD.title,
+      message: 'Subscribe me daily.',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+      subscribe: true,
+      subscribeMode: 'daily',
+      createdAt: new Date(AT.getTime() + 60_000),
+    })
+
+    const rows = await db.select().from(threadSubscriptions)
+    expect(rows).toEqual([expect.objectContaining({ mode: 'daily' })])
+  })
+
+  it('never reopens a subscription the member muted, however they reply', async () => {
+    const thread = await repo.create(RECORD)
+    await db.insert(threadSubscriptions).values({
+      userId: 1,
+      threadId: thread.threadId,
+      mode: 'none',
+      lastNotifiedPostId: thread.postId,
+    })
+
+    await repo.createReply({
+      threadId: thread.threadId,
+      forumId: FORUM,
+      threadTitle: RECORD.title,
+      message: 'Replying to my own muted thread.',
+      authorUserId: 1,
+      authorUsername: 'ada',
+      visibility: 'visible',
+      subscribe: true,
+      subscribeMode: 'instant',
+      createdAt: new Date(AT.getTime() + 60_000),
+    })
+
+    const rows = await db.select().from(threadSubscriptions)
+    expect(rows).toEqual([expect.objectContaining({ userId: 1, mode: 'none' })])
   })
 
   it('reports the thread the reply form needs', async () => {

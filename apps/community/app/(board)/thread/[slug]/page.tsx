@@ -20,6 +20,7 @@ import { ThreadToolsForm } from '@/components/moderation/thread-tools-form'
 import { BoardNotice } from '@/components/shell/board-notice'
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import { attachmentLimits, attachmentsForPosts, canAttach } from '@/server/attachments'
+import { autoWatchChecksByDefault, autoWatchPreference } from '@/server/auto-watch'
 import { avatarsFor } from '@/server/avatars'
 import { getContainer } from '@/server/container'
 import { activeVocabulary, activeWordFilter } from '@/server/content-admin'
@@ -582,6 +583,9 @@ export default async function ThreadPage({
         seenLastPostId={thread.lastPost?.postId ?? null}
         prefill=""
         canSubscribe={authorizer.can(actor, 'forum.subscribe', replyTarget)}
+        subscribeDefault={autoWatchChecksByDefault(
+          await autoWatchPreference(actor.userId, 'reply'),
+        )}
         attachmentLimits={quickReplyAttachable ? attachmentLimits(replyTarget) : null}
         draft={
           actor.userId === null || drafts === null

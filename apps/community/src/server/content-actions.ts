@@ -24,6 +24,7 @@ import {
   submittedFiles,
 } from './attachments'
 import type { FormState } from './auth-form-state'
+import { autoWatchCadence, autoWatchPreference } from './auto-watch'
 import { requireConfirmation } from './confirm'
 import { getContainer } from './container'
 import { activeVocabulary } from './content-admin'
@@ -218,11 +219,16 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
 
     const staged = await stageAttachments(actor, resolved.scope, await submittedFiles(form))
 
+    const subscribeMode = subscribe
+      ? autoWatchCadence(await autoWatchPreference(userId, 'create'))
+      : undefined
+
     created = await submitThread(actor, resolved, {
       title,
       message,
       prefixId,
       subscribe,
+      ...(subscribeMode === undefined ? {} : { subscribeMode }),
       poll:
         pollQuestion === '' && pollOptions.every((option) => option.trim() === '')
           ? undefined
@@ -284,7 +290,16 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
 
     const staged = await stageAttachments(actor, scope, await submittedFiles(form))
 
-    created = await submitReply(actor, resolved, { message, subscribe, seenLastPostId })
+    const subscribeMode = subscribe
+      ? autoWatchCadence(await autoWatchPreference(userId, 'reply'))
+      : undefined
+
+    created = await submitReply(actor, resolved, {
+      message,
+      subscribe,
+      ...(subscribeMode === undefined ? {} : { subscribeMode }),
+      seenLastPostId,
+    })
 
     const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })
     await claimAttachments(

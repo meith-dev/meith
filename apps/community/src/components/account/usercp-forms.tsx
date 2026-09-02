@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import type { SubscriptionMode } from '@meith/subscriptions'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   changePasswordAction,
@@ -132,6 +134,9 @@ export function OptionsForm({
   postsPerPage,
   threadsPerPage,
   invisible,
+  autoWatchOwnThreads,
+  autoWatchRepliedThreads,
+  autoWatchChoices,
   copy,
 }: {
   timezone: string
@@ -141,6 +146,9 @@ export function OptionsForm({
   postsPerPage: string
   threadsPerPage: string
   invisible: boolean
+  autoWatchOwnThreads: SubscriptionMode
+  autoWatchRepliedThreads: SubscriptionMode
+  autoWatchChoices: readonly { value: SubscriptionMode; label: string }[]
   copy: Copy
 }) {
   const [state, action] = useActionState(saveOptionsAction, EMPTY_STATE)
@@ -210,6 +218,42 @@ export function OptionsForm({
           <span className="text-xs text-muted-foreground">
             {fromCopy(copy, 'accountForm.options.invisibleHint')}
           </span>
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">
+          {fromCopy(copy, 'accountForm.options.autoWatchOwnThreads')}
+        </span>
+        <select name="autoWatchOwnThreads" defaultValue={autoWatchOwnThreads} className={FIELD}>
+          {autoWatchChoices.map((choice) => (
+            <option key={choice.value} value={choice.value}>
+              {choice.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'accountForm.options.autoWatchOwnThreadsHint')}
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">
+          {fromCopy(copy, 'accountForm.options.autoWatchRepliedThreads')}
+        </span>
+        <select
+          name="autoWatchRepliedThreads"
+          defaultValue={autoWatchRepliedThreads}
+          className={FIELD}
+        >
+          {autoWatchChoices.map((choice) => (
+            <option key={choice.value} value={choice.value}>
+              {choice.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'accountForm.options.autoWatchRepliedThreadsHint')}
         </span>
       </label>
 
