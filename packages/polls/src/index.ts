@@ -4,8 +4,11 @@ export {
   POLL_OPTION_MAX,
   POLL_QUESTION_MAX,
   POLL_VOTERS_SHOWN_MAX,
+} from './limits'
+export {
   PollService,
   planPollEdit,
+  pollOptionShares,
   ThreadRatingService,
   validatePoll,
 } from './service'

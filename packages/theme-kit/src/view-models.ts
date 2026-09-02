@@ -36,7 +36,7 @@
 
 import type { ReactNode } from 'react'
 
-import type { EditorTag } from './editor'
+import type { EditorInsertion, EditorTag } from './editor'
 import type { SlotName } from './slots'
 
 /* ------------------------------------------------------------------ *
@@ -899,12 +899,38 @@ export interface SubforumListModel {
   readonly forums: readonly ForumRowModel[]
 }
 
+/**
+ * `ThreadViewModel.watch` — the header's one-tap subscribe/unsubscribe toggle.
+ *
+ * `action` is already resolved to whichever direction flips `subscribed`: a
+ * theme never branches on `subscribed` to pick a URL, only to pick a label —
+ * "Watch" over `action` when `false`, "Watching" over the same `action` when
+ * `true`. Subscribing this way always uses the board's default cadence; a
+ * member who wants a slower one still has the cadence picker in
+ * `ThreadViewModel.regions.afterContent`, which this toggle sits beside
+ * rather than replaces.
+ */
+export interface ThreadWatchModel {
+  readonly subscribed: boolean
+  /** A native POST target that flips `subscribed`. */
+  readonly action: string
+}
+
 export interface ThreadViewModel {
   readonly thread: ThreadRowModel
   readonly forum: LinkModel
   readonly replyHref: string | null
   /** A native POST target for the last visible post on this page. */
   readonly markReadAction: string | null
+  /**
+   * The header's watch toggle, or `null` for a guest — who cannot subscribe
+   * to anything — and on a board running without the subscription service.
+   *
+   * Optional under the versioning policy: a theme written against 0.23
+   * compiles and renders no toggle, the same as it already does for the
+   * cadence picker in `regions.afterContent`.
+   */
+  readonly watch?: ThreadWatchModel | null
   readonly regions: {
     /**
      * Controls scoped to this thread — following it, rating it, its poll, and
@@ -1019,10 +1045,25 @@ export interface QuickReplyModel {
   readonly children?: ReactNode
 }
 
-/** One control in an `EditorToolbar`. */
+/**
+ * One control in an `EditorToolbar`.
+ *
+ * Exactly one of `tag` and `insertion` is set, never both and never neither.
+ * `tag` names one of the board's own commands — `applyEditorTag(field, tag,
+ * placeholder)` from `@meith/theme-kit` runs it, and a theme that reads `tag`
+ * opaquely and hands it straight to `applyEditorTag` needs no change when a
+ * new one is added. `insertion` is a plugin's own: a directive registered
+ * through `markdown.directives` has no `EditorTag` to squat on, so a button
+ * contributed through the `view.editor-toolbar` filter carries the edit
+ * itself as data — `applyInsertion(field, insertion)` runs it the same way,
+ * sharing the caret and selection mechanics `applyEditorTag` uses. Both are
+ * plain JSON, so a plugin never hands the host a function to call.
+ */
 export interface EditorToolbarButtonModel {
-  /** Which edit to run — `applyEditorTag(field, tag, placeholder)` from `@meith/theme-kit`. */
-  readonly tag: EditorTag
+  /** One of the board's own commands, or `null` for a plugin's `insertion`. */
+  readonly tag: EditorTag | null
+  /** A plugin's own edit, or `null` for a built-in `tag`. */
+  readonly insertion: EditorInsertion | null
   readonly label: string
   /** `label`, plus the keyboard shortcut when this tag has one, already formatted. */
   readonly title: string
@@ -1036,7 +1077,11 @@ export interface EditorToolbarButtonModel {
    * one does.
    */
   readonly icon: string | null
-  /** Fills a wrap or spoiler tag when nothing is selected; `null` for a tag that does not need one. */
+  /**
+   * Fills a wrap or spoiler tag when nothing is selected; `null` for a tag
+   * that does not need one, and for every `insertion` button — its strings
+   * are already fixed, so there is nothing left for a placeholder to fill.
+   */
   readonly placeholder: string | null
 }
 

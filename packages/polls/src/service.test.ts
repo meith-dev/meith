@@ -2,12 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ForbiddenError, ValidationError } from '@meith/core'
 
+import { POLL_OPTION_LENGTH_MAX, POLL_OPTION_MAX, POLL_QUESTION_MAX } from './limits'
 import {
-  POLL_OPTION_LENGTH_MAX,
-  POLL_OPTION_MAX,
-  POLL_QUESTION_MAX,
   PollService,
   planPollEdit,
+  pollOptionShares,
   ThreadRatingService,
   validatePoll,
 } from './service'
@@ -98,6 +97,31 @@ describe('validatePoll', () => {
 
   it('accepts a poll without a closing time', () => {
     expect(validatePoll(validPoll({ closesAt: null }), NOW).closesAt).toBeNull()
+  })
+})
+
+describe('pollOptionShares', () => {
+  it('gives every option zero when nobody has voted', () => {
+    expect(pollOptionShares([0, 0, 0])).toEqual([0, 0, 0])
+  })
+
+  it('splits an even vote evenly', () => {
+    expect(pollOptionShares([5, 5])).toEqual([50, 50])
+  })
+
+  it('rounds a three-way tie so the shares still sum to 100', () => {
+    const shares = pollOptionShares([1, 1, 1])
+    expect(shares.reduce((sum, share) => sum + share, 0)).toBe(100)
+    expect(shares).toEqual([34, 33, 33])
+  })
+
+  it('gives the largest remainder to the option closest to rounding up', () => {
+    expect(pollOptionShares([7, 3, 3, 2])).toEqual([47, 20, 20, 13])
+  })
+
+  it('always sums to 100 when at least one vote is cast', () => {
+    expect(pollOptionShares([1, 0]).reduce((sum, share) => sum + share, 0)).toBe(100)
+    expect(pollOptionShares([2, 1, 1, 1, 1]).reduce((sum, share) => sum + share, 0)).toBe(100)
   })
 })
 

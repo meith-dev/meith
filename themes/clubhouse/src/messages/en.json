@@ -107,6 +107,8 @@
   "clubhouse.threadView.replies": "replies",
   "clubhouse.threadView.reply": "Reply",
   "clubhouse.threadView.views": "views",
+  "clubhouse.threadView.watch": "Watch",
+  "clubhouse.threadView.watching": "Watching",
   "clubhouse.userPanel.new": "new",
   "clubhouse.userPanel.signedIn": "Signed in",
   "clubhouse.userPanel.unread": "unread",

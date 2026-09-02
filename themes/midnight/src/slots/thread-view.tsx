@@ -6,6 +6,7 @@ export function ThreadView({
   forum,
   replyHref,
   markReadAction,
+  watch,
   regions,
   copy,
 }: ThreadViewModel & { copy: SlotCopy }) {
@@ -33,7 +34,25 @@ export function ThreadView({
             </a>
           </p>
         </div>
-        {reply}
+        <div className="flex flex-wrap items-center gap-2">
+          {watch != null && (
+            <form action={watch.action} method="post">
+              <button
+                type="submit"
+                className="border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                {watch.subscribed ? (
+                  <>
+                    {c('watching')} <span aria-hidden="true">✓</span>
+                  </>
+                ) : (
+                  c('watch')
+                )}
+              </button>
+            </form>
+          )}
+          {reply}
+        </div>
       </div>
 
       {regions.tools !== undefined && (

@@ -300,7 +300,7 @@ rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.22`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.24`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -397,12 +397,54 @@ not an API version.
 > once per page rather than once per row, so a listing of twenty threads costs
 > one call — a plugin detail the theme never sees, but the reason the field is
 > safe to render on the board's tightest listing.
+>
+> `0.23` grows a field rather than only adding one, in the way `0.14` did, and
+> is recorded rather than glossed for the same reason:
+> [`EditorToolbarButtonModel`](../reference/theme-slots.md#editortoolbarbuttonmodel)'s
+> `tag` becomes `EditorTag | null`, and the model gains `insertion`, an
+> `EditorInsertion | null` carrying a plugin's own edit as data — for a
+> directive registered through `markdown.directives`, which has no
+> `EditorTag` to squat on. Exactly one of the two is ever set. Unlike `0.21`,
+> a theme that treats `tag` opaquely does **not** get to skip this one: every
+> theme renders `EditorToolbar` by handing a button's `tag` straight to
+> `applyEditorTag`, so `tag`'s new `null` case fails that call at compile
+> time regardless. It costs the three bundled themes two changes, not one: a
+> branch that tries `insertion` — run with the new `applyInsertion` export
+> the same way — when `tag` is `null`, and, because a plugin's button keys
+> and glyphs off no `EditorTag` at all, a `key` and a fallback glyph no
+> longer derived from `tag` alone. Neither is a reshaping of anything the
+> theme already draws, which is why it is a minor and not the major the
+> field-typing table above would otherwise call for: Meith is pre-1.0, so as
+> with `0.14`, the alternative was carrying a second, still-required field
+> beside `tag` until 1.0 for boards that do not exist yet.
+>
+> The cost is not only the consumer's. `insertion` is **required**, so an
+> existing third-party plugin that already contributes a button through
+> `view.editor-toolbar` fails to compile too, until it adds `insertion: null`
+> beside the `tag` it was already setting — the producer side of the same
+> break, and the reason the standing note below now names plugins as well as
+> the app.
+>
+> `0.24` is additive: [`ThreadViewModel`](../reference/theme-slots.md#threadview)
+> gains `watch`, a one-tap subscribe/unsubscribe control for the thread
+> header — following used to live only at the foot of the thread, a `<select>`
+> and a button past fifty posts a reader had to find first. `watch` is
+> `null` for a guest and on a board with no subscription service, and
+> optional the same way the foot-of-thread cadence picker in
+> `regions.afterContent` already was: a theme written against `0.23`
+> compiles and renders no toggle. The two controls are not the same thing —
+> `watch` is on/off only, always at the board's default cadence, and the
+> cadence picker it sits beside is still where a member reaches daily or
+> weekly digests.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even
-> though nothing is removed — the app is the only producer of these models,
-> and a theme cannot fail to supply one. In practice new fields are added as
-> optional, and themes ignore them until they want them.
+> though nothing is removed. For every model but `EditorToolbarButtonModel`
+> the app is the only producer, and a theme cannot fail to supply one; a
+> plugin contributing through `view.editor-toolbar` is a second producer; see
+> `0.23` above for what a required field cost that one when it landed. In
+> practice new fields are added as optional, and themes — and, for this one
+> model, plugins — ignore them until they want them.
 
 ## Deprecation
 

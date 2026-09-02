@@ -429,6 +429,63 @@ is rendered in memory when somebody reads it.
 > operator extends by installing the plugin at all — but it is the one
 > place where a mistake becomes markup on every page.
 
+### A directive with its own toolbar button
+
+`markdown.directives` only names the syntax; it does not give the member a
+button that writes it. A block directive with nothing to invoke it means
+typing `:::name` by hand, so a plugin that wants an affordance in the
+composer contributes to `view.editor-toolbar` too — the same filter the
+built-in bold, link and table buttons flow through:
+
+```ts
+hooks: {
+  'markdown.directives': (directives) => [...directives, { name: 'alert', block: true }],
+  'view.editor-toolbar': (toolbar) => ({
+    ...toolbar,
+    buttons: [
+      ...toolbar.buttons,
+      {
+        tag: null,
+        insertion: { kind: 'block', text: ':::alert\n\n:::' },
+        label: 'Alert',
+        title: 'Alert',
+        keyShortcut: null,
+        icon: null,
+        placeholder: null,
+      },
+    ],
+  }),
+},
+```
+
+A button carries either `tag` — one of the board's own commands — or
+`insertion`, never both. `EditorTag` is a closed union of the board's own
+formatting commands, so a plugin's own syntax has nothing to set `tag` to;
+`insertion` is the escape hatch, a small serialisable edit a theme runs the
+same way it runs a built-in one:
+
+- `{ kind: 'wrap', before, after }` wraps the selection, or, with nothing
+  selected, places the caret between `before` and `after` — for an inline
+  span like `:name[…]`.
+- `{ kind: 'block', text }` inserts a fixed snippet on its own lines,
+  replacing whatever was selected — for a block like `:::name` above.
+
+Both are plain data: a plugin hands the host a string to insert, never a
+function to call, which is what lets the button cross the RSC boundary into
+a client-rendered theme slot the same way every other view model does. A
+theme runs it with `applyInsertion(field, insertion)`, exported from
+`@meith/theme-kit` beside `applyEditorTag` — a theme that already reads a
+button's `tag` opaquely and hands it straight to `applyEditorTag` needs the
+same one-line addition to also try `insertion`, and the three bundled themes
+show it.
+
+**No extra escaping.** `:::alert\n\n:::` is Markdown typed on the member's
+behalf; once inserted it sits in the textarea exactly like anything typed by
+hand, and from there it flows through the ordinary parser and the ordinary
+`markdown.directives` render path. The button only saves a member from
+memorising the syntax — the directive still has to be registered for
+anything to render from it.
+
 ## The lifecycle
 
 Four callbacks, each with one moment it runs and its own answer to "what if it

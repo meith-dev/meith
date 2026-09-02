@@ -11,6 +11,7 @@ import {
   buildThreadView,
   revealedFrom,
   threadToolsHeading,
+  threadWatch,
 } from './thread-view'
 
 const forum: ForumRow = {
@@ -85,6 +86,69 @@ describe('buildThreadView', () => {
       permalink: '/thread/3-hello#post-1',
       bodyHtml: '<p>&lt;script&gt;alert(1)&lt;/script&gt;<br>\nHello</p>',
       author: { username: 'departed', profileHref: null },
+    })
+  })
+
+  it('offers no watch toggle for a guest, or a board with no subscription service', () => {
+    const view = buildThreadView({
+      thread,
+      forum,
+      page: { rows: [], nextAfterId: null },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(view.view.watch).toBeNull()
+  })
+
+  it('offers a watch toggle that subscribes, for a member not yet subscribed', () => {
+    const view = buildThreadView({
+      thread,
+      forum,
+      page: { rows: [], nextAfterId: null },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+      watchOffered: true,
+      watchMode: null,
+    })
+
+    expect(view.view.watch).toEqual({ subscribed: false, action: '/api/subscribe/thread/3' })
+  })
+
+  it('offers a watch toggle that unsubscribes, for a member already subscribed', () => {
+    const view = buildThreadView({
+      thread,
+      forum,
+      page: { rows: [], nextAfterId: null },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date('2026-07-30T09:00:00Z'),
+      watchOffered: true,
+      watchMode: 'daily',
+    })
+
+    expect(view.view.watch).toEqual({ subscribed: true, action: '/api/unsubscribe/thread/3' })
+  })
+})
+
+describe('threadWatch', () => {
+  it('is null when the toggle is not offered, guest or otherwise', () => {
+    expect(threadWatch({ offered: false, mode: 'instant', threadId: 3 })).toBeNull()
+  })
+
+  it('points at subscribing when no mode is set', () => {
+    expect(threadWatch({ offered: true, mode: null, threadId: 3 })).toEqual({
+      subscribed: false,
+      action: '/api/subscribe/thread/3',
+    })
+  })
+
+  it('points at unsubscribing once any mode is set', () => {
+    expect(threadWatch({ offered: true, mode: 'weekly', threadId: 3 })).toEqual({
+      subscribed: true,
+      action: '/api/unsubscribe/thread/3',
     })
   })
 })

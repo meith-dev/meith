@@ -304,6 +304,8 @@ export function threadViewCopy(t: Translator): SlotCopy {
     'default.threadView.view.one',
     'default.threadView.view.other',
     'default.threadView.viewsLabel',
+    'default.threadView.watch',
+    'default.threadView.watching',
   ])
 }
 

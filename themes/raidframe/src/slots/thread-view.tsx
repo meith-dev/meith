@@ -10,6 +10,7 @@ export function ThreadView({
   forum,
   replyHref,
   markReadAction,
+  watch,
   regions,
   copy,
 }: ThreadViewModel & { copy: SlotCopy }) {
@@ -20,6 +21,21 @@ export function ThreadView({
       <a href={replyHref} className={BUTTON_PRIMARY}>
         {c('postReply')}
       </a>
+    )
+
+  const watchToggle =
+    watch == null ? null : (
+      <form action={watch.action} method="post">
+        <button type="submit" className={BUTTON}>
+          {watch.subscribed ? (
+            <>
+              {c('watching')} <span aria-hidden="true">✓</span>
+            </>
+          ) : (
+            c('watch')
+          )}
+        </button>
+      </form>
     )
 
   return (
@@ -53,7 +69,10 @@ export function ThreadView({
             </p>
           </div>
 
-          {reply}
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {watchToggle}
+            {reply}
+          </div>
         </div>
         <div className={RULE} aria-hidden="true" />
       </div>

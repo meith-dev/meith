@@ -171,6 +171,40 @@ than a broken image, and one that failed shows as such — both stay in the
 list, with their remove checkbox, until you either leave them or take
 them out.
 
+## Polls
+
+A new thread's composer offers **Add a poll** when the forum allows them.
+Opening it shows a question and four option fields, plus how many of them
+a member may pick, whether they can change their vote, whether their name
+is shown beside what they picked, and an optional closing time.
+
+Four options is a starting point, not a ceiling — a poll may carry up to
+twenty. **More options** reveals four more empty fields at a time, and
+never loses what is already typed in the ones that came before it. With
+JavaScript on, this happens instantly, in the browser; with it off, the
+same button submits the form and the page comes back with the extra
+fields in place, the question, the options already filled in, and the
+rest of the thread you were writing exactly as it was. Once twenty is
+reached, the button is disabled — there is nowhere left to grow into. An
+option field left blank when the thread is posted is simply not part of
+the poll; you do not need to fill every field the button has revealed.
+
+A closing time is optional and, like an announcement's, is entered as
+**UTC** wall-clock text rather than your own time zone — leave it empty
+for a poll that stays open until someone closes it by hand.
+
+**Results are always visible under the options** — a bar sized to its
+share of the vote, the percentage, and the count, with a total-votes line
+underneath the list. This is server-rendered HTML and CSS, not a chart
+library: it looks the same, and needs nothing extra, whether or not
+JavaScript is running. Voting is a plain form submission either way.
+
+An existing poll can be reopened for editing from **Edit poll** beside it
+(inside the same edit window as the post it is attached to). The edit
+form adds three more option slots on top of whatever the poll already
+has, still up to the twenty-option cap, and can add or change the closing
+time the same way the composer does.
+
 ## Drafts
 
 The composer saves what you are writing without being asked. A second or
@@ -215,4 +249,6 @@ highlighting library shipped to the browser, or a script tag on the
 rendered post itself. What changes with JavaScript off is only the
 *composing* experience — the toolbar, the mention list, a private
 message's recipient suggestions, the "Insert attachment" button, the live
-preview tab — never what a saved post looks like once someone reads it.
+preview tab, and whether **More options** on a poll grows the option list
+in place or through a round trip — never what a saved post, or a poll's
+results, look like once someone reads it.

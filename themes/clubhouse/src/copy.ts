@@ -199,6 +199,8 @@ export function threadViewCopy(t: Translator): SlotCopy {
     'clubhouse.threadView.replies',
     'clubhouse.threadView.reply',
     'clubhouse.threadView.views',
+    'clubhouse.threadView.watch',
+    'clubhouse.threadView.watching',
   ])
 }
 

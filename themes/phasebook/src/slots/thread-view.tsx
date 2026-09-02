@@ -19,6 +19,7 @@ export function ThreadView({
   forum,
   replyHref,
   markReadAction,
+  watch,
   regions,
   copy,
 }: ThreadViewModel & { copy: SlotCopy }) {
@@ -54,6 +55,19 @@ export function ThreadView({
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
+              {watch != null && (
+                <form action={watch.action} method="post">
+                  <button type="submit" className={PILL}>
+                    {watch.subscribed ? (
+                      <>
+                        {c('watching')} <span aria-hidden="true">✓</span>
+                      </>
+                    ) : (
+                      c('watch')
+                    )}
+                  </button>
+                </form>
+              )}
               {markReadAction !== null && (
                 <form action={markReadAction} method="post">
                   <button type="submit" className={PILL}>

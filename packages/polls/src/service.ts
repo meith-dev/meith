@@ -1,6 +1,12 @@
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
+import {
+  POLL_CHOICES_UNLIMITED,
+  POLL_OPTION_LENGTH_MAX,
+  POLL_OPTION_MAX,
+  POLL_QUESTION_MAX,
+} from './limits'
 import type {
   NewPoll,
   Poll,
@@ -15,11 +21,24 @@ import type {
   ValidatedPoll,
 } from './types'
 
-export const POLL_QUESTION_MAX = 250
-export const POLL_OPTION_MAX = 20
-export const POLL_OPTION_LENGTH_MAX = 200
-export const POLL_CHOICES_UNLIMITED = 0
-export const POLL_VOTERS_SHOWN_MAX = 50
+export function pollOptionShares(votes: readonly number[]): readonly number[] {
+  const total = votes.reduce((sum, count) => sum + count, 0)
+  if (total === 0) return votes.map(() => 0)
+
+  const shares = votes.map((count) => Math.floor((count / total) * 100))
+  const byRemainder = votes
+    .map((count, index) => ({ index, remainder: ((count / total) * 100) % 1 }))
+    .sort((a, b) => b.remainder - a.remainder)
+
+  let short = 100 - shares.reduce((sum, share) => sum + share, 0)
+  for (const { index } of byRemainder) {
+    if (short <= 0) break
+    shares[index] = (shares[index] ?? 0) + 1
+    short -= 1
+  }
+
+  return shares
+}
 
 function trimmedQuestion(question: string): string {
   const trimmed = question.trim()

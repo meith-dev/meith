@@ -32,9 +32,13 @@ export {
 export {
   applyEditorEdit,
   applyEditorTag,
+  applyInsertion,
+  blockInsertionEdit,
   type Edit,
+  type EditorInsertion,
   type EditorTag,
   lineRange,
+  wrapInsertionEdit,
 } from './editor'
 export { linkTarget, type OffSiteAnchorProps } from './links'
 export {
@@ -135,6 +139,7 @@ export type {
   ThreadRowModel,
   ThreadRowSlotModel,
   ThreadViewModel,
+  ThreadWatchModel,
   TimeModel,
   UserPanelModel,
   UserRefModel,

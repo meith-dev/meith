@@ -264,6 +264,8 @@ export function threadViewCopy(t: Translator): SlotCopy {
     'raidframe.threadView.replies',
     'raidframe.threadView.views',
     'raidframe.threadView.markRead',
+    'raidframe.threadView.watch',
+    'raidframe.threadView.watching',
   ])
 }
 

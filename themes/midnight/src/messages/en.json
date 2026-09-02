@@ -77,6 +77,8 @@
   "midnight.threadView.in": "in",
   "midnight.threadView.markRead": "mark read",
   "midnight.threadView.reply": "reply",
+  "midnight.threadView.watch": "watch",
+  "midnight.threadView.watching": "watching",
   "midnight.userPanel.guest": "guest",
   "midnight.userPanel.messagesSrOnly": "unread messages",
   "midnight.userPanel.new": "new",
