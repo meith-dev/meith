@@ -5,6 +5,7 @@ import type { PluginData } from '@meith/plugin-kit'
 
 import type { Database } from './client'
 import type { Tx } from './permission-version'
+import { ensurePluginDataRole, pluginDbRole } from './plugin-role'
 import { resultRows } from './result-rows'
 
 export interface PluginDataOptions {
@@ -12,6 +13,21 @@ export interface PluginDataOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 3_000
+
+const ensuredRoles = new WeakMap<Database, Set<string>>()
+
+async function ensureRoleOnce(db: Database, pluginKey: string): Promise<void> {
+  let seen = ensuredRoles.get(db)
+  if (seen === undefined) {
+    seen = new Set<string>()
+    ensuredRoles.set(db, seen)
+  }
+  if (seen.has(pluginKey)) return
+  try {
+    await db.transaction((tx) => ensurePluginDataRole(tx, pluginKey))
+  } catch {}
+  seen.add(pluginKey)
+}
 
 export function bindPluginSql(
   text: string,
@@ -66,10 +82,13 @@ export function pluginData(
 ): PluginData {
   const timeoutMs = Math.max(1, Math.trunc(options.statementTimeoutMs ?? DEFAULT_TIMEOUT_MS))
   const where = `plugin "${pluginKey}"`
+  const role = pluginDbRole(pluginKey)
 
   const inTransaction = async <T>(work: (data: PluginData) => Promise<T>): Promise<T> => {
+    await ensureRoleOnce(db, pluginKey)
     return db.transaction(async (tx) => {
       await tx.execute(sql.raw(`set local statement_timeout = ${timeoutMs}`))
+      await tx.execute(sql.raw(`set local role "${role.replace(/"/g, '""')}"`))
       return work(onExecutor(tx, where))
     })
   }

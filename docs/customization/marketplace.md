@@ -399,7 +399,7 @@ Before a listing is merged, a maintainer checks:
 - **The code has actually been read.** Not compiled, not run — read. What
   it imports, what it sends over the network, and whether its migrations
   stay inside its own `plugin_<key>_*` namespace as
-  [the plugin API](./plugins.md#the-namespace-is-enforced-where-it-can-be)
+  [the plugin API](./plugins.md#the-namespace-is-a-database-boundary)
   requires.
 - **No network call beyond what the listing describes.** A dues-style
   plugin talking to a payment processor is expected; the same plugin
