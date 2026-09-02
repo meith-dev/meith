@@ -10,6 +10,7 @@ import {
   fillRecipient,
   type RecipientSegment,
 } from '../content/recipient-segment'
+import { fromCopy, useCopy } from '../shell/copy'
 
 export function RecipientField({
   id,
@@ -27,6 +28,7 @@ export function RecipientField({
   const input = useRef<HTMLInputElement>(null)
   const segment = useRef<RecipientSegment | null>(null)
   const [query, setQuery] = useState<string | null>(null)
+  const copy = useCopy()
 
   function sync(element: HTMLInputElement): void {
     const caret = element.selectionStart
@@ -60,6 +62,7 @@ export function RecipientField({
     onChoose: choose,
     onDismiss: close,
     label: (candidate) => candidate.username,
+    listboxLabel: fromCopy(copy, 'composer.recipient.suggestions'),
   })
 
   return (

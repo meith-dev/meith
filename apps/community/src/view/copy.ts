@@ -75,6 +75,7 @@ const CHROME_KEYS = [
   'composer.help.attachment',
   'composer.attachments.label',
   'composer.mention.suggestions',
+  'composer.recipient.suggestions',
   'composer.attachment.uploading',
   'composer.thanks.thanked',
   'composer.thanks.thanks',

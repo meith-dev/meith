@@ -1545,6 +1545,7 @@
   "composer.preview": "Preview",
   "composer.previewEmpty": "Nothing to preview yet.",
   "composer.previewFailed": "The preview could not be rendered. Your post is untouched — switch back to Write.",
+  "composer.recipient.suggestions": "Recipient suggestions",
   "composer.recovery.available": "A newer unsent version was recovered from this browser.",
   "composer.recovery.discard": "Discard",
   "composer.recovery.restore": "Restore",

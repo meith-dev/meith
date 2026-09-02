@@ -36,6 +36,7 @@ export interface MentionComboboxOptions {
   readonly onChoose: (candidate: MemberSuggestion) => void
   readonly onDismiss: () => void
   readonly label?: (candidate: MemberSuggestion) => string
+  readonly listboxLabel?: string
 }
 
 export function useMentionCombobox({
@@ -43,6 +44,7 @@ export function useMentionCombobox({
   onChoose,
   onDismiss,
   label,
+  listboxLabel,
 }: MentionComboboxOptions): MentionCombobox {
   const copy = useCopy()
   const listboxId = useId()
@@ -101,7 +103,7 @@ export function useMentionCombobox({
     <div
       id={listboxId}
       role="listbox"
-      aria-label={fromCopy(copy, 'composer.mention.suggestions')}
+      aria-label={listboxLabel ?? fromCopy(copy, 'composer.mention.suggestions')}
       className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-card py-1 text-sm shadow-lg"
     >
       {matches.map((candidate, index) => (
