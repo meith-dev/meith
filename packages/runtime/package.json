@@ -39,5 +39,8 @@
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*",
     "@meith/theme-default": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-orm": "^0.45.2"
   }
 }
