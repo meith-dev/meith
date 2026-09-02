@@ -20,6 +20,7 @@ import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { sendPasswordResetEmail, sendVerificationEmail } from './auth-mail'
 import { configuredIdentity, configuredSessions, getContainer } from './container'
+import { revokeFeedToken } from './feed-token'
 import { formStateReporter } from './form-state-reporter'
 import { getTranslator, tr } from './i18n'
 import { termsAcceptance } from './legal'
@@ -477,6 +478,7 @@ export async function confirmResetAction(_prev: FormState, form: FormData): Prom
   const identity = await configuredIdentity()
   try {
     const { userId } = await identity.redeemPasswordReset(token, password)
+    await revokeFeedToken(userId)
     await recordAuthEvent({ userId, kind: 'password_reset' })
   } catch (err) {
     return toFormState(err, { token })

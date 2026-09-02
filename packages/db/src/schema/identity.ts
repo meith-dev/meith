@@ -246,6 +246,27 @@ export const rememberTokens = pgTable(
   ],
 )
 
+export const feedTokens = pgTable(
+  'feed_tokens',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    lookup: text('lookup').notNull(),
+    secretHash: text('secret_hash').notNull(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('feed_tokens_user_key').on(t.userId),
+    uniqueIndex('feed_tokens_lookup_key').on(t.lookup),
+  ],
+)
+
 export const userIdentities = pgTable(
   'user_identities',
   {

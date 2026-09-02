@@ -5,11 +5,14 @@ import { type FeedChannel, type FeedEntry, renderAtom, renderRss } from '@/view/
 import { boardOffline } from './board-offline'
 import { activeWordFilter } from './content-admin'
 import { feedFor } from './feed-builder'
+import { feedScopeForRequest } from './feed-token'
 import { filterView } from './plugin-view'
 import { getSettings } from './settings'
-import { FEED_LIMIT, feedRepository, origin, publicScope } from './syndication'
+import { FEED_LIMIT, feedRepository, origin } from './syndication'
 
 const CACHE = 'public, max-age=300, stale-while-revalidate=3600'
+
+const PRIVATE_CACHE = ['private', 'no-store'].join(', ')
 
 export type FeedFormat = 'rss' | 'atom'
 
@@ -52,6 +55,7 @@ export async function feedResponse(
   channel: FeedChannel,
   format: FeedFormat,
   feed: FeedScope,
+  options: { readonly private?: boolean } = {},
 ): Promise<Response> {
   const withEntries = { ...channel, entries: await filterEntries(channel.entries, feed) }
   const body = format === 'atom' ? renderAtom(withEntries) : renderRss(withEntries)
@@ -61,7 +65,7 @@ export async function feedResponse(
         format === 'atom'
           ? 'application/atom+xml; charset=utf-8'
           : 'application/rss+xml; charset=utf-8',
-      'cache-control': CACHE,
+      'cache-control': options.private === true ? PRIVATE_CACHE : CACHE,
     },
   })
 }
@@ -82,14 +86,18 @@ export async function offlineFeed(): Promise<Response | null> {
   })
 }
 
-export async function boardFeed(format: FeedFormat, selfPath: string): Promise<Response> {
+export async function boardFeed(
+  format: FeedFormat,
+  selfPath: string,
+  request: Request,
+): Promise<Response> {
   const offline = await offlineFeed()
   if (offline !== null) return offline
 
   const repo = feedRepository()
   if (repo === null) return noFeed()
 
-  const scope = await publicScope()
+  const { scope, tokened } = await feedScopeForRequest(request)
   const threads = await repo.recentThreads(FEED_LIMIT, scope)
   const settings = await getSettings()
 
@@ -106,6 +114,7 @@ export async function boardFeed(format: FeedFormat, selfPath: string): Promise<R
     }),
     format,
     'board',
+    { private: tokened },
   )
 }
 

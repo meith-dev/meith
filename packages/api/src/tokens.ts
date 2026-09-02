@@ -2,6 +2,8 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 
 export const TOKEN_PREFIX = 'forum_pat'
 
+export const FEED_TOKEN_PREFIX = 'forum_feed'
+
 const LOOKUP_LENGTH = 8
 const SECRET_BYTES = 32
 
@@ -53,12 +55,20 @@ export function hashTokenSecret(secret: string): string {
   return createHash('sha256').update(secret, 'utf8').digest('hex')
 }
 
-export function issueToken(): IssuedToken {
+const DECOY_HASH = hashTokenSecret('')
+
+export function secretMatches(presentedSecret: string, storedHash: string): boolean {
+  const candidate = Buffer.from(hashTokenSecret(presentedSecret), 'hex')
+  const stored = Buffer.from(storedHash, 'hex')
+  return candidate.length === stored.length && timingSafeEqual(candidate, stored)
+}
+
+export function issueToken(prefix: string = TOKEN_PREFIX): IssuedToken {
   const lookup = randomBytes(LOOKUP_LENGTH).toString('hex').slice(0, LOOKUP_LENGTH)
   const secret = randomBytes(SECRET_BYTES).toString('base64url')
 
   return {
-    token: `${TOKEN_PREFIX}_${lookup}_${secret}`,
+    token: `${prefix}_${lookup}_${secret}`,
     lookup,
     secretHash: hashTokenSecret(secret),
   }
@@ -69,8 +79,8 @@ export interface ParsedToken {
   readonly secret: string
 }
 
-export function parseToken(presented: string): ParsedToken | null {
-  const marker = `${TOKEN_PREFIX}_`
+export function parseToken(presented: string, prefix: string = TOKEN_PREFIX): ParsedToken | null {
+  const marker = `${prefix}_`
   if (!presented.startsWith(marker)) return null
 
   const rest = presented.slice(marker.length)
@@ -101,9 +111,7 @@ export async function authenticateToken(
   const record = await repository.findByLookup(parsed.lookup)
   if (record === null) return { ok: false, reason: 'unknown' }
 
-  const candidate = Buffer.from(hashTokenSecret(parsed.secret), 'hex')
-  const stored = Buffer.from(record.secretHash, 'hex')
-  if (candidate.length !== stored.length || !timingSafeEqual(candidate, stored)) {
+  if (!secretMatches(parsed.secret, record.secretHash)) {
     return { ok: false, reason: 'bad-secret' }
   }
 
@@ -113,6 +121,39 @@ export async function authenticateToken(
   }
 
   return { ok: true, token: record }
+}
+
+export interface FeedTokenRecord {
+  readonly id: number
+  readonly userId: number
+  readonly lookup: string
+  readonly secretHash: string
+}
+
+export interface FeedTokenRepository {
+  findByLookup(lookup: string): Promise<FeedTokenRecord | null>
+}
+
+export type FeedTokenOutcome =
+  | { readonly ok: true; readonly record: FeedTokenRecord }
+  | { readonly ok: false }
+
+export async function authenticateFeedToken(
+  presented: string,
+  repository: FeedTokenRepository,
+): Promise<FeedTokenOutcome> {
+  const parsed = parseToken(presented, FEED_TOKEN_PREFIX)
+  if (parsed === null) return { ok: false }
+
+  const record = await repository.findByLookup(parsed.lookup)
+  if (record === null) {
+    secretMatches(parsed.secret, DECOY_HASH)
+    return { ok: false }
+  }
+
+  if (!secretMatches(parsed.secret, record.secretHash)) return { ok: false }
+
+  return { ok: true, record }
 }
 
 export function hasScope(token: ApiTokenRecord, scope: Scope): boolean {

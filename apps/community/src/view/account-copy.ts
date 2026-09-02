@@ -286,6 +286,36 @@ export function activityDetailLabel(
   return t.t('accountForm.activity.detail', { at, device, address })
 }
 
+export function feedTokenCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return copyFor(
+    [
+      'accountForm.feed.title',
+      'accountForm.feed.blurb',
+      'accountForm.feed.none',
+      'accountForm.feed.active',
+      'accountForm.feed.generate',
+      'accountForm.feed.regenerate',
+      'accountForm.feed.revoke',
+      'accountForm.feed.copyNow',
+      'accountForm.feed.revealHint',
+      'accountForm.feed.rssLabel',
+      'accountForm.feed.atomLabel',
+      'accountForm.feed.warning',
+      'form.working',
+    ],
+    t,
+  )
+}
+
+export function feedTokenDetailLabel(
+  created: string,
+  lastUsed: string | null,
+  t: Translator = untranslated(),
+): string {
+  const used = lastUsed === null ? t.t('accountForm.feed.neverUsed') : lastUsed
+  return t.t('accountForm.feed.detail', { created, used })
+}
+
 export function notificationFormsCopy(
   t: Translator = untranslated(),
 ): Readonly<Record<string, string>> {
