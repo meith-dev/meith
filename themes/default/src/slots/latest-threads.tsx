@@ -10,7 +10,7 @@ import {
   EmptyTitle,
 } from '@meith/ui'
 
-import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
+import { LINK, MUTED_LINK, NUMERIC, PRIMARY_HEADER, Stamp, UserRef } from '../shared'
 
 export function LatestThreads({
   threads,
@@ -21,8 +21,10 @@ export function LatestThreads({
 
   return (
     <Card aria-labelledby="latest-threads-heading">
-      <CardHeader>
-        <CardTitle id="latest-threads-heading">{c('heading')}</CardTitle>
+      <CardHeader className={PRIMARY_HEADER}>
+        <CardTitle id="latest-threads-heading" className="text-primary">
+          {c('heading')}
+        </CardTitle>
         <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
           {c('asOf')} <Stamp at={capturedAt} />
         </p>

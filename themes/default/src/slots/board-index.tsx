@@ -9,8 +9,9 @@ export function BoardIndex({
   regions,
   copy,
 }: BoardIndexModel & { copy: SlotCopy }) {
-  const rail = (regions.latest ?? null) !== null
-  const footer = regions.stats !== null || regions.online !== null
+  const latest = regions.latest ?? null
+  const rail = latest !== null || regions.stats !== null
+  const footer = regions.online !== null
 
   const c = (key: string) => fromSlotCopy(copy, `default.boardIndex.${key}`)
 
@@ -39,7 +40,8 @@ export function BoardIndex({
 
         {rail && (
           <aside aria-label={c('boardActivity')} className="flex min-w-0 flex-col gap-4">
-            {regions.latest}
+            {latest}
+            {regions.stats}
           </aside>
         )}
       </div>
@@ -47,7 +49,6 @@ export function BoardIndex({
       {footer && (
         <div className="flex flex-col gap-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
           {regions.online}
-          {regions.stats}
         </div>
       )}
 

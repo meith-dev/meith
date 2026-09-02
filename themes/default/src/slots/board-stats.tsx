@@ -1,7 +1,8 @@
 import type { BoardStatsModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
+import { Card, CardContent, CardHeader, CardTitle } from '@meith/ui'
 
-import { NUMERIC, Stamp, UserRef } from '../shared'
+import { NUMERIC, PRIMARY_HEADER, Stamp, UserRef } from '../shared'
 
 export function BoardStats({
   threadCount,
@@ -14,40 +15,45 @@ export function BoardStats({
   const c = (key: string) => fromSlotCopy(copy, `default.boardStats.${key}`)
 
   return (
-    <section
-      aria-labelledby="board-stats-heading"
-      className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
-    >
-      <h2 id="board-stats-heading" className="sr-only">
-        {c('heading')}
-      </h2>
+    <Card aria-labelledby="board-stats-heading">
+      <CardHeader className={PRIMARY_HEADER}>
+        <CardTitle id="board-stats-heading" className="text-primary">
+          {c('heading')}
+        </CardTitle>
+      </CardHeader>
 
-      {computedAt === null ? (
-        <span>{c('notComputed')}</span>
-      ) : (
-        <>
-          {[
-            { label: c('threads'), value: threadCount },
-            { label: c('posts'), value: postCount },
-            { label: c('members'), value: memberCount },
-          ].map((figure) => (
-            <span key={figure.label}>
-              <span className={`font-medium text-foreground ${NUMERIC}`}>{figure.value.label}</span>{' '}
-              {figure.label}
-            </span>
-          ))}
+      <CardContent className="flex flex-col gap-3">
+        {computedAt === null ? (
+          <p className="text-xs text-muted-foreground">{c('notComputed')}</p>
+        ) : (
+          <>
+            <dl className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { label: c('threads'), value: threadCount },
+                { label: c('posts'), value: postCount },
+                { label: c('members'), value: memberCount },
+              ].map((figure) => (
+                <div key={figure.label}>
+                  <dd className={`text-sm font-medium text-foreground ${NUMERIC}`}>
+                    {figure.value.label}
+                  </dd>
+                  <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+                </div>
+              ))}
+            </dl>
 
-          {newestMember !== null && (
-            <span>
-              {c('newestMember')} <UserRef user={newestMember} />
-            </span>
-          )}
+            {newestMember !== null && (
+              <p className="text-xs text-muted-foreground">
+                {c('newestMember')} <UserRef user={newestMember} />
+              </p>
+            )}
 
-          <span className={`ms-auto ${NUMERIC}`}>
-            {c('counted')} <Stamp at={computedAt} />
-          </span>
-        </>
-      )}
-    </section>
+            <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
+              {c('counted')} <Stamp at={computedAt} />
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

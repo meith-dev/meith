@@ -20,6 +20,8 @@ export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
 export const LINK =
   'transition-colors hover:text-primary hover:underline underline-offset-2 decoration-1 decoration-primary'
 
+export const PRIMARY_HEADER = 'border-b-primary/15 bg-primary/6'
+
 export const MUTED_LINK = `text-muted-foreground ${LINK}`
 
 export function UserRef({ user, className }: { user: UserRefModel; className?: string }) {
