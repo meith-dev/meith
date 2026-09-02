@@ -131,8 +131,13 @@ code in the box on any plan card. On a pass or lifetime plan the whole
 price drops; on a subscription only the first payment is discounted —
 renewals bill in full.
 
-Redemptions count when a payment settles, not when a checkout starts, so
-an abandoned checkout never burns a use. Codes are never deleted — **Switch
+A capped code holds a use the moment a checkout opens and only counts it
+for good once the payment settles. If that checkout is abandoned, expires,
+or is cancelled, the hold is let go and the use returns to the pool — so an
+abandoned checkout never burns a use, and a member cannot slip past the cap
+by opening several checkouts at once. The tally shown against a code is its
+settled redemptions; a use held by an open checkout is kept back from the
+cap without yet showing in that number. Codes are never deleted — **Switch
 off** stops one from that moment and keeps its history.
 
 > [!NOTE]

@@ -15,9 +15,11 @@ import {
   markEventProcessed,
   membershipById,
   recordEvent,
+  reserveCodeRedemption,
   saveCodeCoupon,
   saveStripeCustomer,
   setMembershipStatus,
+  settleOrder,
 } from './store'
 import { createStripeClient, type StripeClient, StripeError } from './stripe/client'
 import { parseEventEnvelope, toInternalEvent } from './stripe/events'
@@ -195,6 +197,19 @@ export async function handleCheckout(
       return offsite(order.checkoutUrl)
     }
     return back({ error: 'try-again', plan: plan.key })
+  }
+
+  if (code !== null) {
+    const reserved = await reserveCodeRedemption(services.context.data, code.id, order.id)
+    if (!reserved) {
+      await settleOrder(services.context.data, order.id, { status: 'cancelled' })
+      return back({
+        error: 'code-exhausted',
+        plan: plan.key,
+        code: codeInput,
+        recipient: recipientInput,
+      })
+    }
   }
 
   if (charge === 0 && plan.mode !== 'auto') {
