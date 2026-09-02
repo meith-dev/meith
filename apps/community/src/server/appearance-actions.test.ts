@@ -24,7 +24,8 @@ vi.mock('./theme-runtime', () => ({
   getBoardThemeStyle: async () => ({ choices, defaultKey: 'default' }),
 }))
 
-const { setAppearanceAction } = await import('./appearance-actions')
+const { setAppearanceAction, setSchemeAction } = await import('./appearance-actions')
+const { PROGRESSIVE_FIELD } = await import('@/view/progressive-enhancement')
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData()
@@ -73,5 +74,28 @@ describe('setAppearanceAction', () => {
     expect(options?.path).toBe('/')
     expect(options?.sameSite).toBe('lax')
     expect(Number(options?.maxAge)).toBeGreaterThan(60 * 60 * 24 * 30)
+  })
+})
+
+describe('setSchemeAction', () => {
+  it('stores the scheme and reports it back when the submit is enhanced', async () => {
+    const state = await setSchemeAction({}, form({ scheme: 'dark', [PROGRESSIVE_FIELD]: '1' }))
+
+    expect(jar.get('meith_scheme')?.value).toBe('dark')
+    expect(state).toEqual({ scheme: 'dark' })
+  })
+
+  it('refuses a colour scheme it does not have, even when enhanced', async () => {
+    const state = await setSchemeAction({}, form({ scheme: 'sepia', [PROGRESSIVE_FIELD]: '1' }))
+
+    expect(jar.has('meith_scheme')).toBe(false)
+    expect(state).toEqual({ scheme: undefined })
+  })
+
+  it('stores the scheme and reports nothing on a plain submit', async () => {
+    const state = await setSchemeAction({}, form({ scheme: 'light' }))
+
+    expect(jar.get('meith_scheme')?.value).toBe('light')
+    expect(state).toEqual({})
   })
 })

@@ -2,7 +2,9 @@
 
 import { cookies } from 'next/headers'
 
+import { isEnhancedSubmit } from '@/view/progressive-enhancement'
 import {
+  type ColourSchemePreference,
   isColourScheme,
   PREFERENCE_COOKIE_MAX_AGE,
   SCHEME_COOKIE,
@@ -36,4 +38,23 @@ export async function setAppearanceAction(form: FormData): Promise<void> {
   }
 
   await redirectToCurrentPath()
+}
+
+export interface SchemeState {
+  readonly scheme?: ColourSchemePreference | undefined
+}
+
+export async function setSchemeAction(_prev: SchemeState, form: FormData): Promise<SchemeState> {
+  const raw = form.get('scheme')
+  const scheme = typeof raw === 'string' && isColourScheme(raw) ? raw : null
+
+  if (scheme !== null) {
+    const jar = await cookies()
+    jar.set(SCHEME_COOKIE, scheme, COOKIE_OPTIONS)
+  }
+
+  if (isEnhancedSubmit(form)) return { scheme: scheme ?? undefined }
+
+  await redirectToCurrentPath()
+  return {}
 }
