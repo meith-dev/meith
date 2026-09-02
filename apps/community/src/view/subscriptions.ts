@@ -80,6 +80,7 @@ export function unsubscribeNotice(
 ): string | null {
   if (done === 'announcements') return t.t('subscription.announcementsOff')
   if (done === 'email') return t.t('subscription.emailsOff')
+  if (done === 'boardDigest') return t.t('subscription.boardDigestOff')
   if (done === 'one') return t.t('subscription.doneOne')
   return null
 }

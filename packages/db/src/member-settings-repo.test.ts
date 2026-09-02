@@ -52,6 +52,7 @@ describe('reading', () => {
       bio: null,
       displayGroupId: null,
       massMailOptInAt: null,
+      boardDigestCadence: 'weekly',
     })
   })
 
@@ -129,6 +130,13 @@ describe('saving', () => {
     await repo.saveMassMailOptIn({ userId: IVAN, optIn: true })
 
     expect((await repo.read(MOD))?.massMailOptInAt).toBeNull()
+  })
+
+  it('stores the digest cadence a member chooses', async () => {
+    await repo.saveBoardDigestCadence({ userId: IVAN, cadence: 'monthly' })
+
+    expect((await repo.read(IVAN))?.boardDigestCadence).toBe('monthly')
+    expect((await repo.read(MOD))?.boardDigestCadence).toBe('weekly')
   })
 
   it('touches nobody else', async () => {

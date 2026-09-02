@@ -144,6 +144,8 @@ export async function unsubscribeByTokenAction(
           ['subscription.digest', false],
         ]),
       )
+    } else if (claim.scope === 'board-digest') {
+      await notifications.savePreferences(claim.userId, 'email', new Map([['board.digest', false]]))
     } else {
       await new SubscriptionService({ subscriptions }).unsubscribe({
         userId: claim.userId,
@@ -160,6 +162,7 @@ export async function unsubscribeByTokenAction(
 
 function doneFor(scope: UnsubscribeScope): string {
   if (scope === 'mass-mail') return 'announcements'
+  if (scope === 'board-digest') return 'boardDigest'
   return scope === 'email' ? 'email' : 'one'
 }
 

@@ -49,6 +49,7 @@ vi.mock('./usercp-mail', () => ({
 const {
   changePasswordAction,
   requestEmailChangeAction,
+  saveBoardDigestCadenceAction,
   saveDisplayGroupAction,
   saveOptionsAction,
   saveProfileAction,
@@ -73,11 +74,13 @@ class FakeSettings implements MemberSettingsRepository {
     bio: null,
     displayGroupId: null,
     massMailOptInAt: null,
+    boardDigestCadence: 'weekly',
   }
   readonly profiles: Array<{ userId: number; location: string | null }> = []
   readonly options: Array<{ userId: number; timezone: string }> = []
   readonly displayGroups: Array<number | null> = []
   readonly massMailOptIns: boolean[] = []
+  readonly digestCadences: string[] = []
   held = [
     { groupId: 2, title: 'Registered', isPrimary: true, isStaff: false },
     { groupId: 5, title: 'Supporters', isPrimary: false, isStaff: false },
@@ -100,6 +103,10 @@ class FakeSettings implements MemberSettingsRepository {
   }
   async saveMassMailOptIn(input: { userId: number; optIn: boolean }) {
     this.massMailOptIns.push(input.optIn)
+  }
+  async saveBoardDigestCadence(input: { userId: number; cadence: string }) {
+    this.digestCadences.push(input.cadence)
+    this.row = { ...this.row, boardDigestCadence: input.cadence }
   }
   async adoptEmail() {
     return true
@@ -277,6 +284,22 @@ describe('saving the options', () => {
 
     expect(result.error).toContain('not a timezone')
     expect(settings.options).toEqual([])
+  })
+})
+
+describe('saving the board digest cadence', () => {
+  it('saves the chosen cadence and returns to the notification preferences', async () => {
+    const result = await run(saveBoardDigestCadenceAction, form([['cadence', 'monthly']]))
+
+    expect(result.redirectedTo).toBe('/notifications/preferences?saved=digest-cadence')
+    expect(settings.digestCadences).toEqual(['monthly'])
+  })
+
+  it('refuses anything other than weekly or monthly', async () => {
+    const result = await run(saveBoardDigestCadenceAction, form([['cadence', 'daily']]))
+
+    expect(result.error).toContain('weekly or monthly')
+    expect(settings.digestCadences).toEqual([])
   })
 })
 

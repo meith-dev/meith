@@ -118,6 +118,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../../packages/avatars
+      '@meith/board-digest':
+        specifier: workspace:*
+        version: link:../../packages/board-digest
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -486,6 +489,15 @@ importers:
         specifier: workspace:*
         version: link:../i18n
 
+  packages/board-digest:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meith/subscriptions':
+        specifier: workspace:*
+        version: link:../subscriptions
+
   packages/core:
     dependencies:
       '@opentelemetry/api':
@@ -539,6 +551,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
+      '@meith/board-digest':
+        specifier: workspace:*
+        version: link:../board-digest
       '@meith/core':
         specifier: workspace:*
         version: link:../core
@@ -872,6 +887,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
+      '@meith/board-digest':
+        specifier: workspace:*
+        version: link:../board-digest
       '@meith/core':
         specifier: workspace:*
         version: link:../core
@@ -917,6 +935,10 @@ importers:
       '@meith/theme-default':
         specifier: workspace:*
         version: link:../../themes/default
+    devDependencies:
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@electric-sql/pglite@0.5.5)(@opentelemetry/api@1.9.1)(mysql2@3.23.3(@types/node@26.2.0))(postgres@3.4.9)
 
   packages/search:
     dependencies:

@@ -112,6 +112,9 @@ export const users = pgTable(
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     massMailOptInAt: timestamp('mass_mail_opt_in_at', { withTimezone: true }),
 
+    boardDigestCadence: text('board_digest_cadence').notNull().default('weekly'),
+    boardDigestSentAt: timestamp('board_digest_sent_at', { withTimezone: true }),
+
     suspendedPostingUntil: timestamp('suspended_posting_until', { withTimezone: true }),
     moderatedPostingUntil: timestamp('moderated_posting_until', { withTimezone: true }),
 
@@ -591,7 +594,12 @@ export const notificationPreferences = pgTable(
     push: boolean('push'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] })],
+  (t) => [
+    primaryKey({ name: 'notification_preferences_pkey', columns: [t.userId, t.kind] }),
+    index('notification_preferences_kind_email_idx')
+      .on(t.kind, t.userId)
+      .where(sql`${t.email} = true`),
+  ],
 )
 
 export const pushSubscriptions = pgTable(

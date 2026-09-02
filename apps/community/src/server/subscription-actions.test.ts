@@ -327,6 +327,27 @@ describe('the no-login unsubscribe', () => {
     expect(notifications.saved[0]?.entries.get('subscription.reply')).toBe(false)
   })
 
+  it('switches only the board digest off for the board-digest scope', async () => {
+    const token = mintUnsubscribeToken({ userId: 42, scope: 'board-digest', targetId: 0 }, SECRET)
+
+    const result = await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(result.redirectedTo).toBe('/unsubscribe?done=boardDigest')
+    expect(subscriptions.removed).toEqual([])
+    expect(notifications.saved).toEqual([
+      { userId: 42, entries: new Map([['board.digest', false]]) },
+    ])
+  })
+
+  it('leaves subscription e-mail alone when only the board digest is switched off', async () => {
+    const token = mintUnsubscribeToken({ userId: 42, scope: 'board-digest', targetId: 0 }, SECRET)
+
+    await run(unsubscribeByTokenAction, form([['token', token]]))
+
+    expect(notifications.saved[0]?.entries.has('subscription.digest')).toBe(false)
+    expect(notifications.saved[0]?.entries.has('subscription.reply')).toBe(false)
+  })
+
   it('stops the board’s announcements for the announcements scope', async () => {
     const token = mintUnsubscribeToken({ userId: 42, scope: 'mass-mail', targetId: 0 }, SECRET)
 

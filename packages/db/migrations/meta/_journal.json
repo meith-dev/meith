@@ -442,6 +442,13 @@
       "when": 1788314541634,
       "tag": "0062_pretty_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1788327929586,
+      "tag": "0063_board_digest",
+      "breakpoints": true
     }
   ]
 }

@@ -377,6 +377,7 @@ describe('preferences', () => {
       ['report.actioned', false, true],
       ['subscription.reply', true, true],
       ['subscription.digest', true, true],
+      ['board.digest', false, true],
       ['post.mentioned', true, true],
       ['post.quoted', false, true],
       ['pm.received', true, true],

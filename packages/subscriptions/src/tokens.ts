@@ -4,10 +4,14 @@ import { timingSafeEqualString } from '@meith/core'
 
 import type { SubscriptionTarget } from './modes'
 
-export type UnsubscribeScope = SubscriptionTarget | 'email' | 'mass-mail'
+export type UnsubscribeScope = SubscriptionTarget | 'email' | 'mass-mail' | 'board-digest'
 
 export function parseUnsubscribeScope(value: string): UnsubscribeScope | null {
-  return value === 'thread' || value === 'forum' || value === 'email' || value === 'mass-mail'
+  return value === 'thread' ||
+    value === 'forum' ||
+    value === 'email' ||
+    value === 'mass-mail' ||
+    value === 'board-digest'
     ? value
     : null
 }

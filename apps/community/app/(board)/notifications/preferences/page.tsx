@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import {
   AnnouncementsOptInForm,
+  BoardDigestCadenceForm,
   NotificationPreferencesForm,
 } from '@/components/account/notification-forms'
 import { PushDeviceForm } from '@/components/account/push-device-form'
@@ -67,6 +68,13 @@ export default async function NotificationPreferencesPage({
         push={push.enabled}
         copy={notificationFormsCopy(await getTranslator())}
       />
+
+      {settings !== null && (
+        <BoardDigestCadenceForm
+          cadence={settings.boardDigestCadence}
+          copy={notificationFormsCopy(await getTranslator())}
+        />
+      )}
 
       {settings !== null && (
         <AnnouncementsOptInForm

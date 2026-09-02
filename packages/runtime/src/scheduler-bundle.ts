@@ -13,8 +13,10 @@ import {
   PostgresAuthorizationSource,
   PostgresAvatarRepository,
   PostgresBanRepository,
+  PostgresBoardDigestRepository,
   PostgresContentCounterRepository,
   PostgresCounterRecount,
+  PostgresDiscoveryRepository,
   PostgresMaintenanceRepository,
   PostgresMarketplaceCacheRepository,
   PostgresNotificationRepository,
@@ -50,6 +52,7 @@ import { resolvePushConfig, SettingsSnapshot } from '@meith/settings'
 import { mintUnsubscribeToken } from '@meith/subscriptions'
 import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
 
+import { boardDigestContentSource } from './board-digest-content'
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { resolveMailBrand, type ThemeTokenRegistry } from './mail-brand'
@@ -298,6 +301,17 @@ export function buildSchedulerBundle(deps: {
             }),
             unsubscribeSecret: env.AUTH_SECRET ?? null,
           },
+          boardDigest: {
+            repository: new PostgresBoardDigestRepository(db),
+            content: boardDigestContentSource({
+              authorizer: new Authorizer(new PostgresAuthorizationSource(db), {}),
+              actors: new ActorBuilder(db, { guestGroupId: SEED_GROUP.guest }),
+              discovery: new PostgresDiscoveryRepository(db),
+            }),
+            notifications: new NotificationService({ notifications }),
+            unsubscribeSecret: env.AUTH_SECRET ?? null,
+            lapsedThresholdDays: () => boardDigestLapsedDays(db),
+          },
           marketplace: {
             repository: new PostgresMarketplaceCacheRepository(db),
             plugins,
@@ -345,6 +359,16 @@ async function vapidDetails(db: Database): Promise<VapidDetails | null> {
   } catch (err) {
     logger({ module: 'tick' }).warn({ err }, 'could not read the web push configuration')
     return null
+  }
+}
+
+async function boardDigestLapsedDays(db: Database): Promise<number> {
+  try {
+    const overrides = await new PostgresSettingsRepository(db).loadAll()
+    return SettingsSnapshot.fromOverrides(new Map(overrides)).get('board.digest_lapsed_days')
+  } catch (err) {
+    logger({ module: 'tick' }).warn({ err }, 'could not read the board digest lapsed threshold')
+    return SettingsSnapshot.fromOverrides(new Map()).get('board.digest_lapsed_days')
   }
 }
 

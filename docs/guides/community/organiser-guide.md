@@ -290,6 +290,31 @@ board's mail working and its background worker running — if a mass mail
 sits unsent, that is one for the technical person, and
 [Operations § Mail](../operations/operating.md#mail) is their page.
 
+### Board activity digest
+
+Every member's **Notifications → Preferences** screen lists a **board
+activity digest**, off by default like every other e-mail on that
+screen. A member who turns it on also picks how often — **weekly** or
+**monthly** — from the box beside it.
+
+The digest is not sent to everybody who turns it on: it is aimed
+specifically at members who have drifted away. A member is due one only
+once they have not visited the board for a run of days you set —
+**Admin → Settings → Board → "Board digest: days away before a member
+counts as lapsed"**, seven days out of the box — and even then only when
+their own chosen cadence has actually elapsed. A member who reads the
+board most days never gets one, however long they leave the feature
+switched on.
+
+What it lists is the busiest threads since that member's own last visit,
+built for them alone: the same forum permissions that decide what they
+can open on the board decide what a digest may name, so two members
+turned lapsed on the same day can receive two different digests, and
+neither ever sees a thread in a forum closed to them. Every digest
+carries its own unsubscribe link, and using it switches off only the
+board digest — every other notification preference, and the member's
+account, are untouched.
+
 ### Closing for maintenance
 
 **Board offline**, under **`/admin/settings?group=board`**, replaces

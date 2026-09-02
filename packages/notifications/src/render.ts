@@ -80,6 +80,11 @@ const DIGEST_CADENCE_KEYS = {
   weekly: 'notification.render.digest.weekly',
 } as const
 
+const BOARD_DIGEST_CADENCE_KEYS = {
+  weekly: 'notification.render.digest.weekly',
+  monthly: 'notification.render.boardDigest.monthly',
+} as const
+
 const TEMPLATES: Readonly<
   Record<string, (data: NotificationData, t: Translator) => { subject: string; body: string }>
 > = {
@@ -161,6 +166,29 @@ const TEMPLATES: Readonly<
       subject: t.t('notification.render.digest.subject', {
         cadence: t.t(DIGEST_CADENCE_KEYS[cadence]),
         posts: postCount,
+        threads: threadCount,
+      }),
+      body: lines.join('\n'),
+    }
+  },
+
+  'board.digest': (data, t) => {
+    const cadence = str(data, 'cadence') === 'monthly' ? 'monthly' : 'weekly'
+    const threadCount = num(data, 'threadCount')
+    const more = num(data, 'more')
+
+    const lines = objects(data, 'threads').map((entry) =>
+      t.t('notification.render.boardDigest.entry', {
+        title: str(entry, 'title', t.t('notification.render.digest.fallbackTitle')),
+        forum: str(entry, 'forumTitle', t.t('notification.render.boardDigest.forumFallback')),
+      }),
+    )
+
+    if (more > 0) lines.push(t.t('notification.render.digest.more', { count: more }))
+
+    return {
+      subject: t.t('notification.render.boardDigest.subject', {
+        cadence: t.t(BOARD_DIGEST_CADENCE_KEYS[cadence]),
         threads: threadCount,
       }),
       body: lines.join('\n'),

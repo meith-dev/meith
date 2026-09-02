@@ -59,7 +59,9 @@ export default async function UnsubscribePage({
                 ? await tr('page.unsubscribe.massMailScope')
                 : claim.scope === 'email'
                   ? await tr('page.unsubscribe.emailScope')
-                  : await tr('page.unsubscribe.targetScope')
+                  : claim.scope === 'board-digest'
+                    ? await tr('page.unsubscribe.boardDigestScope')
+                    : await tr('page.unsubscribe.targetScope')
             }
             copy={followFormCopy(translator)}
           />

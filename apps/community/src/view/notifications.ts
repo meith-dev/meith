@@ -78,6 +78,7 @@ export function notificationNotice(
   t: Translator = untranslated(),
 ): string | null {
   if (query.saved === 'announcements') return t.t('notice.announcementsSaved')
+  if (query.saved === 'digest-cadence') return t.t('notice.boardDigestCadenceSaved')
   if (query.saved !== undefined) return t.t('notice.preferencesSaved')
   if (query.read === 'all') return t.t('notice.allRead')
   if (query.read === 'one') return t.t('notice.markedRead')

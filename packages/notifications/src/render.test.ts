@@ -82,6 +82,47 @@ describe('repetition', () => {
   })
 })
 
+describe('board.digest', () => {
+  it('names the cadence and the thread count in the subject', () => {
+    const view = render({
+      kind: 'board.digest',
+      data: {
+        cadence: 'monthly',
+        threadCount: 3,
+        threads: [{ title: 'A busy thread', forumTitle: 'General' }],
+        more: 0,
+      },
+    })
+
+    expect(view.subject).toContain('monthly digest')
+    expect(view.subject).toContain('3 threads')
+    expect(view.body).toContain('A busy thread — General')
+  })
+
+  it('counts the threads left out of the list', () => {
+    const view = render({
+      kind: 'board.digest',
+      data: {
+        cadence: 'weekly',
+        threadCount: 12,
+        threads: [{ title: 'One', forumTitle: 'General' }],
+        more: 11,
+      },
+    })
+
+    expect(view.body).toContain('and 11 more')
+  })
+
+  it('carries the unsubscribe token from the payload', () => {
+    const view = render({
+      kind: 'board.digest',
+      data: { cadence: 'weekly', threadCount: 1, threads: [], more: 0, unsubscribe: 'tok.en' },
+    })
+
+    expect(view.unsubscribeToken).toBe('tok.en')
+  })
+})
+
 describe('report.actioned', () => {
   it('distinguishes an action from a dismissal', () => {
     const resolved = render({

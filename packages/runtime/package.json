@@ -23,6 +23,7 @@
     "@meith/api": "workspace:*",
     "@meith/attachments": "workspace:*",
     "@meith/avatars": "workspace:*",
+    "@meith/board-digest": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
@@ -38,5 +39,8 @@
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*",
     "@meith/theme-default": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-orm": "^0.45.2"
   }
 }

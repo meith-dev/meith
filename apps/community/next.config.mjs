@@ -60,6 +60,7 @@ const nextConfig = {
     '@meith/attachments',
     '@meith/authorization',
     '@meith/avatars',
+    '@meith/board-digest',
     '@meith/core',
     '@meith/db',
     '@meith/demo',
