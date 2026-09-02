@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { MYBB_PREFIX, PHPBB_PREFIX } from '@meith/accounts'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresSystemHealthRepository } from './system-health-repo'
@@ -23,6 +25,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from task_log`)
   await db.execute(sql`delete from tasks`)
   await db.execute(sql`delete from jobs`)
+  await db.execute(sql`delete from users`)
 })
 
 describe('taskHealth', () => {
@@ -97,6 +100,35 @@ describe('volumes', () => {
   it('counts a board with nothing on it as zero rather than failing', async () => {
     const volumes = await repo.volumes()
     expect(volumes).toMatchObject({ threads: 0, posts: 0, queuedJobs: 0 })
+  })
+})
+
+describe('legacyPasswordHashes', () => {
+  it('counts only members still on an imported hash', async () => {
+    await db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower,
+                         password_hash, password_algo, primary_group_id)
+      values (1, 'ada', 'ada', 'a@example.test', 'a@example.test',
+              ${`${MYBB_PREFIX}salt$${'0'.repeat(32)}`}, 'legacy', 2),
+             (2, 'bea', 'bea', 'b@example.test', 'b@example.test',
+              ${`${PHPBB_PREFIX}$2y$10$${'a'.repeat(53)}`}, 'legacy', 2),
+             (3, 'cy', 'cy', 'c@example.test', 'c@example.test', 'x', 'argon2id', 2),
+             (4, 'deleted', 'deleted', 'd@example.test', 'd@example.test',
+              ${`${MYBB_PREFIX}salt$${'0'.repeat(32)}`}, 'legacy', 2)
+    `)
+    await db.execute(sql`update users set deleted_at = now() where id = 4`)
+
+    expect(await repo.legacyPasswordHashes()).toBe(2)
+  })
+
+  it('is zero once every member has upgraded', async () => {
+    await db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower,
+                         password_hash, password_algo, primary_group_id)
+      values (1, 'ada', 'ada', 'a@example.test', 'a@example.test', 'x', 'argon2id', 2)
+    `)
+
+    expect(await repo.legacyPasswordHashes()).toBe(0)
   })
 })
 

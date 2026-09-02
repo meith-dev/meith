@@ -418,6 +418,19 @@ anybody on your board doing anything.
 |---|---|---|---|
 | `reputation.comment_required` | on | off | Posts gain a one-press **Thanks** button; a rating no longer has to carry a reason. Set it back under **Settings → Reputation** if your board wants every rating to say why — the right choice for a board that allows negative ratings. |
 
+**`TRUSTED_PROXY_HOPS` now defaults to `0`, not `1`.** It was `1` because
+that matched the one documented reverse proxy in front of `compose.yml`;
+the trouble was any board that published the board's port directly, with
+nothing in front, inherited a default that trusted a header any visitor
+can set — forging the address the IP allowlist, the login lockout and the
+audit log key off. `compose.yml` and the Coolify compose files now set
+`TRUSTED_PROXY_HOPS=1` themselves, so a board deployed with one of them
+sees no change. **A board that never set the variable elsewhere** — a
+board on Vercel included, sitting behind that platform's own edge network
+— now has `X-Forwarded-For` ignored outright: set `TRUSTED_PROXY_HOPS=1`
+yourself to get it back. See
+[Deploying by hand § Count your proxies](../../getting-started/deployment/docker-compose.md#count-your-proxies).
+
 ### Configuration that moved out of the environment
 
 Two things that were environment variables and nothing else are board

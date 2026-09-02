@@ -171,6 +171,8 @@ async function registerUser(over: Partial<typeof CREDS> = {}): Promise<void> {
 }
 
 beforeEach(() => {
+  vi.stubEnv('TRUSTED_PROXY_HOPS', '1')
+  resetEnvForTests()
   jar.clear()
   events.recorded.length = 0
   delete (globalThis as Record<symbol, unknown>)[CONTAINER_KEY]
@@ -764,4 +766,6 @@ describe('resending a verification link', () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllEnvs()
+  resetEnvForTests()
 })

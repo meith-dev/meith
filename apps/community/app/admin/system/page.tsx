@@ -53,7 +53,7 @@ export default async function AdminSystemPage() {
     )
   }
 
-  const { mail, scheduler, volumes } = view
+  const { mail, scheduler, volumes, legacyPasswordHashes } = view
 
   return (
     <PanelPage
@@ -251,6 +251,20 @@ export default async function AdminSystemPage() {
           </li>
         </ul>
       </section>
+
+      {legacyPasswordHashes > 0 && (
+        <section className={PANEL_CARD}>
+          <h2 className="font-heading text-lg font-semibold">
+            {translator.t('adminSystem.legacyPasswords')}
+          </h2>
+          <p className="text-sm">
+            {translator.t('adminSystem.legacyPasswordsCount', { count: legacyPasswordHashes })}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {translator.t('adminSystem.legacyPasswordsHint')}
+          </p>
+        </section>
+      )}
 
       <section className={PANEL_CARD}>
         <h2 className="font-heading text-lg font-semibold">

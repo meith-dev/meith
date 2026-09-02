@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { resetEnvForTests } from '@meith/core'
 
@@ -9,6 +9,11 @@ function post(headers: Record<string, string>): Request {
 }
 
 describe('isSameOrigin', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    resetEnvForTests()
+  })
+
   it('admits the board’s own origin', () => {
     expect(isSameOrigin(post({ host: 'board.example', origin: 'https://board.example' }))).toBe(
       true,
@@ -22,6 +27,9 @@ describe('isSameOrigin', () => {
   })
 
   it('compares against the forwarded host when a proxy rewrote it', () => {
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '1')
+    resetEnvForTests()
+
     expect(
       isSameOrigin(
         post({

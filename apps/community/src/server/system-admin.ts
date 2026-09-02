@@ -50,6 +50,7 @@ export interface SystemHealthView {
   readonly recount: readonly RecountStateRow[]
   readonly volumes: BoardVolumes
   readonly prunableSessions: number
+  readonly legacyPasswordHashes: number
 }
 
 export async function buildSystemHealthView(now: Date): Promise<SystemHealthView | null> {
@@ -57,15 +58,17 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
   if (repository === null) return null
 
   const maintenance = new PostgresMaintenanceRepository(getDb())
-  const [tasks, runs, recount, volumes, prunableSessions, searchIndex, mail] = await Promise.all([
-    repository.taskHealth(),
-    repository.recentRuns(20),
-    repository.recountState(),
-    repository.volumes(),
-    maintenance.countPrunableSessions(now),
-    new PostgresSearchRepository(getDb()).indexProgress(),
-    assessMailReadiness(),
-  ])
+  const [tasks, runs, recount, volumes, prunableSessions, searchIndex, mail, legacyPasswordHashes] =
+    await Promise.all([
+      repository.taskHealth(),
+      repository.recentRuns(20),
+      repository.recountState(),
+      repository.volumes(),
+      maintenance.countPrunableSessions(now),
+      new PostgresSearchRepository(getDb()).indexProgress(),
+      assessMailReadiness(),
+      repository.legacyPasswordHashes(),
+    ])
 
   const scheduler = assessScheduler(tasks, now)
   const taskMessages = new Map(
@@ -86,5 +89,6 @@ export async function buildSystemHealthView(now: Date): Promise<SystemHealthView
     recount,
     volumes,
     prunableSessions,
+    legacyPasswordHashes,
   }
 }

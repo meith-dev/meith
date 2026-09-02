@@ -507,7 +507,7 @@ export function ThemeEditorForm({
             <p className="text-xs text-muted-foreground">
               {fromCopy(copy, 'adminTheme.validated.blurb')}
             </p>
-            <style dangerouslySetInnerHTML={{ __html: state.preview }} />
+            <style>{state.preview}</style>
             <ValidatedSample copy={copy} />
           </section>
         )}

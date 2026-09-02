@@ -106,6 +106,11 @@ services:
       REDIS_URL: ${REDIS_URL:-}
       FILESTORE_DRIVER: local
       APP_URL: ${APP_URL:-http://localhost:3000}
+      # One reverse proxy (Caddy, by the setup this file's guide walks through)
+      # sits in front of `web` — see "Count your proxies" in
+      # docs/getting-started/deployment/docker-compose.md. Override in `.env` if
+      # that shape changes.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       # Mail, forwarded rather than hard-coded so it can be configured in `.env`
       # without editing this file. An empty value here is treated as unset; see
       # withoutEmptyValues in packages/core/src/env.ts.

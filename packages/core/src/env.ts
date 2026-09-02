@@ -125,7 +125,7 @@ const envSchema = z
 
     PUSH_ALLOW_PRIVATE_HOSTS: flag,
 
-    TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(MAX_TRUSTED_PROXY_HOPS).default(1),
+    TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(MAX_TRUSTED_PROXY_HOPS).default(0),
 
     REMOTE_IMAGES: flag,
 

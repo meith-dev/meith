@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { resetEnvForTests } from '@meith/core'
 
 const config = {
   current: {
@@ -439,7 +441,15 @@ describe('access', () => {
 })
 
 describe('the host doorstep', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    resetEnvForTests()
+  })
+
   it('a rate-limited route spends its window, 429s with retry-after, and counts callers apart', async () => {
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '1')
+    resetEnvForTests()
+
     const call = (headers: Record<string, string> = {}) =>
       dispatchPluginRoute(request('/api/plugins/alpha/limited', { headers }), 'alpha', ['limited'])
 

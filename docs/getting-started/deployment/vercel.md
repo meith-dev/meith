@@ -702,6 +702,7 @@ And the values those drivers need:
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. **32 characters minimum**; the board refuses to boot on a shorter one. |
 | `CRON_SECRET` | Guards `/api/system/tick`. Also 32 characters minimum. This is the name Vercel Cron can send — see [the tick](#the-tick-replaces-the-worker). |
 | `TICK_SECRET` | The same guard under the other name. Strictly speaking `CRON_SECRET` alone protects the endpoint, but set this too: the installer's preflight looks only at `TICK_SECRET` and warns without it, and it is what any other scheduler — or the board you eventually move to — presents. Generate a separate value; it need not match. |
+| `TRUSTED_PROXY_HOPS` | Set this to `1`. Vercel's own edge network is the one hop between a visitor and your function, and the default of `0` ignores `X-Forwarded-For` outright — every visitor then resolves to no address at all, which empties the IP allowlist, the login lockout and the audit log's `ip_prefix` of anything to key off. |
 
 Generate each secret with `openssl rand -hex 32`.
 

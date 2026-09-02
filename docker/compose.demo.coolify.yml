@@ -95,6 +95,10 @@ services:
       # and the tick is what resets the board. An unset TICK_SECRET is a reset
       # anybody on the internet can drive.
       - TICK_SECRET=$SERVICE_BASE64_64_TICK
+      # Coolify's own proxy is the one hop between the internet and this
+      # container — see "Count your proxies" in
+      # docs/getting-started/deployment/docker-compose.md.
+      - TRUSTED_PROXY_HOPS=1
       - QUEUE_DRIVER=postgres
       - CACHE_DRIVER=next
       - FILESTORE_DRIVER=local
