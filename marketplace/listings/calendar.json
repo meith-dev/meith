@@ -5,7 +5,7 @@
   "name": "Calendar",
   "description": "A shared calendar: events the community can see, linked to the threads that discuss them.",
   "screenshots": ["calendar-light.png"],
-  "version": "0.33.0",
+  "version": "0.33.1",
   "apiVersion": 0,
   "meith": ">=0.16 <1",
   "repository": "https://github.com/meith-dev/meith",
