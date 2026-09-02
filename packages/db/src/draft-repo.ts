@@ -67,6 +67,7 @@ export class PostgresDraftRepository implements DraftRepository {
           join forums f on f.id = d.forum_id
           left join threads t on t.id = d.thread_id
          where d.user_id = ${userId}
+           and (d.thread_id is null or t.id is not null)
          order by d.updated_at desc
       `),
     ) as Array<{

@@ -865,7 +865,7 @@ describe('post actions', () => {
         expect(attachments.created).toEqual([])
       })
 
-      it('does not require the attachment.upload permission the way a new post would', async () => {
+      it('requires the attachment.upload permission to add a file, same as a new post', async () => {
         installContainer(
           { postWrites, attachments },
           {
@@ -881,9 +881,35 @@ describe('post actions', () => {
           },
         )
 
-        await redirectOf(editPostAction(EMPTY_STATE, formWithFile(EDIT)))
+        const state = await editPostAction(EMPTY_STATE, formWithFile(EDIT))
 
-        expect(attachments.created).toHaveLength(1)
+        expect(state.error).toMatch(/may not attach files/)
+        expect(attachments.created).toEqual([])
+        expect(postWrites.edits).toHaveLength(0)
+      })
+
+      it('still lets the same member remove one of their own attachments without that permission', async () => {
+        installContainer(
+          { postWrites, attachments },
+          {
+            ...SEED_BOARD,
+            overrides: [
+              ...SEED_BOARD.overrides,
+              {
+                forumId: SEED_FORUM.general,
+                groupId: SEED_GROUP.registered,
+                overrides: { canUploadAttachments: false },
+              },
+            ],
+          },
+        )
+
+        const body = form(EDIT)
+        body.append('removeAttachmentIds', '5')
+
+        await redirectOf(editPostAction(EMPTY_STATE, body))
+
+        expect(attachments.deleted).toEqual([5])
       })
     })
   })

@@ -120,4 +120,20 @@ describe('listByUser', () => {
     })
     expect(await drafts.listByUser(902)).toEqual([])
   })
+
+  it('excludes a reply draft whose thread no longer exists, rather than a broken resume link', async () => {
+    await drafts.save(901, {
+      forumId: 900,
+      threadId: 950,
+      title: '',
+      message: 'orphaned reply',
+      prefixId: null,
+    })
+
+    await db.execute(sql`alter table post_drafts disable trigger all`)
+    await db.execute(sql`delete from threads where id = 950`)
+    await db.execute(sql`alter table post_drafts enable trigger all`)
+
+    expect(await drafts.listByUser(901)).toEqual([])
+  })
 })

@@ -21,7 +21,6 @@ import {
   removeAttachmentsFromPost,
   resolveEditAttachmentScope,
   stageAttachments,
-  stageAttachmentsForEdit,
   submittedFiles,
 } from './attachments'
 import type { FormState } from './auth-form-state'
@@ -355,11 +354,11 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
     const toRemove = current.filter((record) => removeIds.includes(record.id))
 
     const attachmentScope = await resolveEditAttachmentScope(actor, forumId)
-    const staged = await stageAttachmentsForEdit(
+    const staged = await stageAttachments(
+      actor,
       attachmentScope,
       await submittedFiles(form),
       current.length - toRemove.length,
-      actor.userId,
     )
 
     const revised = await filterView(

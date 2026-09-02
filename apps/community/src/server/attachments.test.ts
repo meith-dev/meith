@@ -52,7 +52,6 @@ const {
   resolveDownload,
   resolveEditAttachmentScope,
   stageAttachments,
-  stageAttachmentsForEdit,
   submittedFiles,
 } = await import('./attachments')
 const { SEED_BOARD, SEED_GROUP, SEED_FORUM } = await import('./seed-board')
@@ -324,46 +323,6 @@ describe('resolveEditAttachmentScope', () => {
     installTestContainer({ container: { attachments, threadWrites: null } })
     const actor = actorRef.current!
     expect((await resolveEditAttachmentScope(actor, PUBLIC_FORUM)).allowsAttachments).toBe(false)
-  })
-})
-
-describe('staging for an edit', () => {
-  it('accepts a file from a member with no upload permission at all', async () => {
-    const guest = await actorFor(SEED_GROUP.guest, null)
-    const staged = await stageAttachmentsForEdit(
-      await scope(guest),
-      [{ filename: 'a.png', bytes: PNG }],
-      0,
-      ADA,
-    )
-    expect(staged).toHaveLength(1)
-  })
-
-  it('still refuses a forum that does not accept attachments', async () => {
-    const actor = actorRef.current!
-    await expect(
-      stageAttachmentsForEdit(
-        await scope(actor, { allowsAttachments: false }),
-        [{ filename: 'a.png', bytes: PNG }],
-        0,
-        ADA,
-      ),
-    ).rejects.toThrow(/forum does not accept file attachments/)
-  })
-
-  it('still refuses when the board cannot store files at all', async () => {
-    installTestContainer({ container: { attachments: null } })
-    const actor = actorRef.current!
-    await expect(
-      stageAttachmentsForEdit(await scope(actor), [{ filename: 'a.png', bytes: PNG }], 0, ADA),
-    ).rejects.toThrow(/cannot accept file attachments/)
-  })
-
-  it('counts what the post already has toward the per-post cap', async () => {
-    const actor = actorRef.current!
-    await expect(
-      stageAttachmentsForEdit(await scope(actor), [{ filename: 'a.png', bytes: PNG }], 10, ADA),
-    ).rejects.toThrow(/at most/)
   })
 })
 

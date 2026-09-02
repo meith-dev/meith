@@ -7,6 +7,7 @@ import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/cont
 import {
   attachmentLimits as attachmentLimitsFor,
   attachmentsForPosts,
+  canAttach,
   resolveEditAttachmentScope,
 } from '@/server/attachments'
 import { getActor } from '@/server/context'
@@ -79,14 +80,17 @@ export default async function EditPostPage({
       <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
     )
 
+  const editingActor = await getActor()
   const attachmentScope = editable
-    ? await resolveEditAttachmentScope(await getActor(), scope.target.forum.id)
+    ? await resolveEditAttachmentScope(editingActor, scope.target.forum.id)
     : null
   const existingAttachments = editable
     ? (await attachmentsForPosts([post])).map(editableAttachment)
     : []
   const editAttachmentLimits =
-    attachmentScope?.allowsAttachments === true ? attachmentLimitsFor(attachmentScope) : null
+    attachmentScope !== null && canAttach(editingActor, attachmentScope)
+      ? attachmentLimitsFor(attachmentScope)
+      : null
 
   const formModel = await filterView(
     'view.post-form',
