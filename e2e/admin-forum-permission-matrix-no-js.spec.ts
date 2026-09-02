@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { setMatrixCell } from './support/permission-matrix'
+import { saveMatrix, setMatrixCell } from './support/permission-matrix'
 import { enterAdminPanel, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
@@ -37,8 +37,7 @@ test('one save changes two cells across two groups, and the board reflects both'
 
     await setMatrixCell(adminPage, 'Viewing', 'See the forum exists.', 'Guests', 'Deny')
     await setMatrixCell(adminPage, 'Posting', 'Start new threads.', 'Registered', 'Deny')
-    await adminPage.getByRole('button', { name: 'Save permissions' }).click()
-    await expect(adminPage.getByText('Saved.')).toBeVisible()
+    await saveMatrix(adminPage)
 
     await signUp(memberPage, 'matrix')
     await memberPage.goto('/')

@@ -42,3 +42,9 @@ export async function matrixCellRadio(
   const cell = await matrixCell(page, heading, rowText, groupTitle)
   return cell.getByRole('radio', { name: option, exact: true })
 }
+
+export async function saveMatrix(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Save permissions' }).click()
+  await expect(page.getByText('Saved.')).toBeVisible()
+  await page.waitForLoadState('load')
+}

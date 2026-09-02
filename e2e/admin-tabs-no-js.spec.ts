@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { STAFF, STAFF_PASSWORD } from './support/config'
-import { matrixCellRadio, setMatrixCell } from './support/permission-matrix'
+import { matrixCellRadio, saveMatrix, setMatrixCell } from './support/permission-matrix'
 import { enterAdminPanel, PASSWORD, runTick, signIn, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
@@ -163,8 +163,7 @@ test('a forum’s options and its permissions decide what the board does', async
     ).toBeVisible()
 
     await setMatrixCell(page, 'Viewing', 'See the forum exists.', 'Guests', 'Deny')
-    await page.getByRole('button', { name: 'Save permissions' }).click()
-    await expect(page.getByText('Saved.')).toBeVisible()
+    await saveMatrix(page)
 
     await expect(
       await matrixCellRadio(page, 'Viewing', 'See the forum exists.', 'Guests', 'Deny'),
@@ -177,8 +176,7 @@ test('a forum’s options and its permissions decide what the board does', async
     await page.goto('/admin/forums')
     await page.getByRole('link', { name: 'Permissions for Off Topic' }).click()
     await setMatrixCell(page, 'Viewing', 'See the forum exists.', 'Guests', 'Inherit')
-    await page.getByRole('button', { name: 'Save permissions' }).click()
-    await expect(page.getByText('Saved.')).toBeVisible()
+    await saveMatrix(page)
     await guestContext.close()
   }
 
