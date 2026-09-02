@@ -582,6 +582,24 @@ makes the queue a mixture of "new content nobody has read" and "old
 content somebody removed", which its oldest-first ordering relies on not
 being true.
 
+**The one exception: community flagging.** When enough distinct members
+report the same visible post, the board holds it — an established post,
+already read, sent to the approval queue (see the
+[anti-spam guide](../guides/community/antispam.md#community-flagging)).
+This is a deliberate crack in the rule above, and it is the only one. It
+is justified precisely where a *moderator's* unapprove is not: the
+decision has **not** already been made — a crowd has raised a question
+about the post and nobody on staff has ruled on it yet — so putting it in
+front of a moderator to decide is exactly right, not redundant. A
+flag-held post is genuinely "content that needs a decision", which is
+what the queue is for; there is no second surface to invent for it, and
+holding it (rather than deleting it outright) keeps the members'
+accusation reversible by a single approve. The queue's oldest-first
+ordering still holds — a flag-held item enters at the moment it is held,
+like any other. What a moderator still cannot do is unapprove at will;
+only the community-flag threshold can move read content into the queue,
+and only by agreement of several members.
+
 ### Bulk moderation chunks rather than refusing
 
 **MyBB:** inline moderation acts on whatever was selected, in one

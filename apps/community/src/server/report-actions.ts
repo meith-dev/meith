@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import { msg } from '@meith/i18n'
-import { parseTargetKind, ReportService } from '@meith/moderation'
+import { parseReportCategory, parseTargetKind, ReportService } from '@meith/moderation'
 
 import { limitMessage, spendLimit } from './antispam'
 import type { FormState } from './auth-form-state'
@@ -17,6 +17,7 @@ import { tr } from './i18n'
 import { reportNotifier } from './notifications'
 import { emitEvent } from './plugin-view'
 import { resolveReportScope } from './report-scope'
+import { getSettings } from './settings'
 
 function field(form: FormData, name: string): string {
   const value = form.get(name)
@@ -29,10 +30,15 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
   const kind = parseTargetKind(field(form, 'kind'))
   const targetId = positiveIntIn(field(form, 'targetId'))
   const reason = field(form, 'reason')
-  const values = { reason }
+  const category = parseReportCategory(field(form, 'category'))
+  const values = { reason, ...(category === null ? {} : { category }) }
 
   if (kind === null || targetId === null) {
     return { error: await tr('notice.app.exist'), values }
+  }
+
+  if (category === null) {
+    return { error: await tr('notice.app.choose-report-category'), values }
   }
 
   const { authorizer, reports } = getContainer()
@@ -72,11 +78,16 @@ export async function fileReportAction(_prev: FormState, form: FormData): Promis
       return { error: limitMessage(limited), values }
     }
 
+    const settings = await getSettings()
+    const flagThreshold = Number(settings.get('moderation.flag_threshold') ?? 0)
+
     const outcome = await new ReportService({ reports }).file({
       kind,
       targetId,
+      category,
       reason,
       reporterUserId: actor.userId,
+      flagThreshold,
     })
 
     if (!outcome.duplicate) {

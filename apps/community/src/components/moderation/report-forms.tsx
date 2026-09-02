@@ -6,6 +6,7 @@ import { Card, CardContent, Field, Textarea, textLinkVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { assignReportAction, closeReportAction, fileReportAction } from '@/server/report-actions'
+import { REPORT_CATEGORY_LABEL_KEYS, REPORT_CATEGORY_ORDER } from '@/view/moderation-copy'
 
 import { FormError, PendingButton, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
@@ -29,14 +30,32 @@ export function ReportForm({
           <input type="hidden" name="kind" value={kind} />
           <input type="hidden" name="targetId" value={targetId} />
 
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-medium leading-none text-foreground">
+              {fromCopy(copy, 'moderationForm.report.categoryLegend')}
+            </legend>
+            <div className="flex flex-col gap-1.5">
+              {REPORT_CATEGORY_ORDER.map((category) => (
+                <label key={category} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="category"
+                    value={category}
+                    defaultChecked={state.values?.category === category}
+                    className="size-4 accent-primary"
+                  />
+                  {fromCopy(copy, REPORT_CATEGORY_LABEL_KEYS[category])}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <Field
             name="reason"
             label={fromCopy(copy, 'moderationForm.report.label')}
             description={fromCopy(copy, 'moderationForm.report.hint')}
           >
-            {(control) => (
-              <Textarea {...control} required defaultValue={state.values?.reason ?? ''} />
-            )}
+            {(control) => <Textarea {...control} defaultValue={state.values?.reason ?? ''} />}
           </Field>
 
           <div>

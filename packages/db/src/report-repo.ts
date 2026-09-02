@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { PUBLIC_CONTENT } from '@meith/core'
 import type {
   NewReport,
+  ReportCategory,
   ReportEvent,
   ReportPage,
   ReportRepository,
@@ -17,8 +18,9 @@ import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
 import { threads } from './schema'
 import { idList } from './sql-lists'
-import { logModeratorAction } from './thread-counters'
-import { visibleIn } from './visibility'
+import { type CounterTx, logModeratorAction } from './thread-counters'
+import { PENDING_APPROVAL, VISIBLE, visibleIn } from './visibility'
+import { applyVisibilityChangeCounters } from './visibility-counters'
 
 interface RawReport {
   id: number
@@ -29,6 +31,7 @@ interface RawReport {
   target_label: string
   reporter_user_id: number | null
   reporter_username: string | null
+  category: ReportCategory
   reason: string
   status: ReportRow['status']
   assigned_to_user_id: number | null
@@ -46,6 +49,7 @@ function toReport(row: RawReport): ReportRow {
     targetLabel: row.target_label,
     reporterUserId: row.reporter_user_id === null ? null : Number(row.reporter_user_id),
     reporterUsername: row.reporter_username,
+    category: row.category,
     reason: row.reason,
     status: row.status,
     assignedToUserId: row.assigned_to_user_id === null ? null : Number(row.assigned_to_user_id),
@@ -57,7 +61,7 @@ function toReport(row: RawReport): ReportRow {
 const SELECT_REPORT = sql`
   select r.id, r.target_kind, r.target_id, r.forum_id, r.thread_id, r.target_label,
          r.reporter_user_id, reporter.username as reporter_username,
-         r.reason, r.status, r.assigned_to_user_id,
+         r.category, r.reason, r.status, r.assigned_to_user_id,
          assignee.username as assigned_username, r.created_at
     from reports r
     left join users reporter on reporter.id = r.reporter_user_id
@@ -174,11 +178,11 @@ export class PostgresReportRepository implements ReportRepository {
         await tx.execute(sql`
           insert into reports
             (target_kind, target_id, forum_id, thread_id, target_label,
-             reporter_user_id, reason, status, created_at, updated_at)
+             reporter_user_id, category, reason, status, created_at, updated_at)
           values
             (${report.target.kind}, ${report.target.id}, ${report.target.forumId},
              ${report.target.threadId}, ${report.target.label},
-             ${report.reporterUserId}, ${report.reason}, 'open',
+             ${report.reporterUserId}, ${report.category}, ${report.reason}, 'open',
              ${report.at}, ${report.at})
           on conflict do nothing
           returning id
@@ -205,13 +209,137 @@ export class PostgresReportRepository implements ReportRepository {
           })}::jsonb
         )
       `)
+
+      await this.autoHold(tx, report)
+
       return Number(row.id)
     })
+  }
+
+  private async autoHold(tx: CounterTx, report: NewReport): Promise<void> {
+    if (report.flagThreshold <= 0 || report.target.kind !== 'post') return
+
+    const counted = resultRows(
+      await tx.execute(sql`
+        with last_hold as (
+          select max(created_at) as at
+            from admin_log
+           where action = 'post.autohold'
+             and (detail->>'postId')::int = ${report.target.id}
+        )
+        select count(distinct r.reporter_user_id)::int as reporters
+          from reports r, last_hold
+         where r.status = 'open'
+           and r.target_kind = 'post'
+           and r.target_id = ${report.target.id}
+           and r.reporter_user_id is not null
+           and (last_hold.at is null or r.created_at > last_hold.at)
+      `),
+    ) as Array<{ reporters: number }>
+    if (Number(counted[0]?.reporters ?? 0) < report.flagThreshold) return
+
+    const found = resultRows(
+      await tx.execute(sql`
+        select thread_id, forum_id, is_first_post from posts where id = ${report.target.id}
+      `),
+    ) as Array<{ thread_id: number; forum_id: number; is_first_post: boolean }>
+    const post = found[0]
+    if (!post) return
+
+    const threadId = Number(post.thread_id)
+    const forumId = Number(post.forum_id)
+
+    const held = post.is_first_post
+      ? await this.holdThread(tx, threadId, forumId)
+      : await this.holdReply(tx, report.target.id, threadId, forumId)
+    if (held === null) return
+
+    await tx.execute(sql`
+      insert into admin_log (user_id, action, detail, created_at)
+      values (
+        null,
+        'post.autohold',
+        ${JSON.stringify({
+          postId: report.target.id,
+          threadId,
+          forumId,
+          forumIds: [forumId],
+          heldPostIds: held,
+        })}::jsonb,
+        ${report.at}
+      )
+    `)
+  }
+
+  private async holdReply(
+    tx: CounterTx,
+    postId: number,
+    threadId: number,
+    forumId: number,
+  ): Promise<readonly number[] | null> {
+    const moved = resultRows(
+      await tx.execute(sql`
+        update posts set visibility = ${PENDING_APPROVAL}
+         where id = ${postId} and visibility = ${VISIBLE}
+         returning author_user_id
+      `),
+    ) as Array<{ author_user_id: number | null }>
+    const row = moved[0]
+    if (!row) return null
+
+    await applyVisibilityChangeCounters(tx, {
+      postId,
+      threadId,
+      forumId,
+      authorId: row.author_user_id === null ? null : Number(row.author_user_id),
+      isFirstPost: false,
+      delta: -1,
+    })
+    return [postId]
+  }
+
+  private async holdThread(
+    tx: CounterTx,
+    threadId: number,
+    forumId: number,
+  ): Promise<readonly number[] | null> {
+    const movedThread = resultRows(
+      await tx.execute(sql`
+        update threads set visibility = ${PENDING_APPROVAL}, updated_at = now()
+         where id = ${threadId} and visibility = ${VISIBLE}
+         returning id
+      `),
+    ) as Array<{ id: number }>
+    if (movedThread.length === 0) return null
+
+    const posts = resultRows(
+      await tx.execute(sql`
+        update posts set visibility = ${PENDING_APPROVAL}
+         where thread_id = ${threadId} and visibility = ${VISIBLE}
+         returning id, author_user_id, is_first_post
+      `),
+    ) as Array<{ id: number; author_user_id: number | null; is_first_post: boolean }>
+
+    for (const post of posts) {
+      await applyVisibilityChangeCounters(tx, {
+        postId: Number(post.id),
+        threadId,
+        forumId,
+        authorId: post.author_user_id === null ? null : Number(post.author_user_id),
+        isFirstPost: post.is_first_post === true,
+        delta: -1,
+      })
+    }
+    return posts.map((post) => Number(post.id))
   }
 
   private scopePredicate(scope: ReportScope): ReturnType<typeof sql> {
     const byForum = sql`r.forum_id in ${idList(scope.forumIds)}`
     return scope.global ? sql`(${byForum} or r.forum_id is null)` : byForum
+  }
+
+  private categoryPredicate(category: ReportCategory | undefined): ReturnType<typeof sql> {
+    return category === undefined ? sql`` : sql`and r.category = ${category}`
   }
 
   async listOpen(
@@ -220,6 +348,7 @@ export class PostgresReportRepository implements ReportRepository {
       readonly limit: number
       readonly after?: string
       readonly offset?: number
+      readonly category?: ReportCategory
     },
   ): Promise<ReportPage> {
     const cursor = options.after === undefined ? null : decodeCursor(options.after)
@@ -228,7 +357,8 @@ export class PostgresReportRepository implements ReportRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         ${SELECT_REPORT}
-         where r.status = 'open' and ${this.scopePredicate(scope)} ${after}
+         where r.status = 'open' and ${this.scopePredicate(scope)}
+           ${this.categoryPredicate(options.category)} ${after}
          order by r.created_at, r.id
          limit ${options.limit + 1} offset ${options.offset ?? 0}
       `),
@@ -241,11 +371,12 @@ export class PostgresReportRepository implements ReportRepository {
       : { rows: page }
   }
 
-  async countOpen(scope: ReportScope): Promise<number> {
+  async countOpen(scope: ReportScope, category?: ReportCategory): Promise<number> {
     const rows = resultRows(
       await this.db.execute(sql`
         select count(*)::int as open from reports r
          where r.status = 'open' and ${this.scopePredicate(scope)}
+           ${this.categoryPredicate(category)}
       `),
     ) as Array<{ open: number }>
     return Number(rows[0]?.open ?? 0)

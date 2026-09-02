@@ -248,6 +248,9 @@ export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]
 export const REPORT_STATUSES = ['open', 'resolved', 'rejected'] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
 
+export const REPORT_CATEGORIES = ['spam', 'off_topic', 'abuse', 'other'] as const
+export type ReportCategory = (typeof REPORT_CATEGORIES)[number]
+
 export const reports = pgTable(
   'reports',
   {
@@ -255,6 +258,8 @@ export const reports = pgTable(
 
     targetKind: text('target_kind').notNull(),
     targetId: integer('target_id').notNull(),
+
+    category: text('category').notNull().default('other'),
 
     forumId: integer('forum_id').references(() => forums.id, {
       onDelete: 'set null',

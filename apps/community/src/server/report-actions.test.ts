@@ -104,7 +104,7 @@ async function redirectOf(run: Promise<unknown>): Promise<string> {
   throw new Error('expected a redirect')
 }
 
-const VALID = { kind: 'post', targetId: '50', reason: 'spam' }
+const VALID = { kind: 'post', targetId: '50', category: 'spam', reason: 'spam' }
 
 beforeEach(async () => {
   reports = new FakeReports()
@@ -117,7 +117,36 @@ describe('fileReportAction', () => {
     expect(await redirectOf(fileReportAction(EMPTY_STATE, form(VALID)))).toBe(
       '/thread/20?reported=1',
     )
-    expect(reports.filed[0]).toMatchObject({ reason: 'spam', reporterUserId: 3 })
+    expect(reports.filed[0]).toMatchObject({ category: 'spam', reason: 'spam', reporterUserId: 3 })
+  })
+
+  it('refuses a report with no category chosen', async () => {
+    const state = await fileReportAction(
+      EMPTY_STATE,
+      form({ kind: 'post', targetId: '50', reason: 'spam' }),
+    )
+
+    expect(state.error).toBeTruthy()
+    expect(reports.filed).toHaveLength(0)
+  })
+
+  it('lets an obvious spam report skip the free text', async () => {
+    expect(
+      await redirectOf(
+        fileReportAction(EMPTY_STATE, form({ kind: 'post', targetId: '50', category: 'spam' })),
+      ),
+    ).toBe('/thread/20?reported=1')
+    expect(reports.filed[0]).toMatchObject({ category: 'spam', reason: '' })
+  })
+
+  it('still requires the free text for something else', async () => {
+    const state = await fileReportAction(
+      EMPTY_STATE,
+      form({ ...VALID, category: 'other', reason: '' }),
+    )
+
+    expect(state.error).toBeTruthy()
+    expect(reports.filed).toHaveLength(0)
   })
 
   it('returns to the profile for a member report', async () => {

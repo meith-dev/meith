@@ -70,6 +70,7 @@ function report(overrides: Partial<ReportRow> = {}): ReportRow {
     targetLabel: 'A rude reply',
     reporterUserId: 12,
     reporterUsername: 'member',
+    category: 'spam',
     reason: 'This is spam',
     status: 'open',
     assignedToUserId: null,

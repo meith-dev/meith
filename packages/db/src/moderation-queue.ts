@@ -66,6 +66,37 @@ function toItem(row: QueueRow): QueueItem {
   }
 }
 
+async function flagHeldPosts(
+  tx: { execute(query: ReturnType<typeof sql>): Promise<unknown> },
+  threadIds: readonly number[],
+): Promise<Map<number, number[]>> {
+  const map = new Map<number, number[]>()
+  if (threadIds.length === 0) return map
+
+  const rows = resultRows(
+    await tx.execute(sql`
+      select (l.detail->>'threadId')::int as thread_id, l.detail as detail
+        from admin_log l
+       where l.action = 'post.autohold'
+         and (l.detail->>'threadId')::int in ${idList(threadIds)}
+       order by l.created_at desc, l.id desc
+    `),
+  ) as Array<{ thread_id: number; detail: Record<string, unknown> | null }>
+
+  for (const row of rows) {
+    const threadId = Number(row.thread_id)
+    if (map.has(threadId)) continue
+    const ids = row.detail?.heldPostIds
+    if (Array.isArray(ids)) {
+      map.set(
+        threadId,
+        ids.map((value) => Number(value)).filter((value) => Number.isSafeInteger(value)),
+      )
+    }
+  }
+  return map
+}
+
 export class PostgresModerationQueueRepository implements ModerationQueueRepository {
   constructor(private readonly db: Database) {}
 
@@ -183,40 +214,49 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
       let applied = 0
       const touched = new Set<number>()
 
+      const heldByThread = await flagHeldPosts(tx, input.threadIds)
+
       for (const threadId of input.threadIds) {
         const moved = resultRows(
           await tx.execute(sql`
             update threads set visibility = ${to}, updated_at = now()
              where id = ${threadId} and visibility = ${PENDING_APPROVAL}
-             returning id, forum_id, first_post_id, author_user_id
+             returning id, forum_id, first_post_id
           `),
-        ) as Array<{
-          id: number
-          forum_id: number
-          first_post_id: number | null
-          author_user_id: number | null
-        }>
+        ) as Array<{ id: number; forum_id: number; first_post_id: number | null }>
         const thread = moved[0]
         if (!thread) continue
         applied += 1
-        touched.add(Number(thread.forum_id))
+        const forumId = Number(thread.forum_id)
+        touched.add(forumId)
 
-        if (thread.first_post_id !== null) {
-          const post = resultRows(
-            await tx.execute(sql`
-              update posts set visibility = ${to}
-               where id = ${thread.first_post_id} and visibility = ${PENDING_APPROVAL}
-               returning id
-            `),
-          ) as Array<{ id: number }>
+        const held = heldByThread.get(threadId) ?? []
+        const targetIds =
+          held.length > 0
+            ? held
+            : thread.first_post_id === null
+              ? []
+              : [Number(thread.first_post_id)]
+        if (targetIds.length === 0) continue
 
-          if (post[0] && approving) {
+        const posts = resultRows(
+          await tx.execute(sql`
+            update posts set visibility = ${to}
+             where thread_id = ${threadId}
+               and id in ${idList(targetIds)}
+               and visibility = ${PENDING_APPROVAL}
+             returning id, author_user_id, is_first_post
+          `),
+        ) as Array<{ id: number; author_user_id: number | null; is_first_post: boolean }>
+
+        if (approving) {
+          for (const post of posts) {
             await applyVisibilityChangeCounters(tx, {
-              postId: Number(post[0].id),
+              postId: Number(post.id),
               threadId: Number(thread.id),
-              forumId: Number(thread.forum_id),
-              authorId: thread.author_user_id === null ? null : Number(thread.author_user_id),
-              isFirstPost: true,
+              forumId,
+              authorId: post.author_user_id === null ? null : Number(post.author_user_id),
+              isFirstPost: post.is_first_post === true,
               delta: 1,
             })
           }

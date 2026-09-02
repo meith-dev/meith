@@ -613,8 +613,10 @@ async function seedReports(
     await reports.open({
       target,
       reporterUserId: reporter.id,
+      category: report.category,
       reason: report.reason,
       at: hoursAfter(now, -report.hoursAgo),
+      flagThreshold: 0,
     })
   }
 }

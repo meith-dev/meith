@@ -100,13 +100,17 @@ see [Keeping it civil](#keeping-it-civil).
 Members report things to you with the **Report** link — for a member
 whose group may report content, it sits on every post that is not their
 own, and the same mechanism covers threads, members and private
-messages. The member says briefly what is wrong;
-what they write is shown to moderators and never to the person reported.
-A member reporting the same thing again while their report is open does
-not create a second report.
+messages. The member first picks a **category** — spam, off-topic, abuse,
+or something else — and then says briefly what is wrong. The free text is
+required only for *something else*, so an obvious spam report is two
+clicks and no typing. What they write is shown to moderators and never to
+the person reported. A member reporting the same thing again while their
+report is open does not create a second report.
 
 Reports arrive at **`/moderation/reports`**, and the open count sits on
-the **`/modcp`** overview. Who sees a report depends on what it is
+the **`/modcp`** overview. Each report carries its category as a chip,
+and the reports screen can be **filtered to one category** — useful when
+a spam run has filled the list. Who sees a report depends on what it is
 about:
 
 - A reported **post or thread** goes to whoever moderates that forum.
@@ -129,6 +133,33 @@ Handling one:
 The reporter is told when their report is closed, whichever way it went.
 A dismissed report is a report answered, not a report ignored — close
 them rather than leaving them open.
+
+### Community flagging
+
+A board can let the community itself take a visibly-bad post off the
+board while it waits for you. Set **Community flag threshold**
+(`moderation.flag_threshold`, on the Anti-spam screen) to a number *N*,
+and once *N* **different members** have an open report against the same
+visible post, the board holds that post for approval on the spot — inside
+the same action that files the *N*th report. It lands in the
+[approval queue](#the-approval-queue) like any held content. A report on
+the opening post of a thread holds the whole thread — every post that was
+showing in it — and a report on a reply holds just that reply; approving
+it from the queue restores exactly what the flag held, and rejecting it
+removes exactly that, with the post and thread counts kept honest either
+way. A reply that was already waiting on its own approval (a new member's
+first posts, say) is left where it was, not swept along. Set the threshold
+to `0` (the default) to switch community flagging off; the anti-spam guide
+covers the reasoning and the distinct-member counting.
+
+The count is of **distinct members**, so one member filing report after
+report never trips it. The reports themselves stay open — flagging hides
+the post, it does not answer the reports — so you still close them the
+usual way. Only reports filed **since the last hold** count towards
+holding a post again, so once you approve a flag-held post from the queue
+the flags that held it will not hold it a second time: it takes a fresh
+set of distinct members to hold it again, which is what stops an approved
+post bouncing straight back into the queue.
 
 ## Tidying threads
 

@@ -160,6 +160,7 @@ export const MOD_LOG_LABEL_KEYS: Readonly<Record<string, string>> = {
   'post.edit': 'board.modlog.post.edit',
   'post.delete': 'board.modlog.post.delete',
   'post.restore': 'board.modlog.post.restore',
+  'post.autohold': 'board.modlog.post.autohold',
   'report.resolve': 'board.modlog.report.resolve',
   'report.reject': 'board.modlog.report.reject',
   'warning.issue': 'board.modlog.warning.issue',
