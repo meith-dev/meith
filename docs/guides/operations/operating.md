@@ -420,13 +420,36 @@ a push service will carry.
 
 ### The service worker and the manifest
 
-`public/sw.js` has no `fetch` handler: it shows a notification when one
-is pushed and opens or focuses the right page when one is clicked — it
-caches nothing and intercepts nothing. That is deliberate: a cached page
+`public/sw.js` shows a notification when one is pushed and opens or
+focuses the right page when one is clicked, exactly as before. A click
+deep-links to the notification's own target and falls back to
+`/notifications`; off-origin links are refused.
+
+Its only other job is a navigation fallback for an installed board that
+opens with no connection. The `fetch` handler intercepts navigation
+requests alone (`request.mode === 'navigate'`) and always tries the
+network first; it only steps in when that request fails outright,
+serving a precached, static `/offline` page instead of the browser's own
+error screen. Nothing else is cached or intercepted — the board's actual
+pages, its API responses, and its assets all still go straight to the
+network on every request. That restraint is deliberate: a cached page
 served to a signed-in member is a page with somebody else's name in the
-header, so an offline shell is a separate decision for a separate
-document, if ever. A click deep-links to the notification's own target
-and falls back to `/notifications`; off-origin links are refused.
+header, so the fallback carries no session state at all — the board's
+name, a short "you're offline" message, and a link that retries once the
+connection is back. `/offline` has no data dependency of its own for the
+same reason: it is a static route, styled with its own inlined copy of
+the default design tokens rather than the board's stylesheet, so it
+renders correctly with nothing else in cache.
+
+The offline page is precached once, at `install`, into a cache keyed by
+a version baked into `sw.js` (`meith-offline-v1`); `activate` deletes any
+differently-versioned copy left over from a previous deploy. A deploy
+that changes `sw.js` — bumping that version or not — always refetches
+`/offline` fresh at install time, so the cached fallback never drifts far
+from what a deploy last shipped. Every step here is wrapped so a failure
+falls back to a plain network request rather than breaking navigation:
+a service worker that throws on `fetch` can brick every reader until it
+updates, which is the one failure mode worth designing around.
 
 `/manifest.webmanifest` is generated per request from the board's own
 settings, so the installed application carries the board's name,

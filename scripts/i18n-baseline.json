@@ -8,6 +8,7 @@
   "apps/community/app/avatar/[id]/route.ts": 5,
   "apps/community/app/group/[id]/badge/[scheme]/route.ts": 3,
   "apps/community/app/logo/[scheme]/route.ts": 3,
+  "apps/community/app/offline/route.ts": 2,
   "apps/community/app/robots.txt/route.ts": 2,
   "apps/community/src/server/antispam.ts": 1,
   "apps/community/src/server/api/http.ts": 3,
