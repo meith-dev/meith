@@ -65,14 +65,28 @@ export function ThreadRow({
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
           <UserRef user={thread.author} className="hover:text-foreground" />
         </p>
+        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-muted-foreground md:hidden">
+          <span>
+            <span className="text-foreground">{thread.replyCount.label}</span> {c('repliesLabel')}
+          </span>
+          <span>
+            <span className="text-foreground">{thread.viewCount.label}</span> {c('viewsLabel')}
+          </span>
+          {thread.lastPost !== null && (
+            <a href={thread.lastPost.href} className="hover:text-primary">
+              <time dateTime={thread.lastPost.at.iso}>{thread.lastPost.at.label}</time> {c('by')}{' '}
+              <UserRef user={thread.lastPost.author} linked={false} />
+            </a>
+          )}
+        </p>
       </td>
-      <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
+      <td className="hidden w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground md:table-cell">
         {thread.replyCount.label}
       </td>
-      <td className="w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground">
+      <td className="hidden w-16 px-2 py-2 text-right font-mono text-xs text-muted-foreground md:table-cell">
         {thread.viewCount.label}
       </td>
-      <td className="w-56 px-3 py-2 text-xs text-muted-foreground">
+      <td className="hidden w-56 px-3 py-2 text-xs text-muted-foreground md:table-cell">
         {thread.lastPost === null ? (
           <span className="text-forum-read">—</span>
         ) : (

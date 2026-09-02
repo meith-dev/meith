@@ -23,9 +23,9 @@ export function CategoryBlock({
       <table className="w-full table-fixed border-collapse text-sm">
         <colgroup>
           <col />
-          <col className="w-16" />
-          <col className="w-16" />
-          <col className="w-64" />
+          <col className="hidden w-16 md:table-column" />
+          <col className="hidden w-16 md:table-column" />
+          <col className="hidden w-64 md:table-column" />
         </colgroup>
         <thead className="sr-only">
           <tr>

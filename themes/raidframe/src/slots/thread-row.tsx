@@ -77,6 +77,15 @@ export function ThreadRow({
           <span className="uppercase">{c('startedBy')}</span>{' '}
           <UserRef user={thread.author} className="hover:text-primary" />
         </p>
+        {thread.lastPost !== null && (
+          <p className={`${MICRO} mt-1 normal-case sm:hidden`}>
+            <a href={thread.lastPost.href} className="hover:text-primary">
+              <Stamp at={thread.lastPost.at} className="text-foreground" />
+              {c('byPrefix')}
+              <UserRef user={thread.lastPost.author} linked={false} />
+            </a>
+          </p>
+        )}
       </td>
 
       <td className={`w-16 px-2 py-2.5 text-right text-xs ${NUMERIC} text-foreground`}>
