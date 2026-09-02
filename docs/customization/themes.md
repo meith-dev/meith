@@ -300,7 +300,7 @@ rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.18`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.21`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -379,6 +379,14 @@ not an API version.
 > theme that marks it — the built-ins add a badge and a faint tint — is drawing
 > something only staff will meet. The field is optional: a theme written against
 > `0.17` treats every row as visible, which is what its reader saw anyway.
+>
+> `0.21` is additive: the `EditorTag` export gains three commands — `image`,
+> `taskList` and `table` — so the composer's `EditorToolbar` renders three more
+> buttons: an image by URL (`![alt](url)`), a task-list line (`- [ ]`), and a
+> 2×2 table skeleton. A theme reads a button's `tag` and hands it to
+> `applyEditorTag`, so a theme that treats the tag opaquely needs no change; a
+> theme that maps each tag to its own glyph adds three entries to render the new
+> buttons, the way the bundled themes do.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

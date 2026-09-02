@@ -100,6 +100,25 @@ test('the "Insert attachment" toolbar button uploads and places [attachment=id]'
   await expect(page.locator('article .md-attachment')).toBeVisible()
 })
 
+test('the Table toolbar button inserts a skeleton the preview renders as a table', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+
+  await signUp(page, 'tablemaker')
+
+  await page.goto('/200-general/new')
+  await expect(page.getByRole('group', { name: 'Formatting' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Table', exact: true }).click()
+
+  const message = page.getByLabel('Message')
+  await expect(message).toHaveValue(/^\| Heading \| Heading \|\n\| --- \| --- \|\n\| {2}\| {2}\|$/)
+
+  await page.getByRole('tab', { name: 'Preview' }).click()
+  await expect(page.getByRole('table')).toBeVisible({ timeout: 15_000 })
+})
+
 test('the quick reply carries the same toolbar, joined to its message box', async ({ page }) => {
   test.setTimeout(60_000)
 

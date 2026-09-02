@@ -35,6 +35,50 @@ Rust, Java, C/C++/C#, Ruby, PHP, Kotlin, Swift, SQL, HTML, CSS, Markdown,
 YAML, JSON, TOML, INI, bash, Dockerfile, GraphQL, diff and HTTP — under
 common aliases (`js`, `py`, `sh`, `yml`, and so on).
 
+## Tables
+
+```
+| Column | Column |
+| --- | --- |
+| Cell | Cell |
+```
+
+A table is rows of cells divided by pipes, with a row of dashes under the
+header that marks where it ends and fixes how many columns there are. The
+composer's **Table** toolbar button drops a two-column starter table at
+your cursor with the first heading selected, ready to type over; add more
+pipes to every row for more columns, and more lines for more rows.
+
+## Task lists
+
+```
+- [ ] still to do
+- [x] already done
+```
+
+A list whose items are checkboxes: `- [ ]` for one still open and `- [x]`
+for one that is done. The composer's **Task list** toolbar button starts
+one at your cursor, and pressing Return continues it — a fresh `- [ ]` on
+the next line — exactly as a bulleted or numbered list does. The boxes
+render as ticked or unticked marks in the saved post; they are a record,
+not buttons a reader can toggle.
+
+## Images
+
+```
+![a description of the picture](https://example.com/pic.png)
+```
+
+An image is a link with an exclamation mark in front: the text in the
+square brackets is the description shown when the image cannot load and
+read aloud to anyone using a screen reader, and the address in the
+parentheses points at the image itself. The composer's **Image** toolbar
+button inserts this around whatever you have selected, using your
+selection as the description. This is for an image hosted elsewhere on the
+web — a file you attach to the post has its own **Insert attachment**
+button (below). Off-board images load only on boards that have opted into
+remote images, the same setting behind link previews.
+
 ## Spoilers
 
 ```
