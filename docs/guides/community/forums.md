@@ -129,22 +129,39 @@ model.
 
 ### Reading the matrix
 
-`/admin/forums/[id]/permissions` holds the matrix, one collapsible block
-per group. A block stays shut until you open it and says on its header
-whether it sets anything on this forum — **All inherited**, or how many
-cells are **set here** — so you can find the group you customised without
-opening every one. Inside, the permissions are gathered under headings
-(viewing, posting, own content, moderation, attachments, approvals)
-rather than run together in one long list.
+`/admin/forums/[id]/permissions` is one grid: **rows are permission
+fields, columns are groups.** That shape answers the question a stack of
+per-group forms could not — "who can post here?" is one row, read across
+every group at once, rather than eight separate screens each showing one
+group's whole permission set. The rows are gathered under the same
+headings as before (viewing, posting, own content, moderation,
+attachments, approvals), and each table scrolls horizontally inside its
+own frame — the left-hand permission column stays in view as you scroll
+sideways, so a wide board's groups stay reachable without losing your
+place in the list of permissions. That pin is sideways only: the
+group-header row sits at the top of its own table, not the page, so it
+scrolls away with the rest of the table as you read down a long section.
 
-Each switch is a three-way toggle — **Inherit**, **Grant**, **Deny** —
-and each numeric cell is a box that may be left blank for inherit. The
-three approval rows read **Required** and **Not required** instead,
-because they are requirements rather than rights.
+Each switch cell is a three-way toggle — **Inherit**, **Grant**, **Deny**
+— and the three approval rows read **Required** and **Not required**
+instead, because they are requirements rather than rights. A cell left on
+**Inherit** shows the effective value it currently resolves to, in muted
+type beneath the toggle, so abstaining is never mistaken for "no": the
+grey text is what the group actually gets today, by inheritance, and it
+moves if an ancestor forum's cell changes later.
 
-Every cell shows what it resolves to *and where that answer came from* —
-set here, inherited from a named ancestor forum, or the group's own
-default. "Inherit" on its own tells nobody anything.
+The three numeric fields — edit window, attachments per post, attachment
+size — do not fit a checkbox grid, so they sit in their own section below
+the switches: the same shape, rows are fields and columns are groups, but
+each cell is a number box that may be left blank for inherit, again with
+the effective value shown beneath a blank one.
+
+**One save writes every cell that changed, across every group, in a
+single transaction**, and logs one admin action per group that actually
+changed — a group whose submitted cells all match what was already stored
+writes nothing and is not logged. A cell left on Inherit round-trips as
+inherit; it is never coerced into an explicit Deny by the act of saving
+the form.
 
 **Copy to subforums** means *identical*, not *merged*: it writes the
 source forum's stored overrides into every forum beneath it and clears

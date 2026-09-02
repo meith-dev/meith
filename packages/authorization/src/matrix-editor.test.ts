@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { emptyPermissionSet, type PermissionSet } from '@meith/core'
 
 import {
+  buildFieldMatrix,
   buildPermissionMatrix,
+  diffMatrixSubmission,
+  matrixCellName,
   matrixCellValue,
   planCopyToDescendants,
   readMatrixCell,
@@ -296,5 +299,142 @@ describe('planCopyToDescendants', () => {
   it('is empty for a forum with no descendants', () => {
     const plan = planCopyToDescendants({ ...base, descendantIds: [], overrides: [] })
     expect(plan).toEqual({ changes: [], unchanged: [] })
+  })
+})
+
+describe('buildFieldMatrix', () => {
+  const rows = buildPermissionMatrix({
+    chain: CHAIN,
+    groups: [
+      group(REGISTERED, 'Registered', { canPostThreads: true }),
+      group(STAFF, 'Staff', { canPostThreads: false }),
+    ],
+    overrides: [{ forumId: CHILD, groupId: STAFF, overrides: { canPostThreads: true } }],
+  })
+
+  it('turns one row per group into one row per field, columns in group order', () => {
+    const fields = buildFieldMatrix(rows)
+    const row = fields.find((field) => field.key === 'canPostThreads')
+
+    expect(row?.cells.map((c) => c.groupId)).toEqual([REGISTERED, STAFF])
+  })
+
+  it('carries the same values buildPermissionMatrix computed for each group', () => {
+    const fields = buildFieldMatrix(rows)
+    const row = fields.find((field) => field.key === 'canPostThreads')
+    const staffCell = row?.cells.find((c) => c.groupId === STAFF)
+    const original = cell(rows, STAFF, 'canPostThreads')
+
+    expect(staffCell).toEqual({
+      groupId: STAFF,
+      name: matrixCellName(STAFF, 'canPostThreads'),
+      stored: original.stored,
+      control: original.control,
+      effective: original.effective,
+      inheritedFrom: original.inheritedFrom,
+    })
+  })
+
+  it('gives every cell the same name matrixCellName would, for the form to read back', () => {
+    const fields = buildFieldMatrix(rows)
+    const row = fields.find((field) => field.key === 'canPostThreads')
+
+    expect(row?.cells.map((c) => c.name)).toEqual([
+      matrixCellName(REGISTERED, 'canPostThreads'),
+      matrixCellName(STAFF, 'canPostThreads'),
+    ])
+  })
+
+  it('keeps kind and description at the row, described once per field', () => {
+    const fields = buildFieldMatrix(rows)
+    const row = fields.find((field) => field.key === 'canPostThreads')
+
+    expect(row?.kind).toBe('boolean')
+    expect(row?.description.length).toBeGreaterThan(0)
+  })
+
+  it('covers every forum permission field, in the registry order', () => {
+    const fields = buildFieldMatrix(rows)
+    expect(fields.map((field) => field.key)).toEqual(
+      buildPermissionMatrix({
+        chain: CHAIN,
+        groups: [group(REGISTERED, 'Registered')],
+        overrides: [],
+      })[0]?.cells.map((c) => c.key),
+    )
+  })
+})
+
+describe('matrixCellName', () => {
+  it('combines the group and the field so the same field name never collides across groups', () => {
+    expect(matrixCellName(REGISTERED, 'canPostThreads')).toBe('2:canPostThreads')
+    expect(matrixCellName(STAFF, 'canPostThreads')).toBe('3:canPostThreads')
+    expect(matrixCellName(REGISTERED, 'canPostThreads')).not.toBe(
+      matrixCellName(STAFF, 'canPostThreads'),
+    )
+  })
+})
+
+describe('diffMatrixSubmission', () => {
+  it('reports a group whose submission moves a cell from inherit to allow', () => {
+    const changes = diffMatrixSubmission([], CHILD, [
+      { groupId: REGISTERED, values: { canPostThreads: true } },
+    ])
+
+    expect(changes).toEqual([{ groupId: REGISTERED, values: { canPostThreads: true } }])
+  })
+
+  it('reports a group whose submission moves a cell from allow to inherit', () => {
+    const current: ForumOverride[] = [
+      { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: true } },
+    ]
+    const changes = diffMatrixSubmission(current, CHILD, [
+      { groupId: REGISTERED, values: { canPostThreads: null } },
+    ])
+
+    expect(changes).toEqual([{ groupId: REGISTERED, values: { canPostThreads: null } }])
+  })
+
+  it('produces no write for a group whose submission repeats every stored value', () => {
+    const current: ForumOverride[] = [
+      { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: true } },
+    ]
+    const changes = diffMatrixSubmission(current, CHILD, [
+      { groupId: REGISTERED, values: { canPostThreads: true } },
+    ])
+
+    expect(changes).toEqual([])
+  })
+
+  it('does not treat a group with no stored row and an all-inherit submission as changed', () => {
+    const changes = diffMatrixSubmission([], CHILD, [
+      { groupId: REGISTERED, values: { canPostThreads: null } },
+    ])
+
+    expect(changes).toEqual([])
+  })
+
+  it('only writes a stored row on a different forum when the change is for this forum', () => {
+    const current: ForumOverride[] = [
+      { forumId: PARENT, groupId: REGISTERED, overrides: { canPostThreads: true } },
+    ]
+    const changes = diffMatrixSubmission(current, CHILD, [
+      { groupId: REGISTERED, values: { canPostThreads: null } },
+    ])
+
+    expect(changes).toEqual([])
+  })
+
+  it('reports every changed group, leaving the untouched ones out', () => {
+    const current: ForumOverride[] = [
+      { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: true } },
+      { forumId: CHILD, groupId: STAFF, overrides: { canPostThreads: true } },
+    ]
+    const changes = diffMatrixSubmission(current, CHILD, [
+      { groupId: REGISTERED, values: { canPostThreads: true } },
+      { groupId: STAFF, values: { canPostThreads: false } },
+    ])
+
+    expect(changes).toEqual([{ groupId: STAFF, values: { canPostThreads: false } }])
   })
 })

@@ -159,6 +159,51 @@ describe('overrides', () => {
   })
 })
 
+describe('saveOverridesForGroups', () => {
+  it('writes every group it was given, in the one call', async () => {
+    await repo.saveOverridesForGroups(CHILD, [
+      { groupId: REGISTERED, values: values({ canPostThreads: true }) },
+      { groupId: STAFF, values: values({ canPostThreads: false }) },
+    ])
+
+    const found = await repo.readOverrides([CHILD])
+    expect(found.find((o) => o.groupId === REGISTERED)?.overrides).toEqual({
+      canPostThreads: true,
+    })
+    expect(found.find((o) => o.groupId === STAFF)?.overrides).toEqual({ canPostThreads: false })
+  })
+
+  it('deletes a group whose every cell went back to inherit, alongside one that changed', async () => {
+    await repo.saveOverrides(CHILD, STAFF, values({ canPostThreads: true }))
+
+    await repo.saveOverridesForGroups(CHILD, [
+      { groupId: REGISTERED, values: values({ canPostThreads: false }) },
+      { groupId: STAFF, values: values() },
+    ])
+
+    const found = await repo.readOverrides([CHILD])
+    expect(found).toEqual([
+      { forumId: CHILD, groupId: REGISTERED, overrides: { canPostThreads: false } },
+    ])
+  })
+
+  it('does nothing, and asks nothing of the database, for an empty list of changes', async () => {
+    await repo.saveOverrides(CHILD, REGISTERED, values({ canPostThreads: true }))
+
+    await repo.saveOverridesForGroups(CHILD, [])
+
+    expect(await storedRowCount()).toBe(1)
+  })
+
+  it('touches only the forum it was given', async () => {
+    await repo.saveOverridesForGroups(CHILD, [
+      { groupId: REGISTERED, values: values({ canPostThreads: true }) },
+    ])
+
+    expect(await repo.readOverrides([GRANDCHILD])).toEqual([])
+  })
+})
+
 describe('descendantIds', () => {
   it('finds everything strictly beneath, at every depth', async () => {
     expect(await repo.descendantIds(ROOT)).toEqual([CHILD, GRANDCHILD, DECOY])
