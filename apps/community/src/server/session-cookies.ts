@@ -6,8 +6,11 @@ import { env } from '@meith/core'
 
 import {
   ADMIN_COOKIE,
+  ADMIN_SECOND_FACTOR_COOKIE,
   adminCookie,
+  adminSecondFactorCookie,
   clearedAdminCookie,
+  clearedAdminSecondFactorCookie,
   clearedCookie,
   passkeyCookie,
   passkeyCookieName,
@@ -53,6 +56,21 @@ export async function clearAdminCookie(): Promise<void> {
 export async function readAdminToken(): Promise<string | null> {
   const jar = await cookies()
   return jar.get(ADMIN_COOKIE)?.value ?? null
+}
+
+export async function setAdminSecondFactorCookie(token: string, expiresAt: Date): Promise<void> {
+  const jar = await cookies()
+  jar.set(ADMIN_SECOND_FACTOR_COOKIE, token, adminSecondFactorCookie(expiresAt, secure()))
+}
+
+export async function readAdminSecondFactorToken(): Promise<string | null> {
+  const jar = await cookies()
+  return jar.get(ADMIN_SECOND_FACTOR_COOKIE)?.value ?? null
+}
+
+export async function clearAdminSecondFactorCookie(): Promise<void> {
+  const jar = await cookies()
+  jar.set(ADMIN_SECOND_FACTOR_COOKIE, '', clearedAdminSecondFactorCookie(secure()))
 }
 
 export async function clearSessionCookies(): Promise<void> {

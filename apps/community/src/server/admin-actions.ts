@@ -3,11 +3,20 @@
 import { redirect } from 'next/navigation'
 
 import { generateToken, hashToken, verifyPassword } from '@meith/accounts'
-import { ipAllowed } from '@meith/admin'
+import { type AdminService, ipAllowed } from '@meith/admin'
 import { ForbiddenError, logger, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
-import { adminAllowlist, adminService, recordAdminAction, resolveAdmin } from './admin'
+import {
+  abandonAdminSecondFactor,
+  adminAllowlist,
+  adminService,
+  holdAdminSecondFactor,
+  pendingAdminSecondFactor,
+  recordAdminAction,
+  redeemAdminSecondFactor,
+  resolveAdmin,
+} from './admin'
 import { boardAuthConfig } from './auth-config'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
@@ -71,31 +80,21 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
       throw new ForbiddenError(msg('error.app.password-right'))
     }
 
-    try {
-      await assertSecondFactorGiven({ userId: actor.userId, form })
-    } catch (err) {
-      await failAttempt()
-      throw err
-    }
+    const next = safeAdminReturn(text(form, 'next'))
+    const twoFactor = twoFactorService()
 
-    await accountStore.loginAttempts.clear(attemptBucket)
-
-    const existing = await resolveAdmin()
-    if ('context' in existing) {
-      await service.markReauthenticated(existing.context.session.id)
-      await recordAdminAction({ action: 'admin.reauthenticated' })
+    if (twoFactor !== null && (await twoFactor.isEnrolled(actor.userId))) {
+      await holdAdminSecondFactor(actor.userId, next)
+      target = '/admin'
     } else {
-      const token = generateToken()
-      const session = await service.start({
-        userId: actor.userId,
-        tokenHash: await hashToken(token),
-        ipPrefix: await retainedIpPrefix(),
-      })
-      await setAdminCookie(token, session.expiresAt)
-      await recordAdminAction({ action: 'admin.signed_in' })
-    }
+      if (twoFactor !== null && (await twoFactorRequiredForStaff())) {
+        await failAttempt()
+        throw new ForbiddenError(msg('adminAction.twoFactorRequired'))
+      }
 
-    target = safeAdminReturn(text(form, 'next'))
+      await accountStore.loginAttempts.clear(attemptBucket)
+      target = await startAdminSession(service, actor.userId, next)
+    }
   } catch (err) {
     return toFormState(err)
   }
@@ -103,39 +102,109 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
   redirect(target)
 }
 
+export async function adminVerifySecondFactorAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  let target: string
+
+  try {
+    if (!ipAllowed(await remoteAddress(), await adminAllowlist())) {
+      throw new ForbiddenError(msg('error.app.control-panel-available-from-address'))
+    }
+
+    const service = adminService()
+    if (service === null) {
+      throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-25'))
+    }
+
+    const actor = await getActor()
+    const { authorizer, accountStore } = getContainer()
+    if (actor.userId === null || !authorizer.can(actor, 'admincp.access')) {
+      throw new ForbiddenError(msg('error.app.reach-control-panel'))
+    }
+
+    const twoFactor = twoFactorService()
+    const pending = await pendingAdminSecondFactor()
+    if (twoFactor === null || pending === null) {
+      throw new ForbiddenError(msg('adminAction.twoFactorExpired'))
+    }
+
+    const config = await boardAuthConfig()
+    const attemptBucket = await adminReauthenticationBucket(actor.userId)
+    const attemptSince = new Date(Date.now() - config.lockoutMinutes * 60_000)
+    if (
+      config.maxLoginAttempts > 0 &&
+      (await accountStore.loginAttempts.countFailuresSince(attemptBucket, attemptSince)) >=
+        config.maxLoginAttempts
+    ) {
+      throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
+    }
+
+    const failAttempt = async (): Promise<void> => {
+      await accountStore.loginAttempts.record(attemptBucket, false, new Date())
+      await recordAdminAction({ action: 'admin.signin_failed' })
+    }
+
+    const code = text(form, 'code')
+    if (code === '') {
+      await failAttempt()
+      throw new ValidationError(msg('error.app.enter-code-from-authenticator-app'))
+    }
+
+    const outcome = await twoFactor.verify({ userId: pending.userId, code })
+    if (outcome.status !== 'ok') {
+      await failAttempt()
+      throw new ForbiddenError(
+        msg(outcome.status === 'replayed' ? 'adminAction.codeReplayed' : 'adminAction.codeWrong'),
+      )
+    }
+
+    const redeemed = await redeemAdminSecondFactor()
+    if (redeemed === null) {
+      throw new ForbiddenError(msg('adminAction.twoFactorExpired'))
+    }
+
+    await accountStore.loginAttempts.clear(attemptBucket)
+    target = await startAdminSession(service, pending.userId, safeAdminReturn(redeemed.next))
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect(target)
+}
+
+export async function adminAbandonSecondFactorAction(): Promise<void> {
+  await abandonAdminSecondFactor()
+  redirect('/admin')
+}
+
+async function startAdminSession(
+  service: AdminService,
+  userId: number,
+  target: string,
+): Promise<string> {
+  const existing = await resolveAdmin()
+  if ('context' in existing) {
+    await service.markReauthenticated(existing.context.session.id)
+    await recordAdminAction({ action: 'admin.reauthenticated' })
+  } else {
+    const token = generateToken()
+    const session = await service.start({
+      userId,
+      tokenHash: await hashToken(token),
+      ipPrefix: await retainedIpPrefix(),
+    })
+    await setAdminCookie(token, session.expiresAt)
+    await recordAdminAction({ action: 'admin.signed_in' })
+  }
+
+  return target
+}
+
 async function adminReauthenticationBucket(userId: number): Promise<string> {
   const prefix = await retainedIpPrefix()
   return prefix === null ? `admin-reauth:${userId}` : `admin-reauth:${userId}@${prefix}`
-}
-
-async function assertSecondFactorGiven(input: {
-  readonly userId: number
-  readonly form: FormData
-}): Promise<void> {
-  const service = twoFactorService()
-  if (service === null) return
-
-  const enrolled = await service.isEnrolled(input.userId)
-
-  if (!enrolled) {
-    if (await twoFactorRequiredForStaff()) {
-      throw new ForbiddenError(msg('adminAction.twoFactorRequired'))
-    }
-    return
-  }
-
-  const code = text(input.form, 'code')
-  if (code === '') {
-    throw new ValidationError(msg('error.app.enter-code-from-authenticator-app'))
-  }
-
-  const outcome = await service.verify({ userId: input.userId, code })
-  if (outcome.status !== 'ok') {
-    if (outcome.status === 'replayed') {
-      throw new ForbiddenError(msg('adminAction.codeReplayed'))
-    }
-    throw new ForbiddenError(msg('adminAction.codeWrong'))
-  }
 }
 
 export async function adminSignOutAction(): Promise<void> {

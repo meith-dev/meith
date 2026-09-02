@@ -3,12 +3,17 @@ import { notFound } from 'next/navigation'
 
 import { ADMIN_IDLE_MINUTES } from '@meith/admin'
 
-import { AdminSignInForm, AdminSignOutForm } from '@/components/admin/admin-forms'
+import {
+  AdminSecondFactorForm,
+  AdminSignInForm,
+  AdminSignOutForm,
+} from '@/components/admin/admin-forms'
 import { AdminNav } from '@/components/admin/admin-nav'
 import { PanelShell } from '@/components/shell/panel-shell'
-import { askForPassword, resolveAdmin } from '@/server/admin'
+import { askForPassword, pendingAdminSecondFactor, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
+import { twoFactorState } from '@/server/two-factor'
 import { adminFormsCopy } from '@/view/admin-panel-copy'
 import { buildPanelLinks } from '@/view/shell'
 
@@ -22,18 +27,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if ('denied' in resolved) {
     if (!askForPassword(resolved.denied)) notFound()
 
+    const copy = adminFormsCopy(await getTranslator())
+    const pending = await pendingAdminSecondFactor()
+
     return (
       <main
         id="board-content"
         tabIndex={-1}
         className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 py-12"
       >
-        <AdminSignInForm
-          next="/admin"
-          reason={resolved.denied === 'expired' ? 'expired' : null}
-          idleMinutes={ADMIN_IDLE_MINUTES}
-          copy={adminFormsCopy(await getTranslator())}
-        />
+        {pending === null ? (
+          <AdminSignInForm
+            next="/admin"
+            reason={resolved.denied === 'expired' ? 'expired' : null}
+            idleMinutes={ADMIN_IDLE_MINUTES}
+            copy={copy}
+          />
+        ) : (
+          <AdminSecondFactorForm
+            recoveryCodesLeft={(await twoFactorState(pending.userId)).recoveryCodesLeft}
+            copy={copy}
+          />
+        )}
         <a href="/" className="text-sm text-muted-foreground hover:text-foreground">
           {await tr('adminPanel.cancel')}
         </a>

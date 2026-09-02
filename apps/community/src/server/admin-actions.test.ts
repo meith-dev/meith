@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   prefix: '203.0.113.0/24' as string | null,
   factorEnrolled: false,
   factorOutcome: 'ok' as 'ok' | 'wrong' | 'replayed',
+  held: false,
   attempts: new Map<string, Date[]>(),
   cleared: [] as string[],
 }))
@@ -31,6 +32,19 @@ vi.mock('./admin', () => ({
   }),
   recordAdminAction: async () => {},
   resolveAdmin: async () => ({ denied: 'missing' }),
+  holdAdminSecondFactor: async () => {
+    state.held = true
+  },
+  pendingAdminSecondFactor: async () =>
+    state.held ? { userId: state.userId, next: '/admin' } : null,
+  redeemAdminSecondFactor: async () => {
+    if (!state.held) return null
+    state.held = false
+    return { userId: state.userId, next: '/admin' }
+  },
+  abandonAdminSecondFactor: async () => {
+    state.held = false
+  },
 }))
 
 vi.mock('./auth-config', async (importOriginal) => {
@@ -88,12 +102,17 @@ vi.mock('./two-factor', () => ({
   }),
 }))
 
-const { adminSignInAction } = await import('./admin-actions')
+const { adminSignInAction, adminVerifySecondFactorAction } = await import('./admin-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
 
-function form(password: string, code = ''): FormData {
+function form(password: string): FormData {
   const value = new FormData()
   value.set('password', password)
+  return value
+}
+
+function codeForm(code: string): FormData {
+  const value = new FormData()
   value.set('code', code)
   return value
 }
@@ -103,6 +122,7 @@ beforeEach(() => {
   state.prefix = '203.0.113.0/24'
   state.factorEnrolled = false
   state.factorOutcome = 'ok'
+  state.held = false
   state.attempts.clear()
   state.cleared.length = 0
 })
@@ -119,12 +139,14 @@ describe('admin reauthentication attempts', () => {
 
   it('counts wrong and replayed second factors in the same bucket', async () => {
     state.factorEnrolled = true
-    state.factorOutcome = 'wrong'
-    await adminSignInAction(EMPTY_STATE, form('right-password', '111111'))
-    state.factorOutcome = 'replayed'
-    await adminSignInAction(EMPTY_STATE, form('right-password', '222222'))
+    state.held = true
 
-    const blocked = await adminSignInAction(EMPTY_STATE, form('right-password', '333333'))
+    state.factorOutcome = 'wrong'
+    await adminVerifySecondFactorAction(EMPTY_STATE, codeForm('111111'))
+    state.factorOutcome = 'replayed'
+    await adminVerifySecondFactorAction(EMPTY_STATE, codeForm('222222'))
+
+    const blocked = await adminVerifySecondFactorAction(EMPTY_STATE, codeForm('333333'))
 
     expect(blocked.error).toMatch(/too many/i)
   })
@@ -143,17 +165,62 @@ describe('admin reauthentication attempts', () => {
     expect(otherPrefix.error).not.toMatch(/too many/i)
   })
 
-  it('clears failures only after the complete proof succeeds', async () => {
+  it('clears failures only after the second factor succeeds', async () => {
     state.factorEnrolled = true
+    state.held = true
+
     state.factorOutcome = 'wrong'
-    await adminSignInAction(EMPTY_STATE, form('right-password', '111111'))
+    await adminVerifySecondFactorAction(EMPTY_STATE, codeForm('111111'))
     expect(state.cleared).toHaveLength(0)
 
     state.factorOutcome = 'ok'
-    await expect(adminSignInAction(EMPTY_STATE, form('right-password', '222222'))).rejects.toThrow(
+    await expect(adminVerifySecondFactorAction(EMPTY_STATE, codeForm('222222'))).rejects.toThrow(
       'redirect:/admin',
     )
 
     expect(state.cleared).toEqual(['admin-reauth:1@203.0.113.0/24'])
+  })
+})
+
+describe('admin sign-in without a second factor', () => {
+  it('signs in and clears the attempt bucket when nothing is enrolled', async () => {
+    await expect(adminSignInAction(EMPTY_STATE, form('right-password'))).rejects.toThrow(
+      'redirect:/admin',
+    )
+
+    expect(state.held).toBe(false)
+    expect(state.cleared).toEqual(['admin-reauth:1@203.0.113.0/24'])
+  })
+})
+
+describe('admin sign-in with a second factor enrolled', () => {
+  it('holds for the code and sends the administrator to the second screen', async () => {
+    state.factorEnrolled = true
+
+    await expect(adminSignInAction(EMPTY_STATE, form('right-password'))).rejects.toThrow(
+      'redirect:/admin',
+    )
+
+    expect(state.held).toBe(true)
+    expect(state.cleared).toHaveLength(0)
+  })
+})
+
+describe('admin second factor verification', () => {
+  it('refuses when there is no pending hold', async () => {
+    const result = await adminVerifySecondFactorAction(EMPTY_STATE, codeForm('123456'))
+
+    expect(result.error).toMatch(/again/i)
+  })
+
+  it('signs in once the code is right', async () => {
+    state.factorEnrolled = true
+    state.held = true
+
+    await expect(adminVerifySecondFactorAction(EMPTY_STATE, codeForm('123456'))).rejects.toThrow(
+      'redirect:/admin',
+    )
+
+    expect(state.held).toBe(false)
   })
 })

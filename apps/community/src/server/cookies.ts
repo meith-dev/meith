@@ -11,6 +11,9 @@ export const GUEST_COOKIE_DAYS = 1
 export const ADMIN_COOKIE = 'fs_admin'
 export const ADMIN_COOKIE_PATH = '/admin'
 
+export const ADMIN_SECOND_FACTOR_COOKIE = 'fs_admin_2fa'
+export const ADMIN_SECOND_FACTOR_MINUTES = 10
+
 export const SSO_COOKIE = '__Host-fs_sso'
 export const DEV_SSO_COOKIE = 'fs_sso'
 
@@ -70,6 +73,21 @@ export function adminCookie(expires: Date, secure: boolean): CookieAttrs {
 }
 
 export function clearedAdminCookie(secure: boolean): CookieAttrs {
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: 'strict',
+    path: ADMIN_COOKIE_PATH,
+    expires: new Date(0),
+    maxAge: 0,
+  }
+}
+
+export function adminSecondFactorCookie(expires: Date, secure: boolean): CookieAttrs {
+  return { httpOnly: true, secure, sameSite: 'strict', path: ADMIN_COOKIE_PATH, expires }
+}
+
+export function clearedAdminSecondFactorCookie(secure: boolean): CookieAttrs {
   return {
     httpOnly: true,
     secure,
