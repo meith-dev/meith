@@ -267,6 +267,14 @@ deletions carries `?post=<id>` in the query instead, and the thread page
 turns that into the page holding the post plus this anchor. A theme that
 anchors a post by `post.id` leaves every such link at the top of the page.
 
+The anchor is also the one hook a theme has for showing *which* post a link
+landed on: the default theme paints the targeted card's border in `primary`
+through the `:target` pseudo-class (Tailwind's `target:` variant), so a
+reader arriving from a notification or a quote sees the post the link meant
+rather than only the scroll position. `globals.css` already gives every
+`:target` a `scroll-margin-block-start`, so the highlighted card clears the
+top of the viewport.
+
 ## What the freeze covers
 
 | Covered | Not covered |
@@ -628,7 +636,13 @@ rail (`themes/default/src/slots/panel-nav.tsx`). A theme that renders
   `lg:block`) so it only reaches a pointer wide enough to hover with.
 - A second, `lg:hidden` block: the nav items in a `<details>` a reader taps
   open, with any item carrying a `submenu` as its own nested `<details>`
-  rather than a hover panel. Give every submenu `<details>` in one `Header`
+  rather than a hover panel. The default theme puts that `<details>` in the
+  header's top row as a menu button beside the account controls, and lays
+  the open list over the page as an absolutely positioned panel under the
+  header; a theme may just as well render it as a row of its own that
+  pushes the page down, as `themes/midnight` does. Either way the
+  `<summary>` must carry the nav's label — visibly, or in an `sr-only`
+  span beside an icon — because it is the only name the control has. Give every submenu `<details>` in one `Header`
   the same `name` attribute — the HTML standard makes same-named `<details>`
   siblings mutually exclusive, so opening one closes another without a line
   of script. That attribute is a recent addition (Chrome 120, Firefox 124,

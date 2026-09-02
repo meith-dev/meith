@@ -1,12 +1,11 @@
 import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { Badge, buttonVariants } from '@meith/ui'
+import { Badge, buttonVariants, cn } from '@meith/ui'
 
-import { Counts, MUTED_LINK, PAGE_BODY, Prefix } from '../shared'
+import { Counts, PAGE_BODY, Prefix } from '../shared'
 
 export function ThreadView({
   thread,
-  forum,
   replyHref,
   markReadAction,
   watch,
@@ -19,13 +18,7 @@ export function ThreadView({
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          <a href={forum.href} className={`text-sm sm:hidden ${MUTED_LINK}`}>
-            {forum.label}
-          </a>
-
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance sm:mt-0">
-            {thread.title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">{thread.title}</h1>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
@@ -52,10 +45,10 @@ export function ThreadView({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {watch != null && (
             <form action={watch.action} method="post">
-              <button type="submit" className={buttonVariants({ variant: 'ghost' })}>
+              <button type="submit" className={buttonVariants({ variant: 'outline' })}>
                 {watch.subscribed ? (
                   <>
                     {c('watching')} <span aria-hidden="true">✓</span>
@@ -74,7 +67,10 @@ export function ThreadView({
             </form>
           )}
           {replyHref !== null && (
-            <a href={replyHref} className={buttonVariants({ variant: 'primary' })}>
+            <a
+              href={replyHref}
+              className={cn(buttonVariants({ variant: 'primary' }), 'ms-auto sm:ms-0')}
+            >
               {c('replyAction')}
             </a>
           )}

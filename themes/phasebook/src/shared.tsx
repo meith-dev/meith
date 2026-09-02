@@ -178,8 +178,8 @@ export function Rail({
 }
 
 export function isEmptyRegion(node: React.ReactNode): boolean {
-  if (node === null || node === undefined || node === false) return true
-  return Array.isArray(node) && node.length === 0
+  if (node === null || node === undefined || node === false || node === '') return true
+  return Array.isArray(node) && node.every((child) => isEmptyRegion(child))
 }
 
 export function count(value: CountModel): string {

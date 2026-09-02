@@ -2,6 +2,8 @@ import type { PostActionsSlotModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 import { buttonVariants, Separator } from '@meith/ui'
 
+import { isEmptyRegion } from '../shared'
+
 interface Action {
   readonly href: string
   readonly label: string
@@ -28,7 +30,9 @@ export function PostActions({
     actions.moderateHref === null ? null : { href: actions.moderateHref, label: c('moderate') },
   ].filter((action): action is Action => action !== null)
 
-  if (reader.length === 0 && staff.length === 0 && children === undefined) return null
+  const extra = isEmptyRegion(children) ? null : children
+
+  if (reader.length === 0 && staff.length === 0 && extra === null) return null
 
   return (
     <nav aria-label={c('nav')} className="flex flex-wrap items-center gap-x-1 gap-y-1">
@@ -56,7 +60,9 @@ export function PostActions({
         </a>
       ))}
 
-      {children !== undefined && <span className="ms-auto empty:hidden">{children}</span>}
+      {extra !== null && (
+        <span className="ms-auto flex flex-wrap items-center gap-x-1 gap-y-1">{extra}</span>
+      )}
     </nav>
   )
 }

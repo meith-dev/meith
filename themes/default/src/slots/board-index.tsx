@@ -21,8 +21,8 @@ export function BoardIndex({
       )}
 
       {markAllReadAction !== null && (
-        <form action={markAllReadAction} method="post" className="self-end">
-          <button type="submit" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+        <form action={markAllReadAction} method="post" className="-mb-2 self-end">
+          <button type="submit" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             {c('markAllRead')}
           </button>
         </form>

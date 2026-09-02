@@ -28,3 +28,8 @@ export function groupTags(
   if (groups !== undefined && groups.length > 0) return groups
   return title === null ? [] : [{ title }]
 }
+
+export function isEmptyRegion(node: React.ReactNode): boolean {
+  if (node === null || node === undefined || node === false || node === '') return true
+  return Array.isArray(node) && node.every((child) => isEmptyRegion(child))
+}
