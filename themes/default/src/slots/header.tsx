@@ -177,13 +177,12 @@ export function Header({
       </div>
 
       {hasNavigation && (
-        <nav
-          aria-label={c('sections')}
-          data-nav-view="desktop"
-          className="hidden border-t border-border lg:block"
-        >
+        <nav aria-label={c('sections')} className="hidden border-t border-border lg:block">
           <div className={PAGE}>
-            <ul className="-mx-3 flex flex-wrap items-center gap-0.5 py-1 text-sm">
+            <ul
+              data-nav-view="desktop"
+              className="-mx-3 flex flex-wrap items-center gap-0.5 py-1 text-sm"
+            >
               {navigation.map((item) => (
                 <li key={item.href} className="group relative shrink-0">
                   <a href={item.href} {...linkTarget(item)} className={DESKTOP_LINK}>

@@ -659,7 +659,9 @@ Both blocks render the same links at once — only CSS decides which one a
 reader sees — so anything that inspects the DOM directly (a test, a script)
 rather than asking for what is actually rendered will find every link
 twice. Mark the two blocks with `data-nav-view="desktop"` and
-`data-nav-view="mobile"` so a test can say which copy it means: an
+`data-nav-view="mobile"` so a test can say which copy it means — the
+desktop marker on the `<ul>` whose direct children are the top-level
+items, since the admin navigation spec walks `> li > a` from it: an
 accessibility-tree query (`getByRole`) already only sees the one CSS is
 showing and needs no help, but a raw CSS locator (`page.locator(...)`,
 `toHaveCount`) does not know about `display: none` at all and must be
