@@ -135,10 +135,12 @@ per-group forms could not — "who can post here?" is one row, read across
 every group at once, rather than eight separate screens each showing one
 group's whole permission set. The rows are gathered under the same
 headings as before (viewing, posting, own content, moderation,
-attachments, approvals), and the grid scrolls horizontally inside its own
-frame, with the permission column and the group header row pinned in
-place, so a wide board's groups stay reachable without losing your place
-in the list of permissions.
+attachments, approvals), and each table scrolls horizontally inside its
+own frame — the left-hand permission column stays in view as you scroll
+sideways, so a wide board's groups stay reachable without losing your
+place in the list of permissions. That pin is sideways only: the
+group-header row sits at the top of its own table, not the page, so it
+scrolls away with the rest of the table as you read down a long section.
 
 Each switch cell is a three-way toggle — **Inherit**, **Grant**, **Deny**
 — and the three approval rows read **Required** and **Not required**

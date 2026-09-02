@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { setMatrixCell } from './support/permission-matrix'
 import { enterAdminPanel, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
@@ -16,17 +17,9 @@ test('a member without the attach-files permission is not shown the add-file fie
 
   async function setAttachPermission(value: 'Deny' | 'Inherit'): Promise<void> {
     await admin.goto('/admin/forums/200/permissions')
-    const details = admin.locator('details', {
-      has: admin.locator('summary', { hasText: 'Registered' }),
-    })
-    const isOpen = await details.evaluate((el) => (el as HTMLDetailsElement).open)
-    if (!isOpen) await details.locator('summary').click()
-
-    const cell = details.locator('fieldset', {
-      has: admin.locator('legend', { hasText: 'Attach files to a post.' }),
-    })
-    await cell.getByText(value, { exact: true }).click()
-    await admin.getByRole('button', { name: 'Save Registered' }).click()
+    await setMatrixCell(admin, 'Attachments', 'Attach files to a post.', 'Registered', value)
+    await admin.getByRole('button', { name: 'Save permissions' }).click()
+    await expect(admin.getByText('Saved.')).toBeVisible()
   }
 
   try {

@@ -1,29 +1,9 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
+import { setMatrixCell } from './support/permission-matrix'
 import { enterAdminPanel, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
-
-function matrixSection(page: Page, heading: string) {
-  return page.locator('section').filter({ has: page.getByRole('heading', { name: heading }) })
-}
-
-async function setMatrixCell(
-  page: Page,
-  heading: string,
-  rowText: string,
-  groupTitle: string,
-  option: 'Inherit' | 'Grant' | 'Deny',
-): Promise<void> {
-  const table = matrixSection(page, heading).locator('table')
-  const headers = await table.locator('thead th').allInnerTexts()
-  const columnIndex = headers.indexOf(groupTitle)
-  expect(columnIndex, `no "${groupTitle}" column under "${heading}"`).toBeGreaterThan(0)
-
-  const row = table.locator('tbody tr').filter({ hasText: rowText })
-  const cell = row.locator('td').nth(columnIndex - 1)
-  await cell.getByText(option, { exact: true }).click()
-}
 
 test('one save changes two cells across two groups, and the board reflects both', async ({
   browser,

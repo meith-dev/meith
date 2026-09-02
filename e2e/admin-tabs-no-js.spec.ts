@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { STAFF, STAFF_PASSWORD } from './support/config'
+import { matrixCellRadio, setMatrixCell } from './support/permission-matrix'
 import { enterAdminPanel, PASSWORD, runTick, signIn, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
@@ -17,19 +18,6 @@ async function fieldValues(page: Page, name: string): Promise<string[]> {
 
 function composer(page: Page, verb: string): Locator {
   return page.locator('form').filter({ has: page.getByRole('button', { name: verb, exact: true }) })
-}
-
-async function openGroup(page: Page, saveLabel: string): Promise<Locator> {
-  const card = page.locator('details').filter({ hasText: saveLabel })
-  await card.locator('summary').click()
-  return card
-}
-
-async function setTriState(card: Locator, name: string, label: string): Promise<void> {
-  const field = card
-    .locator('fieldset')
-    .filter({ has: card.page().locator(`input[name="${name}"]`) })
-  await field.getByText(label, { exact: true }).click()
 }
 
 async function selectStartingWith(select: Locator, prefix: string): Promise<void> {
@@ -174,13 +162,13 @@ test('a forum’s options and its permissions decide what the board does', async
       page.getByRole('heading', { name: 'Permissions: Off Topic', level: 1 }),
     ).toBeVisible()
 
-    const guests = await openGroup(page, 'Save Guests')
-    await setTriState(guests, 'canView', 'Deny')
-    await guests.getByRole('button', { name: 'Save Guests' }).click()
+    await setMatrixCell(page, 'Viewing', 'See the forum exists.', 'Guests', 'Deny')
+    await page.getByRole('button', { name: 'Save permissions' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
 
-    const saved = await openGroup(page, 'Save Guests')
-    await expect(saved.locator('input[name="canView"][value="deny"]')).toBeChecked()
-    await expect(saved.getByText('set here: denied')).toBeVisible()
+    await expect(
+      await matrixCellRadio(page, 'Viewing', 'See the forum exists.', 'Guests', 'Deny'),
+    ).toBeChecked()
 
     expect((await guestPage.goto(OFF_TOPIC))?.status()).toBe(404)
     await guestPage.goto('/')
@@ -188,9 +176,9 @@ test('a forum’s options and its permissions decide what the board does', async
   } finally {
     await page.goto('/admin/forums')
     await page.getByRole('link', { name: 'Permissions for Off Topic' }).click()
-    const guests = await openGroup(page, 'Save Guests')
-    await setTriState(guests, 'canView', 'Inherit')
-    await guests.getByRole('button', { name: 'Save Guests' }).click()
+    await setMatrixCell(page, 'Viewing', 'See the forum exists.', 'Guests', 'Inherit')
+    await page.getByRole('button', { name: 'Save permissions' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
     await guestContext.close()
   }
 
