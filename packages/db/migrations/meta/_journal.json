@@ -463,6 +463,13 @@
       "when": 1788346593870,
       "tag": "0065_serious_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1788367778886,
+      "tag": "0066_board_digest_due_index",
+      "breakpoints": true
     }
   ]
 }

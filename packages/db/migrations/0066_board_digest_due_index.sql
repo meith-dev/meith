@@ -1,0 +1,1 @@
+CREATE INDEX "users_board_digest_due_idx" ON "users" USING btree ("board_digest_cadence","last_active_at") WHERE "users"."state" = 'active';
