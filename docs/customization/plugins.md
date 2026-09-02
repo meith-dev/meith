@@ -788,8 +788,10 @@ Three properties are the contract:
   cannot abort a handler.
 - **`tx` is a real transaction.** A throw rolls the whole body back; a
   nested `tx` joins the outer one rather than opening a second.
+- **Every statement runs as this plugin's own database role**, which the
+  database only lets touch `plugin_<key>_*` tables — see [below](#the-namespace-is-a-database-boundary).
 
-### The namespace is enforced where it can be
+### The namespace is a database boundary
 
 `definePlugin` refuses a migration whose statements create, alter, drop or
 fill anything not named `plugin_<key>_*` (hyphens in the key become
@@ -799,12 +801,27 @@ plugin's schema to the board's and breaks the moment either migrates. Copy
 ids into plain columns instead; the reconcile-and-sweep pattern handles rows
 whose subject has since gone.
 
-Stated honestly: this is a rail, not a sandbox. Plugin code runs in the
-host's process, and `context.data` does not rewrite queries — a plugin *can*
-select from a core table, the way any code in the process can. The
-migration rule guards the part that would corrupt a board (a plugin
-altering somebody else's schema); the rest is the same trust you extended
-when you installed the code.
+`context.data` holds the same line at runtime, and Postgres enforces it.
+Each plugin owns a dedicated database role — `plugin_<key>` — that is granted
+nothing but `select`, `insert`, `update` and `delete` on its own
+`plugin_<key>_*` tables and their sequences. The host runs every
+`context.data` statement inside its transaction after `set local role
+plugin_<key>`, and the role resets when the transaction ends. A statement
+that reads a core table, touches another plugin's table, or attempts DDL is
+refused by the database with `permission denied`, whatever shape the SQL
+takes — so an author who trusts this guard and, by mistake, concatenates a
+request value into the statement text still cannot reach past their own
+tables with it. The role is created and its grants brought up to date when
+the plugin's migrations run, so a board's database user must be able to
+create roles (the bundled Postgres runs as a superuser and already can); a
+managed database whose login lacks that privilege needs the `plugin_<key>`
+roles created once by an administrator.
+
+Stated honestly: this bounds the documented channel, not the process.
+Plugin code runs in the host's process and can still open its own connection
+or read `DATABASE_URL` — installing a plugin extends that trust. What the
+role guarantees is the blast radius of a *bug*: anything issued through
+`context.data` can only ever touch this plugin's own tables.
 
 ## Looking up a member
 

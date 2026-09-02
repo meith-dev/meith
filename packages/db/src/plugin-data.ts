@@ -5,6 +5,7 @@ import type { PluginData } from '@meith/plugin-kit'
 
 import type { Database } from './client'
 import type { Tx } from './permission-version'
+import { pluginDbRole } from './plugin-role'
 import { resultRows } from './result-rows'
 
 export interface PluginDataOptions {
@@ -66,10 +67,12 @@ export function pluginData(
 ): PluginData {
   const timeoutMs = Math.max(1, Math.trunc(options.statementTimeoutMs ?? DEFAULT_TIMEOUT_MS))
   const where = `plugin "${pluginKey}"`
+  const role = pluginDbRole(pluginKey)
 
   const inTransaction = async <T>(work: (data: PluginData) => Promise<T>): Promise<T> => {
     return db.transaction(async (tx) => {
       await tx.execute(sql.raw(`set local statement_timeout = ${timeoutMs}`))
+      await tx.execute(sql.raw(`set local role "${role.replace(/"/g, '""')}"`))
       return work(onExecutor(tx, where))
     })
   }

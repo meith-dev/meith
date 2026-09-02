@@ -208,6 +208,7 @@ export {
   pluginOwnedTables,
   purgePlugin,
 } from './plugin-purge-repo'
+export { ensurePluginDataRole, pluginDbRole } from './plugin-role'
 export { pluginUsers } from './plugin-users'
 export { PostgresPollRepository } from './poll-repo'
 export { PostgresPostRepository } from './post-repo'

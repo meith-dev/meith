@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 
 import type { Database } from './client'
+import { ensurePluginDataRole } from './plugin-role'
+import { resultRows } from './result-rows'
 
 export async function readVersion(db: Database, component: string): Promise<string | null> {
   const rows = (await db.execute(sql`
@@ -49,18 +51,24 @@ export async function applyPluginMigration(
   statements: readonly string[],
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
-    const claimed = (await tx.execute(sql`
-      insert into plugin_migrations (plugin_key, migration_id)
-      values (${pluginKey}, ${migrationId})
-      on conflict (plugin_key, migration_id) do nothing
-      returning migration_id
-    `)) as unknown as unknown[]
+    const claimed = resultRows(
+      await tx.execute(sql`
+        insert into plugin_migrations (plugin_key, migration_id)
+        values (${pluginKey}, ${migrationId})
+        on conflict (plugin_key, migration_id) do nothing
+        returning migration_id
+      `),
+    )
 
-    if (claimed.length === 0) return false
+    if (claimed.length === 0) {
+      await ensurePluginDataRole(tx, pluginKey)
+      return false
+    }
 
     for (const statement of statements) {
       await tx.execute(sql.raw(statement))
     }
+    await ensurePluginDataRole(tx, pluginKey)
     return true
   })
 }

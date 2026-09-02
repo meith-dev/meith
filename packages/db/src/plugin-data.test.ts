@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { bindPluginSql, pluginData } from './plugin-data'
+import { ensurePluginDataRole } from './plugin-role'
 import { resultRows } from './result-rows'
 
 let h: TestDb
@@ -12,6 +13,7 @@ beforeAll(async () => {
   await h.client.exec(
     'create table if not exists plugin_example_note (id serial primary key, note text)',
   )
+  await h.db.transaction((tx) => ensurePluginDataRole(tx, 'example'))
 })
 afterAll(async () => {
   await h.close()
@@ -44,6 +46,74 @@ describe('parameter binding', () => {
 
   it('refuses a placeholder with no parameter behind it', () => {
     expect(() => bindPluginSql('select $2', ['only one'])).toThrow(/\$2/)
+  })
+})
+
+async function refusalFrom(run: Promise<unknown>): Promise<string> {
+  try {
+    await run
+  } catch (error) {
+    const cause = (error as { cause?: unknown }).cause
+    return `${(error as Error).message} ${cause instanceof Error ? cause.message : String(cause)}`
+  }
+  throw new Error('the statement was expected to be refused, but it ran')
+}
+
+describe('the table boundary', () => {
+  it('reads and writes this plugin’s own prefixed tables', async () => {
+    const data = pluginData(h.db, 'example')
+
+    await data.query('insert into plugin_example_note (note) values ($1)', ['mine'])
+    const rows = await data.query<{ note: string }>('select note from plugin_example_note')
+
+    expect(rows).toEqual([{ note: 'mine' }])
+  })
+
+  it('refuses to read a core table', async () => {
+    const data = pluginData(h.db, 'example')
+    expect(await refusalFrom(data.query('select id from users limit 1'))).toMatch(
+      /permission denied/i,
+    )
+  })
+
+  it('refuses to write a core table', async () => {
+    const data = pluginData(h.db, 'example')
+    expect(await refusalFrom(data.query('update users set id = id where id = $1', [1]))).toMatch(
+      /permission denied/i,
+    )
+  })
+
+  it('refuses to read another plugin’s tables', async () => {
+    await h.client.exec(
+      'create table if not exists plugin_other_secret (id serial primary key, token text)',
+    )
+    const data = pluginData(h.db, 'example')
+    expect(await refusalFrom(data.query('select token from plugin_other_secret'))).toMatch(
+      /permission denied/i,
+    )
+  })
+
+  it('refuses to drop a table', async () => {
+    const data = pluginData(h.db, 'example')
+    expect(await refusalFrom(data.query('drop table plugin_example_note cascade'))).toMatch(
+      /must be owner|permission denied/i,
+    )
+  })
+
+  it('refuses a union that reaches into a core table', async () => {
+    const data = pluginData(h.db, 'example')
+    expect(
+      await refusalFrom(
+        data.query('select note from plugin_example_note union all select email from users'),
+      ),
+    ).toMatch(/permission denied/i)
+  })
+
+  it('refuses a statement that stacks a second command', async () => {
+    const data = pluginData(h.db, 'example')
+    expect(
+      await refusalFrom(data.query('select 1 from plugin_example_note; drop table users')),
+    ).toMatch(/multiple commands|permission denied/i)
   })
 })
 
