@@ -3,7 +3,12 @@ import 'server-only'
 
 import type { Actor } from '@meith/authorization'
 import { contentScopeFrom, ForbiddenError } from '@meith/core'
-import { getDb, PostgresSearchRepository } from '@meith/db'
+import {
+  DEFAULT_SEARCH_CONFIG,
+  getDb,
+  PostgresSearchRepository,
+  resolveSearchConfig,
+} from '@meith/db'
 import type { SearchScope } from '@meith/search'
 
 import { getContainer } from './container'
@@ -21,12 +26,20 @@ export async function searchMinWordLength(): Promise<number> {
   return (await getSettings()).get('search.min_word_length')
 }
 
-export function searchProvider(): PostgresSearchRepository | null {
-  return getContainer().dataSource === 'postgres' ? new PostgresSearchRepository(getDb()) : null
+export async function searchLanguage(): Promise<string> {
+  return resolveSearchConfig((await getSettings()).get('search.language'))
 }
 
-export function requireSearch(): PostgresSearchRepository {
-  const provider = searchProvider()
+export function searchProvider(
+  config: string = DEFAULT_SEARCH_CONFIG,
+): PostgresSearchRepository | null {
+  return getContainer().dataSource === 'postgres'
+    ? new PostgresSearchRepository(getDb(), config)
+    : null
+}
+
+export function requireSearch(config: string = DEFAULT_SEARCH_CONFIG): PostgresSearchRepository {
+  const provider = searchProvider(config)
   if (provider === null) {
     throw new ForbiddenError(msg('error.app.board-running-in-memory-sample-data-11'))
   }

@@ -10,6 +10,7 @@ import {
   indexedSubjectSql,
   PostgresSearchRepository,
   renderExcerptHtml,
+  resolveSearchConfig,
   SEARCH_DOCUMENT_VERSION,
   searchVectorSql,
 } from './search-repo'
@@ -36,6 +37,7 @@ beforeEach(async () => {
   await db.execute(sql`delete from threads`)
   await db.execute(sql`delete from forums`)
   await db.execute(sql`delete from users`)
+  await db.execute(sql`delete from settings`)
   await db.execute(sql`
     insert into forums (id, type, title, slug, path) values
       (${OPEN}, 'forum', 'Open', 'open', '1'),
@@ -63,7 +65,7 @@ interface SeedPost {
   readonly isFirstPost?: boolean
 }
 
-async function seed(post: SeedPost): Promise<void> {
+async function seed(post: SeedPost, config = 'english'): Promise<void> {
   const forumId = post.forumId ?? OPEN
   const threadId = post.threadId ?? post.id
 
@@ -82,13 +84,13 @@ async function seed(post: SeedPost): Promise<void> {
             ${post.isFirstPost ?? true})
   `)
 
-  await index(post.id)
+  await index(post.id, config)
 }
 
-async function index(postId: number): Promise<void> {
+async function index(postId: number, config = 'english'): Promise<void> {
   await db.execute(sql`
     update posts p
-       set search_vector = ${searchVectorSql(indexedSubjectSql(sql`p`), sql`p.message`)},
+       set search_vector = ${searchVectorSql(config, indexedSubjectSql(sql`p`), sql`p.message`)},
            search_version = ${SEARCH_DOCUMENT_VERSION}
      where p.id = ${postId}
   `)
@@ -570,6 +572,67 @@ describe('reindexing', () => {
     await repo.reindexChunk(0, 1)
 
     expect(await repo.indexProgress()).toEqual({ indexed: 1, pending: 3 })
+  })
+})
+
+describe('the search language', () => {
+  it('maps only allow-list configurations, falling back to english for anything else', () => {
+    expect(resolveSearchConfig('german')).toBe('german')
+    expect(resolveSearchConfig('simple')).toBe('simple')
+    expect(resolveSearchConfig(undefined)).toBe('english')
+    expect(resolveSearchConfig('klingon')).toBe('english')
+    expect(resolveSearchConfig("english'); drop table posts; --")).toBe('english')
+  })
+
+  it('finds a stemmed German form under german that english leaves apart', async () => {
+    await seed({ id: 1, message: 'die Häuser sind schön' }, 'german')
+
+    const german = new PostgresSearchRepository(db, 'german')
+    expect((await german.search(query({ terms: 'Haus' }), scope())).hits).toHaveLength(1)
+
+    await index(1, 'english')
+    const english = new PostgresSearchRepository(db, 'english')
+    expect((await english.search(query({ terms: 'Haus' }), scope())).hits).toEqual([])
+  })
+
+  it('matches whole words only under simple', async () => {
+    await seed({ id: 1, message: 'running quickly' }, 'simple')
+
+    const simple = new PostgresSearchRepository(db, 'simple')
+    expect((await simple.search(query({ terms: 'running' }), scope())).hits).toHaveLength(1)
+    expect((await simple.search(query({ terms: 'run' }), scope())).hits).toEqual([])
+  })
+
+  it('rejects an unknown constructor language and indexes under english instead', async () => {
+    await seed({ id: 1, message: 'the birds were running quickly' })
+
+    const bogus = new PostgresSearchRepository(db, 'klingon')
+    expect((await bogus.search(query({ terms: 'run' }), scope())).hits).toHaveLength(1)
+  })
+})
+
+describe('reindexing after a language change', () => {
+  it('bumps stale rows and rewrites them under the language the setting now names', async () => {
+    await seed({ id: 1, message: 'die Häuser sind schön' })
+
+    const german = new PostgresSearchRepository(db, 'german')
+    expect((await german.search(query({ terms: 'Haus' }), scope())).hits).toEqual([])
+
+    await db.execute(sql`insert into settings (key, value) values ('search.language', 'german')`)
+    expect(await repo.markForReindex()).toBe(1)
+    expect(await repo.indexProgress()).toEqual({ indexed: 0, pending: 1 })
+
+    await repo.reindexChunk(0, 10)
+    expect(await repo.indexProgress()).toEqual({ indexed: 1, pending: 0 })
+    expect((await german.search(query({ terms: 'Haus' }), scope())).hits).toHaveLength(1)
+  })
+
+  it('is idempotent, so a second change with no new writes marks nothing', async () => {
+    await seed({ id: 1, message: 'kestrel' })
+    await seed({ id: 2, message: 'kestrel' })
+
+    expect(await repo.markForReindex()).toBe(2)
+    expect(await repo.markForReindex()).toBe(0)
   })
 })
 
