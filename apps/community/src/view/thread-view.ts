@@ -3,11 +3,13 @@ import type { Translator } from '@meith/i18n'
 import { type BoardVocabulary, type CompiledWordFilter, postBodyHtml } from '@meith/markdown'
 import { editedNote, type PostListingRow, type PostPage } from '@meith/posts'
 import { isOnline, suppress } from '@meith/relations'
+import type { SubscriptionMode } from '@meith/subscriptions'
 import type {
   PaginationModel,
   PostAttachmentModel,
   PostBitModel,
   ThreadViewModel,
+  ThreadWatchModel,
 } from '@meith/theme-kit'
 import type { ThreadListingRow } from '@meith/threads'
 
@@ -204,6 +206,8 @@ export interface ThreadViewInput {
   readonly pagination?: PaginationModel
   readonly nextHref: string | null
   readonly markReadAction?: string | null
+  readonly watchOffered?: boolean
+  readonly watchMode?: SubscriptionMode | null
   readonly replyHref?: string | null
   readonly capabilities?: PostCapabilities
   readonly now: Date
@@ -243,6 +247,18 @@ export function threadToolsHeading(
   return t.t(isForumModerator ? 'thread.moderatorTools' : 'thread.threadTools')
 }
 
+export function threadWatch(input: {
+  readonly offered: boolean
+  readonly mode: SubscriptionMode | null
+  readonly threadId: number
+}): ThreadWatchModel | null {
+  if (!input.offered) return null
+
+  return input.mode === null
+    ? { subscribed: false, action: `/api/subscribe/thread/${input.threadId}` }
+    : { subscribed: true, action: `/api/unsubscribe/thread/${input.threadId}` }
+}
+
 export function revealedFrom(raw: string | readonly string[] | undefined): ReadonlySet<number> {
   if (raw === undefined) return EMPTY_IDS
   const values = typeof raw === 'string' ? [raw] : raw
@@ -269,6 +285,11 @@ export function buildThreadView(input: ThreadViewInput): ThreadView {
       forum: { label: input.forum.title, href: forumHref(input.forum) },
       replyHref: input.replyHref ?? null,
       markReadAction: input.markReadAction ?? null,
+      watch: threadWatch({
+        offered: input.watchOffered ?? false,
+        mode: input.watchMode ?? null,
+        threadId: input.thread.id,
+      }),
     },
     posts: input.page.rows.map((entry) =>
       post(entry, input.thread, {

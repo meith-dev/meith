@@ -1,6 +1,6 @@
 import { isSlotName, SLOT_NAMES, type SlotName } from './slots'
 
-export const THEME_API_VERSION = '0.23'
+export const THEME_API_VERSION = '0.24'
 
 export type Stability = 'stable' | 'provisional' | 'deprecated'
 

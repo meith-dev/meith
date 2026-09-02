@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.23.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.24.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -337,6 +337,7 @@ Props: `ThreadViewModel`
 | `forum` | `LinkModel` |  |
 | `replyHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` | A native POST target for the last visible post on this page. |
+| `watch` | `ThreadWatchModel \| null` | optional — The header's watch toggle, or `null` for a guest — who cannot subscribe to anything — and on a board running without the subscription service. Optional under the versioning policy: a theme written against 0.23 compiles and renders no toggle, the same as it already does for the cadence picker in `regions.afterContent`. |
 | `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `ForumDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Only what belongs *before* the posts: the moderator's bar, and the * poll, which is content rather than a control. Rating and following are * in `afterContent`. * * Optional under the versioning policy: a theme written against 0.3 compiles * and simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * Controls for a reader who has reached the end — rating the thread, and * following it. * * A theme renders it after the posts and **before** the quick reply, which * is the order the two are wanted in: somebody who has just read fifty * posts is deciding what they think and whether to keep hearing about it, * and then whether to answer. Both used to be above the first post, where * they were asking for a verdict on something the reader had not read yet. */ readonly afterContent?: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
 
 ### PostBit
@@ -1032,6 +1033,15 @@ One tab in a strip of view tabs.
 | `visibility` | `'visible' \| 'unapproved' \| 'deleted'` | optional — Whether this thread is hidden from ordinary members. `'visible'` on almost every row; a listing only ever carries `'unapproved'` or `'deleted'` for a viewer allowed to see held or removed threads, so a theme that marks them — a badge, a tint — is drawing something only staff will meet. Optional: a theme written before this field treats every row as visible, which is what the reader saw anyway. |
 | `lastPost` | `LastPostModel \| null` |  |
 
+### ThreadWatchModel
+
+`ThreadViewModel.watch` — the header's one-tap subscribe/unsubscribe toggle. `action` is already resolved to whichever direction flips `subscribed`: a theme never branches on `subscribed` to pick a URL, only to pick a label — "Watch" over `action` when `false`, "Watching" over the same `action` when `true`. Subscribing this way always uses the board's default cadence; a member who wants a slower one still has the cadence picker in `ThreadViewModel.regions.afterContent`, which this toggle sits beside rather than replaces.
+
+| Field | Type | Notes |
+|---|---|---|
+| `subscribed` | `boolean` |  |
+| `action` | `string` | A native POST target that flips `subscribed`. |
+
 ### TimeModel
 
 A timestamp, in both forms a template needs. See this file's header.
@@ -1068,5 +1078,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.23. Nothing can be: this is the first
+Nothing is deprecated in v0.24. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

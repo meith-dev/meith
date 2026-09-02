@@ -300,7 +300,7 @@ rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.23`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.24`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -424,6 +424,18 @@ not an API version.
 > beside the `tag` it was already setting — the producer side of the same
 > break, and the reason the standing note below now names plugins as well as
 > the app.
+>
+> `0.24` is additive: [`ThreadViewModel`](../reference/theme-slots.md#threadview)
+> gains `watch`, a one-tap subscribe/unsubscribe control for the thread
+> header — following used to live only at the foot of the thread, a `<select>`
+> and a button past fifty posts a reader had to find first. `watch` is
+> `null` for a guest and on a board with no subscription service, and
+> optional the same way the foot-of-thread cadence picker in
+> `regions.afterContent` already was: a theme written against `0.23`
+> compiles and renders no toggle. The two controls are not the same thing —
+> `watch` is on/off only, always at the board's default cadence, and the
+> cadence picker it sits beside is still where a member reaches daily or
+> weekly digests.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

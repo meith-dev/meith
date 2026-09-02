@@ -129,6 +129,8 @@
   "phasebook.threadView.replyAction": "Reply",
   "phasebook.threadView.view.one": "view",
   "phasebook.threadView.view.other": "views",
+  "phasebook.threadView.watch": "Watch",
+  "phasebook.threadView.watching": "Watching",
   "phasebook.userPanel.accountAriaLabel": "Your account",
   "phasebook.userPanel.messages": "Messages",
   "phasebook.userPanel.notifications": "Notifications",

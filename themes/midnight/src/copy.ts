@@ -162,6 +162,8 @@ export function threadViewCopy(t: Translator): SlotCopy {
     'midnight.threadView.in',
     'midnight.threadView.reply',
     'midnight.threadView.markRead',
+    'midnight.threadView.watch',
+    'midnight.threadView.watching',
   ])
 }
 

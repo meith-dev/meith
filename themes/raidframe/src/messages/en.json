@@ -133,6 +133,8 @@
   "raidframe.threadView.postReply": "post reply",
   "raidframe.threadView.replies": "replies",
   "raidframe.threadView.views": "views",
+  "raidframe.threadView.watch": "watch",
+  "raidframe.threadView.watching": "watching",
   "raidframe.userPanel.accountLabel": "Your account",
   "raidframe.userPanel.new": "new",
   "raidframe.userPanel.pm": "pm",

@@ -170,6 +170,8 @@
   "default.threadView.view.one": "view",
   "default.threadView.view.other": "views",
   "default.threadView.viewsLabel": "Views",
+  "default.threadView.watch": "Watch",
+  "default.threadView.watching": "Watching",
   "default.userPanel.new": "new",
   "default.userPanel.signedIn": "Signed in",
   "default.userPanel.unread": "unread",
