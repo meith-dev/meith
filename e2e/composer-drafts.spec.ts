@@ -20,7 +20,16 @@ test('posting a thread clears the browser copy, so the next one starts empty', a
     .poll(() => page.evaluate((key) => localStorage.getItem(key), BACKUP_KEY))
     .not.toBeNull()
 
-  await page.getByRole('button', { name: 'Post thread' }).click()
+  const [postResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/200-general/new',
+    ),
+    page.getByRole('button', { name: 'Post thread' }).click(),
+  ])
+  await postResponse.finished()
+
   await expect(page).toHaveURL(/\/thread\/\d+-/)
 
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), BACKUP_KEY)).toBeNull()
@@ -63,10 +72,19 @@ test('a saved thread draft is listed, resumes with its text, and can be deleted'
   await page.waitForLoadState('load')
   await page.goto('/usercp/drafts')
   await page.getByRole('button', { name: 'Delete' }).click()
-  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
+  const [deleteResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/usercp/drafts',
+    ),
+    page.getByRole('button', { name: 'Confirm', exact: true }).click(),
+  ])
+  await deleteResponse.finished()
 
   await expect(page).toHaveURL(/\/usercp\/drafts$/)
-  await expect(page.getByRole('listitem').filter({ hasText: 'General' })).toHaveCount(0)
+  await expect(page.getByText('You have no saved drafts.')).toBeVisible()
 
   await page.waitForLoadState('load')
 })
