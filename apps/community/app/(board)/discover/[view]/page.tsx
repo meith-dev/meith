@@ -59,9 +59,14 @@ export default async function DiscoverPage({
   const themed = async (model: DiscoveryViewModel) =>
     filterView('view.discovery-view', model, viewerRef(actor))
 
+  const views =
+    actor.userId === null
+      ? DISCOVERY_VIEWS.filter((candidate) => candidate !== 'unread')
+      : DISCOVERY_VIEWS
+
   const common = {
     view,
-    views: DISCOVERY_VIEWS,
+    views,
     pageSize: DISCOVER_PAGE,
     isFirstPage: after === null,
     now,

@@ -176,6 +176,32 @@ export class PostgresPostRepository implements PostRepository {
     return { number, page, afterId: cursor[0]?.id ?? null }
   }
 
+  async locateFirstUnread(
+    threadId: number,
+    after: { readonly postId: number; readonly since: Date | null },
+    options: { readonly scope: ContentScope; readonly pageSize: number },
+  ): Promise<PostLocation | null> {
+    const visible: SQL = visibleIn(posts.visibility, options.scope)
+
+    const target = await this.db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.threadId, threadId),
+          visible,
+          gt(posts.id, after.postId),
+          ...(after.since === null ? [] : [gt(posts.createdAt, after.since)]),
+        ),
+      )
+      .orderBy(asc(posts.id))
+      .limit(1)
+
+    const firstId = target[0]?.id
+    if (firstId === undefined) return null
+    return this.locate(threadId, firstId, options)
+  }
+
   async findVisibleById(threadId: number, postId: number): Promise<number | null> {
     const rows = await this.db
       .select({ id: posts.id })

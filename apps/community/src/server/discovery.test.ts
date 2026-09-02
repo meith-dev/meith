@@ -33,6 +33,10 @@ vi.mock('@meith/db', () => ({
       calls.push(`participatedIn:${userId}`)
       return { rows: [], nextCursor: null }
     }
+    async unread(userId: number) {
+      calls.push(`unread:${userId}`)
+      return { rows: [], nextCursor: null }
+    }
   },
 }))
 
@@ -108,6 +112,7 @@ describe('runDiscovery', () => {
     expect(await run('unanswered', member)).toEqual(['unanswered'])
     expect(await run('mine', member)).toEqual(['startedBy:42'])
     expect(await run('participated', member)).toEqual(['participatedIn:42'])
+    expect(await run('unread', member)).toEqual(['unread:42'])
   })
 
   it('starts "today" at midnight and "new" a day back', async () => {
@@ -116,7 +121,7 @@ describe('runDiscovery', () => {
   })
 
   it('refuses a personal view to a guest instead of showing an empty list', async () => {
-    for (const view of ['mine', 'participated']) {
+    for (const view of ['mine', 'participated', 'unread']) {
       await expect(run(view, guest)).rejects.toSatisfy(isAppError)
     }
   })

@@ -17,7 +17,7 @@ export {
   UNRESTRICTED,
 } from './compose'
 export type { ThreadLocation, ThreadRepository } from './ports'
-export type { ReadState, ReadStateRepository } from './read-state'
+export type { ReadState, ReadStateRepository, ThreadReadMarker } from './read-state'
 export {
   type ComposeReplyInput,
   type CreatedReply,

@@ -17,6 +17,12 @@ export interface PostRepository {
     options: { readonly scope: ContentScope; readonly pageSize: number },
   ): Promise<PostLocation | null>
 
+  locateFirstUnread(
+    threadId: number,
+    after: { readonly postId: number; readonly since: Date | null },
+    options: { readonly scope: ContentScope; readonly pageSize: number },
+  ): Promise<PostLocation | null>
+
   listThread(
     threadId: number,
     options: {

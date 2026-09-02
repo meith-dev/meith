@@ -1613,8 +1613,42 @@ posts means a page of twenty hits can be three threads, and one busy
 thread buries the rest of the board.
 
 **Cost.** The row says when the last post was and who wrote it, but not
-how many of the replies are new to this reader — the same read-state
-dependency as above.
+how many of the replies are new to this reader. `/discover/unread`
+answers the coarser question — has anything landed here since I last
+read it — for a signed-in member, but a row on any other view still
+cannot say how many.
+
+### Jumping to what is new costs nothing until it is clicked
+
+**MyBB:** `newreply.php?tid=` with `goto=newpost` scans the thread's
+posts for the first one past `lastvisit` on every request, whether or
+not the link is ever followed.
+
+**Meith:** an unread row's link carries `?goto=unread` in the `href`
+itself — a plain query string a no-JavaScript reader can follow like
+any other. The thread route resolves it only when that request
+arrives: it reads the member's per-thread and per-forum markers, finds
+the first visible post past them, and redirects to the page holding it
+with a `#post-N` anchor; a thread that turns out to be fully read
+falls back to its last page. Reading it up to where it renders is
+separate — the thread page marks the visited page read after the
+response is already on its way, so the read stays current without the
+write sitting on the page's critical path. A thread rendered to the
+end fully covers its own unread state this way; the "Mark read" button
+still exists for a member who wants to leave a thread without reading
+it all.
+
+**Why.** The forum, discovery, and board-index listings already know
+whether a thread is unread — that is one lookup per row anyway, needed
+for the badge — but *where* the first unread post sits still costs a
+query building the listing does not otherwise pay. Deferring that
+question to the click means the listing pays a fixed cost and the
+resolver runs only when its answer is actually wanted.
+
+**Cost.** A member who has never read a thread and follows `?goto=unread`
+gets its very first post — correct by definition, but a large thread
+that is only unread through one recent reply feels like the jump
+undershot.
 
 ### Invisible browsing hides you from the count as well as the list
 

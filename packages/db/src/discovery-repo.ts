@@ -79,10 +79,31 @@ export class PostgresDiscoveryRepository {
     )
   }
 
+  async unread(
+    userId: number,
+    query: DiscoveryQuery,
+    scope: DiscoveryScope,
+  ): Promise<DiscoveryPage> {
+    return this.page(
+      [
+        sql`t.last_post_id is not null`,
+        sql`(tr.last_read_post_id is null or t.last_post_id > tr.last_read_post_id)`,
+        sql`(fr.read_at is null or t.last_post_at > fr.read_at)`,
+      ],
+      query,
+      scope,
+      [
+        sql`left join threads_read tr on tr.thread_id = t.id and tr.user_id = ${userId}`,
+        sql`left join forums_read fr on fr.forum_id = t.forum_id and fr.user_id = ${userId}`,
+      ],
+    )
+  }
+
   private async page(
     conditions: readonly SQL[],
     query: DiscoveryQuery,
     scope: DiscoveryScope,
+    joins: readonly SQL[] = [],
   ): Promise<DiscoveryPage> {
     if (audienceIsEmpty(scope)) return { rows: [], nextCursor: null }
 
@@ -107,6 +128,7 @@ export class PostgresDiscoveryRepository {
                t.reply_count, t.last_post_at, t.last_post_username
           from threads t
           join forums f on f.id = t.forum_id
+          ${sql.join([...joins], sql` `)}
          where ${sql.join(where, sql` and `)}
          order by t.last_post_at desc, t.id desc
          limit ${query.limit}

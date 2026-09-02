@@ -115,4 +115,135 @@ describe('buildForumDisplayView', () => {
 
     expect(view.threads[0]?.visibility).toBe('deleted')
   })
+
+  it('sends an unread row through the zero-cost goto=unread resolver', () => {
+    const readState = {
+      forumReadAt: new Map<number, Date>(),
+      threadLastPostId: new Map<number, number>(),
+      unreadForumIds: new Set<number>(),
+    }
+
+    const view = buildForumDisplayView({
+      forum,
+      subforums: [],
+      page: {
+        rows: [
+          {
+            id: 9,
+            forumId: 2,
+            title: 'Fresh',
+            slug: 'fresh',
+            prefix: null,
+            authorUserId: 1,
+            authorUsername: 'ada',
+            replyCount: 0,
+            viewCount: 0,
+            visibility: 'visible',
+            isSticky: false,
+            isLocked: false,
+            isMoved: false,
+            ratingTotal: 0,
+            ratingCount: 0,
+            lastPost: {
+              postId: 40,
+              userId: 1,
+              username: 'ada',
+              at: new Date('2026-07-30T08:41:00Z'),
+            },
+            lastPostAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextCursor: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      readState,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(view.threads[0]).toMatchObject({ isUnread: true, href: '/thread/9-fresh?goto=unread' })
+  })
+
+  it('leaves a read row’s href plain', () => {
+    const readState = {
+      forumReadAt: new Map<number, Date>(),
+      threadLastPostId: new Map([[9, 999]]),
+      unreadForumIds: new Set<number>(),
+    }
+
+    const view = buildForumDisplayView({
+      forum,
+      subforums: [],
+      page: {
+        rows: [
+          {
+            id: 9,
+            forumId: 2,
+            title: 'Read already',
+            slug: 'read-already',
+            prefix: null,
+            authorUserId: 1,
+            authorUsername: 'ada',
+            replyCount: 0,
+            viewCount: 0,
+            visibility: 'visible',
+            isSticky: false,
+            isLocked: false,
+            isMoved: false,
+            ratingTotal: 0,
+            ratingCount: 0,
+            lastPost: {
+              postId: 40,
+              userId: 1,
+              username: 'ada',
+              at: new Date('2026-07-30T08:41:00Z'),
+            },
+            lastPostAt: new Date('2026-07-30T08:41:00Z'),
+          },
+        ],
+        nextCursor: null,
+      },
+      pageNumber: 1,
+      nextHref: null,
+      readState,
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    expect(view.threads[0]).toMatchObject({ isUnread: false, href: '/thread/9-read-already' })
+  })
+
+  it('hydrates a subforum row’s last post and unread flag the same way the board index does', () => {
+    const view = buildForumDisplayView({
+      forum,
+      subforums: [
+        {
+          ...forum,
+          id: 5,
+          title: 'Off Topic',
+          slug: 'off-topic',
+          lastPost: {
+            postId: 12,
+            threadId: 3,
+            threadTitle: 'Chatter',
+            userId: 1,
+            username: 'ada',
+            at: new Date('2026-07-30T08:00:00Z'),
+          },
+        },
+      ],
+      page: { rows: [], nextCursor: null },
+      pageNumber: 1,
+      nextHref: null,
+      readState: {
+        forumReadAt: new Map<number, Date>(),
+        threadLastPostId: new Map<number, number>(),
+        unreadForumIds: new Set([5]),
+      },
+      now: new Date('2026-07-30T09:00:00Z'),
+    })
+
+    const subforum = view.subforums?.forums[0]
+    expect(subforum?.isUnread).toBe(true)
+    expect(subforum?.lastPost).toMatchObject({ threadTitle: 'Chatter', href: '/thread/3?post=12' })
+  })
 })

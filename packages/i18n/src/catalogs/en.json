@@ -1664,6 +1664,8 @@
   "discovery.today.label": "Today's posts",
   "discovery.unanswered.blurb": "Threads nobody has replied to yet — a good place to help.",
   "discovery.unanswered.label": "Unanswered",
+  "discovery.unread.blurb": "Threads with something new since you last read them.",
+  "discovery.unread.label": "Unread",
   "error.accounts.account-already-asks-for-code": "Your account already asks for a code. Turn that off before setting it up again.",
   "error.accounts.account-already-asks-for-code-2": "Your account already asks for a code.",
   "error.accounts.account-behind-passkey-longer-exists": "The account behind that passkey no longer exists.",
