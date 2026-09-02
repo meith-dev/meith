@@ -3,7 +3,12 @@ import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Circle, count, MUTED_LINK, NUMERIC, Prefix, plural, Stamp, Tag, UserRef } from '../shared'
 
-export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+export function ThreadRow({
+  thread,
+  select,
+  regions,
+  copy,
+}: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `phasebook.threadRow.${key}`)
 
   const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
@@ -49,6 +54,7 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
               <Tag token="thread-unapproved">{c('unapproved')}</Tag>
             )}
             {thread.visibility === 'deleted' && <Tag token="thread-deleted">{c('deleted')}</Tag>}
+            {regions?.pluginBadges}
           </div>
 
           <a

@@ -9,6 +9,7 @@ import type {
   HookValue,
   PluginRegion,
   PluginRegionContext,
+  ThreadRowBadgeSubject,
 } from '@meith/plugin-kit'
 
 import { getTranslator } from './i18n'
@@ -68,4 +69,29 @@ export async function boardRegion(
   card?: string,
 ): Promise<React.ReactNode> {
   return pluginRegion(region, { viewer: viewerRef(actor), subjectId: null, authorId: null }, card)
+}
+
+export async function threadRowBadges(
+  actor: Actor,
+  threads: readonly ThreadRowBadgeSubject[],
+): Promise<ReadonlyMap<number, React.ReactNode>> {
+  await syncPluginEnablement()
+  if (threads.length === 0) return new Map()
+
+  const t = await getTranslator()
+  const byThread = await pluginHost.renderThreadRowBadges({
+    viewer: viewerRef(actor),
+    threads,
+    locale: t.locale,
+    t,
+  })
+
+  const out = new Map<number, React.ReactNode>()
+  for (const [threadId, nodes] of byThread) {
+    out.set(
+      threadId,
+      nodes.map((entry) => <Fragment key={entry.key}>{entry.node}</Fragment>),
+    )
+  }
+  return out
 }

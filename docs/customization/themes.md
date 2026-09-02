@@ -300,7 +300,7 @@ rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.21`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.22`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -387,6 +387,16 @@ not an API version.
 > `applyEditorTag`, so a theme that treats the tag opaquely needs no change; a
 > theme that maps each tag to its own glyph adds three entries to render the new
 > buttons, the way the bundled themes do.
+>
+> `0.22` is additive: [`ThreadRowSlotModel`](../reference/theme-slots.md#threadrow)
+> gained `regions.pluginBadges`, the `threadrow.badges` plugin region, so a
+> plugin can mark threads in a forum listing the way `postbit.badges` marks a
+> post's author. A theme places it beside the thread's own flags — the bundled
+> themes render it in the row's title line. It is optional: a theme written
+> against `0.21` compiles and simply shows no plugin badges. The region runs
+> once per page rather than once per row, so a listing of twenty threads costs
+> one call — a plugin detail the theme never sees, but the reason the field is
+> safe to render on the board's tightest listing.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

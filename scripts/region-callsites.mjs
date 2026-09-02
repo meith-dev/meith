@@ -9,6 +9,9 @@ const SKIP_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.t
 
 const CALL_RE = /\b(?:pluginRegion|boardRegion)\(\s*['"]([^'"]+)['"]/g
 
+const BATCH_HELPERS = new Map([['threadRowBadges', 'threadrow.badges']])
+const BATCH_CALL_RE = new RegExp(`\\b(${[...BATCH_HELPERS.keys()].join('|')})\\(`, 'g')
+
 async function walk(dir, out = []) {
   let entries
   try {
@@ -63,6 +66,14 @@ export function regionCallSites(files, known) {
         }
         continue
       }
+      const sites = wired.get(name) ?? []
+      if (!sites.includes(rel)) sites.push(rel)
+      wired.set(name, sites)
+    }
+
+    for (const match of source.matchAll(BATCH_CALL_RE)) {
+      const name = BATCH_HELPERS.get(match[1])
+      if (name === undefined || !known.has(name)) continue
       const sites = wired.get(name) ?? []
       if (!sites.includes(rel)) sites.push(rel)
       wired.set(name, sites)

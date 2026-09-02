@@ -60,6 +60,7 @@ export {
   type PluginNotificationKind,
   type PluginPageAccess,
   type PluginPageContext,
+  type PluginRegionContribution,
   type PluginRequest,
   type PluginResponse,
   type PluginRoute,
@@ -81,6 +82,8 @@ export {
   pluginStaffPagePath,
   pluginTablePrefix,
   pluginTaskId,
+  type ThreadRowBadges,
+  type ThreadRowBadgesContribution,
 } from './plugin'
 export {
   createRouteRateLimiter,
@@ -94,6 +97,8 @@ export {
   type PluginRegionContext,
   REGION_NAMES,
   type RegionSpec,
+  type ThreadRowBadgeSubject,
+  type ThreadRowBadgesContext,
 } from './regions'
 export {
   renderingSignature,

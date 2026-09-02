@@ -7,7 +7,12 @@ import type { Translator } from '@meith/theme-kit'
 
 import { type HOOKS, type HookName, isHookName } from './hooks'
 import type { HookContext, HookValue } from './payloads'
-import { isPluginRegion, type PluginRegion, type PluginRegionContext } from './regions'
+import {
+  isPluginRegion,
+  type PluginRegion,
+  type PluginRegionContext,
+  type ThreadRowBadgesContext,
+} from './regions'
 import type { HookRuntime, PluginRuntimeContext } from './runtime'
 
 export type FilterHandler<K extends HookName> = (
@@ -87,11 +92,21 @@ export interface PluginAdminPage {
   readonly render: (context: PluginAdminPageContext) => ReactNode | Promise<ReactNode>
 }
 
-export interface PluginContribution {
-  readonly region: PluginRegion
+export interface PluginRegionContribution {
+  readonly region: Exclude<PluginRegion, 'threadrow.badges'>
   readonly priority?: number | undefined
   readonly render: (context: PluginRegionContext) => ReactNode | Promise<ReactNode>
 }
+
+export type ThreadRowBadges = ReadonlyMap<number, ReactNode>
+
+export interface ThreadRowBadgesContribution {
+  readonly region: 'threadrow.badges'
+  readonly priority?: number | undefined
+  readonly render: (context: ThreadRowBadgesContext) => ThreadRowBadges | Promise<ThreadRowBadges>
+}
+
+export type PluginContribution = PluginRegionContribution | ThreadRowBadgesContribution
 
 export interface PluginViewer {
   readonly userId: number | null

@@ -183,6 +183,7 @@ describe('driven through a real host', () => {
     const board = host()
 
     for (const region of REGION_NAMES) {
+      if (region === 'threadrow.badges') continue
       const nodes = await board.renderRegion(region, {
         region,
         viewer: { userId: 7, isGuest: false },
@@ -195,7 +196,38 @@ describe('driven through a real host', () => {
       expect(nodes[0]?.key).toBe('reference')
     }
 
+    const badges = await board.renderThreadRowBadges({
+      viewer: { userId: 7, isGuest: false },
+      threads: [{ threadId: 1, authorId: 2 }],
+      locale: 'en',
+      t: sourceTranslator(en),
+    })
+    expect(badges.get(1)).toHaveLength(1)
+    expect(badges.get(1)?.[0]?.key).toBe('reference')
+
     expect([...RECORDED.regions].sort()).toEqual([...REGION_NAMES].sort())
+  })
+
+  it('marks a whole page of threads in one batch call', async () => {
+    resetRecorder()
+    const board = host()
+
+    const badges = await board.renderThreadRowBadges({
+      viewer: { userId: 7, isGuest: false },
+      threads: [
+        { threadId: 10, authorId: 1 },
+        { threadId: 20, authorId: 2 },
+        { threadId: 30, authorId: null },
+      ],
+      locale: 'en',
+      t: sourceTranslator(en),
+    })
+
+    expect([...badges.keys()].sort((a, b) => a - b)).toEqual([10, 20, 30])
+    for (const threadId of [10, 20, 30]) {
+      expect(badges.get(threadId)?.[0]?.key).toBe('reference')
+    }
+    expect(RECORDED.threadRowBadges).toEqual([{ threadIds: [10, 20, 30], locale: 'en' }])
   })
 
   it('hands each region the reader’s locale and a translator', async () => {
@@ -204,6 +236,7 @@ describe('driven through a real host', () => {
     const t = createTranslator({ locale: 'de', catalog: en })
 
     for (const region of REGION_NAMES) {
+      if (region === 'threadrow.badges') continue
       await board.renderRegion(region, {
         region,
         viewer: { userId: 7, isGuest: false },
@@ -213,6 +246,12 @@ describe('driven through a real host', () => {
         t,
       })
     }
+    await board.renderThreadRowBadges({
+      viewer: { userId: 7, isGuest: false },
+      threads: [{ threadId: 1, authorId: 2 }],
+      locale: t.locale,
+      t,
+    })
 
     expect(RECORDED.regionContexts).toHaveLength(REGION_NAMES.length)
     for (const recorded of RECORDED.regionContexts) {

@@ -47,6 +47,21 @@ describe('regionCallSites', () => {
     expect(missing).toEqual(['admin.dashboard'])
   })
 
+  it('counts the batch helper as the call site for threadrow.badges', () => {
+    const { wired, problems } = regionCallSites(
+      [
+        {
+          rel: 'apps/community/app/(board)/[slug]/page.tsx',
+          source: 'const badges = await threadRowBadges(actor, subjects)',
+        },
+      ],
+      new Set(['index.footer', 'threadrow.badges']),
+    )
+
+    expect(problems).toEqual([])
+    expect(wired.get('threadrow.badges')).toEqual(['apps/community/app/(board)/[slug]/page.tsx'])
+  })
+
   it('flags a call site that renders a region the registry does not declare', () => {
     const { problems } = regionCallSites(
       [{ rel: 'apps/community/app/x.tsx', source: "pluginRegion('admin.dashbrd', context)" }],

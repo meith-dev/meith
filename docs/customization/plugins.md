@@ -308,13 +308,13 @@ here" point that a *theme* renders. The theme keeps control of **where**
 plugin output appears; the plugin keeps control of **what** it is; several
 plugins compose by concatenation, in the usual deterministic order.
 
-There are seven: `header.notice`, `index.footer`, `thread.header`,
-`postbit.badges`, `postbit.footer`, `profile.panel` and `admin.dashboard` —
-described in [Plugin hooks](../reference/plugin-hooks.md). The list is short on
-purpose, because every region is a commitment every theme has to render or
-deliberately drop. `admin.dashboard` is the exception the theme never sees: it
-is rendered by the control panel, on the admin overview below the board's
-statistics. Each contribution there is wrapped in a plugin card.
+There are eight: `header.notice`, `index.footer`, `thread.header`,
+`postbit.badges`, `postbit.footer`, `threadrow.badges`, `profile.panel` and
+`admin.dashboard` — described in [Plugin hooks](../reference/plugin-hooks.md).
+The list is short on purpose, because every region is a commitment every theme
+has to render or deliberately drop. `admin.dashboard` is the exception the theme
+never sees: it is rendered by the control panel, on the admin overview below the
+board's statistics. Each contribution there is wrapped in a plugin card.
 
 **A contribution may be async, and may reach this plugin's runtime.** Its
 `render` receives the same lazy `runtime` accessor a [hook
@@ -337,6 +337,29 @@ query there costs one query. `postbit.badges` runs once per *post* — a
 query there is fifty queries on a fifty-post page, and the region's own
 entry in the reference says so. A contribution that rejects is contained,
 counted and auto-disabled exactly like one that throws.
+
+`threadrow.badges` is the exception to the shape above, and its own
+contribution type says so. A forum page lists around twenty threads on a
+50ms budget, so a per-row region there would be twenty calls before the
+page had drawn a row. It runs **once per page** instead: its context carries
+`threads`, every visible row as a `{ threadId, authorId }`, and its `render`
+returns a `Map` keyed by thread id — a badge for the rows it wants to mark,
+nothing for the rest. That lets a plugin answer the whole page in one query
+of its own tables rather than twenty:
+
+```ts
+{
+  region: 'threadrow.badges',
+  render: async ({ threads, runtime }) => {
+    const { data } = await runtime()
+    const rows = await data.query(
+      'select thread_id, kind from plugin_example_flag where thread_id = any($1)',
+      [threads.map((thread) => thread.threadId)],
+    )
+    return new Map(rows.map((row) => [Number(row.thread_id), <Flag kind={String(row.kind)} />]))
+  },
+}
+```
 
 **A contribution's context also carries `locale` and `t`,** the reader's
 resolved language tag and a translator, the same pair a page context gets. A
