@@ -212,7 +212,7 @@ export function buildSchedulerBundle(deps: {
                   })
                 },
               })),
-              async deliverPush(notificationId: number) {
+              async deliverPush(notificationId: number, signal?: AbortSignal) {
                 const vapid = await vapidDetails(db)
                 if (vapid === null) return
                 await deliverNotificationPush({
@@ -222,6 +222,7 @@ export function buildSchedulerBundle(deps: {
                   ...optional(deps.translatorForLocale, (translatorForLocale) => ({
                     translatorForLocale,
                   })),
+                  ...(signal === undefined ? {} : { signal }),
                 })
               },
             },

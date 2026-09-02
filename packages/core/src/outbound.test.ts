@@ -167,4 +167,66 @@ describe('guardedRequest', () => {
 
     expect(result.status).toBe(302)
   })
+
+  it('gives up on a trickling endpoint at the wall-clock deadline', async () => {
+    const timers: NodeJS.Timeout[] = []
+    const port = await listen((_req, res) => {
+      res.writeHead(200)
+      const timer = setInterval(() => res.write('.'), 20)
+      timers.push(timer)
+      res.on('close', () => clearInterval(timer))
+    })
+
+    const started = Date.now()
+    await expect(guardedRequest(attempt(port, { timeoutMs: 50 }))).rejects.toThrow(/timed out/)
+    expect(Date.now() - started).toBeLessThan(2_000)
+
+    for (const timer of timers) clearInterval(timer)
+  })
+
+  it('stops reading once the response passes its byte cap', async () => {
+    const timers: NodeJS.Timeout[] = []
+    const port = await listen((_req, res) => {
+      res.writeHead(200)
+      res.write('x'.repeat(500))
+      const timer = setInterval(() => res.write('x'.repeat(500)), 20)
+      timers.push(timer)
+      res.on('close', () => clearInterval(timer))
+    })
+
+    const result = await guardedRequest(attempt(port, { maxResponseBytes: 100, timeoutMs: 5_000 }))
+
+    expect(result.status).toBe(200)
+
+    for (const timer of timers) clearInterval(timer)
+  })
+
+  it('rejects at once when the caller has already aborted', async () => {
+    const port = await listen((_req, res) => res.end('ok'))
+    const controller = new AbortController()
+    controller.abort(new Error('cancelled'))
+
+    await expect(guardedRequest(attempt(port, { signal: controller.signal }))).rejects.toThrow(
+      /cancelled/,
+    )
+  })
+
+  it('tears an in-flight request down when the caller aborts', async () => {
+    const timers: NodeJS.Timeout[] = []
+    const port = await listen((_req, res) => {
+      res.writeHead(200)
+      const timer = setInterval(() => res.write('.'), 20)
+      timers.push(timer)
+      res.on('close', () => clearInterval(timer))
+    })
+
+    const controller = new AbortController()
+    setTimeout(() => controller.abort(new Error('stop')), 40)
+
+    await expect(
+      guardedRequest(attempt(port, { timeoutMs: 5_000, signal: controller.signal })),
+    ).rejects.toThrow(/stop/)
+
+    for (const timer of timers) clearInterval(timer)
+  })
 })

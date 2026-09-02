@@ -2463,6 +2463,7 @@
   "notice.app.notification-exist": "That notification does not exist.",
   "notice.app.passkey-could-found": "That passkey could not be found.",
   "notice.app.post-exist": "That post does not exist.",
+  "notice.app.push-subscription-limit": "This account already has the most push subscriptions it may register. Remove one before adding another.",
   "notice.app.push-subscription-valid": "That push subscription is not valid.",
   "notice.app.report-exist": "That report does not exist.",
   "notice.app.session-could-found": "That session could not be found.",

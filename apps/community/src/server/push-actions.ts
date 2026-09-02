@@ -15,6 +15,8 @@ const toFormState = formStateReporter('push-actions', 'unexpected error in web p
 
 const ENDPOINT_MAX = 1000
 
+const SUBSCRIPTIONS_PER_USER_MAX = 20
+
 const BASE64URL = /^[A-Za-z0-9_-]+$/
 
 const IP_LITERAL = /^\[|^\d+\.\d+\.\d+\.\d+$/
@@ -77,6 +79,13 @@ export async function subscribeToPushAction(input: PushSubscriptionInput): Promi
     }
 
     const { service, userId } = await requirePushCentre()
+
+    const existing = await service.pushSubscriptions(userId)
+    const known = existing.some((subscription) => subscription.endpoint === input.endpoint)
+    if (!known && existing.length >= SUBSCRIPTIONS_PER_USER_MAX) {
+      return { error: await tr('notice.app.push-subscription-limit') }
+    }
+
     await service.subscribeToPush({
       userId,
       endpoint: input.endpoint,

@@ -162,6 +162,26 @@ describe('delivering a push', () => {
     await expect(deliver()).rejects.toThrow(/refused notification 12/)
     expect(marked).toEqual([])
   })
+
+  it('carries the abort signal through to every send', async () => {
+    devices = [device(1), device(2)]
+    const controller = new AbortController()
+    const seen: Array<AbortSignal | undefined> = []
+
+    await deliverNotificationPush({
+      notifications,
+      vapid: VAPID,
+      notificationId: 12,
+      now: () => AT,
+      signal: controller.signal,
+      send: async (input) => {
+        seen.push(input.signal)
+        return SENT
+      },
+    })
+
+    expect(seen).toEqual([controller.signal, controller.signal])
+  })
 })
 
 describe('the payload', () => {

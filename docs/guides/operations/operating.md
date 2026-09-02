@@ -135,6 +135,8 @@ Mail leaves the server, so a mail endpoint or SMTP host is an outbound destinati
 
 A relay on the same machine or a private network is the one legitimate internal destination. Set `MAIL_ALLOW_PRIVATE_HOSTS=true` to allow it; outside production the guard is relaxed already, so local development needs nothing. Prefer a genuinely reachable public provider to widening this in production.
 
+Every guarded request also runs against a wall-clock deadline, not a socket-inactivity timeout: an endpoint that drips a byte before each idle interval cannot hold a worker open forever, because the whole request — connection, request and response — is torn down once the deadline passes regardless of trickle. The response body the board reads is bounded too; an endpoint that streams without end is cut off rather than followed. Where the caller can be cancelled — the scheduled task that posts web-push notifications carries the tick's own budget through to each request — an abort tears the in-flight request down at once instead of waiting for the deadline.
+
 Two other requests the board makes on visitors' behalf cross the same boundary and are held to the same resolve-and-pin policy: webhook delivery (`WEBHOOK_ALLOW_PRIVATE_HOSTS`) and the web-push notification the worker posts to a subscriber's push service (`PUSH_ALLOW_PRIVATE_HOSTS`). A push endpoint comes from a member's own browser, so it is checked when the subscription is stored and again, against its freshly resolved address, every time a notification is sent — a name that later resolves inside your network cannot be used to reach an internal service. The marketplace catalog URL is deliberately exempt: it is an admin-only setting, in the same trust tier as the mail and OAuth destinations, and its handling is described in [the marketplace guide](../../customization/marketplace.md#the-feed-url-is-an-admin-trusted-setting).
 
 ## Scheduled tasks
@@ -417,6 +419,15 @@ pruned. The payload carries the notification's rendered subject and
 body in the member's own language, its id, the link it points at, and
 the member's unread count for the app badge — capped well under the 4 KB
 a push service will carry.
+
+One member's devices are pushed a few at a time rather than strictly one
+after another, so a single slow or hostile push service cannot hold up
+the rest of the batch; each request still carries the deadline, response
+cap and abort described under [the outbound address
+policy](#outbound-address-policy). A member may register up to twenty
+push subscriptions; a browser re-subscribing an endpoint it already holds
+replaces that one rather than counting against the cap, but a twenty-first
+distinct browser is refused until one is removed.
 
 ### The service worker and the manifest
 

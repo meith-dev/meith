@@ -133,7 +133,7 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       const { processed } = await deps.queue.drain(
         batchSize,
         async (job) => {
-          await deps.events.dispatch(job.kind, job.payload)
+          await deps.events.dispatch(job.kind, job.payload, signal)
         },
         { signal },
       )
