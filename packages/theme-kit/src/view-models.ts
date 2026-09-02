@@ -1738,6 +1738,19 @@ export interface ThreadRowSlotModel {
   readonly thread: ThreadRowModel
   /** The inline-moderation checkbox, or `null`. */
   readonly select: SelectionModel | null
+  readonly regions?: {
+    /**
+     * The `threadrow.badges` region, beside the thread's title (0.22).
+     *
+     * Filled from a single per-page call rather than one per row — a forum page
+     * lists twenty threads on a tight budget, so the region runs once with the
+     * whole page and hands each row its badges. Optional, which is what makes it
+     * additive: a theme written against 0.21 compiles and simply shows no plugin
+     * badges. Absent on a row no plugin marked; a theme places it wherever a
+     * thread's own flags (pinned, locked) sit.
+     */
+    readonly pluginBadges?: ReactNode
+  }
 }
 
 export interface PostActionsSlotModel {

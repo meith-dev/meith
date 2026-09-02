@@ -28,6 +28,17 @@ export const PLUGIN_REGIONS = {
     context:
       'The viewer, the post id and the author id, with the reader’s locale and a translator.',
   },
+  'threadrow.badges': {
+    purpose:
+      'Beside a thread’s title in a listing, to mark threads across a forum page. A ' +
+      'batch region: unlike every other region it runs once per page, not once per ' +
+      'row — a listing of twenty threads is one call, returning a badge per thread ' +
+      'id — because a forum page is on a tight budget and a per-row region there is ' +
+      'twenty calls before the page has drawn a thing.',
+    context:
+      'The viewer and the page’s visible threads, each as a thread id and its author ' +
+      'id, with the reader’s locale and a translator.',
+  },
   'thread.header': {
     purpose:
       'Above the first post of a thread, below its title. Runs once per thread page, ' +
@@ -59,6 +70,19 @@ export interface PluginRegionContext {
   readonly viewer: { readonly userId: number | null; readonly isGuest: boolean }
   readonly subjectId: number | null
   readonly authorId: number | null
+  readonly locale: string
+  readonly t: Translator
+  readonly runtime: HookRuntime
+}
+
+export interface ThreadRowBadgeSubject {
+  readonly threadId: number
+  readonly authorId: number | null
+}
+
+export interface ThreadRowBadgesContext {
+  readonly viewer: { readonly userId: number | null; readonly isGuest: boolean }
+  readonly threads: readonly ThreadRowBadgeSubject[]
   readonly locale: string
   readonly t: Translator
   readonly runtime: HookRuntime

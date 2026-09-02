@@ -5,7 +5,12 @@ import { MICRO, NUMERIC, ReadPip, Stamp, UserRef } from '../shared'
 
 const TAG = 'border px-1.5 py-px font-mono text-[0.625rem] font-bold uppercase tracking-[0.12em]'
 
-export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+export function ThreadRow({
+  thread,
+  select,
+  regions,
+  copy,
+}: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `raidframe.threadRow.${key}`)
 
   const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
@@ -65,6 +70,7 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
               {c('deleted')}
             </span>
           )}
+          {regions?.pluginBadges}
         </div>
 
         <p className={`${MICRO} mt-1 normal-case`}>

@@ -4,7 +4,12 @@ import { Badge } from '@meith/ui'
 
 import { Counts, LINK, Prefix, ReadSpacer, Stamp, UnreadDot, UserRef } from '../shared'
 
-export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+export function ThreadRow({
+  thread,
+  select,
+  regions,
+  copy,
+}: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `default.threadRow.${key}`)
 
   const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
@@ -52,6 +57,7 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
             {thread.title}
           </a>
           {thread.isUnread && <span className="sr-only"> {c('newPosts')}</span>}
+          {regions?.pluginBadges}
         </div>
 
         <p className="mt-0.5 text-xs text-muted-foreground">

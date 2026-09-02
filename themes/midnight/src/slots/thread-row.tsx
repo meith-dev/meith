@@ -3,7 +3,12 @@ import { fromSlotCopy } from '@meith/theme-kit'
 
 import { UserRef } from '../shared'
 
-export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy: SlotCopy }) {
+export function ThreadRow({
+  thread,
+  select,
+  regions,
+  copy,
+}: ThreadRowSlotModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `midnight.threadRow.${key}`)
 
   const hidden = thread.visibility === 'deleted' || thread.visibility === 'unapproved'
@@ -55,6 +60,7 @@ export function ThreadRow({ thread, select, copy }: ThreadRowSlotModel & { copy:
           {thread.visibility === 'deleted' && (
             <span className="font-mono text-xs text-thread-deleted">{c('deleted')}</span>
           )}
+          {regions?.pluginBadges}
         </div>
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
           <UserRef user={thread.author} className="hover:text-foreground" />

@@ -20,7 +20,7 @@ import { getTranslator } from '@/server/i18n'
 import { legacyDestination } from '@/server/legacy-redirect'
 import { moderatorTargetFor } from '@/server/modcp'
 import { pageMetadata } from '@/server/page-metadata'
-import { filterView, viewerRef } from '@/server/plugin-view'
+import { filterView, threadRowBadges, viewerRef } from '@/server/plugin-view'
 import { getSettings } from '@/server/settings'
 import { currentTheme } from '@/server/theme'
 import { getViewerPreferences } from '@/server/viewer-preferences'
@@ -279,6 +279,11 @@ export default async function ForumPage({
     ),
   )
 
+  const badgesByThread = await threadRowBadges(
+    actor,
+    view.threads.map((thread) => ({ threadId: thread.id, authorId: thread.author.userId })),
+  )
+
   const threadRows = await Promise.all(
     view.threads.map((thread) =>
       filterView(
@@ -286,6 +291,7 @@ export default async function ForumPage({
         {
           thread,
           select: selectionFor('thread', thread.id, `“${thread.title}”`, inlineOffered),
+          regions: { pluginBadges: badgesByThread.get(thread.id) },
         },
         pluginContext,
       ),

@@ -73,8 +73,8 @@ describe('the UI regions', () => {
     }
   })
 
-  it('has exactly seven regions', () => {
-    expect(REGION_NAMES).toHaveLength(7)
+  it('has exactly eight regions', () => {
+    expect(REGION_NAMES).toHaveLength(8)
   })
 
   it('rejects a name that is not a region', () => {

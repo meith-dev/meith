@@ -9,7 +9,7 @@
   disagree.
 -->
 
-**104 hooks** — 59 filters, 45 events — and 7 UI regions. **104 are wired**: something in the board fires
+**104 hooks** — 59 filters, 45 events — and 8 UI regions. **104 are wired**: something in the board fires
 them today, and the rest are declared but not yet reached by a call site.
 
 The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
@@ -303,6 +303,7 @@ deterministic order as hooks.
 | `index.footer` | The viewer, with the reader’s locale and a translator. |
 | `postbit.badges` | The viewer, the post id and the author id, with the reader’s locale and a translator. |
 | `postbit.footer` | The viewer, the post id and the author id, with the reader’s locale and a translator. |
+| `threadrow.badges` | The viewer and the page’s visible threads, each as a thread id and its author id, with the reader’s locale and a translator. |
 | `thread.header` | The viewer, the thread id and the thread author’s id, with the reader’s locale and a translator. |
 | `profile.panel` | The viewer and the profile’s member id, with the reader’s locale and a translator. |
 | `admin.dashboard` | The viewer, with the reader’s locale and a translator. |
@@ -311,6 +312,7 @@ deterministic order as hooks.
 - **`index.footer`** — The bottom of the board index, below the statistics block.
 - **`postbit.badges`** — Beside a post author’s name. Runs once per post on every thread page — the most expensive region on the board, and the one to keep trivial.
 - **`postbit.footer`** — Below a post body, above its actions.
+- **`threadrow.badges`** — Beside a thread’s title in a listing, to mark threads across a forum page. A batch region: unlike every other region it runs once per page, not once per row — a listing of twenty threads is one call, returning a badge per thread id — because a forum page is on a tight budget and a per-row region there is twenty calls before the page has drawn a thing.
 - **`thread.header`** — Above the first post of a thread, below its title. Runs once per thread page, so unlike postbit.* it can afford to read from the plugin’s own tables.
 - **`profile.panel`** — A panel on a member’s profile, below the standard fields.
 - **`admin.dashboard`** — A card on the admin dashboard. Only rendered for administrators.

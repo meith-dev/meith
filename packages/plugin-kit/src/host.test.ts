@@ -806,3 +806,173 @@ describe('what a region contribution can reach', () => {
     expect(provider).not.toHaveBeenCalled()
   })
 })
+
+describe('thread-row badges — the batch region', () => {
+  const context = {
+    viewer: VIEWER,
+    threads: [
+      { threadId: 10, authorId: 1 },
+      { threadId: 20, authorId: 2 },
+    ],
+    locale: 'en',
+    t: sourceTranslator({}),
+  }
+
+  const badgePlugin = (key: string, mark: string) =>
+    definePlugin({
+      key,
+      name: key,
+      version: '1.0.0',
+      contributions: [
+        {
+          region: 'threadrow.badges',
+          render: (ctx) =>
+            new Map(ctx.threads.map((thread) => [thread.threadId, `${mark}${thread.threadId}`])),
+        },
+      ],
+    })
+
+  it('invokes each contribution once for the whole page, not once per row', async () => {
+    let calls = 0
+    const host = new PluginHost({
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'threadrow.badges',
+              render: (ctx) => {
+                calls += 1
+                return new Map(
+                  ctx.threads.map((thread) => [thread.threadId, `A${thread.threadId}`]),
+                )
+              },
+            },
+          ],
+        }),
+      ],
+    })
+
+    const badges = await host.renderThreadRowBadges({
+      viewer: VIEWER,
+      threads: [
+        { threadId: 10, authorId: 1 },
+        { threadId: 20, authorId: 2 },
+        { threadId: 30, authorId: 3 },
+      ],
+      locale: 'en',
+      t: sourceTranslator({}),
+    })
+
+    expect(calls).toBe(1)
+    expect([...badges.keys()].sort((a, b) => a - b)).toEqual([10, 20, 30])
+    expect(badges.get(10)?.map((entry) => entry.node)).toEqual(['A10'])
+  })
+
+  it('keys each plugin’s badges by thread id, composing per thread in priority then key order', async () => {
+    const host = new PluginHost({
+      plugins: [
+        badgePlugin('zulu', 'Z'),
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'threadrow.badges',
+              priority: 10,
+              render: (ctx) =>
+                new Map(
+                  ctx.threads
+                    .filter((thread) => thread.threadId === 10)
+                    .map((thread) => [thread.threadId, `A${thread.threadId}`]),
+                ),
+            },
+          ],
+        }),
+      ],
+    })
+
+    const badges = await host.renderThreadRowBadges(context)
+    expect(badges.get(10)?.map((entry) => entry.node)).toEqual(['A10', 'Z10'])
+    expect(badges.get(20)?.map((entry) => entry.node)).toEqual(['Z20'])
+  })
+
+  it('contains one plugin that throws and keeps the other’s badges', async () => {
+    const logger = silentLogger()
+    const host = new PluginHost({
+      logger,
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'threadrow.badges',
+              render: () => {
+                throw new Error('boom')
+              },
+            },
+          ],
+        }),
+        badgePlugin('bravo', 'B'),
+      ],
+    })
+
+    const badges = await host.renderThreadRowBadges(context)
+    expect(badges.get(10)?.map((entry) => entry.node)).toEqual(['B10'])
+    expect(host.health().find((entry) => entry.key === 'alpha')?.failures).toBe(1)
+  })
+
+  it('omits a thread a plugin returned nothing for', async () => {
+    const host = new PluginHost({
+      plugins: [
+        definePlugin({
+          key: 'alpha',
+          name: 'A',
+          version: '1.0.0',
+          contributions: [
+            {
+              region: 'threadrow.badges',
+              render: () =>
+                new Map([
+                  [10, 'A10'],
+                  [20, null],
+                ]),
+            },
+          ],
+        }),
+      ],
+    })
+
+    const badges = await host.renderThreadRowBadges(context)
+    expect(badges.has(10)).toBe(true)
+    expect(badges.has(20)).toBe(false)
+  })
+
+  it('keeps the batch region out of renderRegion entirely', async () => {
+    const host = new PluginHost({ plugins: [badgePlugin('alpha', 'A')] })
+
+    expect(
+      await host.renderRegion('threadrow.badges', {
+        region: 'threadrow.badges',
+        viewer: VIEWER,
+        subjectId: null,
+        authorId: null,
+        locale: 'en',
+        t: sourceTranslator({}),
+      }),
+    ).toEqual([])
+  })
+
+  it('never builds a runtime for a batch contribution that does not ask', async () => {
+    const provider = vi.fn(async () => unavailablePluginRuntime('a test'))
+    const host = new PluginHost({ plugins: [badgePlugin('alpha', 'A')], runtime: provider })
+
+    await host.renderThreadRowBadges(context)
+    expect(provider).not.toHaveBeenCalled()
+  })
+})

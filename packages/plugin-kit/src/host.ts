@@ -5,11 +5,12 @@ import type { HookContext, HookValue } from './payloads'
 import type {
   HookRegistration,
   HookRuntime,
-  PluginContribution,
   PluginDefinition,
+  PluginRegionContribution,
   PluginRuntimeContext,
+  ThreadRowBadgesContribution,
 } from './plugin'
-import type { PluginRegion, PluginRegionContext } from './regions'
+import type { PluginRegion, PluginRegionContext, ThreadRowBadgesContext } from './regions'
 
 export interface HostLogger {
   readonly warn: (message: string, detail: Record<string, unknown>) => void
@@ -83,8 +84,13 @@ export class PluginHost {
   readonly #entries = new Map<HookName, Entry[]>()
   readonly #contributions = new Map<
     PluginRegion,
-    { pluginKey: string; priority: number; contribution: PluginContribution }[]
+    { pluginKey: string; priority: number; render: PluginRegionContribution['render'] }[]
   >()
+  readonly #badgeContributions: {
+    pluginKey: string
+    priority: number
+    render: ThreadRowBadgesContribution['render']
+  }[] = []
   readonly #stats = new Map<string, Stats>()
   readonly #logger: HostLogger
   readonly #failureThreshold: number
@@ -140,11 +146,20 @@ export class PluginHost {
       }
 
       for (const contribution of plugin.contributions ?? []) {
+        if (contribution.region === 'threadrow.badges') {
+          this.#badgeContributions.push({
+            pluginKey: plugin.key,
+            priority: contribution.priority ?? DEFAULT_PRIORITY,
+            render: contribution.render,
+          })
+          continue
+        }
+
         const list = this.#contributions.get(contribution.region) ?? []
         list.push({
           pluginKey: plugin.key,
           priority: contribution.priority ?? DEFAULT_PRIORITY,
-          contribution,
+          render: contribution.render,
         })
         this.#contributions.set(contribution.region, list)
       }
@@ -159,6 +174,7 @@ export class PluginHost {
 
     for (const list of this.#entries.values()) list.sort(byPriorityThenKey)
     for (const list of this.#contributions.values()) list.sort(byPriorityThenKey)
+    this.#badgeContributions.sort(byPriorityThenKey)
   }
 
   async applyFilter<K extends HookName>(
@@ -219,7 +235,7 @@ export class PluginHost {
 
       const started = this.#now()
       try {
-        const node = await entry.contribution.render({
+        const node = await entry.render({
           ...context,
           runtime: this.#runtimeFor(entry.pluginKey),
         })
@@ -230,6 +246,35 @@ export class PluginHost {
       }
     }
     return nodes
+  }
+
+  async renderThreadRowBadges(
+    context: Omit<ThreadRowBadgesContext, 'runtime'>,
+  ): Promise<ReadonlyMap<number, readonly { key: string; node: ReactNode }[]>> {
+    const byThread = new Map<number, { key: string; node: ReactNode }[]>()
+    if (this.#badgeContributions.length === 0) return byThread
+
+    for (const entry of this.#badgeContributions) {
+      if (!this.#isEnabled(entry.pluginKey)) continue
+
+      const started = this.#now()
+      try {
+        const badges = await entry.render({
+          ...context,
+          runtime: this.#runtimeFor(entry.pluginKey),
+        })
+        this.#record(entry.pluginKey, 'threadrow.badges', this.#now() - started)
+        for (const [threadId, node] of badges) {
+          if (node === null || node === undefined) continue
+          const list = byThread.get(threadId) ?? []
+          list.push({ key: entry.pluginKey, node })
+          byThread.set(threadId, list)
+        }
+      } catch (error) {
+        this.#fail(entry.pluginKey, 'threadrow.badges', error)
+      }
+    }
+    return byThread
   }
 
   health(): readonly PluginHealth[] {

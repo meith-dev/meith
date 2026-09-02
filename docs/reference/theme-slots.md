@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.21.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.22.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -292,6 +292,7 @@ Props: `ThreadRowSlotModel`
 |---|---|---|
 | `thread` | `ThreadRowModel` |  |
 | `select` | `SelectionModel \| null` | The inline-moderation checkbox, or `null`. |
+| `regions` | `{ /** * The `threadrow.badges` region, beside the thread's title (0.22). * * Filled from a single per-page call rather than one per row — a forum page * lists twenty threads on a tight budget, so the region runs once with the * whole page and hands each row its badges. Optional, which is what makes it * additive: a theme written against 0.21 compiles and simply shows no plugin * badges. Absent on a row no plugin marked; a theme places it wherever a * thread's own flags (pinned, locked) sit. */ readonly pluginBadges?: ReactNode }` | optional |
 
 ### SubforumList
 
@@ -1066,5 +1067,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.21. Nothing can be: this is the first
+Nothing is deprecated in v0.22. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

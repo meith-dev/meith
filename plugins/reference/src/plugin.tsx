@@ -3,6 +3,8 @@ import {
   type PluginRegion,
   type PluginRegionContext,
   REGION_NAMES,
+  type ThreadRowBadges,
+  type ThreadRowBadgesContext,
 } from '@meith/plugin-kit'
 
 import en from './messages/en.json'
@@ -13,6 +15,7 @@ export const RECORDED: {
   grants: { userId: number; groupKey: string; held: boolean }[]
   regions: PluginRegion[]
   regionContexts: { region: PluginRegion; locale: string; label: string }[]
+  threadRowBadges: { threadIds: readonly number[]; locale: string }[]
   lifecycle: string[]
   tasks: string[]
   routes: { path: string; method: string }[]
@@ -23,6 +26,7 @@ export const RECORDED: {
   grants: [],
   regions: [],
   regionContexts: [],
+  threadRowBadges: [],
   lifecycle: [],
   tasks: [],
   routes: [],
@@ -35,6 +39,7 @@ export function resetRecorder(): void {
   RECORDED.grants = []
   RECORDED.regions = []
   RECORDED.regionContexts = []
+  RECORDED.threadRowBadges = []
   RECORDED.lifecycle = []
   RECORDED.tasks = []
   RECORDED.routes = []
@@ -47,19 +52,50 @@ function record(name: string, value: unknown): void {
 
 export const MARK = 'reference-plugin'
 
-function contribution(region: PluginRegion) {
+function regionLabel(context: { t: PluginRegionContext['t'] }): string {
+  return context.t.has('reference.region.label') ? context.t.t('reference.region.label') : MARK
+}
+
+function contribution(region: Exclude<PluginRegion, 'threadrow.badges'>) {
   return {
     region,
     render: (context: PluginRegionContext) => {
-      const label = context.t.has('reference.region.label')
-        ? context.t.t('reference.region.label')
-        : MARK
+      const label = regionLabel(context)
       RECORDED.regions.push(context.region)
       RECORDED.regionContexts.push({ region: context.region, locale: context.locale, label })
       return (
         <span data-plugin={MARK} data-region={context.region} data-locale={context.locale}>
           {label}:{context.region}
         </span>
+      )
+    },
+  }
+}
+
+function badgeContribution() {
+  return {
+    region: 'threadrow.badges' as const,
+    render: (context: ThreadRowBadgesContext): ThreadRowBadges => {
+      const label = regionLabel(context)
+      RECORDED.regions.push('threadrow.badges')
+      RECORDED.regionContexts.push({ region: 'threadrow.badges', locale: context.locale, label })
+      RECORDED.threadRowBadges.push({
+        threadIds: context.threads.map((thread) => thread.threadId),
+        locale: context.locale,
+      })
+      return new Map(
+        context.threads.map((thread) => [
+          thread.threadId,
+          <span
+            key={thread.threadId}
+            data-plugin={MARK}
+            data-region="threadrow.badges"
+            data-thread={thread.threadId}
+            data-locale={context.locale}
+          >
+            {label}:{thread.threadId}
+          </span>,
+        ]),
       )
     },
   }
@@ -286,7 +322,13 @@ export const referencePlugin = definePlugin({
 
   allowedRedirectHosts: ['example.com'],
 
-  contributions: REGION_NAMES.map(contribution),
+  contributions: [
+    ...REGION_NAMES.filter(
+      (region): region is Exclude<PluginRegion, 'threadrow.badges'> =>
+        region !== 'threadrow.badges',
+    ).map(contribution),
+    badgeContribution(),
+  ],
 
   onInstall: () => void RECORDED.lifecycle.push('install'),
   onEnable: () => void RECORDED.lifecycle.push('enable'),
