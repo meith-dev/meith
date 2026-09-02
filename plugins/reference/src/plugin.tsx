@@ -525,7 +525,21 @@ export const referencePlugin = definePlugin({
     },
     'view.editor-toolbar': (value) => {
       record('view.editor-toolbar', value)
-      return value
+      return {
+        ...value,
+        buttons: [
+          ...value.buttons,
+          {
+            tag: null,
+            insertion: { kind: 'block', text: ':::reference\n\n:::' },
+            label: MARK,
+            title: MARK,
+            keyShortcut: null,
+            icon: null,
+            placeholder: null,
+          },
+        ],
+      }
     },
     'view.redirect-notice': (value) => {
       record('view.redirect-notice', value)

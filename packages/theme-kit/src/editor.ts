@@ -29,6 +29,10 @@ export type EditorTag =
   | 'heading'
   | 'table'
 
+export type EditorInsertion =
+  | { readonly kind: 'wrap'; readonly before: string; readonly after: string }
+  | { readonly kind: 'block'; readonly text: string }
+
 const URL_ONLY = /^(https?:\/\/|mailto:)\S+$/i
 
 export function lineRange(value: string, start: number, end: number): { from: number; to: number } {
@@ -183,6 +187,33 @@ export function tableEdit(value: string, start: number, end: number, placeholder
   }
 }
 
+export function wrapInsertionEdit(
+  value: string,
+  start: number,
+  end: number,
+  before: string,
+  after: string,
+): Edit {
+  const selected = value.slice(start, end)
+
+  return {
+    from: start,
+    to: end,
+    text: `${before}${selected}${after}`,
+    selectionStart: start + before.length,
+    selectionEnd: start + before.length + selected.length,
+  }
+}
+
+export function blockInsertionEdit(value: string, start: number, end: number, text: string): Edit {
+  const lead = start === 0 || value[start - 1] === '\n' ? '' : '\n'
+  const tail = end === value.length || value[end] === '\n' ? '' : '\n'
+  const body = `${lead}${text}${tail}`
+  const caret = start + body.length
+
+  return { from: start, to: end, text: body, selectionStart: caret, selectionEnd: caret }
+}
+
 const WRAP_TAGS: Readonly<
   Record<'bold' | 'italic' | 'strikethrough', { marker: string; length: number }>
 > = {
@@ -256,4 +287,15 @@ export function applyEditorTag(
   }
 
   applyEditorEdit(field, spoilerEdit(value, start, end, placeholder ?? ''))
+}
+
+export function applyInsertion(field: HTMLTextAreaElement, insertion: EditorInsertion): void {
+  const { value, selectionStart: start, selectionEnd: end } = field
+
+  if (insertion.kind === 'wrap') {
+    applyEditorEdit(field, wrapInsertionEdit(value, start, end, insertion.before, insertion.after))
+    return
+  }
+
+  applyEditorEdit(field, blockInsertionEdit(value, start, end, insertion.text))
 }

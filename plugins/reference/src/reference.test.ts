@@ -114,6 +114,40 @@ describe('driven through a real host', () => {
     expect(result.links.map((link) => link.label)).toEqual(['Contact', MARK])
   })
 
+  it('adds a toolbar button that inserts the block it registered as a directive', async () => {
+    resetRecorder()
+    const result = await host().applyFilter(
+      'view.editor-toolbar',
+      {
+        textareaId: 'message',
+        groupLabel: 'Formatting',
+        buttons: [
+          {
+            tag: 'bold',
+            insertion: null,
+            label: 'Bold',
+            title: 'Bold',
+            keyShortcut: null,
+            icon: null,
+            placeholder: 'bold text',
+          },
+        ],
+        attachment: null,
+        previewAction: null,
+      },
+      viewer,
+    )
+
+    expect(result.buttons.map((button) => button.label)).toEqual(['Bold', MARK])
+
+    const contributed = result.buttons.find((button) => button.label === MARK)
+    expect(contributed?.tag).toBeNull()
+    expect(contributed?.insertion).toEqual({ kind: 'block', text: ':::reference\n\n:::' })
+
+    const directives = await host().applyFilter('markdown.directives', [], {})
+    expect(directives).toContainEqual({ name: 'reference', block: true })
+  })
+
   it('alters a post body and a signature the board has already rendered', async () => {
     resetRecorder()
     const board = host()

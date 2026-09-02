@@ -427,6 +427,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       buttons: [
         {
           tag: 'bold',
+          insertion: null,
           label: 'Bold',
           title: 'Bold (Ctrl+B)',
           keyShortcut: 'Control+b',
@@ -435,6 +436,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         },
         {
           tag: 'link',
+          insertion: null,
           label: 'Link',
           title: 'Link',
           keyShortcut: null,

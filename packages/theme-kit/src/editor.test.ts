@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  blockInsertionEdit,
   type Edit,
   fenceEdit,
   imageEdit,
@@ -9,6 +10,7 @@ import {
   tableEdit,
   togglePrefix,
   toggleWrap,
+  wrapInsertionEdit,
 } from './editor'
 
 const BOLD = { marker: '*', length: 2, placeholder: 'bold text' }
@@ -173,6 +175,43 @@ describe('tables', () => {
     const out = press('hel‹›lo', (v, s, e) => tableEdit(v, s, e, 'Heading'))
     expect(out?.text).toBe('hel\n| Heading | Heading |\n| --- | --- |\n|  |  |\nlo')
     expect(out?.selected).toBe('Heading')
+  })
+})
+
+describe('a plugin’s own wrap insertion', () => {
+  it('wraps a selection and keeps it selected', () => {
+    const out = press('‹word›', (v, s, e) => wrapInsertionEdit(v, s, e, '==', '=='))
+    expect(out?.text).toBe('==word==')
+    expect(out?.selected).toBe('word')
+  })
+
+  it('places the caret between the markers when nothing is selected', () => {
+    const out = press('‹›', (v, s, e) => wrapInsertionEdit(v, s, e, '==', '=='))
+    expect(out?.text).toBe('====')
+    expect(out?.selected).toBe('')
+  })
+
+  it('wraps around a caret in the middle of a word', () => {
+    const out = press('con‹›cat', (v, s, e) => wrapInsertionEdit(v, s, e, '==', '=='))
+    expect(out?.text).toBe('con====cat')
+    expect(out?.selected).toBe('')
+  })
+})
+
+describe('a plugin’s own block insertion', () => {
+  it('inserts the fixed text when nothing is selected', () => {
+    const out = press('‹›', (v, s, e) => blockInsertionEdit(v, s, e, ':::alert\n\n:::'))
+    expect(out?.text).toBe(':::alert\n\n:::')
+  })
+
+  it('replaces a selection with the block, keeping none of it', () => {
+    const out = press('‹draft›', (v, s, e) => blockInsertionEdit(v, s, e, ':::alert\n\n:::'))
+    expect(out?.text).toBe(':::alert\n\n:::')
+  })
+
+  it('starts the block on its own line from a caret mid-line, keeping the trailing text', () => {
+    const out = press('hel‹›lo', (v, s, e) => blockInsertionEdit(v, s, e, ':::alert\n\n:::'))
+    expect(out?.text).toBe('hel\n:::alert\n\n:::\nlo')
   })
 })
 
