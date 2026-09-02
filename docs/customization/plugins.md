@@ -536,6 +536,12 @@ navigation items, its version row and its health row. Then you remove the code.
 Purging a plugin that is not in the build is refused, with that explanation:
 there would be no `onUninstall` left to run.
 
+The tables it drops are matched against the literal `plugin_<key>_` prefix, not a
+pattern — the `_` in the prefix stands for itself, so a two-letter key like `mi`
+takes only `plugin_mi_*` and never the board's own `plugin_migrations`. The
+board's `plugin_migrations` and `plugin_health` tables are excluded outright as
+well, so no key can reach them however short it is.
+
 > [!TIP]
 > Write these if the shape of your plugin wants them, but keep `onInstall`
 > **idempotent anyway**. It runs once per board, and a board restored from a

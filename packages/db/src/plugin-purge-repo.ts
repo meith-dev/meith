@@ -14,22 +14,25 @@ export interface PluginPurgeResult {
   readonly healthRemoved: boolean
 }
 
+const CORE_TABLES: ReadonlySet<string> = new Set(['plugin_migrations', 'plugin_health'])
+
 export async function pluginOwnedTables(
   db: Database,
   pluginKey: string,
 ): Promise<readonly string[]> {
+  const prefix = pluginTablePrefix(pluginKey)
   const rows = resultRows(
     await db.execute(sql`
       select table_name
         from information_schema.tables
        where table_schema = 'public'
          and table_type = 'BASE TABLE'
-         and table_name like ${`${pluginTablePrefix(pluginKey)}%`}
+         and starts_with(table_name::text, ${prefix})
        order by table_name
     `),
   ) as Array<{ table_name: string }>
 
-  return rows.map((row) => String(row.table_name))
+  return rows.map((row) => String(row.table_name)).filter((name) => !CORE_TABLES.has(name))
 }
 
 export async function purgePlugin(db: Database, pluginKey: string): Promise<PluginPurgeResult> {
