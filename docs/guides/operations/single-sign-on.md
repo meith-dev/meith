@@ -128,7 +128,8 @@ second screen still asks for a code.
 
 That is what an operator is for. **Admin → Members → the member → Second
 factor** clears it, and the panel asks for the administrator's own password
-and code first. Clearing signs every one of that member's sessions out and
+first — and, when their account has a second factor, for a code on a screen
+of its own. Clearing signs every one of that member's sessions out and
 leaves the account on its password alone until they set an app up again; the
 board records it in the admin log and in the member's own security activity,
 where it reads as cleared by staff rather than by them. Nothing about it
@@ -190,13 +191,23 @@ password and a federated provider — that a code meaningfully adds to.
 
 ### The control panel's own door
 
-The admin panel has always asked for the password again on the way in. With
-a second factor set up, it asks for the code too, in the same form —
-re-proving only the half most likely to have leaked would be re-proving the
-wrong one. Password and second-factor failures share a dedicated counter for
-the administrator and retained address prefix. It uses the board's configured
-login threshold and fixed lockout window, and clears only after the complete
-proof succeeds.
+The admin panel has always asked for the password again on the way in. It now
+does it in the same two steps the sign-in page uses: the password first, and
+only when the administrator's account has a second factor, the code on a
+screen of its own. An account without one is let in on the password alone —
+re-proving what it does not have would be theatre. When the board requires a
+second factor of its staff, an administrator who has not set one up is turned
+away at the password step rather than shown a code screen they cannot answer.
+
+The password step holds the half-finished sign-in the same way the sign-in
+page does: a random token in a strict, HTTP-only cookie scoped to the panel,
+backed by a row spent exactly once, good for ten minutes. It is not a panel
+session and grants nothing; giving the password again drops any earlier hold.
+Password and second-factor failures share a dedicated counter for the
+administrator and retained address prefix. It uses the board's configured
+login threshold and fixed lockout window, and clears only once the whole
+proof is complete — the code where one is owed, the password alone where it
+is not.
 
 ## Where a member is signed in
 

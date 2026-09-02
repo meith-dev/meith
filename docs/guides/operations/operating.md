@@ -527,6 +527,7 @@ board itself, and there to make a specific thing work.
 | `fs_remember` | *Remember me* on the sign-in form | The remember period |
 | `fs_guest` | Counts one reader once, for "who's online" | 1 day |
 | `fs_admin` | Admin-panel re-authentication | The admin session |
+| `fs_admin_2fa` | An admin sign-in that has given a password and owes a second factor | Short |
 | `fs_2fa` | A sign-in that has given a password and owes a second factor | Short |
 | `fs_sso` | The single sign-on handshake | 10 minutes |
 | `fs_passkey` | The passkey exchange | Short |

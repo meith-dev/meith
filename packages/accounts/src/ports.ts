@@ -154,6 +154,7 @@ export type CredentialPurpose =
   | 'email_verification'
   | 'email_change'
   | 'second_factor'
+  | 'admin_second_factor'
 
 export interface CredentialTokenRepository {
   issue(input: {
