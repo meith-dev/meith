@@ -179,7 +179,11 @@ Before you announce the move, check:
   recognises the legacy MyBB or phpBB hash on that first sign-in, verifies
   the password against it, and silently replaces it with the board's own
   scheme — the member never sees a "reset your password" step, and every
-  later sign-in uses the native hash.
+  later sign-in uses the native hash. **Imported passwords**, on
+  `/admin/system`, counts everyone still on the old hash — a slower-to-fall
+  number than usual is worth an announcement nudging members to sign in,
+  since a database dump exposes an un-upgraded hash to far cheaper
+  cracking than Argon2id.
 - **Walk the forum tree and a few threads.** Structure, order and post
   content should all read the same as the old board.
 - **Open an imported attachment and avatar**, if you ran with

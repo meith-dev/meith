@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 
+import { MYBB_PREFIX, PHPBB_PREFIX } from '@meith/accounts'
 import type { TaskHealthInput } from '@meith/tasks'
 
 import type { Database } from './client'
@@ -114,6 +115,20 @@ export class PostgresSystemHealthRepository {
       queuedJobs: Number(row.queued_jobs),
       deadLetteredJobs: Number(row.dead_lettered),
     }
+  }
+
+  async legacyPasswordHashes(): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select count(*)::int as count
+          from users
+         where deleted_at is null
+           and (password_hash like ${`${MYBB_PREFIX}%`}
+                or password_hash like ${`${PHPBB_PREFIX}%`})
+      `),
+    ) as Array<Record<string, unknown>>
+
+    return Number(rows[0]?.count ?? 0)
   }
 
   async activeConnections(): Promise<number> {
