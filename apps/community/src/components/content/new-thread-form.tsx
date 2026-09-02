@@ -99,7 +99,7 @@ export function NewThreadForm({
 
   const hasPollDraft =
     (pollDraft?.question ?? '') !== '' ||
-    (pollDraft?.options.some((option) => option !== '') ?? false)
+    (pollDraft?.options.some((option) => option.trim() !== '') ?? false)
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>

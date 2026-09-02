@@ -529,6 +529,25 @@ describe('a poll attached to a new thread', () => {
     expect(state.poll).toMatchObject({ question: 'Ship it?', closesAt: 'not-a-date' })
     expect(writes.written).toEqual([])
   })
+
+  it('rejects a bad closing time before staging an attached file, so nothing is left orphaned', async () => {
+    storedObjects.clear()
+    const attachments = new FakeAttachments()
+    installContainer({ attachments }, BOARD_WITH_POLLS)
+
+    const body = pollForm({ ...VALID, pollQuestion: 'Ship it?', pollClosesAt: 'not-a-date' }, [
+      'Yes',
+      'No',
+    ])
+    body.append('attachments', new File([PNG], 'photo.png', { type: 'image/png' }))
+
+    const state = await createThreadAction(EMPTY_STATE, body)
+
+    expect(state.error).toBeTruthy()
+    expect(storedObjects.size).toBe(0)
+    expect(attachments.created).toEqual([])
+    expect(writes.written).toEqual([])
+  })
 })
 
 describe('the daily post cap', () => {

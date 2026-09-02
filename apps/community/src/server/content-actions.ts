@@ -253,6 +253,8 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
       return { notice: 'saved', values, poll }
     }
 
+    const pollClosesAt = pollClosingTime(poll.closesAt)
+
     const staged = await stageAttachments(actor, resolved.scope, await submittedFiles(form))
 
     created = await submitThread(actor, resolved, {
@@ -266,7 +268,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
           : {
               question: poll.question,
               options: poll.options,
-              closesAt: pollClosingTime(poll.closesAt),
+              closesAt: pollClosesAt,
               maxOptions: pollChoiceLimit(form),
               allowRevote: poll.allowRevote,
               publicVotes: poll.publicVotes,
