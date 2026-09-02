@@ -36,7 +36,7 @@
 
 import type { ReactNode } from 'react'
 
-import type { EditorTag } from './editor'
+import type { EditorInsertion, EditorTag } from './editor'
 import type { SlotName } from './slots'
 
 /* ------------------------------------------------------------------ *
@@ -1019,10 +1019,25 @@ export interface QuickReplyModel {
   readonly children?: ReactNode
 }
 
-/** One control in an `EditorToolbar`. */
+/**
+ * One control in an `EditorToolbar`.
+ *
+ * Exactly one of `tag` and `insertion` is set, never both and never neither.
+ * `tag` names one of the board's own commands — `applyEditorTag(field, tag,
+ * placeholder)` from `@meith/theme-kit` runs it, and a theme that reads `tag`
+ * opaquely and hands it straight to `applyEditorTag` needs no change when a
+ * new one is added. `insertion` is a plugin's own: a directive registered
+ * through `markdown.directives` has no `EditorTag` to squat on, so a button
+ * contributed through the `view.editor-toolbar` filter carries the edit
+ * itself as data — `applyInsertion(field, insertion)` runs it the same way,
+ * sharing the caret and selection mechanics `applyEditorTag` uses. Both are
+ * plain JSON, so a plugin never hands the host a function to call.
+ */
 export interface EditorToolbarButtonModel {
-  /** Which edit to run — `applyEditorTag(field, tag, placeholder)` from `@meith/theme-kit`. */
-  readonly tag: EditorTag
+  /** One of the board's own commands, or `null` for a plugin's `insertion`. */
+  readonly tag: EditorTag | null
+  /** A plugin's own edit, or `null` for a built-in `tag`. */
+  readonly insertion: EditorInsertion | null
   readonly label: string
   /** `label`, plus the keyboard shortcut when this tag has one, already formatted. */
   readonly title: string
@@ -1036,7 +1051,11 @@ export interface EditorToolbarButtonModel {
    * one does.
    */
   readonly icon: string | null
-  /** Fills a wrap or spoiler tag when nothing is selected; `null` for a tag that does not need one. */
+  /**
+   * Fills a wrap or spoiler tag when nothing is selected; `null` for a tag
+   * that does not need one, and for every `insertion` button — its strings
+   * are already fixed, so there is nothing left for a placeholder to fill.
+   */
   readonly placeholder: string | null
 }
 

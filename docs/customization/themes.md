@@ -300,7 +300,7 @@ rendered at least once.
 
 ## Versioning
 
-`THEME_API_VERSION` (currently `0.22`) is `major.minor`, and both halves are
+`THEME_API_VERSION` (currently `0.23`) is `major.minor`, and both halves are
 promises:
 
 | Bump | What may land | What it costs you |
@@ -397,6 +397,23 @@ not an API version.
 > once per page rather than once per row, so a listing of twenty threads costs
 > one call — a plugin detail the theme never sees, but the reason the field is
 > safe to render on the board's tightest listing.
+>
+> `0.23` grows a field rather than only adding one, in the way `0.14` did, and
+> is recorded rather than glossed for the same reason:
+> [`EditorToolbarButtonModel`](../reference/theme-slots.md#editortoolbarbuttonmodel)'s
+> `tag` becomes `EditorTag | null`, and the model gains `insertion`, an
+> `EditorInsertion | null` carrying a plugin's own edit as data — for a
+> directive registered through `markdown.directives`, which has no
+> `EditorTag` to squat on. Exactly one of the two is ever set. Every theme
+> that renders `EditorToolbar` hands a button's `tag` straight to
+> `applyEditorTag`, so `tag`'s new `null` case fails that call at compile
+> time until the theme adds one branch: try `insertion` — run with the new
+> `applyInsertion` export the same way — when `tag` is `null`. It is one `if`
+> per theme, not a reshaping of anything the theme already draws, which is
+> why it is a minor and not the major the field-typing table above would
+> otherwise call for: Meith is pre-1.0, so as with `0.14`, the alternative
+> was carrying a second, still-required field beside `tag` until 1.0 for
+> boards that do not exist yet. The three bundled themes show the branch.
 
 > [!NOTE]
 > Adding a **required** field to an existing model is a breaking change even

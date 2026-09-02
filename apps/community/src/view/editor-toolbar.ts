@@ -62,6 +62,7 @@ function button(spec: ToolSpec, t: Translator): EditorToolbarButtonModel {
   const label = t.t(spec.key)
   return {
     tag: spec.tag,
+    insertion: null,
     label,
     icon: null,
     title:

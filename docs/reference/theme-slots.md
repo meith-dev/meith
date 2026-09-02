@@ -8,7 +8,7 @@
   and CI run `pnpm theme:docs:check` and fail when this file and the code disagree.
 -->
 
-**theme-kit v0.22.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
+**theme-kit v0.23.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
 [`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
@@ -668,16 +668,17 @@ One row in a discovery listing.
 
 ### EditorToolbarButtonModel
 
-One control in an `EditorToolbar`.
+One control in an `EditorToolbar`. Exactly one of `tag` and `insertion` is set, never both and never neither. `tag` names one of the board's own commands — `applyEditorTag(field, tag, placeholder)` from `@meith/theme-kit` runs it, and a theme that reads `tag` opaquely and hands it straight to `applyEditorTag` needs no change when a new one is added. `insertion` is a plugin's own: a directive registered through `markdown.directives` has no `EditorTag` to squat on, so a button contributed through the `view.editor-toolbar` filter carries the edit itself as data — `applyInsertion(field, insertion)` runs it the same way, sharing the caret and selection mechanics `applyEditorTag` uses. Both are plain JSON, so a plugin never hands the host a function to call.
 
 | Field | Type | Notes |
 |---|---|---|
-| `tag` | `EditorTag` | Which edit to run — `applyEditorTag(field, tag, placeholder)` from `@meith/theme-kit`. |
+| `tag` | `EditorTag \| null` | One of the board's own commands, or `null` for a plugin's `insertion`. |
+| `insertion` | `EditorInsertion \| null` | A plugin's own edit, or `null` for a built-in `tag`. |
 | `label` | `string` |  |
 | `title` | `string` | `label`, plus the keyboard shortcut when this tag has one, already formatted. |
 | `keyShortcut` | `string \| null` | `aria-keyshortcuts`, e.g. `"Control+b"`, or `null` for a tag with no shortcut. |
 | `icon` | `string \| null` | A themed icon's name, for a theme that draws one — see `PanelNavIcon` for the same idea. Always `null` today: nothing in the default palette names one yet, so every theme renders its own glyph from `tag` or `label`. The field stays in the contract for the theme that wants to key off it once one does. |
-| `placeholder` | `string \| null` | Fills a wrap or spoiler tag when nothing is selected; `null` for a tag that does not need one. |
+| `placeholder` | `string \| null` | Fills a wrap or spoiler tag when nothing is selected; `null` for a tag that does not need one, and for every `insertion` button — its strings are already fixed, so there is nothing left for a placeholder to fill. |
 
 ### ForumJumpOption
 
@@ -1067,5 +1068,5 @@ Who is looking. The only actor data a theme is given.
 
 ## Scheduled removals
 
-Nothing is deprecated in v0.22. Nothing can be: this is the first
+Nothing is deprecated in v0.23. Nothing can be: this is the first
 frozen contract, so there is no earlier promise to withdraw.

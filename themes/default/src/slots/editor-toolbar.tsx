@@ -2,7 +2,9 @@
 
 import {
   applyEditorTag,
+  applyInsertion,
   type EditorTag,
+  type EditorToolbarButtonModel,
   type EditorToolbarModel,
   type SlotCopy,
 } from '@meith/theme-kit'
@@ -26,9 +28,20 @@ const GLYPHS: Readonly<Record<EditorTag, string>> = {
 const BUTTON =
   'min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-function runTag(textareaId: string, tag: EditorTag, placeholder: string | null): void {
+function runButton(textareaId: string, button: EditorToolbarButtonModel): void {
   const field = document.getElementById(textareaId)
-  if (field instanceof HTMLTextAreaElement) applyEditorTag(field, tag, placeholder)
+  if (!(field instanceof HTMLTextAreaElement)) return
+
+  if (button.tag !== null) {
+    applyEditorTag(field, button.tag, button.placeholder)
+    return
+  }
+
+  if (button.insertion !== null) applyInsertion(field, button.insertion)
+}
+
+function glyphFor(button: EditorToolbarButtonModel): string {
+  return button.tag === null ? button.label.charAt(0).toUpperCase() : GLYPHS[button.tag]
 }
 
 export function EditorToolbar({
@@ -45,16 +58,16 @@ export function EditorToolbar({
     >
       {buttons.map((button) => (
         <button
-          key={button.tag}
+          key={button.label}
           type="button"
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runTag(textareaId, button.tag, button.placeholder)}
+          onClick={() => runButton(textareaId, button)}
           title={button.title}
           aria-label={button.label}
           {...(button.keyShortcut === null ? {} : { 'aria-keyshortcuts': button.keyShortcut })}
           className={BUTTON}
         >
-          <span aria-hidden="true">{GLYPHS[button.tag]}</span>
+          <span aria-hidden="true">{glyphFor(button)}</span>
         </button>
       ))}
 
