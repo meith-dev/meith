@@ -74,7 +74,7 @@ function GroupBadge({
 
 function StatLine({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-2">
+    <div className="flex items-baseline gap-1.5 sm:justify-between sm:gap-2">
       <dt className={MICRO}>{label}</dt>
       <dd className={`${NUMERIC} text-xs font-semibold text-foreground`}>{children}</dd>
     </div>
@@ -94,43 +94,45 @@ function AuthorBlock({
 
   return (
     <>
-      <div aria-hidden="true" className="h-12 border-b-2 border-b-secondary bg-primary" />
+      <div aria-hidden="true" className="h-8 border-b-2 border-b-secondary bg-primary sm:h-12" />
 
-      <div className="relative z-10 -mt-7 px-4">
+      <div className="relative z-10 -mt-5 flex items-end gap-3 px-4 sm:-mt-7 sm:block">
         <Avatar
           src={author.avatarUrl}
           name={author.username}
           size={52}
-          className="rounded-sm border-2 border-card"
+          className="shrink-0 rounded-sm border-2 border-card bg-card"
         />
 
-        <p className="mt-1.5 truncate">
-          <UserRef user={author} className={`${HEADING} text-sm`} />
-        </p>
-
-        {groupTags(author.groups, author.title).map((group) => (
-          <p key={group.title} className={`${MICRO} mt-0.5 truncate`}>
-            <span className={group.nameClass ?? undefined}>{group.title}</span>
+        <div className="min-w-0 flex-1 sm:flex-none">
+          <p className="truncate sm:mt-1.5">
+            <UserRef user={author} className={`${HEADING} text-sm`} />
           </p>
-        ))}
 
-        {author.isOnline && (
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved">
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
-            {c('online')}
-          </p>
-        )}
+          {groupTags(author.groups, author.title).map((group) => (
+            <p key={group.title} className={`${MICRO} mt-0.5 truncate`}>
+              <span className={group.nameClass ?? undefined}>{group.title}</span>
+            </p>
+          ))}
 
-        {author.badge != null && (
-          <p className="mt-2">
-            <GroupBadge badge={author.badge} />
-          </p>
-        )}
+          {author.isOnline && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
+              {c('online')}
+            </p>
+          )}
 
-        {badges}
+          {author.badge != null && (
+            <p className="mt-2">
+              <GroupBadge badge={author.badge} />
+            </p>
+          )}
+
+          {badges}
+        </div>
       </div>
 
-      <dl className="mt-2.5 space-y-1 border-t border-border px-4 py-2.5">
+      <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-border px-4 py-2 sm:mt-2.5 sm:block sm:space-y-1 sm:py-2.5">
         <StatLine label={c('posts')}>{author.postCount.label}</StatLine>
         {author.reputation != null && (
           <StatLine label={c('rep')}>{author.reputation.label}</StatLine>

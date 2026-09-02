@@ -51,7 +51,12 @@ export function forumDisplayCopy(t: Translator): SlotCopy {
 }
 
 export function forumRowCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['midnight.forumRow.newPosts', 'midnight.forumRow.noPosts'])
+  return copyFor(t, [
+    'midnight.forumRow.newPosts',
+    'midnight.forumRow.noPosts',
+    'midnight.forumRow.postsLabel',
+    'midnight.forumRow.threadsLabel',
+  ])
 }
 
 export function headerCopy(t: Translator): SlotCopy {
@@ -149,6 +154,8 @@ export function threadRowCopy(t: Translator): SlotCopy {
   return copyFor(t, [
     'midnight.threadRow.newPosts',
     'midnight.threadRow.pinned',
+    'midnight.threadRow.repliesLabel',
+    'midnight.threadRow.viewsLabel',
     'midnight.threadRow.locked',
     'midnight.threadRow.moved',
     'midnight.threadRow.deleted',

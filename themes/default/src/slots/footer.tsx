@@ -17,15 +17,15 @@ export function Footer({
     <footer className="mt-auto border-t border-border bg-card">
       {regions?.controls && (
         <div
-          className={`${PAGE} flex flex-wrap items-center justify-end gap-x-6 gap-y-2 border-b border-border py-3`}
+          className={`${PAGE} flex flex-wrap items-center justify-end gap-x-6 gap-y-3 border-b border-border py-3`}
         >
           {regions.controls}
         </div>
       )}
       <div
-        className={`${PAGE} flex flex-col gap-2 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-6`}
+        className={`${PAGE} flex flex-col gap-3 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-6`}
       >
-        <span className="font-medium text-foreground">{boardTitle}</span>
+        <span className="font-semibold text-primary">{boardTitle}</span>
 
         {links.length > 0 && (
           <nav aria-label={c('nav')} className="flex flex-wrap gap-x-4 gap-y-1">

@@ -44,13 +44,13 @@ export function ForumDisplay({
             <th scope="col" className="px-3 py-1.5">
               {c('threadHeader')}
             </th>
-            <th scope="col" className="w-16 px-2 py-1.5 text-right">
+            <th scope="col" className="hidden w-16 px-2 py-1.5 text-right md:table-cell">
               {c('repliesHeader')}
             </th>
-            <th scope="col" className="w-16 px-2 py-1.5 text-right">
+            <th scope="col" className="hidden w-16 px-2 py-1.5 text-right md:table-cell">
               {c('viewsHeader')}
             </th>
-            <th scope="col" className="w-56 px-3 py-1.5">
+            <th scope="col" className="hidden w-56 px-3 py-1.5 md:table-cell">
               {c('lastPostHeader')}
             </th>
           </tr>

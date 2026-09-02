@@ -26,6 +26,19 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
               <p className="mt-0.5 text-xs text-muted-foreground">{forum.description}</p>
             )}
 
+            {!isLink && forum.lastPost !== null && (
+              <p className="mt-1.5 text-xs text-muted-foreground sm:hidden">
+                <a href={forum.lastPost.href} className="text-foreground hover:text-primary">
+                  {forum.lastPost.threadTitle}
+                </a>
+                <span className={`${MICRO} mt-0.5 block normal-case`}>
+                  <UserRef user={forum.lastPost.author} className="hover:text-primary" />
+                  {c('separator')}
+                  <Stamp at={forum.lastPost.at} />
+                </span>
+              </p>
+            )}
+
             {forum.subforums.length > 0 && (
               <p className="mt-1.5 flex flex-wrap gap-1.5">
                 {forum.subforums.map((sub) => (

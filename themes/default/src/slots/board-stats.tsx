@@ -39,7 +39,7 @@ export function BoardStats({
 
           {newestMember !== null && (
             <span>
-              {c('newestMember')} <UserRef user={newestMember} className="text-foreground" />
+              {c('newestMember')} <UserRef user={newestMember} />
             </span>
           )}
 

@@ -14,7 +14,7 @@ export function PanelShell({ panel, links, linksLabel, regions, children }: Pane
         {links.length > 0 && (
           <nav
             aria-label={linksLabel}
-            className="hidden rounded-xl border border-border bg-card p-2 shadow-elevation lg:block"
+            className="hidden rounded-lg border border-border bg-card p-2 shadow-elevation lg:block"
           >
             <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               {linksLabel}

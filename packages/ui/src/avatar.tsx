@@ -14,17 +14,14 @@ function Avatar({ className, src = null, name, size = 40, ...props }: AvatarProp
       data-slot="avatar"
       aria-hidden="true"
       className={cn(
-        'inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-md border border-border bg-muted',
+        'inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-md border border-primary/15 bg-primary/10',
         className,
       )}
       style={{ width: size, height: size }}
       {...props}
     >
       {src === null ? (
-        <span
-          className="font-medium text-muted-foreground"
-          style={{ fontSize: Math.round(size * 0.42) }}
-        >
+        <span className="font-semibold text-primary" style={{ fontSize: Math.round(size * 0.42) }}>
           {initial}
         </span>
       ) : (

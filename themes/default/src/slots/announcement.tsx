@@ -15,7 +15,7 @@ export function Announcement({
   const c = (key: string) => fromSlotCopy(copy, `default.announcement.${key}`)
 
   return (
-    <Card as="article" className="border-l-4 border-l-foreground">
+    <Card as="article" className="border-l-4 border-l-primary">
       <CardContent className="flex flex-col gap-2 p-4">
         <h2 className="text-lg font-semibold tracking-tight text-balance">{title}</h2>
 
@@ -28,7 +28,7 @@ export function Announcement({
             c('posted')
           ) : (
             <>
-              {c('postedBy')} <UserRef user={postedBy} className="text-foreground" />
+              {c('postedBy')} <UserRef user={postedBy} />
             </>
           )}{' '}
           <Stamp at={postedAt} />

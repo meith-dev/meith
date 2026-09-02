@@ -35,7 +35,7 @@ export function ViewTabs({
                 'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 tab.isCurrent
-                  ? 'bg-card font-semibold text-foreground shadow-sm'
+                  ? 'bg-card font-semibold text-primary shadow-sm'
                   : 'font-medium text-muted-foreground hover:text-foreground',
               )}
             >

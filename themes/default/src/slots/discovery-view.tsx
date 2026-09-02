@@ -21,7 +21,7 @@ function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
               className={cn(
                 TAB,
                 tab.isCurrent
-                  ? 'bg-card font-semibold text-foreground shadow-sm'
+                  ? 'bg-card font-semibold text-primary shadow-sm'
                   : 'font-medium text-muted-foreground hover:text-foreground',
               )}
             >
@@ -80,7 +80,7 @@ export function DiscoveryView({
             {rows.map((row) => (
               <li
                 key={row.threadId}
-                className="flex flex-col gap-1.5 px-4 py-3.5 transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+                className="flex flex-col gap-1.5 px-4 py-3.5 transition-colors hover:bg-muted/60 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
               >
                 <div className="flex min-w-0 flex-col gap-1">
                   <a

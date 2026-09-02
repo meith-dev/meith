@@ -12,7 +12,7 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
     <li
       data-unread={forum.isUnread ? '' : undefined}
       className={
-        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/60' +
+        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 px-4 py-3 transition-colors hover:bg-muted/60' +
         (isLink ? '' : ' md:grid-cols-[auto_minmax(0,1fr)_9rem_15rem] md:items-center md:gap-x-4')
       }
     >
@@ -47,9 +47,9 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
       </div>
 
       {!isLink && (
-        <>
+        <div className="col-start-2 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted-foreground md:contents">
           <Counts
-            className="col-start-2 md:col-start-3 md:justify-end"
+            className="md:col-start-3 md:justify-end"
             items={[
               {
                 label: c('threadsLabel'),
@@ -66,25 +66,25 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
             ]}
           />
 
-          <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-4">
+          <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block">
             {forum.lastPost === null ? (
               <span className="text-forum-read">{c('noPostsYet')}</span>
             ) : (
               <>
                 <a
                   href={forum.lastPost.href}
-                  className={`block truncate font-medium text-foreground ${LINK}`}
+                  className={`max-w-full truncate font-medium text-foreground md:block ${LINK}`}
                 >
                   {forum.lastPost.threadTitle}
                 </a>
-                <span className="mt-0.5 block truncate">
+                <span className="md:mt-0.5 md:block md:truncate">
                   {c('by')} <UserRef user={forum.lastPost.author} className="font-normal" />{' '}
                   {c('dot')} <Stamp at={forum.lastPost.at} />
                 </span>
               </>
             )}
           </div>
-        </>
+        </div>
       )}
     </li>
   )

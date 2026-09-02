@@ -197,7 +197,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           )}
 
           {regions.actions !== null && (
-            <div className="border-t border-border px-3 py-1">{regions.actions}</div>
+            <div className="border-t border-border px-3 py-1 empty:hidden">{regions.actions}</div>
           )}
         </div>
       </div>

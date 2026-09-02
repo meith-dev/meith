@@ -1,6 +1,8 @@
 import type { PostActionsSlotModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
+import { isEmptyRegion } from '../shared'
+
 export function PostActions({
   actions,
   children,
@@ -19,7 +21,9 @@ export function PostActions({
     { href: actions.moderateHref, label: c('moderate') },
   ].filter((item): item is { href: string; label: string } => item.href != null)
 
-  if (items.length === 0 && children === undefined) return null
+  const extra = isEmptyRegion(children) ? null : children
+
+  if (items.length === 0 && extra === null) return null
 
   return (
     <nav aria-label={c('ariaLabel')} className="flex flex-wrap gap-3 font-mono text-xs">
@@ -28,7 +32,7 @@ export function PostActions({
           {item.label}
         </a>
       ))}
-      {children}
+      {extra}
     </nav>
   )
 }

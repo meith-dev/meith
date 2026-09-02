@@ -133,7 +133,7 @@ export function Header({
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label={c('sectionsLabel')} className="border-b border-border">
+        <nav aria-label={c('sectionsLabel')} className="border-b border-border px-4 sm:px-6">
           <div
             data-nav-view="desktop"
             className={`-mx-4 hidden px-4 sm:-mx-6 sm:px-6 lg:flex ${

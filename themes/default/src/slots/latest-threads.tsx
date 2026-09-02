@@ -46,7 +46,7 @@ export function LatestThreads({
                     {thread.title}
                   </a>
                   <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-                    {thread.replyCount.label}{' '}
+                    <span className="font-medium text-primary">{thread.replyCount.label}</span>{' '}
                     {thread.replyCount.value === 1 ? c('reply.one') : c('reply.other')}
                   </span>
                 </div>

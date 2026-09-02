@@ -19,7 +19,7 @@ export function ThreadRow({
     <li
       data-unread={thread.isUnread ? '' : undefined}
       data-visibility={hidden ? thread.visibility : undefined}
-      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/60 md:grid-cols-[auto_minmax(0,1fr)_9rem_14rem] md:items-center md:gap-x-4 ${hidden ? tint : ''}`}
+      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 px-4 py-3 transition-colors hover:bg-muted/60 md:grid-cols-[auto_minmax(0,1fr)_9rem_14rem] md:items-center md:gap-x-4 ${hidden ? tint : ''}`}
     >
       <span className="flex items-start gap-2">
         {select !== null && (
@@ -65,38 +65,43 @@ export function ThreadRow({
         </p>
       </div>
 
-      <Counts
-        className="col-start-2 md:col-start-3 md:justify-end"
-        items={[
-          {
-            label: c('repliesLabel'),
-            value: thread.replyCount,
-            one: c('reply.one'),
-            many: c('reply.other'),
-          },
-          {
-            label: c('viewsLabel'),
-            value: thread.viewCount,
-            one: c('view.one'),
-            many: c('view.other'),
-          },
-        ]}
-      />
+      <div className="col-start-2 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted-foreground md:contents">
+        <Counts
+          className="md:col-start-3 md:justify-end"
+          items={[
+            {
+              label: c('repliesLabel'),
+              value: thread.replyCount,
+              one: c('reply.one'),
+              many: c('reply.other'),
+            },
+            {
+              label: c('viewsLabel'),
+              value: thread.viewCount,
+              one: c('view.one'),
+              many: c('view.other'),
+            },
+          ]}
+        />
 
-      <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-4">
-        {thread.lastPost === null ? (
-          <span className="text-thread-moved">{c('noRepliesYet')}</span>
-        ) : (
-          <>
-            <a href={thread.lastPost.href} className={`block font-medium text-foreground ${LINK}`}>
-              {c('latestReply')}
-            </a>
-            <span className="mt-0.5 block truncate">
-              {c('by')} <UserRef user={thread.lastPost.author} className="font-normal" /> {c('dot')}{' '}
-              <Stamp at={thread.lastPost.at} />
-            </span>
-          </>
-        )}
+        <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block">
+          {thread.lastPost === null ? (
+            <span className="text-thread-moved">{c('noRepliesYet')}</span>
+          ) : (
+            <>
+              <a
+                href={thread.lastPost.href}
+                className={`font-medium text-foreground md:block ${LINK}`}
+              >
+                {c('latestReply')}
+              </a>
+              <span className="md:mt-0.5 md:block md:truncate">
+                {c('by')} <UserRef user={thread.lastPost.author} className="font-normal" />{' '}
+                {c('dot')} <Stamp at={thread.lastPost.at} />
+              </span>
+            </>
+          )}
+        </div>
       </div>
     </li>
   )

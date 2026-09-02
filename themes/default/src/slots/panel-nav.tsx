@@ -131,7 +131,7 @@ export function PanelNav({
         </Disclosure>
       </div>
 
-      <div className="hidden rounded-xl border border-border bg-card p-2 shadow-elevation lg:block">
+      <div className="hidden rounded-lg border border-border bg-card p-2 shadow-elevation lg:block">
         <Sections label={label} sections={sections} copy={copy} />
       </div>
     </>

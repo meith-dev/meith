@@ -4,6 +4,7 @@ import {
   buttonVariants,
   Card,
   CardRows,
+  cn,
   Empty,
   EmptyAction,
   EmptyDescription,
@@ -50,16 +51,19 @@ export function ForumDisplay({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {markReadAction !== null && (
             <form action={markReadAction} method="post">
-              <button type="submit" className={buttonVariants({ variant: 'ghost' })}>
+              <button type="submit" className={buttonVariants({ variant: 'outline' })}>
                 {c('markRead')}
               </button>
             </form>
           )}
           {newThreadHref !== null && (
-            <a href={newThreadHref} className={buttonVariants({ variant: 'primary' })}>
+            <a
+              href={newThreadHref}
+              className={cn(buttonVariants({ variant: 'primary' }), 'ms-auto sm:ms-0')}
+            >
               {c('newThread')}
             </a>
           )}

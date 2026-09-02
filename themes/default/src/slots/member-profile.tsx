@@ -64,9 +64,7 @@ export function MemberProfile({
 
         <dl className="grid grid-cols-3 gap-3 border-t border-border px-5 py-4">
           <div>
-            <dd className={`text-lg font-semibold text-foreground ${NUMERIC}`}>
-              {postCount.label}
-            </dd>
+            <dd className={`text-lg font-semibold text-primary ${NUMERIC}`}>{postCount.label}</dd>
             <dt className="text-xs text-muted-foreground">{c('postsLabel')}</dt>
           </div>
           <div>
