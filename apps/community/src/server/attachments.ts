@@ -87,6 +87,28 @@ export async function acceptSingleFile(
   )
 }
 
+async function finishStaging(
+  service: AttachmentService,
+  scope: AttachmentScope,
+  files: readonly IncomingFile[],
+  existing: number,
+  uploaderId: number,
+): Promise<readonly StagedUpload[]> {
+  const accepted = acceptFiles(files, attachmentLimits(scope), existing)
+
+  for (const upload of accepted) {
+    const objections = await filterView('attachment.upload.validate', [], {
+      filename: upload.filename,
+      bytes: upload.bytes.length,
+      detectedMimeType: upload.type.contentType,
+      uploaderId,
+    })
+    if (objections.length > 0) throw new ValidationError(objections[0]!)
+  }
+
+  return service.stage(accepted)
+}
+
 export async function stageAttachments(
   actor: Actor,
   scope: AttachmentScope,
@@ -114,19 +136,61 @@ export async function stageAttachments(
   const limited = await spendLimit({ scope: 'upload', actor, cost: files.length })
   if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
 
-  const accepted = acceptFiles(files, attachmentLimits(scope), existing)
+  return finishStaging(service, scope, files, existing, actor.userId)
+}
 
-  for (const upload of accepted) {
-    const objections = await filterView('attachment.upload.validate', [], {
-      filename: upload.filename,
-      bytes: upload.bytes.length,
-      detectedMimeType: upload.type.contentType,
-      uploaderId: actor.userId,
-    })
-    if (objections.length > 0) throw new ValidationError(objections[0]!)
+export async function resolveEditAttachmentScope(
+  actor: Actor,
+  forumId: number,
+): Promise<AttachmentScope> {
+  const { authorizer, threadWrites } = getContainer()
+  const rules = threadWrites === null ? null : await threadWrites.postingRules(forumId)
+
+  return {
+    forumId,
+    forum: await authorizer.forumMatrix(actor, forumId),
+    allowsAttachments: rules?.allowAttachments === true,
+  }
+}
+
+export async function stageAttachmentsForEdit(
+  scope: AttachmentScope,
+  files: readonly IncomingFile[],
+  existing: number,
+  uploaderId: number,
+): Promise<readonly StagedUpload[]> {
+  if (files.length === 0) return []
+
+  const service = attachmentService()
+  if (service === null) {
+    throw new ValidationError(msg('error.app.board-accept-file-attachments'))
+  }
+  if (!scope.allowsAttachments) {
+    throw new ValidationError(msg('error.app.forum-accept-file-attachments'))
   }
 
-  return service.stage(accepted)
+  return finishStaging(service, scope, files, existing, uploaderId)
+}
+
+export async function removeAttachmentsFromPost(
+  ids: readonly number[],
+  post: { readonly postId: number; readonly userId: number },
+): Promise<readonly AttachmentRecord[]> {
+  const service = attachmentService()
+  if (service === null || ids.length === 0) return []
+
+  const removed: AttachmentRecord[] = []
+  for (const id of ids) {
+    const record = await service.removeFromPost(id, post.postId)
+    if (record === null) continue
+    removed.push(record)
+    await emitEvent(
+      'attachment.deleted',
+      { attachmentId: record.id },
+      { userId: post.userId, isGuest: false },
+    )
+  }
+  return removed
 }
 
 export async function attachStaged(

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 
-import type { Draft, DraftRepository } from '@meith/drafts'
+import type { Draft, DraftRepository, DraftSummary } from '@meith/drafts'
 import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 
 import type { Database } from './client'
@@ -55,5 +55,43 @@ export class PostgresDraftRepository implements DraftRepository {
       delete from post_drafts where user_id = ${userId} and forum_id = ${forumId}
        and thread_id is not distinct from ${threadId}
     `)
+  }
+
+  async listByUser(userId: number): Promise<readonly DraftSummary[]> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        select d.forum_id, f.title as forum_title, f.slug as forum_slug,
+               d.thread_id, t.title as thread_title, t.slug as thread_slug,
+               d.title, d.message, d.body_format, d.updated_at
+          from post_drafts d
+          join forums f on f.id = d.forum_id
+          left join threads t on t.id = d.thread_id
+         where d.user_id = ${userId}
+         order by d.updated_at desc
+      `),
+    ) as Array<{
+      forum_id: number
+      forum_title: string
+      forum_slug: string
+      thread_id: number | null
+      thread_title: string | null
+      thread_slug: string | null
+      title: string
+      message: string
+      body_format: number
+      updated_at: Date | string
+    }>
+
+    return rows.map((row) => ({
+      forumId: Number(row.forum_id),
+      forumTitle: row.forum_title,
+      forumSlug: row.forum_slug,
+      threadId: row.thread_id === null ? null : Number(row.thread_id),
+      threadTitle: row.thread_title,
+      threadSlug: row.thread_slug,
+      title: row.title,
+      message: sourceAsMarkdown(row.message, Number(row.body_format)),
+      updatedAt: new Date(row.updated_at),
+    }))
   }
 }

@@ -14,8 +14,18 @@ import {
 import type { PostEditor } from '@meith/posts'
 
 import { postLink } from '../view/post-link'
-import { attachStaged, claimAttachments, stageAttachments, submittedFiles } from './attachments'
+import {
+  attachmentsForPosts,
+  attachStaged,
+  claimAttachments,
+  removeAttachmentsFromPost,
+  resolveEditAttachmentScope,
+  stageAttachments,
+  stageAttachmentsForEdit,
+  submittedFiles,
+} from './attachments'
 import type { FormState } from './auth-form-state'
+import { requireConfirmation } from './confirm'
 import { getContainer } from './container'
 import { activeVocabulary } from './content-admin'
 import { getActor } from './context'
@@ -148,6 +158,30 @@ export async function autosaveComposerAction(
   }
 
   return { savedAt: Date.now() }
+}
+
+export async function deleteDraftAction(_prev: FormState, form: FormData): Promise<FormState> {
+  try {
+    const actor = await getActor()
+    if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged-2'))
+
+    const forumId = positiveIntIn(field(form, 'forumId'))
+    if (forumId === null) throw new ValidationError(msg('error.app.forum-exist'))
+    const threadIdRaw = field(form, 'threadId')
+    const threadId = threadIdRaw === '' ? null : positiveIntIn(threadIdRaw)
+
+    const confirm = requireConfirmation(form, await tr('draftsPage.confirm.delete'))
+    if (confirm !== null) return confirm
+
+    const { drafts } = getContainer()
+    if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
+
+    await drafts.remove(actor.userId, forumId, threadId)
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/usercp/drafts')
 }
 
 export async function createThreadAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -312,6 +346,22 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
       throw new ForbiddenError(msg('error.app.must-logged-edit-post'))
     }
 
+    const forumId = scope.target.forum.id
+    const current = await attachmentsForPosts([postId])
+    const removeIds = form
+      .getAll('removeAttachmentIds')
+      .map((value) => (typeof value === 'string' ? positiveIntIn(value) : null))
+      .filter((id): id is number => id !== null)
+    const toRemove = current.filter((record) => removeIds.includes(record.id))
+
+    const attachmentScope = await resolveEditAttachmentScope(actor, forumId)
+    const staged = await stageAttachmentsForEdit(
+      attachmentScope,
+      await submittedFiles(form),
+      current.length - toRemove.length,
+      actor.userId,
+    )
+
     const revised = await filterView(
       'post.edit.before',
       { body: message, reason },
@@ -319,7 +369,7 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
         ...viewerRef(actor),
         postId,
         threadId,
-        forumId: scope.target.forum.id,
+        forumId,
       },
     )
 
@@ -328,6 +378,12 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
       { message: revised.body, reason: revised.reason ?? '', capabilities: scope.capabilities },
       actor.userId,
       scope.target,
+    )
+
+    await attachStaged(staged, { postId, forumId, userId: actor.userId })
+    await removeAttachmentsFromPost(
+      toRemove.map((record) => record.id),
+      { postId, userId: actor.userId },
     )
   } catch (err) {
     return toFormState(err, values)

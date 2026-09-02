@@ -300,6 +300,40 @@ describe('the orphan ledger', () => {
   })
 })
 
+describe('deleteForPost', () => {
+  it('removes the row and queues its keys for the orphan sweep', async () => {
+    const row = await pending()
+    await repo.markReady(row.id, {
+      storageKey: 'attachments/edit/file',
+      thumbnailKey: 'attachments/edit/thumb',
+      width: 10,
+      height: 10,
+      sizeBytes: 1,
+    })
+
+    expect(await repo.deleteForPost(row.id, postId)).toMatchObject({ id: row.id })
+    expect(await repo.findById(row.id)).toBeNull()
+
+    const orphans = resultRows(
+      await db.execute(sql`select storage_key from attachment_orphans order by storage_key`),
+    ) as Array<{ storage_key: string }>
+    expect(orphans.map((o) => o.storage_key)).toEqual([
+      'attachments/edit/file',
+      'attachments/edit/thumb',
+    ])
+  })
+
+  it('leaves an attachment that belongs to a different post untouched', async () => {
+    const row = await pending()
+    expect(await repo.deleteForPost(row.id, otherPostId)).toBeNull()
+    expect(await repo.findById(row.id)).not.toBeNull()
+  })
+
+  it('answers null for an id that does not exist', async () => {
+    expect(await repo.deleteForPost(999_999, postId)).toBeNull()
+  })
+})
+
 describe('an orphan upload with no post yet', () => {
   it('stores with a null post id', async () => {
     const row = await pending({ postId: null, sourceKey: 'attachments/orphan/source' })
