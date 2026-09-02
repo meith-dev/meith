@@ -32,3 +32,37 @@ test('posting a thread clears the browser copy, so the next one starts empty', a
     page.getByText('A newer unsent version was recovered from this browser.'),
   ).toHaveCount(0)
 })
+
+test('a saved thread draft is listed, resumes with its text, and can be deleted', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+
+  await signUp(page, 'draftlist')
+
+  await page.goto('/200-general/new')
+  await page.getByLabel('Subject').fill('Never quite finished')
+  await expect(page.getByText('Saved just now.')).toBeVisible()
+
+  await page.getByLabel('Message').fill('I meant to come back to this.')
+  await page.waitForTimeout(2_000)
+  await expect(page.getByText('Saved just now.')).toBeVisible()
+
+  await page.goto('/usercp')
+  await page.getByRole('complementary').getByRole('link', { name: 'Drafts' }).click()
+  await expect(page).toHaveURL(/\/usercp\/drafts$/)
+
+  const row = page.getByRole('listitem').filter({ hasText: 'General' })
+  await expect(row).toBeVisible()
+
+  await row.getByRole('link', { name: 'Resume' }).click()
+  await expect(page).toHaveURL(/\/200-general\/new$/)
+  await expect(page.getByLabel('Message')).toHaveValue('I meant to come back to this.')
+
+  await page.goto('/usercp/drafts')
+  await page.getByRole('button', { name: 'Delete' }).click()
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
+  await expect(page).toHaveURL(/\/usercp\/drafts$/)
+  await expect(page.getByRole('listitem').filter({ hasText: 'General' })).toHaveCount(0)
+})

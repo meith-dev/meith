@@ -9,12 +9,13 @@ import type {
   ViewerModel,
 } from '@meith/theme-kit'
 
+import { BOARD_TITLE } from './board-title'
 import { count } from './count'
 import { memberHref } from './member-profile'
 import { buildNavigation, defaultNavigationItems } from './navigation'
 import { timezoneLabel, untranslated } from './time'
 
-export const BOARD_TITLE = 'Meith'
+export { BOARD_TITLE }
 
 export const TIMEZONE_LABEL = 'UTC'
 

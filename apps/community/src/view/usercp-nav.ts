@@ -62,6 +62,12 @@ export const USERCP_SECTIONS: PanelNav = [
     blurbKey: 'userCpNav.usercp-signature.blurb',
   },
   {
+    href: '/usercp/drafts',
+    titleKey: 'userCpNav.usercp-drafts.title',
+    icon: 'content',
+    blurbKey: 'userCpNav.usercp-drafts.blurb',
+  },
+  {
     href: '/usercp/contacts',
     titleKey: 'userCpNav.usercp-contacts.title',
     icon: 'buddies',

@@ -37,7 +37,9 @@ test('the board is installable: a linked manifest, an icon, and a scope', async 
   }
 })
 
-test('the service worker is served from the root, and caches nothing', async ({ request }) => {
+test('the service worker is served from the root, and intercepts navigations only', async ({
+  request,
+}) => {
   const response = await request.get('/sw.js')
 
   expect(response.status()).toBe(200)
@@ -46,7 +48,44 @@ test('the service worker is served from the root, and caches nothing', async ({ 
   const source = await response.text()
   expect(source).toContain("addEventListener('push'")
   expect(source).toContain("addEventListener('notificationclick'")
-  expect(source).not.toContain("addEventListener('fetch'")
+  expect(source).toContain("addEventListener('fetch'")
+  expect(source).toContain("request.mode !== 'navigate'")
+})
+
+test('the offline fallback is a static page with no data dependencies', async ({ request }) => {
+  const response = await request.get('/offline')
+
+  expect(response.status()).toBe(200)
+  expect(response.headers()['content-type']).toMatch(/text\/html/)
+
+  const body = await response.text()
+  expect(body).toMatch(/you.?re offline/i)
+  expect(body).toContain('href="/"')
+})
+
+test('an installed board falls back to the offline page when the network fails, and recovers', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.evaluate(() => navigator.serviceWorker.ready)
+  await page.reload()
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null)
+
+  await page.context().setOffline(true)
+  try {
+    await page.reload()
+    await expect(page.getByText(/you.?re offline/i)).toBeVisible()
+    const retry = page.getByRole('link', { name: /retry/i })
+    await expect(retry).toBeVisible()
+
+    await page.context().setOffline(false)
+    await retry.click()
+  } finally {
+    await page.context().setOffline(false)
+  }
+
+  await expect(page).toHaveURL('/')
+  await expect(page.getByText(/you.?re offline/i)).not.toBeVisible()
 })
 
 test('the policy lets the board register its own worker and manifest', async ({ page }) => {

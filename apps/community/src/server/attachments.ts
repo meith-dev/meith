@@ -129,6 +129,41 @@ export async function stageAttachments(
   return service.stage(accepted)
 }
 
+export async function resolveEditAttachmentScope(
+  actor: Actor,
+  forumId: number,
+): Promise<AttachmentScope> {
+  const { authorizer, threadWrites } = getContainer()
+  const rules = threadWrites === null ? null : await threadWrites.postingRules(forumId)
+
+  return {
+    forumId,
+    forum: await authorizer.forumMatrix(actor, forumId),
+    allowsAttachments: rules?.allowAttachments === true,
+  }
+}
+
+export async function removeAttachmentsFromPost(
+  ids: readonly number[],
+  post: { readonly postId: number; readonly userId: number },
+): Promise<readonly AttachmentRecord[]> {
+  const service = attachmentService()
+  if (service === null || ids.length === 0) return []
+
+  const removed: AttachmentRecord[] = []
+  for (const id of ids) {
+    const record = await service.removeFromPost(id, post.postId)
+    if (record === null) continue
+    removed.push(record)
+    await emitEvent(
+      'attachment.deleted',
+      { attachmentId: record.id },
+      { userId: post.userId, isGuest: false },
+    )
+  }
+  return removed
+}
+
 export async function attachStaged(
   staged: readonly StagedUpload[],
   post: { readonly postId: number; readonly forumId: number; readonly userId: number },

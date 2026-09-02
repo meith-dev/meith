@@ -4,11 +4,18 @@ import { notFound } from 'next/navigation'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { DeletePostForm, EditPostForm, RestorePostForm } from '@/components/content/edit-post-form'
+import {
+  attachmentLimits as attachmentLimitsFor,
+  attachmentsForPosts,
+  canAttach,
+  resolveEditAttachmentScope,
+} from '@/server/attachments'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
 import { resolvePostScope } from '@/server/post-scope'
 import { currentTheme } from '@/server/theme'
+import { editableAttachment } from '@/view/attachments'
 import { editPostFormCopy } from '@/view/content-copy'
 import { buildEditorToolbarModel } from '@/view/editor-toolbar'
 import { buildEditView } from '@/view/post-form'
@@ -73,6 +80,18 @@ export default async function EditPostPage({
       <EditorToolbar {...toolbarModel} copy={slotCopy(theme, 'EditorToolbar', translator)} />
     )
 
+  const editingActor = await getActor()
+  const attachmentScope = editable
+    ? await resolveEditAttachmentScope(editingActor, scope.target.forum.id)
+    : null
+  const existingAttachments = editable
+    ? (await attachmentsForPosts([post])).map(editableAttachment)
+    : []
+  const editAttachmentLimits =
+    attachmentScope !== null && canAttach(editingActor, attachmentScope)
+      ? attachmentLimitsFor(attachmentScope)
+      : null
+
   const formModel = await filterView(
     'view.post-form',
     {
@@ -89,6 +108,8 @@ export default async function EditPostPage({
                 postId={post}
                 message={scope.target.post.message}
                 reason={null}
+                attachments={existingAttachments}
+                attachmentLimits={editAttachmentLimits}
                 toolbar={editorToolbar}
               />
             )}

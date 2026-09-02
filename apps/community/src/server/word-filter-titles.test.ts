@@ -68,6 +68,7 @@ const searchHits = [
 vi.mock('./search', () => ({
   requireSearchEnabled: async () => undefined,
   searchMinWordLength: async () => 3,
+  searchLanguage: async () => 'english',
   searchScopeFor: async () => ({}),
   requireSearch: () => ({
     search: async () => ({ hits: searchHits, nextCursor: null }),

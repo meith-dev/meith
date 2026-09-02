@@ -18,6 +18,7 @@ import { recordAdminAction, requireAdmin } from './admin'
 import type { FormState } from './auth-form-state'
 import { tr } from './i18n'
 import { emitEvent } from './plugin-view'
+import { searchProvider } from './search'
 import { getSettings } from './settings'
 
 function submittedKeys(form: FormData): readonly SettingDefinition[] {
@@ -58,6 +59,10 @@ export async function saveAdminSettingsAction(
       updates,
       await getSettings(),
     )
+
+    if (result.changed.includes('search.language')) {
+      await searchProvider()?.markForReindex()
+    }
 
     if (result.changed.length > 0) {
       const tags = [CacheTags.settings(), ...result.invalidates]
