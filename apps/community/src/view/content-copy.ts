@@ -28,18 +28,25 @@ export function replyFormCopy(t: Translator = untranslated()): Readonly<Record<s
 }
 
 export function editPostFormCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
-  return copyFor(
-    [
-      'composer.edit.reason',
-      'composer.edit.submit',
-      'composer.edit.delete',
-      'composer.edit.deleteBlurb',
-      'composer.edit.restore',
-      'composer.edit.restoreBlurb',
-      'composer.preview',
-    ],
-    t,
-  )
+  return {
+    ...copyFor(
+      [
+        'composer.edit.reason',
+        'composer.edit.submit',
+        'composer.edit.delete',
+        'composer.edit.deleteBlurb',
+        'composer.edit.restore',
+        'composer.edit.restoreBlurb',
+        'composer.edit.attachments',
+        'composer.edit.remove',
+        'composer.edit.attachmentProcessing',
+        'composer.edit.attachmentFailed',
+        'composer.preview',
+      ],
+      t,
+    ),
+    ...patternCopy(['composer.edit.removeAttachment'], t),
+  }
 }
 
 export function newThreadFormCopy(

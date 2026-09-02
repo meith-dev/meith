@@ -1522,7 +1522,13 @@ keyed to a post id or a "posthash" for a post that does not exist yet,
 with abandoned ones swept later.
 
 **Meith:** the file input is part of the reply form and the files arrive
-with the message. There is no upload step and no draft token.
+with the message. There is no upload step and no draft token. Editing a
+post follows the same rule: the edit form carries its own attachments
+field for new files and a checkbox per existing one to remove it, still
+one plain submission, never a token. Adding a file this way checks the
+same `attachment.upload` permission and spends the same hourly upload
+allowance a new post's attachments field does; taking one of the post's
+own files back out is gated on the right to edit the post, nothing more.
 
 **Why.** It works with JavaScript off, which the posthash flow does not
 without a round trip that loses the typed message. It also removes a

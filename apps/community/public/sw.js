@@ -1,5 +1,8 @@
 const FALLBACK_HREF = '/notifications'
 
+const OFFLINE_URL = '/offline'
+const OFFLINE_CACHE = 'meith-offline-v1'
+
 function readPayload(event) {
   if (!event.data) return null
 
@@ -28,12 +31,49 @@ function targetUrl(href) {
   }
 }
 
-self.addEventListener('install', () => {
+self.addEventListener('install', (event) => {
   self.skipWaiting()
+
+  event.waitUntil(
+    fetch(OFFLINE_URL, { cache: 'reload' })
+      .then((response) => {
+        if (!response.ok) return
+        return caches.open(OFFLINE_CACHE).then((cache) => cache.put(OFFLINE_URL, response))
+      })
+      .catch(() => {}),
+  )
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith('meith-offline-') && key !== OFFLINE_CACHE)
+            .map((key) => caches.delete(key)),
+        ),
+      )
+      .catch(() => {})
+      .then(() => self.clients.claim()),
+  )
+})
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return
+
+  const retryRequest = event.request.clone()
+
+  try {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match(OFFLINE_URL).then((cached) => cached || fetch(retryRequest)),
+      ),
+    )
+  } catch (_error) {
+    event.respondWith(fetch(retryRequest))
+  }
 })
 
 self.addEventListener('push', (event) => {

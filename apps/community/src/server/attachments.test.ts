@@ -48,7 +48,9 @@ const {
   attachmentLimits,
   canAttach,
   claimAttachments,
+  removeAttachmentsFromPost,
   resolveDownload,
+  resolveEditAttachmentScope,
   stageAttachments,
   submittedFiles,
 } = await import('./attachments')
@@ -96,6 +98,7 @@ class FakeAttachments {
   }
   created: unknown[] = []
   downloads: number[] = []
+  deleted: number[] = []
 
   async findForDownload() {
     return this.found
@@ -135,6 +138,35 @@ class FakeAttachments {
   }
   async deleteOrphans() {
     return []
+  }
+  async deleteForPost(id: number, postId: number) {
+    if (this.found === null || this.found.record.id !== id || this.found.record.postId !== postId) {
+      return null
+    }
+    const removed = this.found.record
+    this.deleted.push(id)
+    this.found = null
+    return removed
+  }
+}
+
+class FakeThreadWrites {
+  allowAttachments = true
+
+  async postingRules(forumId: number) {
+    return {
+      id: forumId,
+      type: 'forum' as const,
+      slug: 'general',
+      isOpen: true,
+      allowThreads: true,
+      allowReplies: true,
+      allowPolls: true,
+      allowAttachments: this.allowAttachments,
+      requiresPrefix: false,
+      moderateNewThreads: false,
+      moderateNewPosts: false,
+    }
   }
 }
 
@@ -269,6 +301,60 @@ describe('staging', () => {
     expect(staged).toHaveLength(1)
     expect(objects.size).toBe(1)
     expect(attachments.created).toEqual([])
+  })
+})
+
+describe('resolveEditAttachmentScope', () => {
+  it('reads the allow-attachments toggle from the forum, not an upload permission', async () => {
+    const threadWrites = new FakeThreadWrites()
+    installTestContainer({ container: { attachments, threadWrites } })
+    const guest = await actorFor(SEED_GROUP.guest, null)
+
+    expect(await resolveEditAttachmentScope(guest, PUBLIC_FORUM)).toMatchObject({
+      forumId: PUBLIC_FORUM,
+      allowsAttachments: true,
+    })
+
+    threadWrites.allowAttachments = false
+    expect((await resolveEditAttachmentScope(guest, PUBLIC_FORUM)).allowsAttachments).toBe(false)
+  })
+
+  it('treats a board with no thread-write repository as not accepting attachments', async () => {
+    installTestContainer({ container: { attachments, threadWrites: null } })
+    const actor = actorRef.current!
+    expect((await resolveEditAttachmentScope(actor, PUBLIC_FORUM)).allowsAttachments).toBe(false)
+  })
+})
+
+describe('removeAttachmentsFromPost', () => {
+  it('removes an attachment that belongs to the post and reports it', async () => {
+    attachments.found = {
+      record: record({ id: 5, postId: 9 }),
+      postVisibility: 'visible',
+      threadVisibility: 'visible',
+      threadAuthorUserId: null,
+    }
+
+    const removed = await removeAttachmentsFromPost([5], { postId: 9, userId: ADA })
+    expect(removed.map((r) => r.id)).toEqual([5])
+    expect(attachments.deleted).toEqual([5])
+  })
+
+  it('ignores an id that does not belong to the post', async () => {
+    attachments.found = {
+      record: record({ id: 5, postId: 9 }),
+      postVisibility: 'visible',
+      threadVisibility: 'visible',
+      threadAuthorUserId: null,
+    }
+
+    expect(await removeAttachmentsFromPost([5], { postId: 1, userId: ADA })).toEqual([])
+    expect(attachments.deleted).toEqual([])
+  })
+
+  it('does nothing when the board has no attachment store', async () => {
+    installTestContainer({ container: { attachments: null } })
+    expect(await removeAttachmentsFromPost([5], { postId: 9, userId: ADA })).toEqual([])
   })
 })
 

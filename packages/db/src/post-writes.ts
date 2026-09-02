@@ -17,7 +17,12 @@ import type {
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
-import { indexedSubjectSql, SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
+import {
+  indexedSubjectSql,
+  readSearchConfig,
+  SEARCH_DOCUMENT_VERSION,
+  searchVectorSql,
+} from './search-repo'
 import { logModeratorAction } from './thread-counters'
 import { applyVisibilityChangeCounters } from './visibility-counters'
 import { readBoardVocabulary } from './vocabulary-repo'
@@ -116,6 +121,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       { source: 'post', viewer: authorRef(record.editedByUserId), postId: record.postId },
       vocabularyOptions(vocabulary),
     )
+    const searchConfig = await readSearchConfig(this.db)
 
     await this.db.transaction(async (tx) => {
       await tx.execute(sql`
@@ -148,7 +154,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
                 * edited opening post lost the title an edit is supposed to
                 * preserve. The alias is why the statement names "posts p".
                 */
-               search_vector = ${searchVectorSql(indexedSubjectSql(sql`p`), sql`${record.message}`)},
+               search_vector = ${searchVectorSql(searchConfig, indexedSubjectSql(sql`p`), sql`${record.message}`)},
                search_version = ${SEARCH_DOCUMENT_VERSION},
                render_version = ${body.version},
                vocab_version = ${vocabulary.revision},

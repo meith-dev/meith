@@ -13,7 +13,13 @@ import {
 
 import { filterWords } from '../../view/word-filter'
 import { activeWordFilter } from '../content-admin'
-import { requireSearch, requireSearchEnabled, searchMinWordLength, searchScopeFor } from '../search'
+import {
+  requireSearch,
+  requireSearchEnabled,
+  searchLanguage,
+  searchMinWordLength,
+  searchScopeFor,
+} from '../search'
 import {
   type ApiResult,
   type ApiRoutes,
@@ -55,7 +61,7 @@ export const SEARCH_HANDLERS: ApiRoutes = [
       const forumIds = ids('forum')
       const authorUserIds = ids('by')
 
-      const results = await requireSearch().search(
+      const results = await requireSearch(await searchLanguage()).search(
         searchQueryFrom(
           parsed.terms,
           {

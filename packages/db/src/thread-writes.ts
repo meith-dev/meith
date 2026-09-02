@@ -22,7 +22,7 @@ import type {
 import type { Database } from './client'
 import { applyCreatedContentCounters } from './content-counters'
 import { resultRows } from './result-rows'
-import { SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
+import { readSearchConfig, SEARCH_DOCUMENT_VERSION, searchVectorSql } from './search-repo'
 import { readBoardVocabulary } from './vocabulary-repo'
 
 export class PostgresThreadWriteRepository implements ThreadWriteRepository, ReplyWriteRepository {
@@ -79,6 +79,7 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
       { source: 'post', viewer: authorRef(record.authorUserId) },
       vocabularyOptions(vocabulary),
     )
+    const searchConfig = await readSearchConfig(this.db)
 
     return this.db.transaction(async (tx) => {
       const threadRows = resultRows(
@@ -116,7 +117,7 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
               * is_first_post true), which search-repo.test.ts pins so the
               * writer and the backfill cannot drift apart.
               */
-             ${searchVectorSql(sql`${record.title}`, sql`${record.message}`)},
+             ${searchVectorSql(searchConfig, sql`${record.title}`, sql`${record.message}`)},
              ${SEARCH_DOCUMENT_VERSION})
           returning id
         `),
@@ -230,6 +231,7 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
       { source: 'post', viewer: authorRef(record.authorUserId) },
       vocabularyOptions(vocabulary),
     )
+    const searchConfig = await readSearchConfig(this.db)
 
     return this.db.transaction(async (tx) => {
       const postRows = resultRows(
@@ -251,7 +253,7 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
               * post in the thread — forty hits that are all the same thread,
               * where the opening post already stands for it.
               */
-             ${searchVectorSql(sql`${null}`, sql`${record.message}`)},
+             ${searchVectorSql(searchConfig, sql`${null}`, sql`${record.message}`)},
              ${SEARCH_DOCUMENT_VERSION})
           returning id
         `),
