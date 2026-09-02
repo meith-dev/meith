@@ -7,13 +7,19 @@ import { msg } from '@meith/i18n'
 import { parseRating } from '@meith/reputation'
 
 import { postLink } from '@/view/post-link'
+import { isEnhancedSubmit } from '@/view/progressive-enhancement'
 
 import type { FormState } from './auth-form-state'
 import { getActor } from './context'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { emitEvent, viewerRef } from './plugin-view'
-import { reputationService, reputationSettings, viewerRaterLimits } from './reputation'
+import {
+  reputationService,
+  reputationSettings,
+  thanksForPosts,
+  viewerRaterLimits,
+} from './reputation'
 import { requireRateablePost } from './reputation-target'
 import { isSafeLocalPath } from './safe-path'
 
@@ -137,6 +143,11 @@ export async function thankForPostAction(_prev: FormState, form: FormData): Prom
         limits,
       })
       await announceReputation(service, userId, 1)
+    }
+
+    if (isEnhancedSubmit(form)) {
+      const thanks = (await thanksForPosts([postId])).get(postId)
+      return { thanks: thanks ?? { thanked: false, count: 0 } }
     }
   } catch (err) {
     return toFormState(err)

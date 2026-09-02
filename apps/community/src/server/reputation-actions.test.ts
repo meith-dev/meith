@@ -40,6 +40,7 @@ const { rateMemberAction, thankForPostAction, withdrawRatingAction } = await imp
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
+const { PROGRESSIVE_FIELD } = await import('@/view/progressive-enhancement')
 
 const TARGET = 1
 const RATER = 2
@@ -91,9 +92,28 @@ class FakeReputation implements ReputationRepository {
       ) ?? null
     )
   }
+  private effectiveRows(): ReputationRow[] {
+    const superseded = new Set(this.given.map((g) => `${g.givenByUserId}:${g.userId}:${g.postId}`))
+    const fromRows = this.rows.filter(
+      (row) => !superseded.has(`${row.givenByUserId}:${row.userId}:${row.postId}`),
+    )
+    const fromGiven = this.given.map((g, index) => ({
+      id: -1 - index,
+      userId: g.userId,
+      givenByUserId: g.givenByUserId,
+      givenByUsername: `user${g.givenByUserId}`,
+      postId: g.postId,
+      threadId: null,
+      points: g.points,
+      comment: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+    return [...fromRows, ...fromGiven]
+  }
   async existingForPosts(input: { givenByUserId: number; postIds: readonly number[] }) {
     return new Map(
-      this.rows
+      this.effectiveRows()
         .filter((row) => row.givenByUserId === input.givenByUserId && row.postId !== null)
         .filter((row) => input.postIds.includes(row.postId as number))
         .map((row) => [row.postId as number, row] as const),
@@ -101,7 +121,7 @@ class FakeReputation implements ReputationRepository {
   }
   async thanksForPosts(postIds: readonly number[]) {
     const counts = new Map<number, number>()
-    for (const row of this.rows) {
+    for (const row of this.effectiveRows()) {
       if (row.postId === null || row.points <= 0 || !postIds.includes(row.postId)) continue
       counts.set(row.postId, (counts.get(row.postId) ?? 0) + 1)
     }
@@ -542,5 +562,35 @@ describe('thankForPostAction', () => {
 
     expect((await thank()).error).toMatch(/switched off/)
     expect(reputation.given).toHaveLength(0)
+  })
+
+  it('returns the fresh count instead of redirecting when the submit is enhanced', async () => {
+    const result = await thankForPostAction(
+      EMPTY_STATE,
+      form([
+        ['userId', String(TARGET)],
+        ['postId', '10'],
+        ['returnTo', '/thread/4-hello'],
+        [PROGRESSIVE_FIELD, '1'],
+      ]),
+    )
+
+    expect(result).toEqual({ thanks: { thanked: true, count: 1 } })
+  })
+
+  it('reports the thanks withdrawn when an enhanced submit toggles it off', async () => {
+    reputation.rows = [row()]
+
+    const result = await thankForPostAction(
+      EMPTY_STATE,
+      form([
+        ['userId', String(TARGET)],
+        ['postId', '10'],
+        ['returnTo', '/thread/4-hello'],
+        [PROGRESSIVE_FIELD, '1'],
+      ]),
+    )
+
+    expect(result).toEqual({ thanks: { thanked: false, count: 0 } })
   })
 })

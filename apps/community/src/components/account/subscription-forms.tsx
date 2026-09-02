@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/server/subscription-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
+import { ProgressiveMarker } from '../content/progressive-marker'
 import { type Copy, fromCopy } from '../shell/copy'
 
 const BUTTON =
@@ -48,6 +49,17 @@ export function FollowForm({
 }) {
   const [state, action] = useActionState(subscribeAction, EMPTY_STATE)
   const [stopState, stopAction] = useActionState(unsubscribeAction, EMPTY_STATE)
+  const [resolved, setResolved] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (state.subscribed !== undefined) setResolved(state.subscribed)
+  }, [state])
+
+  useEffect(() => {
+    if (stopState.subscribed !== undefined) setResolved(stopState.subscribed)
+  }, [stopState])
+
+  const subscribed = resolved ?? mode !== null
 
   return (
     <section aria-label={label} className="flex flex-col gap-2">
@@ -58,10 +70,11 @@ export function FollowForm({
           <input type="hidden" name="target" value={target} />
           <input type="hidden" name="targetId" value={targetId} />
           <input type="hidden" name="back" value={back} />
+          <ProgressiveMarker />
 
           <label className="text-sm">
             <span className="mr-2">
-              {mode === null ? label : fromCopy(copy, 'accountForm.follow.notifyMe')}
+              {subscribed ? fromCopy(copy, 'accountForm.follow.notifyMe') : label}
             </span>
             <select
               name="mode"
@@ -78,17 +91,18 @@ export function FollowForm({
           </label>
 
           <PendingButton className={QUIET_BUTTON}>
-            {mode === null
-              ? fromCopy(copy, 'accountForm.follow.follow')
-              : fromCopy(copy, 'accountForm.follow.save')}
+            {subscribed
+              ? fromCopy(copy, 'accountForm.follow.save')
+              : fromCopy(copy, 'accountForm.follow.follow')}
           </PendingButton>
         </form>
 
-        {mode !== null && (
+        {subscribed && (
           <form action={stopAction}>
             <input type="hidden" name="target" value={target} />
             <input type="hidden" name="targetId" value={targetId} />
             <input type="hidden" name="back" value={back} />
+            <ProgressiveMarker />
             <PendingButton className={GHOST_BUTTON}>
               {fromCopy(copy, 'accountForm.follow.stop')}
             </PendingButton>

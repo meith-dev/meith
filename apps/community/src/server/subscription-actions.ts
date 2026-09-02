@@ -12,6 +12,8 @@ import {
   type UnsubscribeScope,
 } from '@meith/subscriptions'
 
+import { isEnhancedSubmit } from '@/view/progressive-enhancement'
+
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -72,6 +74,8 @@ export async function subscribeAction(_prev: FormState, form: FormData): Promise
       { userId: actor.userId, target, targetId, subscribed: true },
       { requestId: currentRequestId() ?? null },
     )
+
+    if (isEnhancedSubmit(form)) return { subscribed: true }
   } catch (err) {
     return toFormState(err)
   }
@@ -106,6 +110,8 @@ export async function unsubscribeAction(_prev: FormState, form: FormData): Promi
       { userId: actor.userId, target, targetId, subscribed: false },
       { requestId: currentRequestId() ?? null },
     )
+
+    if (isEnhancedSubmit(form)) return { subscribed: false }
   } catch (err) {
     return toFormState(err)
   }

@@ -40,6 +40,7 @@ const { subscribeAction, unsubscribeAction, unsubscribeByTokenAction } = await i
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_FORUM, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
+const { PROGRESSIVE_FIELD } = await import('@/view/progressive-enhancement')
 
 class FakeSubscriptions implements SubscriptionRepository {
   readonly subscribed: Array<{ userId: number; target: string; targetId: number; mode: string }> =
@@ -283,6 +284,20 @@ describe('following', () => {
 
     expect(result.redirectedTo).toBe('/subscriptions?followed=1')
   })
+
+  it('reports the new state instead of redirecting when the submit is enhanced', async () => {
+    const state = await subscribeAction(
+      EMPTY_STATE,
+      form([
+        ['target', 'thread'],
+        ['targetId', '20'],
+        ['mode', 'instant'],
+        [PROGRESSIVE_FIELD, '1'],
+      ]),
+    )
+
+    expect(state).toEqual({ subscribed: true })
+  })
 })
 
 describe('unfollowing', () => {
@@ -299,6 +314,21 @@ describe('unfollowing', () => {
 
     expect(result.redirectedTo).toBe('/subscriptions?stopped=1')
     expect(subscriptions.removed).toEqual([{ userId: 7, target: 'forum', targetId: 3 }])
+  })
+
+  it('reports the new state instead of redirecting when the submit is enhanced', async () => {
+    install(SEED_FORUM.general, true)
+
+    const state = await unsubscribeAction(
+      EMPTY_STATE,
+      form([
+        ['target', 'forum'],
+        ['targetId', '3'],
+        [PROGRESSIVE_FIELD, '1'],
+      ]),
+    )
+
+    expect(state).toEqual({ subscribed: false })
   })
 })
 

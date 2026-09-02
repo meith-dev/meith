@@ -22,6 +22,7 @@ test('posting a thread clears the browser copy, so the next one starts empty', a
 
   await page.getByRole('button', { name: 'Post thread' }).click()
   await expect(page).toHaveURL(/\/thread\/\d+-/)
+  await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible()
 
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), BACKUP_KEY)).toBeNull()
 
@@ -66,7 +67,5 @@ test('a saved thread draft is listed, resumes with its text, and can be deleted'
   await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
   await expect(page).toHaveURL(/\/usercp\/drafts$/)
-  await expect(page.getByRole('listitem').filter({ hasText: 'General' })).toHaveCount(0)
-
-  await page.waitForLoadState('load')
+  await expect(page.getByText('You have no saved drafts.')).toBeVisible()
 })

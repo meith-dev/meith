@@ -308,6 +308,82 @@ list means adding a spec there.
 > breaks a page, it was not an island. Write the server path first and the
 > island second.
 
+### One-tap actions: the enhancement island
+
+Thanks, a poll vote, following a thread, and the dark-mode toggle share a
+shape: a single `<form action={serverAction}>` whose no-JS baseline is a
+POST, a redirect, and a full-page repaint. That baseline is correct and
+stays — the enhancement is a thin layer that, when JavaScript has loaded,
+swaps in the action's own return value instead of navigating, so pressing
+the star or the poll's radio button updates in place.
+
+**`ProgressiveMarker`** (`src/components/content/progressive-marker.tsx`) is
+the whole mechanism, and it is deliberately not a form wrapper — it renders
+one hidden field, mirroring the interception style of `quote-in-place.tsx`
+rather than replacing the form the way that file replaces a link:
+
+```tsx
+export function ProgressiveMarker() {
+  const [enhanced, setEnhanced] = useState(false)
+  useEffect(() => setEnhanced(true), [])
+  return enhanced ? <input type="hidden" name={PROGRESSIVE_FIELD} value="1" /> : null
+}
+```
+
+It renders nothing on the server and on first client paint — the same
+`enhanced` flip used by `LiveRegion` — so there is no hydration mismatch,
+and it adds the field to the DOM only once an effect has actually run,
+which is the one fact a native submit can never produce on its own. Drop it
+inside the existing `<form>`; nothing else about the form's markup or
+action changes.
+
+The action reads the field with `isEnhancedSubmit(form)`
+(`src/view/progressive-enhancement.ts`) and **branches on it**, not on
+whether the request looks like a fetch:
+
+```ts
+if (isEnhancedSubmit(form)) return { thanks: { thanked, count } }
+
+redirect(postLink(returnTo, postId))
+```
+
+A plain browser submit never carries the field, so the branch is unreachable
+without JavaScript and the redirect fires exactly as before — this is why
+the `*-no-js.spec.ts` suite needs no changes for an enhanced action. With
+JavaScript, `useActionState`'s own submit handling (never a hand-rolled
+`onSubmit`) invokes the action over fetch, the field is present, and the
+action returns fresh state instead of throwing a redirect — a
+`useActionState` action that redirects on success will navigate the
+enhanced path too, so the branch has to come before it, not around it.
+
+**The returned state is the only thing the island may render.** `thanks`,
+`pollVote`, and `subscribed` are additive fields on the same `FormState` (or
+a small dedicated type, for the poll) the action already returned on
+failure — extending a return type, never a parallel API route. The
+component reads `state.thanks?.count ?? count`, falling back to the
+server-rendered prop until an action actually runs. It never recomputes
+`mayCast`, `canVote`, or any other permission-shaped fact itself: the poll's
+results block versus its voting inputs is decided by `mayCast` inside
+`PollVoteView` (`src/view/poll-vote.ts`), computed identically on the
+initial server render and inside the action after a vote, so the same
+authorization decision that gated the no-JS page also gates what the
+island is allowed to show next. This is the same reasoning as
+`quote-in-place.tsx` fetching quoted markup from the server rather than
+reading it out of the DOM.
+
+The theme toggle is the one variant that does not wait on the round trip at
+all: its `onClick` sets `document.documentElement`'s class immediately —
+`SchemeToggle` in `src/components/shell/scheme-toggle.tsx` — and the form
+submit that follows only persists the cookie in the background. The
+server-decided class from `schemeClass()` stays the source of truth on the
+next full load; the click only avoids the one visible flash a full repaint
+would otherwise cost.
+
+A new one-tap action follows the same three steps: extend the action's
+`FormState` (or its own return type) with the minimal facts the island
+needs, branch on `isEnhancedSubmit` before any `redirect`, and drop a
+`<ProgressiveMarker />` in the form.
+
 ### Forms that live in a theme slot
 
 A page whose whole content is a form — the composer, and every editor after

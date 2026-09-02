@@ -6,6 +6,9 @@ import { ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import { type PollEditOption, PollService } from '@meith/polls'
 
+import { type PollVoteView, pollVoteView } from '@/view/poll-vote'
+import { isEnhancedSubmit } from '@/view/progressive-enhancement'
+
 import { getContainer } from './container'
 import { getActor } from './context'
 import { emitEvent, viewerRef } from './plugin-view'
@@ -50,7 +53,10 @@ function editedOptions(form: FormData): readonly PollEditOption[] {
   })
 }
 
-export async function votePollAction(form: FormData): Promise<void> {
+export async function votePollAction(
+  _prev: PollVoteView | null,
+  form: FormData,
+): Promise<PollVoteView | null> {
   const threadId = id(form, 'threadId')
   const pollId = id(form, 'pollId')
   const actor = await getActor()
@@ -72,6 +78,12 @@ export async function votePollAction(form: FormData): Promise<void> {
   for (const optionId of chosen) {
     await emitEvent('poll.voted', { pollId, optionId }, viewerRef(actor))
   }
+
+  if (isEnhancedSubmit(form)) {
+    const fresh = await polls.find(threadId, actor.userId)
+    return fresh === null ? null : pollVoteView(fresh, scope.mayVote, new Date())
+  }
+
   redirect(`/thread/${threadId}`)
 }
 

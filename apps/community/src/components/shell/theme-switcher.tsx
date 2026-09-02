@@ -1,16 +1,11 @@
 import { PendingButton } from '@/components/auth/form-controls'
 import { MonitorIcon, MoonIcon, SunIcon } from '@/components/shell/appearance-icons'
+import { SchemeToggle } from '@/components/shell/scheme-toggle'
 import { setAppearanceAction } from '@/server/appearance-actions'
 import { getTranslator } from '@/server/i18n'
 import { currentColourScheme, currentThemeKey } from '@/server/theme'
 import { getBoardThemeStyle } from '@/server/theme-runtime'
 import { COLOUR_SCHEMES, type ColourSchemePreference } from '@/view/theme-preference'
-
-const SCHEME_ICON: Record<ColourSchemePreference, () => React.ReactNode> = {
-  light: SunIcon,
-  system: MonitorIcon,
-  dark: MoonIcon,
-}
 
 const SCHEME_LABEL_KEY: Record<ColourSchemePreference, string> = {
   system: 'appearance.scheme.system',
@@ -28,6 +23,15 @@ export async function ThemeSwitcher() {
     currentColourScheme(),
     getTranslator(),
   ])
+
+  const icons: Record<ColourSchemePreference, React.ReactNode> = {
+    light: <SunIcon />,
+    system: <MonitorIcon />,
+    dark: <MoonIcon />,
+  }
+  const labels = Object.fromEntries(
+    COLOUR_SCHEMES.map((option) => [option, t.t(SCHEME_LABEL_KEY[option])]),
+  ) as Record<ColourSchemePreference, string>
 
   return (
     <section
@@ -55,36 +59,12 @@ export async function ThemeSwitcher() {
         </form>
       )}
 
-      <form action={setAppearanceAction}>
-        <span
-          role="group"
-          aria-label={t.t('appearance.schemeGroup')}
-          className="inline-flex items-center overflow-hidden rounded-md border border-border text-muted-foreground"
-        >
-          {COLOUR_SCHEMES.map((option) => {
-            const Icon = SCHEME_ICON[option]
-            const label = t.t(SCHEME_LABEL_KEY[option])
-            const selected = scheme === option
-            return (
-              <PendingButton
-                key={option}
-                name="scheme"
-                value={option}
-                title={label}
-                aria-pressed={selected}
-                className={`inline-flex h-8 items-center justify-center border-border px-2.5 transition-colors [&:not(:first-child)]:border-l focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
-                  selected
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                <Icon />
-                <span className="sr-only">{label}</span>
-              </PendingButton>
-            )
-          })}
-        </span>
-      </form>
+      <SchemeToggle
+        scheme={scheme}
+        groupLabel={t.t('appearance.schemeGroup')}
+        labels={labels}
+        icons={icons}
+      />
     </section>
   )
 }
