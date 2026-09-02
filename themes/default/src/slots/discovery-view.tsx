@@ -21,7 +21,7 @@ function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
               className={cn(
                 TAB,
                 tab.isCurrent
-                  ? 'bg-card font-semibold text-foreground shadow-sm'
+                  ? 'bg-card font-semibold text-primary shadow-sm'
                   : 'font-medium text-muted-foreground hover:text-foreground',
               )}
             >

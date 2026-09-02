@@ -554,9 +554,13 @@ Two conventions follow, and both are conventions rather than contract:
 
 - **`accent` is a hover surface, not a highlight.** It carries shadcn/ui's
   meaning here. Anything that needs to shout uses a semantic token.
-- **Link text is weight and an underline; only the underline takes
-  `primary`.** Colouring the text itself would put the operator's brand
-  choice between members and the words they are reading.
+- **Body links are weight and an underline; `primary` marks the places a
+  reader navigates by, not the words they read.** The default theme spends
+  it on the board name and the bar above it, member names, post numbers,
+  the current tab, category headings and the avatar placeholder, and on
+  the hover state of every nav link and title. A thread title or a post
+  body stays `foreground` so an operator's brand choice never sits between
+  members and the words they are reading.
 
 A theme is free to disagree — deliberately. `themes/clubhouse` is the
 shipped disagreement: a club's colours are the point of a club's site, so

@@ -81,7 +81,7 @@ function AuthorBlock({
 
       <div className="min-w-0 flex-1 sm:flex-none">
         <p className="truncate text-sm">
-          <UserRef user={author} className="font-semibold text-foreground" />
+          <UserRef user={author} className="font-semibold" />
         </p>
 
         {author.badge != null && (
@@ -195,7 +195,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
             className={`inline-flex min-h-8 items-center gap-2 ${MUTED_LINK} ${NUMERIC}`}
           >
             <Stamp at={post.postedAt} />
-            <span className="font-medium">#{post.number}</span>
+            <span className="font-semibold text-primary">#{post.number}</span>
           </a>
         </div>
 

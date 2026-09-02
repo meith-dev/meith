@@ -17,12 +17,18 @@ export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
   return `mx-auto w-full ${width} px-4 sm:px-6`
 }
 
-export const LINK = 'hover:underline underline-offset-2 decoration-1 decoration-primary'
+export const LINK =
+  'transition-colors hover:text-primary hover:underline underline-offset-2 decoration-1 decoration-primary'
 
-export const MUTED_LINK = `text-muted-foreground transition-colors hover:text-foreground ${LINK}`
+export const MUTED_LINK = `text-muted-foreground ${LINK}`
 
 export function UserRef({ user, className }: { user: UserRefModel; className?: string }) {
-  const classes = cn('font-medium', className, user.nameClass)
+  const classes = cn(
+    'font-medium',
+    user.nameClass == null && 'text-primary',
+    className,
+    user.nameClass,
+  )
   if (user.profileHref === null) {
     return <span className={classes}>{user.username}</span>
   }
@@ -96,7 +102,7 @@ export function Counts({ items, className }: { items: readonly CountItem[]; clas
         <div key={item.label}>
           <dt className="sr-only">{item.label}</dt>
           <dd>
-            <span className={cn('font-medium text-foreground', NUMERIC)}>{item.value.label}</span>{' '}
+            <span className={cn('font-semibold text-primary', NUMERIC)}>{item.value.label}</span>{' '}
             {item.value.value === 1 ? item.one : item.many}
           </dd>
         </div>

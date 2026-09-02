@@ -25,7 +25,7 @@ export function Footer({
       <div
         className={`${PAGE} flex flex-col gap-3 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-6`}
       >
-        <span className="font-medium text-foreground">{boardTitle}</span>
+        <span className="font-semibold text-primary">{boardTitle}</span>
 
         {links.length > 0 && (
           <nav aria-label={c('nav')} className="flex flex-wrap gap-x-4 gap-y-1">

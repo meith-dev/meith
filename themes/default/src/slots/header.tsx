@@ -4,10 +4,10 @@ import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 import { PAGE } from '../shared'
 
 const DESKTOP_LINK =
-  'inline-flex h-10 items-center rounded-md px-3 font-medium text-muted-foreground transition-colors pointer-coarse:h-11 hover:bg-muted hover:text-foreground'
+  'inline-flex h-10 items-center rounded-md px-3 font-medium text-muted-foreground transition-colors pointer-coarse:h-11 hover:bg-primary/8 hover:text-primary'
 
 const MOBILE_LINK =
-  'flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground'
+  'flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-primary/8 hover:text-primary'
 
 const SUMMARY =
   'cursor-default list-none select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none'
@@ -44,7 +44,7 @@ function Submenu({ items }: { items: HeaderModel['navigation'][number]['submenu'
           <a
             href={child.href}
             {...linkTarget(child)}
-            className="flex items-center rounded-sm px-2.5 py-1.5 text-muted-foreground pointer-coarse:min-h-11 hover:bg-muted hover:text-foreground"
+            className="flex items-center rounded-sm px-2.5 py-1.5 text-muted-foreground pointer-coarse:min-h-11 hover:bg-primary/8 hover:text-primary"
           >
             {child.label}
           </a>
@@ -143,11 +143,11 @@ export function Header({
   const hasNavigation = navigation.length > 0
 
   return (
-    <header className="relative border-b border-border bg-card">
+    <header className="relative border-t-4 border-b border-t-primary border-b-border bg-card">
       <div className={`${PAGE} flex flex-wrap items-center gap-x-4 gap-y-3 py-3`}>
         <a
           href={homeHref}
-          className="me-auto inline-flex min-h-9 min-w-0 items-center text-xl font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
+          className="me-auto inline-flex min-h-9 min-w-0 items-center text-xl font-semibold tracking-tight text-primary transition-colors hover:text-primary-hover"
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>
@@ -158,7 +158,7 @@ export function Header({
           <nav aria-label={c('sections')} data-nav-view="mobile" className="lg:hidden">
             <details data-nav-disclosure className="group/menu">
               <summary
-                className={`${SUMMARY} flex size-11 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:bg-muted group-open/menu:bg-muted`}
+                className={`${SUMMARY} flex size-11 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:border-primary/40 hover:text-primary group-open/menu:border-primary/40 group-open/menu:bg-primary/8 group-open/menu:text-primary`}
               >
                 <MenuGlyph />
                 <span className="sr-only">{c('sections')}</span>

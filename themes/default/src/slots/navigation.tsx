@@ -30,7 +30,7 @@ export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }
               ) : (
                 <a
                   href={item.href}
-                  className="rounded-md px-1.5 py-1 transition-colors hover:bg-muted hover:text-foreground"
+                  className="rounded-md px-1.5 py-1 transition-colors hover:bg-primary/8 hover:text-primary"
                 >
                   {item.label}
                 </a>
