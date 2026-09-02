@@ -1,4 +1,4 @@
-import { BOARD_TITLE } from '@/view/shell'
+import { BOARD_TITLE } from '@/view/board-title'
 
 export const dynamic = 'force-static'
 

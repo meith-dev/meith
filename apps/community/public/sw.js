@@ -63,14 +63,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.mode !== 'navigate') return
 
+  const retryRequest = event.request.clone()
+
   try {
     event.respondWith(
       fetch(event.request).catch(() =>
-        caches.match(OFFLINE_URL).then((cached) => cached || fetch(event.request)),
+        caches.match(OFFLINE_URL).then((cached) => cached || fetch(retryRequest)),
       ),
     )
   } catch (_error) {
-    event.respondWith(fetch(event.request))
+    event.respondWith(fetch(retryRequest))
   }
 })
 

@@ -451,6 +451,18 @@ falls back to a plain network request rather than breaking navigation:
 a service worker that throws on `fetch` can brick every reader until it
 updates, which is the one failure mode worth designing around.
 
+Two limitations follow from keeping this minimal. First, `/offline` is
+English-only by design — it has no data dependency of its own, and
+reading the viewer's locale is exactly the kind of dependency it avoids,
+so a non-English board still shows an English offline screen. Second,
+the `install`-time precache does not retry: if the very deploy that
+changes `sw.js` also happens to fail the fetch for `/offline` (a flaky
+network at that moment, not the reader being offline — the deploy itself
+needed a network to have reached the browser at all), that install
+proceeds with no cached fallback until the next deploy tries again. Until
+then, a reader who goes offline sees the browser's own error page rather
+than this one — the pre-existing behaviour, not a new failure.
+
 `/manifest.webmanifest` is generated per request from the board's own
 settings, so the installed application carries the board's name,
 description and theme colour and follows them when they change. It is
