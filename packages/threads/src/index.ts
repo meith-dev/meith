@@ -7,6 +7,7 @@ export {
   MESSAGE_MIN,
   type NewThreadRecord,
   type PrefixOption,
+  type SubscriptionCadence,
   type ThreadAuthor,
   ThreadComposer,
   type ThreadComposerConfig,

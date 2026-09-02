@@ -75,9 +75,16 @@ class FakeSettings implements MemberSettingsRepository {
     displayGroupId: null,
     massMailOptInAt: null,
     boardDigestCadence: 'weekly',
+    autoWatchOwnThreads: 'none',
+    autoWatchRepliedThreads: 'none',
   }
   readonly profiles: Array<{ userId: number; location: string | null }> = []
-  readonly options: Array<{ userId: number; timezone: string }> = []
+  readonly options: Array<{
+    userId: number
+    timezone: string
+    autoWatchOwnThreads: MemberSettings['autoWatchOwnThreads']
+    autoWatchRepliedThreads: MemberSettings['autoWatchRepliedThreads']
+  }> = []
   readonly displayGroups: Array<number | null> = []
   readonly massMailOptIns: boolean[] = []
   readonly digestCadences: string[] = []
@@ -98,7 +105,12 @@ class FakeSettings implements MemberSettingsRepository {
   async saveProfile(input: { userId: number; location: string | null }) {
     this.profiles.push(input)
   }
-  async saveOptions(input: { userId: number; timezone: string }) {
+  async saveOptions(input: {
+    userId: number
+    timezone: string
+    autoWatchOwnThreads: MemberSettings['autoWatchOwnThreads']
+    autoWatchRepliedThreads: MemberSettings['autoWatchRepliedThreads']
+  }) {
     this.options.push(input)
   }
   async saveMassMailOptIn(input: { userId: number; optIn: boolean }) {
@@ -247,6 +259,8 @@ describe('saving the options', () => {
         ['locale', 'pt-BR'],
         ['postsPerPage', ''],
         ['threadsPerPage', ''],
+        ['autoWatchOwnThreads', 'none'],
+        ['autoWatchRepliedThreads', 'none'],
       ]),
     )
 
@@ -266,6 +280,8 @@ describe('saving the options', () => {
         ['locale', 'klingon-ish'],
         ['postsPerPage', ''],
         ['threadsPerPage', ''],
+        ['autoWatchOwnThreads', 'none'],
+        ['autoWatchRepliedThreads', 'none'],
       ]),
     )
 
@@ -279,10 +295,49 @@ describe('saving the options', () => {
         ['timezone', 'Middle/Earth'],
         ['postsPerPage', ''],
         ['threadsPerPage', ''],
+        ['autoWatchOwnThreads', 'none'],
+        ['autoWatchRepliedThreads', 'none'],
       ]),
     )
 
     expect(result.error).toContain('not a timezone')
+    expect(settings.options).toEqual([])
+  })
+
+  it('saves an auto-watch cadence for each preference', async () => {
+    const result = await run(
+      saveOptionsAction,
+      form([
+        ['timezone', 'UTC'],
+        ['locale', 'auto'],
+        ['postsPerPage', ''],
+        ['threadsPerPage', ''],
+        ['autoWatchOwnThreads', 'instant'],
+        ['autoWatchRepliedThreads', 'weekly'],
+      ]),
+    )
+
+    expect(result.redirectedTo).toBe('/usercp/options?saved=1')
+    expect(settings.options[0]).toMatchObject({
+      autoWatchOwnThreads: 'instant',
+      autoWatchRepliedThreads: 'weekly',
+    })
+  })
+
+  it('reports an auto-watch preference the board does not recognise', async () => {
+    const result = await run(
+      saveOptionsAction,
+      form([
+        ['timezone', 'UTC'],
+        ['locale', 'auto'],
+        ['postsPerPage', ''],
+        ['threadsPerPage', ''],
+        ['autoWatchOwnThreads', 'sometimes'],
+        ['autoWatchRepliedThreads', 'none'],
+      ]),
+    )
+
+    expect(result.error).toContain('follow cadence')
     expect(settings.options).toEqual([])
   })
 })

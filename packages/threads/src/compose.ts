@@ -30,11 +30,14 @@ export const UNRESTRICTED: AuthorRestriction = {
   moderated: false,
 }
 
+export type SubscriptionCadence = 'instant' | 'daily' | 'weekly'
+
 export interface ComposeThreadInput {
   readonly title: string
   readonly message: string
   readonly prefixId: number | null
   readonly subscribe: boolean
+  readonly subscribeMode?: SubscriptionCadence
   readonly poll?: NewPoll | undefined
   readonly mayPostPoll?: boolean | undefined
   readonly bypassesModeration: boolean
@@ -54,6 +57,7 @@ export interface NewThreadRecord {
   readonly authorUsername: string
   readonly visibility: 'visible' | 'unapproved'
   readonly subscribe: boolean
+  readonly subscribeMode?: SubscriptionCadence
   readonly poll?: ValidatedPoll | undefined
   readonly createdAt: Date
 }
@@ -179,6 +183,7 @@ export class ThreadComposer {
       authorUsername: author.username,
       visibility,
       subscribe: input.subscribe,
+      subscribeMode: input.subscribeMode ?? 'instant',
       poll,
       createdAt: this.now(),
     })

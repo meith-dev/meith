@@ -146,7 +146,7 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
       if (record.subscribe) {
         await tx.execute(sql`
           insert into thread_subscriptions (user_id, thread_id, mode, last_notified_post_id)
-          values (${record.authorUserId}, ${threadId}, 'instant', ${postId})
+          values (${record.authorUserId}, ${threadId}, ${record.subscribeMode ?? 'instant'}, ${postId})
           on conflict (user_id, thread_id) do nothing
         `)
       }
@@ -276,7 +276,7 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
       if (record.subscribe) {
         await tx.execute(sql`
           insert into thread_subscriptions (user_id, thread_id, mode, last_notified_post_id)
-          values (${record.authorUserId}, ${record.threadId}, 'instant', ${postId})
+          values (${record.authorUserId}, ${record.threadId}, ${record.subscribeMode ?? 'instant'}, ${postId})
           on conflict (user_id, thread_id) do nothing
         `)
       }

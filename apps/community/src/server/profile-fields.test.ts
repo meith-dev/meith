@@ -109,6 +109,8 @@ class FakeSettings implements MemberSettingsRepository {
     displayGroupId: null,
     massMailOptInAt: null,
     boardDigestCadence: 'weekly',
+    autoWatchOwnThreads: 'none',
+    autoWatchRepliedThreads: 'none',
   }
   async read() {
     return this.row

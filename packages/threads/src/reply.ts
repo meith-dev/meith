@@ -6,6 +6,7 @@ import {
   type AuthorRestriction,
   type ForumPostingTarget,
   MESSAGE_MIN,
+  type SubscriptionCadence,
   type ThreadAuthor,
   UNRESTRICTED,
 } from './compose'
@@ -25,6 +26,7 @@ export interface ReplyTarget {
 export interface ComposeReplyInput {
   readonly message: string
   readonly subscribe: boolean
+  readonly subscribeMode?: SubscriptionCadence
   readonly seenLastPostId: number | null
   readonly bypassesModeration: boolean
   readonly heldAsNewMember: boolean
@@ -43,6 +45,7 @@ export interface NewReplyRecord {
   readonly authorUsername: string
   readonly visibility: 'visible' | 'unapproved'
   readonly subscribe: boolean
+  readonly subscribeMode?: SubscriptionCadence
   readonly createdAt: Date
 }
 
@@ -130,6 +133,7 @@ export class ReplyComposer {
       authorUsername: author.username,
       visibility,
       subscribe: input.subscribe,
+      subscribeMode: input.subscribeMode ?? 'instant',
       createdAt: this.now(),
     })
 

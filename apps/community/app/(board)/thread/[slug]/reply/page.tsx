@@ -8,6 +8,7 @@ import { MultiQuoteSelection } from '@/components/content/multiquote-selection'
 import { ReplyForm } from '@/components/content/reply-form'
 import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { attachmentLimits, canAttach } from '@/server/attachments'
+import { autoWatchChecksByDefault, autoWatchPreference } from '@/server/auto-watch'
 import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { getActor } from '@/server/context'
@@ -86,6 +87,9 @@ export default async function ReplyPage({
   const EditorToolbar = requireSlot(theme, 'EditorToolbar')
   const translator = await getTranslator()
   const attachable = canAttach(actor, scope)
+  const subscribeDefault = autoWatchChecksByDefault(
+    await autoWatchPreference(actor.userId, 'reply'),
+  )
   const toolbarModel = locked
     ? null
     : await filterView(
@@ -113,6 +117,7 @@ export default async function ReplyPage({
               seenLastPostId={target.lastPostId}
               prefill={prefill}
               canSubscribe={authorizer.can(actor, 'forum.subscribe', scope)}
+              subscribeDefault={subscribeDefault}
               attachmentLimits={attachable ? attachmentLimits(scope) : null}
               draft={
                 actor.userId === null || drafts === null

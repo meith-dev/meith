@@ -38,6 +38,8 @@ class MemorySettings implements MemberSettingsRepository {
     displayGroupId: null,
     massMailOptInAt: null,
     boardDigestCadence: 'weekly',
+    autoWatchOwnThreads: 'none',
+    autoWatchRepliedThreads: 'none',
   }
   emailTaken = false
   held: MemberGroupChoice[] = [
@@ -68,6 +70,8 @@ class MemorySettings implements MemberSettingsRepository {
     timezone: string
     postsPerPage: number | null
     threadsPerPage: number | null
+    autoWatchOwnThreads: MemberSettings['autoWatchOwnThreads']
+    autoWatchRepliedThreads: MemberSettings['autoWatchRepliedThreads']
   }) {
     this.row = { ...this.row, ...input }
   }
@@ -280,6 +284,8 @@ describe('the options', () => {
       postsPerPage: '',
       threadsPerPage: '',
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
     expect(settings.row.timezone).toBe('Europe/London')
   })
@@ -292,6 +298,8 @@ describe('the options', () => {
       postsPerPage: '',
       threadsPerPage: '',
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
     expect(settings.row.timezone).toBe(AUTOMATIC_TIMEZONE)
   })
@@ -305,6 +313,8 @@ describe('the options', () => {
         postsPerPage: '',
         threadsPerPage: '',
         invisible: false,
+        autoWatchOwnThreads: 'none',
+        autoWatchRepliedThreads: 'none',
       }),
     ).rejects.toThrow('not a timezone')
   })
@@ -318,6 +328,8 @@ describe('the options', () => {
         postsPerPage: '',
         threadsPerPage: '',
         invisible: false,
+        autoWatchOwnThreads: 'none',
+        autoWatchRepliedThreads: 'none',
       }),
     ).rejects.toThrow('not a timezone')
   })
@@ -330,6 +342,8 @@ describe('the options', () => {
       postsPerPage: '',
       threadsPerPage: '',
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
     expect(settings.row.locale).toBe('pt-BR')
   })
@@ -342,6 +356,8 @@ describe('the options', () => {
       postsPerPage: '',
       threadsPerPage: '',
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
     expect(settings.row.locale).toBe(AUTOMATIC_LOCALE)
   })
@@ -355,6 +371,8 @@ describe('the options', () => {
         postsPerPage: '',
         threadsPerPage: '',
         invisible: false,
+        autoWatchOwnThreads: 'none',
+        autoWatchRepliedThreads: 'none',
       }),
     ).rejects.toThrow('not a language')
   })
@@ -367,6 +385,8 @@ describe('the options', () => {
       postsPerPage: '',
       threadsPerPage: '  ',
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
 
     expect(settings.row.postsPerPage).toBeNull()
@@ -383,9 +403,60 @@ describe('the options', () => {
           postsPerPage: value,
           threadsPerPage: '',
           invisible: false,
+          autoWatchOwnThreads: 'none',
+          autoWatchRepliedThreads: 'none',
         }),
       ).rejects.toThrow(/Posts per page/)
     }
+  })
+})
+
+describe('the auto-watch preferences', () => {
+  it('saves a cadence for each of the two preferences independently', async () => {
+    await service.saveOptions({
+      userId: 7,
+      timezone: 'UTC',
+      locale: 'auto',
+      postsPerPage: '',
+      threadsPerPage: '',
+      invisible: false,
+      autoWatchOwnThreads: 'instant',
+      autoWatchRepliedThreads: 'daily',
+    })
+
+    expect(settings.row.autoWatchOwnThreads).toBe('instant')
+    expect(settings.row.autoWatchRepliedThreads).toBe('daily')
+  })
+
+  it('accepts "none" as the off position', async () => {
+    await service.saveOptions({
+      userId: 7,
+      timezone: 'UTC',
+      locale: 'auto',
+      postsPerPage: '',
+      threadsPerPage: '',
+      invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
+    })
+
+    expect(settings.row.autoWatchOwnThreads).toBe('none')
+    expect(settings.row.autoWatchRepliedThreads).toBe('none')
+  })
+
+  it('refuses a cadence that is not one of the four subscription modes', async () => {
+    await expect(
+      service.saveOptions({
+        userId: 7,
+        timezone: 'UTC',
+        locale: 'auto',
+        postsPerPage: '',
+        threadsPerPage: '',
+        invisible: false,
+        autoWatchOwnThreads: 'sometimes',
+        autoWatchRepliedThreads: 'none',
+      }),
+    ).rejects.toThrow(/follow cadence/)
   })
 })
 

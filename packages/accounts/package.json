@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@meith/i18n": "workspace:*",
+    "@meith/subscriptions": "workspace:*",
     "hash-wasm": "^4.12.0"
   }
 }

@@ -48,6 +48,7 @@ test('a saved thread draft is listed, resumes with its text, and can be deleted'
   await page.waitForTimeout(2_000)
   await expect(page.getByText('Saved just now.')).toBeVisible()
 
+  await page.waitForLoadState('load')
   await page.goto('/usercp')
   await page.getByRole('complementary').getByRole('link', { name: 'Drafts' }).click()
   await expect(page).toHaveURL(/\/usercp\/drafts$/)
@@ -59,10 +60,13 @@ test('a saved thread draft is listed, resumes with its text, and can be deleted'
   await expect(page).toHaveURL(/\/200-general\/new$/)
   await expect(page.getByLabel('Message')).toHaveValue('I meant to come back to this.')
 
+  await page.waitForLoadState('load')
   await page.goto('/usercp/drafts')
   await page.getByRole('button', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
   await expect(page).toHaveURL(/\/usercp\/drafts$/)
   await expect(page.getByRole('listitem').filter({ hasText: 'General' })).toHaveCount(0)
+
+  await page.waitForLoadState('load')
 })

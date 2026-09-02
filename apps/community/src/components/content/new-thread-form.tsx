@@ -78,6 +78,7 @@ export function NewThreadForm({
   prefixes,
   requiresPrefix,
   canSubscribe,
+  subscribeDefault = false,
   canPostPoll,
   attachmentLimits,
   draft,
@@ -88,6 +89,7 @@ export function NewThreadForm({
   prefixes: readonly PrefixOption[]
   requiresPrefix: boolean
   canSubscribe: boolean
+  subscribeDefault?: boolean
   canPostPoll: boolean
   attachmentLimits: UploadLimits | null
   draft: Draft | null
@@ -224,7 +226,13 @@ export function NewThreadForm({
 
       {canSubscribe && (
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="subscribe" value="1" className="size-4" />
+          <input
+            type="checkbox"
+            name="subscribe"
+            value="1"
+            defaultChecked={subscribeDefault}
+            className="size-4"
+          />
           <span>{fromCopy(copy, 'composer.notifyReplies')}</span>
         </label>
       )}

@@ -7,6 +7,7 @@ import { requireSlot, slotCopy } from '@meith/theme-kit'
 import { NewThreadForm } from '@/components/content/new-thread-form'
 import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { attachmentLimits, canAttach } from '@/server/attachments'
+import { autoWatchChecksByDefault, autoWatchPreference } from '@/server/auto-watch'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
@@ -46,6 +47,9 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
   const prefixes = await threadWrites.listPrefixes(id)
 
   const attachTarget = { ...target, allowsAttachments: rules.allowAttachments }
+  const subscribeDefault = autoWatchChecksByDefault(
+    await autoWatchPreference(actor.userId, 'create'),
+  )
 
   const view = buildNewThreadView({
     t: await getTranslator(),
@@ -87,6 +91,7 @@ export default async function NewThreadPage({ params }: { params: Promise<{ slug
             prefixes={prefixes.map((p) => ({ id: p.id, label: p.label }))}
             requiresPrefix={rules.requiresPrefix}
             canSubscribe={authorizer.can(actor, 'forum.subscribe', target)}
+            subscribeDefault={subscribeDefault}
             canPostPoll={authorizer.can(actor, 'poll.post', target)}
             attachmentLimits={attachable ? attachmentLimits(attachTarget) : null}
             draft={
