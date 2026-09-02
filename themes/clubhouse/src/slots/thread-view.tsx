@@ -9,6 +9,7 @@ export function ThreadView({
   forum,
   replyHref,
   markReadAction,
+  watch,
   regions,
   copy,
 }: ThreadViewModel & { copy: SlotCopy }) {
@@ -19,6 +20,25 @@ export function ThreadView({
       <PageHead
         actions={
           <>
+            {watch != null && (
+              <form action={watch.action} method="post">
+                <button
+                  type="submit"
+                  className={cn(
+                    BUTTON,
+                    'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+                  )}
+                >
+                  {watch.subscribed ? (
+                    <>
+                      {c('watching')} <span aria-hidden="true">✓</span>
+                    </>
+                  ) : (
+                    c('watch')
+                  )}
+                </button>
+              </form>
+            )}
             {markReadAction !== null && (
               <form action={markReadAction} method="post">
                 <button

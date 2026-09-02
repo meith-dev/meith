@@ -388,6 +388,17 @@ export default async function ThreadPage({
 
   const wordFilter = await activeWordFilter()
 
+  const { subscriptions } = getContainer()
+  const followMode =
+    subscriptions === null || actor.userId === null
+      ? null
+      : await subscriptions.modeFor(actor.userId, 'thread', thread.id)
+  const followOffered = subscriptions !== null && actor.userId !== null
+  const followModes = buildSubscriptionsView({
+    rows: [],
+    now: new Date(),
+  }).modes
+
   const view = buildThreadView({
     thread,
     wordFilter,
@@ -403,6 +414,8 @@ export default async function ThreadPage({
       actor.userId === null || postPage.rows.at(-1) === undefined
         ? null
         : `/api/read/thread/${thread.id}?post=${postPage.rows.at(-1)!.id}`,
+    watchOffered: followOffered,
+    watchMode: followMode,
     now: new Date(),
     t: await getTranslator(),
     authorFields,
@@ -418,17 +431,6 @@ export default async function ThreadPage({
       `/thread/${thread.id}-${thread.slug}` +
       (after === undefined ? `?page=${page}` : `?after=${after}&page=${page}`),
   })
-
-  const { subscriptions } = getContainer()
-  const followMode =
-    subscriptions === null || actor.userId === null
-      ? null
-      : await subscriptions.modeFor(actor.userId, 'thread', thread.id)
-  const followOffered = subscriptions !== null && actor.userId !== null
-  const followModes = buildSubscriptionsView({
-    rows: [],
-    now: new Date(),
-  }).modes
 
   const theme = await currentTheme()
   const ThreadView = requireSlot(theme, 'ThreadView')

@@ -361,13 +361,19 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       forum: { label: 'General discussion', href: '/f/3-general' },
       replyHref: '/thread/91-bikeshedding/reply',
       markReadAction: '/thread/91-bikeshedding/mark-read',
+      watch: { subscribed: true, action: '/thread/91-bikeshedding/unwatch' },
       regions: {
         posts: region('posts'),
         pagination: region('pagination'),
         quickReply: region('quick-reply'),
       },
     },
-    requires: ['Bikeshedding the bike shed', region('posts'), region('pagination')],
+    requires: [
+      'Bikeshedding the bike shed',
+      '/thread/91-bikeshedding/unwatch',
+      region('posts'),
+      region('pagination'),
+    ],
   },
 
   PostBit: {

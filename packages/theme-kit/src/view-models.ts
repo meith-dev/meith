@@ -899,12 +899,38 @@ export interface SubforumListModel {
   readonly forums: readonly ForumRowModel[]
 }
 
+/**
+ * `ThreadViewModel.watch` — the header's one-tap subscribe/unsubscribe toggle.
+ *
+ * `action` is already resolved to whichever direction flips `subscribed`: a
+ * theme never branches on `subscribed` to pick a URL, only to pick a label —
+ * "Watch" over `action` when `false`, "Watching" over the same `action` when
+ * `true`. Subscribing this way always uses the board's default cadence; a
+ * member who wants a slower one still has the cadence picker in
+ * `ThreadViewModel.regions.afterContent`, which this toggle sits beside
+ * rather than replaces.
+ */
+export interface ThreadWatchModel {
+  readonly subscribed: boolean
+  /** A native POST target that flips `subscribed`. */
+  readonly action: string
+}
+
 export interface ThreadViewModel {
   readonly thread: ThreadRowModel
   readonly forum: LinkModel
   readonly replyHref: string | null
   /** A native POST target for the last visible post on this page. */
   readonly markReadAction: string | null
+  /**
+   * The header's watch toggle, or `null` for a guest — who cannot subscribe
+   * to anything — and on a board running without the subscription service.
+   *
+   * Optional under the versioning policy: a theme written against 0.23
+   * compiles and renders no toggle, the same as it already does for the
+   * cadence picker in `regions.afterContent`.
+   */
+  readonly watch?: ThreadWatchModel | null
   readonly regions: {
     /**
      * Controls scoped to this thread — following it, rating it, its poll, and

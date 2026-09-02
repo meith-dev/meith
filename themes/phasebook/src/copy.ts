@@ -245,6 +245,8 @@ export function threadViewCopy(t: Translator): SlotCopy {
     'phasebook.threadView.replyAction',
     'phasebook.threadView.view.one',
     'phasebook.threadView.view.other',
+    'phasebook.threadView.watch',
+    'phasebook.threadView.watching',
   ])
 }
 

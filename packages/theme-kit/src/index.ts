@@ -139,6 +139,7 @@ export type {
   ThreadRowModel,
   ThreadRowSlotModel,
   ThreadViewModel,
+  ThreadWatchModel,
   TimeModel,
   UserPanelModel,
   UserRefModel,
