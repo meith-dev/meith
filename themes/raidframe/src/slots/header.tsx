@@ -143,7 +143,7 @@ export function Header({
 
       {navigation.length > 0 && (
         <nav aria-label={c('sectionsAriaLabel')} className="border-b border-border bg-card/60">
-          <div className="hidden flex-wrap lg:flex">
+          <div data-nav-view="desktop" className="hidden flex-wrap lg:flex">
             {navigation.map((item) => (
               <span key={item.href} className="group relative">
                 <a
@@ -158,7 +158,7 @@ export function Header({
             ))}
           </div>
 
-          <div className="px-4 py-1 lg:hidden">
+          <div data-nav-view="mobile" className="px-4 py-1 lg:hidden">
             <details data-nav-disclosure className="group">
               <summary className="flex min-h-11 cursor-default list-none items-center gap-2 font-mono text-[0.6875rem] font-semibold tracking-[0.14em] text-foreground uppercase select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none">
                 <Chevron className="size-3 shrink-0 transition-transform group-open:rotate-90" />

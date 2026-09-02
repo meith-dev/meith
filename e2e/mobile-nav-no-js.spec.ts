@@ -8,12 +8,12 @@ test.use({ javaScriptEnabled: false, viewport: MOBILE })
 
 test('the collapsed header nav is reachable without JavaScript', async ({ page }) => {
   await page.goto('/')
-  const banner = page.getByRole('banner')
+  const mobileNav = page.getByRole('banner').locator('[data-nav-view="mobile"]')
 
-  const link = banner.getByRole('link', { name: 'New posts' })
+  const link = mobileNav.getByRole('link', { name: 'New posts' })
   await expect(link).toBeHidden()
 
-  const toggle = banner.locator('summary').filter({ hasText: 'Board sections' })
+  const toggle = mobileNav.locator('summary').filter({ hasText: 'Board sections' })
   await expect(toggle).toBeVisible()
 
   await toggle.click()
@@ -39,15 +39,15 @@ test("a nav item's dropdown opens and closes via its own disclosure, without Jav
   await expect(page.getByText('Added.')).toBeVisible()
 
   await page.goto('/')
-  const banner = page.getByRole('banner')
-  await banner.locator('summary').filter({ hasText: 'Board sections' }).click()
+  const mobileNav = page.getByRole('banner').locator('[data-nav-view="mobile"]')
+  await mobileNav.locator('summary').filter({ hasText: 'Board sections' }).click()
 
-  const submenuToggle = banner
+  const submenuToggle = mobileNav
     .locator('summary')
-    .filter({ hasText: 'Members' })
+    .filter({ has: page.getByRole('link', { name: 'Members', exact: true }) })
     .locator('span')
     .last()
-  const child = banner.getByRole('link', { name: 'Guidelines' })
+  const child = mobileNav.getByRole('link', { name: 'Guidelines', exact: true })
 
   await expect(child).toBeHidden()
   await submenuToggle.click()

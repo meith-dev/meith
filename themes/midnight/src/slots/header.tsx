@@ -135,6 +135,7 @@ export function Header({
       {navigation.length > 0 && (
         <nav aria-label={c('sectionsLabel')} className="border-b border-border">
           <div
+            data-nav-view="desktop"
             className={`-mx-4 hidden px-4 sm:-mx-6 sm:px-6 lg:flex ${
               opensMenus
                 ? 'flex-wrap'
@@ -155,7 +156,7 @@ export function Header({
             ))}
           </div>
 
-          <div className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
+          <div data-nav-view="mobile" className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
             <details data-nav-disclosure className="group">
               <summary className="flex min-h-11 cursor-default list-none items-center gap-2 font-mono text-xs uppercase tracking-wide text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none">
                 <Chevron className="size-3 shrink-0 transition-transform group-open:rotate-90" />

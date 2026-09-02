@@ -151,6 +151,7 @@ export function Header({
         <nav aria-label={c('boardSections')} className="border-b border-border bg-surface">
           <div className={PAGE}>
             <ul
+              data-nav-view="desktop"
               className={`-mx-4 hidden items-stretch px-4 sm:-mx-6 sm:px-6 lg:flex ${
                 opensMenus ? 'flex-wrap' : 'overflow-x-auto'
               }`}
@@ -169,7 +170,7 @@ export function Header({
               ))}
             </ul>
 
-            <div className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
+            <div data-nav-view="mobile" className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
               <details data-nav-disclosure className="group">
                 <summary
                   className={`${HEADING} flex min-h-11 cursor-default list-none items-center gap-2 text-sm text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none`}

@@ -6,10 +6,10 @@ test.use({ viewport: MOBILE })
 
 test('an outside tap closes the open mobile nav disclosure', async ({ page }) => {
   await page.goto('/')
-  const banner = page.getByRole('banner')
+  const mobileNav = page.getByRole('banner').locator('[data-nav-view="mobile"]')
 
-  const toggle = banner.locator('summary').filter({ hasText: 'Board sections' })
-  const link = banner.getByRole('link', { name: 'New posts' })
+  const toggle = mobileNav.locator('summary').filter({ hasText: 'Board sections' })
+  const link = mobileNav.getByRole('link', { name: 'New posts' })
 
   await toggle.click()
   await expect(link).toBeVisible()
@@ -22,10 +22,10 @@ test('an outside tap closes the open mobile nav disclosure', async ({ page }) =>
 
 test('Escape closes the open mobile nav disclosure', async ({ page }) => {
   await page.goto('/')
-  const banner = page.getByRole('banner')
+  const mobileNav = page.getByRole('banner').locator('[data-nav-view="mobile"]')
 
-  const toggle = banner.locator('summary').filter({ hasText: 'Board sections' })
-  const link = banner.getByRole('link', { name: 'New posts' })
+  const toggle = mobileNav.locator('summary').filter({ hasText: 'Board sections' })
+  const link = mobileNav.getByRole('link', { name: 'New posts' })
 
   await toggle.click()
   await expect(link).toBeVisible()

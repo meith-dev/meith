@@ -631,7 +631,21 @@ rail (`themes/default/src/slots/panel-nav.tsx`). A theme that renders
   rather than a hover panel. Give every submenu `<details>` in one `Header`
   the same `name` attribute — the HTML standard makes same-named `<details>`
   siblings mutually exclusive, so opening one closes another without a line
-  of script.
+  of script. That attribute is a recent addition (Chrome 120, Firefox 124,
+  Safari 17.4 — late 2023 into early 2024) and degrades gracefully: on an
+  older browser each submenu simply stops auto-closing its siblings and
+  keeps opening and closing independently, with no script involved either
+  way, so this is never a no-JS-safety concern — only a tidiness one.
+
+Both blocks render the same links at once — only CSS decides which one a
+reader sees — so anything that inspects the DOM directly (a test, a script)
+rather than asking for what is actually rendered will find every link
+twice. Mark the two blocks with `data-nav-view="desktop"` and
+`data-nav-view="mobile"` so a test can say which copy it means: an
+accessibility-tree query (`getByRole`) already only sees the one CSS is
+showing and needs no help, but a raw CSS locator (`page.locator(...)`,
+`toHaveCount`) does not know about `display: none` at all and must be
+scoped to one block explicitly.
 
 This is no-JS-safe by construction: a `<details>` opens and closes on tap or
 click with no script running at all, which is what lets the mobile nav reach

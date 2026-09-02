@@ -147,6 +147,7 @@ export function Header({
         {navigation.length > 0 && (
           <nav
             aria-label={c('sectionsAriaLabel')}
+            data-nav-view="desktop"
             className="hidden min-w-0 flex-1 justify-center lg:flex"
           >
             <ul className="flex items-center gap-1">
@@ -170,7 +171,11 @@ export function Header({
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label={c('sectionsAriaLabel')} className="border-t border-border lg:hidden">
+        <nav
+          aria-label={c('sectionsAriaLabel')}
+          data-nav-view="mobile"
+          className="border-t border-border lg:hidden"
+        >
           <div className={`${PAGE} py-1`}>
             <details data-nav-disclosure className="group">
               <summary className="flex min-h-11 cursor-default list-none items-center gap-2 text-sm font-medium text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none">
