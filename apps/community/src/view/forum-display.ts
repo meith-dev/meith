@@ -11,7 +11,7 @@ import type {
 } from '@meith/theme-kit'
 import type { ReadState, ThreadListingRow, ThreadPage } from '@meith/threads'
 
-import { forumHref } from './board-index'
+import { forumHref, hydrateForumRow } from './board-index'
 import { count } from './count'
 import { type MemberIdentity, nameClassOf } from './member-identity'
 import { memberHref } from './member-profile'
@@ -53,9 +53,22 @@ function lastPost(
 function forum(
   row: ForumListingRow,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
+  unreadForumIds: ReadonlySet<number> | undefined,
+  now: Date,
   t: Translator | undefined,
+  identities: ReadonlyMap<number, MemberIdentity> | undefined,
+  wordFilter: CompiledWordFilter | undefined,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false
+  const hydration = hydrateForumRow(
+    row,
+    ownThreadsOnly,
+    unreadForumIds,
+    now,
+    t,
+    identities,
+    wordFilter,
+  )
   return {
     id: row.id,
     title: row.title,
@@ -64,8 +77,8 @@ function forum(
     type: row.type,
     threadCount: count(ownThreadsOnly ? 0 : row.threadCount, t),
     postCount: count(ownThreadsOnly ? 0 : row.postCount, t),
-    lastPost: null,
-    isUnread: false,
+    lastPost: hydration.lastPost,
+    isUnread: hydration.isUnread,
     subforums: [],
   }
 }
@@ -87,7 +100,7 @@ export function threadRowModel(
   return {
     id: row.id,
     title: filterWords(row.title, wordFilter),
-    href: threadHref(row),
+    href: isUnread ? `${threadHref(row)}?goto=unread` : threadHref(row),
     prefix: row.prefix,
     author: {
       userId: row.authorUserId,
@@ -115,7 +128,7 @@ export interface ForumDisplayInput {
   readonly nextHref: string | null
   readonly pagination?: PaginationModel
   readonly newThreadHref?: string | null
-  readonly readState?: Pick<ReadState, 'forumReadAt' | 'threadLastPostId'> | null
+  readonly readState?: Pick<ReadState, 'forumReadAt' | 'threadLastPostId' | 'unreadForumIds'> | null
   readonly markReadAction?: string | null
   readonly now: Date
   readonly t?: Translator
@@ -131,9 +144,18 @@ export interface ForumDisplayView {
 }
 
 export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayView {
+  const unreadForumIds = input.readState?.unreadForumIds
   return {
     display: {
-      forum: forum(input.forum, input.ownThreadsOnlyForumIds, input.t),
+      forum: forum(
+        input.forum,
+        input.ownThreadsOnlyForumIds,
+        unreadForumIds,
+        input.now,
+        input.t,
+        input.identities,
+        input.wordFilter,
+      ),
       newThreadHref: input.newThreadHref ?? null,
       markReadAction: input.markReadAction ?? null,
     },
@@ -141,7 +163,17 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
       input.subforums.length === 0
         ? null
         : {
-            forums: input.subforums.map((row) => forum(row, input.ownThreadsOnlyForumIds, input.t)),
+            forums: input.subforums.map((row) =>
+              forum(
+                row,
+                input.ownThreadsOnlyForumIds,
+                unreadForumIds,
+                input.now,
+                input.t,
+                input.identities,
+                input.wordFilter,
+              ),
+            ),
           },
     threads: input.page.rows.map((row) =>
       threadRowModel(

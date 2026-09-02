@@ -18,9 +18,7 @@ function forumRow(page: Page): Locator {
   return row(page, 'General Discussion', page.getByLabel('Main'))
 }
 
-test('a thread somebody else posts in is unread until the member marks it read', async ({
-  browser,
-}) => {
+test('a thread somebody else posts in is unread until the member reads it', async ({ browser }) => {
   const posterContext = await browser.newContext()
   const readerContext = await browser.newContext()
   const posterPage = await posterContext.newPage()
@@ -51,12 +49,57 @@ test('a thread somebody else posts in is unread until the member marks it read',
 
     await readerPage.goto(threadUrl)
     await readerPage.goto('/200-general')
-    await expect(row(readerPage, title)).toContainText('(new posts)')
+    await expect(row(readerPage, title)).toBeVisible()
+    await expect(row(readerPage, title)).not.toContainText('(new posts)')
+  } finally {
+    await posterContext.close()
+    await readerContext.close()
+  }
+})
+
+test('an unread row’s link jumps straight to the reply the member has not seen', async ({
+  browser,
+}) => {
+  const posterContext = await browser.newContext()
+  const readerContext = await browser.newContext()
+  const posterPage = await posterContext.newPage()
+  const readerPage = await readerContext.newPage()
+
+  try {
+    await signUp(posterPage, 'gotoposter')
+    await signUp(readerPage, 'gotoreader')
+
+    await posterPage.goto('/200-general')
+    await posterPage.getByRole('link', { name: 'New thread' }).click()
+    const title = `Jump to unread ${Date.now().toString(36)}`
+    await posterPage.getByLabel('Subject').fill(title)
+    await posterPage.getByLabel('Message').fill('First post, already read.')
+    await posterPage.getByRole('button', { name: 'Post thread' }).click()
+    await expect(posterPage).toHaveURL(/\/thread\/\d+-/)
+    const threadUrl = posterPage.url().split('#')[0]!
 
     await readerPage.goto(threadUrl)
-    await readerPage.getByRole('button', { name: 'Mark read' }).click()
     await readerPage.goto('/200-general')
-    await expect(row(readerPage, title)).toBeVisible()
+    await expect(row(readerPage, title)).not.toContainText('(new posts)')
+
+    const reply = 'A reply the reader has not seen yet.'
+    await posterPage.goto(`${threadUrl}/reply`)
+    await posterPage.getByLabel('Message').fill(reply)
+    await posterPage.getByRole('button', { name: 'Post reply' }).click()
+    await expect(posterPage).toHaveURL(/#post-\d+$/)
+    const postAnchor = new URL(posterPage.url()).hash
+
+    await readerPage.goto('/200-general')
+    await expect(row(readerPage, title)).toContainText('(new posts)')
+
+    const link = row(readerPage, title).getByRole('link', { name: title, exact: true })
+    await expect(link).toHaveAttribute('href', `${new URL(threadUrl).pathname}?goto=unread`)
+    await link.click()
+
+    await expect(readerPage).toHaveURL(new RegExp(`\\${postAnchor}$`))
+    await expect(readerPage.getByText(reply)).toBeVisible()
+
+    await readerPage.goto('/200-general')
     await expect(row(readerPage, title)).not.toContainText('(new posts)')
   } finally {
     await posterContext.close()

@@ -52,17 +52,19 @@ interface SeedThread {
   readonly authorUserId?: number | null
   readonly replyCount?: number
   readonly lastPostAt?: string
+  readonly lastPostId?: number
   readonly visibility?: string
 }
 
 async function seedThread(thread: SeedThread): Promise<void> {
   await db.execute(sql`
     insert into threads (id, forum_id, author_user_id, author_username, title, slug,
-                         reply_count, last_post_at, visibility)
+                         reply_count, last_post_at, last_post_id, visibility)
     values (${thread.id}, ${thread.forumId ?? OPEN}, ${thread.authorUserId ?? ANN}, 'ann',
             ${`Thread ${thread.id}`}, ${`t-${thread.id}`},
             ${thread.replyCount ?? 0},
             ${thread.lastPostAt ?? '2026-01-01T00:00:00Z'},
+            ${thread.lastPostId ?? thread.id},
             ${thread.visibility ?? 'visible'})
   `)
 }
@@ -218,6 +220,40 @@ describe('paging', () => {
 
     expect(seen).toHaveLength(6)
     expect(new Set(seen).size).toBe(6)
+  })
+})
+
+describe('unread', () => {
+  it('lists a thread never read, and hides one already caught up', async () => {
+    await seedThread({ id: 1, lastPostAt: '2026-01-01T00:00:00Z' })
+    await seedThread({ id: 2, lastPostAt: '2026-01-02T00:00:00Z' })
+    await db.execute(sql`
+      insert into threads_read (user_id, thread_id, last_read_post_id, read_at)
+      values (${ANN}, 2, 999999, '2026-01-03T00:00:00Z')
+    `)
+
+    const page = await repo.unread(ANN, query, scope())
+    expect(page.rows.map((row) => row.threadId)).toEqual([1])
+  })
+
+  it('hides a thread the forum-level mark-all-read already covers', async () => {
+    await seedThread({ id: 1, lastPostAt: '2026-01-01T00:00:00Z' })
+    await db.execute(sql`
+      insert into forums_read (user_id, forum_id, read_at)
+      values (${ANN}, ${OPEN}, '2026-06-01T00:00:00Z')
+    `)
+
+    expect((await repo.unread(ANN, query, scope())).rows).toEqual([])
+  })
+
+  it('surfaces a thread again once a post lands after the forum was marked read', async () => {
+    await seedThread({ id: 1, lastPostAt: '2026-08-01T00:00:00Z' })
+    await db.execute(sql`
+      insert into forums_read (user_id, forum_id, read_at)
+      values (${ANN}, ${OPEN}, '2026-06-01T00:00:00Z')
+    `)
+
+    expect((await repo.unread(ANN, query, scope())).rows.map((r) => r.threadId)).toEqual([1])
   })
 })
 

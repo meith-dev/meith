@@ -30,9 +30,28 @@ test('each discovery view is its own address, reachable from the tabs', async ({
   }
 })
 
-test('a view that is not one of the five is a 404', async ({ page }) => {
+test('a view that is not one of the offered ones is a 404', async ({ page }) => {
   const response = await page.goto('/discover/everything')
   expect(response?.status()).toBe(404)
+})
+
+test('Unread is offered to a member but hidden from a guest', async ({ page }) => {
+  await page.goto('/discover/new')
+  await expect(
+    page.getByRole('navigation', { name: 'Discovery views' }).getByRole('link', { name: 'Unread' }),
+  ).toHaveCount(0)
+
+  await page.goto('/discover/unread')
+  await expect(page.locator('#board-content').getByText('Sign in')).toBeVisible()
+
+  await signUp(page, 'unreadview')
+  await page.goto('/discover/new')
+  await page
+    .getByRole('navigation', { name: 'Discovery views' })
+    .getByRole('link', { name: 'Unread', exact: true })
+    .click()
+  await expect(page).toHaveURL('/discover/unread')
+  await expect(page.getByRole('heading', { name: 'Unread' })).toBeVisible()
 })
 
 test('a member’s own thread appears under My threads and My posts', async ({ page }) => {

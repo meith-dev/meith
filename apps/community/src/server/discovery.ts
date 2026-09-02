@@ -14,7 +14,14 @@ import { getContainer } from './container'
 
 export const DISCOVER_PAGE = 20
 
-export const DISCOVERY_VIEWS = ['new', 'today', 'mine', 'participated', 'unanswered'] as const
+export const DISCOVERY_VIEWS = [
+  'new',
+  'today',
+  'unread',
+  'mine',
+  'participated',
+  'unanswered',
+] as const
 export type DiscoveryView = (typeof DISCOVERY_VIEWS)[number]
 
 export function isDiscoveryView(value: string): value is DiscoveryView {
@@ -53,6 +60,9 @@ export async function runDiscovery(input: {
       return repo.activeSince(startOfDay(input.now, input.timeZone), query, scope)
     case 'unanswered':
       return repo.unanswered(query, scope)
+    case 'unread':
+      if (input.actor.userId === null) throw new ForbiddenError(msg('error.app.sign-see-threads'))
+      return repo.unread(input.actor.userId, query, scope)
     case 'mine':
       if (input.actor.userId === null) throw new ForbiddenError(msg('error.app.sign-see-threads'))
       return repo.startedBy(input.actor.userId, query, scope)

@@ -1671,6 +1671,8 @@
   "discovery.today.label": "Today's posts",
   "discovery.unanswered.blurb": "Threads nobody has replied to yet — a good place to help.",
   "discovery.unanswered.label": "Unanswered",
+  "discovery.unread.blurb": "Threads with something new since you last read them.",
+  "discovery.unread.label": "Unread",
   "draftsPage.confirm.delete": "Delete this draft? What you wrote will be gone for good.",
   "draftsPage.delete": "Delete",
   "draftsPage.kind.reply": "Reply",
