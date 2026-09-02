@@ -70,6 +70,7 @@
       "@meith/relations": ["./packages/relations/src/index.ts"],
       "@meith/reputation": ["./packages/reputation/src/index.ts"],
       "@meith/polls": ["./packages/polls/src/index.ts"],
+      "@meith/polls/*": ["./packages/polls/src/*"],
       "@meith/signatures": ["./packages/signatures/src/index.ts"],
       "@meith/admin": ["./packages/admin/src/index.ts"],
       "@meith/posts/*": ["./packages/posts/src/*"],

@@ -49,6 +49,7 @@
       "@meith/notifications": ["../../packages/notifications/src/index.ts"],
       "@meith/moderation/*": ["../../packages/moderation/src/*"],
       "@meith/polls": ["../../packages/polls/src/index.ts"],
+      "@meith/polls/*": ["../../packages/polls/src/*"],
       "@meith/drafts": ["../../packages/drafts/src/index.ts"],
       "@meith/posts": ["../../packages/posts/src/index.ts"],
       "@meith/profile-fields": ["../../packages/profile-fields/src/index.ts"],

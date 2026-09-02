@@ -40,6 +40,61 @@ test('a thread opens with a poll, and another member votes in it', async ({ brow
     await expect(pollAfter.getByText('Yes (1)')).toBeVisible()
     await expect(pollAfter.getByRole('button', { name: 'Vote' })).toHaveCount(0)
     await expect(pollAfter.getByText('1 vote')).toBeVisible()
+    await expect(pollAfter.getByText('100%')).toBeVisible()
+  } finally {
+    await authorContext.close()
+    await voterContext.close()
+  }
+})
+
+test('a poll grows past its starting options through the More options round trip', async ({
+  browser,
+}) => {
+  const authorContext = await browser.newContext()
+  const voterContext = await browser.newContext()
+  const authorPage = await authorContext.newPage()
+  const voterPage = await voterContext.newPage()
+
+  try {
+    await signUp(authorPage, 'growauthor')
+    await signUp(voterPage, 'growvoter')
+
+    await authorPage.goto('/200-general')
+    await authorPage.getByRole('link', { name: 'New thread' }).click()
+    const title = `Favourite flavour? ${Date.now()}`
+    await authorPage.getByLabel('Subject').fill(title)
+    await authorPage.getByLabel('Message').fill('More than four choices, please.')
+    await authorPage.getByText('Add a poll').click()
+    await authorPage.getByLabel('Question').fill('Favourite flavour?')
+    await authorPage.getByLabel('Option 1').fill('Vanilla')
+    await authorPage.getByLabel('Option 2').fill('Chocolate')
+    await authorPage.getByLabel('Option 3').fill('Strawberry')
+    await authorPage.getByLabel('Option 4').fill('Mint')
+
+    await authorPage.getByRole('button', { name: 'More options' }).click()
+    await expect(authorPage.getByLabel('Option 8')).toBeVisible()
+    await expect(authorPage.getByLabel('Option 1')).toHaveValue('Vanilla')
+    await expect(authorPage.getByLabel('Question')).toHaveValue('Favourite flavour?')
+
+    await authorPage.getByLabel('Option 5').fill('Coffee')
+    await authorPage.getByLabel('Option 6').fill('Pistachio')
+    await authorPage.getByRole('button', { name: 'Post thread' }).click()
+    await expect(authorPage).toHaveURL(/\/thread\/\d+-/)
+    const threadUrl = authorPage.url()
+
+    const authorPoll = authorPage.getByRole('region', { name: 'Poll' })
+    await expect(authorPoll.getByText('Pistachio (0)')).toBeVisible()
+    await expect(authorPoll.getByText('0 votes')).toBeVisible()
+
+    await voterPage.goto(threadUrl)
+    const poll = voterPage.getByRole('region', { name: 'Poll' })
+    await poll.getByLabel('Coffee (0)').check()
+    await poll.getByRole('button', { name: 'Vote' }).click()
+
+    const voted = voterPage.getByRole('region', { name: 'Poll' })
+    await expect(voted.getByText('Coffee (1)')).toBeVisible()
+    await expect(voted.getByText('100%')).toBeVisible()
+    await expect(voted.getByText('1 vote')).toBeVisible()
   } finally {
     await authorContext.close()
     await voterContext.close()

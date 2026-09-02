@@ -1530,6 +1530,7 @@
   "composer.multiquote.tooltip": "Collect posts to quote together in one reply.",
   "composer.newThread.addPoll": "Add a poll",
   "composer.newThread.choosePrefix": "Choose a prefix…",
+  "composer.newThread.morePollOptions": "More options",
   "composer.newThread.noPrefix": "None",
   "composer.newThread.option": "Option {number}",
   "composer.newThread.optional": "Optional",

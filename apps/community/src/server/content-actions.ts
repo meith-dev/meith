@@ -11,6 +11,7 @@ import {
   SIGNATURE_FEATURES,
   vocabularyOptions,
 } from '@meith/markdown'
+import { POLL_OPTION_MAX } from '@meith/polls'
 import type { PostEditor } from '@meith/posts'
 
 import { postLink } from '../view/post-link'
@@ -23,7 +24,7 @@ import {
   stageAttachments,
   submittedFiles,
 } from './attachments'
-import type { FormState } from './auth-form-state'
+import type { FormState, PollDraftValues } from './auth-form-state'
 import { requireConfirmation } from './confirm'
 import { getContainer } from './container'
 import { activeVocabulary } from './content-admin'
@@ -112,6 +113,41 @@ function pollChoiceLimit(form: FormData): number {
   return Number.isSafeInteger(limit) && limit >= 0 ? limit : 1
 }
 
+const POLL_OPTION_ADD_STEP = 4
+
+function pollOptionValues(form: FormData): readonly string[] {
+  return form.getAll('pollOption').filter((value): value is string => typeof value === 'string')
+}
+
+function pollDraftFrom(form: FormData): PollDraftValues {
+  return {
+    question: field(form, 'pollQuestion'),
+    options: pollOptionValues(form),
+    closesAt: field(form, 'pollClosesAt'),
+    maxOptions: field(form, 'pollMaxOptions'),
+    allowRevote: checkbox(form, 'pollAllowRevote'),
+    publicVotes: checkbox(form, 'pollPublicVotes'),
+  }
+}
+
+function grownPollDraft(form: FormData): PollDraftValues {
+  const draft = pollDraftFrom(form)
+  const slots = Math.min(draft.options.length + POLL_OPTION_ADD_STEP, POLL_OPTION_MAX)
+  return {
+    ...draft,
+    options: Array.from({ length: slots }, (_, index) => draft.options[index] ?? ''),
+  }
+}
+
+function pollClosingTime(value: string): Date | null {
+  const trimmed = value.trim()
+  if (trimmed === '') return null
+
+  const at = new Date(`${trimmed}Z`)
+  if (Number.isNaN(at.getTime())) throw new ValidationError(msg('error.app.valid-date'))
+  return at
+}
+
 const toFormState = formStateReporter('content-actions', 'unexpected error writing content')
 
 export interface ComposerAutosaveInput {
@@ -189,16 +225,17 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
   const message = field(form, 'message')
   const prefixId = field(form, 'prefixId') === '' ? null : positiveIntIn(field(form, 'prefixId'))
   const subscribe = checkbox(form, 'subscribe')
-  const pollQuestion = field(form, 'pollQuestion')
-  const pollOptions = form
-    .getAll('pollOption')
-    .filter((value): value is string => typeof value === 'string')
+  const poll = pollDraftFrom(form)
   const values = { title, message, prefixId: field(form, 'prefixId') }
 
-  if (forumId === null) return { error: await tr('notice.app.forum-exist'), values }
+  if (forumId === null) return { error: await tr('notice.app.forum-exist'), values, poll }
 
-  if (field(form, 'intent') === 'preview') {
-    return { notice: 'preview', values, preview: await previewHtml(message) }
+  const intent = field(form, 'intent')
+  if (intent === 'preview') {
+    return { notice: 'preview', values, poll, preview: await previewHtml(message) }
+  }
+  if (intent === 'more_options') {
+    return { values, poll: grownPollDraft(form) }
   }
 
   const actor = await getActor()
@@ -210,10 +247,10 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
     resolved = await resolveThreadTarget(actor, forumId)
     const userId = actor.userId!
 
-    if (field(form, 'intent') === 'save_draft') {
+    if (intent === 'save_draft') {
       if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
       await drafts.save(userId, { forumId, threadId: null, title, message, prefixId })
-      return { notice: 'saved', values }
+      return { notice: 'saved', values, poll }
     }
 
     const staged = await stageAttachments(actor, resolved.scope, await submittedFiles(form))
@@ -224,14 +261,15 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
       prefixId,
       subscribe,
       poll:
-        pollQuestion === '' && pollOptions.every((option) => option.trim() === '')
+        poll.question === '' && poll.options.every((option) => option.trim() === '')
           ? undefined
           : {
-              question: pollQuestion,
-              options: pollOptions,
+              question: poll.question,
+              options: poll.options,
+              closesAt: pollClosingTime(poll.closesAt),
               maxOptions: pollChoiceLimit(form),
-              allowRevote: checkbox(form, 'pollAllowRevote'),
-              publicVotes: checkbox(form, 'pollPublicVotes'),
+              allowRevote: poll.allowRevote,
+              publicVotes: poll.publicVotes,
             },
     })
 
@@ -244,7 +282,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
     )
     await drafts?.remove(userId, forumId, null)
   } catch (err) {
-    return toFormState(err, values)
+    return { ...(await toFormState(err, values)), poll }
   }
 
   if (created.visibility === 'unapproved') {

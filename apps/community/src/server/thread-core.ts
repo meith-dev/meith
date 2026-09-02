@@ -62,6 +62,7 @@ export interface SubmitThreadInput {
     | {
         readonly question: string
         readonly options: readonly string[]
+        readonly closesAt?: Date | null
         readonly maxOptions?: number
         readonly allowRevote?: boolean
         readonly publicVotes?: boolean
@@ -139,7 +140,7 @@ export async function submitThread(
             poll: {
               question: input.poll.question,
               options: input.poll.options,
-              closesAt: null,
+              closesAt: input.poll.closesAt ?? null,
               ...(input.poll.maxOptions === undefined ? {} : { maxOptions: input.poll.maxOptions }),
               ...(input.poll.allowRevote === undefined
                 ? {}
