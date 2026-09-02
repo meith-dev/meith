@@ -65,6 +65,12 @@ export {
   resolvePushConfig,
 } from './push'
 export {
+  DEFAULT_SEARCH_LANGUAGE,
+  SEARCH_LANGUAGE_OPTIONS,
+  SEARCH_LANGUAGES,
+  type SearchLanguage,
+} from './search-languages'
+export {
   type SaveResult,
   type SettingsRepository,
   SettingsSnapshot,

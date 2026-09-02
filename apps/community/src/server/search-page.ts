@@ -30,7 +30,13 @@ import { REFINE_FIELDS } from '@/view/search-controls'
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
 import { filterView, viewerRef } from './plugin-view'
-import { requireSearch, requireSearchEnabled, searchMinWordLength, searchScopeFor } from './search'
+import {
+  requireSearch,
+  requireSearchEnabled,
+  searchLanguage,
+  searchMinWordLength,
+  searchScopeFor,
+} from './search'
 import { getSettings } from './settings'
 
 export const SEARCH_PAGE = 20
@@ -149,7 +155,7 @@ export async function openSearch(input: {
   const refine = trimRefinement(input.refine, filters)
   const effective = narrowFilters(filters, refine)
   const scope = await searchScopeFor(input.actor)
-  const provider = requireSearch()
+  const provider = requireSearch(await searchLanguage())
 
   const [results, summary] = await Promise.all([
     provider.search(
