@@ -143,7 +143,7 @@ export function Header({
   const hasNavigation = navigation.length > 0
 
   return (
-    <header className="relative border-t-2 border-b border-t-primary/70 border-b-border bg-card">
+    <header className="relative border-b border-b-border bg-card">
       <div className={`${PAGE} flex flex-wrap items-center gap-x-4 gap-y-3 py-3`}>
         <a
           href={homeHref}
