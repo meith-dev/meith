@@ -368,7 +368,12 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
         quickReply: region('quick-reply'),
       },
     },
-    requires: ['Bikeshedding the bike shed', region('posts'), region('pagination')],
+    requires: [
+      'Bikeshedding the bike shed',
+      '/thread/91-bikeshedding/unwatch',
+      region('posts'),
+      region('pagination'),
+    ],
   },
 
   PostBit: {

@@ -24,13 +24,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const thread = await threads.findById(threadId, PUBLIC_CONTENT, ALL_THREAD_AUTHORS)
   if (!thread) return seeOther('/')
 
-  await subscriptions.unsubscribe({ userId: actor.userId, target: 'thread', targetId: threadId })
+  const unsubscribed = await subscriptions.unsubscribe({
+    userId: actor.userId,
+    target: 'thread',
+    targetId: threadId,
+  })
 
-  await emitEvent(
-    'subscription.changed',
-    { userId: actor.userId, target: 'thread', targetId: threadId, subscribed: false },
-    { requestId: currentRequestId() ?? null },
-  )
+  if (unsubscribed) {
+    await emitEvent(
+      'subscription.changed',
+      { userId: actor.userId, target: 'thread', targetId: threadId, subscribed: false },
+      { requestId: currentRequestId() ?? null },
+    )
+  }
 
   return seeOther(`/thread/${threadId}-${thread.slug}`)
 }

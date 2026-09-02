@@ -33,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   if (!authorizer.can(actor, 'thread.view', target)) return seeOther('/')
 
-  await subscriptions.subscribe({
+  const subscribed = await subscriptions.subscribe({
     userId: actor.userId,
     target: 'thread',
     targetId: threadId,
@@ -41,11 +41,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     at: new Date(),
   })
 
-  await emitEvent(
-    'subscription.changed',
-    { userId: actor.userId, target: 'thread', targetId: threadId, subscribed: true },
-    { requestId: currentRequestId() ?? null },
-  )
+  if (subscribed) {
+    await emitEvent(
+      'subscription.changed',
+      { userId: actor.userId, target: 'thread', targetId: threadId, subscribed: true },
+      { requestId: currentRequestId() ?? null },
+    )
+  }
 
   return seeOther(`/thread/${threadId}-${thread.slug}`)
 }
