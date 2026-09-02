@@ -9,6 +9,7 @@ import { FormError, PendingButton } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
 import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
+import { RecipientField } from './recipient-field'
 
 const FIELD =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -43,13 +44,13 @@ export function ComposeForm({
       <FormError message={state.error} />
       {replyToId === null ? null : <input type="hidden" name="replyTo" value={replyToId} />}
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label htmlFor="message-to" className="flex flex-col gap-1 text-sm">
         <span className="font-medium">{fromCopy(copy, 'messageForm.to')}</span>
-        <input
+        <RecipientField
+          id="message-to"
           name="to"
           defaultValue={values.to ?? to}
           className={FIELD}
-          autoComplete="off"
           required
         />
         <span className="text-xs text-muted-foreground">
@@ -57,9 +58,14 @@ export function ComposeForm({
         </span>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label htmlFor="message-bcc" className="flex flex-col gap-1 text-sm">
         <span className="font-medium">{fromCopy(copy, 'messageForm.bcc')}</span>
-        <input name="bcc" defaultValue={values.bcc ?? ''} className={FIELD} autoComplete="off" />
+        <RecipientField
+          id="message-bcc"
+          name="bcc"
+          defaultValue={values.bcc ?? ''}
+          className={FIELD}
+        />
         <span className="text-xs text-muted-foreground">
           {fromCopy(copy, 'messageForm.bccHint')}
         </span>

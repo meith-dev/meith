@@ -40,6 +40,7 @@ export async function emitEvent<K extends HookName>(
 export async function pluginRegion(
   region: PluginRegion,
   context: Omit<PluginRegionContext, 'region' | 'runtime' | 'locale' | 't'>,
+  card?: string,
 ): Promise<React.ReactNode> {
   await syncPluginEnablement()
 
@@ -49,15 +50,25 @@ export async function pluginRegion(
 
   return (
     <>
-      {nodes.map((entry) => (
-        <Fragment key={entry.key}>{entry.node}</Fragment>
-      ))}
+      {nodes.map((entry) =>
+        card === undefined ? (
+          <Fragment key={entry.key}>{entry.node}</Fragment>
+        ) : (
+          <section key={entry.key} className={card}>
+            {entry.node}
+          </section>
+        ),
+      )}
     </>
   )
 }
 
-export async function boardRegion(region: PluginRegion, actor: Actor): Promise<React.ReactNode> {
-  return pluginRegion(region, { viewer: viewerRef(actor), subjectId: null, authorId: null })
+export async function boardRegion(
+  region: PluginRegion,
+  actor: Actor,
+  card?: string,
+): Promise<React.ReactNode> {
+  return pluginRegion(region, { viewer: viewerRef(actor), subjectId: null, authorId: null }, card)
 }
 
 export async function threadRowBadges(

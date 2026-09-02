@@ -312,7 +312,9 @@ There are eight: `header.notice`, `index.footer`, `thread.header`,
 `postbit.badges`, `postbit.footer`, `threadrow.badges`, `profile.panel` and
 `admin.dashboard` — described in [Plugin hooks](../reference/plugin-hooks.md).
 The list is short on purpose, because every region is a commitment every theme
-has to render or deliberately drop.
+has to render or deliberately drop. `admin.dashboard` is the exception the theme
+never sees: it is rendered by the control panel, on the admin overview below the
+board's statistics. Each contribution there is wrapped in a plugin card.
 
 **A contribution may be async, and may reach this plugin's runtime.** Its
 `render` receives the same lazy `runtime` accessor a [hook
