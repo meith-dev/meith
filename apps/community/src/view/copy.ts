@@ -75,6 +75,7 @@ const CHROME_KEYS = [
   'composer.help.attachment',
   'composer.attachments.label',
   'composer.mention.suggestions',
+  'composer.recipient.suggestions',
   'composer.attachment.uploading',
   'composer.thanks.thanked',
   'composer.thanks.thanks',
@@ -88,6 +89,7 @@ const CHROME_KEYS = [
 ] as const
 
 const CHROME_PATTERN_KEYS = [
+  'composer.mention.available',
   'composer.toolShortcut',
   'composer.attachments.hint',
   'composer.thanks.count',

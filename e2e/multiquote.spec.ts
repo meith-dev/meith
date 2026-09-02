@@ -21,7 +21,9 @@ test('multi-quote says what is selected, clears it, and fills the reply', async 
   await page.getByRole('button', { name: 'Post reply' }).click()
   await expect(page).toHaveURL(/#post-\d+$/)
 
-  const announced = page.locator('p.sr-only[role="status"]')
+  const announced = page.locator(
+    'p.sr-only[role="status"]:not([id$="-write"] p.sr-only[role="status"])',
+  )
   const buttons = page.getByRole('button', { name: 'Multi-quote' })
   await expect(buttons).toHaveCount(2)
 
