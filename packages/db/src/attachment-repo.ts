@@ -190,6 +190,32 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     return rows[0] === undefined ? null : toRecord(rows[0])
   }
 
+  async deleteForPost(id: number, postId: number): Promise<AttachmentRecord | null> {
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
+          delete from attachments
+           where id = ${id} and post_id = ${postId}
+          returning ${COLUMNS}
+        `),
+      ) as RawAttachment[]
+
+      const row = rows[0]
+      if (row === undefined) return null
+
+      const record = toRecord(row)
+      for (const key of [record.storageKey, record.sourceKey, record.thumbnailKey]) {
+        if (key === null) continue
+        await tx.execute(sql`
+          insert into attachment_orphans (storage_key) values (${key})
+          on conflict (storage_key) do nothing
+        `)
+      }
+
+      return record
+    })
+  }
+
   async deleteOrphans(before: Date, limit: number): Promise<readonly AttachmentRecord[]> {
     const rows = resultRows(
       await this.db.execute(sql`

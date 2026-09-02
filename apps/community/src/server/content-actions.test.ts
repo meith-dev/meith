@@ -165,6 +165,8 @@ let writes: FakeWrites
 
 class FakeAttachments {
   readonly created: Array<Record<string, unknown>> = []
+  readonly deleted: number[] = []
+  rows: Array<Record<string, unknown>> = []
 
   async create(input: Record<string, unknown>) {
     this.created.push(input)
@@ -193,11 +195,11 @@ class FakeAttachments {
   async findForDownload() {
     return null
   }
-  async listForPosts() {
-    return []
+  async listForPosts(postIds: readonly number[]) {
+    return this.rows.filter((row) => postIds.includes(row.postId as number))
   }
-  async countForPost() {
-    return 0
+  async countForPost(postId: number) {
+    return this.rows.filter((row) => row.postId === postId).length
   }
   async markReady() {}
   async markFailed() {}
@@ -209,6 +211,35 @@ class FakeAttachments {
   async forgetKeys() {}
   async staleKeys() {
     return []
+  }
+  async deleteForPost(id: number, postId: number) {
+    const index = this.rows.findIndex((row) => row.id === id && row.postId === postId)
+    if (index === -1) return null
+    const [removed] = this.rows.splice(index, 1)
+    this.deleted.push(id)
+    return removed
+  }
+}
+
+function existingAttachment(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 5,
+    postId: 50,
+    forumId: SEED_FORUM.general,
+    uploaderUserId: 1,
+    filename: 'old.png',
+    contentType: 'image/png',
+    sizeBytes: 512,
+    storageKey: 'attachments/a/file',
+    sourceKey: null,
+    thumbnailKey: null,
+    width: null,
+    height: null,
+    status: 'ready',
+    failureReason: null,
+    downloadCount: 0,
+    createdAt: new Date(),
+    ...overrides,
   }
 }
 
@@ -766,6 +797,120 @@ describe('post actions', () => {
         ),
       ).toBe('/thread/20-hello?post=50')
       expect(postWrites.edits).toHaveLength(0)
+    })
+
+    describe('editing its attachments in the same plain form', () => {
+      let attachments: FakeAttachments
+
+      beforeEach(() => {
+        attachments = new FakeAttachments()
+        attachments.rows = [existingAttachment()]
+        installContainer({ postWrites, attachments })
+      })
+
+      it('removes one and adds another in the same submission', async () => {
+        const body = formWithFile(EDIT)
+        body.append('removeAttachmentIds', '5')
+
+        await redirectOf(editPostAction(EMPTY_STATE, body))
+
+        expect(attachments.deleted).toEqual([5])
+        expect(attachments.created).toHaveLength(1)
+        expect(attachments.created[0]).toMatchObject({
+          postId: 50,
+          forumId: SEED_FORUM.general,
+          filename: 'photo.png',
+        })
+      })
+
+      it('leaves an attachment alone when its id belongs to a different post', async () => {
+        const body = form(EDIT)
+        body.append('removeAttachmentIds', '999')
+
+        await redirectOf(editPostAction(EMPTY_STATE, body))
+
+        expect(attachments.deleted).toEqual([])
+      })
+
+      it('counts the surviving attachment toward the per-post cap for a new one', async () => {
+        installContainer(
+          { postWrites, attachments },
+          {
+            ...SEED_BOARD,
+            overrides: [
+              ...SEED_BOARD.overrides,
+              {
+                forumId: SEED_FORUM.general,
+                groupId: SEED_GROUP.registered,
+                overrides: { maxAttachmentsPerPost: 1 },
+              },
+            ],
+          },
+        )
+
+        const state = await editPostAction(EMPTY_STATE, formWithFile(EDIT))
+
+        expect(state.error).toMatch(/at most 1 attachment/)
+        expect(attachments.created).toEqual([])
+      })
+
+      it('refuses a new file once the forum stops accepting attachments, and edits nothing', async () => {
+        writes = new FakeWrites({ allowAttachments: false })
+        installContainer({ postWrites, attachments })
+
+        const state = await editPostAction(EMPTY_STATE, formWithFile(EDIT))
+
+        expect(state.error).toMatch(/forum does not accept file attachments/)
+        expect(postWrites.edits).toHaveLength(0)
+        expect(attachments.created).toEqual([])
+      })
+
+      it('requires the attachment.upload permission to add a file, same as a new post', async () => {
+        installContainer(
+          { postWrites, attachments },
+          {
+            ...SEED_BOARD,
+            overrides: [
+              ...SEED_BOARD.overrides,
+              {
+                forumId: SEED_FORUM.general,
+                groupId: SEED_GROUP.registered,
+                overrides: { canUploadAttachments: false },
+              },
+            ],
+          },
+        )
+
+        const state = await editPostAction(EMPTY_STATE, formWithFile(EDIT))
+
+        expect(state.error).toMatch(/may not attach files/)
+        expect(attachments.created).toEqual([])
+        expect(postWrites.edits).toHaveLength(0)
+      })
+
+      it('still lets the same member remove one of their own attachments without that permission', async () => {
+        installContainer(
+          { postWrites, attachments },
+          {
+            ...SEED_BOARD,
+            overrides: [
+              ...SEED_BOARD.overrides,
+              {
+                forumId: SEED_FORUM.general,
+                groupId: SEED_GROUP.registered,
+                overrides: { canUploadAttachments: false },
+              },
+            ],
+          },
+        )
+
+        const body = form(EDIT)
+        body.append('removeAttachmentIds', '5')
+
+        await redirectOf(editPostAction(EMPTY_STATE, body))
+
+        expect(attachments.deleted).toEqual([5])
+      })
     })
   })
 
