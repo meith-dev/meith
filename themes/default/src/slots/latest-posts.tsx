@@ -10,15 +10,17 @@ import {
   EmptyTitle,
 } from '@meith/ui'
 
-import { LINK, MUTED_LINK, NUMERIC, Stamp, UserRef } from '../shared'
+import { LINK, MUTED_LINK, NUMERIC, PRIMARY_HEADER, Stamp, UserRef } from '../shared'
 
 export function LatestPosts({ posts, capturedAt, copy }: LatestPostsModel & { copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `default.latestPosts.${key}`)
 
   return (
     <Card aria-labelledby="latest-posts-heading">
-      <CardHeader>
-        <CardTitle id="latest-posts-heading">{c('heading')}</CardTitle>
+      <CardHeader className={PRIMARY_HEADER}>
+        <CardTitle id="latest-posts-heading" className="text-primary">
+          {c('heading')}
+        </CardTitle>
         <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
           {c('asOf')} <Stamp at={capturedAt} />
         </p>
