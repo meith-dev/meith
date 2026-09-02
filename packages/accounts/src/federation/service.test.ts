@@ -5,6 +5,8 @@ import { createMemoryStore } from '../memory-repos'
 import type { AccountStore, AuthConfig } from '../ports'
 import { IdentityService } from '../service'
 import { rejectionMessage } from '../test-support.fixture'
+import { TwoFactorService } from '../totp/service'
+import { stepAt, totpCode } from '../totp/totp'
 import { FederationService } from './service'
 import type { IdentityProvider, ProviderProfile } from './types'
 
@@ -24,6 +26,8 @@ const CONFIG: AuthConfig = {
 }
 
 const NOW = new Date('2026-06-01T00:00:00Z')
+
+const KEY = 'a-board-auth-secret-0000000000000'
 
 const PROVIDER: IdentityProvider = {
   id: 'github',
@@ -47,12 +51,23 @@ function profile(overrides: Partial<ProviderProfile> = {}): ProviderProfile {
 
 let store: AccountStore
 
+function twoFactor(): TwoFactorService {
+  return new TwoFactorService({
+    accounts: store.accounts,
+    twoFactor: store.twoFactor,
+    recoveryCodes: store.recoveryCodes,
+    sealingKey: KEY,
+    clock: () => NOW,
+  })
+}
+
 function build(overrides: Partial<AuthConfig> = {}): FederationService {
   const identity = new IdentityService({
     store,
     config: { ...CONFIG, ...overrides },
     clock: () => NOW,
     banFilters: new MemoryBanFilters(),
+    secondFactor: twoFactor(),
   })
 
   return new FederationService({
@@ -61,6 +76,11 @@ function build(overrides: Partial<AuthConfig> = {}): FederationService {
     identities: store.identities,
     clock: () => NOW,
   })
+}
+
+async function enrol(userId: number): Promise<void> {
+  const { secret } = await twoFactor().beginEnrolment(userId, 'Board')
+  await twoFactor().confirmEnrolment({ userId, code: await totpCode(secret, stepAt(NOW)) })
 }
 
 async function existingMember(email: string, username = 'ada'): Promise<number> {
@@ -277,6 +297,66 @@ describe('meeting an account that already exists', () => {
     expect(
       await rejectionMessage(build().completeSignIn({ provider: PROVIDER, profile: profile() })),
     ).toContain('banned')
+  })
+})
+
+describe('an enrolled second factor stands in front of a federated sign-in', () => {
+  it('holds a matched account for its code rather than opening a session', async () => {
+    const userId = await existingMember('ada@example.com')
+    await enrol(userId)
+
+    const outcome = await build().completeSignIn({ provider: PROVIDER, profile: profile() })
+
+    expect(outcome.status).toBe('second-factor')
+    if (outcome.status !== 'second-factor') return
+
+    expect(outcome.account.id).toBe(userId)
+    expect(outcome.token).not.toBe('')
+    expect(await store.sessions.listActiveForUser(userId, NOW)).toHaveLength(0)
+
+    expect((await store.identities.findBySubject('github', 'gh-1'))?.userId).toBe(userId)
+  })
+
+  it('holds an already-linked member for their code on the next visit', async () => {
+    const first = await build().completeSignIn({ provider: PROVIDER, profile: profile() })
+    const userId = first.status === 'signed-in' ? first.account.id : 0
+    await enrol(userId)
+
+    const before = (await store.sessions.listActiveForUser(userId, NOW)).length
+    const outcome = await build().completeSignIn({ provider: PROVIDER, profile: profile() })
+
+    expect(outcome.status).toBe('second-factor')
+    if (outcome.status !== 'second-factor') return
+    expect(outcome.account.id).toBe(userId)
+    expect(await store.sessions.listActiveForUser(userId, NOW)).toHaveLength(before)
+  })
+
+  it('names the account behind the hold without spending it', async () => {
+    const userId = await existingMember('ada@example.com')
+    await enrol(userId)
+
+    const outcome = await build().completeSignIn({ provider: PROVIDER, profile: profile() })
+    if (outcome.status !== 'second-factor') throw new Error('expected a hold')
+
+    const identity = new IdentityService({
+      store,
+      config: CONFIG,
+      clock: () => NOW,
+      banFilters: new MemoryBanFilters(),
+      secondFactor: twoFactor(),
+    })
+    expect(await identity.pendingSecondFactor(outcome.token)).toEqual({ userId, remember: false })
+  })
+
+  it('signs a member with no second factor straight in', async () => {
+    const userId = await existingMember('ada@example.com')
+
+    const outcome = await build().completeSignIn({ provider: PROVIDER, profile: profile() })
+
+    expect(outcome.status).toBe('signed-in')
+    if (outcome.status !== 'signed-in') return
+    expect(outcome.account.id).toBe(userId)
+    expect(outcome.login.sessionToken).not.toBe('')
   })
 })
 

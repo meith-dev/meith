@@ -34,6 +34,12 @@ export type FederationOutcome =
       readonly created: boolean
     }
   | {
+      readonly status: 'second-factor'
+      readonly account: AccountRecord
+      readonly token: string
+      readonly expiresAt: Date
+    }
+  | {
       readonly status: 'pending'
       readonly account: AccountRecord
       readonly verificationToken: string | null
@@ -67,9 +73,8 @@ export class FederationService {
         )
       }
 
-      const login = await this.identity.startSessionFor(account, context)
       await this.identities.markUsed(linked.id, this.now())
-      return { status: 'signed-in', account, login, created: false }
+      return this.begin(account, context, false)
     }
 
     const email = normalisedEmail(input.profile)
@@ -85,13 +90,12 @@ export class FederationService {
         )
       }
 
-      const login = await this.identity.startSessionFor(existing, context)
       await this.link({
         userId: existing.id,
         provider: input.provider,
         profile: input.profile,
       })
-      return { status: 'signed-in', account: existing, login, created: false }
+      return this.begin(existing, context, false)
     }
 
     if (email === null) {
@@ -126,12 +130,26 @@ export class FederationService {
       }
     }
 
-    return {
-      status: 'signed-in',
-      account: provisioned.account,
-      login: await this.identity.startSessionFor(provisioned.account, context),
-      created: true,
+    return this.begin(provisioned.account, context, true)
+  }
+
+  private async begin(
+    account: AccountRecord,
+    context: RequestContext,
+    created: boolean,
+  ): Promise<FederationOutcome> {
+    const outcome = await this.identity.beginSessionFor(account, context)
+
+    if (outcome.status === 'second-factor') {
+      return {
+        status: 'second-factor',
+        account,
+        token: outcome.token,
+        expiresAt: outcome.expiresAt,
+      }
     }
+
+    return { status: 'signed-in', account, login: outcome.login, created }
   }
 
   async linkToViewer(input: {

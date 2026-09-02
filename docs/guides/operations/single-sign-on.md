@@ -3,8 +3,8 @@
 A Meith board authenticates with a password by default. This document covers
 everything that can be added to or put in front of that:
 
-- **A second factor** — a code from an authenticator app, asked for after the
-  password.
+- **A second factor** — a code from an authenticator app, asked for after a
+  password or a federated sign-in.
 - **Federated sign-in** — an identity provider (GitHub, Google, or your own
   OpenID Connect server) vouches for a member.
 - **Passkeys** — the member's own device does.
@@ -45,8 +45,9 @@ and the board stores only a public key it can use to check a signature.
 
 An authenticator app holds a secret shared with the board and turns it into
 a six-digit code that changes every thirty seconds. Asked for after the
-password, it means a leaked password is not on its own enough to open an
-account.
+password — or after a federated sign-in — it means a leaked password, or a
+provider account somebody else has got hold of, is not on its own enough to
+open an account.
 
 The board implements the ordinary standard (RFC 6238: SHA-1, six digits, a
 thirty-second period), so any authenticator app works — Aegis, Ente Auth,
@@ -155,6 +156,16 @@ second factor, the board does not start a session: it holds the
 half-finished sign-in for ten minutes and asks for the code on a second
 screen. Only when that is satisfied does a session begin.
 
+A **federated sign-in** meets the same gate. A member who has an
+authenticator app set up is held for their code after the provider vouches
+for them — whether the identity was already linked, matched by a confirmed
+address, or the account was provisioned in an earlier visit — exactly as a
+password sign-in is. The provider proving who someone is does not, on its
+own, stand in for the second factor: a member who enrolled one is protected
+however they arrive. (A freshly provisioned account has no factor yet, so a
+first federated sign-up signs straight in.) The hold and its second screen
+are the same ones the password path uses.
+
 The hold is a random token in a strict, HTTP-only cookie, backed by a row
 that is spent exactly once. It is not a session and grants nothing: an
 account banned between the two steps is refused at the second, and giving
@@ -167,6 +178,15 @@ uses, on their own counter. A code that has already been used is refused
 even within the thirty seconds it would otherwise be valid — anybody who
 reads a code over a shoulder has that window to race the member, and this
 closes it.
+
+**A passkey sign-in is the deliberate exception.** Signing in with a passkey
+does not then ask for the authenticator code, even on an account that has
+one enrolled. This is by design, not an oversight: a passkey is bound to the
+board's own address and needs the member's device and their presence on it,
+so it is already a phishing-resistant second factor in its own right, and
+stacking a TOTP code behind it would prove the same possession twice. The
+second factor stands in front of the two first-factor sign-ins — the
+password and a federated provider — that a code meaningfully adds to.
 
 ### The control panel's own door
 
@@ -359,6 +379,11 @@ A federated sign-in resolves to an account in one of three ways:
 3. **Neither.** A new account is opened — if the board is open to new
    members.
 
+In the first two cases the account may already hold a second factor, and
+then "signed in" means the same thing it does after a password: the sign-in
+is held for the member's code before a session begins. See
+[what signing in looks like](#what-signing-in-looks-like).
+
 ### What a new account inherits
 
 First-login provisioning goes through the same door as registration, not
@@ -432,9 +457,14 @@ refuses a signature counter it has already seen — the standard clone
 check.
 
 A passkey does not replace the member's password unless they clear it
-themselves, and it does not bypass anything: a banned or unactivated
-account is refused a passkey sign-in exactly as it is refused a password
-one.
+themselves, and it clears the account-standing bar in full: a banned or
+unactivated account is refused a passkey sign-in exactly as it is refused a
+password one. What a passkey sign-in does not do is then ask for the
+authenticator code — a passkey is a phishing-resistant factor already, so it
+is accepted as the whole proof. That exception is the passkey's alone; a
+password or a federated sign-in on an account with a second factor is still
+held for the code. [What signing in looks like](#what-signing-in-looks-like)
+sets out the reasoning.
 
 ## How the handshake is kept honest
 
