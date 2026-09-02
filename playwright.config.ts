@@ -49,6 +49,7 @@ const SHARED_ENV = {
   HOSTNAME: '127.0.0.1',
   NEXT_TELEMETRY_DISABLED: '1',
   MAIL_ALLOW_PRIVATE_HOSTS: 'true',
+  TRUSTED_PROXY_HOPS: '1',
 }
 
 export default defineConfig({
