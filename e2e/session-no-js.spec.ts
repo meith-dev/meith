@@ -36,9 +36,9 @@ test('the member control panel lists the screens it is the index of', async ({ p
 test('the redirect interstitial forwards without scripting, and only within the board', async ({
   page,
 }) => {
-  await page.goto('/redirect?to=/stats&message=Off+you+go')
+  await page.goto('/redirect?to=/stats&m=saved')
 
-  await expect(page.getByText('Off you go')).toBeVisible()
+  await expect(page.getByText('Saved.')).toBeVisible()
   await expect(page.locator('meta[http-equiv="refresh"]')).toHaveAttribute(
     'content',
     '2;url=/stats',
@@ -48,7 +48,8 @@ test('the redirect interstitial forwards without scripting, and only within the 
   await page.getByRole('link', { name: 'Continue now' }).click()
   await expect(page).toHaveURL('/stats')
 
-  await page.goto('/redirect?to=https://evil.example/&message=nope')
+  await page.goto('/redirect?to=https://evil.example/&m=nope')
+  await expect(page.getByText('Continuing…')).toBeVisible()
   await expect(page.locator('meta[http-equiv="refresh"]')).toHaveAttribute('content', '2;url=/')
   await expect(page.getByRole('link', { name: 'Continue now' })).toHaveAttribute('href', '/')
 

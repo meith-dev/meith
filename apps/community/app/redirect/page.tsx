@@ -15,12 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RedirectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ to?: string; message?: string }>
+  searchParams: Promise<{ to?: string; m?: string }>
 }) {
-  const { to, message } = await searchParams
+  const { to, m } = await searchParams
+  const translator = await getTranslator()
   const filtered = await filterView(
     'view.redirect-notice',
-    buildRedirectNotice(to, message),
+    buildRedirectNotice(to, m, translator),
     viewerRef(await getActor()),
   )
   const notice = { ...filtered, targetHref: localHref(filtered.targetHref) }
@@ -36,7 +37,7 @@ export default async function RedirectPage({
       >
         <RedirectNotice
           {...notice}
-          copy={slotCopy(await currentTheme(), 'RedirectNotice', await getTranslator())}
+          copy={slotCopy(await currentTheme(), 'RedirectNotice', translator)}
         />
       </main>
     </>
