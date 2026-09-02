@@ -23,6 +23,7 @@
     "@meith/api": "workspace:*",
     "@meith/attachments": "workspace:*",
     "@meith/avatars": "workspace:*",
+    "@meith/board-digest": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",

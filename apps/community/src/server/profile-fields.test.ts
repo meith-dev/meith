@@ -108,6 +108,7 @@ class FakeSettings implements MemberSettingsRepository {
     bio: null,
     displayGroupId: null,
     massMailOptInAt: null,
+    boardDigestCadence: 'weekly',
   }
   async read() {
     return this.row
@@ -119,6 +120,7 @@ class FakeSettings implements MemberSettingsRepository {
   async saveProfile() {}
   async saveOptions() {}
   async saveMassMailOptIn() {}
+  async saveBoardDigestCadence() {}
   async adoptEmail() {
     return true
   }

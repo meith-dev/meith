@@ -58,6 +58,7 @@ export {
   PostgresBanFilterRepository,
   PostgresBanRepository,
 } from './ban-repos'
+export { PostgresBoardDigestRepository } from './board-digest-repo'
 export {
   closeDb,
   createIsolatedDb,

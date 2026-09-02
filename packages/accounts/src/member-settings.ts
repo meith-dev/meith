@@ -33,6 +33,7 @@ export interface MemberSettings {
   readonly bio: string | null
   readonly displayGroupId: number | null
   readonly massMailOptInAt: Date | null
+  readonly boardDigestCadence: string
 }
 
 export interface MemberGroupChoice {
@@ -69,6 +70,11 @@ export interface MemberSettingsRepository {
   }): Promise<void>
 
   saveMassMailOptIn(input: { readonly userId: number; readonly optIn: boolean }): Promise<void>
+
+  saveBoardDigestCadence(input: {
+    readonly userId: number
+    readonly cadence: string
+  }): Promise<void>
 
   adoptEmail(input: {
     readonly userId: number
@@ -220,6 +226,18 @@ export class MemberSettingsService {
       threadsPerPage: parsePageSize(input.threadsPerPage, 'Threads per page'),
       invisible: input.invisible,
     })
+  }
+
+  async saveBoardDigestCadence(input: {
+    readonly userId: number
+    readonly cadence: string
+  }): Promise<void> {
+    const cadence = input.cadence.trim()
+    if (cadence !== 'weekly' && cadence !== 'monthly') {
+      throw new ValidationError(msg('error.accounts.digest-cadence-weekly-monthly'))
+    }
+
+    await this.settings.saveBoardDigestCadence({ userId: input.userId, cadence })
   }
 
   async changePassword(input: {

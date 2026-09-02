@@ -921,6 +921,35 @@ interval means what it says; per cadence as well, because one member can
 follow one thread daily and another weekly, and one clock cannot serve
 both.
 
+### A digest can also nudge a member who has stopped visiting
+
+**MyBB:** has no notion of a member who has drifted away, and nothing to
+send one.
+
+**Meith:** `board.digest` is a notification kind of its own, separate
+from the follow-driven digest above — **e-mail off by default**, in
+keeping with the board's opt-in stance on mass mail (below). A member who
+turns it on also picks a cadence, weekly or monthly, and is sent one only
+once they have gone quiet for a run of days a board setting decides *and*
+their own cadence has elapsed — a member who visits daily never receives
+one, however long the feature has been on. Its content is built
+per recipient: the busiest threads since that member's own last visit,
+filtered through the same permission check as everything else, for the
+same reason as
+[the online list](#the-online-list-names-a-location-only-when-the-reader-may-know-it) —
+a re-engagement e-mail is exactly the kind of thing that must never leak
+a private forum's existence to somebody it was written to bring back.
+
+**Why.** A digest that fires for everyone on the same schedule tells an
+active member about a thread they already read, and a re-engagement
+e-mail that leaks what it is inviting somebody back to see is worse than
+sending none.
+
+**Cost.** Two members who go quiet on the same day can receive visibly
+different digests — one may list threads the other's does not, because
+the forums behind them differ. That is the intended behaviour, not a bug
+to reconcile.
+
 ### The unsubscribe link acts on POST, not on GET
 
 **MyBB:** unsubscribe links are GETs — following the URL removes the

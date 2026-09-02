@@ -117,6 +117,20 @@ export async function saveOptionsAction(_prev: FormState, form: FormData): Promi
   redirect('/usercp/options?saved=1')
 }
 
+export async function saveBoardDigestCadenceAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  try {
+    const { service, userId } = await requireOwnSettings()
+    await service.saveBoardDigestCadence({ userId, cadence: text(form, 'cadence') })
+  } catch (err) {
+    return toFormState(err)
+  }
+
+  redirect('/notifications/preferences?saved=digest-cadence')
+}
+
 export async function changePasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { service, userId } = await requireOwnSettings()

@@ -11,6 +11,7 @@ import {
   saveMassMailOptInAction,
   saveNotificationPreferencesAction,
 } from '@/server/notification-actions'
+import { saveBoardDigestCadenceAction } from '@/server/usercp-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
@@ -196,6 +197,39 @@ export function AnnouncementsOptInForm({ optedIn, copy }: { optedIn: boolean; co
       <div>
         <PendingButton showWorking className={BUTTON}>
           {fromCopy(copy, 'accountForm.announcements.submit')}
+        </PendingButton>
+      </div>
+    </form>
+  )
+}
+
+const FIELD =
+  'w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+export function BoardDigestCadenceForm({ cadence, copy }: { cadence: string; copy: Copy }) {
+  const [state, action] = useActionState(saveBoardDigestCadenceAction, EMPTY_STATE)
+
+  return (
+    <form
+      action={action}
+      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5"
+    >
+      <FormError message={state.error} />
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">{fromCopy(copy, 'accountForm.boardDigest.legend')}</span>
+        <span className="text-xs text-muted-foreground">
+          {fromCopy(copy, 'accountForm.boardDigest.description')}
+        </span>
+        <select name="cadence" defaultValue={cadence} className={FIELD}>
+          <option value="weekly">{fromCopy(copy, 'accountForm.boardDigest.weekly')}</option>
+          <option value="monthly">{fromCopy(copy, 'accountForm.boardDigest.monthly')}</option>
+        </select>
+      </label>
+
+      <div>
+        <PendingButton showWorking className={BUTTON}>
+          {fromCopy(copy, 'accountForm.boardDigest.submit')}
         </PendingButton>
       </div>
     </form>

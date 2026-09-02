@@ -24,6 +24,8 @@
     "paths": {
       "@board/config": ["./apps/community/meith.config.ts"],
       "@board/plugins": ["./apps/community/meith.plugins.ts"],
+      "@meith/board-digest": ["./packages/board-digest/src/index.ts"],
+      "@meith/board-digest/*": ["./packages/board-digest/src/*"],
       "@meith/core": ["./packages/core/src/index.ts"],
       "@meith/core/*": ["./packages/core/src/*"],
       "@meith/db": ["./packages/db/src/index.ts"],

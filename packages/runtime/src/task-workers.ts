@@ -1,6 +1,11 @@
 import { type BanRepository, BanService } from '@meith/accounts'
 import type { AttachmentService } from '@meith/attachments'
 import type { AvatarService } from '@meith/avatars'
+import {
+  type BoardDigestContentSource,
+  BoardDigestNotifier,
+  type BoardDigestRepository,
+} from '@meith/board-digest'
 import { optional, type QueueDriver } from '@meith/core'
 import { type EventRegistry, type OutboxReader, relayOutbox as runOutboxRelay } from '@meith/events'
 import { type PromotionGuards, PromotionService } from '@meith/groups'
@@ -55,6 +60,13 @@ export interface TaskWorkerDeps {
     readonly notifications: NotificationService
     readonly forums: VisibleForumSource
     readonly unsubscribeSecret: string | null
+  }
+  readonly boardDigest?: {
+    readonly repository: BoardDigestRepository
+    readonly content: BoardDigestContentSource
+    readonly notifications: NotificationService
+    readonly unsubscribeSecret: string | null
+    readonly lapsedThresholdDays: () => Promise<number>
   }
   readonly attachments?: AttachmentService
   readonly avatars?: AvatarService
@@ -218,6 +230,19 @@ export function taskWorkers(deps: TaskWorkerDeps): Partial<TaskWorkers> {
       },
     })),
 
+    ...optional(deps.boardDigest, (boardDigest) => ({
+      async sendBoardDigests(batchSize: number, signal: AbortSignal) {
+        const notifier = boardDigestNotifier(boardDigest)
+        const lapsedThresholdDays = await boardDigest.lapsedThresholdDays()
+
+        const weekly = await notifier.run('weekly', lapsedThresholdDays, batchSize, signal)
+        if (signal.aborted) return weekly.notified
+
+        const monthly = await notifier.run('monthly', lapsedThresholdDays, batchSize, signal)
+        return weekly.notified + monthly.notified
+      },
+    })),
+
     ...optional(deps.attachments, (attachments) => ({
       async sweepAttachments(batchSize: number) {
         return attachments.sweep(batchSize)
@@ -277,6 +302,27 @@ function subscriptionNotifier(deps: TaskWorkerDeps): SubscriptionNotifier {
     notifications: {
       async raise(input) {
         await wiring.notifications.raise({
+          userId: input.userId,
+          kind: input.kind,
+          data: input.data as Parameters<NotificationService['raise']>[0]['data'],
+          href: input.href,
+          dedupeKey: input.dedupeKey,
+        })
+      },
+    },
+  })
+}
+
+function boardDigestNotifier(
+  boardDigest: NonNullable<TaskWorkerDeps['boardDigest']>,
+): BoardDigestNotifier {
+  return new BoardDigestNotifier({
+    repository: boardDigest.repository,
+    content: boardDigest.content,
+    unsubscribeSecret: boardDigest.unsubscribeSecret,
+    notifications: {
+      async raise(input) {
+        await boardDigest.notifications.raise({
           userId: input.userId,
           kind: input.kind,
           data: input.data as Parameters<NotificationService['raise']>[0]['data'],

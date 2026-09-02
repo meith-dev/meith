@@ -486,6 +486,15 @@ importers:
         specifier: workspace:*
         version: link:../i18n
 
+  packages/board-digest:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meith/subscriptions':
+        specifier: workspace:*
+        version: link:../subscriptions
+
   packages/core:
     dependencies:
       '@opentelemetry/api':
@@ -539,6 +548,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
+      '@meith/board-digest':
+        specifier: workspace:*
+        version: link:../board-digest
       '@meith/core':
         specifier: workspace:*
         version: link:../core
@@ -872,6 +884,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
+      '@meith/board-digest':
+        specifier: workspace:*
+        version: link:../board-digest
       '@meith/core':
         specifier: workspace:*
         version: link:../core

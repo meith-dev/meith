@@ -37,6 +37,7 @@ class MemorySettings implements MemberSettingsRepository {
     bio: null,
     displayGroupId: null,
     massMailOptInAt: null,
+    boardDigestCadence: 'weekly',
   }
   emailTaken = false
   held: MemberGroupChoice[] = [
@@ -81,6 +82,9 @@ class MemorySettings implements MemberSettingsRepository {
     this.adopted.push({ userId: input.userId, email: input.email })
     this.row = { ...this.row, email: input.email }
     return true
+  }
+  async saveBoardDigestCadence(input: { userId: number; cadence: string }) {
+    this.row = { ...this.row, boardDigestCadence: input.cadence }
   }
 }
 
@@ -382,6 +386,20 @@ describe('the options', () => {
         }),
       ).rejects.toThrow(/Posts per page/)
     }
+  })
+})
+
+describe('the board digest cadence', () => {
+  it('accepts weekly or monthly', async () => {
+    await service.saveBoardDigestCadence({ userId: 7, cadence: 'monthly' })
+    expect(settings.row.boardDigestCadence).toBe('monthly')
+  })
+
+  it('refuses anything else', async () => {
+    await expect(service.saveBoardDigestCadence({ userId: 7, cadence: 'daily' })).rejects.toThrow(
+      /weekly or monthly/,
+    )
+    expect(settings.row.boardDigestCadence).toBe('weekly')
   })
 })
 

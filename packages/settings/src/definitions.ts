@@ -134,6 +134,20 @@ export const SETTING_DEFINITIONS = [
   }),
 
   define({
+    key: 'board.digest_lapsed_days',
+    group: 'board',
+    label: 'Board digest: days away before a member counts as lapsed',
+    description:
+      'A member whose board activity digest is switched on only receives one once their ' +
+      'last visit is at least this many days ago — a member who drops in daily should not ' +
+      'be told what they already saw. Their own chosen cadence, weekly or monthly, decides ' +
+      'how often after that.',
+    schema: z.number().int().min(1).max(365),
+    default: 7,
+    ui: { min: 1, max: 365 },
+  }),
+
+  define({
     key: 'registration.enabled',
     group: 'registration',
     label: 'Allow new registrations',

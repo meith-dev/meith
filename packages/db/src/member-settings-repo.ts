@@ -19,6 +19,7 @@ interface RawSettings {
   bio: string | null
   display_group_id: number | null
   mass_mail_opt_in_at: Date | string | null
+  board_digest_cadence: string
 }
 
 interface RawGroupChoice {
@@ -36,7 +37,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       await this.db.execute(sql`
         select id, email, timezone, locale, posts_per_page, threads_per_page,
                invisible, location, website, bio, display_group_id,
-               mass_mail_opt_in_at
+               mass_mail_opt_in_at, board_digest_cadence
           from users
          where id = ${userId} and state <> 'deleted'
       `),
@@ -58,6 +59,7 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
       bio: row.bio,
       displayGroupId: row.display_group_id === null ? null : Number(row.display_group_id),
       massMailOptInAt: row.mass_mail_opt_in_at === null ? null : new Date(row.mass_mail_opt_in_at),
+      boardDigestCadence: row.board_digest_cadence,
     }
   }
 
@@ -145,6 +147,18 @@ export class PostgresMemberSettingsRepository implements MemberSettingsRepositor
     await this.db.execute(sql`
       update users
          set mass_mail_opt_in_at = ${consent},
+             updated_at = now()
+       where id = ${input.userId} and state <> 'deleted'
+    `)
+  }
+
+  async saveBoardDigestCadence(input: {
+    readonly userId: number
+    readonly cadence: string
+  }): Promise<void> {
+    await this.db.execute(sql`
+      update users
+         set board_digest_cadence = ${input.cadence},
              updated_at = now()
        where id = ${input.userId} and state <> 'deleted'
     `)

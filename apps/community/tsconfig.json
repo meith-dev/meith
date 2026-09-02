@@ -7,6 +7,8 @@
       "@/*": ["./src/*"],
       "@board/config": ["./meith.config.ts"],
       "@board/plugins": ["./meith.plugins.ts"],
+      "@meith/board-digest": ["../../packages/board-digest/src/index.ts"],
+      "@meith/board-digest/*": ["../../packages/board-digest/src/*"],
       "@meith/core": ["../../packages/core/src/index.ts"],
       "@meith/core/*": ["../../packages/core/src/*"],
       "@meith/db": ["../../packages/db/src/index.ts"],

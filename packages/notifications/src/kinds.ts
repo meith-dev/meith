@@ -71,6 +71,20 @@ export const NOTIFICATION_KINDS = [
     pushConfigurable: true,
   },
   {
+    id: 'board.digest',
+    titleKey: 'notification.board.digest.title',
+    descriptionKey: 'notification.board.digest.description',
+    title: 'A recap of what you missed on the board',
+    description:
+      'Sent only after you have been away a while, listing the busiest threads since ' +
+      'your last visit. Off by default — nobody gets this without asking for it.',
+    audience: 'member',
+    emailByDefault: false,
+    emailConfigurable: true,
+    pushByDefault: false,
+    pushConfigurable: true,
+  },
+  {
     id: 'post.mentioned',
     titleKey: 'notification.post.mentioned.title',
     descriptionKey: 'notification.post.mentioned.description',

@@ -24,6 +24,7 @@ export interface TaskWorkers {
   expireWarnings(batchSize: number): Promise<number>
   notifySubscribers(batchSize: number, signal: AbortSignal): Promise<number>
   sendDigests(batchSize: number, signal: AbortSignal): Promise<number>
+  sendBoardDigests(batchSize: number, signal: AbortSignal): Promise<number>
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
   sweepAvatars(batchSize: number): Promise<number>
   rollUpStatistics(): Promise<{ memberCount: number; online: number; record: boolean }>
@@ -362,6 +363,26 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
     },
 
     {
+      id: 'board.digest_send',
+      title: 'Send board activity digests',
+      titleKey: 'adminSystem.task.boardDigestSend.title',
+      description:
+        'Sends the recap a member opted into after they have been away long enough to ' +
+        'count as lapsed, and only once their own cadence — weekly or monthly — is due. ' +
+        'Content is fetched per recipient through the same permission filter as the rest ' +
+        'of the board, so a digest never names a thread its reader could not open. Hourly, ' +
+        'for the same reason the subscription digest is: a due check is a query that finds ' +
+        'nobody most of the time.',
+      descriptionKey: 'adminSystem.task.boardDigestSend.description',
+      intervalSeconds: 3_600,
+      maxDurationSeconds: 60,
+      async run({ signal }) {
+        const notified = await workers.sendBoardDigests(50, signal)
+        return { detail: { notified } }
+      },
+    },
+
+    {
       id: 'attachments.sweep',
       title: 'Collect abandoned attachment files',
       titleKey: 'adminSystem.task.attachmentsSweep.title',
@@ -446,6 +467,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'warnings.expire': 'expireWarnings',
   'subscriptions.instant': 'notifySubscribers',
   'subscriptions.digest': 'sendDigests',
+  'board.digest_send': 'sendBoardDigests',
   'attachments.sweep': 'sweepAttachments',
   'avatars.sweep': 'sweepAvatars',
   'stats.rollup': 'rollUpStatistics',
