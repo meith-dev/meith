@@ -144,6 +144,7 @@ export interface AttachmentRepository {
   stalled(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
 
   attachTo(id: number, postId: number): Promise<AttachmentRecord | null>
+  deleteForPost(id: number, postId: number): Promise<AttachmentRecord | null>
   deleteOrphans(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
 
   rememberKey(key: string): Promise<void>
@@ -261,6 +262,10 @@ export class AttachmentService {
     }
 
     return claimed
+  }
+
+  async removeFromPost(id: number, postId: number): Promise<AttachmentRecord | null> {
+    return this.deps.attachments.deleteForPost(id, postId)
   }
 
   async process(attachmentId: number): Promise<'done' | 'skipped' | 'failed'> {

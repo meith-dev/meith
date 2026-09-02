@@ -82,6 +82,24 @@ export class FixturePostRepository implements PostRepository {
     }
   }
 
+  async locateFirstUnread(
+    threadId: number,
+    after: { readonly postId: number; readonly since: Date | null },
+    options: { readonly scope: ContentScope; readonly pageSize: number },
+  ): Promise<PostLocation | null> {
+    const first = this.rows
+      .filter(
+        (row) =>
+          row.threadId === threadId &&
+          options.scope.states.includes(row.visibility) &&
+          row.id > after.postId &&
+          (after.since === null || row.createdAt > after.since),
+      )
+      .sort((a, b) => a.id - b.id)[0]
+
+    return first === undefined ? null : this.locate(threadId, first.id, options)
+  }
+
   async listThread(
     threadId: number,
     options: {

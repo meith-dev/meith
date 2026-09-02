@@ -4,13 +4,14 @@ import { getContainer } from '@/server/container'
 import { activeWordFilter } from '@/server/content-admin'
 import { feedFor } from '@/server/feed-builder'
 import { feedResponse, noFeed, offlineFeed } from '@/server/feed-routes'
-import { FEED_LIMIT, feedRepository, origin, publicScope } from '@/server/syndication'
+import { feedScopeForRequest } from '@/server/feed-token'
+import { FEED_LIMIT, feedRepository, origin } from '@/server/syndication'
 import { leadingId } from '@/view/slug-id'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ): Promise<Response> {
   const offline = await offlineFeed()
@@ -23,7 +24,7 @@ export async function GET(
   const id = leadingId(slug)
   if (id === null) return noFeed()
 
-  const scope = await publicScope()
+  const { scope, tokened } = await feedScopeForRequest(request)
   if (!scope.forumIds.includes(id)) return noFeed()
 
   const forum = await getContainer().forums.findById(id)
@@ -44,5 +45,6 @@ export async function GET(
     }),
     'rss',
     'forum',
+    { private: tokened },
   )
 }

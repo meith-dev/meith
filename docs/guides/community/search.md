@@ -2,10 +2,51 @@
 
 Search is the most expensive thing a visitor can ask a board to do, and
 on a busy board it is the first thing to misbehave. This page is the
-four controls over it and what each is actually worth.
+five controls over it and what each is actually worth.
 
-Three live under `/admin/settings?group=search`. The fourth is a rate
+Four live under `/admin/settings?group=search`. The fifth is a rate
 limit and sits with the [spam controls](./antispam.md).
+
+## The language a board is written in
+
+**Search language** is the one control here that changes what a search
+*finds*, not how often or how much it costs. It names the Postgres
+text-search configuration used to reduce words to their stems — both as a
+post is indexed and as a member's query is parsed — so a search for one
+form of a word finds the others. On a German board the German
+configuration ties *Häuser* to *Haus*; English, left in place, would file
+them as two unrelated words and answer a search for one with none of the
+other.
+
+The choices are Postgres's own built-in configurations — English, German,
+French, Spanish, Russian and the rest of the stock set — plus **No
+stemming (exact words)**, which indexes and matches whole words only. No
+stemming is the honest choice for a board that mixes languages: it never
+guesses a stem wrong, at the cost of never finding a plural from its
+singular. The default is English.
+
+The board indexes and searches under **one** configuration. It has to be
+the same on both sides — a document stemmed one way and a query stemmed
+another would not meet — so the two are always taken from this single
+setting and can never drift apart.
+
+### Changing it reindexes in the background
+
+The stem of every word already in the index was decided by the old
+configuration, so changing this setting schedules a reindex: the
+**search reindex** task rewrites each post's document under the new
+configuration, a batch at a time, the same task that first builds the
+index for a board adopting search. Its progress shows on the system page
+at `/admin/system` as a pending count that falls to zero. Nothing goes
+dark while it runs — a post stays findable under the old configuration
+until its turn comes — but a search may miss a not-yet-rewritten post's
+newly-stemmable forms until the backfill reaches it.
+
+Only the language names offered here ever reach the database: the stored
+value is checked against that fixed list before it is used, and a value
+that is not on it falls back to English rather than being trusted. The
+list is the board's guarantee that a setting can never become a way to
+inject SQL into the index.
 
 ## Switching search off
 

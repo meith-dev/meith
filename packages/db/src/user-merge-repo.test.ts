@@ -226,6 +226,10 @@ describe('finish', () => {
       values (${LOSER}, 'loser-key', 'loser-public', 'Loser'),
              (${WINNER}, 'winner-key', 'winner-public', 'Winner')
     `)
+    await db.execute(sql`
+      insert into feed_tokens (user_id, lookup, secret_hash)
+      values (${LOSER}, 'loserlkp', 'loser-hash'), (${WINNER}, 'winnerlk', 'winner-hash')
+    `)
 
     await repo.finish(LOSER, WINNER)
 
@@ -235,8 +239,12 @@ describe('finish', () => {
     const keys = resultRows(
       await db.execute(sql`select user_id, credential_id from passkeys order by id`),
     ) as Array<{ user_id: number; credential_id: string }>
+    const feedTokens = resultRows(
+      await db.execute(sql`select user_id, lookup from feed_tokens order by id`),
+    ) as Array<{ user_id: number; lookup: string }>
     expect(identities).toEqual([{ user_id: WINNER, subject: 'winner' }])
     expect(keys).toEqual([{ user_id: WINNER, credential_id: 'winner-key' }])
+    expect(feedTokens).toEqual([{ user_id: WINNER, lookup: 'winnerlk' }])
   })
 
   it('keeps the winner’s row when both hold one under a uniqueness rule', async () => {

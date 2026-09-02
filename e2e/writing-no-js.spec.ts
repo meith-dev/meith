@@ -79,6 +79,47 @@ test('an image attachment is not served until it has been re-encoded', async ({
   expect(body.length).not.toBe(samplePng().length)
 })
 
+test('editing a post replaces one attachment for another, in the same plain form', async ({
+  page,
+}) => {
+  test.setTimeout(150_000)
+
+  await signUp(page, 'reattach')
+
+  await page.goto('/200-general')
+  await page.getByRole('link', { name: 'New thread' }).click()
+
+  const title = `Two pictures ${Date.now()}`
+  await page.getByLabel('Subject').fill(title)
+  await page.getByLabel('Message').fill('Starts with one attachment.')
+  await page.getByLabel('Attachments').setInputFiles({
+    name: 'first.png',
+    mimeType: 'image/png',
+    buffer: samplePng(),
+  })
+  await page.getByRole('button', { name: 'Post thread' }).click()
+  await expect(page).toHaveURL(/\/thread\/\d+-/)
+
+  const edit = await page.locator('a[href*="/edit?post="]').first().getAttribute('href')
+  expect(edit).toMatch(/\/edit\?post=\d+$/)
+
+  await page.goto(edit!)
+  await expect(page.getByText('first.png')).toBeVisible()
+
+  await page.getByLabel(/Remove first\.png/i).check()
+  await page.getByLabel('Attachments').setInputFiles({
+    name: 'second.png',
+    mimeType: 'image/png',
+    buffer: samplePng(),
+  })
+  await page.getByRole('button', { name: 'Save changes' }).click()
+  await expect(page).toHaveURL(/\/thread\/\d+-/)
+
+  await page.goto(edit!)
+  await expect(page.getByText('first.png')).toHaveCount(0)
+  await expect(page.getByText('second.png')).toBeVisible()
+})
+
 test('a file the board will not accept is refused, and nothing is posted', async ({ page }) => {
   await signUp(page, 'refused')
 

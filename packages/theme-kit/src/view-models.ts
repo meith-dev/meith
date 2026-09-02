@@ -1340,8 +1340,8 @@ export interface DiscoveryRowModel {
 }
 
 /**
- * A discovery listing: "new posts", "today", "unanswered", and the two
- * personal views.
+ * A discovery listing: "new posts", "today", "unread", "unanswered", and the
+ * two personal views.
  *
  * One slot rather than five. The views differ in which threads the query
  * returned and in the sentence under the heading; the reader is looking at the

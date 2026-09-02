@@ -64,6 +64,26 @@ function toLastPost(
   }
 }
 
+export interface ForumRowHydration {
+  readonly lastPost: LastPostModel | null
+  readonly isUnread: boolean
+}
+
+export function hydrateForumRow(
+  row: ForumListingRow,
+  ownThreadsOnly: boolean,
+  unreadForumIds: ReadonlySet<number> | undefined,
+  now: Date,
+  t: Translator | undefined,
+  identities: ReadonlyMap<number, MemberIdentity> | undefined,
+  wordFilter: CompiledWordFilter | undefined,
+): ForumRowHydration {
+  return {
+    lastPost: ownThreadsOnly ? null : toLastPost(row, now, t, identities, wordFilter),
+    isUnread: !ownThreadsOnly && (unreadForumIds?.has(row.id) ?? false),
+  }
+}
+
 function toForumRow(
   node: ForumNode<ForumListingRow>,
   now: Date,
@@ -74,6 +94,15 @@ function toForumRow(
   wordFilter: CompiledWordFilter | undefined,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(node.id) ?? false
+  const hydration = hydrateForumRow(
+    node,
+    ownThreadsOnly,
+    unreadForumIds,
+    now,
+    t,
+    identities,
+    wordFilter,
+  )
 
   return {
     id: node.id,
@@ -83,8 +112,8 @@ function toForumRow(
     type: node.type,
     threadCount: count(ownThreadsOnly ? 0 : node.threadCount, t),
     postCount: count(ownThreadsOnly ? 0 : node.postCount, t),
-    lastPost: ownThreadsOnly ? null : toLastPost(node, now, t, identities, wordFilter),
-    isUnread: !ownThreadsOnly && (unreadForumIds?.has(node.id) ?? false),
+    lastPost: hydration.lastPost,
+    isUnread: hydration.isUnread,
     subforums: node.children.map(
       (child): LinkModel => ({ label: child.title, href: hrefFor(child) }),
     ),

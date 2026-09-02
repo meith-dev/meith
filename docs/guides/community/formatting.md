@@ -148,6 +148,29 @@ the file still also appears in the attachment list once the post is
 saved. An id you did not upload yourself never resolves to anything in
 somebody else's post — typing one by hand does not work.
 
+## Editing a post's attachments
+
+Opening **Edit** on a post you may edit shows every file already attached
+to it, alongside a checkbox to remove it. Removing one of your own post's
+attachments needs nothing beyond the right to edit the post itself — the
+same edit window, and the same allowance for staff who may edit past it.
+
+Adding a new file is a separate matter: the attachments field for it only
+appears if you still hold the board's **attach files** permission for this
+forum, the same one a new post's attachments field checks, and it counts
+against the same hourly upload allowance. Losing that permission after
+posting does not let you add files by editing around it — it only means
+you can no longer add more, not that you cannot take existing ones out.
+Either way, adding or removing travels with the edit in the same plain
+form as the message itself — there is still no separate upload step and
+no token, the same rule new posts follow (see [Files are submitted with
+the post, in one
+form](../../reference/mybb-parity.md#files-are-submitted-with-the-post-in-one-form)).
+A file still being re-encoded shows as **Still being processed** rather
+than a broken image, and one that failed shows as such — both stay in the
+list, with their remove checkbox, until you either leave them or take
+them out.
+
 ## Drafts
 
 The composer saves what you are writing without being asked. A second or
@@ -164,6 +187,11 @@ crashed tab or a lost connection. Reopen the composer and it offers to
 Posting clears both, so the next thread you start in that forum begins
 empty. With scripting off there is no autosave and no recovery offer;
 **Save draft** still works.
+
+**Drafts**, under your account panel, lists every one you have saved —
+the forum or thread it belongs to, when it last saved, a **Resume** link
+back into the composer with the text still there, and a **Delete** to
+discard it without ever opening it.
 
 ## Everything else stays server-rendered
 

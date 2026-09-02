@@ -100,6 +100,31 @@ test('the "Insert attachment" toolbar button uploads and places [attachment=id]'
   await expect(page.locator('article .md-attachment')).toBeVisible()
 })
 
+test('dropping a file onto the attachments field lists it, and it can be removed before posting', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+
+  await signUp(page, 'dropper')
+  await page.goto('/200-general/new')
+
+  const label = page.locator('label[for="attachments"]')
+  const dropZone = label.locator('xpath=following-sibling::div[1]')
+
+  const dataTransfer = await page.evaluateHandle(() => {
+    const transfer = new DataTransfer()
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
+    transfer.items.add(new File([bytes], 'dropped.png', { type: 'image/png' }))
+    return transfer
+  })
+  await dropZone.dispatchEvent('drop', { dataTransfer })
+
+  await expect(page.getByText('dropped.png')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Remove dropped.png' }).click()
+  await expect(page.getByText('dropped.png')).toHaveCount(0)
+})
+
 test('the Table toolbar button inserts a skeleton the preview renders as a table', async ({
   page,
 }) => {

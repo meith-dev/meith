@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { after as scheduleAfterResponse } from 'next/server'
 
 import { currentRequestId } from '@meith/core/logger'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
@@ -37,6 +38,7 @@ import { reputationSettings, thanksForPosts } from '@/server/reputation'
 import { getSettings } from '@/server/settings'
 import { signaturesFor } from '@/server/signatures'
 import { currentTheme } from '@/server/theme'
+import { resolveUnreadGoto } from '@/server/unread-goto'
 import { getViewerPreferences } from '@/server/viewer-preferences'
 import { followFormCopy } from '@/view/account-copy'
 import { attachmentsByPost } from '@/view/attachments'
@@ -172,6 +174,7 @@ export default async function ThreadPage({
     replied?: string
     posted?: string
     post?: string
+    goto?: string
     removed?: string
     unchanged?: string
     tool?: string
@@ -195,6 +198,7 @@ export default async function ThreadPage({
     posts,
     threads,
     authorizer,
+    readState,
     threadViews,
     threadWrites,
     postWrites,
@@ -237,6 +241,19 @@ export default async function ThreadPage({
     }
   }
 
+  if (query.goto === 'unread' && actor.userId !== null && readState !== null) {
+    const location = await resolveUnreadGoto(
+      posts,
+      readState,
+      actor.userId,
+      { id: thread.id, forumId: forum.id, lastPostId: thread.lastPost?.postId ?? null },
+      { scope, pageSize: preferences.postsPerPage },
+    )
+    if (location !== null) {
+      redirect(locatedHref(`/thread/${thread.id}-${thread.slug}`, query, location))
+    }
+  }
+
   if (threadViews && after === undefined) {
     await threadViews.record(thread.id).catch(() => undefined)
   }
@@ -248,6 +265,18 @@ export default async function ThreadPage({
     limit: preferences.postsPerPage,
     scope,
   })
+
+  if (readState !== null && actor.userId !== null) {
+    const readerId = actor.userId
+    const lastRenderedPostId = postPage.rows.at(-1)?.id
+    if (lastRenderedPostId !== undefined) {
+      scheduleAfterResponse(() =>
+        readState
+          .markThreadRead(readerId, thread.id, lastRenderedPostId, new Date())
+          .catch(() => undefined),
+      )
+    }
+  }
 
   const pager = buildOffsetPager({
     path: `/thread/${thread.id}-${thread.slug}`,

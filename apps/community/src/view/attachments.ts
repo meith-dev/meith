@@ -1,4 +1,8 @@
-import { type AttachmentRecord, attachmentType } from '@meith/attachments/types'
+import {
+  type AttachmentRecord,
+  type AttachmentStatus,
+  attachmentType,
+} from '@meith/attachments/types'
 import type { PostAttachmentModel } from '@meith/theme-kit'
 
 export function formatBytes(bytes: number): string {
@@ -30,6 +34,34 @@ export function attachmentModel(record: AttachmentRecord): PostAttachmentModel |
     thumbnailHref: type.inline && record.thumbnailKey !== null ? thumbnailHref(record.id) : null,
     width: record.width,
     height: record.height,
+  }
+}
+
+export interface EditableAttachment {
+  readonly id: number
+  readonly filename: string
+  readonly size: string
+  readonly status: AttachmentStatus
+  readonly isImage: boolean
+  readonly href: string | null
+  readonly thumbnailHref: string | null
+}
+
+export function editableAttachment(record: AttachmentRecord): EditableAttachment {
+  const ready = record.status === 'ready' && record.storageKey !== null
+  const type = attachmentType(record.contentType)
+
+  return {
+    id: record.id,
+    filename: record.filename,
+    size: formatBytes(record.sizeBytes),
+    status: record.status,
+    isImage: ready && type?.inline === true,
+    href: ready ? attachmentHref(record.id) : null,
+    thumbnailHref:
+      ready && type?.inline === true && record.thumbnailKey !== null
+        ? thumbnailHref(record.id)
+        : null,
   }
 }
 

@@ -16,7 +16,14 @@ export function locatedHref(
 ): string {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || key === 'post' || key === 'after' || key === 'page') continue
+    if (
+      value === undefined ||
+      key === 'post' ||
+      key === 'after' ||
+      key === 'page' ||
+      key === 'goto'
+    )
+      continue
     for (const one of typeof value === 'string' ? [value] : value) params.append(key, one)
   }
   if (location.afterId !== null) {

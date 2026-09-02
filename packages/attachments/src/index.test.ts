@@ -340,6 +340,12 @@ class FakeRepo implements AttachmentRepository {
     this.update(id, { postId })
     return (await this.findById(id))!
   }
+  async deleteForPost(id: number, postId: number) {
+    const row = this.rows.find((r) => r.id === id)
+    if (row === undefined || row.postId !== postId) return null
+    this.rows = this.rows.filter((r) => r.id !== id)
+    return row
+  }
   async deleteOrphans(before: Date, limit: number) {
     const stale = this.rows
       .filter((row) => row.postId === null && row.createdAt < before)
@@ -526,6 +532,28 @@ describe('attaching', () => {
       sourceKey: null,
       storageKey: 'attachments/k1/file',
     })
+  })
+})
+
+describe('removing an attachment from an edited post', () => {
+  it('deletes the row when it belongs to the post named', async () => {
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.pdf', bytes: pdf() }], NO_LIMITS),
+    )
+    const [row] = await service.attach(staged, POST)
+
+    expect(await service.removeFromPost(row!.id, POST.postId)).toMatchObject({ id: row!.id })
+    expect(await repo.findById(row!.id)).toBeNull()
+  })
+
+  it('leaves an attachment on a different post alone', async () => {
+    const staged = await service.stage(
+      acceptFiles([{ filename: 'a.pdf', bytes: pdf() }], NO_LIMITS),
+    )
+    const [row] = await service.attach(staged, POST)
+
+    expect(await service.removeFromPost(row!.id, 999)).toBeNull()
+    expect(await repo.findById(row!.id)).not.toBeNull()
   })
 })
 

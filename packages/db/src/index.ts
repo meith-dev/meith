@@ -101,6 +101,7 @@ export {
   type SitemapForum,
   type SitemapThread,
 } from './feed-repo'
+export { type FeedTokenSummary, PostgresFeedTokenRepository } from './feed-token-repo'
 export {
   type AppointModeratorInput,
   type ForumOptionsInput,
@@ -235,9 +236,12 @@ export { resultRows } from './result-rows'
 export * from './schema'
 export { expectedTables, missingTables } from './schema-state'
 export {
+  DEFAULT_SEARCH_CONFIG,
   indexedSubjectSql,
   PostgresSearchRepository,
   type ReindexResult,
+  readSearchConfig,
+  resolveSearchConfig,
   SEARCH_DOCUMENT_VERSION,
   SEARCH_WINDOW,
   searchVectorSql,

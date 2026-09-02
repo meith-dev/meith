@@ -5,6 +5,11 @@ import { normaliseLocale, SOURCE_LOCALE } from '@meith/i18n'
 import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
 import { mailEndpointProblem } from './mail'
 import { isUsableFeedUrl, isUsableIssuer, isUsableOrigin } from './origin'
+import {
+  DEFAULT_SEARCH_LANGUAGE,
+  SEARCH_LANGUAGE_OPTIONS,
+  SEARCH_LANGUAGES,
+} from './search-languages'
 
 export type SettingGroup =
   | 'board'
@@ -405,6 +410,25 @@ export const SETTING_DEFINITIONS = [
     schema: z.number().int().min(1).max(10),
     default: 2,
     ui: { min: 1, max: 10 },
+  }),
+  define({
+    key: 'search.language',
+    group: 'search',
+    label: 'Search language',
+    description:
+      'The Postgres text-search configuration used to stem posts as they are ' +
+      'indexed and to stem the words a member searches for. Match it to the ' +
+      'language the board is written in, so a search for one form of a word ' +
+      'finds the others — the German configuration ties "Häuser" to "Haus", ' +
+      'where English would leave them apart. "No stemming" indexes and matches ' +
+      'whole words only, which is the safe choice for a board that mixes ' +
+      'languages. Changing it schedules a background reindex: every post is ' +
+      'rewritten under the new configuration by the search reindex task, a ' +
+      'batch at a time, and stays findable under the old one until its turn ' +
+      'comes.',
+    schema: z.enum(SEARCH_LANGUAGES),
+    default: DEFAULT_SEARCH_LANGUAGE,
+    ui: { options: SEARCH_LANGUAGE_OPTIONS },
   }),
 
   define({

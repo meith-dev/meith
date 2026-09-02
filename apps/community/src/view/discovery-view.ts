@@ -9,6 +9,7 @@ import { filterWords } from './word-filter'
 export const DISCOVERY_LABELS = {
   new: { labelKey: 'discovery.new.label', blurbKey: 'discovery.new.blurb' },
   today: { labelKey: 'discovery.today.label', blurbKey: 'discovery.today.blurb' },
+  unread: { labelKey: 'discovery.unread.label', blurbKey: 'discovery.unread.blurb' },
   mine: { labelKey: 'discovery.mine.label', blurbKey: 'discovery.mine.blurb' },
   participated: {
     labelKey: 'discovery.participated.label',
@@ -59,7 +60,7 @@ export function buildDiscoveryView(input: {
     rows: input.rows.map((row) => ({
       threadId: row.threadId,
       title: filterWords(row.title, input.wordFilter),
-      href: `/thread/${row.threadId}-${row.slug}`,
+      href: `/thread/${row.threadId}-${row.slug}${input.view === 'unread' ? '?goto=unread' : ''}`,
       forum: { label: row.forumTitle, href: `/${row.forumId}-${row.forumSlug}` },
       authorUsername: row.authorUsername,
       replyCount: count(row.replyCount, input.t),

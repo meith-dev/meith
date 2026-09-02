@@ -10,13 +10,27 @@ import type {
   SearchScope,
   SearchSummary,
 } from '@meith/search'
+import { DEFAULT_SEARCH_LANGUAGE, SEARCH_LANGUAGES } from '@meith/settings'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
-const SEARCH_CONFIG = 'english'
+const SEARCH_LANGUAGE_SET: ReadonlySet<string> = new Set(SEARCH_LANGUAGES)
+
+export const DEFAULT_SEARCH_CONFIG: string = DEFAULT_SEARCH_LANGUAGE
+
+export function resolveSearchConfig(value: string | null | undefined): string {
+  return typeof value === 'string' && SEARCH_LANGUAGE_SET.has(value) ? value : DEFAULT_SEARCH_CONFIG
+}
+
+export async function readSearchConfig(db: Database): Promise<string> {
+  const rows = resultRows(
+    await db.execute(sql`select value from settings where key = 'search.language'`),
+  ) as Array<{ value: string }>
+  return resolveSearchConfig(rows[0]?.value)
+}
 
 export const SEARCH_WINDOW = 20_000
 
@@ -51,10 +65,10 @@ export function renderExcerptHtml(headline: string): string {
     .join('</b>')
 }
 
-export function searchVectorSql(subject: SQL | string, message: SQL | string): SQL {
+export function searchVectorSql(config: string, subject: SQL | string, message: SQL | string): SQL {
   return sql`
-    setweight(to_tsvector(${SEARCH_CONFIG}, coalesce(${subject}, '')), 'A') ||
-    setweight(to_tsvector(${SEARCH_CONFIG}, coalesce(${message}, '')), 'B')
+    setweight(to_tsvector(${config}, coalesce(${subject}, '')), 'A') ||
+    setweight(to_tsvector(${config}, coalesce(${message}, '')), 'B')
   `
 }
 
@@ -77,13 +91,20 @@ export interface ReindexResult {
 }
 
 export class PostgresSearchRepository {
-  constructor(private readonly db: Database) {}
+  private readonly config: string
+
+  constructor(
+    private readonly db: Database,
+    config: string = DEFAULT_SEARCH_CONFIG,
+  ) {
+    this.config = resolveSearchConfig(config)
+  }
 
   async search(query: SearchQuery, scope: SearchScope): Promise<SearchResults> {
-    const conditions = matchConditions(query, scope)
+    const conditions = matchConditions(this.config, query, scope)
     if (conditions === null) return { hits: [], nextCursor: null }
 
-    const rank = rankSql(query.terms)
+    const rank = rankSql(this.config, query.terms)
     const finalOrder = orderSql(query.sort)
 
     const selection = sql`
@@ -104,8 +125,8 @@ export class PostgresSearchRepository {
       await this.db.execute(sql`
         select post_id, thread_id, forum_id, thread_title, thread_slug,
                author_user_id, author_username, created_at, rank,
-               ts_headline(${SEARCH_CONFIG}, excerpt_source,
-                           websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms}),
+               ts_headline(${this.config}, excerpt_source,
+                           websearch_to_tsquery(${this.config}, ${query.terms}),
                            ${HEADLINE_OPTIONS}) as excerpt
           from ${candidates}
          order by ${finalOrder}
@@ -136,7 +157,7 @@ export class PostgresSearchRepository {
   }
 
   async summarize(query: SearchQuery, scope: SearchScope): Promise<SearchSummary> {
-    const conditions = matchConditions(query, scope)
+    const conditions = matchConditions(this.config, query, scope)
     if (conditions === null) return NOTHING
 
     const rows = resultRows(
@@ -204,10 +225,11 @@ export class PostgresSearchRepository {
   }
 
   async reindexChunk(afterPostId: number, limit: number): Promise<ReindexResult> {
+    const config = await readSearchConfig(this.db)
     const rows = resultRows(
       await this.db.execute(sql`
         update posts p
-           set search_vector = ${searchVectorSql(indexedSubjectSql(sql`p`), sql`p.message`)},
+           set search_vector = ${searchVectorSql(config, indexedSubjectSql(sql`p`), sql`p.message`)},
                search_version = ${SEARCH_DOCUMENT_VERSION}
          where p.id in (
            select id from posts
@@ -245,10 +267,19 @@ export class PostgresSearchRepository {
   async invalidateIndex(): Promise<void> {
     await this.db.execute(sql`update posts set search_vector = null, search_version = 0`)
   }
+
+  async markForReindex(): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(
+        sql`update posts set search_version = 0 where search_version <> 0 returning id`,
+      ),
+    ) as Array<{ id: number }>
+    return rows.length
+  }
 }
 
-function rankSql(terms: string): SQL {
-  return sql`ts_rank_cd(p.search_vector, websearch_to_tsquery(${SEARCH_CONFIG}, ${terms}))`
+function rankSql(config: string, terms: string): SQL {
+  return sql`ts_rank_cd(p.search_vector, websearch_to_tsquery(${config}, ${terms}))`
 }
 
 function excerptSourceSql(match: SearchQuery['match']): SQL {
@@ -263,7 +294,7 @@ function orderSql(sort: SearchQuery['sort']): SQL {
       : sql`post_id asc`
 }
 
-function matchConditions(query: SearchQuery, scope: SearchScope): SQL[] | null {
+function matchConditions(config: string, query: SearchQuery, scope: SearchScope): SQL[] | null {
   if (query.terms.trim() === '') return null
 
   const allowed =
@@ -279,7 +310,7 @@ function matchConditions(query: SearchQuery, scope: SearchScope): SQL[] | null {
       ...scope,
       forumIds: allowed,
     }),
-    sql`p.search_vector @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
+    sql`p.search_vector @@ websearch_to_tsquery(${config}, ${query.terms})`,
   ]
 
   conditions.push(visibleIn(sql`p.visibility`, scope.content))
@@ -287,8 +318,8 @@ function matchConditions(query: SearchQuery, scope: SearchScope): SQL[] | null {
 
   if (query.match === 'titles') {
     conditions.push(
-      sql`to_tsvector(${SEARCH_CONFIG}, coalesce(${indexedSubjectSql(sql`p`)}, ''))
-          @@ websearch_to_tsquery(${SEARCH_CONFIG}, ${query.terms})`,
+      sql`to_tsvector(${config}, coalesce(${indexedSubjectSql(sql`p`)}, ''))
+          @@ websearch_to_tsquery(${config}, ${query.terms})`,
     )
   }
 

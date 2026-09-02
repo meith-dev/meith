@@ -159,3 +159,95 @@ describe('PostgresPostRepository.locate', () => {
     expect(await repo.locate(2, 1, { scope: PUBLIC_CONTENT, pageSize: 20 })).toBeNull()
   })
 })
+
+describe('PostgresPostRepository.locateFirstUnread', () => {
+  it('lands on the very first post for a thread never read', async () => {
+    await seed(5)
+    expect(
+      await repo.locateFirstUnread(
+        1,
+        { postId: 0, since: null },
+        { scope: PUBLIC_CONTENT, pageSize: 20 },
+      ),
+    ).toEqual({ number: 1, page: 1, afterId: null })
+  })
+
+  it('lands on the first post past the marker, mid-thread', async () => {
+    await seed(50)
+    expect(
+      await repo.locateFirstUnread(
+        1,
+        { postId: 20, since: null },
+        { scope: PUBLIC_CONTENT, pageSize: 20 },
+      ),
+    ).toEqual({ number: 21, page: 2, afterId: 20 })
+  })
+
+  it('answers nothing once the marker has caught up to the last post', async () => {
+    await seed(5)
+    expect(
+      await repo.locateFirstUnread(
+        1,
+        { postId: 5, since: null },
+        { scope: PUBLIC_CONTENT, pageSize: 20 },
+      ),
+    ).toBeNull()
+  })
+
+  it('skips a deleted post outside the reader’s scope', async () => {
+    await seed(3)
+    await db.insert(posts).values({
+      id: 4,
+      threadId: 1,
+      forumId: 1,
+      authorUsername: 'mod',
+      message: 'removed',
+      visibility: 'deleted',
+    })
+    await db.insert(posts).values({
+      id: 5,
+      threadId: 1,
+      forumId: 1,
+      authorUsername: 'ada',
+      message: 'still visible',
+    })
+
+    expect(
+      await repo.locateFirstUnread(
+        1,
+        { postId: 3, since: null },
+        { scope: PUBLIC_CONTENT, pageSize: 20 },
+      ),
+    ).toEqual({ number: 4, page: 1, afterId: null })
+  })
+
+  it('honours the forum-level mark-all-read timestamp alongside the marker', async () => {
+    await seed(3)
+    await db.execute(sql`update posts set created_at = '2026-01-01T00:00:00Z' where id <= 3`)
+    const since = new Date('2026-08-01T00:00:00Z')
+    await db.insert(posts).values({
+      id: 4,
+      threadId: 1,
+      forumId: 1,
+      authorUsername: 'ada',
+      message: 'before the mark-all',
+      createdAt: new Date('2026-07-01T00:00:00Z'),
+    })
+    await db.insert(posts).values({
+      id: 5,
+      threadId: 1,
+      forumId: 1,
+      authorUsername: 'ada',
+      message: 'after the mark-all',
+      createdAt: new Date('2026-09-01T00:00:00Z'),
+    })
+
+    expect(
+      await repo.locateFirstUnread(
+        1,
+        { postId: 0, since },
+        { scope: PUBLIC_CONTENT, pageSize: 20 },
+      ),
+    ).toEqual({ number: 5, page: 1, afterId: null })
+  })
+})

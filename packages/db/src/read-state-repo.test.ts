@@ -106,4 +106,23 @@ describe('PostgresReadStateRepository', () => {
 
     expect(state.unreadForumIds).toEqual(new Set([1]))
   })
+
+  describe('markerFor', () => {
+    it('answers null markers for a thread and forum never touched', async () => {
+      await seed(1)
+      expect(await repo.markerFor(50, 1, 1)).toEqual({ lastReadPostId: null, forumReadAt: null })
+    })
+
+    it('carries the thread marker and the forum marker independently', async () => {
+      await seed(2)
+      const at = new Date('2026-07-31T00:00:00Z')
+
+      await repo.markThreadRead(50, 1, 1, at)
+      expect(await repo.markerFor(50, 1, 1)).toEqual({ lastReadPostId: 1, forumReadAt: null })
+      expect(await repo.markerFor(50, 2, 1)).toEqual({ lastReadPostId: null, forumReadAt: null })
+
+      await repo.markForumsRead(50, [1], at)
+      expect(await repo.markerFor(50, 2, 1)).toEqual({ lastReadPostId: null, forumReadAt: at })
+    })
+  })
 })

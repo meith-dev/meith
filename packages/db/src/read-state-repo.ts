@@ -1,7 +1,7 @@
 import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
 
 import { PUBLIC_CONTENT } from '@meith/core'
-import type { ReadState, ReadStateRepository } from '@meith/threads'
+import type { ReadState, ReadStateRepository, ThreadReadMarker } from '@meith/threads'
 
 import type { Database } from './client'
 import { forumsRead, threads, threadsRead } from './schema'
@@ -52,6 +52,26 @@ export class PostgresReadStateRepository implements ReadStateRepository {
         ),
       ),
       unreadForumIds: new Set(unread.map((row) => row.forumId)),
+    }
+  }
+
+  async markerFor(userId: number, threadId: number, forumId: number): Promise<ThreadReadMarker> {
+    const [threadRows, forumRows] = await Promise.all([
+      this.db
+        .select({ lastReadPostId: threadsRead.lastReadPostId })
+        .from(threadsRead)
+        .where(and(eq(threadsRead.userId, userId), eq(threadsRead.threadId, threadId)))
+        .limit(1),
+      this.db
+        .select({ readAt: forumsRead.readAt })
+        .from(forumsRead)
+        .where(and(eq(forumsRead.userId, userId), eq(forumsRead.forumId, forumId)))
+        .limit(1),
+    ])
+
+    return {
+      lastReadPostId: threadRows[0]?.lastReadPostId ?? null,
+      forumReadAt: forumRows[0]?.readAt ?? null,
     }
   }
 
