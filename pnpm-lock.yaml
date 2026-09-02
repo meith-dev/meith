@@ -440,6 +440,9 @@ importers:
       '@meith/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@meith/subscriptions':
+        specifier: workspace:*
+        version: link:../subscriptions
       hash-wasm:
         specifier: ^4.12.0
         version: 4.12.0
