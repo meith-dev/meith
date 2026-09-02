@@ -1,3 +1,5 @@
+import type { ReportCategory } from '@meith/db'
+
 export type DemoForumAccess = 'staff' | 'supporters'
 
 export interface DemoForum {
@@ -66,6 +68,7 @@ export interface DemoReport {
   readonly reporter: string
   readonly threadTitle: string
   readonly postIndex: number
+  readonly category: ReportCategory
   readonly reason: string
   readonly hoursAgo: number
 }

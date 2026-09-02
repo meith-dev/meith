@@ -33,6 +33,7 @@ pre-authentication limits below.
 | Minimum fill time | `antispam.min_form_seconds` | 3 seconds | Instant submissions | Occasionally somebody with a password manager. Keep it to a few seconds. |
 | A question challenge | `antispam.captcha_mode` | Off | Scripted registration | A moment, every time. Switch it on when you have a problem. |
 | Hold a new member's first posts | `antispam.moderate_first_posts` | Off | Most forum spam | One wait per genuine new member. |
+| Community flag threshold | `moderation.flag_threshold` | Off | Posts a crowd has already caught | Nothing; it acts only once several members agree. |
 | Hourly limits | `antispam.*_per_hour` | Off | A night's work by one script | Nothing, set sensibly. |
 | The four pre-auth limits | see below | On | Signup floods, reset-mail bombing, password spraying | Nothing. |
 
@@ -175,6 +176,39 @@ contacting a third party before they can join your board, which is a
 decision about your members rather than a setting. The provider seam
 (`CaptchaProvider` in `packages/antispam`) is there if you want one — a
 small module, not a fork. See [the plugin API](../../customization/plugins.md).
+
+## Community flagging
+
+The board can let its own members hide a bad post before a moderator
+reaches it — the third-party-free counterpart to a hosted "flag" service.
+Set **Community flag threshold** (`moderation.flag_threshold`) to a
+number *N* and, the moment *N* **different members** have an open
+[report](moderation-guide.md#reports) against the same visible post, the
+board holds that post for approval — in the same database transaction
+that files the *N*th report, so the post never lingers a moment past the
+threshold and the hold is logged as `post.autohold` in the moderator log.
+`0`, the default, switches it off.
+
+- **It counts distinct members, not reports.** One member cannot report
+  the same post twice while their first report is open, so a single member
+  can never trip the threshold alone. Only reports filed *since the post
+  was last held* count towards holding it again — so approving a
+  flag-held post from the queue makes it stick, and it takes a fresh set
+  of distinct members to hold it a second time rather than the old flags
+  bouncing it straight back.
+- **It is deliberately blunt.** A report from a brand-new or ignored
+  account still counts. That keeps v1 simple; weighting reports by who
+  filed them is a later refinement, not a setting here.
+- **It acts on the content, never the author.** Holding a post changes
+  nothing about the member's permissions or standing — warnings and the
+  moderation bypass are untouched. A held post is reviewed and approved
+  or rejected from the approval queue like any other held content, and
+  the reports stay open until a moderator closes them.
+- **A reported opening post holds its whole thread; a reported reply holds
+  just the reply.** Either way it surfaces in the queue for a decision,
+  and the post and thread counts are decremented for everything held and
+  restored in full on approval — so a rejected thread leaves nothing
+  behind and no count drifts.
 
 ## The word filter
 

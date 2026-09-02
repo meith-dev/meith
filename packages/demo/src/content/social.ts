@@ -353,6 +353,7 @@ export const DEMO_REPORTS: readonly DemoReport[] = [
     reporter: 'member',
     threadTitle: 'Two tickets for the final, face value only',
     postIndex: 4,
+    category: 'spam',
     reason: 'Spam — link to an off-site ticket shop, account registered today.',
     hoursAgo: 4,
   },
@@ -361,6 +362,7 @@ export const DEMO_REPORTS: readonly DemoReport[] = [
     threadTitle:
       'My twelve-year-old wants to join the gaming side and I do not know what I am agreeing to',
     postIndex: 0,
+    category: 'other',
     reason:
       'Not a complaint — flagging it for the welfare officer since it describes a child by age. Probably completely fine, would rather somebody looked.',
     hoursAgo: 30,

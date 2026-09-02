@@ -718,6 +718,19 @@ export const SETTING_DEFINITIONS = [
     default: 0,
     ui: { min: 0, max: 50 },
   }),
+  define({
+    key: 'moderation.flag_threshold',
+    group: 'antispam',
+    label: 'Community flag threshold',
+    description:
+      'How many different members must report the same visible post before ' +
+      'the board holds it for a moderator to look at. 0 turns community ' +
+      'flagging off. One member reporting the same post many times never ' +
+      'trips it — the count is of distinct members.',
+    schema: z.number().int().min(0).max(100),
+    default: 0,
+    ui: { min: 0, max: 100 },
+  }),
 
   define({
     key: 'antispam.register_ip_per_hour',

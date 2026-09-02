@@ -1,8 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { REPORTS_PAGE_SIZE, ReportService } from '@meith/moderation'
-import { Card, Empty, EmptyDescription, EmptyTitle, TextLink } from '@meith/ui'
+import {
+  parseReportCategory,
+  REPORT_CATEGORIES,
+  REPORTS_PAGE_SIZE,
+  ReportService,
+} from '@meith/moderation'
+import { Badge, Card, Empty, EmptyDescription, EmptyTitle, NativeSelect, TextLink } from '@meith/ui'
 
 import { AssignReportForm, CloseReportForm } from '@/components/moderation/report-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -13,7 +18,7 @@ import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { messageService } from '@/server/messages'
 import { hasReportScope, resolveReportScope } from '@/server/report-scope'
-import { moderationFormsCopy } from '@/view/moderation-copy'
+import { moderationFormsCopy, REPORT_CATEGORY_LABEL_KEYS } from '@/view/moderation-copy'
 import { offsetOf, readPage } from '@/view/pager'
 import { postLink } from '@/view/post-link'
 import { formatTime } from '@/view/time'
@@ -25,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; closed?: string }>
+  searchParams: Promise<{ page?: string; closed?: string; category?: string }>
 }) {
   const query = await searchParams
   const actor = await getActor()
@@ -35,11 +40,15 @@ export default async function ReportsPage({
   const scope = await resolveReportScope()
   if (!hasReportScope(scope)) notFound()
 
+  const activeCategory = parseReportCategory(query.category)
   const service = new ReportService({ reports })
   const pageNumber = readPage(query)
   const [page, open] = await Promise.all([
-    service.listOpen(scope, { offset: offsetOf(pageNumber, REPORTS_PAGE_SIZE) }),
-    service.countOpen(scope),
+    service.listOpen(scope, {
+      offset: offsetOf(pageNumber, REPORTS_PAGE_SIZE),
+      ...(activeCategory === null ? {} : { category: activeCategory }),
+    }),
+    service.countOpen(scope, activeCategory ?? undefined),
   ])
 
   const reportedMessages = await reportedPrivateMessages(page.rows)
@@ -60,6 +69,35 @@ export default async function ReportsPage({
     >
       {notice !== null && (
         <BoardNotice kind="info" message={notice} dismissHref="/moderation/reports" />
+      )}
+
+      {(open > 0 || activeCategory !== null) && (
+        <form method="get" action="/moderation/reports" className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-col gap-1 text-xs">
+            <label htmlFor="report-category-filter" className="font-medium text-muted-foreground">
+              {translator.t('board.reports.filterCategory')}
+            </label>
+            <NativeSelect
+              id="report-category-filter"
+              name="category"
+              defaultValue={activeCategory ?? ''}
+              className="w-48"
+            >
+              <option value="">{translator.t('board.reports.filterAll')}</option>
+              {REPORT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {translator.t(REPORT_CATEGORY_LABEL_KEYS[category])}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center rounded-md border border-border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {translator.t('board.reports.filterApply')}
+          </button>
+        </form>
       )}
 
       {page.rows.length === 0 && (
@@ -96,6 +134,9 @@ export default async function ReportsPage({
                       ? translator.t('board.reports.privateMessage')
                       : report.kind}
                   </span>
+                  <Badge tone="neutral">
+                    {translator.t(REPORT_CATEGORY_LABEL_KEYS[report.category])}
+                  </Badge>
                   {href === null ? (
                     <span className="font-medium">{report.targetLabel}</span>
                   ) : (
@@ -110,9 +151,11 @@ export default async function ReportsPage({
                   </span>
                 </div>
 
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  {report.reason}
-                </p>
+                {report.reason !== '' && (
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">
+                    {report.reason}
+                  </p>
+                )}
 
                 {report.kind === 'private_message' && (
                   <div className="mt-2 rounded-md border border-border bg-muted/50 p-3">

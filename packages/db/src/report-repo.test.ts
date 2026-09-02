@@ -6,6 +6,7 @@ import { ReportService } from '@meith/moderation'
 import { PostgresAdminLogRepository } from './admin-session-repo'
 import type { Database } from './client'
 import { PostgresModCpRepository } from './modcp-repo'
+import { PostgresModerationQueueRepository } from './moderation-queue'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresReportRepository } from './report-repo'
 import { resultRows } from './result-rows'
@@ -52,6 +53,8 @@ beforeEach(async () => {
       [AUTHOR, 'ada'],
       [REPORTER, 'bob'],
       [MOD, 'mod'],
+      [4, 'cara'],
+      [5, 'dan'],
     ].map(([id, name]) => ({
       id: id as number,
       username: name as string,
@@ -576,3 +579,428 @@ describe('through the service', () => {
     expect((await repo.find(reportId))!.report.status).toBe('resolved')
   })
 })
+
+describe('report categories', () => {
+  it('stores the category and returns it', async () => {
+    const postId = await seedThread(100)
+    const { reportId } = await service().file({
+      kind: 'post',
+      targetId: postId,
+      category: 'spam',
+      reason: 'buy now cheap',
+      reporterUserId: REPORTER,
+    })
+    expect((await repo.find(reportId))!.report.category).toBe('spam')
+  })
+
+  it('accepts a spam report with no free text, and keeps demanding it for other', async () => {
+    const spamPost = await seedThread(100)
+    const otherPost = await seedThread(101)
+
+    const spam = await service().file({
+      kind: 'post',
+      targetId: spamPost,
+      category: 'spam',
+      reason: '',
+      reporterUserId: REPORTER,
+    })
+    expect((await repo.find(spam.reportId))!.report.reason).toBe('')
+
+    await expect(
+      service().file({
+        kind: 'post',
+        targetId: otherPost,
+        category: 'other',
+        reason: '',
+        reporterUserId: REPORTER,
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('filters the open list and count by category', async () => {
+    const spamPost = await seedThread(100)
+    const abusePost = await seedThread(101)
+    await service().file({
+      kind: 'post',
+      targetId: spamPost,
+      category: 'spam',
+      reason: 'spam',
+      reporterUserId: REPORTER,
+    })
+    await service().file({
+      kind: 'post',
+      targetId: abusePost,
+      category: 'abuse',
+      reason: 'abuse',
+      reporterUserId: REPORTER,
+    })
+
+    const spam = await repo.listOpen(IN_FORUM, { limit: 10, category: 'spam' })
+    expect(spam.rows.map((r) => r.targetId)).toEqual([spamPost])
+    expect(await repo.countOpen(IN_FORUM, 'abuse')).toBe(1)
+    expect(await repo.countOpen(IN_FORUM)).toBe(2)
+  })
+})
+
+describe('community flag threshold', () => {
+  const AT2 = new Date('2026-07-30T13:00:00Z')
+  const LATER = new Date('2026-07-31T12:00:00Z')
+
+  async function seedReply(threadId: number, replyId: number): Promise<number> {
+    await db.execute(sql`
+      insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+                         message, visibility, is_first_post, created_at)
+      values (${replyId}, ${threadId}, ${FORUM}, ${AUTHOR}, 'ada', 'a reply',
+              'visible', false, ${AT})
+    `)
+    return replyId
+  }
+
+  async function visibilityOf(table: 'posts' | 'threads', id: number): Promise<string> {
+    const rows = resultRows(
+      await db.execute(
+        table === 'posts'
+          ? sql`select visibility from posts where id = ${id}`
+          : sql`select visibility from threads where id = ${id}`,
+      ),
+    ) as Array<{ visibility: string }>
+    return rows[0]!.visibility
+  }
+
+  async function autoHoldRows(): Promise<
+    Array<{ user_id: number | null; action: string; detail: Record<string, unknown> }>
+  > {
+    return resultRows(
+      await db.execute(
+        sql`select user_id, action, detail from admin_log where action = 'post.autohold' order by id`,
+      ),
+    ) as Array<{ user_id: number | null; action: string; detail: Record<string, unknown> }>
+  }
+
+  function fileOn(postId: number, who: number): Promise<{ reportId: number; duplicate: boolean }> {
+    return service().file({
+      kind: 'post',
+      targetId: postId,
+      category: 'spam',
+      reason: 'spam',
+      reporterUserId: who,
+      flagThreshold: 2,
+    })
+  }
+
+  async function counters(threadId: number): Promise<{
+    forumPosts: number
+    forumThreads: number
+    authorPosts: number
+    authorThreads: number
+    replyCount: number
+  }> {
+    const forum = resultRows(
+      await db.execute(sql`select post_count, thread_count from forums where id = ${FORUM}`),
+    ) as Array<{ post_count: number; thread_count: number }>
+    const author = resultRows(
+      await db.execute(sql`select post_count, thread_count from users where id = ${AUTHOR}`),
+    ) as Array<{ post_count: number; thread_count: number }>
+    const thread = resultRows(
+      await db.execute(sql`select reply_count from threads where id = ${threadId}`),
+    ) as Array<{ reply_count: number }>
+    return {
+      forumPosts: Number(forum[0]!.post_count),
+      forumThreads: Number(forum[0]!.thread_count),
+      authorPosts: Number(author[0]!.post_count),
+      authorThreads: Number(author[0]!.thread_count),
+      replyCount: Number(thread[0]!.reply_count),
+    }
+  }
+
+  async function seedCountedThread(): Promise<number> {
+    const firstPost = await seedThread(100)
+    await seedReply(100, 1001)
+    await seedReply(100, 1002)
+    await db.execute(sql`update forums set post_count = 20, thread_count = 8 where id = ${FORUM}`)
+    await db.execute(sql`update users set post_count = 20, thread_count = 8 where id = ${AUTHOR}`)
+    await db.execute(sql`update threads set reply_count = 2 where id = 100`)
+    return firstPost
+  }
+
+  it('holds a reply once a second distinct member reports it', async () => {
+    await seedThread(100)
+    const reply = await seedReply(100, 1001)
+
+    await fileOn(reply, REPORTER)
+    expect(await visibilityOf('posts', reply)).toBe('visible')
+    expect(await autoHoldRows()).toHaveLength(0)
+
+    await fileOn(reply, MOD)
+    expect(await visibilityOf('posts', reply)).toBe('unapproved')
+
+    const rows = await autoHoldRows()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ user_id: null, action: 'post.autohold' })
+    expect(rows[0]!.detail).toMatchObject({
+      postId: reply,
+      threadId: 100,
+      forumId: FORUM,
+      forumIds: [FORUM],
+    })
+  })
+
+  it('holds the whole thread when the reported post opens it', async () => {
+    const firstPost = await seedThread(100)
+
+    await fileOn(firstPost, REPORTER)
+    await fileOn(firstPost, MOD)
+
+    expect(await visibilityOf('threads', 100)).toBe('unapproved')
+    expect(await visibilityOf('posts', firstPost)).toBe('unapproved')
+    expect((await autoHoldRows())[0]!.detail).toMatchObject({ postId: firstPost, threadId: 100 })
+  })
+
+  it('never trips on one member reporting the same post twice', async () => {
+    await seedThread(100)
+    const reply = await seedReply(100, 1001)
+
+    await fileOn(reply, REPORTER)
+    expect(await fileOn(reply, REPORTER)).toMatchObject({ duplicate: true })
+
+    expect(await visibilityOf('posts', reply)).toBe('visible')
+    expect(await autoHoldRows()).toHaveLength(0)
+  })
+
+  it('does nothing when flagging is off', async () => {
+    await seedThread(100)
+    const reply = await seedReply(100, 1001)
+
+    for (const who of [REPORTER, MOD]) {
+      await service().file({
+        kind: 'post',
+        targetId: reply,
+        category: 'spam',
+        reason: 'spam',
+        reporterUserId: who,
+        flagThreshold: 0,
+      })
+    }
+
+    expect(await visibilityOf('posts', reply)).toBe('visible')
+    expect(await autoHoldRows()).toHaveLength(0)
+  })
+
+  it('is a no-op on a post that is already held', async () => {
+    await seedThread(100)
+    const reply = await seedReply(100, 1001)
+    await db.execute(sql`update posts set visibility = 'unapproved' where id = ${reply}`)
+
+    await repo.open({
+      target: {
+        kind: 'post',
+        id: reply,
+        forumId: FORUM,
+        threadId: 100,
+        threadAuthorUserId: AUTHOR,
+        label: 'Thread 100',
+      },
+      reporterUserId: REPORTER,
+      category: 'spam',
+      reason: 'spam',
+      at: AT2,
+      flagThreshold: 1,
+    })
+
+    expect(await visibilityOf('posts', reply)).toBe('unapproved')
+    expect(await autoHoldRows()).toHaveLength(0)
+  })
+
+  it('rolls the report and the log row back together if the transaction fails', async () => {
+    await seedThread(100)
+    const reply = await seedReply(100, 1001)
+
+    const failing = new PostgresReportRepository(rollbackProbe(db))
+    await expect(
+      new ReportService({ reports: failing, now: () => AT }).file({
+        kind: 'post',
+        targetId: reply,
+        category: 'spam',
+        reason: 'spam',
+        reporterUserId: REPORTER,
+        flagThreshold: 1,
+      }),
+    ).rejects.toThrow('rollback-probe')
+
+    expect(resultRows(await db.execute(sql`select id from reports`))).toHaveLength(0)
+    expect(await autoHoldRows()).toHaveLength(0)
+    expect(await visibilityOf('posts', reply)).toBe('visible')
+  })
+
+  it('keeps forum and author counters correct when an opening post with replies is held then approved', async () => {
+    const firstPost = await seedCountedThread()
+
+    await fileOn(firstPost, REPORTER)
+    await fileOn(firstPost, MOD)
+
+    expect(await visibilityOf('threads', 100)).toBe('unapproved')
+    expect(await counters(100)).toEqual({
+      forumPosts: 17,
+      forumThreads: 7,
+      authorPosts: 17,
+      authorThreads: 7,
+      replyCount: 0,
+    })
+
+    await new PostgresModerationQueueRepository(db).apply({
+      decision: 'approve',
+      threadIds: [100],
+      postIds: [],
+      actorUserId: MOD,
+      at: AT2,
+    })
+
+    expect(await visibilityOf('threads', 100)).toBe('visible')
+    expect(await counters(100)).toEqual({
+      forumPosts: 20,
+      forumThreads: 8,
+      authorPosts: 20,
+      authorThreads: 8,
+      replyCount: 2,
+    })
+  })
+
+  it('leaves no counter or post drift when a flag-held thread is rejected', async () => {
+    const firstPost = await seedCountedThread()
+
+    await fileOn(firstPost, REPORTER)
+    await fileOn(firstPost, MOD)
+
+    await new PostgresModerationQueueRepository(db).apply({
+      decision: 'reject',
+      threadIds: [100],
+      postIds: [],
+      actorUserId: MOD,
+      at: AT2,
+    })
+
+    expect(await counters(100)).toMatchObject({
+      forumPosts: 17,
+      forumThreads: 7,
+      authorPosts: 17,
+      authorThreads: 7,
+    })
+    const remaining = resultRows(
+      await db.execute(
+        sql`select count(*)::int as n from posts where thread_id = 100 and visibility = 'visible'`,
+      ),
+    ) as Array<{ n: number }>
+    expect(Number(remaining[0]!.n)).toBe(0)
+  })
+
+  it('does not re-hold an approved post until a fresh wave of reports arrives', async () => {
+    await seedThread(100)
+    const reply = await seedReply(100, 1001)
+
+    await fileOn(reply, REPORTER)
+    await fileOn(reply, MOD)
+    expect(await visibilityOf('posts', reply)).toBe('unapproved')
+    expect(await autoHoldRows()).toHaveLength(1)
+
+    await new PostgresModerationQueueRepository(db).apply({
+      decision: 'approve',
+      threadIds: [],
+      postIds: [reply],
+      actorUserId: MOD,
+      at: AT2,
+    })
+    expect(await visibilityOf('posts', reply)).toBe('visible')
+
+    const fileLater = (who: number) =>
+      new ReportService({ reports: repo, now: () => LATER }).file({
+        kind: 'post',
+        targetId: reply,
+        category: 'spam',
+        reason: 'spam',
+        reporterUserId: who,
+        flagThreshold: 2,
+      })
+
+    await fileLater(4)
+    expect(await visibilityOf('posts', reply)).toBe('visible')
+    expect(await autoHoldRows()).toHaveLength(1)
+
+    await fileLater(5)
+    expect(await visibilityOf('posts', reply)).toBe('unapproved')
+    expect(await autoHoldRows()).toHaveLength(2)
+  })
+
+  async function seedOwnReviewReply(threadId: number, replyId: number): Promise<number> {
+    await db.execute(sql`
+      insert into posts (id, thread_id, forum_id, author_user_id, author_username,
+                         message, visibility, is_first_post, created_at)
+      values (${replyId}, ${threadId}, ${FORUM}, ${REPORTER}, 'bob', 'awaiting its own review',
+              'unapproved', false, ${AT})
+    `)
+    return replyId
+  }
+
+  it('leaves an independently-unapproved reply alone when the flag-held thread is approved', async () => {
+    const firstPost = await seedThread(100)
+    const held = await seedReply(100, 1001)
+    const ownReview = await seedOwnReviewReply(100, 1002)
+
+    await fileOn(firstPost, REPORTER)
+    await fileOn(firstPost, MOD)
+
+    expect(await visibilityOf('threads', 100)).toBe('unapproved')
+    expect(await visibilityOf('posts', firstPost)).toBe('unapproved')
+    expect(await visibilityOf('posts', held)).toBe('unapproved')
+    expect(await visibilityOf('posts', ownReview)).toBe('unapproved')
+
+    await new PostgresModerationQueueRepository(db).apply({
+      decision: 'approve',
+      threadIds: [100],
+      postIds: [],
+      actorUserId: MOD,
+      at: AT2,
+    })
+
+    expect(await visibilityOf('threads', 100)).toBe('visible')
+    expect(await visibilityOf('posts', firstPost)).toBe('visible')
+    expect(await visibilityOf('posts', held)).toBe('visible')
+    expect(await visibilityOf('posts', ownReview)).toBe('unapproved')
+  })
+
+  it('does not collateral-delete an independently-unapproved reply when the flag-held thread is rejected', async () => {
+    const firstPost = await seedThread(100)
+    const held = await seedReply(100, 1001)
+    const ownReview = await seedOwnReviewReply(100, 1002)
+
+    await fileOn(firstPost, REPORTER)
+    await fileOn(firstPost, MOD)
+
+    await new PostgresModerationQueueRepository(db).apply({
+      decision: 'reject',
+      threadIds: [100],
+      postIds: [],
+      actorUserId: MOD,
+      at: AT2,
+    })
+
+    expect(await visibilityOf('posts', firstPost)).toBe('deleted')
+    expect(await visibilityOf('posts', held)).toBe('deleted')
+    expect(await visibilityOf('posts', ownReview)).toBe('unapproved')
+  })
+})
+
+function rollbackProbe(base: Database): Database {
+  const runner = base.transaction.bind(base) as (
+    fn: (tx: unknown) => Promise<unknown>,
+  ) => Promise<unknown>
+  return new Proxy(base, {
+    get(target, prop, receiver) {
+      if (prop !== 'transaction') return Reflect.get(target, prop, receiver)
+      return (cb: (tx: unknown) => Promise<unknown>) =>
+        runner(async (tx) => {
+          await cb(tx)
+          throw new Error('rollback-probe')
+        })
+    },
+  }) as Database
+}

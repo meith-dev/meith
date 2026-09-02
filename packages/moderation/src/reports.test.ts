@@ -15,6 +15,7 @@ const REPORT: ReportRow = {
   targetLabel: 'A post by ivan',
   reporterUserId: 7,
   reporterUsername: 'reporter',
+  category: 'spam',
   reason: 'spam',
   status: 'open',
   assignedToUserId: null,

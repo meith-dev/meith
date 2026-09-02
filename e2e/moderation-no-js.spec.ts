@@ -57,6 +57,7 @@ test('a member reports a post, and a moderator takes it and resolves it', async 
     await reporterPage.getByRole('link', { name: 'Report', exact: true }).first().click()
     await expect(reporterPage).toHaveURL(/\/report\?kind=post&id=\d+$/)
 
+    await reporterPage.getByRole('radio', { name: 'Spam' }).check()
     await reporterPage.getByLabel('What is wrong with it?').fill('This looks like spam.')
     await reporterPage.getByRole('button', { name: 'Send report' }).click()
     await expect(reporterPage).toHaveURL(/\?reported=1$/)
@@ -66,6 +67,7 @@ test('a member reports a post, and a moderator takes it and resolves it', async 
     await expect(report).toBeVisible()
     await expect(report).toContainText(`reported by ${reporter}`)
     await expect(report).toContainText('This looks like spam.')
+    await expect(report.getByText('Spam', { exact: true })).toBeVisible()
 
     await expect(report).toContainText('Unassigned')
     await report.getByRole('button', { name: 'Take this' }).click()

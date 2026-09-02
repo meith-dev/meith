@@ -1,7 +1,22 @@
 import type { Translator } from '@meith/i18n'
+import type { ReportCategory } from '@meith/moderation'
 
 import { copyFor, patternCopy, splitAround } from './copy'
 import { untranslated } from './time'
+
+export const REPORT_CATEGORY_ORDER = [
+  'spam',
+  'off_topic',
+  'abuse',
+  'other',
+] as const satisfies readonly ReportCategory[]
+
+export const REPORT_CATEGORY_LABEL_KEYS: Readonly<Record<ReportCategory, string>> = {
+  spam: 'moderationForm.report.category.spam',
+  off_topic: 'moderationForm.report.category.off_topic',
+  abuse: 'moderationForm.report.category.abuse',
+  other: 'moderationForm.report.category.other',
+}
 
 export function moderationFormsCopy(
   t: Translator = untranslated(),
@@ -15,6 +30,11 @@ export function moderationFormsCopy(
         'moderationForm.report.label',
         'moderationForm.report.hint',
         'moderationForm.report.submit',
+        'moderationForm.report.categoryLegend',
+        'moderationForm.report.category.spam',
+        'moderationForm.report.category.off_topic',
+        'moderationForm.report.category.abuse',
+        'moderationForm.report.category.other',
         'moderationForm.report.putBack',
         'moderationForm.report.take',
         'moderationForm.report.note',

@@ -4,6 +4,9 @@ import { msg } from '@meith/i18n'
 export const REPORT_TARGET_KINDS = ['post', 'thread', 'user', 'private_message'] as const
 export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number]
 
+export const REPORT_CATEGORIES = ['spam', 'off_topic', 'abuse', 'other'] as const
+export type ReportCategory = (typeof REPORT_CATEGORIES)[number]
+
 export type ReportStatus = 'open' | 'resolved' | 'rejected'
 
 export const REASON_MIN = 3
@@ -21,8 +24,10 @@ export interface ReportTarget {
 export interface NewReport {
   readonly target: ReportTarget
   readonly reporterUserId: number
+  readonly category: ReportCategory
   readonly reason: string
   readonly at: Date
+  readonly flagThreshold: number
 }
 
 export interface ReportRow {
@@ -34,6 +39,7 @@ export interface ReportRow {
   readonly targetLabel: string
   readonly reporterUserId: number | null
   readonly reporterUsername: string | null
+  readonly category: ReportCategory
   readonly reason: string
   readonly status: ReportStatus
   readonly assignedToUserId: number | null
@@ -75,10 +81,11 @@ export interface ReportRepository {
       readonly limit: number
       readonly after?: string
       readonly offset?: number
+      readonly category?: ReportCategory
     },
   ): Promise<ReportPage>
 
-  countOpen(scope: ReportScope): Promise<number>
+  countOpen(scope: ReportScope, category?: ReportCategory): Promise<number>
 
   find(id: number): Promise<{ report: ReportRow; events: readonly ReportEvent[] } | null>
 
@@ -129,9 +136,12 @@ export class ReportService {
     readonly targetId: number
     readonly reason: string
     readonly reporterUserId: number
+    readonly category?: ReportCategory
+    readonly flagThreshold?: number
   }): Promise<{ reportId: number; duplicate: boolean }> {
+    const category = input.category ?? 'other'
     const reason = input.reason.trim()
-    if (reason.length < REASON_MIN) {
+    if ((category === 'other' || reason.length > 0) && reason.length < REASON_MIN) {
       throw new ValidationError(msg('error.moderation.say-what-wrong-with-briefly'))
     }
     if (reason.length > REASON_MAX) {
@@ -148,8 +158,10 @@ export class ReportService {
     const reportId = await this.reports.open({
       target,
       reporterUserId: input.reporterUserId,
+      category,
       reason,
       at: this.now(),
+      flagThreshold: Math.max(0, Math.trunc(input.flagThreshold ?? 0)),
     })
 
     return reportId === null ? { reportId: 0, duplicate: true } : { reportId, duplicate: false }
@@ -157,19 +169,24 @@ export class ReportService {
 
   async listOpen(
     scope: ReportScope,
-    options: { readonly after?: string; readonly offset?: number } = {},
+    options: {
+      readonly after?: string
+      readonly offset?: number
+      readonly category?: ReportCategory
+    } = {},
   ): Promise<ReportPage> {
     if (scope.forumIds.length === 0 && !scope.global) return { rows: [] }
     return this.reports.listOpen(scope, {
       limit: REPORTS_PAGE_SIZE,
       ...(options.after === undefined ? {} : { after: options.after }),
       ...(options.offset === undefined ? {} : { offset: options.offset }),
+      ...(options.category === undefined ? {} : { category: options.category }),
     })
   }
 
-  async countOpen(scope: ReportScope): Promise<number> {
+  async countOpen(scope: ReportScope, category?: ReportCategory): Promise<number> {
     if (scope.forumIds.length === 0 && !scope.global) return 0
-    return this.reports.countOpen(scope)
+    return this.reports.countOpen(scope, category)
   }
 
   async open(
@@ -257,4 +274,8 @@ export function parseTargetKind(value: string | undefined): ReportTargetKind | n
   return REPORT_TARGET_KINDS.includes(value as ReportTargetKind)
     ? (value as ReportTargetKind)
     : null
+}
+
+export function parseReportCategory(value: string | undefined): ReportCategory | null {
+  return REPORT_CATEGORIES.includes(value as ReportCategory) ? (value as ReportCategory) : null
 }
