@@ -149,6 +149,9 @@ export const users = pgTable(
       .on(t.signatureRenderVersion, t.id)
       .where(sql`${t.signature} <> ''`),
     index('users_mass_mail_opt_in_idx').on(t.id).where(sql`${t.massMailOptInAt} is not null`),
+    index('users_board_digest_due_idx')
+      .on(t.boardDigestCadence, t.lastActiveAt)
+      .where(sql`${t.state} = 'active'`),
   ],
 )
 
