@@ -6,6 +6,7 @@ import {
 } from '@meith/accounts'
 import { SOURCE_LOCALE, type Translator } from '@meith/i18n'
 import { maxLengthFor, type ResolvedProfileField } from '@meith/profile-fields'
+import { MODE_LABELS, SUBSCRIPTION_MODES, type SubscriptionMode } from '@meith/subscriptions'
 
 import { untranslated } from './time'
 
@@ -129,6 +130,8 @@ export function optionsFormValues(settings: MemberSettings): {
   postsPerPage: string
   threadsPerPage: string
   invisible: boolean
+  autoWatchOwnThreads: SubscriptionMode
+  autoWatchRepliedThreads: SubscriptionMode
 } {
   return {
     timezone: settings.timezone,
@@ -136,7 +139,18 @@ export function optionsFormValues(settings: MemberSettings): {
     postsPerPage: settings.postsPerPage === null ? '' : String(settings.postsPerPage),
     threadsPerPage: settings.threadsPerPage === null ? '' : String(settings.threadsPerPage),
     invisible: settings.invisible,
+    autoWatchOwnThreads: settings.autoWatchOwnThreads,
+    autoWatchRepliedThreads: settings.autoWatchRepliedThreads,
   }
+}
+
+export interface AutoWatchChoice {
+  readonly value: SubscriptionMode
+  readonly label: string
+}
+
+export function autoWatchChoices(): readonly AutoWatchChoice[] {
+  return SUBSCRIPTION_MODES.map((mode) => ({ value: mode, label: MODE_LABELS[mode] }))
 }
 
 export function customFieldInputs(resolved: readonly ResolvedProfileField[]): readonly {

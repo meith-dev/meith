@@ -26,6 +26,37 @@ test('the composer’s subscribe box lands the thread on the subscriptions scree
   await expect(page.getByText('You are not following anything yet.')).toBeVisible()
 })
 
+test('a "follow threads I reply to" preference follows a reply without ticking the box', async ({
+  page,
+}) => {
+  await signUp(page, 'autow')
+
+  await page.goto('/usercp/options')
+  await page.getByLabel('Follow threads I reply to').selectOption('daily')
+  await page.getByRole('button', { name: 'Save options' }).click()
+  await expect(page).toHaveURL(/\/usercp\/options\?saved=1$/)
+
+  await page.goto('/200-general')
+  await page.getByRole('link', { name: 'New thread' }).click()
+  const title = `Auto-followed on reply ${Date.now()}`
+  await page.getByLabel('Subject').fill(title)
+  await page.getByLabel('Message').fill('A thread nobody has followed yet.')
+  await page.getByRole('button', { name: 'Post thread' }).click()
+  await expect(page).toHaveURL(/\/thread\/\d+-/)
+  const threadUrl = page.url()
+
+  await page.goto('/subscriptions')
+  await expect(page.getByText('You are not following anything yet.')).toBeVisible()
+
+  await page.goto(`${threadUrl}/reply`)
+  await page.getByLabel('Message').fill('Replying, and now following at the cadence I chose.')
+  await page.getByRole('button', { name: 'Post reply' }).click()
+  await expect(page).toHaveURL(/#post-\d+$/)
+
+  await page.goto('/subscriptions')
+  await expect(page.locator('li', { hasText: title })).toBeVisible()
+})
+
 test('a follower is notified of a reply once the queue has run', async ({ browser, request }) => {
   test.setTimeout(150_000)
 

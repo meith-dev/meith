@@ -96,6 +96,24 @@ describe('ReplyComposer', () => {
     })
   })
 
+  it('defaults the subscription cadence to instant when none is given', async () => {
+    const posts = new RecordingReplies()
+    await composer(posts).create({ ...INPUT, subscribe: true }, AUTHOR, TARGET)
+
+    expect(posts.written[0]).toMatchObject({ subscribe: true, subscribeMode: 'instant' })
+  })
+
+  it('carries the cadence a caller asks for', async () => {
+    const posts = new RecordingReplies()
+    await composer(posts).create(
+      { ...INPUT, subscribe: true, subscribeMode: 'daily' },
+      AUTHOR,
+      TARGET,
+    )
+
+    expect(posts.written[0]).toMatchObject({ subscribe: true, subscribeMode: 'daily' })
+  })
+
   it.each([
     ['a locked thread', { isLocked: true }],
     ['an unapproved thread', { visibility: 'unapproved' as const }],

@@ -101,6 +101,24 @@ describe('ThreadComposer', () => {
     expect(result.visibility).toBe('visible')
   })
 
+  it('defaults the subscription cadence to instant when none is given', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create({ ...INPUT, subscribe: true }, AUTHOR, FORUM)
+
+    expect(writes.written[0]).toMatchObject({ subscribe: true, subscribeMode: 'instant' })
+  })
+
+  it('carries the cadence a caller asks for', async () => {
+    const writes = new RecordingWrites()
+    await composer(writes).create(
+      { ...INPUT, subscribe: true, subscribeMode: 'weekly' },
+      AUTHOR,
+      FORUM,
+    )
+
+    expect(writes.written[0]).toMatchObject({ subscribe: true, subscribeMode: 'weekly' })
+  })
+
   it('trims before validating, so whitespace is not a message', async () => {
     const writes = new RecordingWrites()
 

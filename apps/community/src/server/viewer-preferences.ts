@@ -3,6 +3,8 @@ import 'server-only'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 
+import type { SubscriptionMode } from '@meith/subscriptions'
+
 import { resolveTimezone, TIMEZONE_COOKIE } from '@/view/timezone'
 
 import { getContainer } from './container'
@@ -15,6 +17,7 @@ export interface ViewerPreferences {
   readonly locale: string | null
   readonly postsPerPage: number
   readonly threadsPerPage: number
+  readonly autoWatchRepliedThreads: SubscriptionMode
 }
 
 const detectedZone = cache(async (): Promise<string | null> => {
@@ -43,6 +46,7 @@ export const getViewerPreferences = cache(async (): Promise<ViewerPreferences> =
     locale: stored?.locale ?? null,
     postsPerPage: stored?.postsPerPage ?? defaults.postsPerPage,
     threadsPerPage: stored?.threadsPerPage ?? defaults.threadsPerPage,
+    autoWatchRepliedThreads: stored?.autoWatchRepliedThreads ?? 'none',
   }
 })
 
@@ -51,6 +55,7 @@ async function storedSettings(): Promise<{
   readonly locale: string
   readonly postsPerPage: number | null
   readonly threadsPerPage: number | null
+  readonly autoWatchRepliedThreads: SubscriptionMode
 } | null> {
   const actor = await getActor()
   const { memberSettings } = getContainer()

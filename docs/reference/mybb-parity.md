@@ -921,6 +921,35 @@ interval means what it says; per cadence as well, because one member can
 follow one thread daily and another weekly, and one clock cannot serve
 both.
 
+### Auto-following starts off, and never overrides a mute
+
+**MyBB:** `subscribemethod` is one admin setting, applied to every
+member alike — everybody who posts is subscribed at the same method, or
+nobody is. A member who wants "tell me about the threads I start" but
+not "the ones I reply to" has no way to ask for it.
+
+**Meith:** two member preferences, "Follow threads I start" and "Follow
+threads I reply to" (`/usercp/options`), each an independent cadence —
+`instant`, `daily`, `weekly` or `none`, the same four values a
+subscription itself can hold. Posting or replying while a preference is
+on creates a subscription at that cadence, but only if the thread
+carries none already: the insert is `on conflict do nothing`, never an
+overwrite, so a thread a member has explicitly muted (`none`) stays
+muted through their own reply. The composer's existing "Notify me of
+replies" checkbox reflects the preference by default and remains the
+per-post override — untick it and that post follows nothing, whatever
+the preference says.
+
+**Why.** A single board-wide switch cannot express "my own threads but
+not my replies," and a naive auto-subscribe that overwrote an existing
+subscription would silently un-mute a thread the moment its owner
+happened to reply to it.
+
+**Cost.** New boards seed both preferences to off, and no existing
+member is opted in when the feature ships — consent is asked, never
+inferred from a column's default. A member who wants the classic
+"always follow what I post in" turns both on themselves, once.
+
 ### A digest can also nudge a member who has stopped visiting
 
 **MyBB:** has no notion of a member who has drifted away, and nothing to

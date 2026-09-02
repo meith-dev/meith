@@ -124,6 +124,9 @@ export const users = pgTable(
     threadsPerPage: smallint('threads_per_page'),
     invisible: boolean('invisible').notNull().default(false),
 
+    autoWatchOwnThreads: text('auto_watch_own_threads').notNull().default('none'),
+    autoWatchRepliedThreads: text('auto_watch_replied_threads').notNull().default('none'),
+
     location: text('location'),
     website: text('website'),
     bio: text('bio'),

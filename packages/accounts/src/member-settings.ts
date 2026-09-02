@@ -1,5 +1,6 @@
 import { ValidationError } from '@meith/core'
 import { msg, normaliseLocale } from '@meith/i18n'
+import { parseSubscriptionMode, type SubscriptionMode } from '@meith/subscriptions'
 
 import { foldIdentifier } from './case-fold'
 import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
@@ -34,6 +35,8 @@ export interface MemberSettings {
   readonly displayGroupId: number | null
   readonly massMailOptInAt: Date | null
   readonly boardDigestCadence: string
+  readonly autoWatchOwnThreads: SubscriptionMode
+  readonly autoWatchRepliedThreads: SubscriptionMode
 }
 
 export interface MemberGroupChoice {
@@ -67,6 +70,8 @@ export interface MemberSettingsRepository {
     readonly postsPerPage: number | null
     readonly threadsPerPage: number | null
     readonly invisible: boolean
+    readonly autoWatchOwnThreads: SubscriptionMode
+    readonly autoWatchRepliedThreads: SubscriptionMode
   }): Promise<void>
 
   saveMassMailOptIn(input: { readonly userId: number; readonly optIn: boolean }): Promise<void>
@@ -106,6 +111,12 @@ export const AUTOMATIC_LOCALE = 'auto'
 
 export function isLocalePreference(value: string): boolean {
   return value === AUTOMATIC_LOCALE || normaliseLocale(value) !== null
+}
+
+function parseAutoWatchPreference(value: string): SubscriptionMode {
+  const mode = parseSubscriptionMode(value.trim())
+  if (mode === null) throw new ValidationError(msg('error.accounts.auto-watch-preference'))
+  return mode
 }
 
 export class MemberSettingsService {
@@ -207,6 +218,8 @@ export class MemberSettingsService {
     readonly postsPerPage: string
     readonly threadsPerPage: string
     readonly invisible: boolean
+    readonly autoWatchOwnThreads: string
+    readonly autoWatchRepliedThreads: string
   }): Promise<void> {
     const timezone = input.timezone.trim()
     if (!isTimezonePreference(timezone)) {
@@ -218,6 +231,9 @@ export class MemberSettingsService {
       throw new ValidationError(msg('error.accounts.language-board-recognises'))
     }
 
+    const autoWatchOwnThreads = parseAutoWatchPreference(input.autoWatchOwnThreads)
+    const autoWatchRepliedThreads = parseAutoWatchPreference(input.autoWatchRepliedThreads)
+
     await this.settings.saveOptions({
       userId: input.userId,
       timezone,
@@ -225,6 +241,8 @@ export class MemberSettingsService {
       postsPerPage: parsePageSize(input.postsPerPage, 'Posts per page'),
       threadsPerPage: parsePageSize(input.threadsPerPage, 'Threads per page'),
       invisible: input.invisible,
+      autoWatchOwnThreads,
+      autoWatchRepliedThreads,
     })
   }
 

@@ -104,11 +104,24 @@ export async function saveOptionsAction(_prev: FormState, form: FormData): Promi
       postsPerPage: text(form, 'postsPerPage'),
       threadsPerPage: text(form, 'threadsPerPage'),
       invisible: form.get('invisible') !== null,
+      autoWatchOwnThreads: text(form, 'autoWatchOwnThreads'),
+      autoWatchRepliedThreads: text(form, 'autoWatchRepliedThreads'),
     })
 
     await emitEvent(
       'user.profile.updated',
-      { userId, fields: ['timezone', 'locale', 'postsPerPage', 'threadsPerPage', 'invisible'] },
+      {
+        userId,
+        fields: [
+          'timezone',
+          'locale',
+          'postsPerPage',
+          'threadsPerPage',
+          'invisible',
+          'autoWatchOwnThreads',
+          'autoWatchRepliedThreads',
+        ],
+      },
       { requestId: currentRequestId() ?? null },
     )
   } catch (err) {

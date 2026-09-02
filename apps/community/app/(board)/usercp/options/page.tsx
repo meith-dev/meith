@@ -9,7 +9,13 @@ import { getActor } from '@/server/context'
 import { catalogs, getTranslator, tr } from '@/server/i18n'
 import { getSettings } from '@/server/settings'
 import { optionsFormCopy } from '@/view/account-copy'
-import { localeChoices, optionsFormValues, timezoneChoices, userCpNotice } from '@/view/usercp'
+import {
+  autoWatchChoices,
+  localeChoices,
+  optionsFormValues,
+  timezoneChoices,
+  userCpNotice,
+} from '@/view/usercp'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.options') }
@@ -45,6 +51,7 @@ export default async function OptionsPage({
         {...values}
         timezones={timezoneChoices(await getTranslator())}
         locales={localeChoices(catalogs.locales, await getTranslator())}
+        autoWatchChoices={autoWatchChoices()}
         copy={optionsFormCopy(
           board.get('display.posts_per_page'),
           board.get('display.threads_per_page'),

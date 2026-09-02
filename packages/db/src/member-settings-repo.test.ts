@@ -53,6 +53,8 @@ describe('reading', () => {
       displayGroupId: null,
       massMailOptInAt: null,
       boardDigestCadence: 'weekly',
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
   })
 
@@ -97,6 +99,8 @@ describe('saving', () => {
       postsPerPage: 50,
       threadsPerPage: null,
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
 
     expect(await repo.read(IVAN)).toMatchObject({
@@ -105,6 +109,28 @@ describe('saving', () => {
       postsPerPage: 50,
       threadsPerPage: null,
       invisible: false,
+    })
+  })
+
+  it('stores the auto-watch preferences and reads them back', async () => {
+    await repo.saveOptions({
+      userId: IVAN,
+      timezone: 'auto',
+      locale: 'auto',
+      postsPerPage: null,
+      threadsPerPage: null,
+      invisible: false,
+      autoWatchOwnThreads: 'instant',
+      autoWatchRepliedThreads: 'weekly',
+    })
+
+    expect(await repo.read(IVAN)).toMatchObject({
+      autoWatchOwnThreads: 'instant',
+      autoWatchRepliedThreads: 'weekly',
+    })
+    expect(await repo.read(MOD)).toMatchObject({
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
   })
 
@@ -147,6 +173,8 @@ describe('saving', () => {
       postsPerPage: 50,
       threadsPerPage: 50,
       invisible: false,
+      autoWatchOwnThreads: 'none',
+      autoWatchRepliedThreads: 'none',
     })
 
     expect(await repo.read(MOD)).toMatchObject({ timezone: 'auto', postsPerPage: null })
