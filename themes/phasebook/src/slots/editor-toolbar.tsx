@@ -56,9 +56,10 @@ export function EditorToolbar({
       aria-label={groupLabel}
       className="flex flex-wrap gap-1 border-b border-border bg-secondary/40 px-3 py-2"
     >
-      {buttons.map((button) => (
+      {buttons.map((button, index) => (
         <button
-          key={button.label}
+          // biome-ignore lint/suspicious/noArrayIndexKey: a plugin's button carries no id of its own, so the index disambiguates two sharing a tag or label; the list is server-rendered in order and never reordered on the client
+          key={`${button.tag ?? button.label}-${index}`}
           type="button"
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => runButton(textareaId, button)}
