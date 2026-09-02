@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { readMatrixCell } from '@meith/authorization'
+import { diffMatrixSubmission, matrixCellName, readMatrixCell } from '@meith/authorization'
 import { CacheTags, FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
 import { MODERATOR_RIGHTS } from '@meith/db'
 import { drivers } from '@meith/drivers'
@@ -86,31 +86,38 @@ export async function saveForumOptionsAction(_prev: FormState, form: FormData): 
   }
 }
 
-export async function saveForumPermissionsAction(
+export async function saveForumPermissionMatrixAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
   try {
     await requireAdmin()
     const id = forumId(form)
-    const groupId = Number(trimmedText(form, 'groupId'))
-    if (!Number.isSafeInteger(groupId) || groupId <= 0) {
-      throw new ValidationError(msg('error.app.such-group'))
-    }
+    const repository = requireForumAdmin()
 
-    const values: Record<string, boolean | number | null> = {}
-    for (const field of FORUM_PERMISSION_FIELDS) {
-      const raw = form.get(field.key)
-      values[field.key] = readMatrixCell(field, typeof raw === 'string' ? raw : undefined)
-    }
+    const groups = await repository.listGroups()
+    const current = await repository.readOverrides([id])
 
-    await requireForumAdmin().saveOverrides(id, groupId, values)
+    const submissions = groups.map((group) => ({
+      groupId: group.id,
+      values: Object.fromEntries(
+        FORUM_PERMISSION_FIELDS.map((field) => {
+          const raw = form.get(matrixCellName(group.id, field.key))
+          return [field.key, readMatrixCell(field, typeof raw === 'string' ? raw : undefined)]
+        }),
+      ),
+    }))
+
+    const changes = diffMatrixSubmission(current, id, submissions)
+    await repository.saveOverridesForGroups(id, changes)
 
     refreshForumPermissionScreens()
-    await recordAdminAction({
-      action: 'forum.permissions_changed',
-      detail: { forumId: id, groupId },
-    })
+    for (const change of changes) {
+      await recordAdminAction({
+        action: 'forum.permissions_changed',
+        detail: { forumId: id, groupId: change.groupId },
+      })
+    }
 
     return { notice: 'saved' }
   } catch (err) {

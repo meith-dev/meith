@@ -4,12 +4,20 @@ export type { AuthorizerOptions, BypassEvent } from './authorizer'
 export { Authorizer } from './authorizer'
 export { combineGroupValue, combinePermissionSets } from './combine'
 export {
+  buildFieldMatrix,
   buildPermissionMatrix,
   type CopyChange,
   type CopyPlan,
+  diffMatrixSubmission,
+  type FieldMatrixCell,
+  type FieldMatrixRow,
   type MatrixCell,
+  type MatrixColumn,
+  type MatrixGroupSubmission,
   type MatrixInput,
   type MatrixRow,
+  matrixCellName,
+  matrixColumns,
   planCopyToDescendants,
   readMatrixCell,
 } from './matrix-editor'
