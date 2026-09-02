@@ -60,6 +60,29 @@ describe('pluginOwnedTables', () => {
   it('finds nothing for a plugin that kept no data', async () => {
     expect(await pluginOwnedTables(db, 'dues')).toEqual([])
   })
+
+  it('never claims a core table whose name the prefix could match as a wildcard', async () => {
+    await db.execute(sql`
+      insert into plugin_migrations (plugin_key, migration_id) values ('dues', '0001_create')
+    `)
+    await db.execute(sql`insert into plugin_health (plugin_key, failures) values ('dues', 1)`)
+
+    expect(await pluginOwnedTables(db, 'mi')).toEqual([])
+    expect(await pluginOwnedTables(db, 'he')).toEqual([])
+  })
+
+  it('does not reach into another plugin whose key extends this one', async () => {
+    await db.execute(sql`create table plugin_foo_note (id integer primary key)`)
+    await db.execute(sql`create table plugin_foox_note (id integer primary key)`)
+
+    try {
+      expect(await pluginOwnedTables(db, 'foo')).toEqual(['plugin_foo_note'])
+      expect(await pluginOwnedTables(db, 'foox')).toEqual(['plugin_foox_note'])
+    } finally {
+      await db.execute(sql`drop table if exists plugin_foo_note`)
+      await db.execute(sql`drop table if exists plugin_foox_note`)
+    }
+  })
 })
 
 describe('purgePlugin', () => {
@@ -105,6 +128,16 @@ describe('purgePlugin', () => {
     await purgePlugin(db, 'dues')
 
     expect(await count(sql`select id from navigation_items where key = 'home'`)).toBe(before)
+  })
+
+  it('leaves core tables standing when a short key would match them as a wildcard', async () => {
+    await seedDues()
+
+    const result = await purgePlugin(db, 'mi')
+
+    expect(result.tables).toEqual([])
+    expect(await count(sql`select migration_id from plugin_migrations`)).toBe(1)
+    expect(await count(sql`select plugin_key from plugin_health`)).toBe(1)
   })
 
   it('is harmless on a plugin that never wrote anything', async () => {
