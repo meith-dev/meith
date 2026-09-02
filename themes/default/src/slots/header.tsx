@@ -35,13 +35,78 @@ function Submenu({ items }: { items: HeaderModel['navigation'][number]['submenu'
           <a
             href={child.href}
             {...linkTarget(child)}
-            className="block px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex items-center px-3 py-1.5 text-muted-foreground pointer-coarse:min-h-11 hover:bg-muted hover:text-foreground"
           >
             {child.label}
           </a>
         </li>
       ))}
     </ul>
+  )
+}
+
+function Chevron({ className }: { className: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 12 12"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m4.5 3 3 3-3 3" />
+    </svg>
+  )
+}
+
+function MobileNavItem({ item }: { item: HeaderModel['navigation'][number] }) {
+  if (item.submenu === undefined || item.submenu.length === 0) {
+    return (
+      <li>
+        <a
+          href={item.href}
+          {...linkTarget(item)}
+          className="flex min-h-11 items-center rounded-md px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          {item.label}
+        </a>
+      </li>
+    )
+  }
+
+  return (
+    <li>
+      <details data-nav-disclosure name="default-header-submenu" className="group/submenu">
+        <summary className="flex min-h-11 cursor-default list-none items-center justify-between gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none hover:bg-muted hover:text-foreground">
+          <a
+            href={item.href}
+            {...linkTarget(item)}
+            className="min-w-0 flex-1 truncate hover:underline"
+          >
+            {item.label}
+          </a>
+          <span className="flex size-11 shrink-0 items-center justify-center">
+            <Chevron className="size-3 text-muted-foreground transition-transform group-open/submenu:rotate-90" />
+          </span>
+        </summary>
+        <ul className="ml-2 flex flex-col gap-0.5 border-l border-border py-1 pl-2.5">
+          {item.submenu.map((child) => (
+            <li key={child.href}>
+              <a
+                href={child.href}
+                {...linkTarget(child)}
+                className="flex min-h-11 items-center rounded-md px-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                {child.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </li>
   )
 }
 
@@ -73,7 +138,8 @@ export function Header({
         <nav aria-label={c('sections')} className="border-t border-border bg-surface">
           <div className={PAGE}>
             <ul
-              className={`-mx-4 flex items-stretch gap-1 px-4 text-sm sm:-mx-6 sm:px-6 ${
+              data-nav-view="desktop"
+              className={`-mx-4 hidden items-stretch gap-1 px-4 text-sm sm:-mx-6 sm:px-6 lg:flex ${
                 opensMenus
                   ? 'flex-wrap'
                   : 'overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] sm:[mask-image:none]'
@@ -84,7 +150,7 @@ export function Header({
                   <a
                     href={item.href}
                     {...linkTarget(item)}
-                    className="inline-flex h-10 items-center rounded-t-md border-b-2 border-transparent px-2.5 font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+                    className="inline-flex h-10 items-center rounded-t-md border-b-2 border-transparent px-2.5 font-medium text-muted-foreground transition-colors pointer-coarse:h-11 hover:border-border hover:text-foreground"
                   >
                     {item.label}
                   </a>
@@ -92,6 +158,20 @@ export function Header({
                 </li>
               ))}
             </ul>
+
+            <div data-nav-view="mobile" className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
+              <details data-nav-disclosure className="group">
+                <summary className="flex min-h-11 cursor-default list-none items-center gap-2 text-sm font-medium text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none">
+                  <Chevron className="size-3 shrink-0 transition-transform group-open:rotate-90" />
+                  {c('sections')}
+                </summary>
+                <ul className="flex flex-col gap-0.5 pb-2">
+                  {navigation.map((item) => (
+                    <MobileNavItem key={item.href} item={item} />
+                  ))}
+                </ul>
+              </details>
+            </div>
           </div>
         </nav>
       )}

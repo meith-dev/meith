@@ -215,9 +215,9 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
   await addMenuItem(page, label, href)
 
   const navLabels = async (): Promise<string[]> =>
-    (await page.getByRole('banner').locator('nav > div > ul > li > a').allInnerTexts()).map(
-      (text) => text.trim(),
-    )
+    (
+      await page.getByRole('banner').locator('[data-nav-view="desktop"] > li > a').allInnerTexts()
+    ).map((text) => text.trim())
 
   const nudge = async (direction: string): Promise<void> => {
     await page.getByRole('button', { name: `Move ${label} ${direction}` }).click()
@@ -242,15 +242,16 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
   ).toBeEnabled()
 
   await page.goto('/')
-  await expect(page.getByRole('banner').locator(`ul ul a[href="${href}"]`)).toHaveCount(1)
-  await expect(page.getByRole('banner').locator(`nav a[href="${href}"]`)).toHaveCount(1)
+  const desktopNav = page.getByRole('banner').locator('[data-nav-view="desktop"]')
+  await expect(desktopNav.locator(`ul a[href="${href}"]`)).toHaveCount(1)
+  await expect(desktopNav.locator(`a[href="${href}"]`)).toHaveCount(1)
   await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(0)
 
   await page.goto('/admin/content/navigation')
   await nudge('back to the top level')
 
   await page.goto('/')
-  await expect(page.getByRole('banner').locator(`ul ul a[href="${href}"]`)).toHaveCount(0)
+  await expect(desktopNav.locator(`ul a[href="${href}"]`)).toHaveCount(0)
   await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(1)
 
   await removeMenuItem(page, label)

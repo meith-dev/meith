@@ -4,6 +4,7 @@ import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
 import { InstallBanner } from '@/components/shell/install-banner'
+import { NavDisclosureEnhancer } from '@/components/shell/nav-disclosure-enhancer'
 import { NotificationMenu } from '@/components/shell/notification-menu'
 import { OnboardingBanner } from '@/components/shell/onboarding-banner'
 import { ThemeSwitcher } from '@/components/shell/theme-switcher'
@@ -151,6 +152,8 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
           {viewer.isGuest ? null : <LogoutForm label={translator.t('nav.logOut')} />}
         </UserPanel>
       </Header>
+
+      <NavDisclosureEnhancer />
 
       {await boardRegion('header.notice', actor)}
 

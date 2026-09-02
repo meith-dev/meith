@@ -612,6 +612,69 @@ sets a size, it does not lock it, and a selector of higher specificity (or
 another unlayered rule loaded after) wins. Going *below* 16px is the thing
 that brings the zoom back.
 
+The same media query is the one to reach for on any other nav link or
+button a theme wants at least 44px tall on a touch screen: a Tailwind
+`pointer-coarse:h-11` (or `pointer-coarse:min-h-11`) alongside the desktop
+size, exactly as `Header`'s own nav links do in every shipped theme.
+
+### Mobile navigation is a disclosure, not an island
+
+`Header`'s nav collapses behind the house `<details>`/`<summary>` disclosure
+below the `lg` breakpoint — the same pattern `PanelNav` uses for the admin
+rail (`themes/default/src/slots/panel-nav.tsx`). A theme that renders
+`navigation` for a reader on a phone should render two things, not one:
+
+- The existing hover/`:focus-within` dropdown strip, now `hidden lg:flex` (or
+  `lg:block`) so it only reaches a pointer wide enough to hover with.
+- A second, `lg:hidden` block: the nav items in a `<details>` a reader taps
+  open, with any item carrying a `submenu` as its own nested `<details>`
+  rather than a hover panel. Give every submenu `<details>` in one `Header`
+  the same `name` attribute — the HTML standard makes same-named `<details>`
+  siblings mutually exclusive, so opening one closes another without a line
+  of script. That attribute is a recent addition (Chrome 120, Firefox 124,
+  Safari 17.4 — late 2023 into early 2024) and degrades gracefully: on an
+  older browser each submenu simply stops auto-closing its siblings and
+  keeps opening and closing independently, with no script involved either
+  way, so this is never a no-JS-safety concern — only a tidiness one.
+
+Both blocks render the same links at once — only CSS decides which one a
+reader sees — so anything that inspects the DOM directly (a test, a script)
+rather than asking for what is actually rendered will find every link
+twice. Mark the two blocks with `data-nav-view="desktop"` and
+`data-nav-view="mobile"` so a test can say which copy it means: an
+accessibility-tree query (`getByRole`) already only sees the one CSS is
+showing and needs no help, but a raw CSS locator (`page.locator(...)`,
+`toHaveCount`) does not know about `display: none` at all and must be
+scoped to one block explicitly.
+
+This is no-JS-safe by construction: a `<details>` opens and closes on tap or
+click with no script running at all, which is what lets the mobile nav reach
+every reader regardless of JavaScript. Nothing about it may become the only
+way to reach a page — the desktop dropdown and the collapsed one must expose
+the same links.
+
+An item's own link still belongs inside its `<summary>`, next to the
+disclosure triangle, so a reader who wants that item's own page can tap its
+label directly rather than opening the submenu first. A `<summary>` may not
+validly contain another link, but every browser tolerates it: a tap on the
+label runs the link's own default action (the page navigates, so whatever
+the `<details>` did next never matters), and a tap anywhere else on the row —
+the triangle included — toggles the disclosure, because that tap has no
+interactive element of its own to answer to. Give the triangle a dedicated,
+non-overlapping `size-11` box so that "anywhere else" is a real 44px target
+and not the sliver of padding a `flex-1` label leaves beside it.
+
+A theme may go further and tag any disclosure it wants dismissed by an
+outside tap or <kbd>Escape</kbd> with `data-nav-disclosure`. `PageShell`
+mounts `NavDisclosureEnhancer` — an app-level, `"use client"` component,
+never a slot — once per page; it closes every open `[data-nav-disclosure]`
+on a pointer down outside it or an <kbd>Escape</kbd> keypress. This is
+strictly additive: a theme that never adds the attribute still has a working
+disclosure, just without the tap-outside convenience, and a slot itself must
+never become the client boundary — `Header` stays a plain, "use client"-free
+module exactly as the rule above requires; the enhancement lives beside it in
+the page shell, not inside it.
+
 ## Testing a theme
 
 `apps/community/src/theme/contract.test.ts` renders every theme registered

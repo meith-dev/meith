@@ -147,10 +147,23 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
       boardTitle: 'The Bike Shed',
       homeHref: '/',
       viewer: VIEWER,
-      navigation: [{ label: 'Unanswered', href: '/discover/unanswered' }],
+      navigation: [
+        { label: 'Unanswered', href: '/discover/unanswered' },
+        {
+          label: 'Community',
+          href: '/community',
+          submenu: [{ label: 'Rules', href: '/community/rules' }],
+        },
+      ],
       children: region('user-panel'),
     },
-    requires: ['The Bike Shed', region('user-panel'), '/discover/unanswered'],
+    requires: [
+      'The Bike Shed',
+      region('user-panel'),
+      '/discover/unanswered',
+      '/community/rules',
+      'Rules',
+    ],
   },
 
   UserPanel: {
