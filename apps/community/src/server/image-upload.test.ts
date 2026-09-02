@@ -40,6 +40,31 @@ describe('sniff', () => {
       expect(() => sniff(text(payload)), payload).toThrow(/script or an event handler/)
     }
   })
+
+  it('refuses a SMIL element setting an event handler, not just a literal on*=', () => {
+    for (const payload of [
+      '<svg><set attributeName="onload" to="alert(1)"/></svg>',
+      '<svg><animate attributeName="onmouseover" to="alert(1)"/></svg>',
+    ]) {
+      expect(() => sniff(text(payload)), payload).toThrow(/script or an event handler/)
+    }
+  })
+
+  it('refuses an entity-encoded javascript: scheme', () => {
+    const payload = '<svg><a xlink:href="&#106;avascript:alert(1)">x</a></svg>'
+    expect(() => sniff(text(payload))).toThrow(/script or an event handler/)
+  })
+
+  it('refuses <use> or <image> pointing outside the file, but allows a local fragment', () => {
+    for (const payload of [
+      '<svg><use href="https://evil.example/x.svg#p"/></svg>',
+      '<svg><image href="data:image/svg+xml;base64,QQ=="/></svg>',
+    ]) {
+      expect(() => sniff(text(payload)), payload).toThrow(/references an external file/)
+    }
+
+    expect(sniff(text('<svg><symbol id="i"/><use href="#i"/></svg>'))?.extension).toBe('svg')
+  })
 })
 
 describe('serving', () => {

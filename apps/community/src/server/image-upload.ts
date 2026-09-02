@@ -46,6 +46,31 @@ export function sniff(bytes: Uint8Array): ImageFormat | null {
   return null
 }
 
+const DANGEROUS_TAG = /<\s*(script|foreignobject|iframe|embed|object|set|animate\w*)\b/i
+const EVENT_HANDLER_OR_SCRIPT_SCHEME = /\son\w+\s*=|javascript:|vbscript:/i
+const REFERENCING_TAG = /<\s*(use|image|feimage)\b([^>]*)>/gi
+const HREF_ATTRIBUTE = /(?:xlink:href|href)\s*=\s*(\x22|\x27)([\s\S]*?)\1/i
+
+function decodeEntities(value: string): string {
+  return value.replace(/&(#\d+|#x[0-9a-f]+|amp|lt|gt|quot|apos);/gi, (match, entity: string) => {
+    if (entity.startsWith('#')) {
+      const isHex = entity[1] === 'x' || entity[1] === 'X'
+      const code = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10)
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match
+    }
+    const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
+    return named[entity.toLowerCase()] ?? match
+  })
+}
+
+function hasExternalReference(decoded: string): boolean {
+  for (const match of decoded.matchAll(REFERENCING_TAG)) {
+    const href = HREF_ATTRIBUTE.exec(match[2] ?? '')?.[2]?.trim()
+    if (href !== undefined && href !== '' && !href.startsWith('#')) return true
+  }
+  return false
+}
+
 function isSvg(bytes: Uint8Array): boolean {
   const decoder = new TextDecoder('utf-8', { fatal: false })
   const head = decoder
@@ -56,8 +81,13 @@ function isSvg(bytes: Uint8Array): boolean {
   const looksSvg = head.startsWith('<svg') || /^<\?xml[\s\S]{0,512}?<svg/i.test(head)
   if (!looksSvg) return false
 
-  if (/<script|<foreignObject|\son\w+\s*=|javascript:/i.test(decoder.decode(bytes))) {
+  const decoded = decodeEntities(decoder.decode(bytes))
+
+  if (DANGEROUS_TAG.test(decoded) || EVENT_HANDLER_OR_SCRIPT_SCHEME.test(decoded)) {
     throw new ValidationError(msg('error.app.svg-contains-script-event-handler'))
+  }
+  if (hasExternalReference(decoded)) {
+    throw new ValidationError(msg('error.app.svg-contains-external-reference'))
   }
   return true
 }
