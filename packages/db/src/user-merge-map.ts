@@ -74,6 +74,7 @@ export const ACCOUNT_CLOSURE_DISCARD: readonly DiscardColumn[] = [
   { table: 'recovery_codes', column: 'user_id' },
   { table: 'api_tokens', column: 'user_id' },
   { table: 'credential_tokens', column: 'user_id' },
+  { table: 'feed_tokens', column: 'user_id' },
   { table: 'remember_tokens', column: 'user_id' },
   { table: 'sessions', column: 'user_id' },
   { table: 'user_identities', column: 'user_id' },
