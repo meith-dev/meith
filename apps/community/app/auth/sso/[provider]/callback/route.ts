@@ -23,6 +23,7 @@ import { isTopLevelNavigation } from '@/server/same-origin'
 import {
   clearHandshakeCookie,
   readHandshakeCookie,
+  setSecondFactorCookie,
   setSessionCookie,
 } from '@/server/session-cookies'
 import { decodeHandshake } from '@/server/sso-handshake'
@@ -40,6 +41,10 @@ function to(path: string): Response {
 
 function withReason(path: string, reason: string): string {
   return `${path}${path.includes('?') ? '&' : '?'}sso=${reason}`
+}
+
+function verifyPath(next: string): string {
+  return next === '/' ? '/login/verify' : `/login/verify?next=${encodeURIComponent(next)}`
 }
 
 export async function GET(
@@ -145,6 +150,11 @@ export async function GET(
         if (refused(limited)) throw new RateLimitedError(limited.retryAfterSeconds)
       },
     })
+
+    if (outcome.status === 'second-factor') {
+      await setSecondFactorCookie(outcome.token, outcome.expiresAt)
+      return to(verifyPath(handshake.next))
+    }
 
     if (outcome.status === 'pending') {
       if (outcome.verificationToken === null) return to(withReason(home, 'approval'))

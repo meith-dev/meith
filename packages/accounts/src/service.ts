@@ -505,6 +505,30 @@ export class IdentityService {
     return this.startSession(account, this.now(), context)
   }
 
+  async beginSessionFor(
+    account: AccountRecord,
+    context: RequestContext = {},
+    options: { readonly remember?: boolean } = {},
+  ): Promise<LoginOutcome> {
+    await this.assertSignInAllowed(account)
+
+    const at = this.now()
+    const prefix = prefixOf(context)
+    if (prefix !== null) {
+      await this.store.accounts.recordLastIpPrefix(account.id, prefix)
+    }
+
+    if (await this.secondFactor?.isEnrolled(account.id)) {
+      return {
+        status: 'second-factor',
+        account,
+        ...(await this.holdForSecondFactor(account.id, options.remember === true, at)),
+      }
+    }
+
+    return { status: 'signed-in', login: await this.startSession(account, at, context) }
+  }
+
   private async assertNotFiltered(subject: BanFilterSubject): Promise<void> {
     const match = matchBanFilter(await this.banFilters.listAll(), subject)
     if (match) {
