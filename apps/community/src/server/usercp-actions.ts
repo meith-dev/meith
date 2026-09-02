@@ -18,6 +18,7 @@ import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { configuredSessions, getContainer } from './container'
 import { getActor } from './context'
 import { assertDemoAccountChangeable } from './demo'
+import { revokeFeedToken } from './feed-token'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { getTranslator, tr } from './i18n'
@@ -140,6 +141,8 @@ export async function changePasswordAction(_prev: FormState, form: FormData): Pr
 
     const admin = adminService()
     if (admin !== null) await admin.endAllFor(userId)
+
+    await revokeFeedToken(userId)
 
     await recordAuthEvent({ userId, kind: 'password_changed' })
   } catch (err) {

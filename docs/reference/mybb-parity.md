@@ -1690,8 +1690,10 @@ which is a truer statement than three zeroes.
 cookie and filters the feed against their permissions — a signed-in
 member's feed carries their private forums.
 
-**Meith:** every feed is built from the **guest** scope, regardless of
-who asks.
+**Meith:** every feed under its shared address is built from the
+**guest** scope, regardless of who asks — unless the reader appends their
+own **feed token** (below), which is the one way to get a personalised
+feed, and never from the cookie.
 
 **Why.** A feed URL is handed to software, not read in the browser that
 holds the cookie. Aggregators, corporate proxies and CDNs cache one
@@ -1700,11 +1702,38 @@ personalised feed under a shared address is a private forum served to a
 stranger, in somebody else's cache. MyBB's version is only safe because
 most readers never send the cookie at all.
 
-**Cost.** A member cannot follow a private forum by RSS. That is a real
-capability lost, and the honest replacement is subscriptions, which
-deliver to a member rather than to a URL. A per-member feed token — a
-capability URL, cached safely because it is unguessable — would restore
-it, and is a feature with its own decisions to make.
+**The feed token.** A member mints one from *User CP → Security*, shown
+once, in the shape `forum_feed_<lookup>_<secret>` — the same design as a
+personal access token: a public lookup segment for an O(1) row lookup,
+and a secret kept only as its SHA-256 hash, never stored raw. Appending
+it as `?token=…` to any feed address — `/feed.xml`, `/atom.xml`, a
+forum's `/{id}-{slug}/feed.xml`, a thread's feed — builds that feed
+through the **same Authorizer and visibility filter a page view uses** for
+that member. The token is a restriction on an actor, never a grant: the
+feed carries exactly the forums the member can already see and no more,
+approved-and-visible content only (a "your threads only" forum narrows to
+the member's own threads, just as on the board).
+
+**No oracle.** A missing, malformed, guessed or revoked token is not an
+error. It resolves to the guest scope and returns the ordinary guest
+feed, with the same status and body a signed-out reader gets — there is
+no response that tells "wrong token" apart from "no token", so the
+address is neither an account- nor a token-validity oracle. Any request
+carrying a `token` parameter — valid or not — is answered
+`Cache-Control: private, no-store`, so a shared proxy never keeps a
+personalised copy, and because the header keys on the *presence* of the
+parameter rather than on whether the token was good, it cannot itself
+leak validity. Tokenless feeds stay guest-scoped and publicly cacheable,
+exactly as before.
+
+**Revocation.** One token is live per member; minting again retires the
+old one immediately. Changing the password drops the token too — the same
+event that signs out other devices — and a ban neutralises it at
+resolution time: a banned actor's audience is empty, so the token shows
+nothing until the ban lifts, without a stored flag to keep in step. The
+raw token is never written into page markup except its one-time reveal;
+the autodiscovery links a page advertises stay tokenless, so a member
+opts in to their private URL by copying it, never by loading a page.
 
 ### A category is a page, not only a heading
 

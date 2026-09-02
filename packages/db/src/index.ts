@@ -100,6 +100,7 @@ export {
   type SitemapForum,
   type SitemapThread,
 } from './feed-repo'
+export { type FeedTokenSummary, PostgresFeedTokenRepository } from './feed-token-repo'
 export {
   type AppointModeratorInput,
   type ForumOptionsInput,

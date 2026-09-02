@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { PASSKEY_LIMIT, providerLabel } from '@meith/accounts'
 
 import { ActiveSessions, type SessionView } from '@/components/account/active-sessions'
+import { FeedTokenPanel } from '@/components/account/feed-token'
 import { PasskeyEnrol } from '@/components/account/passkey-enrol'
 import { type ActivityView, SecurityActivity } from '@/components/account/security-activity'
 import {
@@ -22,6 +23,7 @@ import { memberSecurityActivity } from '@/server/auth-events'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { memberManagedSignIns, passkeysEnabled, signInProviders } from '@/server/federation'
+import { feedTokenSummary } from '@/server/feed-token'
 import { getTranslator, tr } from '@/server/i18n'
 import { currentSessionId } from '@/server/session-actions'
 import { pendingEnrolment, secondFactorPosture, twoFactorState } from '@/server/two-factor'
@@ -29,6 +31,8 @@ import {
   activeSessionsCopy,
   activityDetailLabel,
   emailFormCopy,
+  feedTokenCopy,
+  feedTokenDetailLabel,
   linkedUsageLabel,
   passkeyUsageLabel,
   passwordFormCopy,
@@ -159,6 +163,12 @@ export default async function SecurityPage({
 
   const anywhereToSignIn = providers.length > 0 || linked.length > 0
 
+  const feedToken = await feedTokenSummary(actor.userId)
+  const feedTokenDetail =
+    feedToken === null
+      ? null
+      : feedTokenDetailLabel(on(feedToken.createdAt) ?? '', on(feedToken.lastUsedAt), translator)
+
   return (
     <PanelPage
       title={await tr('page.account-security')}
@@ -210,6 +220,12 @@ export default async function SecurityPage({
       )}
 
       <ActiveSessions sessions={sessionView} copy={activeSessionsCopy(translator)} />
+
+      <FeedTokenPanel
+        active={feedToken !== null}
+        detail={feedTokenDetail}
+        copy={feedTokenCopy(translator)}
+      />
 
       <SecurityActivity events={activity} copy={securityActivityCopy(translator)} />
     </PanelPage>
