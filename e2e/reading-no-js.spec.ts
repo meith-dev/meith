@@ -137,9 +137,8 @@ test('the index rail renders, and only its pause control needs JavaScript', asyn
     rail.locator('section', { hasText: 'Latest threads' }).locator('li'),
   ).not.toHaveCount(0)
 
-  await expect(page.getByRole('region', { name: 'Board statistics' })).toBeAttached()
+  await expect(rail.getByRole('region', { name: 'Board statistics' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Who’s online' })).toBeAttached()
-  await expect(rail.getByRole('region', { name: 'Board statistics' })).toHaveCount(0)
   await expect(rail.getByRole('region', { name: 'Who’s online' })).toHaveCount(0)
 
   await expect(page.getByRole('button', { name: 'Pause' })).toHaveCount(0)
