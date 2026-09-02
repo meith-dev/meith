@@ -1,14 +1,22 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Actor } from '@meith/authorization'
 import { emptyPermissionSet } from '@meith/core'
-import { type PluginDefinition, PluginHost } from '@meith/plugin-kit'
+import { PLUGIN_CARD, type PluginDefinition, PluginHost } from '@meith/plugin-kit'
 
 const ALPHA: PluginDefinition = {
   key: 'alpha',
   name: 'Alpha',
   version: '1.0.0',
-  contributions: [{ region: 'index.footer', render: () => 'from alpha' }],
+  contributions: [
+    { region: 'index.footer', render: () => 'from alpha' },
+    {
+      region: 'admin.dashboard',
+      render: () => createElement('p', { 'data-plugin': 'alpha' }, 'alpha on the dashboard'),
+    },
+  ],
 }
 
 const host = new PluginHost({ plugins: [ALPHA] })
@@ -79,5 +87,20 @@ describe('boardRegion', () => {
 
     expect(await boardRegion('index.footer', ACTOR)).toBeNull()
     expect(operator.syncs).toBe(1)
+  })
+
+  it('shows an admin.dashboard contribution, each wrapped in the plugin card treatment', async () => {
+    const node = await boardRegion('admin.dashboard', ACTOR, PLUGIN_CARD)
+    expect(node).not.toBeNull()
+
+    const html = renderToStaticMarkup(createElement(() => node as never))
+    expect(html).toContain('alpha on the dashboard')
+    expect(html).toContain(`class="${PLUGIN_CARD}"`)
+  })
+
+  it('renders nothing on the admin dashboard when the contributor is switched off', async () => {
+    operator.disabled = ['alpha']
+
+    expect(await boardRegion('admin.dashboard', ACTOR, PLUGIN_CARD)).toBeNull()
   })
 })
