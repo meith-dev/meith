@@ -272,11 +272,12 @@ landed on: the default theme paints the targeted card's border in `primary`
 through the `:target` pseudo-class (Tailwind's `target:` variant), so a
 reader arriving from a notification or a quote sees the post the link meant
 rather than only the scroll position. `globals.css` already gives every
-`:target` a `scroll-margin-block-start` of 5rem, so the highlighted card
+`:target` a `scroll-margin-block-start` of 7.5rem, so the highlighted card
 clears the top of the viewport — and the default theme's header, which is
-sticky and 3.5rem tall. A theme with a taller sticky header sets a larger
-margin on its own posts; a theme whose header scrolls away inherits the
-extra room and loses nothing.
+sticky: 3.5rem on a phone, 6.25rem with its navigation row on a desktop.
+A theme with a taller sticky header sets a larger margin on its own posts;
+a theme whose header scrolls away inherits the extra room and loses
+nothing.
 
 ## What the freeze covers
 

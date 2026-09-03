@@ -99,12 +99,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="truncate">{await tr('page.control-panel')}</span>
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-3 text-sm whitespace-nowrap sm:gap-4">
-            <a
-              href="/"
-              className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline"
-            >
-              {await tr('nav.home')}
-            </a>
             <AdminSignOutForm copy={adminFormsCopy(t)} />
           </div>
         </div>

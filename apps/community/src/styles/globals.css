@@ -486,11 +486,11 @@
    * A permalink to `#post-12` otherwise lands the post flush against the top
    * of the viewport, with its own header cropped and the previous post's footer
    * nowhere — the reader cannot tell they arrived at the right one. The
-   * default theme's header is sticky and 3.5rem tall, so the margin clears it
-   * with room to spare.
+   * default theme's header is sticky — 3.5rem on a phone, 6.25rem with its
+   * navigation row on a desktop — so the margin clears it with room to spare.
    */
   :target {
-    scroll-margin-block-start: 5rem;
+    scroll-margin-block-start: 7.5rem;
   }
 
   ::selection {
