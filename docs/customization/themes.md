@@ -703,11 +703,11 @@ the page shell, not inside it.
 The same shape gives a sticky header a "peek": a header tagged
 `data-header-peek` is watched by `HeaderPeekEnhancer`, which `PageShell`
 also mounts once per page. Once the reader has scrolled past the header's
-own height, scrolling down sets `data-peek="hidden"` on it and scrolling up
-removes the attribute; near the top of the page, and whenever focus lands
-inside the header, it is always shown. The theme decides what "hidden" looks
-like — the default theme pairs the attribute with
-`data-[peek=hidden]:-translate-y-full` and a `motion-safe:` transition, so
+own height, scrolling down sets `data-peek` on it and scrolling up removes
+the attribute; near the top of the page, and whenever focus lands inside
+the header, it is always shown. The theme decides what a peeked-away header
+looks like — the default theme pairs the attribute with
+`data-peek:-translate-y-full` and a `motion-safe:` transition, so
 the bar slides away to give the content the whole viewport and slides back
 the moment the reader reverses. Without JavaScript the attribute is never
 set and the header simply stays sticky.

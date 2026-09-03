@@ -1,7 +1,7 @@
 import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
-import { BELOW_HEADER, HEADER_HEIGHT, PAGE } from '../shared'
+import { BELOW_HEADER, PAGE } from '../shared'
 
 const DESKTOP_LINK =
   'inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
@@ -160,9 +160,9 @@ export function Header({
   return (
     <header
       data-header-peek
-      className="sticky top-0 z-40 border-b border-b-border bg-card/95 backdrop-blur motion-safe:transition-transform motion-safe:duration-200 data-[peek=hidden]:-translate-y-full supports-[backdrop-filter]:bg-card/85"
+      className="sticky top-0 z-40 border-b border-b-border bg-card/95 backdrop-blur motion-safe:transition-transform motion-safe:duration-200 data-peek:-translate-y-full supports-[backdrop-filter]:bg-card/85"
     >
-      <div className={`${PAGE} flex ${HEADER_HEIGHT} items-center gap-x-3 sm:gap-x-4`}>
+      <div className={`${PAGE} flex min-h-14 items-center gap-x-3 sm:gap-x-4`}>
         <a
           href={homeHref}
           className="flex min-w-0 shrink-0 items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
@@ -183,7 +183,7 @@ export function Header({
               data-nav-view="desktop"
               className={
                 opensMenus
-                  ? 'flex items-center gap-0.5'
+                  ? 'flex flex-wrap items-center gap-0.5 py-1'
                   : 'flex items-center gap-0.5 pr-6 whitespace-nowrap'
               }
             >

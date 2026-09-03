@@ -18,7 +18,7 @@ function peek(header: HTMLElement): () => void {
     if (y <= header.offsetHeight) {
       header.removeAttribute('data-peek')
     } else if (delta > SETTLE) {
-      header.setAttribute('data-peek', 'hidden')
+      header.setAttribute('data-peek', '')
     } else if (delta < -SETTLE) {
       header.removeAttribute('data-peek')
     } else {

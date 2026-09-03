@@ -24,8 +24,6 @@ export const PRIMARY_HEADER = 'border-b-primary/15 bg-primary/6'
 
 export const MUTED_LINK = `text-muted-foreground ${LINK}`
 
-export const HEADER_HEIGHT = 'h-14'
-
 export const BELOW_HEADER = 'top-14'
 
 export const PAGE_TITLE =
