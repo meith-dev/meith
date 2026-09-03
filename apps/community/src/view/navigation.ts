@@ -22,27 +22,36 @@ export interface BuiltInNavigationItem {
   readonly messageKey: string
   readonly href: string
   readonly audience: NavigationAudience
+  readonly shown: boolean
 }
 
 export const BUILT_IN_NAVIGATION: readonly BuiltInNavigationItem[] = [
-  { key: 'home', messageKey: 'nav.home', href: '/', audience: 'all' },
-  { key: 'new-posts', messageKey: 'nav.newPosts', href: '/discover/new', audience: 'all' },
+  { key: 'home', messageKey: 'nav.home', href: '/', audience: 'all', shown: true },
+  {
+    key: 'new-posts',
+    messageKey: 'nav.newPosts',
+    href: '/discover/new',
+    audience: 'all',
+    shown: true,
+  },
   {
     key: 'unanswered',
     messageKey: 'nav.unanswered',
     href: '/discover/unanswered',
     audience: 'all',
+    shown: false,
   },
   {
     key: 'my-posts',
     messageKey: 'nav.myPosts',
     href: '/discover/participated',
     audience: 'members',
+    shown: false,
   },
-  { key: 'search', messageKey: 'nav.search', href: '/search', audience: 'all' },
-  { key: 'online', messageKey: 'nav.online', href: '/online', audience: 'all' },
-  { key: 'members', messageKey: 'nav.members', href: '/members', audience: 'all' },
-  { key: 'staff', messageKey: 'nav.staff', href: '/staff', audience: 'all' },
+  { key: 'search', messageKey: 'nav.search', href: '/search', audience: 'all', shown: true },
+  { key: 'online', messageKey: 'nav.online', href: '/online', audience: 'all', shown: false },
+  { key: 'members', messageKey: 'nav.members', href: '/members', audience: 'all', shown: false },
+  { key: 'staff', messageKey: 'nav.staff', href: '/staff', audience: 'all', shown: false },
 ]
 
 const SEARCH_KEY = 'search'
@@ -64,7 +73,7 @@ export function defaultNavigationItems(): readonly NavigationItemRow[] {
     displayOrder: index * 10,
     audience: item.audience,
     newTab: false,
-    enabled: true,
+    enabled: item.shown,
     visibleToGroups: [],
   }))
 }

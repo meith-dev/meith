@@ -470,6 +470,13 @@
       "when": 1788367778886,
       "tag": "0066_board_digest_due_index",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1788464192391,
+      "tag": "0067_minimal_navigation",
+      "breakpoints": true
     }
   ]
 }

@@ -187,24 +187,27 @@ test('a menu item added in the panel appears in the navigation, and one hidden l
   await expect(added).toHaveAttribute('target', '_blank')
   await expect(added).toHaveAttribute('rel', 'noopener noreferrer')
 
-  await page.goto('/admin/content/navigation')
-  const online = await openMenuEditor(page, '/online')
-  await online.getByLabel('Shown in the menu').uncheck()
-  await online.getByRole('button', { name: 'Save' }).click()
-
   await page.goto('/')
   await expect(page.getByRole('banner').getByRole('link', { name: "Who's online" })).toHaveCount(0)
 
   await page.goto('/admin/content/navigation')
-  const restored = await openMenuEditor(page, '/online')
-  await restored.getByLabel('Shown in the menu').check()
-  await restored.getByRole('button', { name: 'Save' }).click()
+  const online = await openMenuEditor(page, '/online')
+  await online.getByLabel('Shown in the menu').check()
+  await online.getByRole('button', { name: 'Save' }).click()
+
+  await page.goto('/')
+  await expect(page.getByRole('banner').getByRole('link', { name: "Who's online" })).toBeVisible()
+
+  await page.goto('/admin/content/navigation')
+  const hidden = await openMenuEditor(page, '/online')
+  await hidden.getByLabel('Shown in the menu').uncheck()
+  await hidden.getByRole('button', { name: 'Save' }).click()
 
   await removeMenuItem(page, label)
 
   await page.goto('/')
   await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(0)
-  await expect(page.getByRole('banner').getByRole('link', { name: "Who's online" })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name: "Who's online" })).toHaveCount(0)
 })
 
 test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ page }) => {
@@ -225,15 +228,17 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
   }
 
   await page.goto('/')
-  const placed = (await navLabels()).indexOf(label)
-  expect(placed).toBeGreaterThan(1)
+  const before = await navLabels()
+  expect(before.indexOf(label)).toBeGreaterThan(before.indexOf('Membership'))
 
   await page.goto('/admin/content/navigation')
   await nudge('up')
   await nudge('up')
 
   await page.goto('/')
-  expect((await navLabels()).indexOf(label)).toBe(placed - 2)
+  const after = await navLabels()
+  expect(after.indexOf(label)).toBeGreaterThan(-1)
+  expect(after.indexOf(label)).toBeLessThan(after.indexOf('Membership'))
 
   await page.goto('/admin/content/navigation')
   await nudge('under the item above it')

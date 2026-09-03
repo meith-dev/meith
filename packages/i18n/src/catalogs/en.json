@@ -600,7 +600,7 @@
   "adminNavigation.inside": "Inside",
   "adminNavigation.label": "Label",
   "adminNavigation.labelHint": "Left empty on one of the board’s own items, the item keeps its translated name.",
-  "adminNavigation.lede": "The menu across the top of every board page. The six items a new board starts with are ordinary rows here: rename them, reorder them, hide them, or delete them, and add links of your own beside them — to a chat server, a wiki, a shop, or anywhere else.",
+  "adminNavigation.lede": "The menu across the top of every board page. A new board shows Home, New posts and Search; the board’s other pages — Unanswered, My posts, Who’s online, Members and Staff — are here too, hidden until you tick Shown in the menu. Every row is ordinary: rename it, reorder it, hide it, or delete it, and add links of your own beside them — to a chat server, a wiki, a shop, or anywhere else.",
   "adminNavigation.newItem": "New menu item",
   "adminNavigation.newTab": "Open in a new tab",
   "adminNavigation.none": "None. The board renders no navigation menu at all.",

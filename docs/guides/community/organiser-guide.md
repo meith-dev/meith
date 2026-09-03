@@ -237,12 +237,13 @@ glance: showing now, scheduled, expired, or switched off.
 ### The navigation menu
 
 **Admin → Content → Navigation** is the menu across the top of every
-page. A new board starts with eight items — Home, New posts, Unanswered,
-My posts, Search, Who's online, Members and Staff — and they are
-ordinary rows: rename one, move it, hide it, or delete it, and add links
-of your own beside them. A link can point at a page on the board or at
-any web address — the community's main site, the fixtures list, an
-events calendar.
+page. A new board shows three items — Home, New posts and Search — and
+keeps the board's other five pages on the screen beside them, hidden:
+Unanswered, My posts, Who's online, Members and Staff. Tick **Shown in
+the menu** on any of them to add it. All eight are ordinary rows: rename
+one, move it, hide it, or delete it, and add links of your own beside
+them. A link can point at a page on the board or at any web address —
+the community's main site, the fixtures list, an events calendar.
 
 Each item can be shown to everyone, only signed-out visitors, only
 signed-in members, or only staff — and, more narrowly, only to members
