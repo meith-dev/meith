@@ -1,6 +1,6 @@
 {
   "name": "@meith/cli",
-  "version": "0.33.2",
+  "version": "0.33.3",
   "description": "The operator CLI: migrations, backup and restore, imports, users and settings — and the meith bin that runs it against an external board workspace.",
   "license": "MIT",
   "repository": {
