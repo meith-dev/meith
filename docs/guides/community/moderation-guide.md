@@ -12,8 +12,9 @@ something over rather than pretending you can reach it.
 Moderation happens in two places:
 
 - **On the thread and forum pages themselves** — a **Moderator tools**
-  panel on each thread you moderate, and tick-boxes beside posts and
-  threads for acting on several at once.
+  panel on each thread you moderate, folded up until you press its
+  heading, and tick-boxes beside posts and threads for acting on several
+  at once.
 - **The moderator control panel**, at **`/modcp`** — the queue, the
   reports, the log, and an overview of what is waiting for you.
 
@@ -164,8 +165,10 @@ post bouncing straight back into the queue.
 ## Tidying threads
 
 The **Moderator tools** panel on a thread carries the tools you hold in
-that forum. Each is one press, each is logged, and none of them destroys
-anything.
+that forum. It sits folded under its heading so a thread reads as a thread
+first; press the heading to open it, and it opens itself when a tool has
+something to tell you. Each tool is one press, each is logged, and none of
+them destroys anything.
 
 | Tool | What it does | When it is the right one |
 |---|---|---|

@@ -272,12 +272,11 @@ landed on: the default theme paints the targeted card's border in `primary`
 through the `:target` pseudo-class (Tailwind's `target:` variant), so a
 reader arriving from a notification or a quote sees the post the link meant
 rather than only the scroll position. `globals.css` already gives every
-`:target` a `scroll-margin-block-start` of 7.5rem, so the highlighted card
+`:target` a `scroll-margin-block-start` of 5rem, so the highlighted card
 clears the top of the viewport — and the default theme's header, which is
-sticky: 3.5rem on a phone, 6.25rem with its navigation row on a desktop.
-A theme with a taller sticky header sets a larger margin on its own posts;
-a theme whose header scrolls away inherits the extra room and loses
-nothing.
+sticky and 3.5rem tall. A theme with a taller sticky header sets a larger
+margin on its own posts; a theme whose header scrolls away inherits the
+extra room and loses nothing.
 
 ## What the freeze covers
 
@@ -700,6 +699,18 @@ disclosure, just without the tap-outside convenience, and a slot itself must
 never become the client boundary — `Header` stays a plain, "use client"-free
 module exactly as the rule above requires; the enhancement lives beside it in
 the page shell, not inside it.
+
+The same shape gives a sticky header a "peek": a header tagged
+`data-header-peek` is watched by `HeaderPeekEnhancer`, which `PageShell`
+also mounts once per page. Once the reader has scrolled past the header's
+own height, scrolling down sets `data-peek` on it and scrolling up removes
+the attribute; near the top of the page, and whenever focus lands inside
+the header, it is always shown. The theme decides what a peeked-away header
+looks like — the default theme pairs the attribute with
+`data-peek:-translate-y-full` and a `motion-safe:` transition, so
+the bar slides away to give the content the whole viewport and slides back
+the moment the reader reverses. Without JavaScript the attribute is never
+set and the header simply stays sticky.
 
 ## Testing a theme
 

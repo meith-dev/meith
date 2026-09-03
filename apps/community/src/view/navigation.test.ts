@@ -261,4 +261,17 @@ describe('the built-in menu', () => {
       'staff',
     ])
   })
+
+  it('shows only Home, New posts and Search until an administrator switches more on', () => {
+    const shown = defaultNavigationItems()
+      .filter((row) => row.enabled)
+      .map((row) => row.key)
+
+    expect(shown).toEqual(['home', 'new-posts', 'search'])
+    expect(buildNavigation(defaultNavigationItems(), MEMBER).map((link) => link.href)).toEqual([
+      '/',
+      '/discover/new',
+      '/search',
+    ])
+  })
 })

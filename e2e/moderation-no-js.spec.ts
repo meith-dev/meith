@@ -1,6 +1,7 @@
 import { type Browser, expect, type Page, test } from '@playwright/test'
 
 import { signInAsModerator, signUp } from './support/session'
+import { openThreadTools } from './support/thread-tools'
 
 test.use({ javaScriptEnabled: false })
 
@@ -129,6 +130,7 @@ test('the thread tools lock a thread, and a locked thread refuses a reply', asyn
 
   try {
     await modPage.goto(threadUrl)
+    await openThreadTools(modPage)
     await modPage.getByRole('button', { name: 'Lock', exact: true }).click()
     await expect(modPage.getByRole('button', { name: 'Unlock', exact: true })).toBeVisible()
 
@@ -150,6 +152,7 @@ test('a pinned thread sorts above an unpinned one, and moving it changes forum',
 
   try {
     await modPage.goto(threadUrl)
+    await openThreadTools(modPage)
     await modPage.getByRole('button', { name: 'Pin', exact: true }).click()
     await expect(modPage.getByRole('button', { name: 'Unpin', exact: true })).toBeVisible()
 
@@ -159,6 +162,7 @@ test('a pinned thread sorts above an unpinned one, and moving it changes forum',
     await expect(first).toHaveText(title)
 
     await modPage.goto(threadUrl)
+    await openThreadTools(modPage)
     await modPage.getByLabel('Move to').selectOption({ label: 'Off Topic' })
     await modPage.getByRole('button', { name: 'Move', exact: true }).click()
 
@@ -235,6 +239,7 @@ test('the moderator log records what was done, where, and by whom', async ({ bro
     const logEntry = (label: string) => modPage.locator('li').filter({ has: heading(label) })
 
     await modPage.goto(threadUrl)
+    await openThreadTools(modPage)
     await modPage.getByRole('button', { name: 'Lock', exact: true }).click()
     await expect(modPage.getByRole('button', { name: 'Unlock', exact: true })).toBeVisible()
 
@@ -250,6 +255,7 @@ test('the moderator log records what was done, where, and by whom', async ({ bro
     const unlocksBefore = await heading('Unlocked a thread').count()
 
     await modPage.goto(threadUrl)
+    await openThreadTools(modPage)
     await modPage.getByRole('button', { name: 'Unlock', exact: true }).click()
     await expect(modPage.getByRole('button', { name: 'Lock', exact: true })).toBeVisible()
 
@@ -300,6 +306,7 @@ test('a deleted thread stays in the forum listing for staff, marked as deleted',
 
   try {
     await modPage.goto(threadUrl)
+    await openThreadTools(modPage)
     await modPage.getByRole('button', { name: 'Delete thread', exact: true }).click()
     await modPage.getByRole('button', { name: 'Confirm' }).click()
 

@@ -24,11 +24,7 @@ export const PRIMARY_HEADER = 'border-b-primary/15 bg-primary/6'
 
 export const MUTED_LINK = `text-muted-foreground ${LINK}`
 
-export const HEADER_HEIGHT = 'h-14'
-
 export const BELOW_HEADER = 'top-14'
-
-export const BELOW_DESKTOP_HEADER = 'lg:top-[6.5rem]'
 
 export const PAGE_TITLE =
   'font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl'
@@ -43,7 +39,7 @@ export const PILL =
 export function UserRef({ user, className }: { user: UserRefModel; className?: string }) {
   const classes = cn(
     'font-medium',
-    user.nameClass == null && 'text-primary',
+    user.nameClass == null && 'text-foreground',
     className,
     user.nameClass,
   )
@@ -165,14 +161,19 @@ export function Counts({ items, className }: { items: readonly CountItem[]; clas
 
 export function Figures({ items, className }: { items: readonly CountItem[]; className?: string }) {
   return (
-    <dl className={cn('grid grid-cols-2 gap-x-5 text-center', className)}>
+    <dl
+      className={cn(
+        'flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:grid md:grid-cols-2 md:gap-x-5 md:text-center',
+        className,
+      )}
+    >
       {items.map((item) => (
-        <div key={item.label} className="flex flex-col">
+        <div key={item.label} className="flex items-baseline gap-x-1 md:flex-col md:gap-0">
           <dt className="sr-only">{item.label}</dt>
-          <dd className={cn('text-sm font-semibold text-foreground', NUMERIC)}>
+          <dd className={cn('font-semibold text-foreground md:text-sm', NUMERIC)}>
             {item.value.label}
           </dd>
-          <dd className="text-[0.6875rem] leading-4 text-muted-foreground">
+          <dd className="md:text-[0.6875rem] md:leading-4">
             {item.value.value === 1 ? item.one : item.many}
           </dd>
         </div>

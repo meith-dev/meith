@@ -254,6 +254,7 @@ function seedSql(staffHash: string): string {
   ]
 
   const pluginNavigation = [
+    "update navigation_items set enabled = true where key in ('members', 'staff');",
     'insert into navigation_items (key, parent_id, label, href, display_order, audience)' +
       " values ('plugin.dues.plans', null, '', '/plugins/dues', 60, 'members');",
     'insert into navigation_items (key, parent_id, label, href, display_order, audience)' +

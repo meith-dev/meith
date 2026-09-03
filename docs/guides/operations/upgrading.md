@@ -418,6 +418,15 @@ anybody on your board doing anything.
 |---|---|---|---|
 | `reputation.comment_required` | on | off | Posts gain a one-press **Thanks** button; a rating no longer has to carry a reason. Set it back under **Settings → Reputation** if your board wants every rating to say why — the right choice for a board that allows negative ratings. |
 
+**The navigation menu starts smaller.** A new board shows Home, New posts
+and Search; Unanswered, My posts, Who's online, Members and Staff are
+still rows under **Admin → Content → Navigation**, hidden until somebody
+ticks **Shown in the menu**. The migration that ships this hides those
+five on an existing board too, but only where the row is untouched — its
+label still empty and still at the top level — so a menu somebody has
+renamed or reorganised keeps what it had. Tick the ones your board wants
+back; it is one press each.
+
 **`TRUSTED_PROXY_HOPS` now defaults to `0`, not `1`.** It was `1` because
 that matched the one documented reverse proxy in front of `compose.yml`;
 the trouble was any board that published the board's port directly, with

@@ -644,6 +644,7 @@ export default async function ThreadPage({
             rights={toolRights}
             moveTargets={moveTargets}
             heading={threadToolsHeading(appointment.isForumModerator, await getTranslator())}
+            open={toolNotice !== undefined}
           >
             <ThreadSurgeryForm
               copy={moderationFormsCopy(await getTranslator())}

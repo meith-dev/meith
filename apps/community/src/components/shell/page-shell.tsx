@@ -3,6 +3,7 @@ import { currentRequestId } from '@meith/core/logger'
 import { requireSlot, slotCopy } from '@meith/theme-kit'
 
 import { LogoutForm } from '@/components/account/logout-form'
+import { HeaderPeekEnhancer } from '@/components/shell/header-peek-enhancer'
 import { InstallBanner } from '@/components/shell/install-banner'
 import { NavDisclosureEnhancer } from '@/components/shell/nav-disclosure-enhancer'
 import { NotificationMenu } from '@/components/shell/notification-menu'
@@ -154,6 +155,7 @@ export async function PageShell({ actor, children }: { actor: Actor; children: R
       </Header>
 
       <NavDisclosureEnhancer />
+      <HeaderPeekEnhancer />
 
       {await boardRegion('header.notice', actor)}
 

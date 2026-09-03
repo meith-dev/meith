@@ -1,6 +1,7 @@
 import { type Browser, expect, type Page, test } from '@playwright/test'
 
 import { signInAsModerator, signUp } from './support/session'
+import { openThreadTools } from './support/thread-tools'
 
 test.use({ javaScriptEnabled: false })
 
@@ -55,6 +56,7 @@ test('a moderator splits a thread at a post, and lands on the new one', async ({
     ])
 
     await mod.goto(url)
+    await openThreadTools(mod)
 
     const from = mod.getByRole('combobox', { name: 'Split from post' })
     await expect(from.locator('option')).toHaveCount(2)
@@ -143,6 +145,7 @@ test('a merged thread stops existing, and its posts are in the other one', async
     ])
 
     await mod.goto(goneUrl)
+    await openThreadTools(mod)
 
     await mod.getByRole('spinbutton', { name: 'Merge into thread number' }).fill(keptId)
     await mod.getByRole('button', { name: 'Merge away' }).click()
