@@ -12,7 +12,7 @@ export interface WaitingItem {
 
 function PanelWaiting({ item }: { item: WaitingItem }) {
   return (
-    <Card className="flex-1 rounded-xl border-l-4 border-l-moderation-pending">
+    <Card className="flex-1 rounded-xl border-l-4 border-l-thread-pinned">
       <CardContent className="flex items-center justify-between gap-4 p-5">
         <div>
           <p className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">

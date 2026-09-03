@@ -153,10 +153,13 @@ export function Header({
   const c = (key: string) => fromSlotCopy(copy, `default.header.${key}`)
 
   const hasNavigation = navigation.length > 0
+  const opensMenus = navigation.some(
+    (item) => item.submenu !== undefined && item.submenu.length > 0,
+  )
 
   return (
     <header className="sticky top-0 z-40 border-b border-b-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
-      <div className={`${PAGE} flex ${HEADER_HEIGHT} items-center gap-x-3 sm:gap-x-4`}>
+      <div className={`${PAGE} flex min-h-14 items-center gap-x-3 sm:gap-x-4`}>
         <a
           href={homeHref}
           className="flex min-w-0 shrink-0 items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
@@ -165,8 +168,22 @@ export function Header({
         </a>
 
         {hasNavigation && (
-          <nav aria-label={c('sections')} className="hidden min-w-0 flex-1 lg:block">
-            <ul data-nav-view="desktop" className="flex items-center gap-0.5 whitespace-nowrap">
+          <nav
+            aria-label={c('sections')}
+            className={
+              opensMenus
+                ? 'hidden min-w-0 flex-1 py-1 lg:block'
+                : 'hidden min-w-0 flex-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] [scrollbar-width:none] lg:block'
+            }
+          >
+            <ul
+              data-nav-view="desktop"
+              className={
+                opensMenus
+                  ? 'flex flex-wrap items-center gap-0.5'
+                  : 'flex items-center gap-0.5 pr-6 whitespace-nowrap'
+              }
+            >
               {navigation.map((item) => (
                 <li key={item.href} className="group relative shrink-0">
                   <a href={item.href} {...linkTarget(item)} className={DESKTOP_LINK}>
