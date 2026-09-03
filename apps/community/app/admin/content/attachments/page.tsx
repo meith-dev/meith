@@ -111,7 +111,7 @@ export default async function AdminAttachmentsPage({
           <input
             name="filename"
             defaultValue={filename ?? ''}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
           />
         </label>
 
@@ -120,7 +120,7 @@ export default async function AdminAttachmentsPage({
           <select
             name="status"
             defaultValue={status ?? ''}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="rounded-md border border-input bg-card px-3 py-2 text-sm"
           >
             <option value="">{translator.t('adminAttachments.any')}</option>
             <option value="ready">{translator.t('adminAttachments.ready')}</option>

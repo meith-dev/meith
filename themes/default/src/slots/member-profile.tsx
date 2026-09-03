@@ -22,22 +22,33 @@ export function MemberProfile({
 
   return (
     <div className={PAGE_BODY}>
-      <Card>
-        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
+      <Card className="rounded-xl">
+        <CardContent className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
-            <Avatar src={avatarUrl} name={user.username} size={72} />
+            <Avatar src={avatarUrl} name={user.username} size={80} className="rounded-2xl" />
 
             <div className="min-w-0">
               <h1
-                className={cn('text-2xl font-semibold tracking-tight break-words', user.nameClass)}
+                className={cn(
+                  'font-heading text-2xl font-semibold tracking-tight break-words',
+                  user.nameClass,
+                )}
               >
                 {user.username}
               </h1>
-              {groupTags(groups, title).map((group) => (
-                <p key={group.title} className="mt-0.5 text-sm text-muted-foreground">
-                  <span className={group.nameClass ?? undefined}>{group.title}</span>
-                </p>
-              ))}
+              <p className="mt-1.5 flex flex-wrap gap-1.5">
+                {groupTags(groups, title).map((group) => (
+                  <span
+                    key={group.title}
+                    className={cn(
+                      'inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground',
+                      group.nameClass,
+                    )}
+                  >
+                    {group.title}
+                  </span>
+                ))}
+              </p>
             </div>
           </div>
 
@@ -62,18 +73,20 @@ export function MemberProfile({
           )}
         </CardContent>
 
-        <dl className="grid grid-cols-3 gap-3 border-t border-border px-5 py-4">
-          <div>
-            <dd className={`text-lg font-semibold text-primary ${NUMERIC}`}>{postCount.label}</dd>
+        <dl className="grid grid-cols-3 divide-x divide-border border-t border-border">
+          <div className="px-5 py-3.5 sm:px-6">
+            <dd className={`text-lg font-semibold text-foreground ${NUMERIC}`}>
+              {postCount.label}
+            </dd>
             <dt className="text-xs text-muted-foreground">{c('postsLabel')}</dt>
           </div>
-          <div>
+          <div className="px-5 py-3.5 sm:px-6">
             <dd className="text-sm font-medium text-foreground">
               <Stamp at={joinedAt} />
             </dd>
             <dt className="text-xs text-muted-foreground">{c('joinedLabel')}</dt>
           </div>
-          <div>
+          <div className="px-5 py-3.5 sm:px-6">
             <dd className="text-sm font-medium text-foreground">
               {lastVisitAt === null ? c('never') : <Stamp at={lastVisitAt} />}
             </dd>
@@ -83,18 +96,18 @@ export function MemberProfile({
       </Card>
 
       {fields.length > 0 && (
-        <Card aria-labelledby="profile-fields-heading">
-          <CardHeader>
+        <Card aria-labelledby="profile-fields-heading" className="rounded-xl">
+          <CardHeader className="bg-card">
             <CardTitle id="profile-fields-heading" className="text-sm">
               {c('about')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          <CardContent className="px-5 py-4">
+            <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
               {fields.map((field) => (
                 <div key={field.label}>
                   <dt className="text-xs text-muted-foreground">{field.label}</dt>
-                  <dd className="text-sm break-words">{field.value}</dd>
+                  <dd className="mt-0.5 text-sm break-words">{field.value}</dd>
                 </div>
               ))}
             </dl>
@@ -103,13 +116,13 @@ export function MemberProfile({
       )}
 
       {signatureHtml !== null && (
-        <Card aria-labelledby="profile-signature-heading">
-          <CardHeader>
+        <Card aria-labelledby="profile-signature-heading" className="rounded-xl">
+          <CardHeader className="bg-card">
             <CardTitle id="profile-signature-heading" className="text-sm">
               {c('signature')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 py-4">
             <div
               className="prose-md text-sm text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: signatureHtml }}

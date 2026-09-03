@@ -120,7 +120,7 @@ export function OklchPicker({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={shipped}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="w-full rounded-md border border-input bg-card px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </div>
 

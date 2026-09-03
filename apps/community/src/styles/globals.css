@@ -485,10 +485,12 @@
   /*
    * A permalink to `#post-12` otherwise lands the post flush against the top
    * of the viewport, with its own header cropped and the previous post's footer
-   * nowhere — the reader cannot tell they arrived at the right one.
+   * nowhere — the reader cannot tell they arrived at the right one. The
+   * default theme's header is sticky and 3.5rem tall, so the margin clears it
+   * with room to spare.
    */
   :target {
-    scroll-margin-block-start: 1.5rem;
+    scroll-margin-block-start: 5rem;
   }
 
   ::selection {
@@ -952,6 +954,34 @@ div.md-directive {
 
 .md-spoiler > :last-child {
   margin-block-end: 0;
+}
+
+/*
+ * A themed arrow on every single-choice <select>.
+ *
+ * The browser's own arrow ignores the palette — it stays the platform grey in
+ * both schemes and sits hard against the field's edge. `appearance: none`
+ * removes it, and two small gradient squares draw a chevron in
+ * `--muted-foreground` instead, so it follows a runtime token override like
+ * everything else. Gradients rather than an SVG data URI because a URI cannot
+ * read a custom property, and this file never hardcodes a colour twice.
+ * Multi-selects and list boxes keep their native rendering: they have no arrow.
+ */
+select:not([multiple], [size]) {
+  appearance: none;
+  padding-inline-end: 2.25rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.05rem) 50%,
+    calc(100% - 0.75rem) 50%;
+  background-size: 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+}
+
+select:not([multiple], [size]):disabled {
+  opacity: 0.6;
 }
 
 @media (pointer: coarse) {

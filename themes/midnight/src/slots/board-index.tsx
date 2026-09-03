@@ -16,6 +16,17 @@ export function BoardIndex({
         <div className="flex flex-col gap-3">{regions.announcements}</div>
       )}
 
+      {markAllReadAction !== null && (
+        <form action={markAllReadAction} method="post" className="self-end">
+          <button
+            type="submit"
+            className="border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            {c('markAllRead')}
+          </button>
+        </form>
+      )}
+
       <div
         className={
           hasRail
@@ -35,17 +46,6 @@ export function BoardIndex({
       </div>
 
       {regions.plugins}
-
-      {markAllReadAction !== null && (
-        <form action={markAllReadAction} method="post">
-          <button
-            type="submit"
-            className="border border-border px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            {c('markAllRead')}
-          </button>
-        </form>
-      )}
     </div>
   )
 }

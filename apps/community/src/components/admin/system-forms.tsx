@@ -135,7 +135,7 @@ export function RetryJobForm({ copy }: { copy: Copy }) {
         <span className="font-medium">{fromCopy(copy, 'adminPanel.system.jobId')}</span>
         <input
           name="jobId"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs"
+          className="w-full rounded-md border border-input bg-card px-3 py-2 font-mono text-xs"
           required
         />
         <span className="text-xs text-muted-foreground">

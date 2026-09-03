@@ -10,7 +10,7 @@ const VISIBILITY_TINT = {
   deleted: 'border-thread-deleted/50 bg-destructive/5',
 } as const
 
-const BODY_X = 'px-4 sm:px-5'
+const BODY_X = 'px-4 sm:px-6'
 
 function StatusBanner({
   visibility,
@@ -76,8 +76,27 @@ function AuthorBlock({
   const c = (key: string) => fromSlotCopy(copy, `default.postBit.${key}`)
 
   return (
-    <div className="flex items-center gap-3 sm:flex-col sm:items-stretch sm:gap-2 sm:text-center">
-      <Avatar src={author.avatarUrl} name={author.username} size={48} className="sm:self-center" />
+    <div className="flex items-center gap-3 sm:flex-col sm:items-stretch sm:gap-2.5 sm:text-center">
+      <span className="relative shrink-0 sm:self-center">
+        <Avatar
+          src={author.avatarUrl}
+          name={author.username}
+          size={40}
+          className="rounded-full sm:hidden"
+        />
+        <Avatar
+          src={author.avatarUrl}
+          name={author.username}
+          size={64}
+          className="hidden rounded-2xl sm:inline-flex"
+        />
+        {author.isOnline && (
+          <span
+            aria-hidden="true"
+            className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-card bg-moderation-approved"
+          />
+        )}
+      </span>
 
       <div className="min-w-0 flex-1 sm:flex-none">
         <p className="truncate text-sm">
@@ -90,31 +109,43 @@ function AuthorBlock({
           </p>
         )}
 
-        {groupTags(author.groups, author.title).map((group) => (
-          <p key={group.title} className="truncate text-xs text-muted-foreground">
-            <span className={group.nameClass ?? undefined}>{group.title}</span>
-          </p>
-        ))}
+        <p className="mt-1 flex flex-wrap gap-1 sm:justify-center">
+          {groupTags(author.groups, author.title).map((group) => (
+            <span
+              key={group.title}
+              className={cn(
+                'inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-medium leading-4 text-muted-foreground',
+                group.nameClass,
+              )}
+            >
+              {group.title}
+            </span>
+          ))}
+        </p>
 
-        {author.isOnline && (
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-moderation-approved sm:justify-center">
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-moderation-approved" />
-            {c('online')}
-          </p>
-        )}
+        {author.isOnline && <p className="sr-only">{c('online')}</p>}
 
         {badges}
 
         <dl
-          className={`mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground sm:mt-2 sm:flex-col sm:gap-x-0 sm:gap-y-0.5 ${NUMERIC}`}
+          className={`mt-1.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground sm:mt-2.5 sm:flex-col sm:gap-x-0 sm:gap-y-0.5 sm:border-t sm:border-border sm:pt-2.5 ${NUMERIC}`}
         >
           <div className="flex gap-1 sm:justify-center">
             <dt className="sr-only">{c('postsLabel')}</dt>
             <dd>
-              {author.postCount.label}{' '}
+              <span className="font-medium text-foreground">{author.postCount.label}</span>{' '}
               {author.postCount.value === 1 ? c('post.one') : c('post.other')}
             </dd>
           </div>
+          {author.reputation != null && (
+            <div className="flex gap-1 sm:justify-center">
+              <dt className="sr-only">{c('reputationLabel')}</dt>
+              <dd>
+                <span className="font-medium text-foreground">{author.reputation.label}</span>{' '}
+                {c('reputation')}
+              </dd>
+            </div>
+          )}
           {author.joinedAt !== null && (
             <div className="flex gap-1 sm:justify-center">
               <dt className="sr-only">{c('joined')}</dt>
@@ -123,18 +154,10 @@ function AuthorBlock({
               </dd>
             </div>
           )}
-          {author.reputation != null && (
-            <div className="flex gap-1 sm:justify-center">
-              <dt className="sr-only">{c('reputationLabel')}</dt>
-              <dd>
-                {author.reputation.label} {c('reputation')}
-              </dd>
-            </div>
-          )}
         </dl>
 
         {author.fields.length > 0 && (
-          <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground sm:mt-1.5 sm:flex-col sm:gap-x-0">
+          <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground sm:mt-2 sm:flex-col sm:gap-x-0">
             {author.fields.map((field) => (
               <div key={field.label} className="flex min-w-0 gap-1 sm:justify-center">
                 <dt className="font-medium">{field.label}:</dt>
@@ -161,19 +184,19 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
       data-post-id={post.id}
       data-visibility={post.visibility}
       className={cn(
-        'target:border-primary/60 target:ring-2 target:ring-primary/20',
+        'rounded-xl target:border-primary/60 target:ring-2 target:ring-primary/20',
         VISIBILITY_TINT[post.visibility],
       )}
     >
       <StatusBanner visibility={post.visibility} copy={copy} />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:grid-rows-[auto_minmax(0,1fr)]">
-        <div className="col-start-1 row-start-1 min-w-0 border-b border-border py-3 pl-4 sm:row-span-2 sm:border-r sm:border-b-0 sm:bg-surface/60 sm:px-4 sm:py-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[11.5rem_minmax(0,1fr)] sm:grid-rows-[auto_minmax(0,1fr)]">
+        <div className="col-start-1 row-start-1 min-w-0 border-b border-border py-3 pl-4 sm:row-span-2 sm:border-r sm:border-b-0 sm:bg-surface/50 sm:px-4 sm:py-5">
           <AuthorBlock author={post.author} badges={regions.pluginBadges} copy={copy} />
         </div>
 
         <div
-          className={`col-start-2 row-start-1 flex flex-col-reverse items-end justify-center gap-1.5 border-b border-border py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:py-1.5 ${BODY_X}`}
+          className={`col-start-2 row-start-1 flex flex-col-reverse items-end justify-center gap-1.5 border-b border-border py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:py-2 ${BODY_X}`}
         >
           {select === null ? (
             <span className="hidden sm:block" />
@@ -192,16 +215,18 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
 
           <a
             href={post.permalink}
-            className={`inline-flex min-h-8 items-center gap-2 ${MUTED_LINK} ${NUMERIC}`}
+            className={`inline-flex min-h-7 items-center gap-2 ${MUTED_LINK} ${NUMERIC}`}
           >
             <Stamp at={post.postedAt} />
-            <span className="font-semibold text-primary">#{post.number}</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 font-semibold text-foreground">
+              #{post.number}
+            </span>
           </a>
         </div>
 
-        <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2">
+        <div className="col-span-2 row-start-2 flex min-w-0 flex-col sm:col-span-1 sm:col-start-2">
           {post.ignored !== null ? (
-            <div className={`py-5 text-sm text-muted-foreground ${BODY_X}`}>
+            <div className={`flex-1 py-5 text-sm text-muted-foreground ${BODY_X}`}>
               {c('ignoringPrefix')}{' '}
               <span className="font-medium text-foreground">{post.ignored.authorUsername}</span>.{' '}
               {c('hiddenNotice')}{' '}
@@ -210,7 +235,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
               </a>
             </div>
           ) : (
-            <div className={`py-4 sm:py-5 ${BODY_X}`}>
+            <div className={`flex-1 py-4 sm:py-5 ${BODY_X}`}>
               <div
                 className="prose-md text-[0.9375rem] sm:text-base"
                 dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
@@ -245,7 +270,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
                           height={file.height ?? undefined}
                           loading="lazy"
                           decoding="async"
-                          className="mb-1 max-h-56 w-auto rounded-md border border-border object-contain"
+                          className="mb-1 max-h-56 w-auto rounded-lg border border-border object-contain"
                         />
                       ) : null}
                       <span className="block truncate">
@@ -273,7 +298,9 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           )}
 
           {actions && (
-            <footer className={`border-t border-border py-1.5 empty:hidden ${BODY_X}`}>
+            <footer
+              className={`border-t border-border bg-surface/40 py-1.5 empty:hidden ${BODY_X}`}
+            >
               {regions.actions}
             </footer>
           )}

@@ -162,7 +162,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           </dl>
         </div>
 
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5">
             <Stamp at={post.postedAt} className={`${MICRO} normal-case`} />
             <a
@@ -227,7 +227,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           )}
 
           {regions.actions !== null && (
-            <div className="border-t border-border bg-surface/60 px-3 py-1.5 empty:hidden">
+            <div className="mt-auto border-t border-border bg-surface/60 px-3 py-1.5 empty:hidden">
               {regions.actions}
             </div>
           )}

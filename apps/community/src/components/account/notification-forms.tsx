@@ -204,7 +204,7 @@ export function AnnouncementsOptInForm({ optedIn, copy }: { optedIn: boolean; co
 }
 
 const FIELD =
-  'w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'w-full max-w-xs rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function BoardDigestCadenceForm({ cadence, copy }: { cadence: string; copy: Copy }) {
   const [state, action] = useActionState(saveBoardDigestCadenceAction, EMPTY_STATE)

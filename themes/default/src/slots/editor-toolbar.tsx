@@ -26,7 +26,7 @@ const GLYPHS: Readonly<Record<EditorTag, string>> = {
 }
 
 const BUTTON =
-  'min-w-8 rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'min-w-8 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-card hover:text-foreground hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 function runButton(textareaId: string, button: EditorToolbarButtonModel): void {
   const field = document.getElementById(textareaId)
@@ -54,7 +54,7 @@ export function EditorToolbar({
     <div
       role="group"
       aria-label={groupLabel}
-      className="flex flex-wrap gap-0.5 border-b border-border bg-muted/40 p-2"
+      className="flex flex-wrap gap-0.5 border-b border-border bg-surface/60 p-2"
     >
       {buttons.map((button, index) => (
         <button

@@ -128,7 +128,7 @@ export function NewThreadForm({
           <select
             name="prefixId"
             defaultValue={state.values?.prefixId ?? draft?.prefixId?.toString() ?? ''}
-            className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="h-10 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <option value="">
               {requiresPrefix
@@ -183,7 +183,7 @@ export function NewThreadForm({
               min={0}
               step={1}
               defaultValue={pollDraft?.maxOptions ?? '1'}
-              className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="h-10 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
             <span className="text-xs text-muted-foreground">
               {fromCopy(copy, 'composer.newThread.pollChoicesHint')}
@@ -215,7 +215,7 @@ export function NewThreadForm({
               type="datetime-local"
               name="pollClosesAt"
               defaultValue={pollDraft?.closesAt ?? ''}
-              className="h-10 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="h-10 rounded-md border border-input bg-card px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
             <span className="text-xs text-muted-foreground">
               {fromCopy(copy, 'pollEdit.closesAtHint')}

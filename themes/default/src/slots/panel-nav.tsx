@@ -3,14 +3,14 @@ import { fromSlotCopy } from '@meith/theme-kit'
 import { cn, Disclosure } from '@meith/ui'
 
 import { PanelIcon } from '../panel-icons'
+import { BELOW_HEADER } from '../shared'
 
 const ITEM =
-  'relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'group/item relative flex items-center gap-3 rounded-lg px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const HERE =
-  'bg-secondary font-semibold text-foreground before:absolute before:top-1.5 before:bottom-1.5 before:-left-2.5 before:w-0.5 before:rounded-full before:bg-primary'
-const OPEN = 'font-semibold text-foreground hover:bg-accent'
-const ELSEWHERE = 'text-muted-foreground hover:bg-accent hover:text-foreground'
+const HERE = 'bg-primary/10 font-semibold text-primary [&_svg]:text-primary'
+const OPEN = 'font-semibold text-foreground hover:bg-muted'
+const ELSEWHERE = 'text-muted-foreground hover:bg-muted hover:text-foreground'
 
 function Count({ count, copy }: { count: number; copy: SlotCopy }) {
   const c = (key: string) => fromSlotCopy(copy, `default.panelNav.${key}`)
@@ -19,7 +19,7 @@ function Count({ count, copy }: { count: number; copy: SlotCopy }) {
     <>
       <span
         aria-hidden="true"
-        className="ml-auto min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-xs font-semibold tabular-nums text-primary-foreground"
+        className="ml-auto min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[0.6875rem] leading-4 font-semibold tabular-nums text-primary-foreground"
       >
         {count > 99 ? c('countCap') : count}
       </span>
@@ -42,7 +42,7 @@ function Item({
   const body = (
     <>
       {item.icon !== null && (
-        <span className="text-muted-foreground/80">
+        <span className="text-muted-foreground/70 transition-colors group-hover/item:text-foreground">
           <PanelIcon icon={item.icon} />
         </span>
       )}
@@ -81,11 +81,11 @@ function Sections({
 }: Pick<PanelNavModel, 'label' | 'sections'> & { copy: SlotCopy }) {
   return (
     <nav aria-label={label} className="text-sm">
-      <ul className="flex flex-col gap-0.5 pl-2.5">
+      <ul className="flex flex-col gap-0.5">
         {sections.map((section) => (
           <li
             key={section.href}
-            className={cn(section.isOverview && 'mb-1 border-b border-border pb-1')}
+            className={cn(section.isOverview && 'mb-1.5 border-b border-border pb-1.5')}
           >
             <Item
               item={section}
@@ -94,12 +94,12 @@ function Sections({
             />
 
             {section.isOpen && section.children.length > 0 && (
-              <ul className="mt-0.5 ml-4 flex flex-col gap-0.5 border-l border-border pl-2.5">
+              <ul className="my-1 ml-5 flex flex-col gap-0.5 border-l-2 border-border pl-2">
                 {section.children.map((child) => (
                   <li key={child.href}>
                     <Item
                       item={child}
-                      className={child.current === 'here' ? HERE : ELSEWHERE}
+                      className={cn('py-1.5', child.current === 'here' ? HERE : ELSEWHERE)}
                       copy={copy}
                     />
                   </li>
@@ -121,7 +121,9 @@ export function PanelNav({
 }: PanelNavModel & { copy: SlotCopy }) {
   return (
     <>
-      <div className="sticky top-0 z-20 -mx-4 bg-background/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:hidden">
+      <div
+        className={`sticky ${BELOW_HEADER} z-20 -mx-4 bg-background/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:hidden`}
+      >
         <Disclosure
           summary={label}
           contentClassName="p-2"
@@ -131,7 +133,7 @@ export function PanelNav({
         </Disclosure>
       </div>
 
-      <div className="hidden rounded-lg border border-border bg-card p-2 shadow-elevation lg:block">
+      <div className="hidden rounded-xl border border-border bg-card p-2 shadow-elevation lg:block">
         <Sections label={label} sections={sections} copy={copy} />
       </div>
     </>

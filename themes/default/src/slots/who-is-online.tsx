@@ -30,11 +30,17 @@ export function WhoIsOnline({
         {c('heading')}
       </h2>
 
-      <span className={NUMERIC}>
-        <span className="font-medium text-foreground">{total.label}</span> {c('online')}{' '}
-        {memberCount.label} {memberCount.value === 1 ? c('member.one') : c('member.other')}
-        {', '}
-        {guestCount.label} {guestCount.value === 1 ? c('guest.one') : c('guest.other')}
+      <span className={`inline-flex items-baseline gap-1.5 ${NUMERIC}`}>
+        <span
+          aria-hidden="true"
+          className="size-2 translate-y-px rounded-full bg-moderation-approved"
+        />
+        <span>
+          <span className="font-semibold text-foreground">{total.label}</span> {c('online')}{' '}
+          {memberCount.label} {memberCount.value === 1 ? c('member.one') : c('member.other')}
+          {', '}
+          {guestCount.label} {guestCount.value === 1 ? c('guest.one') : c('guest.other')}
+        </span>
       </span>
 
       {memberCount.value === 0 ? (

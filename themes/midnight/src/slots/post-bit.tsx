@@ -139,7 +139,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           </div>
         </div>
 
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-baseline justify-between gap-2 border-b border-border px-3 py-1 font-mono text-xs text-muted-foreground">
             <time dateTime={post.postedAt.iso}>{post.postedAt.label}</time>
             <a href={post.permalink} className="hover:text-foreground">
@@ -197,7 +197,9 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           )}
 
           {regions.actions !== null && (
-            <div className="border-t border-border px-3 py-1 empty:hidden">{regions.actions}</div>
+            <div className="mt-auto border-t border-border px-3 py-1 empty:hidden">
+              {regions.actions}
+            </div>
           )}
         </div>
       </div>

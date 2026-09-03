@@ -121,6 +121,23 @@ function MobileNavItem({ item }: { item: HeaderModel['navigation'][number] }) {
   )
 }
 
+function MenuGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+    >
+      <path className="group-open/menu:hidden" d="M3 5.5h14M3 10h14M3 14.5h14" />
+      <path className="hidden group-open/menu:block" d="m5 5 10 10M15 5 5 15" />
+    </svg>
+  )
+}
+
 export function Header({
   boardTitle,
   homeHref,
@@ -134,7 +151,7 @@ export function Header({
   const opensMenus = navigation.some((item) => item.submenu !== undefined)
 
   return (
-    <header className="bg-card">
+    <header className="relative bg-card">
       <div className={`${PAGE} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3`}>
         <a
           href={homeHref}
@@ -142,13 +159,38 @@ export function Header({
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>
-        {children}
+        <div className="flex min-w-0 items-center gap-3">
+          {children}
+          {navigation.length > 0 && (
+            <nav aria-label={c('boardSections')} data-nav-view="mobile" className="lg:hidden">
+              <details data-nav-disclosure className="group/menu">
+                <summary
+                  className={`rounded-md border border-border text-foreground transition-colors hover:bg-primary hover:text-primary-foreground group-open/menu:bg-primary group-open/menu:text-primary-foreground flex size-10 cursor-default list-none items-center justify-center select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
+                >
+                  <MenuGlyph />
+                  <span className="sr-only">{c('boardSections')}</span>
+                </summary>
+
+                <div className="absolute inset-x-0 top-full z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-border bg-card shadow-elevation">
+                  <ul className={`${PAGE} flex flex-col gap-0.5 py-2`}>
+                    {navigation.map((item) => (
+                      <MobileNavItem key={item.href} item={item} />
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            </nav>
+          )}
+        </div>
       </div>
 
       <ClubRule />
 
       {navigation.length > 0 && (
-        <nav aria-label={c('boardSections')} className="border-b border-border bg-surface">
+        <nav
+          aria-label={c('boardSections')}
+          className="hidden border-b border-border bg-surface lg:block"
+        >
           <div className={PAGE}>
             <ul
               data-nav-view="desktop"
@@ -169,22 +211,6 @@ export function Header({
                 </li>
               ))}
             </ul>
-
-            <div data-nav-view="mobile" className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
-              <details data-nav-disclosure className="group">
-                <summary
-                  className={`${HEADING} flex min-h-11 cursor-default list-none items-center gap-2 text-sm text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
-                >
-                  <Chevron className="size-3 shrink-0 transition-transform group-open:rotate-90" />
-                  {c('boardSections')}
-                </summary>
-                <ul className="flex flex-col gap-0.5 pb-2">
-                  {navigation.map((item) => (
-                    <MobileNavItem key={item.href} item={item} />
-                  ))}
-                </ul>
-              </details>
-            </div>
           </div>
         </nav>
       )}

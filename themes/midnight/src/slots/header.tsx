@@ -108,6 +108,23 @@ function MobileNavItem({ item }: { item: HeaderModel['navigation'][number] }) {
   )
 }
 
+function MenuGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+    >
+      <path className="group-open/menu:hidden" d="M3 5.5h14M3 10h14M3 14.5h14" />
+      <path className="hidden group-open/menu:block" d="m5 5 10 10M15 5 5 15" />
+    </svg>
+  )
+}
+
 export function Header({
   boardTitle,
   homeHref,
@@ -121,19 +138,44 @@ export function Header({
   const opensMenus = navigation.some((item) => item.submenu !== undefined)
 
   return (
-    <header>
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border bg-secondary px-4 py-3 sm:px-6">
+    <header className="relative">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary px-4 py-3 sm:px-6">
         <a
           href={homeHref}
           className="inline-flex items-center font-mono text-xl font-semibold tracking-tight text-foreground hover:text-primary"
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>
-        {children}
+        <div className="flex min-w-0 items-center gap-3">
+          {children}
+          {navigation.length > 0 && (
+            <nav aria-label={c('sectionsLabel')} data-nav-view="mobile" className="lg:hidden">
+              <details data-nav-disclosure className="group/menu">
+                <summary
+                  className={`border border-border text-foreground hover:bg-muted group-open/menu:bg-muted flex size-10 cursor-default list-none items-center justify-center select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
+                >
+                  <MenuGlyph />
+                  <span className="sr-only">{c('sectionsLabel')}</span>
+                </summary>
+
+                <div className="absolute inset-x-0 top-full z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-border bg-card shadow-elevation">
+                  <ul className="flex flex-col gap-0.5 px-4 py-2 sm:px-6">
+                    {navigation.map((item) => (
+                      <MobileNavItem key={item.href} item={item} />
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            </nav>
+          )}
+        </div>
       </div>
 
       {navigation.length > 0 && (
-        <nav aria-label={c('sectionsLabel')} className="border-b border-border px-4 sm:px-6">
+        <nav
+          aria-label={c('sectionsLabel')}
+          className="hidden border-b border-border px-4 sm:px-6 lg:block"
+        >
           <div
             data-nav-view="desktop"
             className={`-mx-4 hidden px-4 sm:-mx-6 sm:px-6 lg:flex ${
@@ -154,20 +196,6 @@ export function Header({
                 <Submenu items={item.submenu} />
               </span>
             ))}
-          </div>
-
-          <div data-nav-view="mobile" className="-mx-4 px-4 py-1 sm:-mx-6 sm:px-6 lg:hidden">
-            <details data-nav-disclosure className="group">
-              <summary className="flex min-h-11 cursor-default list-none items-center gap-2 font-mono text-xs uppercase tracking-wide text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none">
-                <Chevron className="size-3 shrink-0 transition-transform group-open:rotate-90" />
-                {c('sectionsLabel')}
-              </summary>
-              <ul className="flex flex-col gap-0.5 pb-2">
-                {navigation.map((item) => (
-                  <MobileNavItem key={item.href} item={item} />
-                ))}
-              </ul>
-            </details>
           </div>
         </nav>
       )}

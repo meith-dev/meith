@@ -27,12 +27,20 @@ export function CategoryBlock({
           <col className="hidden w-16 md:table-column" />
           <col className="hidden w-64 md:table-column" />
         </colgroup>
-        <thead className="sr-only">
-          <tr>
-            <th scope="col">{c('forumHeader')}</th>
-            <th scope="col">{c('threadsHeader')}</th>
-            <th scope="col">{c('postsHeader')}</th>
-            <th scope="col">{c('lastPostHeader')}</th>
+        <thead className="sr-only md:not-sr-only md:table-header-group">
+          <tr className="font-mono text-[0.6875rem] tracking-wide text-muted-foreground uppercase">
+            <th scope="col" className="px-3 py-1 text-left font-normal">
+              {c('forumHeader')}
+            </th>
+            <th scope="col" className="hidden px-2 py-1 text-right font-normal md:table-cell">
+              {c('threadsHeader')}
+            </th>
+            <th scope="col" className="hidden px-2 py-1 text-right font-normal md:table-cell">
+              {c('postsHeader')}
+            </th>
+            <th scope="col" className="hidden px-3 py-1 text-left font-normal md:table-cell">
+              {c('lastPostHeader')}
+            </th>
           </tr>
         </thead>
         <tbody>{children}</tbody>

@@ -272,8 +272,11 @@ landed on: the default theme paints the targeted card's border in `primary`
 through the `:target` pseudo-class (Tailwind's `target:` variant), so a
 reader arriving from a notification or a quote sees the post the link meant
 rather than only the scroll position. `globals.css` already gives every
-`:target` a `scroll-margin-block-start`, so the highlighted card clears the
-top of the viewport.
+`:target` a `scroll-margin-block-start` of 5rem, so the highlighted card
+clears the top of the viewport — and the default theme's header, which is
+sticky and 3.5rem tall. A theme with a taller sticky header sets a larger
+margin on its own posts; a theme whose header scrolls away inherits the
+extra room and loses nothing.
 
 ## What the freeze covers
 
@@ -643,7 +646,9 @@ rail (`themes/default/src/slots/panel-nav.tsx`). A theme that renders
   rather than a hover panel. The default theme puts that `<details>` in the
   header's top row as a menu button beside the account controls, and lays
   the open list over the page as an absolutely positioned panel under the
-  header; a theme may just as well render it as a row of its own that
+  header (the header is `sticky`, so the panel stays put while the page
+  scrolls, and `PanelNav`'s own phone-size disclosure sticks just below it
+  at the same `top-14` offset); a theme may just as well render it as a row of its own that
   pushes the page down, as `themes/midnight` does. Either way the
   `<summary>` must carry the nav's label — visibly, or in an `sr-only`
   span beside an icon — because it is the only name the control has. Give every submenu `<details>` in one `Header`

@@ -117,7 +117,7 @@ export function EditPostForm({
           name="reason"
           maxLength={200}
           defaultValue={state.values?.reason ?? reason ?? ''}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </label>
 

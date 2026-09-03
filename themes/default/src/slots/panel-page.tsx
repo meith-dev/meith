@@ -2,7 +2,7 @@ import type { PanelPageModel, PanelSectionModel, SlotCopy } from '@meith/theme-k
 import { fromSlotCopy } from '@meith/theme-kit'
 import { cn } from '@meith/ui'
 
-import { MUTED_LINK, PAGE, pageAt } from '../shared'
+import { MUTED_LINK, PAGE, PAGE_TITLE, pageAt, SECTION_TITLE } from '../shared'
 
 export function PanelPage({
   title,
@@ -21,25 +21,28 @@ export function PanelPage({
       id="board-content"
       tabIndex={-1}
       className={cn(
-        'flex w-full flex-col py-8',
+        'flex w-full flex-col py-6 lg:py-8',
         frame === 'standalone'
           ? `flex-1 ${width === 'wide' ? PAGE : pageAt('max-w-4xl')}`
-          : `px-6 ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'}`,
+          : `px-4 sm:px-6 ${width === 'wide' ? 'max-w-none' : 'max-w-4xl'}`,
         gap === 'loose' ? 'gap-8' : 'gap-6',
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border pb-5">
         <div className="flex min-w-0 flex-col gap-1">
           {back !== null && (
-            <a href={back.href} className={`text-sm font-medium ${MUTED_LINK}`}>
-              {c('back')} {back.label}
+            <a
+              href={back.href}
+              className={`mb-1 inline-flex w-fit items-center gap-1 text-sm font-medium ${MUTED_LINK}`}
+            >
+              <span aria-hidden="true">{c('back')}</span> {back.label}
             </a>
           )}
 
-          <h1 className="font-heading text-2xl font-semibold text-foreground">{title}</h1>
+          <h1 className={PAGE_TITLE}>{title}</h1>
 
           {regions.lede !== undefined && (
-            <p className="text-sm text-muted-foreground">{regions.lede}</p>
+            <p className="max-w-prose text-sm text-muted-foreground">{regions.lede}</p>
           )}
           {regions.meta !== undefined && (
             <p className="text-xs text-muted-foreground">{regions.meta}</p>
@@ -61,7 +64,7 @@ export function PanelSection({ title, headingId, regions, children }: PanelSecti
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 id={headingId} className="font-heading text-lg font-semibold text-foreground">
+          <h2 id={headingId} className={SECTION_TITLE}>
             {title}
           </h2>
           {regions.description !== undefined && (

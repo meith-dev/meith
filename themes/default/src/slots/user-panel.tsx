@@ -1,6 +1,6 @@
 import type { SlotCopy, UserPanelModel } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { Avatar, Badge, buttonVariants } from '@meith/ui'
+import { Avatar, Badge, buttonVariants, cn } from '@meith/ui'
 import { Menu } from '@meith/ui/menu'
 
 import { MUTED_LINK } from '../shared'
@@ -28,10 +28,10 @@ export function UserPanel({
           <a
             key={link.href}
             href={link.href}
-            className={buttonVariants({
-              variant: index === 0 ? 'primary' : 'outline',
-              size: 'sm',
-            })}
+            className={cn(
+              buttonVariants({ variant: index === 0 ? 'primary' : 'ghost', size: 'sm' }),
+              index > 0 && 'hidden sm:inline-flex',
+            )}
           >
             {link.label}
           </a>
@@ -51,12 +51,12 @@ export function UserPanel({
         }}
       />
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
         {regions?.notifications ?? (
           <>
             {unreadNotifications.value > 0 && (
               <a href={notificationsHref} className={COUNT_LINK}>
-                <Badge tone="solid">
+                <Badge tone="solid" className="rounded-full">
                   {unreadNotifications.label}
                   <span className="sr-only"> {c('unreadNotifications')}</span>
                   <span aria-hidden="true"> {c('new')}</span>
@@ -65,7 +65,7 @@ export function UserPanel({
             )}
             {unreadMessages.value > 0 && (
               <a href={messagesHref} className={COUNT_LINK}>
-                <Badge tone="outline">
+                <Badge tone="outline" className="rounded-full">
                   {unreadMessages.label}
                   <span className="sr-only"> {c('unreadMessages')}</span>
                   <span aria-hidden="true"> {c('unread')}</span>
@@ -79,10 +79,13 @@ export function UserPanel({
           <Menu
             label={c('yourAccount')}
             items={links}
+            triggerClassName="rounded-full py-0.5 pl-0.5 pr-2"
             trigger={
               <>
-                <Avatar src={viewer.avatarUrl} name={name} size={24} />
-                <span className="max-w-40 truncate font-medium text-foreground">{name}</span>
+                <Avatar src={viewer.avatarUrl} name={name} size={28} className="rounded-full" />
+                <span className="hidden max-w-40 truncate text-sm font-medium text-foreground sm:inline">
+                  {name}
+                </span>
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 12 12"

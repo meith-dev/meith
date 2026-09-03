@@ -1,8 +1,8 @@
 import type { SlotCopy, ThreadRowSlotModel } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { Badge } from '@meith/ui'
+import { Avatar, Badge } from '@meith/ui'
 
-import { Counts, LINK, Prefix, ReadSpacer, Stamp, UnreadDot, UserRef } from '../shared'
+import { Figures, LINK, Prefix, Stamp, UnreadDot, UserRef } from '../shared'
 
 export function ThreadRow({
   thread,
@@ -19,11 +19,11 @@ export function ThreadRow({
     <li
       data-unread={thread.isUnread ? '' : undefined}
       data-visibility={hidden ? thread.visibility : undefined}
-      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 px-4 py-3 transition-colors hover:bg-muted/60 md:grid-cols-[auto_minmax(0,1fr)_9rem_14rem] md:items-center md:gap-x-4 ${hidden ? tint : ''}`}
+      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-4 py-3.5 transition-colors hover:bg-muted/50 sm:px-5 md:grid-cols-[auto_minmax(0,1fr)_9rem_15rem] md:items-center md:gap-x-5 ${hidden ? tint : ''}`}
     >
-      <span className="flex items-start gap-2">
+      <span className="flex items-center gap-2.5">
         {select !== null && (
-          <label className="mt-0.5 flex shrink-0 items-start">
+          <label className="flex shrink-0 items-center">
             <span className="sr-only">{select.label}</span>
             <input
               type="checkbox"
@@ -35,11 +35,14 @@ export function ThreadRow({
           </label>
         )}
 
-        {thread.isUnread ? <UnreadDot /> : <ReadSpacer />}
+        <span className="relative shrink-0">
+          <Avatar src={null} name={thread.author.username} size={36} className="rounded-full" />
+          {thread.isUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
+        </span>
       </span>
 
       <div className="min-w-0">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
           {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
           {thread.isLocked && <Badge tone="locked">{c('locked')}</Badge>}
@@ -51,7 +54,7 @@ export function ThreadRow({
             href={thread.href}
             className={
               (thread.isUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground') +
-              ` ${LINK}`
+              ` text-[0.9375rem] ${LINK}`
             }
           >
             {thread.title}
@@ -65,9 +68,9 @@ export function ThreadRow({
         </p>
       </div>
 
-      <div className="col-start-2 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted-foreground md:contents">
-        <Counts
-          className="md:col-start-3 md:justify-end"
+      <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground md:contents">
+        <Figures
+          className="md:col-start-3 md:justify-self-end"
           items={[
             {
               label: c('repliesLabel'),
@@ -84,7 +87,7 @@ export function ThreadRow({
           ]}
         />
 
-        <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block">
+        <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block md:border-l md:border-border md:pl-5">
           {thread.lastPost === null ? (
             <span className="text-thread-moved">{c('noRepliesYet')}</span>
           ) : (
