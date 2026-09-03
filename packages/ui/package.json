@@ -1,6 +1,6 @@
 {
   "name": "@meith/ui",
-  "version": "0.33.3",
+  "version": "0.33.4",
   "description": "Meith's shared UI primitives: buttons, menus and the class utilities themes build with.",
   "license": "MIT",
   "repository": {
