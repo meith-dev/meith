@@ -41,7 +41,12 @@ export const PILL =
   'inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'
 
 export function UserRef({ user, className }: { user: UserRefModel; className?: string }) {
-  const classes = cn('font-medium', className, user.nameClass)
+  const classes = cn(
+    'font-medium',
+    user.nameClass == null && 'text-foreground',
+    className,
+    user.nameClass,
+  )
   if (user.profileHref === null) {
     return <span className={classes}>{user.username}</span>
   }
