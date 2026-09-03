@@ -28,8 +28,6 @@ export const HEADER_HEIGHT = 'h-14'
 
 export const BELOW_HEADER = 'top-14'
 
-export const BELOW_DESKTOP_HEADER = 'lg:top-[6.5rem]'
-
 export const PAGE_TITLE =
   'font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl'
 

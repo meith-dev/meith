@@ -158,16 +158,48 @@ export function Header({
   )
 
   return (
-    <header className="sticky top-0 z-40 border-b border-b-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+    <header
+      data-header-peek
+      className="sticky top-0 z-40 border-b border-b-border bg-card/95 backdrop-blur motion-safe:transition-transform motion-safe:duration-200 data-[peek=hidden]:-translate-y-full supports-[backdrop-filter]:bg-card/85"
+    >
       <div className={`${PAGE} flex ${HEADER_HEIGHT} items-center gap-x-3 sm:gap-x-4`}>
         <a
           href={homeHref}
-          className="me-auto flex min-w-0 items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
+          className="flex min-w-0 shrink-0 items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>
 
-        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">{children}</div>
+        {hasNavigation && (
+          <nav
+            aria-label={c('sections')}
+            className={
+              opensMenus
+                ? 'hidden min-w-0 flex-1 lg:block'
+                : 'hidden min-w-0 flex-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] [scrollbar-width:none] lg:block'
+            }
+          >
+            <ul
+              data-nav-view="desktop"
+              className={
+                opensMenus
+                  ? 'flex items-center gap-0.5'
+                  : 'flex items-center gap-0.5 pr-6 whitespace-nowrap'
+              }
+            >
+              {navigation.map((item) => (
+                <li key={item.href} className="group relative shrink-0">
+                  <a href={item.href} {...linkTarget(item)} className={DESKTOP_LINK}>
+                    {item.label}
+                  </a>
+                  <Submenu items={item.submenu} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+
+        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">{children}</div>
 
         {hasNavigation && (
           <nav aria-label={c('sections')} data-nav-view="mobile" className="lg:hidden">
@@ -192,36 +224,6 @@ export function Header({
           </nav>
         )}
       </div>
-
-      {hasNavigation && (
-        <nav aria-label={c('sections')} className="hidden border-t border-border lg:block">
-          <div
-            className={
-              opensMenus
-                ? PAGE
-                : `${PAGE} overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] [scrollbar-width:none]`
-            }
-          >
-            <ul
-              data-nav-view="desktop"
-              className={
-                opensMenus
-                  ? '-mx-3 flex flex-wrap items-center gap-0.5 py-1'
-                  : '-mx-3 flex items-center gap-0.5 py-1 pr-6 whitespace-nowrap'
-              }
-            >
-              {navigation.map((item) => (
-                <li key={item.href} className="group relative shrink-0">
-                  <a href={item.href} {...linkTarget(item)} className={DESKTOP_LINK}>
-                    {item.label}
-                  </a>
-                  <Submenu items={item.submenu} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-      )}
     </header>
   )
 }
