@@ -11,7 +11,8 @@ import { type Copy, formatFromCopy, fromCopy } from '../shell/copy'
 const BUTTON =
   'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 const FIELD =
-  'h-8 rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'h-8 min-w-0 max-w-full rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const LABEL = 'flex min-w-0 max-w-full items-center text-xs'
 
 export interface SplitPoint {
   readonly id: number
@@ -39,9 +40,9 @@ export function ThreadSurgeryForm({
         <form action={splitAction} className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="threadId" value={threadId} />
-            <label className="flex items-center gap-2 text-xs">
+            <label className={LABEL}>
               <span className="sr-only">{fromCopy(copy, 'moderationForm.surgery.fromSr')}</span>
-              <select name="fromPostId" className={FIELD}>
+              <select name="fromPostId" className={`${FIELD} sm:max-w-64`}>
                 {splitPoints.map((point) => (
                   <option key={point.id} value={point.id}>
                     {formatFromCopy(copy, 'moderationForm.surgery.splitPoint', {
@@ -52,7 +53,7 @@ export function ThreadSurgeryForm({
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-2 text-xs">
+            <label className={LABEL}>
               <span className="sr-only">{fromCopy(copy, 'moderationForm.surgery.titleSr')}</span>
               <input
                 type="text"
@@ -76,7 +77,7 @@ export function ThreadSurgeryForm({
         <form action={mergeAction} className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="threadId" value={threadId} />
-            <label className="flex items-center gap-2 text-xs">
+            <label className={LABEL}>
               <span className="sr-only">{fromCopy(copy, 'moderationForm.surgery.mergeSr')}</span>
               <input
                 type="number"

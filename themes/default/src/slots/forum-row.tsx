@@ -70,7 +70,7 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
       </div>
 
       {!isLink && (
-        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground md:contents">
+        <div className="col-start-2 flex min-w-0 flex-col gap-y-1 text-xs text-muted-foreground md:contents">
           <Figures
             className="md:col-start-3 md:justify-self-end"
             items={[
@@ -89,7 +89,7 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
             ]}
           />
 
-          <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block md:border-l md:border-border md:pl-5">
+          <div className="order-first flex min-w-0 max-w-full flex-wrap gap-x-1 md:order-none md:col-start-4 md:block md:border-l md:border-border md:pl-5">
             {forum.lastPost === null ? (
               <span className="text-forum-read">{c('noPostsYet')}</span>
             ) : (
