@@ -27,7 +27,7 @@
     "build": "esbuild --bundle --platform=node --format=cjs --target=node22 --log-override:empty-import-meta=silent src/index.ts --outfile=dist/cli.cjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1111.0",
+    "@aws-sdk/client-s3": "3.1121.0",
     "@meith/accounts": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
@@ -40,7 +40,7 @@
     "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*",
     "create-meith": "workspace:*",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.13"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"

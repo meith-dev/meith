@@ -73,16 +73,16 @@
     "comments:check": "node scripts/comment-check.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
-    "@electric-sql/pglite": "^0.5.5",
-    "@electric-sql/pglite-socket": "^0.2.8",
+    "@biomejs/biome": "2.5.11",
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
     "@playwright/test": "1.62.1",
-    "@types/node": "^26.2.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@types/node": "^26.4.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "dependency-cruiser": "^18.2.0",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "hash-wasm": "^4.12.0"
