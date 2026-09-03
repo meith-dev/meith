@@ -51,7 +51,7 @@ import { WhoIsOnline } from './slots/who-is-online'
 export const clubhouseTheme = defineTheme({
   key: 'clubhouse',
   title: 'Clubhouse',
-  version: '0.33.1',
+  version: '0.33.2',
   extends: defaultTheme,
   slots: {
     Shell,

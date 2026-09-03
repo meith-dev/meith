@@ -1,6 +1,6 @@
 {
   "name": "@meith/web",
-  "version": "0.33.1",
+  "version": "0.33.2",
   "description": "The board itself: the Next.js app, and the forum-web bin that materializes it into an external board workspace.",
   "license": "MIT",
   "repository": {
