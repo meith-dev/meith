@@ -3,6 +3,7 @@ import {
   applyPluginMigration,
   getDb,
   PostgresNavigationRepository,
+  pendingCoreMigrations,
   readVersion,
   recordVersion,
   runMigrations,
@@ -44,10 +45,12 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
     applied[plugin.key] = await appliedPluginMigrations(db, plugin.key)
   }
 
+  const pendingCore = await pendingCoreMigrations(db)
+
   const state = {
     recordedVersion,
     codeVersion: CODE_VERSION,
-    pendingCoreMigrations: [] as readonly string[],
+    pendingCoreMigrations: pendingCore,
     plugins,
     appliedPluginMigrations: applied,
   }
@@ -60,7 +63,11 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
   }
 
   options.log(options.dryRun ? 'Plan:' : 'Upgrading…')
-  options.log('  1. apply pending core migrations')
+  options.log(
+    pendingCore.length === 0
+      ? '  1. core: nothing to apply'
+      : `  1. core: apply ${pendingCore.length} migration(s) — ${pendingCore.join(', ')}`,
+  )
 
   let stepNumber = 2
   for (const plugin of plugins) {

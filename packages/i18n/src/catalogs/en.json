@@ -1842,6 +1842,7 @@
   "error.app.control-panel-available-from-address": "The control panel is not available from this address.",
   "error.app.control-panel-board": "No control panel on this board.",
   "error.app.control-panel-sign-in": "Sign in to the control panel and try that again.",
+  "error.app.core-migrations-pending": "This board is missing {count} core migration(s): {migrations}. Run `meith migrate` — under Compose, redeploy — and try again. The panel applies plugin migrations only.",
   "error.app.current-password": "That is not your current password.",
   "error.app.default-theme-make-another-theme": "This is the default theme. Make another theme the default first, then turn this one off.",
   "error.app.delete-post": "You cannot delete that post.",

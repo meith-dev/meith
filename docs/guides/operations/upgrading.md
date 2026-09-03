@@ -677,9 +677,13 @@ arrived from 0.28 or earlier.
 **What it looks like.** The hourly `board.digest_send` task fails on
 every tick with `column u.board_digest_cadence does not exist`; member
 feed tokens, the auto-watch settings and report categories fail the same
-way wherever a request reaches them. The admin notice does not report
-it, because the version it compares is the one the board recorded, not
-the one the schema is at.
+way wherever a request reaches them. The admin notice on those releases
+did not report it — it compared the version the board had recorded, not
+the schema — so nothing said anything until a request hit the missing
+column. From this release the notice asks the database which core
+migrations are unrecorded and counts them, whatever the versions say,
+and the panel's upgrade refuses to record a version while any are
+missing.
 
 **What to do.** Take the release that carries this note and run
 `meith migrate` once — under Compose the `migrate` service does it on
