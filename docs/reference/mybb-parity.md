@@ -1713,9 +1713,9 @@ arrives: it reads the member's per-thread and per-forum markers, finds
 the first visible post past them, and redirects to the page holding it
 with a `#post-N` anchor; a thread that turns out to be fully read
 falls back to its last page. Reading it up to where it renders is
-separate — the thread page marks the visited page read after the
-response is already on its way, so the read stays current without the
-write sitting on the page's critical path. A thread rendered to the
+separate — the thread page marks the visited page read as it builds
+the response, the same one write the view counter already makes, so the
+read is committed by the time the page arrives. A thread rendered to the
 end fully covers its own unread state this way; the "Mark read" button
 still exists for a member who wants to leave a thread without reading
 it all.
