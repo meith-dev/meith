@@ -662,6 +662,33 @@ what a member may *keep*, not what they may send in a day.
 
 ### Behaviour that changed shape
 
+#### `meith migrate` decides by hash, not by timestamp
+
+A board that upgraded from 0.29.0–0.31.x to 0.32.0, 0.33.0 or 0.33.1
+is missing four migrations, and `meith migrate` on those releases says
+"already up to date" about it. The journal entries for `0059`–`0061`
+carry timestamps later than the migrations after them, and the runner
+took "newer than the newest one applied" as its test: it applied `0060`
+and `0061`, then skipped `0062`–`0065` as already done. A board
+installed fresh on any of those releases is not affected — an empty
+database applies the journal from the top — and neither is one that
+arrived from 0.28 or earlier.
+
+**What it looks like.** The hourly `board.digest_send` task fails on
+every tick with `column u.board_digest_cadence does not exist`; member
+feed tokens, the auto-watch settings and report categories fail the same
+way wherever a request reaches them. The admin notice does not report
+it, because the version it compares is the one the board recorded, not
+the one the schema is at.
+
+**What to do.** Take the release that carries this note and run
+`meith migrate` once — under Compose the `migrate` service does it on
+the redeploy. The runner now applies every migration whose file hash is
+not recorded in `drizzle.__drizzle_migrations`, in journal order, so it
+finds the four and applies them; a board that was never affected finds
+nothing to do. See [Migrations](./operating.md#migrations) for the
+mechanism.
+
 #### Backup is a verb
 
 The [backup and restore](./operating.md#backup) page used to

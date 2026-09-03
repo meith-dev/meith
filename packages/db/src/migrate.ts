@@ -1,9 +1,8 @@
-import { existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { drizzle } from 'drizzle-orm/postgres-js'
-import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 
 import { ConfigurationError, env, logger } from '@meith/core'
@@ -11,6 +10,23 @@ import { ConfigurationError, env, logger } from '@meith/core'
 const JOURNAL = path.join('meta', '_journal.json')
 
 const IMAGE_MIGRATIONS = '/app/migrations'
+
+const STATEMENT_BREAKPOINT = '--> statement-breakpoint'
+
+export const MIGRATIONS_TABLE = 'drizzle.__drizzle_migrations'
+
+export interface Migration {
+  readonly tag: string
+  readonly hash: string
+  readonly when: number
+  readonly statements: readonly string[]
+}
+
+export interface MigrationExecutor {
+  exec(statement: string): Promise<void>
+  query<T>(statement: string): Promise<readonly T[]>
+  transaction(work: (exec: (statement: string) => Promise<void>) => Promise<void>): Promise<void>
+}
 
 export function migrationFolderCandidates(input: {
   readonly explicit?: string | undefined
@@ -63,6 +79,63 @@ function migrationsFolder(): string {
   )
 }
 
+export function readMigrations(folder: string): readonly Migration[] {
+  const journal = JSON.parse(readFileSync(path.join(folder, JOURNAL), 'utf8')) as {
+    readonly entries: readonly { readonly tag: string; readonly when: number }[]
+  }
+
+  return journal.entries.map((entry) => {
+    if (!Number.isSafeInteger(entry.when)) {
+      throw new ConfigurationError(`Migration ${entry.tag} has no usable timestamp in the journal.`)
+    }
+
+    const source = readFileSync(path.join(folder, `${entry.tag}.sql`), 'utf8')
+
+    return {
+      tag: entry.tag,
+      when: entry.when,
+      hash: createHash('sha256').update(source).digest('hex'),
+      statements: source.split(STATEMENT_BREAKPOINT).filter((statement) => statement.trim() !== ''),
+    }
+  })
+}
+
+export async function pendingMigrations(
+  client: MigrationExecutor,
+  migrations: readonly Migration[],
+): Promise<readonly Migration[]> {
+  await client.exec('create schema if not exists drizzle')
+  await client.exec(
+    `create table if not exists ${MIGRATIONS_TABLE} ` +
+      '(id serial primary key, hash text not null, created_at bigint)',
+  )
+
+  const rows = await client.query<{ hash: string }>(`select hash from ${MIGRATIONS_TABLE}`)
+  const applied = new Set(rows.map((row) => row.hash))
+
+  return migrations.filter((migration) => !applied.has(migration.hash))
+}
+
+export async function applyMigrations(
+  client: MigrationExecutor,
+  migrations: readonly Migration[],
+): Promise<readonly Migration[]> {
+  const pending = await pendingMigrations(client, migrations)
+  if (pending.length === 0) return pending
+
+  await client.transaction(async (exec) => {
+    for (const migration of pending) {
+      for (const statement of migration.statements) await exec(statement)
+      await exec(
+        `insert into ${MIGRATIONS_TABLE} ("hash", "created_at") ` +
+          `values ('${migration.hash}', ${migration.when})`,
+      )
+    }
+  })
+
+  return pending
+}
+
 export const MIGRATION_LOCK_KEY = '-2943916371013839929'
 
 export function migrationUrl(source: {
@@ -91,39 +164,43 @@ export async function withMigrationLock<T>(
   }
 }
 
+function postgresExecutor(sql: ReturnType<typeof postgres>): MigrationExecutor {
+  return {
+    async exec(statement) {
+      await sql.unsafe(statement)
+    },
+    async query<T>(statement: string) {
+      return (await sql.unsafe(statement)) as unknown as readonly T[]
+    },
+    async transaction(work) {
+      await sql.begin(async (tx) => {
+        await work(async (statement) => {
+          await tx.unsafe(statement)
+        })
+      })
+    },
+  }
+}
+
 export async function runMigrations(
   options: { readonly folder?: string; readonly url?: string } = {},
 ): Promise<number> {
   const url = options.url ?? migrationUrl(env)
+  const migrations = readMigrations(options.folder ?? migrationsFolder())
 
   const sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} })
 
   try {
     return await withMigrationLock(sql, async () => {
-      const before = await appliedCount(sql)
-      await migrate(drizzle(sql), { migrationsFolder: options.folder ?? migrationsFolder() })
-      const after = await appliedCount(sql)
+      const applied = await applyMigrations(postgresExecutor(sql), migrations)
 
-      const applied = after - before
-      logger({ component: 'migrate' }).info({ applied }, 'migrations applied')
-      return applied
+      logger({ component: 'migrate' }).info(
+        { applied: applied.length, tags: applied.map((migration) => migration.tag) },
+        'migrations applied',
+      )
+      return applied.length
     })
   } finally {
     await sql.end({ timeout: 5 })
   }
-}
-
-async function appliedCount(sql: ReturnType<typeof postgres>): Promise<number> {
-  const rows = await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count
-    FROM information_schema.tables
-    WHERE table_schema = 'drizzle' AND table_name = '__drizzle_migrations'
-  `
-
-  if (rows[0]?.count === '0') return 0
-
-  const applied = await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count FROM drizzle.__drizzle_migrations
-  `
-  return Number(applied[0]?.count ?? '0')
 }
