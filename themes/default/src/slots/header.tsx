@@ -1,19 +1,31 @@
 import type { HeaderModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
-import { PAGE } from '../shared'
+import { BELOW_HEADER, HEADER_HEIGHT, PAGE } from '../shared'
 
 const DESKTOP_LINK =
-  'inline-flex h-10 items-center rounded-md px-3 font-medium text-muted-foreground transition-colors pointer-coarse:h-11 hover:bg-primary/8 hover:text-primary'
+  'inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
 
 const MOBILE_LINK =
-  'flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-primary/8 hover:text-primary'
+  'flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground'
 
 const SUMMARY =
   'cursor-default list-none select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none'
 
 function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'>) {
-  if (logo === undefined) return <>{boardTitle}</>
+  if (logo === undefined) {
+    return (
+      <>
+        <span
+          aria-hidden="true"
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-sm"
+        >
+          {(Array.from(boardTitle.trim())[0] ?? '?').toUpperCase()}
+        </span>
+        <span className="truncate">{boardTitle}</span>
+      </>
+    )
+  }
 
   const image = (
     <img
@@ -38,13 +50,13 @@ function Submenu({ items }: { items: HeaderModel['navigation'][number]['submenu'
   if (items === undefined || items.length === 0) return null
 
   return (
-    <ul className="invisible absolute top-full left-0 z-30 min-w-48 rounded-md border border-border bg-card p-1 opacity-0 shadow-elevation transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+    <ul className="invisible absolute top-full left-0 z-30 mt-1 min-w-52 rounded-xl border border-border bg-card p-1.5 opacity-0 shadow-elevation transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
       {items.map((child) => (
         <li key={child.href}>
           <a
             href={child.href}
             {...linkTarget(child)}
-            className="flex items-center rounded-sm px-2.5 py-1.5 text-muted-foreground pointer-coarse:min-h-11 hover:bg-primary/8 hover:text-primary"
+            className="flex items-center rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground pointer-coarse:min-h-11 hover:bg-muted hover:text-foreground"
           >
             {child.label}
           </a>
@@ -103,7 +115,7 @@ function MobileNavItem({ item }: { item: HeaderModel['navigation'][number] }) {
     <li>
       <details data-nav-disclosure name="default-header-submenu" className="group/submenu">
         <summary
-          className={`${SUMMARY} flex min-h-11 items-center justify-between gap-2 rounded-md pl-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground`}
+          className={`${SUMMARY} flex min-h-11 items-center justify-between gap-2 rounded-lg pl-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground`}
         >
           <a
             href={item.href}
@@ -141,30 +153,35 @@ export function Header({
   const c = (key: string) => fromSlotCopy(copy, `default.header.${key}`)
 
   const hasNavigation = navigation.length > 0
+  const opensMenus = navigation.some(
+    (item) => item.submenu !== undefined && item.submenu.length > 0,
+  )
 
   return (
-    <header className="relative border-b border-b-border bg-card">
-      <div className={`${PAGE} flex flex-wrap items-center gap-x-4 gap-y-3 py-3`}>
+    <header className="sticky top-0 z-40 border-b border-b-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <div className={`${PAGE} flex ${HEADER_HEIGHT} items-center gap-x-3 sm:gap-x-4`}>
         <a
           href={homeHref}
-          className="me-auto inline-flex min-h-9 min-w-0 items-center text-xl font-semibold tracking-tight text-primary transition-colors hover:text-primary-hover"
+          className="me-auto flex min-w-0 items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>
 
-        {children}
+        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">{children}</div>
 
         {hasNavigation && (
           <nav aria-label={c('sections')} data-nav-view="mobile" className="lg:hidden">
             <details data-nav-disclosure className="group/menu">
               <summary
-                className={`${SUMMARY} flex size-11 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:border-primary/40 hover:text-primary group-open/menu:border-primary/40 group-open/menu:bg-primary/8 group-open/menu:text-primary`}
+                className={`${SUMMARY} flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:border-primary/40 hover:text-primary group-open/menu:border-primary/40 group-open/menu:bg-primary/8 group-open/menu:text-primary`}
               >
                 <MenuGlyph />
                 <span className="sr-only">{c('sections')}</span>
               </summary>
 
-              <div className="absolute inset-x-0 top-full z-30 max-h-[calc(100dvh-5rem)] overflow-y-auto border-b border-border bg-card shadow-elevation">
+              <div
+                className={`absolute inset-x-0 ${BELOW_HEADER} z-30 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-border bg-card shadow-elevation`}
+              >
                 <ul className={`${PAGE} flex flex-col gap-0.5 py-2`}>
                   {navigation.map((item) => (
                     <MobileNavItem key={item.href} item={item} />
@@ -178,10 +195,20 @@ export function Header({
 
       {hasNavigation && (
         <nav aria-label={c('sections')} className="hidden border-t border-border lg:block">
-          <div className={PAGE}>
+          <div
+            className={
+              opensMenus
+                ? PAGE
+                : `${PAGE} overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] [scrollbar-width:none]`
+            }
+          >
             <ul
               data-nav-view="desktop"
-              className="-mx-3 flex flex-wrap items-center gap-0.5 py-1 text-sm"
+              className={
+                opensMenus
+                  ? '-mx-3 flex flex-wrap items-center gap-0.5 py-1'
+                  : '-mx-3 flex items-center gap-0.5 py-1 pr-6 whitespace-nowrap'
+              }
             >
               {navigation.map((item) => (
                 <li key={item.href} className="group relative shrink-0">

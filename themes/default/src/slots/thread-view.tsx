@@ -2,7 +2,7 @@ import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 import { Badge, buttonVariants, cn } from '@meith/ui'
 
-import { Counts, PAGE_BODY, Prefix } from '../shared'
+import { Counts, PAGE_BODY, PAGE_TITLE, Prefix } from '../shared'
 
 export function ThreadView({
   thread,
@@ -18,7 +18,7 @@ export function ThreadView({
     <div className={PAGE_BODY}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">{thread.title}</h1>
+          <h1 className={PAGE_TITLE}>{thread.title}</h1>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
@@ -78,10 +78,10 @@ export function ThreadView({
       </div>
 
       {regions.tools !== undefined && (
-        <div className="flex flex-col gap-3 empty:hidden">{regions.tools}</div>
+        <div className="-mb-1 flex flex-col gap-3 empty:hidden">{regions.tools}</div>
       )}
 
-      <div className="flex flex-col gap-3">{regions.posts}</div>
+      <div className="flex flex-col gap-4">{regions.posts}</div>
 
       {regions.pagination}
 

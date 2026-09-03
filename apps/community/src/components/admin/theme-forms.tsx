@@ -40,7 +40,7 @@ import { type CellState, PaletteGrid } from './theme-palette'
 import { ThemePreview, ValidatedSample } from './theme-preview'
 
 const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'w-full rounded-md border border-input bg-card px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const GHOST_BUTTON =
   'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -348,7 +348,7 @@ export function ThemeEditorForm({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={fromCopy(copy, 'adminTheme.find.placeholder')}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className="w-full rounded-md border border-input bg-card px-3 py-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 />
               </label>
 

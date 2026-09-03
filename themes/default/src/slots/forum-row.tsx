@@ -1,7 +1,24 @@
 import type { ForumRowSlotModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
-import { Counts, LINK, MUTED_LINK, ReadSpacer, Stamp, UnreadDot, UserRef } from '../shared'
+import { Figures, LINK, Stamp, Tile, UserRef } from '../shared'
+
+function LinkGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6.5 3.5h6v6M12.5 3.5 4 12" />
+    </svg>
+  )
+}
 
 export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }) {
   const isLink = forum.type === 'link'
@@ -12,18 +29,20 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
     <li
       data-unread={forum.isUnread ? '' : undefined}
       className={
-        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 px-4 py-3 transition-colors hover:bg-muted/60' +
-        (isLink ? '' : ' md:grid-cols-[auto_minmax(0,1fr)_9rem_15rem] md:items-center md:gap-x-4')
+        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-4 py-3.5 transition-colors hover:bg-muted/50 sm:px-5' +
+        (isLink ? '' : ' md:grid-cols-[auto_minmax(0,1fr)_9rem_16rem] md:items-center md:gap-x-5')
       }
     >
-      {forum.isUnread ? <UnreadDot /> : <ReadSpacer />}
+      <Tile label={forum.title} unread={forum.isUnread} className="mt-0.5 md:mt-0">
+        {isLink ? <LinkGlyph /> : undefined}
+      </Tile>
 
       <div className="min-w-0">
         <a
           href={forum.href}
           className={
             (forum.isUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground') +
-            ` ${LINK}`
+            ` text-[0.9375rem] ${LINK}`
           }
         >
           {forum.title}
@@ -35,10 +54,14 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
         )}
 
         {forum.subforums.length > 0 && (
-          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{c('subforums')}</span>
+          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="sr-only">{c('subforums')}</span>
             {forum.subforums.map((sub) => (
-              <a key={sub.href} href={sub.href} className={MUTED_LINK}>
+              <a
+                key={sub.href}
+                href={sub.href}
+                className="rounded-md bg-muted px-2 py-0.5 font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
                 {sub.label}
               </a>
             ))}
@@ -47,9 +70,9 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
       </div>
 
       {!isLink && (
-        <div className="col-start-2 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted-foreground md:contents">
-          <Counts
-            className="md:col-start-3 md:justify-end"
+        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground md:contents">
+          <Figures
+            className="md:col-start-3 md:justify-self-end"
             items={[
               {
                 label: c('threadsLabel'),
@@ -66,7 +89,7 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
             ]}
           />
 
-          <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block">
+          <div className="flex min-w-0 max-w-full flex-wrap gap-x-1 md:col-start-4 md:block md:border-l md:border-border md:pl-5">
             {forum.lastPost === null ? (
               <span className="text-forum-read">{c('noPostsYet')}</span>
             ) : (

@@ -73,13 +73,30 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {await tr('page.skip-content')}
       </a>
 
-      <header className="sticky top-0 z-30 border-b border-border bg-card">
-        <div className="mx-auto flex min-h-14 w-full max-w-6xl items-center gap-x-3 px-4 py-2 sm:gap-x-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-x-3 px-4 sm:gap-x-4 sm:px-6">
           <a
             href="/admin"
-            className="min-w-0 truncate font-heading text-base font-semibold whitespace-nowrap text-foreground sm:text-lg"
+            className="flex min-w-0 items-center gap-2.5 font-heading text-base font-semibold whitespace-nowrap text-foreground sm:text-lg"
           >
-            {await tr('page.control-panel')}
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 4.5h10M3 8h10M3 11.5h10M6 3v3M10.5 6.5v3M5 10v3" />
+              </svg>
+            </span>
+            <span className="truncate">{await tr('page.control-panel')}</span>
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-3 text-sm whitespace-nowrap sm:gap-4">
             <AdminSignOutForm copy={adminFormsCopy(t)} />

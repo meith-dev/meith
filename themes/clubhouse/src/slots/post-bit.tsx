@@ -170,7 +170,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           <AuthorBlock author={post.author} badges={regions.pluginBadges} copy={copy} />
         </div>
 
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-1.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-2">
               {select !== null && (
@@ -274,7 +274,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
             </div>
           )}
 
-          {regions.actions !== null && <footer>{regions.actions}</footer>}
+          {regions.actions !== null && <footer className="mt-auto">{regions.actions}</footer>}
         </div>
       </div>
     </Card>

@@ -182,6 +182,7 @@ export function userPanelCopy(t: Translator): SlotCopy {
     'midnight.userPanel.notificationsSrOnly',
     'midnight.userPanel.pm',
     'midnight.userPanel.messagesSrOnly',
+    'midnight.userPanel.yourAccount',
   ])
 }
 

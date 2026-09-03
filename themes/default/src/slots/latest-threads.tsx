@@ -10,7 +10,7 @@ import {
   EmptyTitle,
 } from '@meith/ui'
 
-import { LINK, MUTED_LINK, NUMERIC, PRIMARY_HEADER, Stamp, UserRef } from '../shared'
+import { LINK, MUTED_LINK, NUMERIC, PILL, Stamp, UserRef } from '../shared'
 
 export function LatestThreads({
   threads,
@@ -20,9 +20,9 @@ export function LatestThreads({
   const c = (key: string) => fromSlotCopy(copy, `default.latestThreads.${key}`)
 
   return (
-    <Card aria-labelledby="latest-threads-heading">
-      <CardHeader className={PRIMARY_HEADER}>
-        <CardTitle id="latest-threads-heading" className="text-primary">
+    <Card aria-labelledby="latest-threads-heading" className="rounded-xl">
+      <CardHeader className="bg-card">
+        <CardTitle id="latest-threads-heading" className="text-sm">
           {c('heading')}
         </CardTitle>
         <p className={`text-xs text-muted-foreground ${NUMERIC}`}>
@@ -39,17 +39,23 @@ export function LatestThreads({
         <CardContent className="px-0 py-0">
           <ul className="divide-y divide-border">
             {threads.map((thread) => (
-              <li key={thread.href} className="flex flex-col gap-0.5 px-4 py-2">
-                <div className="flex items-baseline justify-between gap-2">
+              <li
+                key={thread.href}
+                className="flex flex-col gap-0.5 px-4 py-2.5 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start justify-between gap-2">
                   <a
                     href={thread.href}
-                    className={`truncate text-sm font-medium text-foreground ${LINK}`}
+                    className={`line-clamp-2 text-sm font-medium text-foreground ${LINK}`}
                   >
                     {thread.title}
                   </a>
-                  <span className={`shrink-0 text-xs text-muted-foreground ${NUMERIC}`}>
-                    <span className="font-medium text-primary">{thread.replyCount.label}</span>{' '}
-                    {thread.replyCount.value === 1 ? c('reply.one') : c('reply.other')}
+                  <span className={`${PILL} shrink-0 ${NUMERIC}`}>
+                    {thread.replyCount.label}
+                    <span className="sr-only">
+                      {' '}
+                      {thread.replyCount.value === 1 ? c('reply.one') : c('reply.other')}
+                    </span>
                   </span>
                 </div>
 

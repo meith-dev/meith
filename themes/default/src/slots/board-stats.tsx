@@ -2,7 +2,7 @@ import type { BoardStatsModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 import { Card, CardContent, CardHeader, CardTitle } from '@meith/ui'
 
-import { NUMERIC, PRIMARY_HEADER, Stamp, UserRef } from '../shared'
+import { NUMERIC, Stamp, UserRef } from '../shared'
 
 export function BoardStats({
   threadCount,
@@ -15,14 +15,14 @@ export function BoardStats({
   const c = (key: string) => fromSlotCopy(copy, `default.boardStats.${key}`)
 
   return (
-    <Card aria-labelledby="board-stats-heading">
-      <CardHeader className={PRIMARY_HEADER}>
-        <CardTitle id="board-stats-heading" className="text-primary">
+    <Card aria-labelledby="board-stats-heading" className="rounded-xl">
+      <CardHeader className="bg-card">
+        <CardTitle id="board-stats-heading" className="text-sm">
           {c('heading')}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-3 px-5 py-4">
         {computedAt === null ? (
           <p className="text-xs text-muted-foreground">{c('notComputed')}</p>
         ) : (
@@ -33,11 +33,13 @@ export function BoardStats({
                 { label: c('posts'), value: postCount },
                 { label: c('members'), value: memberCount },
               ].map((figure) => (
-                <div key={figure.label}>
-                  <dd className={`text-sm font-medium text-foreground ${NUMERIC}`}>
+                <div key={figure.label} className="rounded-lg bg-muted/60 px-2 py-2.5">
+                  <dd className={`text-lg font-semibold text-foreground ${NUMERIC}`}>
                     {figure.value.label}
                   </dd>
-                  <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+                  <dt className="text-[0.6875rem] text-muted-foreground uppercase">
+                    {figure.label}
+                  </dt>
                 </div>
               ))}
             </dl>

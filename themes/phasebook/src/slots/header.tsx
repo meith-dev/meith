@@ -121,6 +121,23 @@ function MobileNavItem({ item }: { item: HeaderModel['navigation'][number] }) {
   )
 }
 
+function MenuGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+    >
+      <path className="group-open/menu:hidden" d="M3 5.5h14M3 10h14M3 14.5h14" />
+      <path className="hidden group-open/menu:block" d="m5 5 10 10M15 5 5 15" />
+    </svg>
+  )
+}
+
 export function Header({
   boardTitle,
   homeHref,
@@ -150,13 +167,13 @@ export function Header({
             data-nav-view="desktop"
             className="hidden min-w-0 flex-1 justify-center lg:flex"
           >
-            <ul className="flex items-center gap-1">
+            <ul className="flex items-center gap-0.5 whitespace-nowrap">
               {navigation.map((item) => (
-                <li key={item.href} className="group relative">
+                <li key={item.href} className="group relative shrink-0">
                   <a
                     href={item.href}
                     {...linkTarget(item)}
-                    className="inline-flex h-11 items-center rounded-lg px-6 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="inline-flex h-10 items-center rounded-lg px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground xl:px-5"
                   >
                     {item.label}
                   </a>
@@ -167,30 +184,30 @@ export function Header({
           </nav>
         )}
 
-        <div className="flex shrink-0 items-center justify-end">{children}</div>
-      </div>
+        <div className="flex shrink-0 items-center justify-end gap-2">
+          {children}
+          {navigation.length > 0 && (
+            <nav aria-label={c('sectionsAriaLabel')} data-nav-view="mobile" className="lg:hidden">
+              <details data-nav-disclosure className="group/menu">
+                <summary
+                  className={`rounded-full text-foreground transition-colors hover:bg-accent group-open/menu:bg-accent flex size-10 cursor-default list-none items-center justify-center select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none`}
+                >
+                  <MenuGlyph />
+                  <span className="sr-only">{c('sectionsAriaLabel')}</span>
+                </summary>
 
-      {navigation.length > 0 && (
-        <nav
-          aria-label={c('sectionsAriaLabel')}
-          data-nav-view="mobile"
-          className="border-t border-border lg:hidden"
-        >
-          <div className={`${PAGE} py-1`}>
-            <details data-nav-disclosure className="group">
-              <summary className="flex min-h-11 cursor-default list-none items-center gap-2 text-sm font-medium text-foreground select-none [&::-webkit-details-marker]:hidden [&::marker]:content-none">
-                <Chevron className="size-3 shrink-0 transition-transform group-open:rotate-90" />
-                {c('sectionsAriaLabel')}
-              </summary>
-              <ul className="flex flex-col gap-0.5 pb-2">
-                {navigation.map((item) => (
-                  <MobileNavItem key={item.href} item={item} />
-                ))}
-              </ul>
-            </details>
-          </div>
-        </nav>
-      )}
+                <div className="absolute inset-x-0 top-full z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-border bg-card shadow-elevation">
+                  <ul className={`${PAGE} flex flex-col gap-0.5 py-2`}>
+                    {navigation.map((item) => (
+                      <MobileNavItem key={item.href} item={item} />
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            </nav>
+          )}
+        </div>
+      </div>
     </header>
   )
 }

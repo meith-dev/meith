@@ -368,7 +368,10 @@ function MatrixSection({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.key} className="border-b border-border/60 last:border-b-0">
+              <tr
+                key={row.key}
+                className="scroll-mt-16 scroll-mb-24 border-b border-border/60 last:border-b-0"
+              >
                 <th
                   scope="row"
                   title={row.description}

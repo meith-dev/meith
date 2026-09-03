@@ -16,21 +16,21 @@ export function Navigation({ items, copy }: NavigationModel & { copy: SlotCopy }
           return (
             <li key={item.href} className="flex shrink-0 items-center">
               {index > 0 && (
-                <span aria-hidden="true" className="px-0.5 text-border select-none">
+                <span aria-hidden="true" className="px-1 text-muted-foreground/50 select-none">
                   {c('separator')}
                 </span>
               )}
               {isLast ? (
                 <span
                   aria-current="page"
-                  className="max-w-[24ch] truncate px-1.5 py-1 font-medium text-foreground sm:max-w-none"
+                  className="max-w-[28ch] truncate px-1.5 py-1 font-medium text-foreground sm:max-w-none"
                 >
                   {item.label}
                 </span>
               ) : (
                 <a
                   href={item.href}
-                  className="rounded-md px-1.5 py-1 transition-colors hover:bg-primary/8 hover:text-primary"
+                  className="rounded-md px-1.5 py-1 transition-colors hover:bg-muted hover:text-foreground"
                 >
                   {item.label}
                 </a>

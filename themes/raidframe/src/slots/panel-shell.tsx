@@ -13,11 +13,15 @@ export function PanelShell({ panel, links, linksLabel, regions, children }: Pane
         {regions.nav}
 
         {links.length > 0 && (
-          <nav aria-label={linksLabel} className="border-t border-border pt-3">
-            <ul className="flex flex-col gap-1">
+          <nav aria-label={linksLabel} className="border border-border bg-card">
+            <p className={`${MICRO} border-b border-border px-3 py-2`}>{linksLabel}</p>
+            <ul className="flex flex-col p-1">
               {links.map((link) => (
                 <li key={link.href}>
-                  <a href={link.href} className={`${MICRO} block hover:text-primary`}>
+                  <a
+                    href={link.href}
+                    className="block px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-primary"
+                  >
                     {link.label}
                   </a>
                 </li>

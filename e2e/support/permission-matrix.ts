@@ -29,6 +29,7 @@ export async function setMatrixCell(
   option: MatrixOption,
 ): Promise<void> {
   const cell = await matrixCell(page, heading, rowText, groupTitle)
+  await cell.evaluate((element) => element.scrollIntoView({ block: 'center' }))
   await cell.getByText(option, { exact: true }).click()
 }
 
