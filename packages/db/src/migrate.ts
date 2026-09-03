@@ -3,9 +3,13 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { sql } from 'drizzle-orm'
 import postgres from 'postgres'
 
 import { ConfigurationError, env, logger } from '@meith/core'
+
+import type { Database } from './client'
+import { resultRows } from './result-rows'
 
 const JOURNAL = path.join('meta', '_journal.json')
 
@@ -47,6 +51,7 @@ export function migrationFolderCandidates(input: {
   for (;;) {
     candidates.push(path.join(dir, 'migrations'))
     candidates.push(path.join(dir, 'packages', 'db', 'migrations'))
+    candidates.push(path.join(dir, 'node_modules', '@meith', 'db', 'migrations'))
     const parent = path.dirname(dir)
     if (parent === dir) break
     dir = parent
@@ -100,19 +105,21 @@ export function readMigrations(folder: string): readonly Migration[] {
   })
 }
 
+async function appliedHashes(client: MigrationExecutor): Promise<ReadonlySet<string>> {
+  const [table] = await client.query<{ found: string | null }>(
+    `select to_regclass('${MIGRATIONS_TABLE}')::text as found`,
+  )
+  if (table === undefined || table.found === null) return new Set()
+
+  const rows = await client.query<{ hash: string }>(`select hash from ${MIGRATIONS_TABLE}`)
+  return new Set(rows.map((row) => row.hash))
+}
+
 export async function pendingMigrations(
   client: MigrationExecutor,
   migrations: readonly Migration[],
 ): Promise<readonly Migration[]> {
-  await client.exec('create schema if not exists drizzle')
-  await client.exec(
-    `create table if not exists ${MIGRATIONS_TABLE} ` +
-      '(id serial primary key, hash text not null, created_at bigint)',
-  )
-
-  const rows = await client.query<{ hash: string }>(`select hash from ${MIGRATIONS_TABLE}`)
-  const applied = new Set(rows.map((row) => row.hash))
-
+  const applied = await appliedHashes(client)
   return migrations.filter((migration) => !applied.has(migration.hash))
 }
 
@@ -122,6 +129,12 @@ export async function applyMigrations(
 ): Promise<readonly Migration[]> {
   const pending = await pendingMigrations(client, migrations)
   if (pending.length === 0) return pending
+
+  await client.exec('create schema if not exists drizzle')
+  await client.exec(
+    `create table if not exists ${MIGRATIONS_TABLE} (id serial primary key, ` +
+      'hash text not null, created_at bigint)',
+  )
 
   await client.transaction(async (exec) => {
     for (const migration of pending) {
@@ -134,6 +147,30 @@ export async function applyMigrations(
   })
 
   return pending
+}
+
+function databaseExecutor(db: Database): MigrationExecutor {
+  return {
+    async exec(statement) {
+      await db.execute(sql.raw(statement))
+    },
+    async query<T>(statement: string) {
+      return resultRows<T>(await db.execute(sql.raw(statement)))
+    },
+    async transaction(work) {
+      await db.transaction(async (tx) => {
+        await work(async (statement) => {
+          await tx.execute(sql.raw(statement))
+        })
+      })
+    },
+  }
+}
+
+export async function pendingCoreMigrations(db: Database): Promise<readonly string[]> {
+  const migrations = readMigrations(migrationsFolder())
+  const pending = await pendingMigrations(databaseExecutor(db), migrations)
+  return pending.map((migration) => migration.tag)
 }
 
 export const MIGRATION_LOCK_KEY = '-2943916371013839929'

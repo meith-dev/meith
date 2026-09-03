@@ -10,6 +10,7 @@ import { migrate as drizzleMigrate } from 'drizzle-orm/pglite/migrator'
 import type postgres from 'postgres'
 import { describe, expect, it } from 'vitest'
 
+import type { Database } from './client'
 import {
   applyMigrations,
   MIGRATION_LOCK_KEY,
@@ -17,6 +18,8 @@ import {
   type MigrationExecutor,
   migrationFolderCandidates,
   migrationUrl,
+  pendingCoreMigrations,
+  pendingMigrations,
   readMigrations,
   withMigrationLock,
 } from './migrate'
@@ -192,6 +195,38 @@ describe('which migrations a run applies', () => {
   })
 })
 
+describe('asking what is pending without applying anything', () => {
+  it('reports every migration on a database that has never been migrated, and creates nothing', async () => {
+    const client = new PGlite()
+    try {
+      const migrations = readMigrations(FOLDER)
+
+      const pending = await pendingMigrations(pgliteExecutor(client), migrations)
+
+      expect(pending.map((m) => m.tag)).toEqual(migrations.map((m) => m.tag))
+      expect(await tableExists(client, MIGRATIONS_TABLE)).toBe(false)
+    } finally {
+      await client.close()
+    }
+  })
+
+  it('answers over the board’s own connection, by tag', async () => {
+    const client = new PGlite()
+    try {
+      const db = drizzle(client) as unknown as Database
+      const migrations = readMigrations(FOLDER)
+
+      expect(await pendingCoreMigrations(db)).toEqual(migrations.map((m) => m.tag))
+
+      await applyMigrations(pgliteExecutor(client), migrations)
+
+      expect(await pendingCoreMigrations(db)).toEqual([])
+    } finally {
+      await client.close()
+    }
+  }, 60_000)
+})
+
 describe('where the migrations are looked for', () => {
   it('tries MIGRATIONS_DIR and nothing else when it is set', () => {
     expect(
@@ -224,6 +259,12 @@ describe('where the migrations are looked for', () => {
     const candidates = migrationFolderCandidates({ cwd: '/' })
     expect(candidates.length).toBeLessThan(10)
     expect(candidates).toContain(path.join('/', 'migrations'))
+  })
+
+  it('looks inside an installed @meith/db, which is where a scaffolded board keeps them', () => {
+    const candidates = migrationFolderCandidates({ cwd: '/board' })
+
+    expect(candidates).toContain(path.join('/board', 'node_modules', '@meith', 'db', 'migrations'))
   })
 
   it('puts the nearest directory first, so a checkout never reaches the image path', () => {

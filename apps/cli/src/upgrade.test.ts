@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const versions = { current: new Map<string, string>() }
 const recorded: Array<{ component: string; version: string }> = []
+const pendingCore = { current: [] as readonly string[] }
 
 vi.mock('@meith/db', () => ({
   getDb: () => ({}),
@@ -12,7 +13,8 @@ vi.mock('@meith/db', () => ({
   },
   appliedPluginMigrations: async () => [],
   applyPluginMigration: async () => true,
-  runMigrations: async () => 0,
+  pendingCoreMigrations: async () => pendingCore.current,
+  runMigrations: async () => pendingCore.current.length,
   PostgresNavigationRepository: class {
     async syncPluginItems() {
       return { added: [], removed: [] }
@@ -51,7 +53,35 @@ beforeEach(() => {
   recorded.length = 0
   lifecycle.length = 0
   installThrows.current = false
+  pendingCore.current = []
   versions.current = new Map([['core', '0.9.0']])
+})
+
+describe('core migrations in the plan', () => {
+  it('names the ones the board is missing', async () => {
+    pendingCore.current = ['0062_pretty_zombie', '0063_board_digest']
+
+    await upgrade({ dryRun: true, plugins: [], log })
+
+    expect(lines.join('\n')).toContain(
+      '1. core: apply 2 migration(s) — 0062_pretty_zombie, 0063_board_digest',
+    )
+  })
+
+  it('says so when there are none', async () => {
+    await upgrade({ dryRun: true, plugins: [], log })
+
+    expect(lines.join('\n')).toContain('1. core: nothing to apply')
+  })
+
+  it('is what makes a board at the code version still have an upgrade to run', async () => {
+    versions.current = new Map([['core', '0.33.1']])
+    pendingCore.current = ['0063_board_digest']
+
+    expect(await upgrade({ dryRun: false, plugins: [], log })).toBe(0)
+
+    expect(lines.join('\n')).toContain('Core: applied 1 migration(s).')
+  })
 })
 
 describe('onInstall', () => {

@@ -1,11 +1,12 @@
 import 'server-only'
 
-import { env, logger, ValidationError } from '@meith/core'
+import { ConfigurationError, env, logger, ValidationError } from '@meith/core'
 import {
   appliedPluginMigrations,
   applyPluginMigration,
   getDb,
   PostgresNavigationRepository,
+  pendingCoreMigrations,
   readVersion,
   recordVersion,
 } from '@meith/db'
@@ -22,6 +23,23 @@ export interface UpgradeApplied {
   readonly plugins: readonly string[]
 }
 
+let coreMigrationsUnreadable = false
+
+async function missingCoreMigrations(db: ReturnType<typeof getDb>): Promise<readonly string[]> {
+  if (coreMigrationsUnreadable) return []
+
+  try {
+    return await pendingCoreMigrations(db)
+  } catch (error) {
+    if (error instanceof ConfigurationError) coreMigrationsUnreadable = true
+    logger().warn(
+      { err: String(error) },
+      'could not read the pending core migrations, comparing versions only',
+    )
+    return []
+  }
+}
+
 export async function applyPendingUpgrade(): Promise<UpgradeApplied> {
   const db = getDb()
   const definitions = activeDefinitions()
@@ -31,10 +49,12 @@ export async function applyPendingUpgrade(): Promise<UpgradeApplied> {
     applied[plugin.key] = await appliedPluginMigrations(db, plugin.key)
   }
 
+  const pendingCore = await missingCoreMigrations(db)
+
   const state: UpgradeState = {
     recordedVersion: (await readVersion(db, 'core')) ?? CODE_VERSION,
     codeVersion: CODE_VERSION,
-    pendingCoreMigrations: [],
+    pendingCoreMigrations: pendingCore,
     plugins: definitions.map((plugin) => ({
       key: plugin.key,
       version: plugin.version,
@@ -50,6 +70,15 @@ export async function applyPendingUpgrade(): Promise<UpgradeApplied> {
     throw notice === null
       ? new ValidationError(msg('error.app.board-cannot-be-upgraded'))
       : new ValidationError(notice)
+  }
+
+  if (pendingCore.length > 0) {
+    throw new ValidationError(
+      msg('error.app.core-migrations-pending', {
+        count: pendingCore.length,
+        migrations: pendingCore.join(', '),
+      }),
+    )
   }
 
   const fresh = new Set<string>()
@@ -101,7 +130,7 @@ export async function pendingUpgradeNotice(): Promise<string | null> {
     const state: UpgradeState = {
       recordedVersion: (await readVersion(db, 'core')) ?? CODE_VERSION,
       codeVersion: CODE_VERSION,
-      pendingCoreMigrations: [],
+      pendingCoreMigrations: await missingCoreMigrations(db),
       plugins: plugins.map((plugin) => ({
         key: plugin.key,
         version: plugin.version,
