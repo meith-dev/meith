@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { after as scheduleAfterResponse } from 'next/server'
 
 import { currentRequestId } from '@meith/core/logger'
 import { acceptsThreads, canHoldThreads } from '@meith/forums'
@@ -268,14 +267,11 @@ export default async function ThreadPage({
   })
 
   if (readState !== null && actor.userId !== null) {
-    const readerId = actor.userId
     const lastRenderedPostId = postPage.rows.at(-1)?.id
     if (lastRenderedPostId !== undefined) {
-      scheduleAfterResponse(() =>
-        readState
-          .markThreadRead(readerId, thread.id, lastRenderedPostId, new Date())
-          .catch(() => undefined),
-      )
+      await readState
+        .markThreadRead(actor.userId, thread.id, lastRenderedPostId, new Date())
+        .catch(() => undefined)
     }
   }
 
