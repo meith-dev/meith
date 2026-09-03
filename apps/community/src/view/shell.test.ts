@@ -292,7 +292,7 @@ describe('the navigation in another language', () => {
   it('falls back to English for a message the translation is missing', () => {
     const links = buildBoardNavigation(buildViewerModel(member), { t: german })
 
-    expect(links.map((link) => link.label)).toContain('Unanswered')
+    expect(links.map((link) => link.label)).toContain('New posts')
   })
 })
 
@@ -300,16 +300,7 @@ describe('buildBoardNavigation', () => {
   it('points only at routes that exist', () => {
     const hrefs = buildBoardNavigation(buildViewerModel(member)).map((link) => link.href)
 
-    expect(hrefs).toEqual([
-      '/',
-      '/discover/new',
-      '/discover/unanswered',
-      '/discover/participated',
-      '/search',
-      '/online',
-      '/members',
-      '/staff',
-    ])
+    expect(hrefs).toEqual(['/', '/discover/new', '/search'])
   })
 
   it('drops the search link when the board has search switched off', () => {
@@ -318,7 +309,7 @@ describe('buildBoardNavigation', () => {
     }).map((link) => link.href)
 
     expect(hrefs).not.toContain('/search')
-    expect(hrefs).toContain('/online')
+    expect(hrefs).toContain('/discover/new')
   })
 
   it('keeps the search link when search is on', () => {
