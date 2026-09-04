@@ -2,6 +2,7 @@ import { rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 
 import {
+  type BackupDestination,
   type BackupLog,
   backupDestinationFromEnv,
   claimBackupDestination,
@@ -9,11 +10,11 @@ import {
   formatBytes,
   isBundleName,
   localBundles,
+  openBackupDestination,
   resolveKeep,
   resolveUploadsMode,
   restoreBackup,
   restoreLimits,
-  S3BackupDestination,
   skippedKeyLines,
 } from '@meith/backup'
 import { ConfigurationError, env, ValidationError } from '@meith/core'
@@ -33,9 +34,9 @@ const CONSOLE_LOG: BackupLog = {
   warn: (line) => console.warn(line),
 }
 
-function offsiteDestination(): S3BackupDestination | undefined {
+function offsiteDestination(): BackupDestination | undefined {
   const config = backupDestinationFromEnv(process.env)
-  return config === undefined ? undefined : new S3BackupDestination(config)
+  return config === undefined ? undefined : openBackupDestination(config)
 }
 
 export async function backupCommand(args: readonly string[]): Promise<number> {
@@ -211,7 +212,8 @@ export async function backupListCommand(args: readonly string[]): Promise<number
   } else {
     console.log(
       'No off-site destination: set BACKUP_S3_BUCKET, BACKUP_S3_REGION, ' +
-        'BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY to list one.',
+        'BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY, or BACKUP_WEBDAV_URL ' +
+        'with its username and password, to list one.',
     )
   }
 
@@ -236,7 +238,8 @@ export async function backupFetchCommand(args: readonly string[]): Promise<numbe
   if (offsite === undefined) {
     throw new ConfigurationError(
       'backup:fetch downloads from the off-site destination, so it needs BACKUP_S3_BUCKET, ' +
-        'BACKUP_S3_REGION, BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY.',
+        'BACKUP_S3_REGION, BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY — or ' +
+        'BACKUP_WEBDAV_URL with its username and password.',
     )
   }
 

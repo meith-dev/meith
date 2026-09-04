@@ -85,6 +85,9 @@ services:
       BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
       BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       # Both volumes, so that "back up before migrating" (a board setting) can
       # write a bundle that carries the uploads before a pending migration.
@@ -154,6 +157,9 @@ services:
       BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
       BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
       # The ring of backup bundles the admin panel lists and downloads. A
@@ -217,6 +223,9 @@ services:
       BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
       BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
       # The scheduled and panel-requested backups run here, into the same

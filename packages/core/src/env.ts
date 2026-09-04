@@ -103,6 +103,10 @@ const envSchema = z
     BACKUP_S3_ENDPOINT: z.string().url().optional(),
     BACKUP_S3_PREFIX: nonEmpty.optional(),
 
+    BACKUP_WEBDAV_URL: z.string().url().optional(),
+    BACKUP_WEBDAV_USERNAME: nonEmpty.optional(),
+    BACKUP_WEBDAV_PASSWORD: nonEmpty.optional(),
+
     BLOB_READ_WRITE_TOKEN: blobReadWriteToken.optional(),
     BLOB_STORE_ID: nonEmpty.optional(),
 

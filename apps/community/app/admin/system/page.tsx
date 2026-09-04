@@ -23,6 +23,7 @@ import { formatTime } from '@/view/time'
 
 const TASK_STATUS_KEYS = {
   healthy: 'adminSystem.taskStatus.healthy',
+  running: 'adminSystem.taskStatus.running',
   late: 'adminSystem.taskStatus.late',
   stale: 'adminSystem.taskStatus.stale',
   failing: 'adminSystem.taskStatus.failing',
@@ -194,7 +195,9 @@ export default async function AdminSystemPage() {
                 </span>
                 <span
                   className={
-                    task.status === 'healthy' || task.status === 'disabled'
+                    task.status === 'healthy' ||
+                    task.status === 'running' ||
+                    task.status === 'disabled'
                       ? 'shrink-0 text-xs text-muted-foreground'
                       : 'shrink-0 text-xs font-medium text-destructive'
                   }

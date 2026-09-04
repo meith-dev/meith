@@ -736,7 +736,7 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
   'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
-  '.env.example': 'f267cffa9c7238f9a76ff1ae9752ae0f22e0d69b794080740dfba910402af72c',
+  '.env.example': 'e160944cbb1fba18c67ef7e55d6f640cb847f77125d7fbf9e6f2426344aa8865',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
   Dockerfile: 'd012f8daa0f10ffb0f3887c8b7658fc4276133c978576b2b3a3216ba8c0ee292',
   'Dockerfile.prebuilt': 'e5a9ecdd9bc2e9a9da4523ecc2c204be9c45b769e8d4bdb2a70928f8bade17a8',
@@ -747,9 +747,9 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
   '.github/workflows/update.yml':
     '5c56ff79b04d29928645b49be82bc47fac65d88a84cfc066d64b932123c620f0',
-  'docker-compose.yaml': '67807c5f439a946aaf0043ef0996b367dc94aa83da88ee95b31db5c437113556',
+  'docker-compose.yaml': '6c9715262ce8e8f77c3cf661683bcb11be803544f5e902a7d1507ac45d2211b2',
   'docker-compose.prebuilt.yaml':
-    'aca4af51c5e10b45d6647049e092d0a3674ef1490f8ac032be970327dcc1ba73',
+    '069997fca8288caaf2e24a98413d23ffa7903ea370e23b6bc4c01358cd7cd896',
   'README.md': 'de94525ed6946dbf792ded665fd3f2dd5c7299a12b25688915b0083e36fb66af',
 }
 

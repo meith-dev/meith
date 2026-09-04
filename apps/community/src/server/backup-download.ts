@@ -48,5 +48,19 @@ export async function serveBackupDownload(name: string): Promise<Response> {
   const listed = await destination.list()
   if (!listed.some((bundle) => bundle.name === name)) return notFound()
 
-  return seeOther(await destination.downloadUrl(name, DOWNLOAD_LINK_SECONDS))
+  if (destination.downloadUrl !== undefined) {
+    return seeOther(await destination.downloadUrl(name, DOWNLOAD_LINK_SECONDS))
+  }
+
+  const opened = await destination.open(name)
+  if (opened === null) return notFound()
+  return new Response(opened.body as unknown as BodyInit, {
+    headers: {
+      'Content-Type': 'application/gzip',
+      ...(opened.size === null ? {} : { 'Content-Length': String(opened.size) }),
+      'Content-Disposition': `attachment; filename="${name}"`,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, no-store',
+    },
+  })
 }

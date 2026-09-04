@@ -125,42 +125,55 @@ carries them.
 ## Off-site
 
 A ring on the server protects against a bad upgrade or a deleted forum,
-not against losing the server. Name an S3-compatible bucket and every
-bundle is also shipped there, pruned there under the same retention rules,
-listed and downloadable from the same screen, and offered by the installer
-on a fresh machine.
+not against losing the server. Name a destination and every bundle is
+also shipped there, pruned there under the same retention rules, listed
+and downloadable from the same screen, and offered by the installer on a
+fresh machine. Two kinds of destination are supported:
+
+- **An S3-compatible bucket** — Backblaze B2, Cloudflare R2, Hetzner,
+  Scaleway, MinIO on a machine you trust: a few euro a month at forum
+  size. **A bucket of its own**, never the bucket the uploads live in, or
+  a backup of the uploads sits where losing the uploads loses it too.
+  Give the credential only what it needs — write, list and delete on that
+  bucket alone.
+- **A WebDAV folder** — Nextcloud, ownCloud, a Hetzner Storage Box,
+  anything that speaks WebDAV over HTTPS. The address is a folder that
+  already exists (on Nextcloud, something like
+  `https://cloud.example/remote.php/dav/files/<user>/board-backups/`);
+  bundles are written into it and the oldest pruned from it, and the
+  folder itself is never created or removed. Use an app password made
+  for this purpose rather than the account's own. Downloads of a bundle
+  that exists only there stream through the board, since a WebDAV
+  server has no signed links to hand out.
 
 There are two places the destination can come from, and the environment
 wins:
 
-- **The board settings**, under **Admin → Settings → Backups**: bucket,
-  region, endpoint, prefix, access key id and secret access key. The
-  secret is stored sealed under `AUTH_SECRET` — the database row holds
-  ciphertext, so a copy of the database alone, a bundle included, cannot
-  read it — which is one more reason `AUTH_SECRET` has to survive a
-  restore. Change it, press **Test the destination**, and the next run
-  ships.
-- **The environment**, with `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`,
-  `BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY` — plus
-  `BACKUP_S3_ENDPOINT` for anything that is not AWS itself (with
-  `BACKUP_S3_REGION=auto` for R2) and `BACKUP_S3_PREFIX` to share one
-  bucket between boards. All four required values or none: a partial set
-  fails the backup run, loudly, and never affects the board itself. When
-  these are set the settings fields are stored but inert, and the
-  settings screen says so. This is the right choice when the credential
-  must not live in the database — and the only choice the installer can
-  use, because a fresh board has no settings yet.
+- **The board settings**, under **Admin → Settings → Backups**: pick the
+  destination, then fill in the bucket fields or the WebDAV fields. The
+  bucket's secret key and the WebDAV password are stored sealed under
+  `AUTH_SECRET` — the database row holds ciphertext, so a copy of the
+  database alone, a bundle included, cannot read it — which is one more
+  reason `AUTH_SECRET` has to survive a restore. Change it, press
+  **Test the destination**, and the next run ships.
+- **The environment**: for a bucket, `BACKUP_S3_BUCKET`,
+  `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID` and
+  `BACKUP_S3_SECRET_ACCESS_KEY` — plus `BACKUP_S3_ENDPOINT` for anything
+  that is not AWS itself (with `BACKUP_S3_REGION=auto` for R2) and
+  `BACKUP_S3_PREFIX` to share one bucket between boards; all four required
+  values or none. For a folder, `BACKUP_WEBDAV_URL`, with
+  `BACKUP_WEBDAV_USERNAME` and `BACKUP_WEBDAV_PASSWORD` together or not at
+  all. One kind or the other, never both. A partial set fails the backup
+  run, loudly, and never affects the board itself. When these are set the
+  settings fields are stored but inert, and the settings screen says so.
+  This is the right choice when the credential must not live in the
+  database — and the only choice the installer can use, because a fresh
+  board has no settings yet.
 
-Either way: **a bucket of its own**, never the bucket the uploads live in,
-or a backup of the uploads sits where losing the uploads loses it too.
-Give the credential only what it needs — write, list and delete on that
-bucket alone. Backblaze B2, Cloudflare R2, Hetzner, Scaleway, MinIO on a
-machine you trust: a few euro a month at forum size.
-
-The compose files forward the six `BACKUP_S3_*` variables into every
-container that takes a backup — web, worker and migrate — so a value set
-in `.env`, or on a Coolify resource's **Environment Variables**, reaches
-all three.
+The compose files forward the `BACKUP_S3_*` and `BACKUP_WEBDAV_*`
+variables into every container that takes a backup — web, worker and
+migrate — so a value set in `.env`, or on a Coolify resource's
+**Environment Variables**, reaches all three.
 
 ## Before an upgrade
 

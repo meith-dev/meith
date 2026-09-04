@@ -160,7 +160,14 @@ const ENV_BACKUP_BLOCK = `# The off-site backup destination: an S3-compatible bu
 # BACKUP_S3_ACCESS_KEY_ID=
 # BACKUP_S3_SECRET_ACCESS_KEY=
 # BACKUP_S3_ENDPOINT=
-# BACKUP_S3_PREFIX=`
+# BACKUP_S3_PREFIX=
+#
+# Or a WebDAV folder instead of a bucket — Nextcloud, ownCloud, a Hetzner
+# Storage Box. The address of a folder that already exists; username and
+# password together or not at all. One destination or the other, never both.
+# BACKUP_WEBDAV_URL=
+# BACKUP_WEBDAV_USERNAME=
+# BACKUP_WEBDAV_PASSWORD=`
 
 function selfHostEnvExample(name: string): string {
   return `# ${name} — environment.
@@ -1057,6 +1064,9 @@ services:
       BACKUP_S3_SECRET_ACCESS_KEY: \${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_S3_ENDPOINT: \${BACKUP_S3_ENDPOINT:-}
       BACKUP_S3_PREFIX: \${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: \${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: \${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: \${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       # Both volumes, so that the bundle "back up before migrating" writes
       # carries the uploads and lands in the same ring as every other backup.
@@ -1116,6 +1126,9 @@ services:
       - BACKUP_S3_SECRET_ACCESS_KEY=\${BACKUP_S3_SECRET_ACCESS_KEY:-}
       - BACKUP_S3_ENDPOINT=\${BACKUP_S3_ENDPOINT:-}
       - BACKUP_S3_PREFIX=\${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=\${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=\${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=\${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
       # The ring of backup bundles: what the admin panel's Backups screen
@@ -1224,6 +1237,9 @@ services:
       BACKUP_S3_SECRET_ACCESS_KEY: \${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_S3_ENDPOINT: \${BACKUP_S3_ENDPOINT:-}
       BACKUP_S3_PREFIX: \${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: \${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: \${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: \${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       # Both volumes, so that the bundle "back up before migrating" writes
       # carries the uploads and lands in the same ring as every other backup.
@@ -1283,6 +1299,9 @@ services:
       - BACKUP_S3_SECRET_ACCESS_KEY=\${BACKUP_S3_SECRET_ACCESS_KEY:-}
       - BACKUP_S3_ENDPOINT=\${BACKUP_S3_ENDPOINT:-}
       - BACKUP_S3_PREFIX=\${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=\${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=\${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=\${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
       # The ring of backup bundles: what the admin panel's Backups screen

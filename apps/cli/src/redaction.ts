@@ -11,6 +11,7 @@ export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
   'REDIS_URL',
   'S3_SECRET_ACCESS_KEY',
   'BACKUP_S3_SECRET_ACCESS_KEY',
+  'BACKUP_WEBDAV_PASSWORD',
   'BLOB_READ_WRITE_TOKEN',
 ])
 
@@ -22,6 +23,7 @@ export const NOT_SECRET_DESPITE_THE_NAME: ReadonlySet<string> = new Set([
   'S3_ACCESS_KEY_ID',
   'BACKUP_S3_ACCESS_KEY_ID',
   'BACKUP_S3_ENDPOINT',
+  'BACKUP_WEBDAV_URL',
   'MAIL_SMTP_USERNAME',
 ])
 

@@ -41,7 +41,7 @@ export class PostgresSystemHealthRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         select key, interval_seconds, enabled, last_run_at, next_run_at,
-               consecutive_failures
+               locked_until, consecutive_failures
           from tasks order by key
       `),
     ) as Array<Record<string, unknown>>
@@ -52,6 +52,7 @@ export class PostgresSystemHealthRepository {
       enabled: row.enabled === true,
       lastRunAt: row.last_run_at === null ? null : toDate(row.last_run_at),
       nextRunAt: row.next_run_at === null ? null : toDate(row.next_run_at),
+      lockedUntil: row.locked_until === null ? null : toDate(row.locked_until),
       consecutiveFailures: Number(row.consecutive_failures),
     }))
   }

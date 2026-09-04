@@ -14,10 +14,16 @@ import { ConfigurationError, ValidationError } from '@meith/core'
 
 import { isBundleName } from './bundle'
 import { type RetentionPolicy, retentionCandidates } from './retention'
+import { WebDavBackupDestination } from './webdav'
 
 export interface RemoteBundle {
   readonly name: string
   readonly size: number
+}
+
+export interface RemoteBundleBody {
+  readonly body: ReadableStream<Uint8Array>
+  readonly size: number | null
 }
 
 export interface BackupDestination {
@@ -25,12 +31,14 @@ export interface BackupDestination {
   list(): Promise<readonly RemoteBundle[]>
   putFile(name: string, filePath: string, size: number): Promise<void>
   getToFile(name: string, outPath: string): Promise<void>
+  open(name: string): Promise<RemoteBundleBody | null>
   delete(name: string): Promise<void>
   prune(policy: RetentionPolicy, now?: Date): Promise<readonly string[]>
-  downloadUrl(name: string, expiresInSeconds: number): Promise<string>
+  downloadUrl?(name: string, expiresInSeconds: number): Promise<string>
 }
 
-export interface BackupDestinationConfig {
+export interface S3DestinationConfig {
+  readonly kind: 's3'
   readonly bucket: string
   readonly region: string
   readonly accessKeyId: string
@@ -38,6 +46,17 @@ export interface BackupDestinationConfig {
   readonly endpoint?: string | undefined
   readonly prefix?: string | undefined
 }
+
+export interface WebDavDestinationConfig {
+  readonly kind: 'webdav'
+  readonly url: string
+  readonly username: string
+  readonly password: string
+}
+
+export type BackupDestinationConfig = S3DestinationConfig | WebDavDestinationConfig
+
+export type BackupDestinationKind = BackupDestinationConfig['kind']
 
 export type BackupDestinationSource = 'environment' | 'board' | 'none'
 
@@ -54,11 +73,59 @@ export const BACKUP_DESTINATION_KEYS = [
   'BACKUP_S3_SECRET_ACCESS_KEY',
 ] as const
 
+export const BACKUP_WEBDAV_KEYS = [
+  'BACKUP_WEBDAV_URL',
+  'BACKUP_WEBDAV_USERNAME',
+  'BACKUP_WEBDAV_PASSWORD',
+] as const
+
 export type BackupDestinationEnvironment = {
   readonly [K in
     | (typeof BACKUP_DESTINATION_KEYS)[number]
+    | (typeof BACKUP_WEBDAV_KEYS)[number]
     | 'BACKUP_S3_ENDPOINT'
     | 'BACKUP_S3_PREFIX']?: string | undefined
+}
+
+export function usableWebDavUrl(value: string): string | null {
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    return null
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+  if (url.search !== '' || url.hash !== '') return null
+  return url.href.endsWith('/') ? url.href : `${url.href}/`
+}
+
+function webDavFromEnv(
+  environment: BackupDestinationEnvironment,
+): WebDavDestinationConfig | undefined {
+  const url = environment.BACKUP_WEBDAV_URL
+  const username = environment.BACKUP_WEBDAV_USERNAME ?? ''
+  const password = environment.BACKUP_WEBDAV_PASSWORD ?? ''
+  if (url === undefined || url === '') {
+    if (username !== '' || password !== '') {
+      throw new ConfigurationError(
+        'BACKUP_WEBDAV_USERNAME or BACKUP_WEBDAV_PASSWORD is set without BACKUP_WEBDAV_URL.',
+      )
+    }
+    return undefined
+  }
+  const usable = usableWebDavUrl(url)
+  if (usable === null) {
+    throw new ConfigurationError(
+      'BACKUP_WEBDAV_URL must be an http:// or https:// address of a collection, ' +
+        'with no query string.',
+    )
+  }
+  if ((username === '') !== (password === '')) {
+    throw new ConfigurationError(
+      'BACKUP_WEBDAV_USERNAME and BACKUP_WEBDAV_PASSWORD are set together, or not at all.',
+    )
+  }
+  return { kind: 'webdav', url: usable, username, password }
 }
 
 function normalisePrefix(raw: string | undefined): string | undefined {
@@ -80,7 +147,7 @@ export function backupDestinationFromEnv(
   const set = BACKUP_DESTINATION_KEYS.filter(
     (key) => environment[key] !== undefined && environment[key] !== '',
   )
-  if (set.length === 0) return undefined
+  if (set.length === 0) return webDavFromEnv(environment)
   if (set.length < BACKUP_DESTINATION_KEYS.length) {
     const missing = BACKUP_DESTINATION_KEYS.filter((key) => !set.includes(key))
     throw new ConfigurationError(
@@ -89,7 +156,15 @@ export function backupDestinationFromEnv(
     )
   }
 
+  if (webDavFromEnv(environment) !== undefined) {
+    throw new ConfigurationError(
+      'Both BACKUP_S3_* and BACKUP_WEBDAV_* are set. A board ships its bundles to one ' +
+        'destination; unset one of the two.',
+    )
+  }
+
   return {
+    kind: 's3',
     bucket: environment.BACKUP_S3_BUCKET as string,
     region: environment.BACKUP_S3_REGION as string,
     accessKeyId: environment.BACKUP_S3_ACCESS_KEY_ID as string,
@@ -100,19 +175,57 @@ export function backupDestinationFromEnv(
 }
 
 export interface BackupDestinationSettings {
+  readonly kind: 'none' | 's3' | 'webdav'
   readonly bucket: string
   readonly region: string
   readonly accessKeyId: string
   readonly secretAccessKey: string
   readonly endpoint: string
   readonly prefix: string
+  readonly webdavUrl: string
+  readonly webdavUsername: string
+  readonly webdavPassword: string
+}
+
+function webDavFromSettings(settings: BackupDestinationSettings): BackupDestinationResolution {
+  const url = usableWebDavUrl(settings.webdavUrl)
+  if (settings.webdavUrl.trim() === '') {
+    return { source: 'board', config: null, problem: 'The WebDAV destination has no address.' }
+  }
+  if (url === null) {
+    return {
+      source: 'board',
+      config: null,
+      problem:
+        'The WebDAV address must be an http:// or https:// address of a folder, with no ' +
+        'query string.',
+    }
+  }
+  const username = settings.webdavUsername.trim()
+  if ((username === '') !== (settings.webdavPassword === '')) {
+    return {
+      source: 'board',
+      config: null,
+      problem: 'The WebDAV username and password go together: fill in both, or neither.',
+    }
+  }
+  return {
+    source: 'board',
+    config: { kind: 'webdav', url, username, password: settings.webdavPassword },
+    problem: null,
+  }
 }
 
 export function backupDestinationFromSettings(
   settings: BackupDestinationSettings,
 ): BackupDestinationResolution {
+  if (settings.kind === 'none') return { source: 'none', config: null, problem: null }
+  if (settings.kind === 'webdav') return webDavFromSettings(settings)
+
   const bucket = settings.bucket.trim()
-  if (bucket === '') return { source: 'none', config: null, problem: null }
+  if (bucket === '') {
+    return { source: 'board', config: null, problem: 'The S3 destination names no bucket.' }
+  }
 
   const missing: string[] = []
   if (settings.region.trim() === '') missing.push('a region')
@@ -130,6 +243,7 @@ export function backupDestinationFromSettings(
     return {
       source: 'board',
       config: {
+        kind: 's3',
         bucket,
         region: settings.region.trim(),
         accessKeyId: settings.accessKeyId.trim(),
@@ -187,7 +301,7 @@ export class S3BackupDestination implements BackupDestination {
   private readonly signingClient: S3Client
 
   constructor(
-    private readonly config: BackupDestinationConfig,
+    private readonly config: S3DestinationConfig,
     sender?: S3Like,
   ) {
     this.signingClient = new S3Client({
@@ -282,6 +396,23 @@ export class S3BackupDestination implements BackupDestination {
     await pipeline(response.Body, createWriteStream(outPath, { mode: 0o600 }))
   }
 
+  async open(name: string): Promise<RemoteBundleBody | null> {
+    let response: {
+      Body?: { transformToWebStream(): ReadableStream<Uint8Array> }
+      ContentLength?: number
+    }
+    try {
+      response = (await this.sender.send(
+        new GetObjectCommand({ Bucket: this.config.bucket, Key: this.key(name) }),
+      )) as typeof response
+    } catch (error) {
+      if (isNotFound(error)) return null
+      throw error
+    }
+    if (response.Body === undefined) return null
+    return { body: response.Body.transformToWebStream(), size: response.ContentLength ?? null }
+  }
+
   async delete(name: string): Promise<void> {
     await this.sender.send(
       new DeleteObjectCommand({ Bucket: this.config.bucket, Key: this.key(name) }),
@@ -309,4 +440,10 @@ export class S3BackupDestination implements BackupDestination {
       { expiresIn: expiresInSeconds },
     )
   }
+}
+
+export function openBackupDestination(config: BackupDestinationConfig): BackupDestination {
+  return config.kind === 'webdav'
+    ? new WebDavBackupDestination(config)
+    : new S3BackupDestination(config)
 }

@@ -549,10 +549,10 @@ same retention:
    euro a month at forum size. **A bucket of its own**: never the bucket
    uploads live in, if you moved those to S3. Give its credential write,
    list and delete on that bucket only.
-2. Either fill in the **Off-site bucket** fields under
-   **Admin → Settings → Backups** — the secret is stored sealed under the
-   board's `AUTH_SECRET` — or, when the credential must not live in the
-   database, set `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`,
+2. Either pick the bucket as the **Off-site destination** under
+   **Admin → Settings → Backups** and fill in its fields — the secret is
+   stored sealed under the board's `AUTH_SECRET` — or, when the
+   credential must not live in the database, set `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`,
    `BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY` on the
    resource's **Environment Variables** — plus `BACKUP_S3_ENDPOINT` for
    anything that is not AWS itself (with `BACKUP_S3_REGION=auto` for R2),
@@ -568,9 +568,12 @@ same retention:
    *off-site*. An upload nobody has listed is a hope, not an off-site
    copy.
 
+A Nextcloud or a Hetzner Storage Box works in place of the bucket: pick
+**A WebDAV folder** as the destination instead, and give it the folder's
+address and an app password.
 [Backups](../../guides/operations/backups.md) is the full reference —
-the settings, the `meith backup` command for a Scheduled Task you would
-rather own, and the restore.
+the settings, both kinds of destination, the `meith backup` command for a
+Scheduled Task you would rather own, and the restore.
 
 ## 7. Prove the restore
 

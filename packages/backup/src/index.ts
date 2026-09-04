@@ -35,18 +35,25 @@ export {
 } from './create'
 export {
   BACKUP_DESTINATION_KEYS,
+  BACKUP_WEBDAV_KEYS,
   type BackupDestination,
   type BackupDestinationConfig,
   type BackupDestinationEnvironment,
+  type BackupDestinationKind,
   type BackupDestinationResolution,
   type BackupDestinationSettings,
   type BackupDestinationSource,
   backupDestinationFromEnv,
   backupDestinationFromSettings,
+  openBackupDestination,
   type RemoteBundle,
+  type RemoteBundleBody,
   resolveBackupDestination,
   S3BackupDestination,
+  type S3DestinationConfig,
   type S3Like,
+  usableWebDavUrl,
+  type WebDavDestinationConfig,
 } from './destination'
 export { postgresClientEnvironment } from './postgres-client'
 export {
@@ -88,3 +95,9 @@ export {
   type ListableStore,
   uploadDirectoryToStore,
 } from './uploads'
+export {
+  parsePropfind,
+  WebDavBackupDestination,
+  type WebDavRequester,
+  type WebDavResponse,
+} from './webdav'

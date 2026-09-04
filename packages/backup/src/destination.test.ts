@@ -14,6 +14,7 @@ import {
 } from './destination'
 
 const CONFIG = {
+  kind: 's3' as const,
   bucket: 'board-backups',
   region: 'auto',
   accessKeyId: 'key',
@@ -71,12 +72,16 @@ describe('backupDestinationFromEnv', () => {
 
 describe('resolveBackupDestination', () => {
   const settings = {
+    kind: 's3' as const,
     bucket: 'panel-backups',
     region: 'eu-central-1',
     accessKeyId: 'panel-key',
     secretAccessKey: 'panel-secret',
     endpoint: '',
     prefix: '',
+    webdavUrl: '',
+    webdavUsername: '',
+    webdavPassword: '',
   }
 
   it('lets the environment win over the board settings', () => {
@@ -90,7 +95,7 @@ describe('resolveBackupDestination', () => {
       settings,
     })
     expect(resolved.source).toBe('environment')
-    expect(resolved.config?.bucket).toBe('env-backups')
+    expect(resolved.config).toMatchObject({ kind: 's3', bucket: 'env-backups' })
   })
 
   it('reads the board settings when the environment says nothing', () => {
@@ -105,7 +110,7 @@ describe('resolveBackupDestination', () => {
       config: null,
       problem: expect.stringContaining('secret access key'),
     })
-    expect(backupDestinationFromSettings({ ...settings, bucket: ' ' })).toEqual({
+    expect(backupDestinationFromSettings({ ...settings, kind: 'none' })).toEqual({
       source: 'none',
       config: null,
       problem: null,

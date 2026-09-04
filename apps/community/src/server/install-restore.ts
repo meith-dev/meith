@@ -11,10 +11,10 @@ import {
   bundleTakenAt,
   isBundleName,
   localBundles,
+  openBackupDestination,
   type RestoreUploadsPlan,
   restoreBackup,
   restoreLimits,
-  S3BackupDestination,
 } from '@meith/backup'
 import { env, GLOBAL_TAGS, logger, processEnvironment, ValidationError } from '@meith/core'
 import {
@@ -50,7 +50,7 @@ function offSiteDestination(): { destination: BackupDestination | null; problem:
   try {
     const config = backupDestinationFromEnv(env)
     return {
-      destination: config === undefined ? null : new S3BackupDestination(config),
+      destination: config === undefined ? null : openBackupDestination(config),
       problem: null,
     }
   } catch (error) {

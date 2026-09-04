@@ -1288,6 +1288,26 @@ export const SETTING_DEFINITIONS = [
     default: false,
   }),
   define({
+    key: 'backup.destination',
+    group: 'backup',
+    label: 'Off-site destination',
+    description:
+      'Where every bundle is also shipped, so a backup survives the server. "None" ' +
+      'keeps bundles on this machine only. An S3-compatible bucket takes the bucket ' +
+      'fields below; a WebDAV folder — Nextcloud, ownCloud, a Hetzner Storage Box — ' +
+      'takes the WebDAV fields. Setting BACKUP_S3_* or BACKUP_WEBDAV_* in the ' +
+      'environment overrides this whole group and makes its fields inert.',
+    schema: z.enum(['none', 's3', 'webdav']),
+    default: 'none',
+    ui: {
+      options: [
+        { value: 'none', label: 'None — bundles stay on the server' },
+        { value: 's3', label: 'An S3-compatible bucket' },
+        { value: 'webdav', label: 'A WebDAV folder' },
+      ],
+    },
+  }),
+  define({
     key: 'backup.s3_bucket',
     group: 'backup',
     label: 'Off-site bucket',
@@ -1295,9 +1315,8 @@ export const SETTING_DEFINITIONS = [
       'An S3-compatible bucket every bundle is also shipped to — Backblaze B2, ' +
       'Cloudflare R2, Hetzner, Scaleway, MinIO on a machine you trust. A bucket of ' +
       'its own, never the one the uploads live in: a backup of the uploads should ' +
-      'not sit where losing the uploads loses it. Left empty, bundles stay on the ' +
-      'server. Setting BACKUP_S3_BUCKET in the environment overrides this group ' +
-      'and makes these fields inert.',
+      'not sit where losing the uploads loses it. Read when the destination above ' +
+      'is the bucket.',
     schema: z.string().trim().max(255),
     default: '',
   }),
@@ -1354,6 +1373,47 @@ export const SETTING_DEFINITIONS = [
       'Stored on the board, sealed under AUTH_SECRET: the database row holds ' +
       'ciphertext, and a copy of the database alone cannot read it. The seal is ' +
       'also why AUTH_SECRET has to survive a restore for the destination to.',
+    schema: z.string().max(255),
+    default: '',
+    secret: true,
+    sealed: true,
+  }),
+  define({
+    key: 'backup.webdav_url',
+    group: 'backup',
+    label: 'WebDAV folder address',
+    description:
+      'The full address of a folder that already exists, such as ' +
+      'https://cloud.example/remote.php/dav/files/backups/board/ on Nextcloud. ' +
+      'Bundles are written into it and the oldest pruned from it; the folder itself ' +
+      'is never created or removed.',
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || /^https?:\/\/[^?#]+$/.test(value),
+        'Give an http:// or https:// address of a folder, with no query string.',
+      ),
+    default: '',
+  }),
+  define({
+    key: 'backup.webdav_username',
+    group: 'backup',
+    label: 'WebDAV username',
+    description:
+      'The account the bundles are written as. Nextcloud and ownCloud let you make an ' +
+      'app password for one purpose; use that rather than the account password.',
+    schema: z.string().trim().max(255),
+    default: '',
+  }),
+  define({
+    key: 'backup.webdav_password',
+    group: 'backup',
+    label: 'WebDAV password',
+    description:
+      'Stored on the board, sealed under AUTH_SECRET the way the bucket secret is: ' +
+      'the database row holds ciphertext, and a copy of the database alone cannot ' +
+      'read it.',
     schema: z.string().max(255),
     default: '',
     secret: true,

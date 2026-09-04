@@ -4,10 +4,18 @@ export interface TaskHealthInput {
   readonly enabled: boolean
   readonly lastRunAt: Date | null
   readonly nextRunAt: Date | null
+  readonly lockedUntil?: Date | null | undefined
   readonly consecutiveFailures: number
 }
 
-export type TaskHealthStatus = 'healthy' | 'late' | 'stale' | 'failing' | 'disabled' | 'never-run'
+export type TaskHealthStatus =
+  | 'healthy'
+  | 'running'
+  | 'late'
+  | 'stale'
+  | 'failing'
+  | 'disabled'
+  | 'never-run'
 
 export interface TaskHealth extends TaskHealthInput {
   readonly status: TaskHealthStatus
@@ -31,6 +39,7 @@ export function assessTask(task: TaskHealthInput, now: Date): TaskHealth {
   const status = ((): TaskHealthStatus => {
     if (!task.enabled) return 'disabled'
     if (task.consecutiveFailures >= FAILING_THRESHOLD) return 'failing'
+    if (task.lockedUntil != null && task.lockedUntil.getTime() > now.getTime()) return 'running'
     if (task.lastRunAt === null) return 'never-run'
     if (intervalsLate >= STALE_INTERVALS) return 'stale'
     if (intervalsLate >= 1) return 'late'

@@ -7,11 +7,11 @@ import {
   type BackupSchedule,
   type BackupSource,
   type FilestoreDriver,
+  openBackupDestination,
   parseScheduleTime,
   type RetentionPolicy,
   resolveBackupDestination,
   resolveUploadsMode,
-  S3BackupDestination,
   type UploadsMode,
 } from '@meith/backup'
 import { type Database, migrationUrl, PostgresSettingsRepository } from '@meith/db'
@@ -70,15 +70,23 @@ export function backupSettingsFrom(
     destination: resolveBackupDestination({
       environment,
       settings: {
+        kind: destinationKind(snapshot.get('backup.destination')),
         bucket: snapshot.get('backup.s3_bucket'),
         region: snapshot.get('backup.s3_region'),
         accessKeyId: snapshot.get('backup.s3_access_key_id'),
         secretAccessKey: snapshot.get('backup.s3_secret_access_key'),
         endpoint: snapshot.get('backup.s3_endpoint'),
         prefix: snapshot.get('backup.s3_prefix'),
+        webdavUrl: snapshot.get('backup.webdav_url'),
+        webdavUsername: snapshot.get('backup.webdav_username'),
+        webdavPassword: snapshot.get('backup.webdav_password'),
       },
     }),
   }
+}
+
+function destinationKind(value: string): 'none' | 's3' | 'webdav' {
+  return value === 's3' || value === 'webdav' ? value : 'none'
 }
 
 export async function loadBackupSettings(
@@ -92,7 +100,7 @@ export async function loadBackupSettings(
 export function backupDestinationFor(
   resolution: BackupDestinationResolution,
 ): BackupDestination | undefined {
-  return resolution.config === null ? undefined : new S3BackupDestination(resolution.config)
+  return resolution.config === null ? undefined : openBackupDestination(resolution.config)
 }
 
 export function backupSourceFrom(

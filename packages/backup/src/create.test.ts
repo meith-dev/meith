@@ -57,6 +57,7 @@ function fakeDestination(): BackupDestination & { objects: Map<string, number> }
       objects.set(name, size)
     },
     getToFile: () => Promise.reject(new Error('not needed')),
+    open: () => Promise.resolve(null),
     async delete(name) {
       objects.delete(name)
     },
