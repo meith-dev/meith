@@ -66,7 +66,7 @@
   "packages/backup/src/create.ts": 9,
   "packages/backup/src/destination.ts": 41,
   "packages/backup/src/postgres-client.ts": 2,
-  "packages/backup/src/restore.ts": 24,
+  "packages/backup/src/restore.ts": 25,
   "packages/backup/src/webdav.ts": 5,
   "packages/core/src/cache.ts": 2,
   "packages/core/src/config.ts": 2,

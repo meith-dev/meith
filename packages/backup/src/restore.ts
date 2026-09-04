@@ -86,7 +86,6 @@ async function refuseNonEmptyDirectory(dir: string): Promise<void> {
         'a fresh directory with --uploads-dir, the same way the database goes into a fresh ' +
         'database.',
     )
-
   }
 }
 
