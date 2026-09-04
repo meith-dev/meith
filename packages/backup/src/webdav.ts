@@ -108,15 +108,12 @@ export class WebDavBackupDestination implements BackupDestination {
   }
 
   private headers(extra: Readonly<Record<string, string>> = {}): Readonly<Record<string, string>> {
-    const auth =
-      this.config.username === ''
-        ? {}
-        : {
-            Authorization: `Basic ${Buffer.from(
-              `${this.config.username}:${this.config.password}`,
-            ).toString('base64')}`,
-          }
-    return { ...auth, ...extra }
+    const headers: Record<string, string> = { ...extra }
+    if (this.config.username !== '') {
+      const credential = `${this.config.username}:${this.config.password}`
+      headers.Authorization = `Basic ${Buffer.from(credential).toString('base64')}`
+    }
+    return headers
   }
 
   private failure(action: string, status: number): ConfigurationError {
