@@ -26,6 +26,12 @@ describe('the migrate role', () => {
     expect(mocks.runMigrations).toHaveBeenCalledWith({ folder: '/app/migrations' })
   })
 
+  it('says so when there was nothing to apply', async () => {
+    mocks.runMigrations.mockResolvedValueOnce(0)
+    expect(await migrate('/app/migrations')).toBe(0)
+    expect(mocks.info).toHaveBeenCalledWith({ applied: 0 }, 'already up to date')
+  })
+
   it('refuses to migrate when the backup it was asked for fails', async () => {
     mocks.backupBeforeMigrating.mockRejectedValueOnce(new Error('pg_dump exited with code 1'))
 
