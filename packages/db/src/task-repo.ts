@@ -49,6 +49,20 @@ export class PostgresTaskRepository implements TaskRepository {
       })
   }
 
+  async renew(input: { taskId: string; now: Date; staleBefore: Date }): Promise<boolean> {
+    const leaseMs = input.now.getTime() - input.staleBefore.getTime()
+    const lockedUntil = new Date(input.now.getTime() + leaseMs)
+    const result = await this.db.execute(sql`
+      update tasks
+         set locked_until = ${lockedUntil}
+       where key = ${input.taskId}
+         and locked_until is not null
+         and locked_until > ${input.now}
+      returning key
+    `)
+    return resultRows(result).length === 1
+  }
+
   async claim(input: {
     taskId: string
     now: Date

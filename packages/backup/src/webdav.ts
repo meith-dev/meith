@@ -28,6 +28,8 @@ export type WebDavRequester = (input: {
   readonly body?: Readable | string | undefined
 }) => Promise<WebDavResponse>
 
+export const WEBDAV_IDLE_TIMEOUT_MS = 120_000
+
 const PROPFIND_BODY =
   '<?xml version="1.0" encoding="utf-8"?>' +
   '<d:propfind xmlns:d="DAV:"><d:prop><d:getcontentlength/><d:resourcetype/></d:prop></d:propfind>'
@@ -36,12 +38,23 @@ export function nodeRequester(): WebDavRequester {
   return ({ method, url, headers, body }) =>
     new Promise((resolve, reject) => {
       const transport = url.protocol === 'https:' ? https : http
-      const request = transport.request(url, { method, headers }, (response) => {
-        resolve({
-          status: response.statusCode ?? 0,
-          headers: response.headers,
-          body: response,
-        })
+      const request = transport.request(
+        url,
+        { method, headers, timeout: WEBDAV_IDLE_TIMEOUT_MS },
+        (response) => {
+          resolve({
+            status: response.statusCode ?? 0,
+            headers: response.headers,
+            body: response,
+          })
+        },
+      )
+      request.on('timeout', () => {
+        request.destroy(
+          new Error(
+            `${url.origin} sent nothing for ${WEBDAV_IDLE_TIMEOUT_MS / 1000} seconds; giving up.`,
+          ),
+        )
       })
       request.on('error', reject)
       if (body === undefined) request.end()
@@ -116,14 +129,19 @@ export class WebDavBackupDestination implements BackupDestination {
     return headers
   }
 
-  private failure(action: string, status: number): ConfigurationError {
+  private failure(action: string, response: WebDavResponse): ConfigurationError {
+    const { status } = response
+    const location = response.headers.location
     return new ConfigurationError(
       `${this.description} answered ${status} to ${action}.` +
         (status === 401 || status === 403
           ? ' Check the WebDAV username and password, and that the account may write there.'
           : status === 404 || status === 409
             ? ' Check that the folder exists: the destination creates bundles, not the folder.'
-            : ''),
+            : status >= 300 && status < 400 && typeof location === 'string'
+              ? ` It redirects to ${location}: use that address as the WebDAV folder, ` +
+                'since credentials are not followed across a redirect.'
+              : ''),
     )
   }
 
@@ -139,7 +157,7 @@ export class WebDavBackupDestination implements BackupDestination {
     })
     response.body.resume()
     if (response.status < 200 || response.status >= 300) {
-      throw this.failure(`uploading ${name}`, response.status)
+      throw this.failure(`uploading ${name}`, response)
     }
   }
 
@@ -156,7 +174,7 @@ export class WebDavBackupDestination implements BackupDestination {
     })
     const xml = await drain(response.body)
     if (response.status !== 207 && response.status !== 200) {
-      throw this.failure('listing the folder', response.status)
+      throw this.failure('listing the folder', response)
     }
 
     const bundles: RemoteBundle[] = []
@@ -185,7 +203,7 @@ export class WebDavBackupDestination implements BackupDestination {
     }
     if (response.status < 200 || response.status >= 300) {
       response.body.resume()
-      throw this.failure(`downloading ${name}`, response.status)
+      throw this.failure(`downloading ${name}`, response)
     }
     const length = response.headers['content-length']
     const size = typeof length === 'string' && /^\d+$/.test(length) ? Number(length) : null
@@ -213,7 +231,7 @@ export class WebDavBackupDestination implements BackupDestination {
     })
     response.body.resume()
     if (response.status !== 404 && (response.status < 200 || response.status >= 300)) {
-      throw this.failure(`deleting ${name}`, response.status)
+      throw this.failure(`deleting ${name}`, response)
     }
   }
 

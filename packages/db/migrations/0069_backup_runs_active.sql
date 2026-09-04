@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "backup_runs_active_idx" ON "backup_runs" USING btree ("status") WHERE "backup_runs"."status" in ('queued', 'running');

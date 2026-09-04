@@ -172,6 +172,10 @@ export const backupRuns = pgTable(
   (t) => [
     index('backup_runs_status_idx').on(t.status, t.id),
     index('backup_runs_recent_idx').on(t.requestedAt.desc()),
+    uniqueIndex('backup_runs_active_idx')
+      .on(t.status)
+      .where(sql`${t.status} in ('queued', 'running')`),
+
     check(
       'backup_runs_trigger_check',
       sql`${t.trigger} in ('manual', 'schedule', 'upgrade', 'cli')`,

@@ -3,6 +3,7 @@ import {
   type BackupOutcome,
   type BackupRunRecord,
   type BackupRunRepository,
+  BackupShippingError,
   createBackup,
   scheduledBackupDue,
 } from '@meith/backup'
@@ -23,7 +24,7 @@ export const BACKUP_HEARTBEAT_MS = 30_000
 
 export const BACKUP_STALE_MS = 5 * 60_000
 
-export const BACKUP_INTERRUPTED_AFTER_MS = 6 * 60 * 60_000
+export const BACKUP_LEASE_SECONDS = 10 * 60
 
 export interface BackupWorkerDeps {
   readonly db: Database
@@ -33,6 +34,7 @@ export interface BackupWorkerDeps {
   readonly settings?: ((db: Database) => Promise<BackupSettingsView>) | undefined
   readonly create?: typeof createBackup | undefined
   readonly clock?: (() => Date) | undefined
+  readonly renewLease?: ((now: Date) => Promise<void>) | undefined
 }
 
 export function backupLog(): BackupLog {
@@ -51,7 +53,9 @@ export async function executeBackupRun(
   const clock = deps.clock ?? (() => new Date())
   const create = deps.create ?? createBackup
   const heartbeat = setInterval(() => {
-    void deps.runs.heartbeat(run.id, clock()).catch(() => undefined)
+    const now = clock()
+    void deps.runs.heartbeat(run.id, now).catch(() => undefined)
+    void deps.renewLease?.(now).catch(() => undefined)
   }, BACKUP_HEARTBEAT_MS)
 
   try {
@@ -78,7 +82,20 @@ export async function executeBackupRun(
     return { outcome, error: null }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    await deps.runs.finish(run.id, { status: 'failed', finishedAt: clock(), error: message })
+    const bundle = error instanceof BackupShippingError ? error.bundle : null
+    await deps.runs.finish(run.id, {
+      status: 'failed',
+      finishedAt: clock(),
+      error: message,
+      ...(bundle === null
+        ? {}
+        : {
+            bundleName: bundle.name,
+            sizeBytes: bundle.size,
+            uploads: bundle.uploads,
+            skippedKeys: bundle.skippedKeys.length,
+          }),
+    })
     return { outcome: null, error: message }
   } finally {
     clearInterval(heartbeat)
@@ -93,7 +110,7 @@ export function backupWorker(
 
   return async (context) => {
     const now = clock()
-    await deps.runs.failInterrupted(now, new Date(now.getTime() - BACKUP_INTERRUPTED_AFTER_MS))
+    await deps.runs.failInterrupted(now, new Date(now.getTime() - BACKUP_STALE_MS))
 
     const active = await deps.runs.active(now, new Date(now.getTime() - BACKUP_STALE_MS))
     if (active !== null && active.status === 'running') {
@@ -108,13 +125,13 @@ export function backupWorker(
       )
     }
 
+    const due = scheduledBackupDue(settings.schedule, {
+      now,
+      lastTickAt: context.lastRunAt,
+      lastScheduledAt: await deps.runs.lastScheduledAt(),
+    })
     let run = await deps.runs.claimNext(now)
     if (run === null) {
-      const due = scheduledBackupDue(settings.schedule, {
-        now,
-        lastTickAt: context.lastRunAt,
-        lastScheduledAt: await deps.runs.lastScheduledAt(),
-      })
       if (due === null) return { ran: 0 }
       await deps.runs.enqueue({ trigger: 'schedule', now })
       run = await deps.runs.claimNext(now)
@@ -122,7 +139,11 @@ export function backupWorker(
     }
 
     const { outcome, error } = await executeBackupRun(deps, run, settings)
+    if (due !== null && run.trigger !== 'schedule') {
+      await deps.runs.enqueue({ trigger: 'schedule', now })
+    }
     if (error !== null) throw new Error(`The ${run.trigger} backup failed: ${error}`)
+
     return {
       ran: 1,
       trigger: run.trigger,

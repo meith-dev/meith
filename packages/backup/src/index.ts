@@ -23,6 +23,7 @@ export { type BackupCapability, backupCapability } from './capability'
 export {
   type BackupLog,
   type BackupOutcome,
+  BackupShippingError,
   type BackupSource,
   type BackupTarget,
   type CreateBackupInput,
@@ -32,6 +33,7 @@ export {
   localBundles,
   reserveBackupDestination,
   SILENT_LOG,
+  type WrittenBundle,
 } from './create'
 export {
   BACKUP_DESTINATION_KEYS,

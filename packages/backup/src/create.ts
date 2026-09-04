@@ -63,6 +63,27 @@ export interface BackupOutcome {
   readonly prunedRemote: readonly string[]
 }
 
+export interface WrittenBundle {
+  readonly name: string
+  readonly size: number
+  readonly uploads: 'included' | 'skipped'
+  readonly skippedKeys: readonly string[]
+}
+
+export class BackupShippingError extends Error {
+  constructor(
+    cause: unknown,
+    readonly bundle: WrittenBundle,
+  ) {
+    super(
+      `${bundle.name} was written but not shipped: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+    )
+    this.name = 'BackupShippingError'
+  }
+}
+
 export async function reserveBackupDestination(destination: string): Promise<void> {
   const file = await open(destination, 'wx', 0o600)
   await file.close()
@@ -226,10 +247,14 @@ export async function createBackup(input: CreateBackupInput): Promise<BackupOutc
     let shipped: string | null = null
     let prunedRemote: readonly string[] = []
     if (target.destination !== undefined) {
-      await target.destination.putFile(name, out, size)
-      shipped = target.destination.description
-      log.info(`Shipped ${name} to ${shipped}.`)
-      prunedRemote = await target.destination.prune(target.retention, now)
+      try {
+        await target.destination.putFile(name, out, size)
+        shipped = target.destination.description
+        log.info(`Shipped ${name} to ${shipped}.`)
+        prunedRemote = await target.destination.prune(target.retention, now)
+      } catch (error) {
+        throw new BackupShippingError(error, { name, size, uploads, skippedKeys })
+      }
       if (prunedRemote.length > 0) {
         log.info(
           `Pruned ${prunedRemote.length} bundle(s) there beyond the retention policy: ` +

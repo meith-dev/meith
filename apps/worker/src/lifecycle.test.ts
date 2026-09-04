@@ -27,6 +27,8 @@ vi.mock('@meith/db', () => ({
 vi.mock('@meith/drivers', () => ({ drivers: () => ({ queue: {}, mail: {}, files: {} }) }))
 vi.mock('@meith/drivers/images', () => ({ imageProcessor: {} }))
 vi.mock('@meith/runtime', () => ({
+  BACKUP_LEASE_SECONDS: 600,
+
   buildSchedulerBundle: () => ({ tasks: [{ id: 'one' }], repository: {}, onTaskFailure: vi.fn() }),
 }))
 vi.mock('@meith/tasks', () => ({ assessScheduler: mocks.assessScheduler, tick: mocks.tick }))

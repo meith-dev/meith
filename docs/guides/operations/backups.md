@@ -31,10 +31,11 @@ prices each secret.
 
 **Admin → System → Backups** is one screen with everything on it:
 
-- **Back up now** queues a run. The scheduler picks it up within a
-  minute and runs it beside the board without stopping it; a large board
-  takes a few minutes, and the screen shows the run once it starts.
-  Pressing the button twice queues nothing extra.
+- **Back up now** queues a run. The worker picks it up on its next pass,
+  a minute or two later, and runs it beside the board without stopping
+  it; a large board takes a few minutes, and the screen shows the run
+  once it starts. Pressing the button twice queues nothing extra: the
+  database itself allows one queued and one running backup at a time.
 - **Schedule and retention** summarises the settings below and links to
   them, with the next scheduled moment.
 - **Off-site destination** says whether bundles are also shipped
@@ -60,7 +61,19 @@ do instead.
 
 A failed run is a failed scheduled task: it shows on **Admin → System**
 under the task named *Take due backups*, and administrators are notified
-the way they are for any failing task.
+the way they are for any failing task. A run that wrote its bundle but
+could not ship it is recorded as failed **with the bundle's name**, so the
+bundle in the ring is accounted for; nothing is pruned after such a run.
+
+A run heartbeats every thirty seconds while it works, and each heartbeat
+also renews the ten-minute lease the worker holds on the *Take due
+backups* task. A run whose heartbeat is more than five minutes old — the
+worker was killed by a redeploy mid-dump — is marked failed on the next
+pass, its lease lapses within ten minutes, and the next backup goes
+ahead. A restore does the same at once to any run the dump caught
+mid-flight and to every task lease in the dump, because every bundle
+carries the rows of the very run that produced it.
+
 
 ## Schedule, retention and uploads
 
@@ -71,7 +84,7 @@ board reads them — no redeploy, no cron to edit.
 |---|---|
 | **Automatic backups** | Off, every day, or every week. |
 | **Time of day** | When the run starts, as a 24-hour clock in **UTC**. Pick the board's quietest hour. |
-| **Day of the week** | For a weekly schedule. |
+| **Day of the week** | For a weekly schedule. A manual backup taken in the same minute as the slot does not stand in for the scheduled one; both are taken. |
 | **Backups to keep** | How many of the newest bundles survive a run — on the server and at the destination alike. 7 unless changed. |
 | **Days to keep a backup** | An age limit on top of the count. 0 means none. The newest bundle always survives. |
 | **Uploads in the bundle** | *Automatic*, *always* or *never* — see below. |
@@ -144,7 +157,12 @@ fresh machine. Two kinds of destination are supported:
   folder itself is never created or removed. Use an app password made
   for this purpose rather than the account's own. Downloads of a bundle
   that exists only there stream through the board, since a WebDAV
-  server has no signed links to hand out.
+  server has no signed links to hand out. Give the address the server
+  actually serves: a redirect — `http://` to `https://`, or a folder
+  without its trailing slash — is reported with the address it points
+  at rather than followed, so credentials never cross one. A server that
+  goes silent for two minutes fails the run rather than holding the
+  worker's lane.
 
 There are two places the destination can come from, and the environment
 wins:
@@ -190,7 +208,9 @@ the setting exists to prevent.
 It is off by default because it asks something of the deployment: the
 `migrate` container needs the backup directory, the uploads and the
 `BACKUP_S3_*` variables, which the shipped compose files give it. Turn it
-on once your deployment carries this release's compose file.
+on once your deployment carries this release's compose file. `meith
+migrate` and `meith upgrade` honour the setting the same way the
+container does.
 
 ## Where the bundles live
 
@@ -217,7 +237,10 @@ The dump holds a consistent snapshot; members keep posting.
 
 `meith backup` is the same code the panel runs, for a cron you would
 rather own, a Coolify **Scheduled Task**, or a one-off before something
-risky. It records its run on the Backups screen like any other.
+risky. It records its run on the Backups screen like any other, ships to
+the destination the board is configured with — the environment first,
+the board settings otherwise — and prunes under the board's retention
+unless `--keep` says otherwise.
 
 ```sh
 mkdir -p backups
@@ -248,7 +271,7 @@ The flags:
 |---|---|
 | `--out <path>` | One file, refused if anything is there already. |
 | `--dir <dir>` | A timestamped bundle into a ring, pruned after the write to the newest `--keep`. `--dir /backups` is the panel's own ring. |
-| `--keep <n>` | Bundles to keep, in the ring and at the destination. 7 unless set. |
+| `--keep <n>` | Bundles to keep, in the ring and at the destination. The board's *Backups to keep* and *Days to keep a backup* unless set; 7 when the board cannot be asked. |
 | `--uploads include\|skip` | Override the [automatic choice](#what-the-bundle-carries). |
 
 Exit codes: **0** the bundle is complete; **2** the bundle was written and
@@ -293,9 +316,11 @@ dump, applies any migrations the bundle predates, puts the uploads back
 where the deployment's own `FILESTORE_DRIVER` says they go — the local
 volume, or a bucket if `FILESTORE_DRIVER=s3` — and seals the installer,
 because the restored board is installed. It refuses a board with members,
-so it cannot be pointed at a live board by mistake; and it refuses a
+so it cannot be pointed at a live board by mistake; it refuses a
 bundle taken by a newer version than the code that is running, because
-migrations are forward-only.
+migrations are forward-only; and it refuses a local uploads directory
+that is not empty **before it touches the database**, so a redeploy that
+kept the `uploads` volume is told to empty it and nothing has changed.
 
 Then **restart the web and worker containers**, so nothing holds a
 connection from before the restore, and sign in with an account from the
@@ -304,8 +329,13 @@ with the settings; if the destination was in the environment, it is
 already there.
 
 A large board takes minutes and the page waits for it — do not reload.
-If the restore stops part-way the page says so; fix the cause and run it
-again from the same empty deployment.
+Everything that can be checked is checked before the dump goes in, so a
+refusal leaves the empty board as it was and the restore can be run
+again. The two steps after the dump — the migrations it predates, and the
+uploads — are the ones that can still fail; if one does, the page says
+exactly that: the database is restored, the installer is sealed, and what
+is left is to put the uploads back by hand from the `uploads.tar.gz`
+inside the bundle, or to run `meith migrate` once the cause is fixed.
 
 ### From the command line
 
@@ -322,7 +352,10 @@ accident. It applies the migrations the bundle predates, prints the
 restored post count — the number that tells you the bundle is real — and
 puts the uploads back the way the installer does, or into `--uploads-dir`,
 or nowhere with `--skip-uploads`. A bundle at the destination comes back
-with `backup:fetch` first; `restore` reads local files only.
+with `backup:fetch` first; `restore` reads local files only. It needs
+`tar`, `pg_restore` and `psql` on the machine; GNU, busybox and BSD tar
+(macOS) all work.
+
 
 A bundle whose manifest records skipped objects restores normally, and the
 restore names those objects as it finishes. Posts referring to them have

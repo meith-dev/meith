@@ -75,6 +75,21 @@ async function validateUploadsArchive(stage: string, limits: RestoreLimits): Pro
   }
 }
 
+async function refuseNonEmptyDirectory(dir: string): Promise<void> {
+  const existing = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return undefined
+    throw error
+  })
+  if (existing !== undefined && existing.length > 0) {
+    throw new ValidationError(
+      `${dir} is not empty. Empty it first, or on the command line restore the uploads into ` +
+        'a fresh directory with --uploads-dir, the same way the database goes into a fresh ' +
+        'database.',
+    )
+
+  }
+}
+
 async function extractUploads(
   stage: string,
   dir: string,
@@ -82,17 +97,7 @@ async function extractUploads(
   log: BackupLog,
 ): Promise<void> {
   await validateUploadsArchive(stage, limits)
-  const existing = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return undefined
-    throw error
-  })
-  if (existing !== undefined && existing.length > 0) {
-    throw new ValidationError(
-      `${dir} is not empty. Restore the uploads into a fresh directory (--uploads-dir), ` +
-        'the same way the database goes into a fresh database.',
-    )
-  }
-
+  await refuseNonEmptyDirectory(dir)
   await mkdir(dir, { recursive: true })
   await run('tar', ['xzf', path.join(stage, 'uploads.tar.gz'), '-C', dir])
   log.info(`Restored the uploads into ${dir}.`)
@@ -113,6 +118,35 @@ async function pushUploadsToStore(
   const pushed = await uploadDirectoryToStore(store, dir)
   log.info(`Uploaded ${pushed} object(s) to ${description}.`)
   return pushed
+}
+
+const FAIL_INHERITED_RUNS_SQL =
+  "update backup_runs set status = 'failed', finished_at = now(), heartbeat_at = now(), " +
+  "error = 'The backup was interrupted: the dump this board was restored from caught it " +
+  "mid-flight.' where status in ('queued', 'running') returning id"
+
+const RELEASE_INHERITED_LEASES_SQL =
+  'update tasks set locked_until = null where locked_until is not null returning key'
+
+async function tableExists(name: string, databaseEnvironment: NodeJS.ProcessEnv): Promise<boolean> {
+  const output = await run(
+    'psql',
+    ['-tAc', `select to_regclass('public.${name}') is not null`],
+    databaseEnvironment,
+  )
+  return output.trim() === 't'
+}
+
+function returnedRows(output: string): number {
+  return output.split('\n').filter((line) => line.trim() !== '').length
+}
+
+async function failInheritedRuns(databaseEnvironment: NodeJS.ProcessEnv): Promise<number> {
+  if (await tableExists('tasks', databaseEnvironment)) {
+    await run('psql', ['-tAc', RELEASE_INHERITED_LEASES_SQL], databaseEnvironment)
+  }
+  if (!(await tableExists('backup_runs', databaseEnvironment))) return 0
+  return returnedRows(await run('psql', ['-tAc', FAIL_INHERITED_RUNS_SQL], databaseEnvironment))
 }
 
 const RESET_SCHEMA_SQL = [
@@ -207,6 +241,10 @@ export async function restoreBackup(input: RestoreInput): Promise<RestoreOutcome
     const restoreMembers = ['db.dump']
     if (manifest.uploads === 'included') restoreMembers.push('uploads.tar.gz')
     await run('tar', ['xzf', stagedBundle, '-C', stage, ...restoreMembers])
+    if (manifest.uploads === 'included') {
+      await validateUploadsArchive(stage, input.limits)
+      if (input.uploads.mode === 'directory') await refuseNonEmptyDirectory(input.uploads.dir)
+    }
 
     await prepareTarget(input.target, databaseEnvironment, log)
 
@@ -223,37 +261,58 @@ export async function restoreBackup(input: RestoreInput): Promise<RestoreOutcome
       databaseEnvironment,
     )
 
-    const migrationsApplied = await input.migrate(input.target.url)
-    log.info(
-      migrationsApplied === 0
-        ? 'Migrations: nothing to do — the dump matches this build.'
-        : `Migrations: applied ${migrationsApplied} migration(s) the dump predates.`,
-    )
-
-    const posts = Number(
-      (await run('psql', ['-tAc', 'select count(*) from posts'], databaseEnvironment)).trim(),
-    )
-    log.info(`The restored board holds ${posts} post(s).`)
-
+    let step = 'applying the migrations the dump predates'
+    let migrationsApplied = 0
+    let posts = 0
     let uploads: RestoreOutcome['uploads'] = 'none'
     let pushed = 0
-    if (manifest.uploads === 'included') {
-      if (input.uploads.mode === 'skip') {
-        uploads = 'skipped'
-      } else if (input.uploads.mode === 'store') {
-        pushed = await pushUploadsToStore(
-          stage,
-          input.limits,
-          input.uploads.store,
-          input.uploads.description,
-          log,
-        )
-        uploads = 'pushed'
-      } else {
-        await extractUploads(stage, input.uploads.dir, input.limits, log)
-        uploads = 'restored'
+    try {
+      migrationsApplied = await input.migrate(input.target.url)
+      log.info(
+        migrationsApplied === 0
+          ? 'Migrations: nothing to do — the dump matches this build.'
+          : `Migrations: applied ${migrationsApplied} migration(s) the dump predates.`,
+      )
+
+      const interrupted = await failInheritedRuns(databaseEnvironment)
+      if (interrupted > 0) {
+        log.info(`Marked ${interrupted} backup run(s) the dump caught mid-flight as failed.`)
       }
-    } else {
+
+      posts = Number(
+        (await run('psql', ['-tAc', 'select count(*) from posts'], databaseEnvironment)).trim(),
+      )
+      log.info(`The restored board holds ${posts} post(s).`)
+
+      step = 'putting the uploads back'
+      if (manifest.uploads === 'included') {
+        if (input.uploads.mode === 'skip') {
+          uploads = 'skipped'
+        } else if (input.uploads.mode === 'store') {
+          pushed = await pushUploadsToStore(
+            stage,
+            input.limits,
+            input.uploads.store,
+            input.uploads.description,
+            log,
+          )
+          uploads = 'pushed'
+        } else {
+          await extractUploads(stage, input.uploads.dir, input.limits, log)
+          uploads = 'restored'
+        }
+      }
+    } catch (error) {
+      throw new ValidationError(
+        `The database was restored from ${path.basename(input.bundle)}, but ${step} failed: ${
+          error instanceof Error ? error.message : String(error)
+        } The board is installed and serving the restored database. ` +
+          (step === 'putting the uploads back'
+            ? 'Unpack uploads.tar.gz from the bundle into the uploads location by hand.'
+            : 'Fix the cause and run `meith migrate`.'),
+      )
+    }
+    if (manifest.uploads !== 'included') {
       log.info(
         manifest.filestore === 's3'
           ? `This bundle carries no uploads — they live in the S3 bucket${

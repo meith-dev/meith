@@ -17,6 +17,17 @@ const COLUMNS = sql`
   heartbeat_at, bundle_name, size_bytes, uploads, shipped, skipped_keys, error
 `
 
+const UNIQUE_VIOLATION = '23505'
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    ((error as { code?: unknown }).code === UNIQUE_VIOLATION ||
+      (error as { cause?: { code?: unknown } }).cause?.code === UNIQUE_VIOLATION)
+  )
+}
+
 function toRecord(row: Record<string, unknown>): BackupRunRecord {
   const optionalDate = (value: unknown): Date | null => (value === null ? null : toDate(value))
   return {
@@ -48,45 +59,60 @@ export class PostgresBackupRunRepository implements BackupRunRepository {
     readonly requestedByUserId?: number | null | undefined
     readonly now: Date
   }): Promise<{ readonly id: number; readonly queued: boolean }> {
-    return this.db.transaction(async (tx) => {
-      const pending = resultRows<{ id: number }>(
-        await tx.execute(sql`
+    const pending = async (): Promise<number | undefined> => {
+      const row = resultRows<{ id: number }>(
+        await this.db.execute(sql`
           select id from backup_runs
            where status in ('queued', 'running')
            order by id
            limit 1
-             for update
         `),
       )[0]
-      if (pending !== undefined) return { id: Number(pending.id), queued: false }
+      return row === undefined ? undefined : Number(row.id)
+    }
 
+    const existing = await pending()
+    if (existing !== undefined) return { id: existing, queued: false }
+
+    try {
       const inserted = resultRows<{ id: number }>(
-        await tx.execute(sql`
+        await this.db.execute(sql`
           insert into backup_runs (trigger, status, requested_by_user_id, requested_at)
           values (${input.trigger}, 'queued', ${input.requestedByUserId ?? null}, ${input.now})
           returning id
         `),
       )[0]
       return { id: Number(inserted?.id), queued: true }
-    })
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error
+      const raced = await pending()
+      if (raced === undefined) throw error
+      return { id: raced, queued: false }
+    }
   }
 
   async claimNext(now: Date): Promise<BackupRunRecord | null> {
-    const rows = resultRows(
-      await this.db.execute(sql`
-        update backup_runs
-           set status = 'running', started_at = ${now}, heartbeat_at = ${now}
-         where id = (
-           select id from backup_runs
-            where status = 'queued'
-              and not exists (select 1 from backup_runs where status = 'running')
-            order by id
-            limit 1
-              for update skip locked
-         )
-        returning ${COLUMNS}
-      `),
-    ) as Array<Record<string, unknown>>
+    let rows: Array<Record<string, unknown>>
+    try {
+      rows = resultRows(
+        await this.db.execute(sql`
+          update backup_runs
+             set status = 'running', started_at = ${now}, heartbeat_at = ${now}
+           where id = (
+             select id from backup_runs
+              where status = 'queued'
+                and not exists (select 1 from backup_runs where status = 'running')
+              order by id
+              limit 1
+                for update skip locked
+           )
+          returning ${COLUMNS}
+        `),
+      ) as Array<Record<string, unknown>>
+    } catch (error) {
+      if (isUniqueViolation(error)) return null
+      throw error
+    }
     const row = rows[0]
     return row === undefined ? null : toRecord(row)
   }

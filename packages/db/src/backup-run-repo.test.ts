@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PostgresBackupRunRepository } from './backup-run-repo'
@@ -76,6 +77,25 @@ describe('queueing a backup', () => {
       error: null,
     })
     expect(await repo.active(minutesFromNow(4), minutesFromNow(-10))).toBeNull()
+  })
+
+  it('lets the database refuse a second active row, whoever races to insert it', async () => {
+    const refusedByIndex = async (status: string): Promise<void> => {
+      const error = await db
+        .execute(sql`insert into backup_runs (trigger, status) values ('schedule', ${status})`)
+        .then(
+          () => null,
+          (caught: unknown) => caught as Error & { cause?: Error },
+        )
+      expect(String(error?.cause?.message ?? error?.message)).toMatch(/backup_runs_active_idx/)
+    }
+
+    const first = await repo.enqueue({ trigger: 'manual', now: NOW })
+    await refusedByIndex('queued')
+
+    await repo.claimNext(NOW)
+    await refusedByIndex('running')
+    expect((await repo.enqueue({ trigger: 'schedule', now: NOW })).id).toBe(first.id)
   })
 
   it('lets a new request in once the running one is done', async () => {

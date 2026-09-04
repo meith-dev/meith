@@ -1,3 +1,4 @@
+export { backupBeforeMigrating } from './backup-before-migrating'
 export {
   type BackupEnvironment,
   type BackupSettingsView,
@@ -8,7 +9,7 @@ export {
   loadBackupSettings,
 } from './backup-plan'
 export {
-  BACKUP_INTERRUPTED_AFTER_MS,
+  BACKUP_LEASE_SECONDS,
   BACKUP_STALE_MS,
   type BackupWorkerDeps,
   backupLog,

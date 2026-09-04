@@ -113,6 +113,10 @@ const commands: Command[] = [
       )
 
       const { runMigrations } = await import('@meith/db')
+      const { backupBeforeMigrating } = await import('@meith/runtime')
+      if ((await backupBeforeMigrating()) === 'taken') {
+        console.log('Took the backup the settings ask for before a migration.')
+      }
       const applied = await runMigrations()
       console.log(applied === 0 ? 'Already up to date.' : `Applied ${applied} migration(s).`)
       return 0

@@ -9,7 +9,7 @@ import {
   runMigrations,
 } from '@meith/db'
 import { type PluginDefinition, pluginNavigationPlacements } from '@meith/plugin-kit'
-import { runPluginLifecycle } from '@meith/runtime'
+import { backupBeforeMigrating, runPluginLifecycle } from '@meith/runtime'
 import { type PluginUpgrade, planUpgrade, upgradeNotice } from '@meith/upgrade'
 
 export const CODE_VERSION = '0.33.4'
@@ -88,6 +88,9 @@ export async function upgrade(options: UpgradeOptions): Promise<number> {
     return 0
   }
 
+  if ((await backupBeforeMigrating()) === 'taken') {
+    options.log('Core: took the backup the settings ask for before a migration.')
+  }
   const count = await runMigrations()
   options.log(count === 0 ? 'Core: already up to date.' : `Core: applied ${count} migration(s).`)
 

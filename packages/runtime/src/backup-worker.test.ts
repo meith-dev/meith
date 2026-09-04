@@ -1,16 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type {
-  BackupOutcome,
-  BackupRunFinish,
-  BackupRunRecord,
-  BackupRunRepository,
-  BackupTrigger,
+import {
+  type BackupOutcome,
+  type BackupRunFinish,
+  type BackupRunRecord,
+  type BackupRunRepository,
+  BackupShippingError,
+  type BackupTrigger,
 } from '@meith/backup'
 import type { Database } from '@meith/db'
 
 import type { BackupSettingsView } from './backup-plan'
-import { backupWorker } from './backup-worker'
+import { BACKUP_HEARTBEAT_MS, backupWorker } from './backup-worker'
 
 const NOW = new Date('2026-09-02T02:30:20Z')
 
@@ -212,6 +213,77 @@ describe('the backup worker', () => {
       status: 'failed',
       error: 'pg_dump exited with code 1',
     })
+  })
+
+  it('still queues the scheduled run when a manual one was claimed in the slot tick', async () => {
+    const runs = new FakeRuns()
+    await runs.enqueue({ trigger: 'manual', now: NOW })
+    const create = vi.fn(async () => outcome('manual.tar.gz'))
+    const { run } = worker(runs, settings(), create)
+
+    const result = await run(context(new Date('2026-09-02T02:29:20Z')))
+
+    expect(result).toMatchObject({ ran: 1, trigger: 'manual' })
+    expect(runs.rows.map((row) => [row.trigger, row.status])).toEqual([
+      ['manual', 'done'],
+      ['schedule', 'queued'],
+    ])
+  })
+
+  it('names the bundle when it was written but not shipped', async () => {
+    const runs = new FakeRuns()
+    await runs.enqueue({ trigger: 'manual', now: NOW })
+    const create = vi.fn(async () => {
+      throw new BackupShippingError(new Error('bucket answered 403'), {
+        name: 'meith-backup-2026-09-02T02-30-20Z.tar.gz',
+        size: 1234,
+        uploads: 'included',
+        skippedKeys: [],
+      })
+    })
+    const { run } = worker(runs, settings(), create)
+
+    await expect(run(context(null))).rejects.toThrow('not shipped')
+    expect(runs.finished[0]?.outcome).toMatchObject({
+      status: 'failed',
+      bundleName: 'meith-backup-2026-09-02T02-30-20Z.tar.gz',
+      sizeBytes: 1234,
+      uploads: 'included',
+    })
+  })
+
+  it('heartbeats the run and renews the task lease while a backup is in flight', async () => {
+    vi.useFakeTimers()
+    try {
+      const runs = new FakeRuns()
+      await runs.enqueue({ trigger: 'manual', now: NOW })
+      const renewLease = vi.fn(async () => undefined)
+      let finish: () => void = () => undefined
+      const create = vi.fn(
+        () =>
+          new Promise<BackupOutcome>((resolve) => {
+            finish = () => resolve(outcome('slow.tar.gz'))
+          }),
+      )
+      const run = backupWorker({
+        db: {} as Database,
+        runs,
+        environment: ENVIRONMENT,
+        settings: async () => settings(),
+        create: create as never,
+        clock: () => NOW,
+        renewLease,
+      })
+
+      const pending = run(context(null))
+      await vi.advanceTimersByTimeAsync(BACKUP_HEARTBEAT_MS * 2 + 1)
+      expect(runs.heartbeats).toBe(2)
+      expect(renewLease).toHaveBeenCalledTimes(2)
+      finish()
+      await expect(pending).resolves.toMatchObject({ ran: 1 })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('steps aside while another process is running a backup', async () => {

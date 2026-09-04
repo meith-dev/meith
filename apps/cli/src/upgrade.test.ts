@@ -25,6 +25,7 @@ vi.mock('@meith/db', () => ({
 const lifecycle: string[] = []
 const installThrows = { current: false }
 vi.mock('@meith/runtime', () => ({
+  backupBeforeMigrating: async () => 'skipped',
   runPluginLifecycle: async (input: { plugin: { key: string }; phase: string }) => {
     if (installThrows.current) throw new Error('could not seed')
     lifecycle.push(`${input.plugin.key}:${input.phase}`)

@@ -3,7 +3,7 @@ import { loadEnvFiles } from '@meith/core/env-files'
 import { getDb, PostgresSystemHealthRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { imageProcessor } from '@meith/drivers/images'
-import { buildSchedulerBundle, type SchedulerBundle } from '@meith/runtime'
+import { BACKUP_LEASE_SECONDS, buildSchedulerBundle, type SchedulerBundle } from '@meith/runtime'
 import { assessScheduler, type TaskDefinition, tick } from '@meith/tasks'
 
 const log = () => logger({ module: 'worker' })
@@ -12,7 +12,7 @@ export const INTERVAL_MS = 60_000
 export const TICK_TIMEOUT_MS = 300_000
 
 export const LONG_LANE_TIMEOUT_MS = 6 * 60 * 60_000
-export const LONG_LANE_STALE_CLAIM_SECONDS = 7 * 60 * 60
+export const LONG_LANE_STALE_CLAIM_SECONDS = BACKUP_LEASE_SECONDS
 
 let stopping = false
 

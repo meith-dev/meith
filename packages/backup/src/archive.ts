@@ -74,6 +74,10 @@ function normalizedArchiveName(name: string): string | undefined {
   return normalized
 }
 
+function memberSize(fields: readonly string[]): number {
+  return Number(fields[1]?.includes('/') ? fields[2] : fields[4])
+}
+
 export function validateArchiveListing(
   namesOutput: string,
   verboseOutput: string,
@@ -100,7 +104,7 @@ export function validateArchiveListing(
 
     const fields = verbose[index]?.trim().split(/\s+/) ?? []
     const type = fields[0]?.[0] ?? ''
-    const size = Number(fields[2])
+    const size = memberSize(fields)
     if (!allowedTypes.has(type) || !Number.isSafeInteger(size) || size < 0) {
       throw new ValidationError(`The archive contains an unsupported member: ${name}`)
     }

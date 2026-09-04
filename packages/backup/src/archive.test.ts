@@ -131,6 +131,26 @@ describe('validateArchiveListing', () => {
     ).toThrow(/expanded-size/)
   })
 
+  it('reads the size from a bsdtar listing, where the owner is two fields', () => {
+    expect(
+      validateArchiveListing(
+        'manifest.json\ndb.dump\n',
+        '-rw-------  0 nextjs nogroup 20 Sep  4 10:57 manifest.json\n' +
+          '-rw-------  0 nextjs nogroup 80 Sep  4 10:57 db.dump\n',
+        limits,
+        files,
+      ).map((member) => member.size),
+    ).toEqual([20, 80])
+    expect(() =>
+      validateArchiveListing(
+        'large\n',
+        '-rw-------  0 nextjs nogroup 101 Sep  4 10:57 large\n',
+        limits,
+        files,
+      ),
+    ).toThrow(/per-member/)
+  })
+
   it('accepts the legacy uploads root but rejects special entries', () => {
     expect(
       validateArchiveListing(
