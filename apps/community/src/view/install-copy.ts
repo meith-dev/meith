@@ -96,3 +96,38 @@ export function installFormCopy(
     'install.mail.testNoteTail': testNoteTail,
   }
 }
+
+export function installRestoreCopy(
+  t: Translator = untranslated(),
+): Readonly<Record<string, string>> {
+  return {
+    ...copyFor(
+      [
+        'install.restore.title',
+        'install.restore.hint',
+        'install.restore.pick',
+        'install.restore.confirm',
+        'install.restore.submit',
+        'install.restore.restoring',
+        'install.restore.pendingNote',
+        'install.restore.idleNote',
+        'install.restore.notRestored',
+        'install.restore.noneLocal',
+        'install.restore.doneTitle',
+        'install.restore.noUploads',
+        'install.restore.next',
+        'install.restore.signIn',
+      ],
+      t,
+    ),
+    ...patternCopy(
+      [
+        'install.restore.noneAnywhere',
+        'install.restore.doneDetail',
+        'install.restore.migrated',
+        'install.restore.skipped',
+      ],
+      t,
+    ),
+  }
+}

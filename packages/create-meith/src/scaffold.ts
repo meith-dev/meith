@@ -160,7 +160,14 @@ const ENV_BACKUP_BLOCK = `# The off-site backup destination: an S3-compatible bu
 # BACKUP_S3_ACCESS_KEY_ID=
 # BACKUP_S3_SECRET_ACCESS_KEY=
 # BACKUP_S3_ENDPOINT=
-# BACKUP_S3_PREFIX=`
+# BACKUP_S3_PREFIX=
+#
+# Or a WebDAV folder instead of a bucket — Nextcloud, ownCloud, a Hetzner
+# Storage Box. The address of a folder that already exists; username and
+# password together or not at all. One destination or the other, never both.
+# BACKUP_WEBDAV_URL=
+# BACKUP_WEBDAV_USERNAME=
+# BACKUP_WEBDAV_PASSWORD=`
 
 function selfHostEnvExample(name: string): string {
   return `# ${name} — environment.
@@ -724,6 +731,14 @@ EXPOSE 3000
 ENV UPLOADS_DIR=/app/.uploads
 RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
 
+# The ring of backup bundles the admin panel's Backups screen writes, lists
+# and prunes, and the postgres client tools \`meith backup\` and the panel's
+# backups dump with. The compose file mounts the persistent "backups" volume
+# over this path.
+RUN apk add --no-cache postgresql18-client
+ENV BACKUP_DIR=/backups
+RUN mkdir -p /backups && chown node:node /backups
+
 # \`meith <command>\` on PATH runs this board's own operator CLI — the same one
 # node_modules/.bin/meith is — so a Coolify terminal or \`docker compose exec web
 # meith ...\` needs no path. It cd's to /board so the CLI finds this board's
@@ -818,6 +833,14 @@ EXPOSE 3000
 # container's own layer and a redeploy discards them.
 ENV UPLOADS_DIR=/app/.uploads
 RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
+
+# The ring of backup bundles the admin panel's Backups screen writes, lists
+# and prunes, and the postgres client tools \`meith backup\` and the panel's
+# backups dump with. The compose file mounts the persistent "backups" volume
+# over this path.
+RUN apk add --no-cache postgresql18-client
+ENV BACKUP_DIR=/backups
+RUN mkdir -p /backups && chown node:node /backups
 
 # \`meith <command>\` on PATH runs this board's own operator CLI — the same one
 # node_modules/.bin/meith is — so a Coolify terminal or \`docker compose exec web
@@ -1030,6 +1053,25 @@ services:
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
+      FILESTORE_DRIVER: local
+      # So that "back up before migrating" (a board setting) can ship the
+      # bundle it takes to the same off-site destination the web container
+      # uses. Unset until the four required values are filled in on the
+      # Coolify resource.
+      BACKUP_S3_BUCKET: \${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: \${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: \${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: \${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: \${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: \${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: \${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: \${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: \${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      # Both volumes, so that the bundle "back up before migrating" writes
+      # carries the uploads and lands in the same ring as every other backup.
+      - uploads:/app/.uploads
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -1084,11 +1126,15 @@ services:
       - BACKUP_S3_SECRET_ACCESS_KEY=\${BACKUP_S3_SECRET_ACCESS_KEY:-}
       - BACKUP_S3_ENDPOINT=\${BACKUP_S3_ENDPOINT:-}
       - BACKUP_S3_PREFIX=\${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=\${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=\${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=\${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
-      # Where \`meith backup --dir /backups\` writes its ring of bundles. A
-      # named volume rather than the container filesystem, so the ring survives
-      # every redeploy.
+      # The ring of backup bundles: what the admin panel's Backups screen
+      # writes, lists and downloads, and what \`meith backup --dir /backups\`
+      # writes. A named volume rather than the container filesystem, so the
+      # ring survives every redeploy.
       - backups:/backups
     depends_on:
       postgres:
@@ -1180,6 +1226,25 @@ services:
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
+      FILESTORE_DRIVER: local
+      # So that "back up before migrating" (a board setting) can ship the
+      # bundle it takes to the same off-site destination the web container
+      # uses. Unset until the four required values are filled in on the
+      # Coolify resource.
+      BACKUP_S3_BUCKET: \${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: \${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: \${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: \${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: \${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: \${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: \${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: \${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: \${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      # Both volumes, so that the bundle "back up before migrating" writes
+      # carries the uploads and lands in the same ring as every other backup.
+      - uploads:/app/.uploads
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -1234,11 +1299,15 @@ services:
       - BACKUP_S3_SECRET_ACCESS_KEY=\${BACKUP_S3_SECRET_ACCESS_KEY:-}
       - BACKUP_S3_ENDPOINT=\${BACKUP_S3_ENDPOINT:-}
       - BACKUP_S3_PREFIX=\${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=\${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=\${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=\${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
-      # Where \`meith backup --dir /backups\` writes its ring of bundles. A
-      # named volume rather than the container filesystem, so the ring survives
-      # every redeploy.
+      # The ring of backup bundles: what the admin panel's Backups screen
+      # writes, lists and downloads, and what \`meith backup --dir /backups\`
+      # writes. A named volume rather than the container filesystem, so the
+      # ring survives every redeploy.
       - backups:/backups
     depends_on:
       postgres:

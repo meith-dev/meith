@@ -434,10 +434,17 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
     expect(shaIndex).toBeLessThan(latestIndex)
   })
 
-  it('mounts the uploads volume into both processes that write to it, on both paths', () => {
+  it('mounts the uploads and backups volumes into web and migrate, on both paths', () => {
     for (const file of [compose, composePrebuilt]) {
-      expect(file).toMatch(/uploads:\/app\/\.uploads/g)
-      expect([...file.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(1)
+      expect([...file.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(2)
+      expect([...file.matchAll(/backups:\/backups/g)]).toHaveLength(2)
+    }
+  })
+
+  it('carries the postgres client tools and a backup directory, on both paths', () => {
+    for (const file of [dockerfile, dockerfilePrebuilt]) {
+      expect(file).toMatch(/postgresql18-client/)
+      expect(file).toMatch(/ENV BACKUP_DIR=\/backups/)
     }
   })
 
@@ -729,10 +736,10 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
   'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
-  '.env.example': 'f267cffa9c7238f9a76ff1ae9752ae0f22e0d69b794080740dfba910402af72c',
+  '.env.example': 'e160944cbb1fba18c67ef7e55d6f640cb847f77125d7fbf9e6f2426344aa8865',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'a4ef2c7b1349ec81d214bf0cf60d422cc2d5396c1c5cf3358968f5d69966768f',
-  'Dockerfile.prebuilt': '64c769aaa1f9362a324a85d6318156efde85b955287032d588000f7ee57d32f0',
+  Dockerfile: 'd012f8daa0f10ffb0f3887c8b7658fc4276133c978576b2b3a3216ba8c0ee292',
+  'Dockerfile.prebuilt': 'e5a9ecdd9bc2e9a9da4523ecc2c204be9c45b769e8d4bdb2a70928f8bade17a8',
   'docker-entrypoint.sh': '7b8ce8a48ade0285f0954ed5dff3dd82a94586ec321e54fb1c65dec768258117',
   'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
@@ -740,9 +747,9 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
   '.github/workflows/update.yml':
     '5c56ff79b04d29928645b49be82bc47fac65d88a84cfc066d64b932123c620f0',
-  'docker-compose.yaml': 'bccd80e5ff0b72aabc9ac23042640687b1077b1bf16ea7572a406fdc326a26b5',
+  'docker-compose.yaml': '6c9715262ce8e8f77c3cf661683bcb11be803544f5e902a7d1507ac45d2211b2',
   'docker-compose.prebuilt.yaml':
-    '63b34b5d1686c643c93a2e67f6c3114c3b40b80b322f68e7a5da393ac54d6d93',
+    '069997fca8288caaf2e24a98413d23ffa7903ea370e23b6bc4c01358cd7cd896',
   'README.md': 'de94525ed6946dbf792ded665fd3f2dd5c7299a12b25688915b0083e36fb66af',
 }
 

@@ -86,6 +86,24 @@ services:
       # carve-out that would let the *web* server start without them one day.
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
+      FILESTORE_DRIVER: local
+      # So that "back up before migrating" (a board setting) can ship the
+      # bundle it takes to the same off-site destination the web and worker
+      # containers use. Unset until the operator fills them in on the resource.
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      # Both volumes, so that the bundle "back up before migrating" writes
+      # carries the uploads and lands in the same ring as every other backup.
+      - uploads:/app/.uploads
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -152,9 +170,13 @@ services:
       - BACKUP_S3_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET_ACCESS_KEY:-}
       - BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-}
       - BACKUP_S3_PREFIX=${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
-      # Where `meith backup --dir /backups` writes its ring of bundles. A named
+      # The ring of backup bundles: what the admin panel's Backups screen lists
+      # and downloads, and what `meith backup --dir /backups` writes. A named
       # volume rather than the container filesystem, so the ring survives every
       # redeploy — and its own volume rather than a corner of `uploads`, so a
       # backup of the uploads never contains older backups of itself.
@@ -199,11 +221,24 @@ services:
       - MAIL_SMTP_USERNAME=${MAIL_SMTP_USERNAME:-}
       - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD:-}
       - MAIL_FROM=${MAIL_FROM:-}
+      # The worker is what actually takes the scheduled and panel-requested
+      # backups, so it needs the off-site destination the web container has.
+      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-}
+      - BACKUP_S3_REGION=${BACKUP_S3_REGION:-}
+      - BACKUP_S3_ACCESS_KEY_ID=${BACKUP_S3_ACCESS_KEY_ID:-}
+      - BACKUP_S3_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      - BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-}
+      - BACKUP_S3_PREFIX=${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       # The same volume the web service mounts. Both halves of the board write
       # uploads, and a worker with its own copy would re-encode an avatar the
       # web server cannot serve.
       - uploads:/app/.uploads
+      # And the same ring of bundles: the worker writes what the panel lists.
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy

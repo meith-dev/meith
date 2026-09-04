@@ -1,3 +1,21 @@
+export { backupBeforeMigrating } from './backup-before-migrating'
+export {
+  type BackupEnvironment,
+  type BackupSettingsView,
+  backupDestinationFor,
+  backupRingDirectory,
+  backupSettingsFrom,
+  backupSourceFrom,
+  loadBackupSettings,
+} from './backup-plan'
+export {
+  BACKUP_LEASE_SECONDS,
+  BACKUP_STALE_MS,
+  type BackupWorkerDeps,
+  backupLog,
+  backupWorker,
+  executeBackupRun,
+} from './backup-worker'
 export { buildEventRegistry, type EventHandlerDeps } from './event-handlers'
 export { SEED_GROUP } from './groups'
 export {

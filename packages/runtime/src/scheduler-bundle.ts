@@ -1,6 +1,7 @@
 import { AttachmentService, type ImageProcessor } from '@meith/attachments'
 import { Authorizer } from '@meith/authorization'
 import { AvatarService } from '@meith/avatars'
+import { backupCapability } from '@meith/backup'
 import type { FileStore, MailDriver, QueueDriver } from '@meith/core'
 import { env, logger, metrics, optional, withSpan } from '@meith/core'
 import {
@@ -12,6 +13,7 @@ import {
   PostgresAuthEventRepository,
   PostgresAuthorizationSource,
   PostgresAvatarRepository,
+  PostgresBackupRunRepository,
   PostgresBanRepository,
   PostgresBoardDigestRepository,
   PostgresContentCounterRepository,
@@ -50,8 +52,14 @@ import {
 import { type PluginDefinition, PluginHost, renderingSignature } from '@meith/plugin-kit'
 import { resolvePushConfig, SettingsSnapshot } from '@meith/settings'
 import { mintUnsubscribeToken } from '@meith/subscriptions'
-import { builtinTasks, type TaskDefinition, type TaskRepository } from '@meith/tasks'
+import {
+  BACKUP_TASK_ID,
+  builtinTasks,
+  type TaskDefinition,
+  type TaskRepository,
+} from '@meith/tasks'
 
+import { BACKUP_LEASE_SECONDS, backupWorker } from './backup-worker'
 import { boardDigestContentSource } from './board-digest-content'
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
@@ -165,8 +173,8 @@ export function buildSchedulerBundle(deps: {
     repository: new PostgresTaskRepository(db),
     onTaskFailure: taskFailureNotifier(notifications),
     tasks: announced([
-      ...builtinTasks(
-        taskWorkers({
+      ...builtinTasks({
+        ...taskWorkers({
           queue: deps.queue,
           bans: new PostgresBanRepository(db),
           promotions: new PostgresPromotionRepository(db),
@@ -333,7 +341,23 @@ export function buildSchedulerBundle(deps: {
             },
           },
         }),
-      ),
+        ...(backupCapability(env) === 'available'
+          ? {
+              runBackups: backupWorker({
+                db,
+                runs: new PostgresBackupRunRepository(db),
+                environment: env,
+                renewLease: async (now) => {
+                  await new PostgresTaskRepository(db).renew({
+                    taskId: BACKUP_TASK_ID,
+                    now,
+                    staleBefore: new Date(now.getTime() - BACKUP_LEASE_SECONDS * 1000),
+                  })
+                },
+              }),
+            }
+          : {}),
+      }),
       ...contributed,
     ]),
   }

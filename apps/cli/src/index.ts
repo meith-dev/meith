@@ -113,6 +113,10 @@ const commands: Command[] = [
       )
 
       const { runMigrations } = await import('@meith/db')
+      const { backupBeforeMigrating } = await import('@meith/runtime')
+      if ((await backupBeforeMigrating()) === 'taken') {
+        console.log('Took the backup the settings ask for before a migration.')
+      }
       const applied = await runMigrations()
       console.log(applied === 0 ? 'Already up to date.' : `Applied ${applied} migration(s).`)
       return 0
@@ -182,7 +186,12 @@ const commands: Command[] = [
   {
     name: 'backup:list',
     summary: 'List the backup bundles on local disk and at the off-site destination.',
-    usage: 'meith backup:list [--dir <dir>]',
+    usage: [
+      'meith backup:list [--dir <dir>]',
+      '',
+      '--dir defaults to BACKUP_DIR, the ring the admin panel and the scheduler use',
+      '(/backups in the shipped image).',
+    ].join('\n'),
     run: backupListCommand,
   },
 

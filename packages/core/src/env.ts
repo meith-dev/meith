@@ -85,6 +85,8 @@ const envSchema = z
 
     UPLOADS_DIR: nonEmpty.default('.uploads'),
 
+    BACKUP_DIR: nonEmpty.default('.backups'),
+
     MIGRATIONS_DIR: nonEmpty.optional(),
 
     S3_BUCKET: nonEmpty.optional(),
@@ -100,6 +102,10 @@ const envSchema = z
     BACKUP_S3_SECRET_ACCESS_KEY: nonEmpty.optional(),
     BACKUP_S3_ENDPOINT: z.string().url().optional(),
     BACKUP_S3_PREFIX: nonEmpty.optional(),
+
+    BACKUP_WEBDAV_URL: z.string().url().optional(),
+    BACKUP_WEBDAV_USERNAME: nonEmpty.optional(),
+    BACKUP_WEBDAV_PASSWORD: nonEmpty.optional(),
 
     BLOB_READ_WRITE_TOKEN: blobReadWriteToken.optional(),
     BLOB_STORE_ID: nonEmpty.optional(),
@@ -563,6 +569,11 @@ export function assertRuntimeEnv(): Env {
 }
 
 const PLUGIN_ENV_NAME = /^[A-Z][A-Z0-9_]{2,63}$/
+
+export function processEnvironment(): NodeJS.ProcessEnv {
+  // biome-ignore lint/style/noProcessEnv: this module is the sanctioned reader
+  return { ...process.env }
+}
 
 export function readPluginEnv(name: string): string | undefined {
   if (!PLUGIN_ENV_NAME.test(name)) return undefined

@@ -67,6 +67,14 @@ EXPOSE 3000
 ENV UPLOADS_DIR=/app/.uploads
 RUN mkdir -p /app/.uploads && chown node:node /app/.uploads
 
+# The ring of backup bundles the admin panel's Backups screen writes, lists
+# and prunes, and the postgres client tools `meith backup` and the panel's
+# backups dump with. The compose file mounts the persistent "backups" volume
+# over this path.
+RUN apk add --no-cache postgresql18-client
+ENV BACKUP_DIR=/backups
+RUN mkdir -p /backups && chown node:node /backups
+
 # `meith <command>` on PATH runs this board's own operator CLI — the same one
 # node_modules/.bin/meith is — so a Coolify terminal or `docker compose exec web
 # meith ...` needs no path. It cd's to /board so the CLI finds this board's

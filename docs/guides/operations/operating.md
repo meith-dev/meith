@@ -114,7 +114,7 @@ Use `meith --help` for the exact commands supported by the installed release.
 
 There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
-The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. Pending **plugin** migrations can also be applied from the panel, under **Admin → System** (**Version & migrations**), so a newly installed plugin's setup needs no shell; the core schema `migrate`, `upgrade`, `backup` and `restore` stay CLI-only.
+The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. Pending **plugin** migrations can also be applied from the panel, under **Admin → System** (**Version & migrations**), so a newly installed plugin's setup needs no shell, and [backups](./backups.md) are taken, downloaded and — on a fresh deployment — restored from the panel; the core schema `migrate` and `upgrade` stay CLI-only.
 
 `meith --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
 
@@ -153,7 +153,7 @@ Manual execution follows the same due and claim rules as the worker. Use it for 
 
 ## Backup
 
-Create a restorable bundle with:
+Backups have a page of their own: [Backups](./backups.md). The short version — **Admin → System → Backups** takes a bundle now, lists, downloads and deletes the ones the board holds, and shows every run; **Admin → Settings → Backups** sets the schedule, the retention, whether the uploads ride along, the off-site bucket, and whether the migrator takes a bundle before a pending migration. `meith backup` is the same code from a shell, for a cron you would rather own:
 
 ```sh
 mkdir -p backups
@@ -161,81 +161,19 @@ docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/backups":/
   meith backup --out /backup/board.tar.gz
 ```
 
-`meith backup --help` prints the flags the installed release actually has — include uploads when they use the local volume, and copy at least one version off the server.
-
-**Neither the `mkdir` nor the `--user` is optional**, and they are needed for the same reason `board:eject` needs them (see [the marketplace](../../customization/marketplace.md#moving-to-a-custom-board)). The image runs as a fixed, non-root account — `nextjs`, uid 1001 — which owns nothing on your host, so it can only write into a directory that account can already write to. Creating `backups` yourself first means it belongs to you rather than being auto-created root-owned by Docker; `--user "$(id -u):$(id -g)"` then makes the account doing the writing the account that owns the directory. Without them the run ends in `EACCES: permission denied`, saying which directory needs write access and pointing back here.
-
-**It ends there before dumping anything.** `backup` claims its destination as its first act — creating the file, empty and mode `0600`, before it connects to the database — so a path it cannot write is refused in under a second rather than after a dump that may take minutes. That also means two backups aimed at the same path cannot both run: the second is refused immediately rather than dumping and then losing. The command **never writes over an existing file**; if a previous run was killed part-way through it can leave an empty or truncated file at the path it had claimed, and the next run refuses that path by name. Such a file is not a backup and is safe to delete.
-
-Reading a bundle back needs neither addition: files inside the image are world-readable, so [Restore](#restore) and [disaster recovery](./disaster-recovery.md) mount `/backup` and read from it as they are.
+[From the command line](./backups.md#from-the-command-line) explains the `mkdir`, the `--user`, the flags and the exit codes; [Off-site](./backups.md#off-site) the `BACKUP_S3_*` variables and the panel's sealed alternative; [When a bundle is incomplete](./backups.md#when-a-bundle-is-incomplete) the exit code `2`.
 
 A useful policy records frequency, retention, off-server location, access ownership, and the last successful restore rehearsal. A backup is not proven until it restores into an empty target.
 
-### A ring of bundles
-
-`--out` names one file and refuses to write over anything. A scheduled backup wants the other shape, and `--dir` is it:
-
-```sh
-meith backup --dir /backups --keep 7
-```
-
-Each run writes a fresh bundle into the directory, named for the moment it started (`meith-backup-2026-09-01T02-00-00Z.tar.gz`), and then — only after the new bundle is safely written — deletes the oldest bundles beyond the newest `--keep` (7 when the flag is not given). The order is the point: a run that fails never prunes, so a week of failed backups leaves the last good bundles untouched rather than eating them one night at a time. Pruning matches the bundle name pattern exactly and touches nothing else in the directory.
-
-Retention is also the disk knob. A bundle carries the uploads when they live on the local volume, so on a small server the ring's size is roughly `--keep` times the board's data; if the disk fills, lower the count rather than skipping uploads.
-
-This is the shape [the Coolify guide](../../getting-started/deployment/coolify.md#6-set-up-backups) schedules: its compose file mounts a named `backups` volume at `/backups` so the ring survives redeploys.
-
-### Shipping bundles off the server
-
-A ring on the server protects against a bad upgrade or a deleted thread, not against losing the server. Set four variables and every backup also ships its bundle to an S3-compatible bucket, pruned there to the same `--keep`:
-
-```sh
-BACKUP_S3_BUCKET=board-backups
-BACKUP_S3_REGION=auto
-BACKUP_S3_ACCESS_KEY_ID=…
-BACKUP_S3_SECRET_ACCESS_KEY=…
-```
-
-`BACKUP_S3_ENDPOINT` points it at anything S3-compatible — R2, MinIO, Spaces, Backblaze B2 — the same way `S3_ENDPOINT` does for the filestore, and `BACKUP_S3_PREFIX` shares one bucket between boards. All four required values must be set together: a partial set fails the backup run, loudly, and never affects the board itself. Use a bucket of its own — never the bucket the uploads live in, or a backup of the uploads sits where losing the uploads loses it too. Give the credential only what it needs: write and list on that bucket alone.
-
-Two commands close the loop:
-
-```sh
-meith backup:list --dir /backups
-meith backup:fetch meith-backup-2026-09-01T02-00-00Z.tar.gz
-```
-
-`backup:list` prints the local ring and what the bucket actually holds — run it after the first shipped backup, because an upload nobody has listed is a hope, not an off-site copy. `backup:fetch` downloads one bundle back, which is how a [disaster recovery](./disaster-recovery.md) on a fresh machine reaches its backup without `scp`: set the same `BACKUP_S3_*` values there and fetch.
-
-### When a bundle is incomplete
-
-On `s3` and `blob` the uploads are pulled object by object out of the store, and an object whose key the board cannot use — one that would escape the staging directory, one holding a `.` or `..` segment, an empty segment, surrounding whitespace, or a control character — cannot be written into the bundle. Such a key is not something the board itself produces; it arrives when something else writes into the same bucket or store, or when a key is mangled in a migration between them.
-
-`meith backup` **skips that object and finishes the run**. The alternative — stopping — was the old behaviour, and it meant one malformed key out of ten thousand produced no backup at all, on the day the operator most needed one. A bundle missing one attachment is worth having; a bundle that does not exist is not.
-
-Skipping quietly would be its own failure, so a run that skips anything reports it three times over, and each one is aimed at a different reader:
-
-| Where | Who reads it | Why it alone is not enough |
-|---|---|---|
-| A warning naming each key as it is skipped, and a summary before the command exits | Whoever is watching the run | Scrolls away, and nobody is watching a nightly job |
-| `skippedKeys` in the bundle's `manifest.json`, which `restore` prints back | Whoever restores, possibly a different person months later | Discovered at restore time — too late to fetch the object another way |
-| **Exit code 2**, after the bundle has been written | A scheduler, a CI job, a `&&` in a shell script | Says nothing about *which* objects, and is gone once the run is over |
-
-The exit codes are: **0** the bundle is complete; **2** the bundle was written and is missing objects it names; anything else the backup failed and there is no bundle. A job that treats non-zero as failure will therefore raise this run, which is the intent — but a `2` is not a reason to discard the bundle, because it is the most complete copy that can be made. Do not retry it expecting a different result either: the keys are unusable in the store, so the next run skips exactly the same objects.
-
-The repair is in the store, not in the backup. Rename or remove the offending objects — the manifest names them — and the next run carries them.
-
 ## Restore
 
-Restore only into a new, empty database. Stop traffic and review the installed command first:
+A restore only ever writes into an empty board. A fresh deployment's installer offers every bundle it can see and restores the one you pick — [Restoring from the installer](./backups.md#from-the-installer) — and `meith restore` does the same from a shell, into a database you name:
 
 ```sh
 docker compose run --rm web meith restore --help
 ```
 
-After restore, apply migrations for the selected release, start web and worker, and verify sign-in, recent threads, uploads, mail, and scheduled tasks before changing DNS. See [Disaster recovery](./disaster-recovery.md) for the complete runbook. A bundle that lives at the off-site destination comes back with [`meith backup:fetch`](#shipping-bundles-off-the-server) first; `restore` itself only reads local files.
-
-A bundle whose manifest records skipped objects — see [When a bundle is incomplete](#when-a-bundle-is-incomplete) — restores normally, and the restore names those objects as it finishes. Posts referring to them have broken images, and no other copy of them exists; the restore still exits 0, because the restore did everything it was given.
+After a restore, restart web and worker, then verify sign-in, recent threads, uploads, mail, and scheduled tasks before changing DNS. See [Disaster recovery](./disaster-recovery.md) for the complete runbook. A bundle that lives at the off-site destination comes back with [`meith backup:fetch`](./backups.md#from-the-command-line) first; `restore` itself only reads local files.
 
 ## Upgrade
 

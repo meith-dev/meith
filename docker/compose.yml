@@ -75,6 +75,24 @@ services:
       # carve-out that would let the *web* server start without them one day.
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
       TICK_SECRET: ${TICK_SECRET:?TICK_SECRET must be set}
+      FILESTORE_DRIVER: local
+      # The off-site backup destination, forwarded from `.env` when set there;
+      # the admin panel's Backups settings are the other way to configure it,
+      # and these win when both are present. All four required together.
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      # Both volumes, so that "back up before migrating" (a board setting) can
+      # write a bundle that carries the uploads before a pending migration.
+      - uploads:/app/.uploads
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,8 +148,24 @@ services:
       MAIL_SMTP_SECURITY: ${MAIL_SMTP_SECURITY:-}
       MAIL_SMTP_USERNAME: ${MAIL_SMTP_USERNAME:-}
       MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
+      # The off-site backup destination, forwarded from `.env` when set there;
+      # the admin panel's Backups settings are the other way to configure it,
+      # and these win when both are present. All four required together.
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
+      # The ring of backup bundles the admin panel lists and downloads. A
+      # named volume, so the ring survives a redeploy; the worker below writes
+      # into the same one. See docs/guides/operations/backups.md.
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -180,8 +214,23 @@ services:
       MAIL_SMTP_SECURITY: ${MAIL_SMTP_SECURITY:-}
       MAIL_SMTP_USERNAME: ${MAIL_SMTP_USERNAME:-}
       MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
+      # The off-site backup destination, forwarded from `.env` when set there;
+      # the admin panel's Backups settings are the other way to configure it,
+      # and these win when both are present. All four required together.
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
+      # The scheduled and panel-requested backups run here, into the same
+      # ring the web container lists.
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -243,3 +292,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  backups:

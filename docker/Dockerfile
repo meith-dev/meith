@@ -201,6 +201,15 @@ RUN mkdir -p /app/.uploads && chown nextjs:nodejs /app/.uploads
 VOLUME ["/app/.uploads"]
 ENV UPLOADS_DIR=/app/.uploads
 
+# The ring of backup bundles: what the admin panel's Backups screen and the
+# scheduled backup task write, list and prune, and where the installer looks
+# for a bundle to restore. A volume for the same reason the uploads are, and
+# the compose files mount it on web, worker and migrate alike — whichever
+# process takes a backup, the ring is one place.
+RUN mkdir -p /backups && chown nextjs:nodejs /backups
+VOLUME ["/backups"]
+ENV BACKUP_DIR=/backups
+
 USER nextjs
 EXPOSE 3000
 

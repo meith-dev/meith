@@ -800,7 +800,7 @@ skipped rather than allowed to stop the run, so `meith backup` can
 exit **2**: the bundle was written, it names the objects it is missing in
 its manifest, and on `blob` those objects are gone once the project is.
 Read the list before you delete anything —
-[When a bundle is incomplete](../../guides/operations/operating.md#when-a-bundle-is-incomplete)
+[When a bundle is incomplete](../../guides/operations/backups.md#when-a-bundle-is-incomplete)
 explains what to do about it.
 
 This runs from anywhere; it does not have to run on Vercel. Put the
@@ -822,7 +822,13 @@ the store under **Storage**, create a read-write token, and use it for the
 backup. [How the Blob store authenticates](#how-the-blob-store-authenticates)
 has the whole of it.
 
-Copy the bundle somewhere that is none of the four vendors.
+Copy the bundle somewhere that is none of the four vendors — or set the
+`BACKUP_S3_*` variables in front of the command and it ships there itself,
+which is also what makes the bundle appear on the board's own
+**Admin → System → Backups** screen. That screen cannot *take* a backup on
+this route: a function has no `pg_dump` and no disk, and the screen says
+so. Scheduling one is the cron on your own machine that runs the command
+above; [Backups](../../guides/operations/backups.md) is the reference.
 
 ### 2. Stand up the destination
 
@@ -845,7 +851,12 @@ on. This is the same sequence, for the same reason, as
 follow that page if you want the commands spelled out against a running
 stack.
 
-You are restoring a board, not installing one.
+You are restoring a board, not installing one — though the installer can
+do it for you: bring the whole stack up instead, set the `BACKUP_S3_*`
+values so the fresh board can see the bucket the bundle shipped to, open
+`/install`, and pick the bundle under **Or restore a backup**. That route
+is [Restoring from the installer](../../guides/operations/backups.md#from-the-installer);
+the one below is the same restore from a shell.
 
 ### 3. Restore into it
 

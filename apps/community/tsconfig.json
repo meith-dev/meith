@@ -26,6 +26,8 @@
       "@meith/subscriptions": ["../../packages/subscriptions/src/index.ts"],
       "@meith/search/*": ["../../packages/search/src/*"],
       "@meith/settings/*": ["../../packages/settings/src/*"],
+      "@meith/backup": ["../../packages/backup/src/index.ts"],
+      "@meith/backup/*": ["../../packages/backup/src/*"],
       "@meith/tasks": ["../../packages/tasks/src/index.ts"],
       "@meith/runtime": ["../../packages/runtime/src/index.ts"],
       "@meith/tasks/*": ["../../packages/tasks/src/*"],

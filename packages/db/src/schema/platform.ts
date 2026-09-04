@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   boolean,
   check,
   foreignKey,
@@ -146,6 +147,44 @@ export const taskLog = pgTable(
     ranAt: timestamp('ran_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('task_log_key_ran_idx').on(t.taskKey, t.ranAt.desc())],
+)
+
+export const backupRuns = pgTable(
+  'backup_runs',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    trigger: text('trigger').notNull(),
+    status: text('status').notNull().default('queued'),
+    requestedByUserId: integer('requested_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
+    bundleName: text('bundle_name'),
+    sizeBytes: bigint('size_bytes', { mode: 'number' }),
+    uploads: text('uploads'),
+    shipped: boolean('shipped').notNull().default(false),
+    skippedKeys: integer('skipped_keys').notNull().default(0),
+    error: text('error'),
+  },
+  (t) => [
+    index('backup_runs_status_idx').on(t.status, t.id),
+    index('backup_runs_recent_idx').on(t.requestedAt.desc()),
+    uniqueIndex('backup_runs_active_idx')
+      .on(t.status)
+      .where(sql`${t.status} in ('queued', 'running')`),
+
+    check(
+      'backup_runs_trigger_check',
+      sql`${t.trigger} in ('manual', 'schedule', 'upgrade', 'cli')`,
+    ),
+    check(
+      'backup_runs_status_check',
+      sql`${t.status} in ('queued', 'running', 'done', 'incomplete', 'failed')`,
+    ),
+  ],
 )
 
 export const cacheVersions = pgTable('cache_versions', {

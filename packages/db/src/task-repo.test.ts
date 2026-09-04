@@ -38,6 +38,24 @@ function claimArgs(taskId: string, now = NOW) {
   }
 }
 
+describe('renew', () => {
+  it('extends a live lease and leaves a released or expired one alone', async () => {
+    await repo.ensureRegistered([{ id: 'backup.run', intervalSeconds: 60 }])
+    expect(await repo.claim(claimArgs('backup.run'))).not.toBeNull()
+
+    const later = new Date(NOW.getTime() + 600_000)
+    expect(await repo.renew(claimArgs('backup.run', later))).toBe(true)
+    const [row] = await db.select().from(tasks).where(eq(tasks.key, 'backup.run'))
+    expect(row?.lockedUntil).toEqual(new Date(later.getTime() + LEASE_SECONDS * 1000))
+
+    const expired = new Date(later.getTime() + LEASE_SECONDS * 1000 + 1)
+    expect(await repo.renew(claimArgs('backup.run', expired))).toBe(false)
+
+    await repo.release({ taskId: 'backup.run', finishedAt: expired, success: true })
+    expect(await repo.renew(claimArgs('backup.run', expired))).toBe(false)
+  })
+})
+
 describe('ensureRegistered', () => {
   it('creates a row per task and is idempotent', async () => {
     const defs = [

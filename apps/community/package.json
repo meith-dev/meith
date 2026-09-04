@@ -47,6 +47,7 @@
     "@meith/attachments": "workspace:*",
     "@meith/authorization": "workspace:*",
     "@meith/avatars": "workspace:*",
+    "@meith/backup": "workspace:*",
     "@meith/board-digest": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",

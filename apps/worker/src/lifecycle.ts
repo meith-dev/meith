@@ -3,15 +3,94 @@ import { loadEnvFiles } from '@meith/core/env-files'
 import { getDb, PostgresSystemHealthRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { imageProcessor } from '@meith/drivers/images'
-import { buildSchedulerBundle } from '@meith/runtime'
-import { assessScheduler, tick } from '@meith/tasks'
+import { BACKUP_LEASE_SECONDS, buildSchedulerBundle, type SchedulerBundle } from '@meith/runtime'
+import { assessScheduler, type TaskDefinition, tick } from '@meith/tasks'
 
 const log = () => logger({ module: 'worker' })
 
 export const INTERVAL_MS = 60_000
 export const TICK_TIMEOUT_MS = 300_000
 
+export const LONG_LANE_TIMEOUT_MS = 6 * 60 * 60_000
+export const LONG_LANE_STALE_CLAIM_SECONDS = BACKUP_LEASE_SECONDS
+
 let stopping = false
+
+export interface Lane {
+  readonly name: string
+  readonly tasks: readonly TaskDefinition[]
+  readonly timeoutMs: number
+  readonly staleClaimSeconds?: number | undefined
+}
+
+export function splitLanes(tasks: readonly TaskDefinition[]): readonly Lane[] {
+  const quick = tasks.filter((task) => task.lane === undefined)
+  const long = tasks.filter((task) => task.lane === 'long')
+  return [
+    { name: 'tick', tasks: quick, timeoutMs: TICK_TIMEOUT_MS },
+    ...(long.length === 0
+      ? []
+      : [
+          {
+            name: 'long',
+            tasks: long,
+            timeoutMs: LONG_LANE_TIMEOUT_MS,
+            staleClaimSeconds: LONG_LANE_STALE_CLAIM_SECONDS,
+          },
+        ]),
+  ]
+}
+
+async function runLane(bundle: SchedulerBundle, lane: Lane): Promise<void> {
+  while (!stopping) {
+    const startedAt = Date.now()
+    const deadline = new AbortController()
+    const timer = setTimeout(() => deadline.abort(), lane.timeoutMs)
+
+    try {
+      const outcomes = await tick({
+        repository: bundle.repository,
+        tasks: lane.tasks,
+        onError: bundle.onTaskFailure,
+        signal: deadline.signal,
+        ...(lane.staleClaimSeconds === undefined
+          ? {}
+          : { staleClaimSeconds: lane.staleClaimSeconds }),
+      })
+      const ran = outcomes.filter((outcome) => outcome.status === 'ran')
+      const failed = outcomes.filter((outcome) => outcome.status === 'failed')
+      if (ran.length > 0 || failed.length > 0) {
+        log().info(
+          {
+            lane: lane.name,
+            ran: ran.map((outcome) => outcome.taskId),
+            failed: failed.map((outcome) => outcome.taskId),
+          },
+          'tick complete',
+        )
+      }
+      for (const outcome of failed) {
+        log().error({ taskId: outcome.taskId, err: outcome.error }, 'task failed')
+      }
+      for (const outcome of outcomes.filter((outcome) => outcome.overran === true)) {
+        log().warn({ taskId: outcome.taskId, durationMs: outcome.durationMs }, 'task overran')
+      }
+      if (deadline.signal.aborted) {
+        log().warn(
+          { lane: lane.name, timeoutMs: lane.timeoutMs, elapsedMs: Date.now() - startedAt },
+          'tick overran',
+        )
+      }
+    } catch (err) {
+      log().error({ lane: lane.name, err }, 'tick failed')
+    } finally {
+      clearTimeout(timer)
+    }
+
+    if (stopping) break
+    await sleep(Math.max(0, INTERVAL_MS - (Date.now() - startedAt)))
+  }
+}
 
 export async function main(): Promise<number> {
   stopping = false
@@ -31,7 +110,11 @@ export async function main(): Promise<number> {
     files: drivers().files,
     images: imageProcessor,
   })
-  log().info({ tasks: bundle.tasks.length, intervalMs: INTERVAL_MS }, 'worker started')
+  const lanes = splitLanes(bundle.tasks)
+  log().info(
+    { tasks: bundle.tasks.length, lanes: lanes.map((lane) => lane.name), intervalMs: INTERVAL_MS },
+    'worker started',
+  )
 
   for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     process.on(signal, () => {
@@ -41,49 +124,7 @@ export async function main(): Promise<number> {
     })
   }
 
-  while (!stopping) {
-    const startedAt = Date.now()
-    const deadline = new AbortController()
-    const timer = setTimeout(() => deadline.abort(), TICK_TIMEOUT_MS)
-
-    try {
-      const outcomes = await tick({
-        ...bundle,
-        onError: bundle.onTaskFailure,
-        signal: deadline.signal,
-      })
-      const ran = outcomes.filter((outcome) => outcome.status === 'ran')
-      const failed = outcomes.filter((outcome) => outcome.status === 'failed')
-      if (ran.length > 0 || failed.length > 0) {
-        log().info(
-          {
-            ran: ran.map((outcome) => outcome.taskId),
-            failed: failed.map((outcome) => outcome.taskId),
-          },
-          'tick complete',
-        )
-      }
-      for (const outcome of failed) {
-        log().error({ taskId: outcome.taskId, err: outcome.error }, 'task failed')
-      }
-      for (const outcome of outcomes.filter((outcome) => outcome.overran === true)) {
-        log().warn({ taskId: outcome.taskId, durationMs: outcome.durationMs }, 'task overran')
-      }
-      if (deadline.signal.aborted) {
-        log().warn(
-          { timeoutMs: TICK_TIMEOUT_MS, elapsedMs: Date.now() - startedAt },
-          'tick overran',
-        )
-      }
-    } catch (err) {
-      log().error({ err }, 'tick failed')
-    } finally {
-      clearTimeout(timer)
-    }
-
-    if (stopping) break
-    await sleep(Math.max(0, INTERVAL_MS - (Date.now() - startedAt)))
-  }
+  await Promise.all(lanes.map((lane) => runLane(bundle, lane)))
 
   log().info('worker stopped')
   return 0

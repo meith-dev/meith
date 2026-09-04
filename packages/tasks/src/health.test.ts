@@ -46,6 +46,20 @@ describe('assessTask', () => {
     expect(oneLate.status).not.toBe('stale')
   })
 
+  it('reports a task holding a live lease as running, however long it has run', () => {
+    const running = task({
+      lastRunAt: new Date(NOW.getTime() - 300_000 * STALE_INTERVALS * 2),
+      lockedUntil: new Date(NOW.getTime() + 3_600_000),
+    })
+    expect(assessTask(running, NOW).status).toBe('running')
+
+    const lapsed = task({
+      lastRunAt: new Date(NOW.getTime() - 300_000 * STALE_INTERVALS * 2),
+      lockedUntil: new Date(NOW.getTime() - 1_000),
+    })
+    expect(assessTask(lapsed, NOW).status).toBe('stale')
+  })
+
   it('reports a disabled task as disabled, never as stale', () => {
     const off = assessTask(
       task({ enabled: false, lastRunAt: new Date('2020-01-01T00:00:00Z') }),

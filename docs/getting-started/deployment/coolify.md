@@ -482,8 +482,8 @@ not here — `plugin:add` refuses in the container for that reason. See
 
 **Something recurring.** Add a **Scheduled Task** to the resource — a name, the
 command, the container (`web`), and a cron schedule — and Coolify runs it in the
-container on that schedule, with a button to run it now. `meith backup` (see
-below) is the usual one.
+container on that schedule, with a button to run it now. Backups no longer
+need one (see below), but a report you script yourself might.
 
 The [operator CLI reference](../../guides/operations/operating.md#the-operator-cli)
 lists every command; `meith --help` inside the container lists what your
@@ -491,12 +491,12 @@ installed release actually has.
 
 ## 6. Set up backups
 
-Not optional, and not the panel's job. Coolify's own per-resource backup
-schedule dumps the database and does **not** include the uploads volume —
-avatars, attachments, board images — and finding that out during a restore
-is the worst possible time. The board's own `meith backup` takes both in
-one bundle, and the compose file already mounts a named `backups` volume
-at `/backups` inside the `web` container for it to write into, so the
+Not optional, and mostly not the panel's job either: Coolify's own
+per-resource backup schedule dumps the database and does **not** include
+the uploads volume — avatars, attachments, board images — and finding that
+out during a restore is the worst possible time. The board takes its own
+backups, database and uploads together, and the compose file already
+mounts a named `backups` volume at `/backups` for them to land in, so the
 bundles survive every redeploy. Three steps, and the first one is not a
 schedule at all.
 
@@ -514,65 +514,66 @@ enrolment even after a perfect restore —
 [Disaster recovery](../../guides/operations/disaster-recovery.md#what-recovery-consumes)
 prices each of the three.
 
-### Schedule the nightly bundle
+### Turn on the schedule
 
-Add a **Scheduled Task** to the resource — the same panel feature the
-[CLI section](#running-commands-the-cli-without-ssh) introduced:
+On the board, **Admin → Settings → Backups**: set **Automatic backups**
+to *Every day*, leave the time at 02:00 UTC or pick the board's quietest
+hour, keep the retention at 7, and save. That is a timestamped bundle —
+database dump and uploads together — into the `backups` volume every
+night, keeping the newest **7**, a week of nightly restore points. The
+`worker` container takes it, in a lane of its own, so the board keeps
+serving and mail keeps leaving while the dump runs.
 
-| Field | Value |
-|---|---|
-| Name | `nightly-backup` |
-| Command | `meith backup --dir /backups` |
-| Container | `web` |
-| Frequency | `0 2 * * *` |
+Then **Admin → System → Backups** and **Back up now**, today rather than
+at 02:00: the bundle appears in the list within a couple of minutes, with
+its size, and **Recent runs** records the run. A run that fails shows
+there in red, on the System screen as a failing task, and as a
+notification to every administrator — which beats discovering it the day
+you need the bundle.
 
-That is 02:00 every night in your Coolify instance's timezone, writing a
-timestamped bundle — database dump and uploads together — into the
-`backups` volume and keeping the newest **7**, a week of nightly restore
-points. Retention is one flag: `--keep 14` in the command keeps two weeks.
-Pruning runs only after a new bundle is safely written, so a run that
-fails never eats the good bundles — but note the ring's appetite: each
-bundle carries every upload, so seven bundles is roughly seven times the
-board's data, and `--keep` is the knob if the disk gets tight.
-
-Read a run's output in the task's own view now and then (the button to
-run it immediately is next to it — press it once today rather than
-waiting for 02:00). Exit **0** is a clean bundle; exit **2** means the
-bundle was written but is missing objects it names —
-[worth understanding](../../guides/operations/operating.md#when-a-bundle-is-incomplete),
-not worth discarding. Coolify's **Notifications** (Telegram, Discord,
-e-mail, webhook) can tell you when a scheduled task fails, which beats
-discovering it the day you need the bundle.
+Each bundle carries every upload, so seven bundles is roughly seven times
+the board's data; **Backups to keep** is the knob if the disk gets tight.
+A run that skips objects it cannot read is recorded as *done, incomplete*
+— [worth understanding](../../guides/operations/backups.md#when-a-bundle-is-incomplete),
+not worth discarding.
 
 ### Then ship the bundles off the server
 
 The ring on `/backups` shares a disk with the board, so it protects
 against a bad upgrade or a deleted forum — not against losing the server.
-Give the same scheduled command an off-site destination and every backup
-also ships its bundle to an S3-compatible bucket, pruned there to the
-same `--keep`:
+Name a bucket and every backup also ships its bundle there, pruned to the
+same retention:
 
 1. Create a bucket at any S3-compatible provider — Backblaze B2,
    Cloudflare R2, Hetzner, Scaleway, MinIO on a machine you trust — a few
    euro a month at forum size. **A bucket of its own**: never the bucket
-   uploads live in, if you moved those to S3. Give its credential write
-   and list on that bucket only.
-2. On the resource's **Environment Variables**, set `BACKUP_S3_BUCKET`,
-   `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID` and
-   `BACKUP_S3_SECRET_ACCESS_KEY` — plus `BACKUP_S3_ENDPOINT` for anything
-   that is not AWS itself (with `BACKUP_S3_REGION=auto` for R2), and
-   `BACKUP_S3_PREFIX` if one bucket serves several boards. All four
-   required values or none: a partial set fails the backup run loudly and
-   never touches the board itself.
-3. **Redeploy** (the compose file passes these six variables through to
-   the container), run the task once from its panel button, then prove
-   the shipping happened: open the resource's **Terminal**, choose `web`,
-   and run `meith backup:list --dir /backups`. It prints the local ring
-   and what the bucket actually holds. An upload nobody has listed is a
-   hope, not an off-site copy.
+   uploads live in, if you moved those to S3. Give its credential write,
+   list and delete on that bucket only.
+2. Either pick the bucket as the **Off-site destination** under
+   **Admin → Settings → Backups** and fill in its fields — the secret is
+   stored sealed under the board's `AUTH_SECRET` — or, when the
+   credential must not live in the database, set `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`,
+   `BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY` on the
+   resource's **Environment Variables** — plus `BACKUP_S3_ENDPOINT` for
+   anything that is not AWS itself (with `BACKUP_S3_REGION=auto` for R2),
+   and `BACKUP_S3_PREFIX` if one bucket serves several boards — and
+   **Redeploy**. All four required values or none; the environment wins
+   when both are set. The environment route is also the one a fresh
+   resource can use to find its bundles before it has any settings, which
+   is what [Disaster recovery](../../guides/operations/disaster-recovery.md#under-coolify)
+   leans on.
+3. Prove the shipping happened: **Test the destination** on the Backups
+   screen lists the bucket, and **Back up now** puts the first bundle in
+   it — the list then shows the bundle as both *on the server* and
+   *off-site*. An upload nobody has listed is a hope, not an off-site
+   copy.
 
-[Backup](../../guides/operations/operating.md#backup) is the full
-reference for the command and the variables.
+A Nextcloud or a Hetzner Storage Box works in place of the bucket: pick
+**A WebDAV folder** as the destination instead, and give it the folder's
+address and an app password.
+[Backups](../../guides/operations/backups.md) is the full reference —
+the settings, both kinds of destination, the `meith backup` command for a
+Scheduled Task you would rather own, and the restore.
 
 ## 7. Prove the restore
 
@@ -618,9 +619,9 @@ step 2 failed, today is the cheap day to find out why.
 
 ## Restoring for real
 
-Two situations, one rule for both: `meith restore` only ever writes into
-an empty database, so the restore is always *replace, then verify* —
-never patch in place.
+Two situations, one rule for both: a restore only ever writes into an
+empty board, so the restore is always *replace, then verify* — never
+patch in place.
 
 **Rolling the board back** — a bad upgrade, a plugin gone wrong, a
 mistake that deleted real content. Warn the members if you can; the board
@@ -666,8 +667,9 @@ has the order of operations and the verification list; its
 [Under Coolify](../../guides/operations/disaster-recovery.md#under-coolify)
 section maps each step onto a fresh panel, including the one trap worth
 knowing in advance: paste your saved secrets over the newly generated
-ones **before** the first deploy, and fetch the bundle back with
-`meith backup:fetch` rather than reaching for `scp`.
+ones **before** the first deploy. On a fresh resource the installer
+itself offers the bundles in the bucket, so the restore is a page, not
+a terminal.
 
 ## If the install fails halfway
 

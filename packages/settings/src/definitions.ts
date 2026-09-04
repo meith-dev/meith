@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { normaliseLocale, SOURCE_LOCALE } from '@meith/i18n'
 
+import { SCHEDULE_TIME_PATTERN } from './backup-schedule'
 import { DEFAULT_PRIVACY_POLICY, DEFAULT_TERMS_OF_SERVICE } from './legal'
 import { mailEndpointProblem } from './mail'
 import { isUsableFeedUrl, isUsableIssuer, isUsableOrigin } from './origin'
@@ -23,6 +24,7 @@ export type SettingGroup =
   | 'federation'
   | 'antispam'
   | 'push'
+  | 'backup'
   | 'legal'
 
 interface SettingDefinitionBase<T> {
@@ -34,6 +36,7 @@ interface SettingDefinitionBase<T> {
   readonly default: T
   readonly invalidates?: readonly string[]
   readonly secret?: boolean
+  readonly sealed?: boolean
   readonly ui?: {
     readonly multiline?: boolean
     readonly options?: readonly {
@@ -1169,6 +1172,252 @@ export const SETTING_DEFINITIONS = [
       .refine(isUsableFeedUrl, 'Give an https URL — or http to a loopback address, for testing.'),
     default: 'https://www.meith.dev/marketplace/v1.json',
     ui: { advanced: true },
+  }),
+  define({
+    key: 'backup.schedule',
+    group: 'backup',
+    label: 'Automatic backups',
+    description:
+      'How often the board takes a backup of itself without being asked. Each run ' +
+      'bundles the database dump and, by default, the uploads into one file in the ' +
+      'backup directory, ships it to the off-site destination below when one is ' +
+      'configured, and prunes the oldest bundles under the retention rules. A ' +
+      'failed run is reported on the System screen and notified to administrators ' +
+      'the way any failing task is.',
+    schema: z.enum(['off', 'daily', 'weekly']),
+    default: 'off',
+    ui: {
+      options: [
+        { value: 'off', label: 'Off' },
+        { value: 'daily', label: 'Every day' },
+        { value: 'weekly', label: 'Every week' },
+      ],
+    },
+  }),
+  define({
+    key: 'backup.time',
+    group: 'backup',
+    label: 'Time of day',
+    description:
+      'When the automatic backup starts, as a 24-hour clock in UTC — 02:00 is two in ' +
+      'the morning UTC, whatever the server or your browser thinks the local time is. ' +
+      'Pick the quietest hour the board has; the dump reads every table while it runs.',
+    schema: z
+      .string()
+      .trim()
+      .refine((value) => SCHEDULE_TIME_PATTERN.test(value), 'Give a time as HH:MM, in UTC.'),
+    default: '02:00',
+  }),
+  define({
+    key: 'backup.weekday',
+    group: 'backup',
+    label: 'Day of the week',
+    description: 'Which day a weekly backup runs on. Ignored unless the schedule is weekly.',
+    schema: z.enum(['0', '1', '2', '3', '4', '5', '6']),
+    default: '1',
+    ui: {
+      options: [
+        { value: '1', label: 'Monday' },
+        { value: '2', label: 'Tuesday' },
+        { value: '3', label: 'Wednesday' },
+        { value: '4', label: 'Thursday' },
+        { value: '5', label: 'Friday' },
+        { value: '6', label: 'Saturday' },
+        { value: '0', label: 'Sunday' },
+      ],
+    },
+  }),
+  define({
+    key: 'backup.keep',
+    group: 'backup',
+    label: 'Backups to keep',
+    description:
+      'How many of the newest bundles survive a run, in the backup directory and at ' +
+      'the off-site destination alike. Pruning happens only after a new bundle is ' +
+      'safely written, so a run that fails never eats the good ones. Each bundle ' +
+      'that carries the uploads is roughly the size of the board, so this is also ' +
+      'the disk knob.',
+    schema: z.number().int().min(1).max(365),
+    default: 7,
+    ui: { min: 1, max: 365 },
+  }),
+  define({
+    key: 'backup.keep_days',
+    group: 'backup',
+    label: 'Days to keep a backup',
+    description:
+      'Bundles older than this many days are pruned as well, however few remain — ' +
+      'except the newest, which always survives. 0 keeps a bundle until the count ' +
+      'above pushes it out.',
+    schema: z.number().int().min(0).max(3650),
+    default: 0,
+    ui: { min: 0, max: 3650 },
+  }),
+  define({
+    key: 'backup.uploads',
+    group: 'backup',
+    label: 'Uploads in the bundle',
+    description:
+      'Whether a bundle carries the avatars, attachments and board images. ' +
+      '"Automatic" includes them when they live on the local disk or a Vercel Blob ' +
+      'store, where the bundle is the only copy, and leaves an S3 bucket alone, ' +
+      'because a bucket has a backup story of its own. A bundle without the uploads ' +
+      'restores a board whose posts have broken images.',
+    schema: z.enum(['auto', 'include', 'skip']),
+    default: 'auto',
+    ui: {
+      options: [
+        { value: 'auto', label: 'Automatic' },
+        { value: 'include', label: 'Always include' },
+        { value: 'skip', label: 'Never include' },
+      ],
+    },
+  }),
+  define({
+    key: 'backup.before_upgrade',
+    group: 'backup',
+    label: 'Back up before migrating',
+    description:
+      'Take a bundle before the migrator applies a pending schema migration, so a ' +
+      'new release always has a restore point in front of it. The bundle lands in ' +
+      'the backup directory and ships off-site like any other. The upgrade is ' +
+      'refused if that backup fails — a migration is forward-only, and the backup ' +
+      'is the only way back. Needs the migrate container to mount the backup ' +
+      'directory, which the shipped compose files do.',
+    schema: z.boolean(),
+    default: false,
+  }),
+  define({
+    key: 'backup.destination',
+    group: 'backup',
+    label: 'Off-site destination',
+    description:
+      'Where every bundle is also shipped, so a backup survives the server. "None" ' +
+      'keeps bundles on this machine only. An S3-compatible bucket takes the bucket ' +
+      'fields below; a WebDAV folder — Nextcloud, ownCloud, a Hetzner Storage Box — ' +
+      'takes the WebDAV fields. Setting BACKUP_S3_* or BACKUP_WEBDAV_* in the ' +
+      'environment overrides this whole group and makes its fields inert.',
+    schema: z.enum(['none', 's3', 'webdav']),
+    default: 'none',
+    ui: {
+      options: [
+        { value: 'none', label: 'None — bundles stay on the server' },
+        { value: 's3', label: 'An S3-compatible bucket' },
+        { value: 'webdav', label: 'A WebDAV folder' },
+      ],
+    },
+  }),
+  define({
+    key: 'backup.s3_bucket',
+    group: 'backup',
+    label: 'Off-site bucket',
+    description:
+      'An S3-compatible bucket every bundle is also shipped to — Backblaze B2, ' +
+      'Cloudflare R2, Hetzner, Scaleway, MinIO on a machine you trust. A bucket of ' +
+      'its own, never the one the uploads live in: a backup of the uploads should ' +
+      'not sit where losing the uploads loses it. Read when the destination above ' +
+      'is the bucket.',
+    schema: z.string().trim().max(255),
+    default: '',
+  }),
+  define({
+    key: 'backup.s3_region',
+    group: 'backup',
+    label: 'Bucket region',
+    description: 'The bucket’s region, or "auto" for a provider that ignores it, such as R2.',
+    schema: z.string().trim().max(100),
+    default: '',
+  }),
+  define({
+    key: 'backup.s3_endpoint',
+    group: 'backup',
+    label: 'Endpoint',
+    description:
+      'The API address for anything that is not AWS itself — R2, MinIO, Spaces. Leave ' +
+      'empty for AWS. Switches the client to path-style addressing, the way ' +
+      'S3_ENDPOINT does for the uploads.',
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || z.string().url().safeParse(value).success,
+        'That does not look like a URL.',
+      ),
+    default: '',
+  }),
+  define({
+    key: 'backup.s3_prefix',
+    group: 'backup',
+    label: 'Key prefix',
+    description:
+      'A folder inside the bucket, so one bucket can hold several boards. Left ' +
+      'empty, bundles sit at the root.',
+    schema: z.string().trim().max(200),
+    default: '',
+  }),
+  define({
+    key: 'backup.s3_access_key_id',
+    group: 'backup',
+    label: 'Access key id',
+    description:
+      'A credential with write and list on that bucket alone — nothing wider. It ' +
+      'ships bundles, lists them, and prunes the oldest.',
+    schema: z.string().trim().max(255),
+    default: '',
+  }),
+  define({
+    key: 'backup.s3_secret_access_key',
+    group: 'backup',
+    label: 'Secret access key',
+    description:
+      'Stored on the board, sealed under AUTH_SECRET: the database row holds ' +
+      'ciphertext, and a copy of the database alone cannot read it. The seal is ' +
+      'also why AUTH_SECRET has to survive a restore for the destination to.',
+    schema: z.string().max(255),
+    default: '',
+    secret: true,
+    sealed: true,
+  }),
+  define({
+    key: 'backup.webdav_url',
+    group: 'backup',
+    label: 'WebDAV folder address',
+    description:
+      'The full address of a folder that already exists, such as ' +
+      'https://cloud.example/remote.php/dav/files/backups/board/ on Nextcloud. ' +
+      'Bundles are written into it and the oldest pruned from it; the folder itself ' +
+      'is never created or removed.',
+    schema: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === '' || /^https?:\/\/[^?#]+$/.test(value),
+        'Give an http:// or https:// address of a folder, with no query string.',
+      ),
+    default: '',
+  }),
+  define({
+    key: 'backup.webdav_username',
+    group: 'backup',
+    label: 'WebDAV username',
+    description:
+      'The account the bundles are written as. Nextcloud and ownCloud let you make an ' +
+      'app password for one purpose; use that rather than the account password.',
+    schema: z.string().trim().max(255),
+    default: '',
+  }),
+  define({
+    key: 'backup.webdav_password',
+    group: 'backup',
+    label: 'WebDAV password',
+    description:
+      'Stored on the board, sealed under AUTH_SECRET the way the bucket secret is: ' +
+      'the database row holds ciphertext, and a copy of the database alone cannot ' +
+      'read it.',
+    schema: z.string().max(255),
+    default: '',
+    secret: true,
+    sealed: true,
   }),
 ] as const
 

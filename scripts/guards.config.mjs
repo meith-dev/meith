@@ -26,11 +26,14 @@ export const GUARDS = [
       'over themes/ or plugins/ is empty in production while working perfectly ' +
       'on the developer machine that wrote it. It also makes the installed set ' +
       'unknowable at build time, so a broken plugin is a 500 rather than a ' +
-      'compile error. Import it in meith.config.ts instead.',
+      'compile error. Import it in meith.config.ts instead. packages/backup is ' +
+      'allowed because the ring of backup bundles is data on a volume, not code: ' +
+      'listing it is the only way to know what the board holds, and it runs on ' +
+      'the server that mounts the volume, never in a serverless bundle.',
     files: /\.(ts|tsx)$/,
     pattern: /\b(readdir|readdirSync|globSync|opendir|opendirSync)\s*\(/,
     allow:
-      /^(scripts\/|apps\/cli\/|packages\/create-meith\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
+      /^(scripts\/|apps\/cli\/|packages\/backup\/|packages\/create-meith\/|packages\/testkit\/|packages\/db\/src\/migrate\.ts|packages\/drivers\/src\/images\/locate-wasm\.ts)/,
     probe: {
       violates: "const themes = await readdir('./themes')",
       clean: "import themes from './meith.config'",

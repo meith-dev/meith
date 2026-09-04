@@ -17,6 +17,7 @@ export interface TaskDefinition {
   readonly descriptionKey?: string
   readonly intervalSeconds: number
   readonly schedule?: string
+  readonly lane?: 'long'
   readonly maxDurationSeconds: number
   run(context: TaskContext): Promise<TaskResult>
 }

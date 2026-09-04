@@ -1,4 +1,10 @@
-export { builtinTasks, type TaskWorkers } from './builtin'
+export {
+  BACKUP_TASK_ID,
+  BACKUP_TASK_MAX_SECONDS,
+  type BackupTaskOutcome,
+  builtinTasks,
+  type TaskWorkers,
+} from './builtin'
 export {
   assessScheduler,
   assessTask,

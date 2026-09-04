@@ -8,11 +8,12 @@
     "build": "esbuild --bundle --platform=node --format=cjs --target=node22 --log-override:empty-import-meta=silent src/index.ts --outfile=dist/worker.cjs && esbuild --bundle --platform=node --format=cjs --target=node22 --log-override:empty-import-meta=silent src/migrate.ts --outfile=dist/migrate.cjs"
   },
   "dependencies": {
+    "@meith/backup": "workspace:*",
     "@meith/core": "workspace:*",
+    "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/runtime": "workspace:*",
-    "@meith/tasks": "workspace:*",
-    "@meith/db": "workspace:*"
+    "@meith/tasks": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

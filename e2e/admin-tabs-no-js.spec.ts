@@ -80,6 +80,7 @@ test('every section in the rail opens, and marks itself as where you are', async
     ['/admin/users/prune', 'Prune members'],
     ['/admin/content/announcements', 'Announcements'],
     ['/admin/content/attachments', 'Attachments'],
+    ['/admin/system/backups', 'Backups'],
   ] as const) {
     const response = await page.goto(href)
     expect(response?.status(), `${href} answered`).toBe(200)

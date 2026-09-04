@@ -47,6 +47,25 @@ services:
       DATABASE_URL: postgres://community:$SERVICE_PASSWORD_POSTGRES@postgres:5432/community
       AUTH_SECRET: $SERVICE_BASE64_64_AUTH
       TICK_SECRET: $SERVICE_BASE64_64_TICK
+      FILESTORE_DRIVER: local
+      # So that "back up before migrating" (a board setting) can ship the
+      # bundle it takes to the same off-site destination the web container
+      # uses. Unset until the four required values are filled in on the
+      # Coolify resource.
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: ${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      # Both volumes, so that the bundle "back up before migrating" writes
+      # carries the uploads and lands in the same ring as every other backup.
+      - uploads:/app/.uploads
+      - backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,11 +120,15 @@ services:
       - BACKUP_S3_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET_ACCESS_KEY:-}
       - BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-}
       - BACKUP_S3_PREFIX=${BACKUP_S3_PREFIX:-}
+      - BACKUP_WEBDAV_URL=${BACKUP_WEBDAV_URL:-}
+      - BACKUP_WEBDAV_USERNAME=${BACKUP_WEBDAV_USERNAME:-}
+      - BACKUP_WEBDAV_PASSWORD=${BACKUP_WEBDAV_PASSWORD:-}
     volumes:
       - uploads:/app/.uploads
-      # Where `meith backup --dir /backups` writes its ring of bundles. A
-      # named volume rather than the container filesystem, so the ring survives
-      # every redeploy.
+      # The ring of backup bundles: what the admin panel's Backups screen
+      # writes, lists and downloads, and what `meith backup --dir /backups`
+      # writes. A named volume rather than the container filesystem, so the
+      # ring survives every redeploy.
       - backups:/backups
     depends_on:
       postgres:
