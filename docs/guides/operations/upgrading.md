@@ -35,8 +35,10 @@ cannot be reversed at all. A "roll back" that worked for some and
 silently did nothing for others would be worse than its absence.
 
 Take a backup before every upgrade, and make sure it is one you have
-actually restored at least once. See
-[backup and restore](./operating.md#backup).
+actually restored at least once. **Admin → Settings → Backups → Back up
+before migrating** makes the migrator do it for you: a bundle before every
+pending core migration, and no migration when the bundle fails. See
+[Backups](./backups.md#before-an-upgrade).
 
 ## What `meith upgrade` does
 
@@ -248,7 +250,7 @@ docker compose up -d --build
 
 The `mkdir` and the `--user` are what let the container write the bundle
 onto your host at all — the image runs as uid 1001, which owns nothing
-there; [Backup](./operating.md#backup) explains it in full. Get them
+there; [Backup](./backups.md) explains it in full. Get them
 wrong and the run refuses immediately, before it dumps anything, naming
 the directory that needs write access — so you find out here rather than
 two lines further down, where this runbook destroys the volume.
@@ -704,7 +706,7 @@ mechanism.
 
 #### Backup is a verb
 
-The [backup and restore](./operating.md#backup) page used to
+The [backup and restore](./backups.md) page used to
 be commands you copied; it is now `meith backup` and
 `meith restore` — one bundle carrying the database dump and the
 uploads together, restored only into a new, empty database, with the

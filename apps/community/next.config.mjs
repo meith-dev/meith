@@ -91,6 +91,7 @@ const nextConfig = {
     '@meith/settings',
     '@meith/signatures',
     '@meith/subscriptions',
+    '@meith/backup',
     '@meith/tasks',
     '@meith/theme-clubhouse',
     '@meith/theme-default',

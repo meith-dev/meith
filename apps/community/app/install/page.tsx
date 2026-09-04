@@ -16,9 +16,13 @@ import { isUsableOrigin, MAIL_PRESETS, normaliseOrigin } from '@meith/settings'
 import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
+import { InstallRestoreForm } from '@/components/install/restore-form'
 import { getTranslator, tr } from '@/server/i18n'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
-import { installFormCopy } from '@/view/install-copy'
+import { installRestoreView } from '@/server/install-restore'
+import { formatBytes } from '@/view/attachments'
+import { installFormCopy, installRestoreCopy } from '@/view/install-copy'
+import { formatTime } from '@/view/time'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.install') }
@@ -75,6 +79,8 @@ export default async function InstallPage() {
   const ready = canProceed(checks)
   const mail = await probeMail()
   const suggestedBoardUrl = await suggestBoardUrl()
+  const restore = ready ? await installRestoreView() : null
+  const now = new Date()
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
@@ -86,6 +92,28 @@ export default async function InstallPage() {
       </header>
 
       <Preflight checks={checks} />
+
+      {restore?.possible && (
+        <InstallRestoreForm
+          candidates={restore.candidates.map((candidate) => ({
+            name: candidate.name,
+            label:
+              candidate.takenAt === null
+                ? candidate.name
+                : t.t('install.restore.takenAt', {
+                    time: formatTime(candidate.takenAt, now, t).label,
+                  }),
+            size: formatBytes(candidate.size),
+            location:
+              candidate.location === 'server'
+                ? t.t('install.restore.onServer')
+                : t.t('install.restore.offSite'),
+          }))}
+          destination={restore.destination}
+          problem={restore.problem}
+          copy={installRestoreCopy(t)}
+        />
+      )}
 
       {ready && (
         <InstallForm

@@ -115,6 +115,7 @@ export const ADMIN_SECTIONS: PanelNav = [
     titleKey: 'adminNav.admin-system.title',
     icon: 'system',
     blurbKey: 'adminNav.admin-system.blurb',
+    children: [{ href: '/admin/system/backups', titleKey: 'adminNav.admin-system-backups.title' }],
   },
   {
     href: '/admin/log',

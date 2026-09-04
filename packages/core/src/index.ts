@@ -39,6 +39,7 @@ export {
   isProduction,
   isTest,
   parseEnv,
+  processEnvironment,
   RESEND_EMAILS_ENDPOINT,
   readPluginEnv,
   resetEnvForTests,
@@ -84,6 +85,7 @@ export {
   metrics,
   PrometheusRegistry,
 } from './metrics'
+export { unusableKeyReason } from './object-keys'
 export { optional } from './optional'
 export {
   emptyPermissionSet,
@@ -120,6 +122,7 @@ export {
   rateLimitWindowStart,
   spendRateLimit,
 } from './rate-limit'
+export { isSealedValue, openValue, sealValue } from './sealed-box'
 export {
   ALL_THREAD_AUTHORS,
   audienceFilterIn,

@@ -43,6 +43,7 @@ Running your community — browser only, no shell access:
 Operating the server:
 
 - [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, web push, the cookies and security headers the board serves, and troubleshooting.
+- [Backups](./guides/operations/backups.md) — take one from the panel, schedule them, ship them off the server, and restore from the installer.
 - [Monitoring & alerting](./guides/operations/monitoring.md) — liveness versus readiness, metrics, tracing, and logs.
 - [Webhooks](./guides/operations/webhooks.md) — deliver board events to an endpoint you choose, and verify the signatures.
 - [Upgrading](./guides/operations/upgrading.md) — move between released versions safely.

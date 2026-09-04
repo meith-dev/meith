@@ -1,4 +1,4 @@
-import type { TaskDefinition } from './types'
+import type { TaskContext, TaskDefinition } from './types'
 
 export interface TaskWorkers {
   relayOutbox(batchSize: number): Promise<number>
@@ -28,7 +28,20 @@ export interface TaskWorkers {
   sweepAttachments(batchSize: number): Promise<{ deleted: number; failed: number }>
   sweepAvatars(batchSize: number): Promise<number>
   rollUpStatistics(): Promise<{ memberCount: number; online: number; record: boolean }>
+  runBackups(context: TaskContext): Promise<BackupTaskOutcome>
 }
+
+export interface BackupTaskOutcome {
+  readonly ran: number
+  readonly trigger?: string
+  readonly bundle?: string
+  readonly status?: string
+  readonly skipped?: string
+}
+
+export const BACKUP_TASK_ID = 'backup.run'
+
+export const BACKUP_TASK_MAX_SECONDS = 6 * 60 * 60
 
 function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
   return [
@@ -425,6 +438,28 @@ function allDefinitions(workers: TaskWorkers): TaskDefinition[] {
     },
 
     {
+      id: BACKUP_TASK_ID,
+      title: 'Take due backups',
+      titleKey: 'adminSystem.task.backupRun.title',
+      description:
+        'Runs the backup an administrator asked for, or the one the schedule says ' +
+        'is due, one at a time: the database dump, the uploads when the settings ' +
+        'include them, a bundle in the backup directory, a copy at the off-site ' +
+        'destination, and the pruning of whatever the retention rules no longer ' +
+        'keep. Checks every minute and does nothing most of the time. The worker ' +
+        'runs it in a lane of its own, because a dump of a large board takes ' +
+        'minutes and the outbox should not wait for it.',
+      descriptionKey: 'adminSystem.task.backupRun.description',
+      intervalSeconds: 60,
+      maxDurationSeconds: BACKUP_TASK_MAX_SECONDS,
+      lane: 'long',
+      async run(context) {
+        const outcome = await workers.runBackups(context)
+        return { detail: { ...outcome } }
+      },
+    },
+
+    {
       id: 'stats.rollup',
       title: 'Roll up board statistics',
       titleKey: 'adminSystem.task.statsRollup.title',
@@ -471,6 +506,7 @@ const REQUIRED_WORKER: Readonly<Record<string, keyof TaskWorkers>> = {
   'attachments.sweep': 'sweepAttachments',
   'avatars.sweep': 'sweepAvatars',
   'stats.rollup': 'rollUpStatistics',
+  [BACKUP_TASK_ID]: 'runBackups',
 }
 
 export function builtinTasks(workers: Partial<TaskWorkers>): TaskDefinition[] {

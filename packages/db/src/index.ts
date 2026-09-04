@@ -54,6 +54,7 @@ export {
   parseAncestorPath,
 } from './authorization-source'
 export { PostgresAvatarRepository } from './avatar-repo'
+export { PostgresBackupRunRepository } from './backup-run-repo'
 export {
   PostgresBanFilterRepository,
   PostgresBanRepository,
@@ -254,7 +255,12 @@ export {
   type StoredSearch,
 } from './search-store'
 export { SEED_GROUP_KEY, type SeedGroupKey } from './seed-groups'
-export { PostgresSettingsRepository } from './settings-repo'
+export {
+  PostgresSettingsRepository,
+  SETTING_SEAL_PURPOSE,
+  type SettingSealer,
+  settingSealer,
+} from './settings-repo'
 export { PostgresSignatureRepository } from './signature-repo'
 export {
   type BoardTotals,

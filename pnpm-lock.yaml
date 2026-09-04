@@ -54,6 +54,9 @@ importers:
       '@meith/accounts':
         specifier: workspace:*
         version: link:../../packages/accounts
+      '@meith/backup':
+        specifier: workspace:*
+        version: link:../../packages/backup
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -118,6 +121,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../../packages/avatars
+      '@meith/backup':
+        specifier: workspace:*
+        version: link:../../packages/backup
       '@meith/board-digest':
         specifier: workspace:*
         version: link:../../packages/board-digest
@@ -317,6 +323,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@meith/backup':
+        specifier: workspace:*
+        version: link:../../packages/backup
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -492,6 +501,21 @@ importers:
         specifier: workspace:*
         version: link:../i18n
 
+  packages/backup:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1111.0
+        version: 3.1111.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: 3.1111.0
+        version: 3.1111.0
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
+      '@meith/upgrade':
+        specifier: workspace:*
+        version: link:../upgrade
+
   packages/board-digest:
     dependencies:
       '@meith/core':
@@ -554,6 +578,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
+      '@meith/backup':
+        specifier: workspace:*
+        version: link:../backup
       '@meith/board-digest':
         specifier: workspace:*
         version: link:../board-digest
@@ -890,6 +917,9 @@ importers:
       '@meith/avatars':
         specifier: workspace:*
         version: link:../avatars
+      '@meith/backup':
+        specifier: workspace:*
+        version: link:../backup
       '@meith/board-digest':
         specifier: workspace:*
         version: link:../board-digest

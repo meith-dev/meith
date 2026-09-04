@@ -75,6 +75,22 @@ export function webhookFormsCopy(t: Translator = untranslated()): Readonly<Recor
   )
 }
 
+export function backupFormsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
+  return {
+    ...copyFor(
+      [
+        'adminPanel.backup.now',
+        'adminPanel.backup.queued',
+        'adminPanel.backup.already',
+        'adminPanel.backup.delete',
+        'adminPanel.backup.test',
+      ],
+      t,
+    ),
+    ...patternCopy(['adminPanel.backup.deleted', 'adminPanel.backup.reachable'], t),
+  }
+}
+
 export function systemFormsCopy(t: Translator = untranslated()): Readonly<Record<string, string>> {
   return {
     ...copyFor(

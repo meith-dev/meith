@@ -453,7 +453,7 @@ the page they need:
 
 | Job | Their page |
 |---|---|
-| Backups — and proving a backup restores | [Operations § Backup](../operations/operating.md#backup) |
+| Backups — and proving a backup restores | [Backups](../operations/backups.md) — the schedule and the off-site bucket are settings you can turn on yourself; proving a restore still wants the terminal |
 | Upgrading to a new version | [Upgrading a board](../operations/upgrading.md) |
 | Setting up or changing how mail is sent | [Operations § Mail](../operations/operating.md#mail) |
 | Installing a theme or a plugin | [The theme API](../../customization/themes.md), [The plugin API](../../customization/plugins.md) |

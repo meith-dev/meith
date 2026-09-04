@@ -3,7 +3,7 @@
 This page is the runbook for the bad day: the server is gone — seized,
 dead, deleted, or unreachable in a way that is not coming back — and the
 board has to exist again somewhere else.
-[Backup and restore](./operating.md#backup) is the everyday
+[Backups](./backups.md) is the everyday
 half of this story: what to take, how to take it, and how to restore one
 piece. This page is the order of operations when *everything* has to be
 restored at once, written to be followed under stress. Read it once on a
@@ -63,8 +63,25 @@ their authenticator apps, so exhaust the places a copy might be first.
 
 ### 3. Restore the board
 
-Bring up Postgres alone, restore into it, and keep the board down until
-the data is in:
+Two ways in, and the first needs no shell.
+
+**From the installer.** Bring the whole stack up — `docker compose up -d
+--build` — and open the board. `migrate` writes an empty schema, the board
+serves `/install`, and that page offers **Or restore a backup** beside the
+ordinary install form: every bundle in the `backups` volume and every
+bundle at the off-site destination the `.env` names, newest first. Put
+the bundle you saved into the volume (`docker compose cp
+meith-backup-….tar.gz web:/backups/`), or let the installer fetch it from
+the bucket, pick it, confirm you hold the `AUTH_SECRET` the board ran
+with, and press **Restore this bundle**. It replaces the empty schema with
+the dump, applies any migrations the bundle predates, puts the uploads
+back on the volume, and seals the installer. Then restart web and worker.
+[Restoring from the installer](./backups.md#from-the-installer) has the
+detail, including why it refuses a board with members and a bundle from a
+newer version.
+
+**From a shell.** Bring up Postgres alone, restore into it, and keep the
+board down until the data is in:
 
 ```sh
 docker compose up -d postgres
@@ -74,11 +91,11 @@ RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/comm
 ```
 
 The fresh Postgres container created an empty `community` database, which
-is exactly what [`meith restore`](./operating.md#restore) insists
-on. One command puts back the dump *and* the uploads — `docker compose
-run` mounts the same uploads volume the board serves from — and applies
-any migrations the bundle predates; on a bundle taken from the same
-version it reports nothing to do, and that silence is itself a check.
+is exactly what [`meith restore`](./backups.md#from-the-command-line)
+insists on. One command puts back the dump *and* the uploads — `docker
+compose run` mounts the same uploads volume the board serves from — and
+applies any migrations the bundle predates; on a bundle taken from the
+same version it reports nothing to do, and that silence is itself a check.
 
 Backups taken by hand instead — a bare dump beside an uploads archive —
 restore the way they were taken:
@@ -91,8 +108,7 @@ docker run --rm -v docker_uploads:/u -v "$PWD":/backup alpine \
 
 (`docker volume ls` for the real volume name — Compose prefixes it with
 the project directory. A `--format=custom` dump goes through
-`pg_restore --no-owner --no-privileges` —
-[Restore](./operating.md#restore) covers the command.)
+`pg_restore --no-owner --no-privileges`.)
 
 ### 4. The uploads, when they lived elsewhere
 
@@ -141,7 +157,7 @@ copy that can be taken; it records the skipped keys in its manifest, and
 the restore below prints them back. On a Blob store those objects have no
 second copy, so treat the list as a loss to be understood now rather than
 discovered by a member six months from now.
-[When a bundle is incomplete](./operating.md#when-a-bundle-is-incomplete)
+[When a bundle is incomplete](./backups.md#when-a-bundle-is-incomplete)
 covers the whole of it, including why a scheduled backup should not
 retry.
 
@@ -186,11 +202,15 @@ step from hours into minutes.
 
 ### 7. Resume the backups
 
-The new machine has no cron, and the recovery you just finished consumed
-a backup rather than producing one. Re-create the schedule you had,
-using the command in [Backup](./operating.md#backup), run it once by
-hand, and copy the result off the machine — the next disaster does not
-care how recent the last one was.
+The recovery you just finished consumed a backup rather than producing
+one. The schedule, the retention and the destination are board settings,
+so they came back with the dump — a destination set in the environment
+is whatever the new `.env` says — but nothing has run yet on this
+machine. Open **Admin → System → Backups**, press **Back up now**, and
+check the bundle lands where it should, off-site included; the next
+disaster does not care how recent the last one was. A cron or Scheduled
+Task you had built around `meith backup` is the one thing the old server
+took with it — [Backups](./backups.md) has both shapes.
 
 ## Under Coolify
 
@@ -219,16 +239,19 @@ from itself. The same order, mapped:
    the bundles.
 
 3. **Deploy once** — the four containers come up and `migrate` writes a
-   fresh, empty schema. The board now serves `/install`; **do not open
-   it**. The restore below brings back the installed, sealed board, and
-   an installer run here would create a second board you would only have
-   to drop again.
+   fresh, empty schema. The board now serves `/install`; open it, but do
+   **not** fill in the install form. The restore below brings back the
+   installed, sealed board, and an installer run here would create a
+   second board you would only have to drop again.
 
-4. **Restore** — fetch the newest bundle, replace the empty schema with
-   it, and let the uploads land on the fresh volume (nothing to clear —
-   the resource has never served an upload):
-
-   In the resource's **Terminal**, container `web`:
+4. **Restore** — on `/install`, **Or restore a backup** lists every
+   bundle at the off-site destination, because the `BACKUP_S3_*` values
+   went in at step 2. Pick the newest, confirm you hold the
+   `AUTH_SECRET`, and press **Restore this bundle**: the fresh schema is
+   replaced by the dump, the uploads land on the fresh volume (nothing to
+   clear — the resource has never served an upload), and the installer
+   seals itself. The shell route still works when you would rather see
+   it happen — resource **Terminal**, container `web`:
 
    ```sh
    meith backup:list
@@ -253,11 +276,9 @@ from itself. The same order, mapped:
    the world still resolves to the old address.
 
 6. **Cut over, then resume the backups** — steps 6 and 7 above. The
-   Scheduled Task is panel configuration the old server took with it:
-   re-create it from the
-   [backup section's table](../../getting-started/deployment/coolify.md#6-set-up-backups),
-   press its run-now button once, and check `meith backup:list` shows
-   today.
+   schedule came back with the settings; **Back up now** on
+   **Admin → System → Backups** proves the new resource can ship a bundle,
+   and the same screen shows it arrive.
 
 ## Partial losses are smaller pages
 
@@ -274,7 +295,7 @@ answer than this runbook:
 
 ## Rehearse it, and write the number down
 
-The [backup page's advice](./operating.md#backup) — a backup nobody
+The [backup page's advice](./backups.md#rehearse-it) — a backup nobody
 has restored is a file, not a backup — applies to this whole page: a
 runbook nobody has run is a hope, not a plan. Once, on a scratch server
 or a laptop, run steps 1 through 5 against last week's real backups and

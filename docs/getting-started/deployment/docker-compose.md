@@ -305,8 +305,8 @@ docker compose up -d --build
 
 `migrate` runs first and the others wait for it, so the schema is never
 behind the code. **Take a backup first** — migrations are forward-only
-and recovery is by restore; see
-[backup and restore](../../guides/operations/operating.md#backup).
+and recovery is by restore; see [Backups](../../guides/operations/backups.md),
+whose *Back up before migrating* setting makes `migrate` take it itself.
 
 That applies **core migrations only**. Plugin migrations run through
 `meith upgrade` — see
@@ -508,10 +508,11 @@ covers the failures that are about the board rather than the deployment.
 Worth being plain about, because this is the route with no panel behind
 it:
 
-- **Backups are yours.** Nobody else is taking one. `meith backup`
-  bundles the database *and* the uploads; the cron and the offsite copy
-  are still yours to build. See
-  [backup and restore](../../guides/operations/operating.md#backup), and the
+- **Backups are yours.** Nobody else is taking one. The board schedules
+  its own — **Admin → Settings → Backups** — bundling the database *and*
+  the uploads into the `backups` volume and, once you name a bucket, off
+  the server; the bucket is still yours to rent. See
+  [Backups](../../guides/operations/backups.md), and the
   [disaster-recovery runbook](../../guides/operations/disaster-recovery.md) for the day they
   are all you have.
 - **Certificates are yours.** Caddy makes it a solved problem, but it is

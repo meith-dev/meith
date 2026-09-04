@@ -219,6 +219,16 @@
       "group": "Operating the server"
     },
     {
+      "slug": "backups",
+      "file": "guides/operations/backups.md",
+      "section": "guides",
+      "title": "Backups",
+      "blurb": "Taking a backup from the control panel, on a schedule, off the server and before an upgrade; what a bundle carries; and restoring one from the installer or the command line.",
+      "generated": false,
+      "primary": false,
+      "group": "Operating the server"
+    },
+    {
       "slug": "monitoring",
       "file": "guides/operations/monitoring.md",
       "section": "guides",

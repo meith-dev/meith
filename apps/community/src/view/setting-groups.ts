@@ -12,6 +12,7 @@ export const GROUP_LABELS: Record<SettingGroup, string> = {
   federation: 'Sign-in providers',
   antispam: 'Anti-spam',
   push: 'Push',
+  backup: 'Backups',
   legal: 'Legal',
 }
 
@@ -27,6 +28,7 @@ export const GROUP_ORDER: readonly SettingGroup[] = [
   'federation',
   'antispam',
   'push',
+  'backup',
   'legal',
 ]
 

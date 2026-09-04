@@ -1,3 +1,20 @@
+export {
+  type BackupEnvironment,
+  type BackupSettingsView,
+  backupDestinationFor,
+  backupRingDirectory,
+  backupSettingsFrom,
+  backupSourceFrom,
+  loadBackupSettings,
+} from './backup-plan'
+export {
+  BACKUP_INTERRUPTED_AFTER_MS,
+  BACKUP_STALE_MS,
+  type BackupWorkerDeps,
+  backupLog,
+  backupWorker,
+  executeBackupRun,
+} from './backup-worker'
 export { buildEventRegistry, type EventHandlerDeps } from './event-handlers'
 export { SEED_GROUP } from './groups'
 export {

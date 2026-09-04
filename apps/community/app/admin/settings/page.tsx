@@ -8,6 +8,7 @@ import { MailTestCard } from '@/components/admin/mail-test-card'
 import { AdminSettingsForm } from '@/components/admin/settings-form'
 import { PanelPage } from '@/components/shell/panel-page'
 import { adminPageContext } from '@/server/admin'
+import { destinationIsFromEnvironment } from '@/server/backup-admin'
 import { boardUrlResolution } from '@/server/board-url'
 import { faviconKey, faviconSrc } from '@/server/branding'
 import { getTranslator, tr } from '@/server/i18n'
@@ -53,6 +54,8 @@ export default async function AdminSettingsPage({
   const push = model.activeGroup === 'push' ? await pushReadiness() : null
 
   const favicon = model.activeGroup === 'board' ? await faviconKey() : null
+
+  const backupFromEnvironment = model.activeGroup === 'backup' && destinationIsFromEnvironment()
 
   return (
     <PanelPage title={await tr('page.board-settings')} lede={t.t('adminSettings.lede')}>
@@ -186,6 +189,12 @@ export default async function AdminSettingsPage({
               ? t.t('adminSettings.pushNoContact')
               : t.t('adminSettings.pushNoKeys')}
           </p>
+        </section>
+      )}
+
+      {backupFromEnvironment && (
+        <section className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
+          <p>{t.t('adminSettings.backupFromEnvironment')}</p>
         </section>
       )}
 

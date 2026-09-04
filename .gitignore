@@ -52,6 +52,10 @@ test-results/
 # here that would be a disclosure rather than merely noise.
 .uploads/
 
+# A local board's ring of backup bundles — BACKUP_DIR, `.backups` by default.
+# A dump of the whole board, so the same disclosure concern as the uploads.
+.backups/
+
 # Common ignores
 node_modules
 .DS_Store

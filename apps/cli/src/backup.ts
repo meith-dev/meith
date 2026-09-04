@@ -1,542 +1,41 @@
-import { spawn } from 'node:child_process'
-import {
-  chmod,
-  copyFile,
-  mkdir,
-  mkdtemp,
-  open,
-  readdir,
-  readFile,
-  rm,
-  stat,
-  writeFile,
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 
-import { ConfigurationError, env, type FileStore, ValidationError } from '@meith/core'
-import { migrationUrl, runMigrations } from '@meith/db'
-import { BlobFileStore, S3FileStore, unusableKeyReason } from '@meith/drivers'
+import {
+  type BackupLog,
+  backupDestinationFromEnv,
+  claimBackupDestination,
+  createBackup,
+  formatBytes,
+  isBundleName,
+  localBundles,
+  resolveKeep,
+  resolveUploadsMode,
+  restoreBackup,
+  restoreLimits,
+  S3BackupDestination,
+  skippedKeyLines,
+} from '@meith/backup'
+import { ConfigurationError, env, ValidationError } from '@meith/core'
+import { getDb, PostgresBackupRunRepository, runMigrations } from '@meith/db'
+import { BlobFileStore, S3FileStore } from '@meith/drivers'
+import { backupRingDirectory, backupSourceFrom } from '@meith/runtime'
 
 import { optional, parseFlags } from './args'
-import {
-  BackupStore,
-  backupDestinationFromEnv,
-  isBundleName,
-  pruneCandidates,
-  resolveKeep,
-} from './backup-store'
 import { requirePostgres } from './context'
 import { CODE_VERSION } from './upgrade'
 import { translateWriteError } from './write-errors'
 
-export type UploadsMode = 'include' | 'skip'
-
-export type FilestoreDriver = 'local' | 's3' | 'blob'
-
-export interface BackupManifest {
-  readonly format: 1
-  readonly createdAt: string
-  readonly version: string
-  readonly filestore: FilestoreDriver
-  readonly uploads: 'included' | 'skipped'
-  readonly bucket?: string
-  readonly skippedKeys?: readonly string[]
-}
-
 const INCOMPLETE_BUNDLE_EXIT_CODE = 2
 
-export function resolveUploadsMode(driver: FilestoreDriver, flag: string | undefined): UploadsMode {
-  if (flag === undefined) return driver === 's3' ? 'skip' : 'include'
-  if (flag === 'include' || flag === 'skip') return flag
-  throw new ValidationError(`--uploads must be "include" or "skip", got "${flag}".`)
+const CONSOLE_LOG: BackupLog = {
+  info: (line) => console.log(line),
+  warn: (line) => console.warn(line),
 }
 
-export function bundleName(at: Date): string {
-  const stamp = at
-    .toISOString()
-    .replace(/\.\d+Z$/, 'Z')
-    .replaceAll(':', '-')
-  return `meith-backup-${stamp}.tar.gz`
-}
-
-export function parseManifest(raw: string): BackupManifest {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    throw new ValidationError('The bundle manifest is not valid JSON.')
-  }
-
-  const manifest = parsed as Partial<BackupManifest>
-  if (manifest.format !== 1) {
-    throw new ValidationError(
-      `This bundle declares format ${JSON.stringify(manifest.format)}; this build restores format 1.`,
-    )
-  }
-  if (manifest.uploads !== 'included' && manifest.uploads !== 'skipped') {
-    throw new ValidationError('The bundle manifest does not say whether uploads are included.')
-  }
-  if (typeof manifest.createdAt !== 'string' || typeof manifest.version !== 'string') {
-    throw new ValidationError('The bundle manifest is missing createdAt or version.')
-  }
-  if (
-    manifest.filestore !== 'local' &&
-    manifest.filestore !== 's3' &&
-    manifest.filestore !== 'blob'
-  ) {
-    throw new ValidationError('The bundle manifest does not name a known file driver.')
-  }
-
-  const skippedKeys = manifest.skippedKeys
-  if (
-    skippedKeys !== undefined &&
-    (!Array.isArray(skippedKeys) || skippedKeys.some((key) => typeof key !== 'string'))
-  ) {
-    throw new ValidationError('The bundle manifest lists skipped objects in a form it cannot read.')
-  }
-
-  return {
-    format: 1,
-    createdAt: manifest.createdAt,
-    version: manifest.version,
-    filestore: manifest.filestore,
-    uploads: manifest.uploads,
-    ...(typeof manifest.bucket === 'string' ? { bucket: manifest.bucket } : {}),
-    ...(skippedKeys === undefined || skippedKeys.length === 0 ? {} : { skippedKeys }),
-  }
-}
-
-const CONTENT_TYPES: ReadonlyMap<string, string> = new Map([
-  ['.avif', 'image/avif'],
-  ['.gif', 'image/gif'],
-  ['.jpeg', 'image/jpeg'],
-  ['.jpg', 'image/jpeg'],
-  ['.png', 'image/png'],
-  ['.svg', 'image/svg+xml'],
-  ['.webp', 'image/webp'],
-])
-
-export function contentTypeFor(key: string): string {
-  return CONTENT_TYPES.get(path.extname(key).toLowerCase()) ?? 'application/octet-stream'
-}
-
-export function formatBytes(size: number): string {
-  let value = size
-  let unit = 'B'
-  for (const next of ['KiB', 'MiB', 'GiB', 'TiB']) {
-    if (value < 1024) break
-    value /= 1024
-    unit = next
-  }
-  return unit === 'B' ? `${value} B` : `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`
-}
-
-export interface RestoreLimits {
-  readonly archiveBytes: number
-  readonly members: number
-  readonly memberBytes: number
-  readonly expandedBytes: number
-}
-
-const RESTORE_LIMIT_DEFAULTS: RestoreLimits = {
-  archiveBytes: 2 * 1024 * 1024 * 1024,
-  members: 100_000,
-  memberBytes: 1024 * 1024 * 1024,
-  expandedBytes: 8 * 1024 * 1024 * 1024,
-}
-
-function positiveInteger(value: string | undefined, variable: string, fallback: number): number {
-  if (value === undefined || value === '') return fallback
-  if (!/^\d+$/.test(value)) {
-    throw new ValidationError(`${variable} must be a positive integer number of bytes or members.`)
-  }
-  const parsed = Number(value)
-  if (!Number.isSafeInteger(parsed) || parsed < 1) {
-    throw new ValidationError(`${variable} must be a positive integer number of bytes or members.`)
-  }
-  return parsed
-}
-
-export function restoreLimits(environment: NodeJS.ProcessEnv): RestoreLimits {
-  return {
-    archiveBytes: positiveInteger(
-      environment.MEITH_RESTORE_MAX_ARCHIVE_BYTES,
-      'MEITH_RESTORE_MAX_ARCHIVE_BYTES',
-      RESTORE_LIMIT_DEFAULTS.archiveBytes,
-    ),
-    members: positiveInteger(
-      environment.MEITH_RESTORE_MAX_MEMBERS,
-      'MEITH_RESTORE_MAX_MEMBERS',
-      RESTORE_LIMIT_DEFAULTS.members,
-    ),
-    memberBytes: positiveInteger(
-      environment.MEITH_RESTORE_MAX_MEMBER_BYTES,
-      'MEITH_RESTORE_MAX_MEMBER_BYTES',
-      RESTORE_LIMIT_DEFAULTS.memberBytes,
-    ),
-    expandedBytes: positiveInteger(
-      environment.MEITH_RESTORE_MAX_EXPANDED_BYTES,
-      'MEITH_RESTORE_MAX_EXPANDED_BYTES',
-      RESTORE_LIMIT_DEFAULTS.expandedBytes,
-    ),
-  }
-}
-
-interface ArchiveMember {
-  readonly name: string
-  readonly type: string
-  readonly size: number
-}
-
-function normalizedArchiveName(name: string): string | undefined {
-  if (name === '' || name.includes('\\') || name.includes('\0')) return undefined
-  const withoutDirectoryMarker = name.endsWith('/') ? name.slice(0, -1) : name
-  if (withoutDirectoryMarker === '.') return '.'
-  const normalized = withoutDirectoryMarker.replace(/^\.\//, '')
-  if (normalized === '' || path.posix.isAbsolute(normalized)) return undefined
-  const parts = normalized.split('/')
-  if (parts.some((part) => part === '' || part === '.' || part === '..')) return undefined
-  return normalized
-}
-
-export function validateArchiveListing(
-  namesOutput: string,
-  verboseOutput: string,
-  limits: RestoreLimits,
-  allowedTypes: ReadonlySet<string>,
-): readonly ArchiveMember[] {
-  const names = namesOutput === '' ? [] : namesOutput.replace(/\n$/, '').split('\n')
-  const verbose = verboseOutput === '' ? [] : verboseOutput.replace(/\n$/, '').split('\n')
-  if (names.length !== verbose.length) {
-    throw new ValidationError('The archive has malformed member names.')
-  }
-  if (names.length > limits.members) {
-    throw new ValidationError(`The archive has more than ${limits.members} members.`)
-  }
-
-  const seen = new Set<string>()
-  let expandedBytes = 0
-  return names.map((rawName, index) => {
-    const name = normalizedArchiveName(rawName)
-    if (name === undefined || seen.has(name)) {
-      throw new ValidationError(`The archive contains an unsafe or duplicate member: ${rawName}`)
-    }
-    seen.add(name)
-
-    const fields = verbose[index]?.trim().split(/\s+/) ?? []
-    const type = fields[0]?.[0] ?? ''
-    const size = Number(fields[2])
-    if (!allowedTypes.has(type) || !Number.isSafeInteger(size) || size < 0) {
-      throw new ValidationError(`The archive contains an unsupported member: ${name}`)
-    }
-    if (size > limits.memberBytes) {
-      throw new ValidationError(`The archive member ${name} exceeds the per-member size limit.`)
-    }
-    expandedBytes += size
-    if (!Number.isSafeInteger(expandedBytes) || expandedBytes > limits.expandedBytes) {
-      throw new ValidationError('The archive exceeds the expanded-size limit.')
-    }
-    return { name, type, size }
-  })
-}
-
-async function inspectArchive(
-  archive: string,
-  limits: RestoreLimits,
-  allowedTypes: ReadonlySet<string>,
-): Promise<readonly ArchiveMember[]> {
-  const [names, verbose] = await Promise.all([
-    run('tar', ['tzf', archive]),
-    run('tar', ['tvzf', archive]),
-  ])
-  return validateArchiveListing(names, verbose, limits, allowedTypes)
-}
-
-function missingToolError(command: string): ConfigurationError {
-  return new ConfigurationError(
-    `${command} was not found on PATH. The shipped image carries the postgres client ` +
-      'tools; elsewhere install them (postgresql18-client on Alpine, ' +
-      'postgresql-client on Debian and Ubuntu).',
-  )
-}
-
-const POSTGRES_PARAMETERS: Readonly<Record<string, string>> = {
-  application_name: 'PGAPPNAME',
-  channel_binding: 'PGCHANNELBINDING',
-  connect_timeout: 'PGCONNECT_TIMEOUT',
-  gssencmode: 'PGGSSENCMODE',
-  options: 'PGOPTIONS',
-  requirepeer: 'PGREQUIREPEER',
-  sslcert: 'PGSSLCERT',
-  sslcompression: 'PGSSLCOMPRESSION',
-  sslcrl: 'PGSSLCRL',
-  sslcrldir: 'PGSSLCRLDIR',
-  sslkey: 'PGSSLKEY',
-  sslmode: 'PGSSLMODE',
-  sslpassword: 'PGSSLPASSWORD',
-  sslrootcert: 'PGSSLROOTCERT',
-  target_session_attrs: 'PGTARGETSESSIONATTRS',
-}
-
-export function postgresClientEnvironment(
-  connectionString: string,
-  variable: string,
-): NodeJS.ProcessEnv {
-  let url: URL
-  try {
-    url = new URL(connectionString)
-  } catch {
-    throw new ValidationError(`${variable} must be a valid postgres:// connection string.`)
-  }
-
-  if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') {
-    throw new ValidationError(`${variable} must be a postgres:// connection string.`)
-  }
-  let database: string
-  let username: string
-  let password: string
-  try {
-    database = decodeURIComponent(url.pathname.replace(/^\//, ''))
-    username = decodeURIComponent(url.username)
-    password = decodeURIComponent(url.password)
-  } catch {
-    throw new ValidationError(`${variable} contains invalid percent-encoding.`)
-  }
-  if (url.hostname === '' || username === '' || database === '') {
-    throw new ValidationError(`${variable} must include a host, user, and database name.`)
-  }
-
-  const childEnv: NodeJS.ProcessEnv = { ...process.env }
-  for (const environmentVariable of [
-    'PGAPPNAME',
-    'PGCHANNELBINDING',
-    'PGCONNECT_TIMEOUT',
-    'PGDATABASE',
-    'PGGSSENCMODE',
-    'PGHOST',
-    'PGHOSTADDR',
-    'PGOPTIONS',
-    'PGPASSWORD',
-    'PGPORT',
-    'PGREQUIREPEER',
-    'PGSERVICE',
-    'PGSERVICEFILE',
-    'PGSSLCERT',
-    'PGSSLCOMPRESSION',
-    'PGSSLCRL',
-    'PGSSLCRLDIR',
-    'PGSSLKEY',
-    'PGSSLMODE',
-    'PGSSLPASSWORD',
-    'PGSSLROOTCERT',
-    'PGTARGETSESSIONATTRS',
-    'PGUSER',
-  ]) {
-    delete childEnv[environmentVariable]
-  }
-  Object.assign(childEnv, {
-    PGHOST: url.hostname.replace(/^\[|\]$/g, ''),
-    PGPORT: url.port || '5432',
-    PGUSER: username,
-    PGDATABASE: database,
-  })
-  if (password !== '') childEnv.PGPASSWORD = password
-
-  for (const [parameter, environmentVariable] of Object.entries(POSTGRES_PARAMETERS)) {
-    const value = url.searchParams.get(parameter)
-    if (value !== null) childEnv[environmentVariable] = value
-  }
-  return childEnv
-}
-
-async function run(
-  command: string,
-  args: readonly string[],
-  childEnv: NodeJS.ProcessEnv = process.env,
-): Promise<string> {
-  return new Promise<string>((resolvePromise, reject) => {
-    const child = spawn(command, args, {
-      env: childEnv,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    let stderr = ''
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdout += String(chunk)
-    })
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr += String(chunk)
-    })
-    child.on('error', (error) => {
-      reject((error as NodeJS.ErrnoException).code === 'ENOENT' ? missingToolError(command) : error)
-    })
-    child.on('close', (code) => {
-      if (code === 0) resolvePromise(stdout)
-      else {
-        reject(
-          new ConfigurationError(
-            `${command} exited with ${code === null ? 'a signal' : `code ${code}`}.` +
-              (stderr.trim() === '' ? '' : `\n${stderr.trim()}`),
-          ),
-        )
-      }
-    })
-  })
-}
-
-export async function reserveBackupDestination(destination: string): Promise<void> {
-  const file = await open(destination, 'wx', 0o600)
-  await file.close()
-}
-
-export async function claimBackupDestination(destination: string): Promise<void> {
-  try {
-    await reserveBackupDestination(destination)
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException | undefined)?.code === 'EEXIST') {
-      throw new ValidationError(
-        `backup will not write over ${destination}: something is already there. Move it aside ` +
-          'or pass a different --out. A previous run killed part-way through can leave an ' +
-          'empty or truncated bundle at the path it had claimed; that file is not a backup ' +
-          'and is safe to delete.',
-      )
-    }
-    translateWriteError(error, {
-      command: 'backup',
-      path: destination,
-      target: path.dirname(destination),
-      reference: 'docs/guides/operations/operating.md, "Backup"',
-    })
-  }
-}
-
-interface StagedUploads {
-  readonly uploads: 'included' | 'skipped'
-  readonly skippedKeys: readonly string[]
-}
-
-const SKIPPED_KEYS_LISTED = 10
-
-export function skippedKeyLines(keys: readonly string[]): readonly string[] {
-  const shown = keys.slice(0, SKIPPED_KEYS_LISTED)
-  return [
-    ...shown.map((key) => `  ${JSON.stringify(key)}`),
-    ...(keys.length > shown.length
-      ? [`  …and ${keys.length - shown.length} more, listed in the bundle's manifest.json.`]
-      : []),
-  ]
-}
-
-async function stageLocalUploads(stage: string): Promise<StagedUploads> {
-  const exists = await stat(env.UPLOADS_DIR).then(
-    (info) => info.isDirectory(),
-    () => false,
-  )
-  if (!exists) {
-    console.log(`No uploads directory at ${env.UPLOADS_DIR}; the bundle carries none.`)
-    return { uploads: 'skipped', skippedKeys: [] }
-  }
-
-  await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', env.UPLOADS_DIR, '.'])
-  return { uploads: 'included', skippedKeys: [] }
-}
-
-export interface ListableStore {
-  listKeys(): AsyncGenerator<string>
-  get(key: string): Promise<Uint8Array | undefined>
-}
-
-export interface DrainedStore {
-  readonly pulled: number
-  readonly skipped: readonly string[]
-}
-
-export async function drainStoreToDirectory(
-  store: ListableStore,
-  dir: string,
-): Promise<DrainedStore> {
-  let pulled = 0
-  const skipped: string[] = []
-
-  for await (const key of store.listKeys()) {
-    const target = path.resolve(dir, key)
-    if (target !== dir && !target.startsWith(dir + path.sep)) {
-      console.warn(`Skipping the object at ${JSON.stringify(key)}: its key escapes ${dir}.`)
-      skipped.push(key)
-      continue
-    }
-    const unusable = unusableKeyReason(key)
-    if (unusable !== undefined) {
-      console.warn(`Skipping the object at ${JSON.stringify(key)}: its key ${unusable}.`)
-      skipped.push(key)
-      continue
-    }
-    const body = await store.get(key)
-    if (body === undefined) continue
-    await mkdir(path.dirname(target), { recursive: true })
-    await writeFile(target, body)
-    pulled++
-  }
-
-  return { pulled, skipped }
-}
-
-export async function uploadDirectoryToStore(
-  store: { put: FileStore['put'] },
-  dir: string,
-): Promise<number> {
-  let pushed = 0
-
-  for (const file of await walk(dir)) {
-    const key = path.relative(dir, file).split(path.sep).join('/')
-    await store.put(key, await readFile(file), {
-      contentType: contentTypeFor(key),
-      visibility: 'public',
-    })
-    pushed++
-  }
-
-  return pushed
-}
-
-async function stageObjectStoreUploads(
-  stage: string,
-  store: ListableStore,
-  origin: string,
-): Promise<StagedUploads> {
-  const dir = path.join(stage, 'uploads')
-  await mkdir(dir, { recursive: true })
-
-  const { pulled, skipped } = await drainStoreToDirectory(store, dir)
-
-  if (pulled === 0) {
-    console.log(`Found no objects in ${origin}; the bundle carries no uploads.`)
-    await rm(dir, { recursive: true, force: true })
-    return { uploads: 'skipped', skippedKeys: skipped }
-  }
-
-  await run('tar', ['czf', path.join(stage, 'uploads.tar.gz'), '-C', dir, '.'])
-  await rm(dir, { recursive: true, force: true })
-  console.log(`Pulled ${pulled} object(s) from ${origin}.`)
-  return { uploads: 'included', skippedKeys: skipped }
-}
-
-async function stageUploads(stage: string, mode: UploadsMode): Promise<StagedUploads> {
-  if (mode === 'skip') return { uploads: 'skipped', skippedKeys: [] }
-
-  switch (env.FILESTORE_DRIVER) {
-    case 's3':
-      return await stageObjectStoreUploads(
-        stage,
-        S3FileStore.fromEnv(env),
-        `the ${env.S3_BUCKET} bucket`,
-      )
-    case 'blob':
-      return await stageObjectStoreUploads(stage, BlobFileStore.fromEnv(env), 'the Blob store')
-    case 'local':
-      return await stageLocalUploads(stage)
-  }
+function offsiteDestination(): S3BackupDestination | undefined {
+  const config = backupDestinationFromEnv(process.env)
+  return config === undefined ? undefined : new S3BackupDestination(config)
 }
 
 export async function backupCommand(args: readonly string[]): Promise<number> {
@@ -549,7 +48,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
   if (outFlag !== undefined && dirFlag !== undefined) {
     throw new ValidationError('--out and --dir are two answers to one question; pass one.')
   }
-  const offsite = backupDestinationFromEnv(process.env)
+  const offsite = offsiteDestination()
   const keepFlag = optional(flags, 'keep')
   if (keepFlag !== undefined && dirFlag === undefined && offsite === undefined) {
     throw new ValidationError(
@@ -558,169 +57,59 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
     )
   }
   const keep = resolveKeep(keepFlag)
-  const now = new Date()
-  const name = bundleName(now)
-  if (dirFlag !== undefined) await mkdir(path.resolve(dirFlag), { recursive: true })
-  const out = path.resolve(dirFlag === undefined ? (outFlag ?? name) : path.join(dirFlag, name))
+  const startedAt = new Date()
 
-  const stage = await mkdtemp(path.join(tmpdir(), 'meith-backup-'))
-  let destinationCreated = false
-  try {
-    await claimBackupDestination(out)
-    destinationCreated = true
-
-    console.log(
-      env.DIRECT_DATABASE_URL === undefined
-        ? 'Dumping the database…'
-        : 'Dumping the database over DIRECT_DATABASE_URL…',
-    )
-    const databaseVariable =
-      env.DIRECT_DATABASE_URL === undefined ? 'DATABASE_URL' : 'DIRECT_DATABASE_URL'
-    const databaseEnvironment = postgresClientEnvironment(migrationUrl(env), databaseVariable)
-    await run(
-      'pg_dump',
-      ['--format=custom', '--no-owner', '--no-privileges', '--file', path.join(stage, 'db.dump')],
-      databaseEnvironment,
-    )
-
-    const { uploads, skippedKeys } = await stageUploads(stage, mode)
-
-    const manifest: BackupManifest = {
-      format: 1,
-      createdAt: now.toISOString(),
-      version: CODE_VERSION,
-      filestore: env.FILESTORE_DRIVER,
-      uploads,
-      ...(env.S3_BUCKET === undefined ? {} : { bucket: env.S3_BUCKET }),
-      ...(skippedKeys.length === 0 ? {} : { skippedKeys }),
-    }
-    await writeFile(path.join(stage, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
-
-    const members = ['manifest.json', 'db.dump']
-    if (uploads === 'included') members.push('uploads.tar.gz')
-    await run('tar', ['czf', out, '-C', stage, ...members])
-    await chmod(out, 0o600)
-
-    const size = (await stat(out)).size
-    destinationCreated = false
-    console.log(
-      `Wrote ${out} (${formatBytes(size)}): the database dump${
-        uploads === 'included' ? ' and the uploads' : ', no uploads'
-      }.`,
-    )
-    if (uploads === 'skipped' && env.FILESTORE_DRIVER === 's3' && mode !== 'include') {
-      console.log(
-        'The S3 bucket was not pulled — it has its own backup story. ' +
-          'Run with --uploads include for a bundle that carries every object.',
-      )
-    }
-    if (uploads === 'skipped' && mode === 'skip') {
-      console.log('Restoring this bundle gives a board whose posts have broken images.')
-    }
-
-    if (offsite !== undefined) {
-      const store = new BackupStore(offsite)
-      await store.putFile(name, out, size)
-      console.log(`Shipped ${name} to ${store.destination}.`)
-      const prunedRemote = await store.prune(keep)
-      if (prunedRemote.length > 0) {
-        console.log(
-          `Pruned ${prunedRemote.length} bundle(s) there beyond the newest ${keep}: ` +
-            `${prunedRemote.join(', ')}.`,
-        )
-      }
-    } else {
-      console.log(
-        'Copy the bundle off this machine: a backup on the server is a backup of the ' +
-          'thing most likely to fail.',
-      )
-    }
-
-    if (dirFlag !== undefined) {
-      const dir = path.resolve(dirFlag)
-      const stale = pruneCandidates(await readdir(dir), keep)
-      for (const staleName of stale) await rm(path.join(dir, staleName), { force: true })
-      if (stale.length > 0) {
-        console.log(
-          `Pruned ${stale.length} bundle(s) in ${dir} beyond the newest ${keep}: ` +
-            `${stale.join(', ')}.`,
-        )
-      }
-    }
-
-    if (skippedKeys.length === 0) return 0
-
-    console.warn(
-      `\nThis bundle is missing ${skippedKeys.length} object(s) whose keys nothing can read:`,
-    )
-    for (const line of skippedKeyLines(skippedKeys)) console.warn(line)
-    console.warn(
-      'The bundle itself is sound and restores normally — posts referring to those ' +
-        'objects will have broken images. The manifest carries the list, so the ' +
-        `restore says so too. Exiting ${INCOMPLETE_BUNDLE_EXIT_CODE} rather than 0 so a ` +
-        'scheduled backup does not record this run as a clean one.',
-    )
-    return INCOMPLETE_BUNDLE_EXIT_CODE
-  } finally {
-    if (destinationCreated) await rm(out, { force: true })
-    await rm(stage, { recursive: true, force: true })
-  }
-}
-
-async function walk(dir: string): Promise<readonly string[]> {
-  const files: string[] = []
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) files.push(...(await walk(full)))
-    else if (entry.isFile()) files.push(full)
-  }
-  return files
-}
-
-async function validateUploadsArchive(stage: string, limits: RestoreLimits): Promise<void> {
-  const members = await inspectArchive(
-    path.join(stage, 'uploads.tar.gz'),
-    limits,
-    new Set(['-', 'd']),
-  )
-  for (const member of members) {
-    if (member.name === '.' && member.type !== 'd') {
-      throw new ValidationError('The uploads archive root is not a directory.')
-    }
-  }
-}
-
-async function extractUploads(stage: string, dir: string, limits: RestoreLimits): Promise<void> {
-  await validateUploadsArchive(stage, limits)
-  const existing = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return undefined
-    throw error
+  const outcome = await createBackup({
+    source: backupSourceFrom(env, CODE_VERSION),
+    target: {
+      ...(outFlag === undefined ? {} : { out: outFlag }),
+      ...(dirFlag === undefined ? {} : { dir: dirFlag }),
+      destination: offsite,
+      retention: { keep },
+    },
+    uploads: mode,
+    now: startedAt,
+    log: CONSOLE_LOG,
+    translateWriteError: (error, destination) =>
+      translateWriteError(error, {
+        command: 'backup',
+        path: destination,
+        target: path.dirname(destination),
+        reference: 'docs/guides/operations/backups.md, "From the command line"',
+      }),
   })
-  if (existing !== undefined && existing.length > 0) {
-    throw new ValidationError(
-      `${dir} is not empty. Restore the uploads into a fresh directory (--uploads-dir), ` +
-        'the same way the database goes into a fresh database.',
-    )
+
+  try {
+    await new PostgresBackupRunRepository(getDb()).record({
+      trigger: 'cli',
+      startedAt,
+      outcome: {
+        status: outcome.skippedKeys.length === 0 ? 'done' : 'incomplete',
+        finishedAt: new Date(),
+        bundleName: outcome.name,
+        sizeBytes: outcome.size,
+        uploads: outcome.uploads,
+        shipped: outcome.shipped !== null,
+        skippedKeys: outcome.skippedKeys.length,
+      },
+    })
+  } catch {
+    console.log('The board did not record this run; the bundle itself is complete.')
   }
 
-  await mkdir(dir, { recursive: true })
-  await run('tar', ['xzf', path.join(stage, 'uploads.tar.gz'), '-C', dir])
-  console.log(`Restored the uploads into ${dir}.`)
-}
+  if (outcome.skippedKeys.length === 0) return 0
 
-async function pushUploadsToStore(
-  stage: string,
-  limits: RestoreLimits,
-  store: { put: FileStore['put'] },
-  destination: string,
-): Promise<void> {
-  await validateUploadsArchive(stage, limits)
-  const dir = path.join(stage, 'uploads-extract')
-  await mkdir(dir, { recursive: true })
-  await run('tar', ['xzf', path.join(stage, 'uploads.tar.gz'), '-C', dir])
-
-  const pushed = await uploadDirectoryToStore(store, dir)
-  console.log(`Uploaded ${pushed} object(s) to ${destination}.`)
+  console.warn(
+    `\nThis bundle is missing ${outcome.skippedKeys.length} object(s) whose keys nothing can read:`,
+  )
+  for (const line of skippedKeyLines(outcome.skippedKeys)) console.warn(line)
+  console.warn(
+    'The bundle itself is sound and restores normally — posts referring to those ' +
+      'objects will have broken images. The manifest carries the list, so the ' +
+      `restore says so too. Exiting ${INCOMPLETE_BUNDLE_EXIT_CODE} rather than 0 so a ` +
+      'scheduled backup does not record this run as a clean one.',
+  )
+  return INCOMPLETE_BUNDLE_EXIT_CODE
 }
 
 const RESTORE_USAGE =
@@ -729,7 +118,7 @@ const RESTORE_USAGE =
 
 export function restoreDatabaseUrl(
   args: readonly string[],
-  environment: NodeJS.ProcessEnv,
+  environment: Readonly<Record<string, string | undefined>>,
 ): string {
   const { flags } = parseFlags(args)
   if (flags.has('database-url')) {
@@ -752,168 +141,78 @@ export async function restoreCommand(args: readonly string[]): Promise<number> {
   if (bundle === undefined) throw new ValidationError(RESTORE_USAGE)
 
   const target = restoreDatabaseUrl(args, process.env)
-  const databaseEnvironment = postgresClientEnvironment(target, 'RESTORE_DATABASE_URL')
+  const uploadsDir = optional(flags, 'uploads-dir')
+  const skipUploads = flags.get('skip-uploads') === 'true'
 
-  const bundleInfo = await stat(bundle).catch(() => undefined)
-  if (bundleInfo === undefined || !bundleInfo.isFile()) {
-    throw new ValidationError(`No such bundle: ${bundle}`)
-  }
+  const uploads = skipUploads
+    ? ({ mode: 'skip' } as const)
+    : env.FILESTORE_DRIVER === 's3' && uploadsDir === undefined
+      ? ({
+          mode: 'store',
+          store: S3FileStore.fromEnv(env),
+          description: `${env.S3_BUCKET}`,
+        } as const)
+      : env.FILESTORE_DRIVER === 'blob' && uploadsDir === undefined
+        ? ({
+            mode: 'store',
+            store: BlobFileStore.fromEnv(env),
+            description: 'the Blob store',
+          } as const)
+        : ({ mode: 'directory', dir: uploadsDir ?? env.UPLOADS_DIR } as const)
 
-  const limits = restoreLimits(process.env)
-  if (bundleInfo.size > limits.archiveBytes) {
-    throw new ValidationError('The backup bundle exceeds MEITH_RESTORE_MAX_ARCHIVE_BYTES.')
-  }
-
-  const stage = await mkdtemp(path.join(tmpdir(), 'meith-restore-'))
-  try {
-    const stagedBundle = path.join(stage, 'bundle.tar.gz')
-    await copyFile(path.resolve(bundle), stagedBundle)
-    const members = await inspectArchive(stagedBundle, limits, new Set(['-']))
-    const possibleMembers = new Set(['manifest.json', 'db.dump', 'uploads.tar.gz'])
-    if (members.some((member) => !possibleMembers.has(member.name))) {
-      throw new ValidationError('The backup bundle contains an unexpected member.')
-    }
-    await run('tar', ['xzf', stagedBundle, '-C', stage, 'manifest.json'])
-    const manifest = parseManifest(await readFile(path.join(stage, 'manifest.json'), 'utf8'))
-    const expectedMembers = new Set(['manifest.json', 'db.dump'])
-    if (manifest.uploads === 'included') expectedMembers.add('uploads.tar.gz')
-    if (
-      members.length !== expectedMembers.size ||
-      members.some((member) => !expectedMembers.has(member.name))
-    ) {
-      throw new ValidationError('The backup bundle members do not match its manifest.')
-    }
-    const restoreMembers = ['db.dump']
-    if (manifest.uploads === 'included') restoreMembers.push('uploads.tar.gz')
-    await run('tar', ['xzf', stagedBundle, '-C', stage, ...restoreMembers])
-
-    const tables = (
-      await run(
-        'psql',
-        ['-tAc', "select count(*) from information_schema.tables where table_schema = 'public'"],
-        databaseEnvironment,
-      )
-    ).trim()
-    if (tables !== '0') {
-      throw new ValidationError(
-        `The target database already holds ${tables} table(s). Restore into a new, ` +
-          'empty database — a restore over a live board is how a bad backup becomes ' +
-          'two lost boards.',
-      )
-    }
-
-    console.log(`Restoring the backup taken ${manifest.createdAt} (version ${manifest.version})…`)
-    await run(
-      'pg_restore',
-      [
-        '--no-owner',
-        '--no-privileges',
-        '--dbname',
-        databaseEnvironment.PGDATABASE ?? '',
-        path.join(stage, 'db.dump'),
-      ],
-      databaseEnvironment,
-    )
-
-    const applied = await runMigrations({ url: target })
-    console.log(
-      applied === 0
-        ? 'Migrations: nothing to do — the dump matches this build.'
-        : `Migrations: applied ${applied} migration(s) the dump predates.`,
-    )
-
-    const posts = (
-      await run('psql', ['-tAc', 'select count(*) from posts'], databaseEnvironment)
-    ).trim()
-    console.log(`The restored board holds ${posts} post(s).`)
-
-    if (manifest.uploads === 'included' && flags.get('skip-uploads') !== 'true') {
-      const uploadsDir = optional(flags, 'uploads-dir')
-      if (env.FILESTORE_DRIVER === 's3' && uploadsDir === undefined) {
-        await pushUploadsToStore(stage, limits, S3FileStore.fromEnv(env), `${env.S3_BUCKET}`)
-      } else if (env.FILESTORE_DRIVER === 'blob' && uploadsDir === undefined) {
-        await pushUploadsToStore(stage, limits, BlobFileStore.fromEnv(env), 'the Blob store')
-      } else {
-        await extractUploads(stage, uploadsDir ?? env.UPLOADS_DIR, limits)
-      }
-    } else if (manifest.uploads === 'skipped') {
-      console.log(
-        manifest.filestore === 's3'
-          ? `This bundle carries no uploads — they live in the S3 bucket${
-              manifest.bucket === undefined ? '' : ` (${manifest.bucket})`
-            }.`
-          : manifest.filestore === 'blob'
-            ? 'This bundle carries no uploads, and a Vercel Blob store is not ' +
-              'something you can copy out by hand. Take another backup with ' +
-              '--uploads include while the old board still exists.'
-            : 'This bundle carries no uploads.',
-      )
-    }
-
-    if (manifest.skippedKeys !== undefined) {
-      console.warn(
-        `\nThe backup that made this bundle could not read ${manifest.skippedKeys.length} ` +
-          'object(s), so they are not here:',
-      )
-      for (const line of skippedKeyLines(manifest.skippedKeys)) console.warn(line)
-      console.warn(
-        'Posts referring to them have broken images. Those keys were unusable in the ' +
-          'source store, so another backup of the same board would skip them again.',
-      )
-    }
-
-    console.log(
-      'Point a staging deployment at the restored database, sign in as an ' +
-        'administrator, and open a thread with attachments before trusting it.',
-    )
-    return 0
-  } finally {
-    await rm(stage, { recursive: true, force: true })
-  }
-}
-
-async function localBundles(dir: string): Promise<readonly { name: string; size: number }[]> {
-  const names = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return []
-    throw error
+  const outcome = await restoreBackup({
+    bundle,
+    target: { url: target, variable: 'RESTORE_DATABASE_URL', mode: 'empty-database' },
+    codeVersion: CODE_VERSION,
+    migrate: (url) => runMigrations({ url }),
+    uploads,
+    limits: restoreLimits(process.env),
+    log: CONSOLE_LOG,
   })
-  const bundles = []
-  for (const name of names.filter((entry) => isBundleName(entry)).sort()) {
-    bundles.push({ name, size: (await stat(path.join(dir, name))).size })
+
+  if (outcome.manifest.skippedKeys !== undefined) {
+    console.warn(
+      `\nThe backup that made this bundle could not read ${outcome.manifest.skippedKeys.length} ` +
+        'object(s), so they are not here:',
+    )
+    for (const line of skippedKeyLines(outcome.manifest.skippedKeys)) console.warn(line)
+    console.warn(
+      'Posts referring to them have broken images. Those keys were unusable in the ' +
+        'source store, so another backup of the same board would skip them again.',
+    )
   }
-  return bundles
+
+  console.log(
+    'Point a staging deployment at the restored database, sign in as an ' +
+      'administrator, and open a thread with attachments before trusting it.',
+  )
+  return 0
 }
 
 export async function backupListCommand(args: readonly string[]): Promise<number> {
   const { flags } = parseFlags(args)
-  const dirFlag = optional(flags, 'dir')
-  const offsite = backupDestinationFromEnv(process.env)
-  if (dirFlag === undefined && offsite === undefined) {
-    throw new ValidationError(
-      'Nothing to list: pass --dir <dir> for a local ring, or set BACKUP_S3_BUCKET, ' +
-        'BACKUP_S3_REGION, BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY ' +
-        'for the off-site destination.',
-    )
-  }
+  const dir = path.resolve(optional(flags, 'dir') ?? backupRingDirectory(env))
+  const offsite = offsiteDestination()
 
-  if (dirFlag !== undefined) {
-    const dir = path.resolve(dirFlag)
-    const bundles = await localBundles(dir)
-    console.log(`${dir}:`)
-    if (bundles.length === 0) console.log('  no bundles')
-    for (const bundle of bundles) {
-      console.log(`  ${bundle.name}  ${formatBytes(bundle.size)}`)
-    }
+  const bundles = await localBundles(dir)
+  console.log(`${dir}:`)
+  if (bundles.length === 0) console.log('  no bundles')
+  for (const bundle of bundles) {
+    console.log(`  ${bundle.name}  ${formatBytes(bundle.size)}`)
   }
 
   if (offsite !== undefined) {
-    const store = new BackupStore(offsite)
-    const bundles = await store.list()
-    console.log(`${store.destination}:`)
-    if (bundles.length === 0) console.log('  no bundles')
-    for (const bundle of bundles) {
+    const remote = await offsite.list()
+    console.log(`${offsite.description}:`)
+    if (remote.length === 0) console.log('  no bundles')
+    for (const bundle of remote) {
       console.log(`  ${bundle.name}  ${formatBytes(bundle.size)}`)
     }
+  } else {
+    console.log(
+      'No off-site destination: set BACKUP_S3_BUCKET, BACKUP_S3_REGION, ' +
+        'BACKUP_S3_ACCESS_KEY_ID and BACKUP_S3_SECRET_ACCESS_KEY to list one.',
+    )
   }
 
   return 0
@@ -933,7 +232,7 @@ export async function backupFetchCommand(args: readonly string[]): Promise<numbe
     )
   }
 
-  const offsite = backupDestinationFromEnv(process.env)
+  const offsite = offsiteDestination()
   if (offsite === undefined) {
     throw new ConfigurationError(
       'backup:fetch downloads from the off-site destination, so it needs BACKUP_S3_BUCKET, ' +
@@ -941,17 +240,25 @@ export async function backupFetchCommand(args: readonly string[]): Promise<numbe
     )
   }
 
-  const store = new BackupStore(offsite)
   const out = path.resolve(optional(flags, 'out') ?? path.basename(name))
-  await claimBackupDestination(out)
+  await claimBackupDestination(out, (error, destination) =>
+    translateWriteError(error, {
+      command: 'backup:fetch',
+      path: destination,
+      target: path.dirname(destination),
+      reference: 'docs/guides/operations/backups.md, "From the command line"',
+    }),
+  )
   try {
-    await store.getToFile(path.basename(name), out)
+    await offsite.getToFile(path.basename(name), out)
   } catch (error) {
     await rm(out, { force: true })
     throw error
   }
 
-  console.log(`Fetched ${out} (${formatBytes((await stat(out)).size)}) from ${store.destination}.`)
+  console.log(
+    `Fetched ${out} (${formatBytes((await stat(out)).size)}) from ${offsite.description}.`,
+  )
   console.log(`Restore it with: ${RESTORE_USAGE.replace('Usage: ', '')}`)
   return 0
 }
