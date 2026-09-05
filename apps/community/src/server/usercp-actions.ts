@@ -23,6 +23,7 @@ import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { getTranslator, tr } from './i18n'
 import { boardRendering } from './markdown-pipeline'
+import { notificationService } from './notifications'
 import { emitEvent } from './plugin-view'
 import { profileFieldService, submittedFields, viewerFieldContext } from './profile-fields'
 import { setSessionCookie } from './session-cookies'
@@ -170,6 +171,7 @@ export async function changePasswordAction(_prev: FormState, form: FormData): Pr
     if (admin !== null) await admin.endAllFor(userId)
 
     await revokeFeedToken(userId)
+    await notificationService()?.unsubscribeAllFromPush(userId)
 
     await recordAuthEvent({ userId, kind: 'password_changed' })
   } catch (err) {

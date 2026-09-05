@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, gt, or, sql } from 'drizzle-orm'
 
 import type {
   LinkIdentityInput,
@@ -136,10 +136,17 @@ export class PostgresPasskeyRepository implements PasskeyRepository {
     return removed.length > 0
   }
 
-  async markUsed(passkeyId: number, signCount: number, now: Date): Promise<void> {
-    await this.db
+  async markUsed(passkeyId: number, signCount: number, now: Date): Promise<boolean> {
+    const rows = await this.db
       .update(passkeys)
       .set({ signCount, lastUsedAt: now })
-      .where(eq(passkeys.id, passkeyId))
+      .where(
+        and(
+          eq(passkeys.id, passkeyId),
+          or(eq(sql`${signCount}`, 0), gt(sql`${signCount}`, passkeys.signCount)),
+        ),
+      )
+      .returning({ id: passkeys.id })
+    return rows.length > 0
   }
 }

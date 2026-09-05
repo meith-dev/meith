@@ -47,31 +47,31 @@ describe('SessionService remember-me', () => {
     store = createMemoryStore()
   })
 
-  it('startRemembered issues a usable remember token and a session', async () => {
+  it('issueRemember issues a usable remember token and mints no session', async () => {
     await addAccount(store, 42)
     const svc = makeService(store)
-    const login = await svc.startRemembered(42)
+    const remembered = await svc.issueRemember(42)
 
-    expect(login.userId).toBe(42)
-    expect(login.sessionToken).toBeTypeOf('string')
-    expect(login.rememberToken).toBeTypeOf('string')
-    expect(await store.sessions.findByTokenHash(await hashToken(login.sessionToken))).not.toBeNull()
-    expect(await store.remember.findByTokenHash(login.rememberToken)).toBeNull()
+    expect(remembered.rememberToken).toBeTypeOf('string')
+    expect(await store.remember.findByTokenHash(remembered.rememberToken)).toBeNull()
     expect(
-      await store.remember.findByTokenHash(await hashToken(login.rememberToken)),
+      await store.remember.findByTokenHash(await hashToken(remembered.rememberToken)),
     ).not.toBeNull()
+    expect(
+      await store.sessions.findByTokenHash(await hashToken(remembered.rememberToken)),
+    ).toBeNull()
   })
 
   it('resume rotates the token: the presented one dies, a fresh one works', async () => {
     await addAccount(store, 7)
     const svc = makeService(store)
-    const first = await svc.startRemembered(7)
+    const first = await svc.issueRemember(7)
 
     const r1 = await svc.resume(first.rememberToken)
     expect(r1.status).toBe('ok')
     if (r1.status !== 'ok') return
     expect(r1.login.rememberToken).not.toBe(first.rememberToken)
-    expect(r1.login.sessionToken).not.toBe(first.sessionToken)
+    expect(r1.login.sessionToken).toBeTypeOf('string')
 
     const r2 = await svc.resume(r1.login.rememberToken)
     expect(r2.status).toBe('ok')
@@ -81,7 +81,7 @@ describe('SessionService remember-me', () => {
     await addAccount(store, 99)
     const clock = movableClock()
     const svc = makeService(store, clock.now)
-    const first = await svc.startRemembered(99)
+    const first = await svc.issueRemember(99)
 
     const good = await svc.resume(first.rememberToken)
     expect(good.status).toBe('ok')
@@ -106,7 +106,7 @@ describe('SessionService remember-me', () => {
     await addAccount(store, 11)
     const clock = movableClock()
     const svc = makeService(store, clock.now)
-    const first = await svc.startRemembered(11)
+    const first = await svc.issueRemember(11)
 
     const winner = await svc.resume(first.rememberToken)
     expect(winner.status).toBe('ok')
@@ -130,7 +130,7 @@ describe('SessionService remember-me', () => {
     await addAccount(store, 12)
     const clock = movableClock()
     const svc = makeService(store, clock.now)
-    const first = await svc.startRemembered(12)
+    const first = await svc.issueRemember(12)
 
     const good = await svc.resume(first.rememberToken)
     expect(good.status).toBe('ok')
@@ -146,7 +146,7 @@ describe('SessionService remember-me', () => {
     await addAccount(store, 42)
     const allowed = vi.fn(async (_account: unknown) => undefined)
     const issuing = makeService(store)
-    const first = await issuing.startRemembered(42)
+    const first = await issuing.issueRemember(42)
     const before = await store.remember.findByTokenHash(await hashToken(first.rememberToken))
 
     const svc = new SessionService({

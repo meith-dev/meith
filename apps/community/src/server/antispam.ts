@@ -125,6 +125,8 @@ export function dailyLimitMessage(
     : `You have used your allowance of ${noun} for today. It resets in ${hours} hours.`
 }
 
+const CREDENTIAL_PROOF_PER_HOUR = 10
+
 type AuthLimitSetting =
   | 'antispam.register_ip_per_hour'
   | 'antispam.reset_per_hour'
@@ -171,6 +173,22 @@ export async function spendResetLimits(
       subject: prefix === null ? null : `ip:${prefix}`,
     }),
   ]
+}
+
+export async function spendCredentialProofLimit(userId: number): Promise<RateLimitOutcome | null> {
+  const store = rateLimitStore()
+  if (store === null) return null
+
+  try {
+    return await new RateLimiter(store).consume({
+      scope: 'credential_proof',
+      subject: `u:${userId}`,
+      rule: { max: CREDENTIAL_PROOF_PER_HOUR, windowSeconds: HOUR },
+    })
+  } catch (error) {
+    logger().warn({ err: String(error) }, 'credential-proof rate limit unavailable')
+    return null
+  }
 }
 
 export async function spendRegisterLimit(): Promise<RateLimitOutcome | null> {

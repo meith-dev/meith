@@ -194,8 +194,11 @@ export class PasskeyService {
       throw new ForbiddenError(msg('error.accounts.account-behind-passkey-longer-exists'))
     }
 
+    if (!(await this.passkeys.markUsed(passkey.id, verified.signCount, this.now()))) {
+      throw new ForbiddenError(msg('error.accounts.passkey-replayed-counter-board-already'))
+    }
+
     const login = await this.identity.startSessionFor(account, input.context ?? {})
-    await this.passkeys.markUsed(passkey.id, verified.signCount, this.now())
 
     return { account, login }
   }
@@ -218,8 +221,7 @@ export class PasskeyService {
       storedSignCount: passkey.signCount,
     })
 
-    await this.passkeys.markUsed(passkey.id, verified.signCount, this.now())
-    return true
+    return this.passkeys.markUsed(passkey.id, verified.signCount, this.now())
   }
 
   async remove(input: {

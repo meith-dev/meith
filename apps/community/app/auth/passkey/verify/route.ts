@@ -239,7 +239,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       await setSessionCookie(login.sessionToken, login.expiresAt)
 
       if (pending.remember) {
-        const remembered = await (await configuredSessions()).startRemembered(pending.userId)
+        const remembered = await (await configuredSessions()).issueRemember(pending.userId)
         await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
       }
 

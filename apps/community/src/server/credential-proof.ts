@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { redirect } from 'next/navigation'
+
 import { hasFreshCredentialProof, hashToken, type SessionRecord } from '@meith/accounts'
 
 import { getContainer } from './container'
@@ -17,6 +19,15 @@ export async function currentCredentialProof(
   const session = await currentSessionRecord()
   if (session === null || !hasFreshCredentialProof(session, userId, now)) return null
   return { session, provedAt: session.credentialProvedAt! }
+}
+
+export async function requireFreshCredentialProof(
+  userId: number,
+  next = '/usercp/security',
+): Promise<void> {
+  if ((await currentCredentialProof(userId)) === null) {
+    redirect(`/usercp/security/verify?next=${encodeURIComponent(next)}`)
+  }
 }
 
 export async function markCurrentSessionCredentialProved(

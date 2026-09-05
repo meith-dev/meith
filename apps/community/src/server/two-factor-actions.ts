@@ -12,6 +12,7 @@ import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
+import { requireFreshCredentialProof } from './credential-proof'
 import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
@@ -59,6 +60,8 @@ async function requireOwnFactor(): Promise<Owner> {
 }
 
 export async function beginTwoFactorAction(_prev: FormState, _form: FormData): Promise<FormState> {
+  const actor = await getActor()
+  if (actor.userId !== null) await requireFreshCredentialProof(actor.userId)
   try {
     const { userId } = await requireOwnAccount()
 
@@ -91,6 +94,8 @@ export async function abandonTwoFactorAction(
 }
 
 export async function confirmTwoFactorAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const actor = await getActor()
+  if (actor.userId !== null) await requireFreshCredentialProof(actor.userId)
   try {
     const { userId } = await requireOwnAccount()
 

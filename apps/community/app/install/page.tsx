@@ -17,9 +17,11 @@ import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
 import { InstallRestoreForm } from '@/components/install/restore-form'
+import { InstallUnlockForm } from '@/components/install/unlock-form'
 import { getTranslator, tr } from '@/server/i18n'
 import { gatherPreflight, installerIsSealed, probeMail } from '@/server/install'
 import { installRestoreView } from '@/server/install-restore'
+import { installUnlocked } from '@/server/install-unlock'
 import { formatBytes } from '@/view/attachments'
 import { installFormCopy, installRestoreCopy } from '@/view/install-copy'
 import { formatTime } from '@/view/time'
@@ -77,9 +79,10 @@ export default async function InstallPage() {
 
   const checks = await gatherPreflight()
   const ready = canProceed(checks)
+  const unlocked = ready && (await installUnlocked())
   const mail = await probeMail()
   const suggestedBoardUrl = await suggestBoardUrl()
-  const restore = ready ? await installRestoreView() : null
+  const restore = unlocked ? await installRestoreView() : null
   const now = new Date()
 
   return (
@@ -92,6 +95,18 @@ export default async function InstallPage() {
       </header>
 
       <Preflight checks={checks} />
+
+      {ready && !unlocked && (
+        <InstallUnlockForm
+          copy={{
+            title: t.t('installUnlock.title'),
+            lede: t.t('installUnlock.lede'),
+            label: t.t('installUnlock.label'),
+            button: t.t('installUnlock.button'),
+            pending: t.t('installUnlock.pending'),
+          }}
+        />
+      )}
 
       {restore?.possible && (
         <InstallRestoreForm
@@ -115,7 +130,7 @@ export default async function InstallPage() {
         />
       )}
 
-      {ready && (
+      {unlocked && (
         <InstallForm
           presets={MAIL_PRESETS.map((preset) => ({
             ...preset,

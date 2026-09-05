@@ -24,6 +24,7 @@ import { revokeFeedToken } from './feed-token'
 import { formStateReporter } from './form-state-reporter'
 import { getTranslator, tr } from './i18n'
 import { termsAcceptance } from './legal'
+import { notificationService } from './notifications'
 import { emitEvent, filterView } from './plugin-view'
 import { profileFieldService, registrationFieldContext, submittedFields } from './profile-fields'
 import {
@@ -297,7 +298,7 @@ async function completeSignIn(
 
   if (remember) {
     const sessions = await configuredSessions()
-    const remembered = await sessions.startRemembered(login.account.id, await deviceContext())
+    const remembered = await sessions.issueRemember(login.account.id)
     await setRememberCookie(remembered.rememberToken, remembered.rememberExpiresAt)
   }
 
@@ -479,6 +480,7 @@ export async function confirmResetAction(_prev: FormState, form: FormData): Prom
   try {
     const { userId } = await identity.redeemPasswordReset(token, password)
     await revokeFeedToken(userId)
+    await notificationService()?.unsubscribeAllFromPush(userId)
     await recordAuthEvent({ userId, kind: 'password_reset' })
   } catch (err) {
     return toFormState(err, { token })

@@ -251,6 +251,10 @@ export class NotificationService {
     return this.repository.removePushSubscription(userId, endpoint)
   }
 
+  async unsubscribeAllFromPush(userId: number): Promise<number> {
+    return this.repository.removeAllPushSubscriptions(userId)
+  }
+
   private async wanted(userId: number, kind: string): Promise<{ email: boolean; push: boolean }> {
     const spec = this.kinds.get(kind)
     if (spec === undefined) return { email: false, push: false }

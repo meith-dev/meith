@@ -230,7 +230,7 @@ export interface PasskeyRepository {
   listForUser(userId: number): Promise<readonly PasskeyRecord[]>
   create(input: NewPasskey): Promise<PasskeyRecord>
   remove(userId: number, passkeyId: number): Promise<boolean>
-  markUsed(passkeyId: number, signCount: number, now: Date): Promise<void>
+  markUsed(passkeyId: number, signCount: number, now: Date): Promise<boolean>
 }
 
 export interface TwoFactorRecord {
