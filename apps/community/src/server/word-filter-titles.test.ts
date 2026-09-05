@@ -37,7 +37,13 @@ const subscriptionRows = [
 
 vi.mock('./container', () => ({
   getContainer: () => ({
-    authorizer: { visibleForumIds: async () => [2] },
+    authorizer: {
+      threadAudience: async () => ({
+        forumIds: [2],
+        ownThreadsOnlyForumIds: [],
+        viewerUserId: 1,
+      }),
+    },
     subscriptions: {},
   }),
 }))

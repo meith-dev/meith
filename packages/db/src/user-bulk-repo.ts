@@ -358,7 +358,11 @@ export class PostgresUserBulkRepository {
     return sql.join(conditions, sql` and `)
   }
 
-  async claimMassMailChunk(massMailId: number, limit: number): Promise<MassMailChunk> {
+  async claimMassMailChunk(
+    massMailId: number,
+    limit: number,
+    enqueue: (recipients: readonly MassMailRecipient[]) => Promise<void>,
+  ): Promise<MassMailChunk> {
     return this.db.transaction(async (tx) => {
       const mails = resultRows(
         await tx.execute(sql`
@@ -392,6 +396,8 @@ export class PostgresUserBulkRepository {
 
       const finished = recipients.length < limit
       const cursor = recipients.at(-1)?.userId ?? after
+
+      await enqueue(recipients)
 
       await tx.execute(sql`
         update mass_mails

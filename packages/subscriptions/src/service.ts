@@ -1,3 +1,4 @@
+import type { ThreadAudience } from '@meith/core'
 import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
@@ -55,12 +56,9 @@ export class SubscriptionService {
     return this.repository.modeFor(userId, target, targetId)
   }
 
-  async list(
-    userId: number,
-    visibleForumIds: readonly number[],
-  ): Promise<readonly SubscriptionRow[]> {
+  async list(userId: number, audience: ThreadAudience): Promise<readonly SubscriptionRow[]> {
     return this.repository.listFor(userId, {
-      visibleForumIds,
+      audience,
       limit: SUBSCRIPTIONS_PAGE_SIZE,
     })
   }

@@ -16,6 +16,7 @@ import {
   type OrderRow,
   orderByPaymentIntent,
   orderBySessionId,
+  orderHasCharge,
   type PlanRow,
   planRowByKey,
   releaseCodeReservation,
@@ -106,6 +107,8 @@ export async function settlePaidOrder(
       stripeSubscriptionId: info.subscriptionId,
       lastOrderId: order.id,
     })
+  } else if (existing.lastOrderId === order.id) {
+    membership = existing
   } else {
     await extendMembership(deps.data, existing.id, {
       currentPeriodEnd: periodEnd,
@@ -141,16 +144,18 @@ export async function settlePaidOrder(
     ...(order.discountMinor > 0 ? [`code took ${order.discountMinor} off`] : []),
   ]
 
-  await insertLedger(deps.data, {
-    kind: 'charge',
-    userId: order.buyerUserId,
-    membershipId: membership.id,
-    orderId: order.id,
-    amountMinor: order.amountMinor,
-    currency: order.currency,
-    stripeRef: info.paymentIntentId ?? info.subscriptionId,
-    note: notes.length === 0 ? null : notes.join('; '),
-  })
+  if (!(await orderHasCharge(deps.data, order.id))) {
+    await insertLedger(deps.data, {
+      kind: 'charge',
+      userId: order.buyerUserId,
+      membershipId: membership.id,
+      orderId: order.id,
+      amountMinor: order.amountMinor,
+      currency: order.currency,
+      stripeRef: info.paymentIntentId ?? info.subscriptionId,
+      note: notes.length === 0 ? null : notes.join('; '),
+    })
+  }
 
   await settleOrder(deps.data, order.id, {
     status: 'paid',

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 const DOCS = join(ROOT, 'docs')
 const MANIFEST = 'apps/web/content/docs.manifest.json'
 const README = 'README.md'

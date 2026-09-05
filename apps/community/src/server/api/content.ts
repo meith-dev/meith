@@ -52,8 +52,11 @@ async function threadScope(actor: Actor, threadId: number): Promise<ThreadScope 
     return null
   }
 
+  const scope = authorizer.contentScope(actor, target)
+  if (!scope.states.includes(located.visibility)) return null
+
   return {
-    scope: authorizer.contentScope(actor, target),
+    scope,
     authors: authorizer.authorFilter(actor, target),
   }
 }

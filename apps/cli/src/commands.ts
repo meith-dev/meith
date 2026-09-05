@@ -61,11 +61,13 @@ export async function userCreate(args: readonly string[]): Promise<number> {
   const password = await readPassword(flags)
 
   const ctx = await createContext()
-  const result = await ctx.identity.register({ username, email, password })
 
   const groupRef = optional(flags, 'group')
-  if (groupRef !== undefined) {
-    const group = await findGroup(ctx, groupRef)
+  const group = groupRef === undefined ? null : await findGroup(ctx, groupRef)
+
+  const result = await ctx.identity.register({ username, email, password })
+
+  if (group !== null) {
     await ctx.admin.setPrimaryGroup(result.account.id, group.id)
     console.log(`Created user ${username} (id ${result.account.id}) in group ${group.key}.`)
   } else {

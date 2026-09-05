@@ -90,7 +90,13 @@ function notifier(secret: string | null = null): SubscriptionNotifier {
         raised.push(input as Raised)
       },
     },
-    forums: { visibleForumIdsFor: async () => visible },
+    forums: {
+      audienceFor: async (userId: number) => ({
+        forumIds: visible,
+        ownThreadsOnlyForumIds: [],
+        viewerUserId: userId,
+      }),
+    },
     unsubscribeSecret: secret,
     now: () => NOW,
   })
@@ -210,7 +216,13 @@ describe('instant', () => {
           controller.abort()
         },
       },
-      forums: { visibleForumIdsFor: async () => visible },
+      forums: {
+        audienceFor: async (userId: number) => ({
+          forumIds: visible,
+          ownThreadsOnlyForumIds: [],
+          viewerUserId: userId,
+        }),
+      },
       unsubscribeSecret: null,
       now: () => NOW,
     })

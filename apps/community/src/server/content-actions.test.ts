@@ -758,7 +758,14 @@ class FakePostWrites implements PostWriteRepository {
         createdAt: new Date('2026-07-30T11:00:00Z'),
         ...this.post,
       },
-      thread: { id: 20, slug: 'hello', title: 'Hello', isLocked: false, visibility: 'visible' },
+      thread: {
+        id: 20,
+        slug: 'hello',
+        title: 'Hello',
+        authorUserId: 1,
+        isLocked: false,
+        visibility: 'visible',
+      },
       forum: { id: this.forumId, slug: 'general', isOpen: true },
     }
   }

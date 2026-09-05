@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { emitGeneratedDoc } from './generated-doc.mjs'
 import { balancedBlock, balancedList, joinStringLiterals } from './source-parse.mjs'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 
 const SLOTS_FILE = 'packages/theme-kit/src/slots.ts'
 const API_FILE = 'packages/theme-kit/src/api.ts'

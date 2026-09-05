@@ -34,8 +34,8 @@ export default async function SubscriptionsPage({
 
   if (actor.userId === null || subscriptions === null) notFound()
 
-  const visibleForumIds = await authorizer.visibleForumIds(actor)
-  const rows = await new SubscriptionService({ subscriptions }).list(actor.userId, visibleForumIds)
+  const audience = await authorizer.threadAudience(actor)
+  const rows = await new SubscriptionService({ subscriptions }).list(actor.userId, audience)
 
   const translator = await getTranslator()
 

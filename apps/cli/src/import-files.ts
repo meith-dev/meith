@@ -76,22 +76,24 @@ export class UploadsDirCopier implements ImportFileCopier {
       return { outcome: 'failed', reason: `avatar ${input.path} is not a png or jpeg` }
     }
 
+    let processed: Awaited<ReturnType<ImageProcessor['process']>>
     try {
-      const processed = await this.images.process({
+      processed = await this.images.process({
         bytes,
         codec: type.codec,
         fit: AVATAR_BOX,
         thumbnail: false,
       })
-      const key = storageKey('avatars', input.legacyUserId, EXTENSIONS[processed.contentType] ?? '')
-      await this.files.put(key, processed.bytes, {
-        contentType: processed.contentType,
-        visibility: 'public',
-      })
-      return { outcome: 'ready', key, width: processed.width, height: processed.height }
     } catch {
       return { outcome: 'failed', reason: `avatar ${input.path} could not be decoded` }
     }
+
+    const key = storageKey('avatars', input.legacyUserId, EXTENSIONS[processed.contentType] ?? '')
+    await this.files.put(key, processed.bytes, {
+      contentType: processed.contentType,
+      visibility: 'public',
+    })
+    return { outcome: 'ready', key, width: processed.width, height: processed.height }
   }
 
   async #reencode(
@@ -104,34 +106,36 @@ export class UploadsDirCopier implements ImportFileCopier {
       return { outcome: 'failed', reason: `file ${path} could not be decoded` }
     }
 
+    let processed: Awaited<ReturnType<ImageProcessor['process']>>
     try {
-      const processed = await this.images.process({ bytes, codec: type.codec })
-      const key = storageKey('attachments', legacyId, EXTENSIONS[processed.contentType] ?? '')
-      await this.files.put(key, processed.bytes, {
-        contentType: processed.contentType,
-        visibility: 'private',
-      })
-
-      let thumbnailKey: string | null = null
-      if (processed.thumbnail !== undefined) {
-        thumbnailKey = storageKey('attachments', legacyId, '.thumb.jpg')
-        await this.files.put(thumbnailKey, processed.thumbnail.bytes, {
-          contentType: processed.thumbnail.contentType,
-          visibility: 'private',
-        })
-      }
-
-      return {
-        outcome: 'ready',
-        storageKey: key,
-        thumbnailKey,
-        contentType: processed.contentType,
-        sizeBytes: processed.bytes.byteLength,
-        width: processed.width,
-        height: processed.height,
-      }
+      processed = await this.images.process({ bytes, codec: type.codec })
     } catch {
       return { outcome: 'failed', reason: `file ${path} could not be decoded` }
+    }
+
+    const key = storageKey('attachments', legacyId, EXTENSIONS[processed.contentType] ?? '')
+    await this.files.put(key, processed.bytes, {
+      contentType: processed.contentType,
+      visibility: 'private',
+    })
+
+    let thumbnailKey: string | null = null
+    if (processed.thumbnail !== undefined) {
+      thumbnailKey = storageKey('attachments', legacyId, '.thumb.jpg')
+      await this.files.put(thumbnailKey, processed.thumbnail.bytes, {
+        contentType: processed.thumbnail.contentType,
+        visibility: 'private',
+      })
+    }
+
+    return {
+      outcome: 'ready',
+      storageKey: key,
+      thumbnailKey,
+      contentType: processed.contentType,
+      sizeBytes: processed.bytes.byteLength,
+      width: processed.width,
+      height: processed.height,
     }
   }
 

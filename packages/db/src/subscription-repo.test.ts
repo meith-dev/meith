@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import type { ThreadAudience } from '@meith/core'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
@@ -20,6 +22,14 @@ const OTHER_THREAD = 21
 
 const AT = new Date('2026-07-31T12:00:00Z')
 const ALL_FORUMS = [FORUM, OTHER_FORUM]
+
+function toAudience(
+  forumIds: readonly number[],
+  viewerUserId: number | null = null,
+  ownThreadsOnlyForumIds: readonly number[] = [],
+): ThreadAudience {
+  return { forumIds, ownThreadsOnlyForumIds, viewerUserId }
+}
 
 beforeAll(async () => {
   harness = await createTestDb()
@@ -143,7 +153,7 @@ describe('subscribing', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'weekly',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
     expect(pending.posts.map((p) => p.postId)).toEqual([101])
@@ -215,7 +225,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -230,7 +240,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -245,7 +255,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -259,7 +269,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -272,7 +282,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: [OTHER_FORUM],
+      audience: toAudience([OTHER_FORUM]),
       limit: 50,
     })
 
@@ -285,7 +295,7 @@ describe('what is pending', () => {
     const daily = await repo.pendingFor({
       userId: IVAN,
       mode: 'daily',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -298,7 +308,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -317,7 +327,7 @@ describe('what is pending', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -348,11 +358,30 @@ describe('a forum subscription', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
     expect(pending.posts.map((p) => p.postId).sort()).toEqual([100, 101])
+  })
+
+  it('in a your-threads-only forum, surfaces only the subscriber’s own threads', async () => {
+    await db.execute(sql`
+      insert into threads (id, forum_id, title, slug, author_user_id, author_username,
+                           visibility, created_at, last_post_at)
+      values (22, ${FORUM}, 'Second', 'second', ${MOD}, 'mod', 'visible', ${AT}, ${AT})
+    `)
+    await addPost({ id: 100, threadId: THREAD })
+    await addPost({ id: 101, threadId: 22 })
+
+    const pending = await repo.pendingFor({
+      userId: IVAN,
+      mode: 'instant',
+      audience: toAudience([FORUM], IVAN, [FORUM]),
+      limit: 50,
+    })
+
+    expect(pending.posts.map((p) => p.postId)).toEqual([100])
   })
 
   it('reports one post once when both a thread and its forum are followed', async () => {
@@ -368,7 +397,7 @@ describe('a forum subscription', () => {
     const pending = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -390,7 +419,7 @@ describe('a forum subscription', () => {
     const first = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 3,
     })
     await repo.advanceWatermarks({ userId: IVAN, watermarks: first.watermarks })
@@ -398,7 +427,7 @@ describe('a forum subscription', () => {
     const rest = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -427,7 +456,7 @@ describe('watermarks', () => {
     const first = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
     await repo.advanceWatermarks({ userId: IVAN, watermarks: first.watermarks })
@@ -435,7 +464,7 @@ describe('watermarks', () => {
     const second = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -464,7 +493,7 @@ describe('watermarks', () => {
     const capped = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 2,
     })
     await repo.advanceWatermarks({ userId: IVAN, watermarks: capped.watermarks })
@@ -472,7 +501,7 @@ describe('watermarks', () => {
     const rest = await repo.pendingFor({
       userId: IVAN,
       mode: 'instant',
-      visibleForumIds: ALL_FORUMS,
+      audience: toAudience(ALL_FORUMS),
       limit: 50,
     })
 
@@ -593,7 +622,7 @@ describe('the management screen', () => {
     })
     await addPost({ id: 100 })
 
-    const rows = await repo.listFor(IVAN, { visibleForumIds: ALL_FORUMS, limit: 50 })
+    const rows = await repo.listFor(IVAN, { audience: toAudience(ALL_FORUMS), limit: 50 })
 
     expect(rows).toHaveLength(2)
     const thread = rows.find((r) => r.target === 'thread')
@@ -613,7 +642,7 @@ describe('the management screen', () => {
       at: AT,
     })
 
-    const rows = await repo.listFor(IVAN, { visibleForumIds: [FORUM], limit: 50 })
+    const rows = await repo.listFor(IVAN, { audience: toAudience([FORUM]), limit: 50 })
 
     expect(rows).toEqual([])
   })
@@ -628,6 +657,6 @@ describe('the management screen', () => {
     })
     await db.execute(sql`update threads set visibility = 'deleted' where id = ${THREAD}`)
 
-    expect(await repo.listFor(IVAN, { visibleForumIds: ALL_FORUMS, limit: 50 })).toEqual([])
+    expect(await repo.listFor(IVAN, { audience: toAudience(ALL_FORUMS), limit: 50 })).toEqual([])
   })
 })

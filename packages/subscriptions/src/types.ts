@@ -1,3 +1,5 @@
+import type { ThreadAudience } from '@meith/core'
+
 import type { DigestCadence, SubscriptionMode, SubscriptionTarget } from './modes'
 
 export interface SubscriptionRow {
@@ -53,7 +55,7 @@ export interface SubscriptionRepository {
 
   listFor(
     userId: number,
-    options: { readonly visibleForumIds: readonly number[]; readonly limit: number },
+    options: { readonly audience: ThreadAudience; readonly limit: number },
   ): Promise<readonly SubscriptionRow[]>
 
   usersWithPending(input: {
@@ -65,7 +67,7 @@ export interface SubscriptionRepository {
   pendingFor(input: {
     readonly userId: number
     readonly mode: SubscriptionMode
-    readonly visibleForumIds: readonly number[]
+    readonly audience: ThreadAudience
     readonly limit: number
   }): Promise<PendingForUser>
 
@@ -91,6 +93,6 @@ export interface SubscriptionNotifierPort {
   }): Promise<void>
 }
 
-export interface VisibleForumSource {
-  visibleForumIdsFor(userId: number): Promise<readonly number[]>
+export interface SubscriberAudienceSource {
+  audienceFor(userId: number): Promise<ThreadAudience>
 }

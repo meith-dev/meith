@@ -2,10 +2,11 @@
 import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { commentLines } from '../../scripts/comment-scan.mjs'
 
-const ROOT = resolve(new URL('../..', import.meta.url).pathname)
+const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const SOURCE = /\.(?:ts|tsx|mts|cts|mjs|cjs|js|jsx)$/
 const EXCLUDED = /^templates\/|\.d\.ts$/
 const DOC_SOURCES = new Set([

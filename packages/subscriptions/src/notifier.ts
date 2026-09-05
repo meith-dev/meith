@@ -2,9 +2,9 @@ import { CADENCE_INTERVAL_MS, type DigestCadence, type SubscriptionMode } from '
 import { mintUnsubscribeToken } from './tokens'
 import type {
   PendingPost,
+  SubscriberAudienceSource,
   SubscriptionNotifierPort,
   SubscriptionRepository,
-  VisibleForumSource,
 } from './types'
 
 export const MAX_USERS_PER_RUN = 50
@@ -53,7 +53,7 @@ export interface RunOutcome {
 export class SubscriptionNotifier {
   private readonly subscriptions: SubscriptionRepository
   private readonly notifications: SubscriptionNotifierPort
-  private readonly forums: VisibleForumSource
+  private readonly forums: SubscriberAudienceSource
   private readonly now: () => Date
 
   private readonly secret: string | null
@@ -61,7 +61,7 @@ export class SubscriptionNotifier {
   constructor(deps: {
     subscriptions: SubscriptionRepository
     notifications: SubscriptionNotifierPort
-    forums: VisibleForumSource
+    forums: SubscriberAudienceSource
     unsubscribeSecret?: string | null
     now?: () => Date
   }) {
@@ -154,11 +154,11 @@ export class SubscriptionNotifier {
       considered += 1
 
       try {
-        const visibleForumIds = await this.forums.visibleForumIdsFor(userId)
+        const audience = await this.forums.audienceFor(userId)
         const pending = await this.subscriptions.pendingFor({
           userId,
           mode,
-          visibleForumIds,
+          audience,
           limit: MAX_POSTS_PER_USER,
         })
 

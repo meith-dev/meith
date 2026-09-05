@@ -65,6 +65,7 @@ function notice(over: Partial<Parameters<typeof notifyPostAudience>[0]> = {}) {
     forumId: SEED_FORUM.general,
     threadSlug: 'hello',
     threadTitle: 'Hello',
+    threadAuthorId: null,
     message: '',
     authorUsername: 'Poster',
     visibility: 'visible' as const,

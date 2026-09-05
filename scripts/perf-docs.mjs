@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { emitGeneratedDoc } from './generated-doc.mjs'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 const BUDGETS_FILE = 'packages/testkit/src/load/budgets.ts'
 const RESULTS_FILE = 'docs/reference/perf-results.json'
 const INDEX_FILE = 'docs/reference/perf-indexes.json'

@@ -32,8 +32,8 @@ export {
 export type {
   PendingForUser,
   PendingPost,
+  SubscriberAudienceSource,
   SubscriptionNotifierPort,
   SubscriptionRepository,
   SubscriptionRow,
-  VisibleForumSource,
 } from './types'

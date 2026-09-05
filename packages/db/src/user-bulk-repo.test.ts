@@ -374,12 +374,12 @@ describe('mass mail', () => {
       createdByUserId: null,
     })
 
-    const first = await repo.claimMassMailChunk(mailId, 1)
+    const first = await repo.claimMassMailChunk(mailId, 1, async () => {})
     expect(first.recipients.map((row) => row.userId)).toEqual([1])
 
     await db.execute(sql`update users set mass_mail_opt_in_at = null where id = 2`)
 
-    const second = await repo.claimMassMailChunk(mailId, 1)
+    const second = await repo.claimMassMailChunk(mailId, 1, async () => {})
     expect(second).toEqual({ recipients: [], finished: true })
     expect((await repo.readMassMail(mailId))?.queuedCount).toBe(1)
   })
@@ -465,14 +465,14 @@ describe('mass mail', () => {
       createdByUserId: null,
     })
 
-    const first = await repo.claimMassMailChunk(mailId, 2)
+    const first = await repo.claimMassMailChunk(mailId, 2, async () => {})
     expect(first.recipients.map((row) => row.userId)).toEqual([1, 2])
     expect(first.finished).toBe(false)
 
-    const second = await repo.claimMassMailChunk(mailId, 2)
+    const second = await repo.claimMassMailChunk(mailId, 2, async () => {})
     expect(second.recipients.map((row) => row.userId)).toEqual([3, 4])
 
-    const third = await repo.claimMassMailChunk(mailId, 2)
+    const third = await repo.claimMassMailChunk(mailId, 2, async () => {})
     expect(third.recipients.map((row) => row.userId)).toEqual([5])
     expect(third.finished).toBe(true)
 
@@ -489,15 +489,39 @@ describe('mass mail', () => {
       createdByUserId: null,
     })
 
-    await repo.claimMassMailChunk(mailId, 10)
+    await repo.claimMassMailChunk(mailId, 10, async () => {})
     await seed({ id: 2, username: 'joined-later' })
 
-    const again = await repo.claimMassMailChunk(mailId, 10)
+    const again = await repo.claimMassMailChunk(mailId, 10, async () => {})
     expect(again).toEqual({ recipients: [], finished: true })
   })
 
   it('refuses a message that does not exist', async () => {
-    await expect(repo.claimMassMailChunk(9_999, 10)).rejects.toThrow(/No such message/)
+    await expect(repo.claimMassMailChunk(9_999, 10, async () => {})).rejects.toThrow(
+      /No such message/,
+    )
+  })
+
+  it('leaves the cursor untouched when enqueueing a batch fails', async () => {
+    await seed({ id: 1, username: 'u1' })
+    await seed({ id: 2, username: 'u2' })
+    const mailId = await repo.createMassMail({
+      subject: 'Hello',
+      body: 'x',
+      targetGroupId: null,
+      createdByUserId: null,
+    })
+
+    await expect(
+      repo.claimMassMailChunk(mailId, 10, async () => {
+        throw new Error('queue down')
+      }),
+    ).rejects.toThrow(/queue down/)
+
+    expect((await repo.readMassMail(mailId))?.queuedCount).toBe(0)
+
+    const retry = await repo.claimMassMailChunk(mailId, 10, async () => {})
+    expect(retry.recipients.map((row) => row.userId)).toEqual([1, 2])
   })
 
   it('carries the address and the name, so the job needs no second read', async () => {
@@ -509,7 +533,7 @@ describe('mass mail', () => {
       createdByUserId: null,
     })
 
-    const chunk = await repo.claimMassMailChunk(mailId, 10)
+    const chunk = await repo.claimMassMailChunk(mailId, 10, async () => {})
     expect(chunk.recipients[0]).toEqual({
       userId: 1,
       username: 'ann',

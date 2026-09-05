@@ -138,3 +138,21 @@ describe('copying avatars', () => {
     expect(result).toMatchObject({ outcome: 'failed' })
   })
 })
+
+describe('when storage is unavailable', () => {
+  class FailingStore extends MemoryStore {
+    override async put(): Promise<StoredFile> {
+      throw new Error('storage offline')
+    }
+  }
+
+  it('surfaces a storage outage rather than reporting the file as undecodable', async () => {
+    await writeFile(join(root, 'a.png'), PNG)
+    const failing = new UploadsDirCopier(root, new FailingStore(), stubImages)
+
+    await expect(failing.avatar({ legacyUserId: 3, path: 'a.png' })).rejects.toThrow(
+      /storage offline/,
+    )
+    await expect(failing.attachment(attachmentInput('a.png'))).rejects.toThrow(/storage offline/)
+  })
+})

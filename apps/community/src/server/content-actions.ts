@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 
-import { ForbiddenError, ValidationError } from '@meith/core'
+import { ForbiddenError, logger, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 import {
   authorRef,
@@ -155,6 +155,20 @@ function pollClosingTime(value: string): Date | null {
 
 const toFormState = formStateReporter('content-actions', 'unexpected error writing content')
 
+async function finaliseNewPost(
+  kind: 'thread' | 'reply',
+  finalise: () => Promise<void>,
+): Promise<void> {
+  try {
+    await finalise()
+  } catch (err) {
+    logger().error(
+      { err: String(err), kind },
+      'content saved but attaching uploads or clearing the draft failed',
+    )
+  }
+}
+
 export interface ComposerAutosaveInput {
   readonly forumId?: number
   readonly threadId?: number
@@ -248,9 +262,11 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
 
   let created: Awaited<ReturnType<typeof submitThread>>
   let resolved: Awaited<ReturnType<typeof resolveThreadTarget>>
+  let staged: Awaited<ReturnType<typeof stageAttachments>>
+  let userId: number
   try {
     resolved = await resolveThreadTarget(actor, forumId)
-    const userId = actor.userId!
+    userId = actor.userId!
 
     if (intent === 'save_draft') {
       if (drafts === null) throw new ValidationError(msg('error.app.drafts-unavailable-board'))
@@ -260,7 +276,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
 
     const pollClosesAt = pollClosingTime(poll.closesAt)
 
-    const staged = await stageAttachments(actor, resolved.scope, await submittedFiles(form))
+    staged = await stageAttachments(actor, resolved.scope, await submittedFiles(form))
 
     const subscribeMode = subscribe
       ? autoWatchCadence(await autoWatchPreference(userId, 'create'))
@@ -284,7 +300,11 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
               publicVotes: poll.publicVotes,
             },
     })
+  } catch (err) {
+    return { ...(await toFormState(err, values)), poll }
+  }
 
+  await finaliseNewPost('thread', async () => {
     const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })
     await claimAttachments(
       form,
@@ -293,9 +313,7 @@ export async function createThreadAction(_prev: FormState, form: FormData): Prom
       attached.length,
     )
     await drafts?.remove(userId, forumId, null)
-  } catch (err) {
-    return { ...(await toFormState(err, values)), poll }
-  }
+  })
 
   if (created.visibility === 'unapproved') {
     redirect(`/${resolved.forum.id}-${resolved.forum.slug}?posted=moderated`)
@@ -320,6 +338,7 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
   const { drafts } = getContainer()
 
   let created: Awaited<ReturnType<typeof submitReply>>
+  let finalise: () => Promise<void>
   try {
     const resolved = await resolveReplyTarget(actor, threadId)
     const { forumId, scope } = resolved
@@ -345,17 +364,21 @@ export async function createReplyAction(_prev: FormState, form: FormData): Promi
       seenLastPostId,
     })
 
-    const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })
-    await claimAttachments(
-      form,
-      { postId: created.postId, forumId, userId },
-      scope,
-      attached.length,
-    )
-    await drafts?.remove(userId, forumId, threadId)
+    finalise = async () => {
+      const attached = await attachStaged(staged, { postId: created.postId, forumId, userId })
+      await claimAttachments(
+        form,
+        { postId: created.postId, forumId, userId },
+        scope,
+        attached.length,
+      )
+      await drafts?.remove(userId, forumId, threadId)
+    }
   } catch (err) {
     return toFormState(err, values)
   }
+
+  await finaliseNewPost('reply', finalise)
 
   const thread = `/thread/${created.threadId}-${created.slug}`
   if (created.visibility === 'unapproved') {
