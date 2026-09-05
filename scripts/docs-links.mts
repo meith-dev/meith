@@ -3,13 +3,15 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import * as developersContent from '../apps/web/src/content/developers'
+import * as segmentsContent from '../apps/web/src/content/segments'
 import * as siteContent from '../apps/web/src/content/site'
 import { createSlugger } from '../apps/web/src/markdown/slug'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 const DOCS = join(ROOT, 'docs')
 const MANIFEST = 'apps/web/content/docs.manifest.json'
-const CONTENT = 'apps/web/src/content/site.ts'
+const CONTENT = 'apps/web/src/content/{site,segments,developers}.ts'
 const WHERE = 'scripts/docs-links.mts'
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/
@@ -344,7 +346,11 @@ async function main() {
     root: ROOT,
   }
 
-  const references = dedupeReferences(collectDocReferences(siteContent))
+  const references = dedupeReferences([
+    ...collectDocReferences(siteContent, 'site'),
+    ...collectDocReferences(segmentsContent, 'segments'),
+    ...collectDocReferences(developersContent, 'developers'),
+  ])
   const scanned = files.reduce(
     (total, file) => total + documentLinks(sources.get(file) ?? '').length,
     0,

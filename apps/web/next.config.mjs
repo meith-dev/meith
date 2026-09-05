@@ -35,11 +35,23 @@ const nextConfig = {
       { source: '/docs/ban-filters', destination: '/docs/antispam', permanent: true },
       { source: '/docs/cookies-and-headers', destination: '/docs/operating', permanent: true },
       { source: '/docs/web-push', destination: '/docs/operating', permanent: true },
-      { source: '/for/clubs', destination: '/for/communities', permanent: true },
-      { source: '/for/neighbourhoods', destination: '/for/communities', permanent: true },
-      { source: '/for/discord-and-slack', destination: '/for/communities', permanent: true },
-      { source: '/for/facebook-groups', destination: '/for/communities', permanent: true },
-      { source: '/for/gaming', destination: '/for/communities', permanent: true },
+      { source: '/for', destination: '/who-its-for', permanent: true },
+      { source: '/for/clubs', destination: '/who-its-for/clubs-and-associations', permanent: true },
+      { source: '/for/agencies', destination: '/who-its-for/developers', permanent: true },
+      {
+        source: '/for/product-communities',
+        destination: '/who-its-for/communities',
+        permanent: true,
+      },
+      { source: '/for/neighbourhoods', destination: '/who-its-for/communities', permanent: true },
+      {
+        source: '/for/discord-and-slack',
+        destination: '/who-its-for/communities',
+        permanent: true,
+      },
+      { source: '/for/facebook-groups', destination: '/who-its-for/communities', permanent: true },
+      { source: '/for/gaming', destination: '/who-its-for/communities', permanent: true },
+      { source: '/for/:segment', destination: '/who-its-for/:segment', permanent: true },
     ]
   },
 

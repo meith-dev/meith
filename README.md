@@ -1,6 +1,6 @@
 # Meith
 
-**The fast, code-first forum engine.** Meith is open-source forum software: self-hosted by default, built on modern TypeScript, and fast enough to run with JavaScript disabled. Threaded discussions, search, permissions, moderation, paid memberships, themes, plugins and an operator CLI — from a single config repo to a server of your own, with no per-member pricing.
+**Built for communities. Owned by them.** Meith is open-source, self-hosted forum software for conversations worth keeping: built on modern TypeScript, configured from a repository you own, and fast enough to run with JavaScript disabled. Threaded discussions, search, permissions, moderation, paid memberships, themes, plugins and an operator CLI — from a single config repo to a server of your own, with no per-member pricing.
 
 - [Website](https://meith.dev)
 - [Live demo](https://demo.meith.dev)

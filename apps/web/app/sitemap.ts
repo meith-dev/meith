@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-import { segmentHref, segments } from '../src/content/segments'
+import { audienceHref, audienceIndexHref, audiences } from '../src/content/segments'
 import { site } from '../src/content/site'
 import { documents } from '../src/docs/registry'
 import { loadListings } from '../src/marketplace/catalog'
@@ -10,9 +10,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: site.url, changeFrequency: 'monthly', priority: 1 },
-    { url: `${site.url}/for`, changeFrequency: 'monthly', priority: 0.9 },
-    ...segments.map((segment) => ({
-      url: `${site.url}${segmentHref(segment.slug)}`,
+    { url: `${site.url}${audienceIndexHref}`, changeFrequency: 'monthly', priority: 0.9 },
+    ...audiences.map((audience) => ({
+      url: `${site.url}${audienceHref(audience.slug)}`,
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     })),

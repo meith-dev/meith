@@ -6,9 +6,10 @@ export const site = {
   url: 'https://www.meith.dev',
   demo: 'https://demo.meith.dev',
   repository: 'https://github.com/meith-dev/meith',
-  tagline: 'The fast, code-first forum engine.',
+  tagline: 'Open-source, self-hosted community software for conversations worth keeping.',
   description:
-    'Open-source forum software on modern TypeScript: self-hosted by default, configured from a small repository you own, and fast enough to run with JavaScript disabled.',
+    'Meith is open-source, self-hosted forum software for communities that want to own their conversations, data and infrastructure.',
+  seoTitle: 'Meith — Open-source community software you own',
 } as const
 
 export const licence = {
@@ -18,6 +19,8 @@ export const licence = {
 } as const
 
 export const licenceHref = `${site.repository}/blob/main/${licence.file}`
+
+export const scaffoldCommand = 'npx create-meith my-community'
 
 export interface Shot {
   readonly file: string
@@ -55,38 +58,146 @@ export const shots = {
 } as const satisfies Record<string, { readonly light: Shot; readonly dark: Shot }>
 
 export const hero = {
-  badge: 'Open source · Self-hosted · Modern TypeScript',
+  badge: 'Open source · Self-hosted · MIT licensed',
   headline: {
-    before: 'The fast, code-first',
-    emphasis: 'forum engine.',
+    before: 'Built for communities.',
+    emphasis: 'Owned by them.',
   },
   lede:
-    'Self-hosted by default, built on modern TypeScript, and fast enough to run with ' +
-    'JavaScript disabled. Own your discussions — from a single config repo to a server of ' +
-    'your own in minutes.',
-  primary: 'Explore the demo',
-  secondary: 'Read the quickstart',
-  caption: 'Screenshots from a working Meith board.',
+    'Meith is open-source, self-hosted forum software for conversations worth keeping. Give ' +
+    'your community a place of its own — on your domain, on your infrastructure, with your ' +
+    'data under your control.',
+  primary: 'Get started',
+  demo: 'Try the demo',
+  source: 'View on GitHub',
+  facts: ['Open source', 'MIT licensed', 'Self-hosted', 'No per-member pricing'],
+  caption: 'Screenshots from a working Meith board, on a desktop and on a phone.',
 } as const
 
 export const devices = {
   label: 'The same board on a phone and on a desktop',
 } as const
 
-const HEADLINE_SCENARIO = 'Thread, page 1'
-
-export const finding = {
-  eyebrow: 'Search, and no feed',
-  heading: 'Find the answer somebody wrote years ago.',
+export const keeps = {
+  eyebrow: 'Alongside the chat',
+  heading: 'Chat is for now. Meith is for keeps.',
   lede:
-    'Moderators move on and founders step back, but the answers stay. Search covers the whole ' +
-    'archive, and puts the thread that settles your question ahead of a passing mention of it.',
-  ranking: {
+    'Discord, Slack and group chats are great at what is happening right now. They are less ' +
+    'good at remembering the answer someone gave two years ago.',
+  body:
+    'Meith gives your community a permanent home for the things worth keeping — discussions, ' +
+    'answers, decisions, guides, and everything the next person should not have to ask again.',
+  aside: {
     heading: 'Nothing is ranked for you.',
     body:
-      'No feed, no ranking, no “see more”. An announcement sits where you put it, and ' +
-      'everybody in that forum sees it.',
+      'No feed and no algorithm. An announcement sits where you put it, a thread keeps its ' +
+      'URL, and search reaches the whole archive.',
   },
+  columns: [
+    {
+      title: 'Keep in chat',
+      items: ['The banter', 'Tonight’s plans', 'Quick questions', '“Anyone around?”'],
+    },
+    {
+      title: 'Keep in Meith',
+      items: ['Answers', 'Announcements', 'Decisions', 'Guides', 'Events', 'Community knowledge'],
+    },
+  ],
+} as const
+
+export interface Pillar {
+  readonly id: string
+  readonly title: string
+  readonly body: string
+  readonly doc: string
+  readonly link: string
+}
+
+export const ownership = {
+  eyebrow: 'Ownership',
+  heading: 'A home for your community. Not another platform.',
+  lede:
+    'Your community should not disappear because a platform changes direction. A Meith board ' +
+    'runs on a server you rent, at a domain you own, from a database you can take with you.',
+  pillars: [
+    {
+      id: 'own',
+      title: 'Own the whole thing',
+      body:
+        'Your domain, your server, your PostgreSQL. There is no Meith-hosted control plane, ' +
+        'no account with a company in the middle, and nothing that can be switched off from ' +
+        'outside your community.',
+      doc: 'deployment',
+      link: 'How a board is deployed',
+    },
+    {
+      id: 'keep',
+      title: 'Keep what your community knows',
+      body:
+        'Threads keep their URLs for years. Search covers the whole archive, so the answer ' +
+        'from three organisers ago keeps earning its keep.',
+      doc: 'search',
+      link: 'How search works',
+    },
+    {
+      id: 'yours',
+      title: 'Make it yours',
+      body:
+        'The name, the colours and the theme are your call. Five themes ship with the board ' +
+        'and a theme of your own is a normal package in the repository.',
+      doc: 'themes',
+      link: 'How themes work',
+    },
+    {
+      id: 'cost',
+      title: 'Pay for infrastructure, not popularity',
+      body:
+        'There is no licence fee and nothing priced per member. You pay for the machine the ' +
+        'board runs on, and a community that doubles in size does not double its software ' +
+        'bill.',
+      doc: 'docker-compose',
+      link: 'What a board runs on',
+    },
+    {
+      id: 'handover',
+      title: 'Handed over, not started over',
+      body:
+        'Nothing lives in anybody’s personal account. When the people running the board ' +
+        'change, the roles move on and the board stays the community’s.',
+      doc: 'organiser-guide',
+      link: 'Handing a board over',
+    },
+  ],
+} as const satisfies { readonly pillars: readonly Pillar[] } & Record<string, unknown>
+
+export const audiencesBand = {
+  eyebrow: 'Who it’s for',
+  heading: 'Built for communities of all kinds.',
+  lede:
+    'A flexible foundation for communities that care about ownership, permanence and control. ' +
+    'Each audience gets a page of its own.',
+  link: 'Who is Meith for?',
+} as const
+
+export const developerTeaser = {
+  eyebrow: 'For developers',
+  heading: 'Your community, version controlled.',
+  body:
+    'A Meith board starts as a repository. Configuration, themes and plugins live alongside ' +
+    'your code, so changes are reviewable, deployments are repeatable and upgrades are version ' +
+    'bumps.',
+  link: 'Explore Meith for Developers',
+} as const
+
+const HEADLINE_SCENARIO = 'Thread, page 1'
+
+export const performance = {
+  eyebrow: 'Performance',
+  heading: 'Fast on day one. Fast ten years later.',
+  lede:
+    'Communities accumulate history. Meith is designed not to punish you for keeping it: every ' +
+    'page is rendered on the server, works with JavaScript switched off, and is measured against ' +
+    'a board with years of posts in it.',
   evidence(facts: Facts): string {
     const thread = facts.performance.scenarios.find(
       (scenario) => scenario.page === HEADLINE_SCENARIO,
@@ -100,9 +211,16 @@ export const finding = {
     }
 
     return (
-      `Proved against a board of ${facts.performance.posts.toLocaleString('en-IE')} posts — ` +
-      `years of a busy community's history: a thread still opens in ${thread.p95Ms} ms, and a ` +
-      `release that breaks its ${thread.budgetMs} ms budget is never published.`
+      `Measured against a board of ${facts.performance.posts.toLocaleString('en-IE')} posts in ` +
+      `${facts.performance.threads.toLocaleString('en-IE')} threads: a thread opens in ` +
+      `${thread.p95Ms} ms at the 95th percentile, against a ${thread.budgetMs} ms budget. A ` +
+      'release that breaks a budget is never published.'
+    )
+  },
+  method(facts: Facts): string {
+    return (
+      `Single web process, no Redis, one read at a time, p95 over sixty iterations. Recorded ` +
+      `${facts.performance.measured}. The numbers belong to that machine; the shape travels.`
     )
   },
   link: 'Every measurement, and how it was taken',
@@ -128,11 +246,11 @@ function themePair(key: string, title: string): { light: Shot; dark: Shot } {
 }
 
 export const themes = {
-  eyebrow: 'Themes',
-  heading: 'It can wear your colours.',
+  eyebrow: 'Customisation',
+  heading: 'Make it unmistakably yours.',
   lede:
-    'Five looks ship with the board, each in light and dark. A theme changes how the board ' +
-    'looks and nothing else — so a new coat of paint can never cost you the board.',
+    'Your community should not look like everyone else’s install. Five themes ship with the ' +
+    'board, each in light and dark, and a theme changes how the board looks and nothing else.',
   link: 'How themes work',
   schemes: [
     { key: 'light', label: 'Light' },
@@ -184,123 +302,34 @@ export function themeShots(key: string): { readonly light: Shot; readonly dark: 
   return { light: entry.light, dark: entry.dark }
 }
 
-export const alongside = {
-  eyebrow: 'Alongside what you already have',
-  heading: 'Chat is for now. This is for keeps.',
-  lede:
-    'Keep the group chat. Put the things that need to still be true next month somewhere they ' +
-    'will survive it.',
-  columns: [
+export const customisation = {
+  points: [
     {
-      title: 'Leave in the chat',
-      items: [
-        "who's about tonight",
-        "tonight's plan",
-        'the banter',
-        '“on my way”',
-        'the photo from Saturday',
-      ],
+      title: 'Themes',
+      body: 'Fill documented slots with your own look. A theme is code in the repository, not a preset.',
+      doc: 'themes',
+      link: 'Themes',
     },
     {
-      title: 'Put on the board',
-      items: [
-        'announcements',
-        'decisions and minutes',
-        'how we do things',
-        'events & sign-ups',
-        'the good answers',
-        'the archive',
-        'what a newcomer needs in six months',
-      ],
+      title: 'Plugins',
+      body: 'Typed TypeScript packages on documented hooks, isolated so one that fails fails alone.',
+      doc: 'plugins',
+      link: 'Plugins',
+    },
+    {
+      title: 'API',
+      body: 'A REST API for anything an administrator can do by hand, with scoped tokens.',
+      doc: 'api',
+      link: 'The API',
+    },
+    {
+      title: 'Marketplace',
+      body: 'A reviewed feed of plugins and themes, installed from the repository like any dependency.',
+      doc: 'marketplace',
+      link: 'The marketplace',
     },
   ],
 } as const
-
-export interface Capability {
-  readonly id: string
-  readonly title: string
-  readonly body: string
-  readonly doc: string
-  readonly anchor: string | null
-  readonly link: string
-}
-
-export const capabilities: readonly Capability[] = [
-  {
-    id: 'permissions',
-    title: 'A room for everyone, and one for the organisers',
-    body:
-      'Newcomers, members and the people running the place each see their own forums — and ' +
-      'search, feeds and the API keep the secret too.',
-    doc: 'forums',
-    anchor: null,
-    link: 'How permissions work',
-  },
-  {
-    id: 'themes',
-    title: 'It wears your colours',
-    body:
-      'The name, the logo and the colours are settings in the admin panel, not code — a new ' +
-      'look never risks a working board.',
-    doc: 'organiser-guide',
-    anchor: null,
-    link: 'What you can change yourself',
-  },
-  {
-    id: 'plugins',
-    title: 'Add what your community is missing',
-    body:
-      'Plugins stay in their lane. One that misbehaves fails on its own, and the board ' +
-      'carries on without it.',
-    doc: 'plugins',
-    anchor: null,
-    link: 'What plugins can do',
-  },
-  {
-    id: 'search',
-    title: 'Years of answers, still findable',
-    body:
-      'The archive stays quick however deep it gets, so the answer from three admins ago ' +
-      'keeps earning its keep.',
-    doc: 'performance',
-    anchor: null,
-    link: 'How search holds up',
-  },
-  {
-    id: 'spam',
-    title: 'Bots stay out, people get in',
-    body:
-      'A trap only bots fall into, and sign-up questions only your members can answer. No ' +
-      'puzzle grids at the door.',
-    doc: 'antispam',
-    anchor: null,
-    link: 'How the spam controls work',
-  },
-  {
-    id: 'chores',
-    title: 'Handed over, not started over',
-    body:
-      'Nothing lives in anybody’s personal account. When the person who set it up moves on, ' +
-      'the roles move on too — and the board stays the community’s.',
-    doc: 'organiser-guide',
-    anchor: null,
-    link: 'Running it day to day',
-  },
-]
-
-export function capabilitiesByIds(ids: readonly string[]): readonly Capability[] {
-  return ids.map((id) => {
-    const capability = capabilities.find((entry) => entry.id === id)
-    if (!capability) {
-      throw new Error(
-        `No capability with id “${id}”. A segment in src/content/segments.ts names one that ` +
-          `src/content/site.ts does not define. It defines: ` +
-          `${capabilities.map((entry) => entry.id).join(', ')}.`,
-      )
-    }
-    return capability
-  })
-}
 
 export const terminal: {
   readonly cwd: string
@@ -318,14 +347,18 @@ export const terminal: {
 
 export const openSource = {
   eyebrow: 'Open source',
-  heading: 'Yours to run, and yours to keep.',
+  heading: 'Open source means open source.',
   body:
-    'Open source under the MIT licence, on a machine your community rents, at a domain it ' +
-    'owns. No company in the middle, nobody who can price it later or ' +
-    'switch it off — and when the people running it change, the board is handed over whole, ' +
-    'not rebuilt from scratch.',
-  emphasis:
-    'The bill follows the machine, never the membership: two hundred members cost what twenty do.',
+    'Meith is MIT licensed, and there is no hosted edition holding features back. The whole ' +
+    'engine is in the repository: read it, fork it, extend it, contribute upstream, and ' +
+    'understand exactly what an upgrade changes before you take it.',
+  points: [
+    'MIT licensed, with no open-core upsell',
+    'Self-hosted on your own infrastructure',
+    'Your own PostgreSQL database',
+    'No per-member licence fees',
+    'Inspectable, forkable and extensible',
+  ],
   links: [
     { label: 'Deploy it', doc: 'deployment' },
     { label: 'Docker Compose by hand', doc: 'docker-compose' },
@@ -335,38 +368,13 @@ export const openSource = {
 
 export const memberships = {
   eyebrow: 'Memberships',
-  heading: 'Take memberships online, and stop chasing them.',
+  heading: 'Memberships without another middleman.',
   body:
-    'Dues comes with the board: the plans you set, sold through your own Stripe account as a ' +
-    'subscription, a pass or a lifetime. Paying opens the members-only forum by itself, ' +
-    'lapsing closes it by itself — and the spreadsheet retires.',
-  emphasis: 'The money is between you and Stripe. No cut, and no per-member fee.',
+    'Optional, and part of the board rather than a separate service: plans you set, sold ' +
+    'through your own Stripe account as a subscription, a pass or a lifetime. Paying opens the ' +
+    'members-only forum by itself, and lapsing closes it.',
+  emphasis: 'The money is between your community and Stripe. No cut, and no per-member fee.',
   link: 'The memberships guide',
-} as const
-
-export const extensible = {
-  eyebrow: 'Code-first',
-  heading: 'A board is a repository. The rest is contracts.',
-  lede:
-    'npx create-meith writes a board that pins the engine at one exact version and registers ' +
-    'its themes and plugins in typed config — a plugin arrives as a reviewable diff, and the ' +
-    'whole board rebuilds from clone plus backup. The contracts are typed too: plugin hooks ' +
-    'with crash isolation, documented theme slots, and an API for anything an administrator ' +
-    'can do by hand.',
-  counts(facts: Facts): readonly { readonly label: string; readonly value: string }[] {
-    return [
-      { label: 'Theme slots', value: String(facts.theme.slots) },
-      { label: 'Plugin hooks', value: String(facts.plugins.hooks) },
-      { label: 'API endpoints', value: String(facts.api.endpoints) },
-      { label: 'Scopes on them', value: String(facts.api.scopes) },
-    ]
-  },
-  links: [
-    { label: 'Configuration in code', doc: 'configuration' },
-    { label: 'What plugins can do', doc: 'plugins' },
-    { label: 'How themes work', doc: 'themes' },
-    { label: 'The API and the CLI', doc: 'api' },
-  ],
 } as const
 
 export const devTerminal: {
@@ -375,28 +383,21 @@ export const devTerminal: {
 } = {
   cwd: 'quickstart',
   lines: [
-    { text: 'npx create-meith my-board' },
-    { text: 'cd my-board && npm install && npm run dev' },
+    { text: scaffoldCommand },
+    { text: 'cd my-community && npm install && npm run dev' },
     { text: '✔ fixture mode  no DATABASE_URL — serving from memory', output: true },
     { text: '✔ ready        http://localhost:3000', output: true },
   ],
 }
 
-export const chooser = {
-  eyebrow: "Who it's for",
-  heading: 'Find the version of this that is about you.',
-  lede:
-    'An open-source project has answers worth keeping. A product needs a support forum it ' +
-    'owns. An agency runs a board per client. And somewhere a twenty-year-old MyBB deserves ' +
-    'better. Each gets a page of its own.',
-} as const
-
 export const closing = {
-  heading: 'Ship a forum you actually own.',
+  heading: 'Give your community a place of its own.',
   body:
-    'Scaffold it in a minute, watch it run before it ever touches a server, then hand the ' +
-    'day-to-day to the people who run the community. Have a look at a real board first.',
-  action: 'Read the quickstart',
+    'Scaffold a board in a minute, run it on your machine before it ever touches a server, ' +
+    'then hand the day-to-day to the people who run the community.',
+  action: 'Get started',
+  demo: 'Try the demo',
+  source: 'View on GitHub',
   requirements: [
     { label: 'A repository', value: 'npx create-meith, pushed to your GitHub' },
     { label: 'A server', value: "Rented in the community's name, from a few euro a month" },

@@ -2,11 +2,18 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { AudienceCards } from '../../../src/components/audience-cards'
 import { DemoLink } from '../../../src/components/demo-link'
 import { SchemeScreenshot } from '../../../src/components/screenshot'
-import { SegmentCards } from '../../../src/components/segment-cards'
-import { ClosingBand } from '../../../src/components/site-bands'
-import { findSegment, origin, segmentHref, segments } from '../../../src/content/segments'
+import { Breadcrumb, ClosingBand, DocLinks } from '../../../src/components/site-bands'
+import {
+  audienceHref,
+  audienceIndexHref,
+  audiences,
+  findSegment,
+  origin,
+  segments,
+} from '../../../src/content/segments'
 import { site, themeShots } from '../../../src/content/site'
 import { docHref, quickstartHref } from '../../../src/docs/registry'
 import { ogImage } from '../../../src/og/card'
@@ -26,7 +33,7 @@ export async function generateMetadata({
   const segment = findSegment(slug)
   if (!segment) return {}
 
-  const canonical = segmentHref(segment.slug)
+  const canonical = audienceHref(segment.slug)
 
   return {
     title: { absolute: segment.meta.title },
@@ -38,7 +45,7 @@ export async function generateMetadata({
       title: segment.meta.title,
       description: segment.meta.description,
       url: `${site.url}${canonical}`,
-      images: ogImage(`/for/og/${segment.slug}`, segment.meta.title),
+      images: ogImage(`${audienceIndexHref}/og/${segment.slug}`, segment.meta.title),
     },
     twitter: {
       card: 'summary_large_image',
@@ -55,6 +62,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
 
   const startHref = quickstartHref()
   const board = themeShots(segment.theme)
+  const others = audiences.filter((audience) => audience.slug !== segment.slug)
 
   return (
     <>
@@ -62,19 +70,15 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
         <div aria-hidden className="hero-grid" />
         <div aria-hidden className="hero-glow" />
 
-        <div className="shell grid gap-x-14 gap-y-14 pt-14 pb-20 sm:pt-20 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center">
+        <div className="shell grid gap-x-14 gap-y-14 pt-14 pb-20 sm:pt-20 sm:pb-24 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-center">
           <div className="flex flex-col items-start gap-6">
-            <nav aria-label="Breadcrumb" className="eyebrow">
-              <Link className="transition-colors hover:text-fg" href="/">
-                {site.name}
-              </Link>
-              <span aria-hidden className="px-1.5">
-                /
-              </span>
-              <Link className="transition-colors hover:text-fg" href="/for">
-                Who it&rsquo;s for
-              </Link>
-            </nav>
+            <Breadcrumb
+              current={segment.name}
+              trail={[
+                { label: site.name, href: '/' },
+                { label: 'Who it’s for', href: audienceIndexHref },
+              ]}
+            />
 
             <p className="badge">
               <span aria-hidden className="badge-dot" />
@@ -89,20 +93,15 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             <p className="lede max-w-[36rem]">{segment.hero.lede}</p>
 
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <DemoLink className="btn btn-primary">
-                See a live board
+              <Link className="btn btn-primary" href={startHref}>
+                Get started
                 <span aria-hidden className="btn-arrow">
                   →
                 </span>
-              </DemoLink>
-              <Link className="btn btn-quiet" href={startHref}>
-                Set one up
               </Link>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <DemoLink className="btn btn-quiet">Try the demo</DemoLink>
               <a className="textlink text-micro" href={site.repository}>
-                Read the source
+                View on GitHub
               </a>
             </div>
           </div>
@@ -115,6 +114,31 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
           </figure>
         </div>
       </section>
+
+      {segment.belongs ? (
+        <section className="border-b border-border">
+          <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
+            <header className="flex flex-col gap-3">
+              <p className="eyebrow">Alongside the chat</p>
+              <h2 className="display text-large leading-[1.15]">{segment.belongs.heading}</h2>
+              <p className="text-fg-muted text-pretty">{segment.belongs.lede}</p>
+            </header>
+
+            <div className="compare lg:pt-1">
+              {segment.belongs.columns.map((column) => (
+                <div key={column.title}>
+                  <p className="eyebrow">{column.title}</p>
+                  <ul>
+                    {column.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section aria-label="What keeps happening" className="border-b border-border bg-surface">
         <div className="shell py-14 sm:py-18">
@@ -140,20 +164,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
 
           <div className="flex max-w-[36rem] flex-col gap-6 lg:pt-1">
             <p className="text-fg-muted text-pretty">{segment.feature.lede}</p>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              {segment.feature.links.map((link) =>
-                'doc' in link ? (
-                  <Link className="textlink text-micro" href={docHref(link.doc)} key={link.label}>
-                    {link.label}
-                  </Link>
-                ) : (
-                  <a className="textlink text-micro" href={link.href} key={link.label}>
-                    {link.label}
-                  </a>
-                ),
-              )}
-            </div>
+            <DocLinks links={segment.feature.links} />
           </div>
         </div>
       </section>
@@ -183,7 +194,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
           <header className="max-w-[46rem]">
             <p className="eyebrow">Not quite you?</p>
             <h2 className="display mt-3 text-large leading-[1.15]">
-              The same board, argued four other ways.
+              The same software, from where you are standing.
             </h2>
             <p className="mt-4 text-fg-muted text-pretty">
               One piece of software. What changes is which of its problems you recognise.
@@ -191,7 +202,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
           </header>
 
           <div className="mt-10">
-            <SegmentCards except={segment.slug} />
+            <AudienceCards audiences={others} columns="lg:grid-cols-4" />
           </div>
         </div>
       </section>
