@@ -55,28 +55,33 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
     const config = await boardAuthConfig()
     const attemptBucket = await adminReauthenticationBucket(actor.userId)
     const attemptSince = new Date(Date.now() - config.lockoutMinutes * 60_000)
-    if (
-      config.maxLoginAttempts > 0 &&
-      (await accountStore.loginAttempts.countFailuresSince(attemptBucket, attemptSince)) >=
-        config.maxLoginAttempts
-    ) {
-      throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
+
+    let attemptId: number | null = null
+    if (config.maxLoginAttempts > 0) {
+      const spent = await accountStore.loginAttempts.recordFailureAndCount(
+        attemptBucket,
+        attemptSince,
+        new Date(),
+      )
+      attemptId = spent.id
+      if (spent.count > config.maxLoginAttempts) {
+        throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
+      }
     }
 
-    const failAttempt = async (): Promise<void> => {
-      await accountStore.loginAttempts.record(attemptBucket, false, new Date())
+    const auditFailure = async (): Promise<void> => {
       await recordAdminAction({ action: 'admin.signin_failed' })
     }
 
     const password = text(form, 'password')
     if (password === '') {
-      await failAttempt()
+      await auditFailure()
       throw new ValidationError(msg('error.app.enter-password'))
     }
 
     const ok = await verifyPassword(password, account.passwordHash)
     if (!ok) {
-      await failAttempt()
+      await auditFailure()
       throw new ForbiddenError(msg('error.app.password-right'))
     }
 
@@ -84,11 +89,12 @@ export async function adminSignInAction(_prev: FormState, form: FormData): Promi
     const twoFactor = twoFactorService()
 
     if (twoFactor !== null && (await twoFactor.isEnrolled(actor.userId))) {
+      if (attemptId !== null) await accountStore.loginAttempts.removeAttempt(attemptId)
       await holdAdminSecondFactor(actor.userId, next)
       target = '/admin'
     } else {
       if (twoFactor !== null && (await twoFactorRequiredForStaff())) {
-        await failAttempt()
+        await auditFailure()
         throw new ForbiddenError(msg('adminAction.twoFactorRequired'))
       }
 
@@ -133,28 +139,31 @@ export async function adminVerifySecondFactorAction(
     const config = await boardAuthConfig()
     const attemptBucket = await adminReauthenticationBucket(actor.userId)
     const attemptSince = new Date(Date.now() - config.lockoutMinutes * 60_000)
-    if (
-      config.maxLoginAttempts > 0 &&
-      (await accountStore.loginAttempts.countFailuresSince(attemptBucket, attemptSince)) >=
-        config.maxLoginAttempts
-    ) {
-      throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
+
+    if (config.maxLoginAttempts > 0) {
+      const spent = await accountStore.loginAttempts.recordFailureAndCount(
+        attemptBucket,
+        attemptSince,
+        new Date(),
+      )
+      if (spent.count > config.maxLoginAttempts) {
+        throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
+      }
     }
 
-    const failAttempt = async (): Promise<void> => {
-      await accountStore.loginAttempts.record(attemptBucket, false, new Date())
+    const auditFailure = async (): Promise<void> => {
       await recordAdminAction({ action: 'admin.signin_failed' })
     }
 
     const code = text(form, 'code')
     if (code === '') {
-      await failAttempt()
+      await auditFailure()
       throw new ValidationError(msg('error.app.enter-code-from-authenticator-app'))
     }
 
     const outcome = await twoFactor.verify({ userId: pending.userId, code })
     if (outcome.status !== 'ok') {
-      await failAttempt()
+      await auditFailure()
       throw new ForbiddenError(
         msg(outcome.status === 'replayed' ? 'adminAction.codeReplayed' : 'adminAction.codeWrong'),
       )

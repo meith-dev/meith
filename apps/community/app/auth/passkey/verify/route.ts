@@ -213,7 +213,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         return problem(await tr('authRoute.passkey.signInExpired'), 403)
       }
 
-      await identity.assertSecondFactorAttemptsLeft(pending.userId)
+      await identity.spendSecondFactorAttempt(pending.userId)
 
       const proved = await service.proveOwnership({
         userId: pending.userId,
@@ -224,7 +224,6 @@ export async function POST(request: NextRequest): Promise<Response> {
       })
 
       if (!proved) {
-        await identity.recordSecondFactorFailure(pending.userId)
         await recordAuthEvent({ userId: pending.userId, kind: 'second_factor_failed' })
         return problem(await tr('authRoute.passkey.notForAccount'), 403)
       }
