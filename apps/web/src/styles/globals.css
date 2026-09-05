@@ -710,6 +710,158 @@ body {
   background: var(--accent);
 }
 
+.essay {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15em;
+  max-width: 40rem;
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  text-wrap: pretty;
+}
+
+.essay-list {
+  display: grid;
+  gap: 0.55em;
+  padding-left: 1.4rem;
+  font-size: var(--step-0);
+}
+
+.essay-list-two {
+  padding-left: 0;
+}
+
+@media (min-width: 40rem) {
+  .essay-list-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2rem;
+  }
+}
+
+.essay-list > li {
+  position: relative;
+  padding-left: 1.4rem;
+}
+
+.essay-list:not(.essay-list-two) > li {
+  padding-left: 0;
+}
+
+.essay-list > li::before {
+  content: "";
+  position: absolute;
+  left: -1.1rem;
+  top: 0.7em;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.essay-list-two > li::before {
+  left: 0.15rem;
+}
+
+.essay-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  font-size: var(--step--1);
+  color: var(--fg);
+}
+
+.statement {
+  max-width: 24ch;
+  font-size: var(--step-3);
+  font-weight: 640;
+  letter-spacing: -0.028em;
+  line-height: 1.12;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.statement::before {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 3px;
+  margin-bottom: 1.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.pull {
+  margin-block: 0.5em;
+  padding-left: 1.4rem;
+  border-left: 3px solid var(--accent);
+  font-size: var(--step-2);
+  font-weight: 600;
+  letter-spacing: -0.024em;
+  line-height: 1.25;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--raised);
+  font-size: var(--step-0);
+  box-shadow: var(--lift);
+}
+
+.owned ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.owned li {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 0.28rem 0.8rem;
+  font-size: var(--step--1);
+  line-height: 1.4;
+  color: var(--fg);
+  background: var(--raised);
+  box-shadow: var(--lift);
+}
+
+.principles {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 48rem) {
+  .principles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 3rem;
+  }
+}
+
+.principles > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.principles dt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+}
+
 .menu {
   position: relative;
 }

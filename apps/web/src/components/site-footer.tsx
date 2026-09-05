@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { about } from '../content/about'
 import { audienceHref, audienceIndexHref, audiences } from '../content/segments'
 import { footer, licence, licenceHref, site } from '../content/site'
 import { version } from '../content/version'
@@ -79,6 +80,11 @@ export function SiteFooter() {
             <nav aria-label="Project">
               <p className="eyebrow">Project</p>
               <ul className="mt-4 flex flex-col gap-2">
+                <li>
+                  <Link href={about.href} className={item}>
+                    About Meith
+                  </Link>
+                </li>
                 <li>
                   <a href={site.repository} className={item}>
                     GitHub

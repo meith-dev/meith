@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { about } from '../content/about'
 import { audienceHref, audienceIndexHref, audiences } from '../content/segments'
 import { site } from '../content/site'
 import { quickstartHref } from '../docs/registry'
@@ -18,9 +19,6 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2.5">
           <Logomark className="h-6 w-6 shrink-0" />
           <b className="text-mid font-semibold tracking-[-0.03em]">{site.name}</b>
-          <span className="hidden font-mono text-micro tracking-[0.06em] text-fg-subtle sm:inline">
-            {site.domain}
-          </span>
         </Link>
 
         <nav aria-label="Site" className="flex items-center gap-3 sm:gap-4">
@@ -55,6 +53,9 @@ export function SiteHeader() {
             Docs
           </Link>
           <DemoLink className={item}>Demo</DemoLink>
+          <Link href={about.href} className={`hidden ${item} lg:inline`}>
+            About
+          </Link>
           <a href={site.repository} className={`hidden ${item} sm:inline`}>
             GitHub
           </a>
