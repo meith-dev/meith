@@ -82,14 +82,14 @@ adding a capability.
 ## A board scaled from day one
 
 Starting from the [by-hand route](../../getting-started/deployment/docker-compose.md), the differences are
-one service and three variables. In `docker/.env`:
+one service and three variables. In `.env`, beside the compose file:
 
 ```ini
 CACHE_DRIVER=redis
 REDIS_URL=redis://redis:6379
 ```
 
-The stock `docker/compose.yml` already forwards both, and ships a `redis`
+The by-hand compose file already forwards both, and ships a `redis`
 service behind a profile — named for the protocol, running Valkey:
 
 ```bash

@@ -226,8 +226,7 @@ itself.
 
 | Deployment | Who takes the backup | Notes |
 |---|---|---|
-| [Docker Compose](../../getting-started/deployment/docker-compose.md), [Coolify](../../getting-started/deployment/coolify.md) | The `worker` container, in a lane of its own | The tick keeps relaying mail while a dump runs. |
-| A board scaffolded by `create-meith` | The `web` container, inside the tick | The scaffold drives the tick by calling `/api/system/tick`, so the backup runs there; other tasks go on being served by the following ticks. |
+| [Coolify](../../getting-started/deployment/coolify.md), [Docker Compose by hand](../../getting-started/deployment/docker-compose.md), or any other board scaffolded by `create-meith` | The `web` container, inside the tick | `@meith/worker` is not published, so there is no separate process to run it in — the scaffold drives the tick by calling `/api/system/tick` instead, so the backup runs there; other tasks go on being served by the following ticks. |
 | [Vercel](../../getting-started/deployment/vercel.md) | Nobody, from the panel | A function has no `pg_dump` and no disk. The Backups screen says so; take bundles with the CLI from any machine holding the project's variables — the Vercel guide has the command — and they appear on the screen once they reach the off-site destination. |
 
 A backup started from the panel runs beside the board and never stops it.

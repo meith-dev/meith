@@ -113,20 +113,23 @@ installer asks for that later, in [step
 with no spaces.
 
 The two commands write an identical small workspace into `./my-board` —
-`package.json`, `meith.config.ts`, and a deploy kit of its own, for both
-paths this guide covers: `Dockerfile` and `docker-compose.yaml` for the
-default quick-start path, `Dockerfile.prebuilt`,
-`docker-compose.prebuilt.yaml` and `.github/workflows/build.yml` for the
-advanced/prebuilt one — the same files the template repository already
-has. Every one of them depends on the published `@meith/web` and
-`@meith/cli` packages rather than containing a copy of this repository,
-and this is what turns "installing a plugin" from a fork of this project
-into `npm install` and a line in a config file — see [Self-hosting § Custom
-boards](./docker-compose.md#custom-boards) for the mechanism. Taking the
-quick-start path (the rest of this guide) means the advanced-only files
-are never used — delete `Dockerfile.prebuilt`,
-`docker-compose.prebuilt.yaml` and `.github/workflows/build.yml` whenever
-you like, or leave them for later.
+`package.json`, `meith.config.ts`, and a deploy kit of its own carrying
+**three** routes onto a server, not only the two this guide walks
+through: `Dockerfile` and `docker-compose.yaml` for the default
+quick-start path, `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`
+and `.github/workflows/build.yml` for the advanced/prebuilt one — the
+same files the template repository already has — and
+`docker-compose.byhand.yaml` for a third route with no panel at all; see
+[Deploying by hand](./docker-compose.md) if that is the one you want
+instead. Every one of the published-package files depends on `@meith/web`
+and `@meith/cli` rather than containing a copy of this repository, and
+this is what turns "installing a plugin" from a fork of this project into
+`npm install` and a line in a config file — see [Consuming the board from
+a workspace](../../contributing/development.md#consuming-the-board-from-a-workspace)
+for the mechanism. Taking the quick-start path (the rest of this guide)
+means the other files are never used — delete `Dockerfile.prebuilt`,
+`docker-compose.prebuilt.yaml`, `.github/workflows/build.yml` and
+`docker-compose.byhand.yaml` whenever you like, or leave them for later.
 
 **If you used curl or npx:** the command also initialized a git
 repository in `./my-board` and staged every file, so the only commands
@@ -211,8 +214,7 @@ value to look up or paste in. Skip straight to deploying, below.
 > it, the same image ending in a long commit code, which names that one
 > build and nothing else, ever. Move `MEITH_IMAGE` to that once the board
 > is settled and you want upgrades happening only when you choose, not on
-> any redeploy — see [Self-hosting § Custom
-> boards](./docker-compose.md#custom-boards) when you get there.
+> any redeploy.
 
 Now deploy: the button is on the resource's own **Actions**, and it is the
 step everything above was setting up, so leave it until the domain is in

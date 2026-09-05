@@ -244,6 +244,7 @@ export async function boardEject(args: readonly string[]): Promise<number> {
     '  # to the pushed image (or docker-compose.yaml instead, which builds on the server)',
   )
   console.log('  # redeploy — same database, same uploads, same secrets, new image source')
+  console.log('  # no panel? docker-compose.byhand.yaml is the same board without Coolify')
   console.log('')
   console.log(
     'See docs/customization/marketplace.md, "Moving to a custom board", for the full walkthrough.',
