@@ -12,7 +12,7 @@ import '../src/styles/globals.css'
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} — the fast, code-first forum engine`,
+    default: site.seoTitle,
     template: `%s — ${site.name}`,
   },
   description: site.description,
@@ -20,10 +20,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: site.name,
-    title: site.name,
-    description: site.tagline,
+    title: site.seoTitle,
+    description: site.description,
     url: site.url,
-    images: ogImage('/og', `${site.name} — ${site.tagline}`),
+    images: ogImage('/og', site.seoTitle),
   },
   twitter: { card: 'summary_large_image' },
   alternates: { canonical: '/' },

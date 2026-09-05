@@ -1,8 +1,9 @@
 # Introduction
 
-Meith is a fast, code-first forum engine: self-hosted by default, built
-on modern TypeScript, and quick enough to run with JavaScript disabled.
-It gives a community threaded discussions, search, permissions,
+Meith is open-source, self-hosted forum software for conversations worth
+keeping — built for communities and owned by them. It is code-first,
+built on modern TypeScript, and quick enough to run with JavaScript
+disabled. It gives a community threaded discussions, search, permissions,
 moderation, paid memberships, themes, plugins and an operator CLI — on a
 server you control, with no per-member pricing, under the MIT licence.
 

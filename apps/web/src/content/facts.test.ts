@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { developers } from './developers'
 import { findScenario, readFacts } from './facts'
-import { extensible, finding } from './site'
+import { performance } from './site'
 
-describe('the figures the landing page quotes', () => {
+describe('the figures the landing pages quote', () => {
   it('finds all four of them in the generated references', async () => {
     const facts = await readFacts()
 
@@ -47,18 +48,30 @@ describe('the figures the landing page quotes', () => {
     )
   })
 
-  it('gives the search band its measurement, with real numbers in it', async () => {
+  it('gives the homepage its performance sentence, with real numbers in it', async () => {
     const facts = await readFacts()
-    const sentence = finding.evidence(facts)
+    const sentence = performance.evidence(facts)
 
     expect(sentence).not.toContain('NaN')
     expect(sentence).toMatch(/\d+(\.\d+)? ms/)
+    expect(performance.method(facts)).toContain(facts.performance.measured)
   })
 
-  it('counts the extensible strip out of the generated references', async () => {
+  it('finds every scenario the developer page charts', async () => {
     const facts = await readFacts()
 
-    for (const entry of extensible.counts(facts)) {
+    for (const page of developers.performance.scenarios) {
+      expect(findScenario(facts.performance, page).page).toBe(page)
+    }
+    for (const entry of developers.performance.method(facts)) {
+      expect(entry.value).not.toContain('NaN')
+    }
+  })
+
+  it('counts the extensibility strip out of the generated references', async () => {
+    const facts = await readFacts()
+
+    for (const entry of developers.extensibility.counts(facts)) {
       expect(entry.label).not.toBe('')
       expect(entry.value).not.toContain('NaN')
       expect(entry.value).not.toBe('0')

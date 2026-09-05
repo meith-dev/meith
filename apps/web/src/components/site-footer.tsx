@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { audienceHref, audienceIndexHref, audiences } from '../content/segments'
 import { footer, licence, licenceHref, site } from '../content/site'
 import { version } from '../content/version'
 import {
@@ -10,6 +11,8 @@ import {
   sections,
 } from '../docs/registry'
 import { Logomark } from './logomark'
+
+const item = 'text-micro text-fg-muted transition-colors hover:text-fg'
 
 export function SiteFooter() {
   const primaries = sections
@@ -31,22 +34,45 @@ export function SiteFooter() {
             <p className="max-w-[24rem] text-micro leading-[1.6] text-fg-muted text-pretty">
               {site.tagline}
             </p>
+            <p className="max-w-[24rem] text-micro leading-[1.6] text-fg-subtle text-pretty">
+              Built for communities. Owned by them.
+            </p>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_11rem]">
+          <div className="grid gap-8 sm:grid-cols-3">
+            <nav aria-label="Who it's for">
+              <p className="eyebrow">Who it&rsquo;s for</p>
+              <ul className="mt-4 flex flex-col gap-2">
+                {audiences.map((audience) => (
+                  <li key={audience.slug}>
+                    <Link href={audienceHref(audience.slug)} className={item}>
+                      {audience.name}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link href={audienceIndexHref} className={item}>
+                    All audiences
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+
             <nav aria-label="Documentation">
               <p className="eyebrow">Documentation</p>
-              <ul className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
+              <ul className="mt-4 flex flex-col gap-2">
                 {primaries.map(({ section, doc }) => (
                   <li key={section.id}>
-                    <Link
-                      href={docHref(doc.slug)}
-                      className="text-micro text-fg-muted transition-colors hover:text-fg"
-                    >
+                    <Link href={docHref(doc.slug)} className={item}>
                       {section.title}
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link href="/docs" className={item}>
+                    All documents
+                  </Link>
+                </li>
               </ul>
             </nav>
 
@@ -54,34 +80,27 @@ export function SiteFooter() {
               <p className="eyebrow">Project</p>
               <ul className="mt-4 flex flex-col gap-2">
                 <li>
-                  <a
-                    href={site.repository}
-                    className="text-micro text-fg-muted transition-colors hover:text-fg"
-                  >
-                    Source
+                  <a href={site.repository} className={item}>
+                    GitHub
                   </a>
                 </li>
                 <li>
-                  <Link
-                    href="/docs"
-                    className="text-micro text-fg-muted transition-colors hover:text-fg"
-                  >
-                    All documents
+                  <a href={site.demo} className={item} rel="noreferrer">
+                    Live demo
+                  </a>
+                </li>
+                <li>
+                  <Link href="/marketplace" className={item}>
+                    Marketplace
                   </Link>
                 </li>
                 <li>
-                  <a
-                    href={licenceHref}
-                    className="text-micro text-fg-muted transition-colors hover:text-fg"
-                  >
+                  <a href={licenceHref} className={item}>
                     Licence
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="/llms.txt"
-                    className="font-mono text-micro text-fg-muted transition-colors hover:text-fg"
-                  >
+                  <a href="/llms.txt" className={`font-mono ${item}`}>
                     llms.txt
                   </a>
                 </li>
@@ -102,19 +121,11 @@ export function SiteFooter() {
             <span className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
               {footer.links.map((link) =>
                 'doc' in link ? (
-                  <Link
-                    className="text-micro text-fg-muted transition-colors hover:text-fg"
-                    href={docHref(link.doc)}
-                    key={link.label}
-                  >
+                  <Link className={item} href={docHref(link.doc)} key={link.label}>
                     {link.label}
                   </Link>
                 ) : (
-                  <a
-                    className="text-micro text-fg-muted transition-colors hover:text-fg"
-                    href={link.href}
-                    key={link.label}
-                  >
+                  <a className={item} href={link.href} key={link.label}>
                     {link.label}
                   </a>
                 ),

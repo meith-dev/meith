@@ -648,6 +648,34 @@ A built server is production, and three harness details follow from that:
 those specs land in different shards — and it is recorded here rather than
 fixed because it is a separate bug.
 
+## The site's pages
+
+meith.dev is a marketing site with one argument — *built for communities,
+owned by them* — and every page on it is a view of that argument from a
+particular audience. The copy is data, not markup: every heading, lede and
+link lives in `apps/web/src/content/`, and the pages under `apps/web/app/`
+only lay it out.
+
+| Route | Content | What it argues |
+|---|---|---|
+| `/` | `site.ts` | The broad case: ownership, permanence, independence, open source, predictable cost. It introduces developers and the audience pages and links into them rather than carrying their detail. |
+| `/who-its-for` | `segments.ts` | The chooser: one card per audience. |
+| `/who-its-for/developers` | `developers.ts` | The technical story — the board as a repository, fixture mode, the typed extension contracts and their counts, the measured performance, self-hosting, open source. Detailed developer copy belongs here, not on the homepage. |
+| `/who-its-for/<segment>` | `segments.ts` | One templated page per remaining audience: open source, communities, clubs and associations, and MyBB/phpBB boards. |
+
+The developer page has its own file because its shape differs from the
+template; a new template audience is a new entry in `segments.ts` and
+nothing else. Every route also renders an Open Graph card from the same
+content (`app/og`, `app/who-its-for/og`), and the sitemap and the
+header's menu read the audience list, so adding an audience adds it
+everywhere at once. The old `/for/*` routes redirect permanently in
+`apps/web/next.config.mjs`.
+
+Numbers the pages quote — slot, hook and endpoint counts, the benchmark
+board and its measurements — are read from the generated references at
+build time by `apps/web/src/content/facts.ts`, so a figure the code no
+longer supports fails the build rather than going stale on the page.
+
 ## The site's screenshots
 
 Every image on meith.dev is a screenshot of a real board, and
@@ -723,7 +751,8 @@ The site publishes `docs/` directly, so a heading renamed in one document
 silently breaks every anchor pointing at it. `docs:links:check` resolves
 every internal link and anchor: file targets, same-document and
 cross-document anchors, `README.md` against the manifest, and the
-`doc`/`anchor` pairs in `apps/web/src/content/site.ts` — importing the
+`doc`/`anchor` pairs in the site's content modules — `apps/web/src/content/site.ts`,
+`segments.ts` and `developers.ts` — importing the
 site's own `slugify` so the gate and the published page cannot disagree
 about what a heading's anchor is.
 
