@@ -1,6 +1,6 @@
 {
   "name": "@meith/plugin-calendar",
-  "version": "0.35.0",
+  "version": "0.35.1",
   "description": "A shared calendar: events the community can see, linked to the threads that discuss them.",
   "license": "MIT",
   "repository": {
