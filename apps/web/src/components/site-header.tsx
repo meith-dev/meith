@@ -7,11 +7,14 @@ import { quickstartHref } from '../docs/registry'
 import { DemoLink } from './demo-link'
 import { DocsSearch } from './docs-search'
 import { Logomark } from './logomark'
+import { MobileMenu } from './mobile-menu'
 import { ThemeToggle } from './theme-toggle'
 
 const item = 'text-micro font-medium text-fg-muted transition-colors hover:text-fg'
 
 export function SiteHeader() {
+  const startHref = quickstartHref()
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-canvas/85 backdrop-blur-lg">
       <div aria-hidden className="top-beam" />
@@ -26,7 +29,7 @@ export function SiteHeader() {
             Product
           </Link>
 
-          <div className="menu hidden sm:block">
+          <div className="menu hidden md:block">
             <Link href={audienceIndexHref} className={`${item} inline-flex items-center gap-1`}>
               Who it&rsquo;s for
               <span aria-hidden className="menu-caret">
@@ -49,24 +52,72 @@ export function SiteHeader() {
             </ul>
           </div>
 
-          <Link href="/docs" className={item}>
+          <Link href="/docs" className={`hidden ${item} md:inline`}>
             Docs
           </Link>
-          <DemoLink className={item}>Demo</DemoLink>
+          <DemoLink className={`hidden ${item} md:inline`}>Demo</DemoLink>
           <Link href={about.href} className={`hidden ${item} lg:inline`}>
             About
           </Link>
-          <a href={site.repository} className={`hidden ${item} sm:inline`}>
+          <a href={site.repository} className={`hidden ${item} md:inline`}>
             GitHub
           </a>
           <DocsSearch />
           <ThemeToggle />
           <Link
-            href={quickstartHref()}
+            href={startHref}
             className="hidden rounded-[var(--radius-control)] bg-accent px-3 py-1.5 text-micro font-medium text-accent-contrast transition-colors hover:bg-accent-hover lg:inline-block"
           >
             Get started
           </Link>
+
+          <MobileMenu>
+            <ul className="mobile-menu-list">
+              <li>
+                <Link className="mobile-menu-link" href="/">
+                  Product
+                </Link>
+              </li>
+              <li>
+                <Link className="mobile-menu-link" href={audienceIndexHref}>
+                  Who it&rsquo;s for
+                </Link>
+                <ul className="mobile-menu-sublist">
+                  {audiences.map((audience) => (
+                    <li key={audience.slug}>
+                      <Link className="mobile-menu-link" href={audienceHref(audience.slug)}>
+                        {audience.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+              <li>
+                <Link className="mobile-menu-link" href="/docs">
+                  Docs
+                </Link>
+              </li>
+              <li>
+                <DemoLink className="mobile-menu-link">Demo</DemoLink>
+              </li>
+              <li>
+                <Link className="mobile-menu-link" href={about.href}>
+                  About
+                </Link>
+              </li>
+              <li>
+                <a className="mobile-menu-link" href={site.repository}>
+                  GitHub
+                </a>
+              </li>
+            </ul>
+            <Link className="btn btn-primary mt-4 w-full" href={startHref}>
+              Get started
+              <span aria-hidden className="btn-arrow">
+                →
+              </span>
+            </Link>
+          </MobileMenu>
         </nav>
       </div>
     </header>
