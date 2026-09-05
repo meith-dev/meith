@@ -1,4 +1,5 @@
 import { ConfigurationError, ValidationError } from '@meith/core'
+import { assertAllowedUrl } from '@meith/core/outbound'
 import { msg } from '@meith/i18n'
 
 import { fetchJson, readBoolean, readString } from './http'
@@ -21,7 +22,16 @@ export interface OidcProviderConfig {
   readonly clientSecret: string
   readonly scopes: readonly string[]
   readonly fetcher?: Fetcher
+  readonly allowPrivateHosts?: boolean
   readonly clock?: () => Date
+}
+
+function guardedFetcher(allowPrivateHosts: boolean): Fetcher {
+  return async (input, init) => {
+    const target = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    assertAllowedUrl(target, { allowPrivateHosts })
+    return fetch(input, { ...init, redirect: 'error' })
+  }
 }
 
 interface Discovery {
@@ -35,7 +45,7 @@ interface Discovery {
 export const DEFAULT_OIDC_SCOPES = ['openid', 'email', 'profile'] as const
 
 export function oidcProvider(config: OidcProviderConfig): IdentityProvider {
-  const fetcher = config.fetcher ?? fetch
+  const fetcher = config.fetcher ?? guardedFetcher(config.allowPrivateHosts ?? false)
   const clock = config.clock ?? (() => new Date())
   const issuer = config.issuer.replace(/\/$/, '')
 

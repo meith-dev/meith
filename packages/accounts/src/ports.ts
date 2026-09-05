@@ -316,6 +316,12 @@ export interface AuthEventRepository {
 
 export interface LoginAttemptRepository {
   record(bucket: string, succeeded: boolean, at: Date): Promise<void>
+  recordFailureAndCount(
+    bucket: string,
+    since: Date,
+    at: Date,
+  ): Promise<{ readonly id: number; readonly count: number }>
+  removeAttempt(id: number): Promise<void>
   countFailuresSince(bucket: string, since: Date): Promise<number>
   clear(bucket: string): Promise<void>
 }

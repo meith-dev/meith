@@ -312,3 +312,30 @@ describe('what the exchange refuses', () => {
     ).toContain('algorithm this board does not accept')
   })
 })
+
+describe('outbound SSRF protection', () => {
+  function privateIssuerProvider(issuer: string) {
+    return oidcProvider({
+      id: 'oidc',
+      label: 'Acme',
+      issuer,
+      clientId: CLIENT_ID,
+      clientSecret: 'shhh',
+      scopes: ['openid'],
+      clock: () => NOW,
+    })
+  }
+
+  it('refuses to reach a link-local or private issuer with the default fetcher', async () => {
+    for (const issuer of ['https://169.254.169.254', 'https://127.0.0.1', 'http://10.0.0.5']) {
+      await expect(
+        privateIssuerProvider(issuer).exchange({
+          code: 'the-code',
+          redirectUri: 'https://forum.example/auth/sso/oidc/callback',
+          nonce: 'the-nonce',
+          codeVerifier: 'the-verifier',
+        }),
+      ).rejects.toThrow()
+    }
+  })
+})

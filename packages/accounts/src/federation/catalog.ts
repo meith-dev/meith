@@ -25,6 +25,7 @@ const GOOGLE_ISSUER = 'https://accounts.google.com'
 
 export interface ProviderBuildDeps {
   readonly fetcher?: Fetcher
+  readonly allowPrivateHosts?: boolean
   readonly clock?: () => Date
 }
 
@@ -65,6 +66,9 @@ export function providerFor(
       clientSecret: options.google.clientSecret,
       scopes: DEFAULT_OIDC_SCOPES,
       ...(deps.fetcher === undefined ? {} : { fetcher: deps.fetcher }),
+      ...(deps.allowPrivateHosts === undefined
+        ? {}
+        : { allowPrivateHosts: deps.allowPrivateHosts }),
       ...(deps.clock === undefined ? {} : { clock: deps.clock }),
     })
   }
@@ -79,6 +83,7 @@ export function providerFor(
     clientSecret: options.oidc.clientSecret,
     scopes: parseScopes(options.oidc.scopes),
     ...(deps.fetcher === undefined ? {} : { fetcher: deps.fetcher }),
+    ...(deps.allowPrivateHosts === undefined ? {} : { allowPrivateHosts: deps.allowPrivateHosts }),
     ...(deps.clock === undefined ? {} : { clock: deps.clock }),
   })
 }
