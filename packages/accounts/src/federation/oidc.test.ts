@@ -213,6 +213,23 @@ describe('the code exchange', () => {
 
     expect(profile.emailVerified).toBe(false)
   })
+
+  it('never lends userinfo verification to a different token address', async () => {
+    const { fetcher } = fakeProvider({
+      idToken: await signToken(claims({ email: 'token@example.com', email_verified: false })),
+      userinfo: { email: 'userinfo@example.com', email_verified: true },
+    })
+
+    const profile = await provider(fetcher).exchange({
+      code: 'the-code',
+      redirectUri: 'https://forum.example/auth/sso/oidc/callback',
+      nonce: 'the-nonce',
+      codeVerifier: 'the-verifier',
+    })
+
+    expect(profile.email).toBe('token@example.com')
+    expect(profile.emailVerified).toBe(false)
+  })
 })
 
 describe('what the exchange refuses', () => {

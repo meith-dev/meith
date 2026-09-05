@@ -111,7 +111,7 @@ export class PostgresPostRepository implements PostRepository {
          where r.post_id = ${postId}
            and exists (select 1 from posts p where p.id = r.post_id and p.thread_id = ${threadId})
         union all
-        select p.revision_count, p.message, p.subject, p.edited_by_user_id,
+        select p.revision_count + 1, p.message, p.subject, p.edited_by_user_id,
                coalesce(u.username, p.author_username, 'Deleted member'),
                p.edit_reason, coalesce(p.edited_at, p.created_at), true
           from posts p

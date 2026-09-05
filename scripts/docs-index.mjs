@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 const DOCS = join(ROOT, 'docs')
 const INDEX = 'docs/README.md'
 

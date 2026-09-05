@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, normalize, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import * as siteContent from '../apps/web/src/content/site'
 import { createSlugger } from '../apps/web/src/markdown/slug'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 const DOCS = join(ROOT, 'docs')
 const MANIFEST = 'apps/web/content/docs.manifest.json'
 const CONTENT = 'apps/web/src/content/site.ts'

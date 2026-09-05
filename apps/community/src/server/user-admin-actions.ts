@@ -447,15 +447,15 @@ async function queueMassMailBatch(
   bulk: ReturnType<typeof requireUserBulk>,
   massMailId: number,
 ): Promise<{ state: FormState; sent: number; queued: number }> {
-  const chunk = await bulk.claimMassMailChunk(massMailId, MASS_MAIL_CHUNK)
-
-  for (const recipient of chunk.recipients) {
-    await drivers().queue.enqueue(
-      'admin.mass_mail',
-      { massMailId, userId: recipient.userId, email: recipient.email },
-      { dedupeKey: `mass-mail:${massMailId}:${recipient.userId}` },
-    )
-  }
+  const chunk = await bulk.claimMassMailChunk(massMailId, MASS_MAIL_CHUNK, async (recipients) => {
+    for (const recipient of recipients) {
+      await drivers().queue.enqueue(
+        'admin.mass_mail',
+        { massMailId, userId: recipient.userId, email: recipient.email },
+        { dedupeKey: `mass-mail:${massMailId}:${recipient.userId}` },
+      )
+    }
+  })
 
   const total = (await bulk.readMassMail(massMailId))?.queuedCount ?? 0
 

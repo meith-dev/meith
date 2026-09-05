@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 
-import { PUBLIC_CONTENT } from '@meith/core'
+import { PUBLIC_CONTENT, type ThreadAudience } from '@meith/core'
 import type {
   DigestCadence,
   PendingForUser,
@@ -15,6 +15,7 @@ import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate } from './row-values'
 import { idList } from './sql-lists'
+import { inAudience } from './thread-audience'
 import { visibleIn } from './visibility'
 
 interface TableShape {
@@ -31,11 +32,10 @@ function shapeFor(target: SubscriptionTarget): TableShape {
 function pendingPosts(
   userId: number,
   mode: SubscriptionMode | null,
-  visibleForumIds: readonly number[] | null,
+  audience: ThreadAudience,
 ): ReturnType<typeof sql> {
   const byMode = mode === null ? sql`` : sql`and s.mode = ${mode}`
-  const visible =
-    visibleForumIds === null ? sql`` : sql`and t.forum_id in ${idList(visibleForumIds)}`
+  const visible = sql`and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, audience)}`
 
   return sql`
     select p.id as post_id, p.thread_id, t.title as thread_title, t.slug as thread_slug,
@@ -155,15 +155,15 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
 
   async listFor(
     userId: number,
-    options: { readonly visibleForumIds: readonly number[]; readonly limit: number },
+    options: { readonly audience: ThreadAudience; readonly limit: number },
   ): Promise<readonly SubscriptionRow[]> {
-    const visible = idList(options.visibleForumIds)
+    const visibleForums = idList(options.audience.forumIds)
 
     const rows = resultRows(
       await this.db.execute(sql`
         with pending as (
           select target, target_id, count(*)::int as pending
-            from (${pendingPosts(userId, null, options.visibleForumIds)}) p
+            from (${pendingPosts(userId, null, options.audience)}) p
            group by target, target_id
         )
         select 'thread'::text as target, s.thread_id as target_id, t.title,
@@ -175,7 +175,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
                  on pending.target = 'thread' and pending.target_id = s.thread_id
          where s.user_id = ${userId}
            and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
-           and t.forum_id in ${visible}
+           and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, options.audience)}
 
         union all
 
@@ -186,7 +186,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
           join forums f on f.id = s.forum_id
           left join pending
                  on pending.target = 'forum' and pending.target_id = s.forum_id
-         where s.user_id = ${userId} and s.forum_id in ${visible}
+         where s.user_id = ${userId} and s.forum_id in ${visibleForums}
 
          order by created_at desc, target_id desc
          limit ${options.limit}
@@ -269,12 +269,12 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
   async pendingFor(input: {
     readonly userId: number
     readonly mode: SubscriptionMode
-    readonly visibleForumIds: readonly number[]
+    readonly audience: ThreadAudience
     readonly limit: number
   }): Promise<PendingForUser> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select * from (${pendingPosts(input.userId, input.mode, input.visibleForumIds)}) p
+        select * from (${pendingPosts(input.userId, input.mode, input.audience)}) p
          order by p.post_id
          limit ${input.limit}
       `),

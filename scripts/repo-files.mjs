@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readdir } from 'node:fs/promises'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-export const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+export const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 
 const SKIP_DIRS = new Set([
   'node_modules',

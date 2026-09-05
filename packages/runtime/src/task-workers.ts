@@ -21,9 +21,9 @@ import { type WarningRepository, WarningService } from '@meith/moderation'
 import type { NotificationService } from '@meith/notifications'
 import type { PluginDefinition } from '@meith/plugin-kit'
 import {
+  type SubscriberAudienceSource,
   SubscriptionNotifier,
   type SubscriptionRepository,
-  type VisibleForumSource,
 } from '@meith/subscriptions'
 import type { TaskWorkers } from '@meith/tasks'
 
@@ -58,7 +58,7 @@ export interface TaskWorkerDeps {
   readonly subscriptions?: {
     readonly repository: SubscriptionRepository
     readonly notifications: NotificationService
-    readonly forums: VisibleForumSource
+    readonly forums: SubscriberAudienceSource
     readonly unsubscribeSecret: string | null
   }
   readonly boardDigest?: {

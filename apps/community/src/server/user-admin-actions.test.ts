@@ -151,8 +151,13 @@ vi.mock('./user-admin', () => ({
       campaigns.push(input)
       return 55
     },
-    async claimMassMailChunk(massMailId: number, limit: number) {
+    async claimMassMailChunk(
+      massMailId: number,
+      limit: number,
+      enqueue: (recipients: typeof claimResult.current.recipients) => Promise<void>,
+    ) {
       claims.push({ massMailId, limit })
+      await enqueue(claimResult.current.recipients)
       return claimResult.current
     },
     async readMassMail() {

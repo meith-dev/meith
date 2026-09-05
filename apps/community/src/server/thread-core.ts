@@ -204,6 +204,7 @@ export async function submitThread(
     forumId: forum.id,
     threadSlug: created.slug,
     threadTitle: draft.subject ?? input.title,
+    threadAuthorId: userId,
     message: draft.body,
     authorUsername: profile.username,
     visibility: created.visibility,

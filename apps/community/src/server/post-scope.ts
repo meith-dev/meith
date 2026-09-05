@@ -36,8 +36,12 @@ export async function resolvePostScope(
   const scope = {
     ...(await moderatorTargetFor(actor, target.forum.id, matrix)),
     ownerId: target.post.authorUserId,
+    threadAuthorId: target.thread.authorUserId,
   }
   if (!authorizer.can(actor, 'thread.view', scope)) return null
+
+  const visibleStates = authorizer.contentScope(actor, scope)
+  if (!visibleStates.states.includes(target.thread.visibility)) return null
 
   const isOwn = actor.userId !== null && target.post.authorUserId === actor.userId
   const editsOthers = authorizer.can(actor, 'post.editOthers', scope)

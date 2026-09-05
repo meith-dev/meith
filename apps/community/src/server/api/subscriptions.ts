@@ -49,8 +49,8 @@ export const SUBSCRIPTION_HANDLERS: ApiRoutes = [
     '/subscriptions',
     async ({ actor }): Promise<ApiResult> => {
       const userId = requireUserId(actor)
-      const visibleForumIds = await getContainer().authorizer.visibleForumIds(actor)
-      const rows = await requireSubscriptions().list(userId, visibleForumIds)
+      const audience = await getContainer().authorizer.threadAudience(actor)
+      const rows = await requireSubscriptions().list(userId, audience)
       const wordFilter = await activeWordFilter()
 
       return {

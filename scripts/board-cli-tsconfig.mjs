@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 const BOARD_DIR = join(ROOT, 'boards', 'stock')
 const OUTPUT_FILE = join(BOARD_DIR, '.meith', 'tsconfig.cli.json')
 

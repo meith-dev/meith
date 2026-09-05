@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-export const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+export const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 
 export const WORKSPACE_GLOBS = ['apps', 'boards', 'packages', 'themes', 'plugins', 'examples']
 

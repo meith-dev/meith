@@ -55,7 +55,11 @@ export default async function ReplyPage({
     forum: await authorizer.forumMatrix(actor, target.forum.id),
     allowsAttachments: target.forum.allowAttachments,
   }
-  if (!authorizer.can(actor, 'thread.view', scope)) notFound()
+  const threadViewTarget = {
+    ...(await authorizer.moderatorTargetIn(actor, target.forum.id, scope.forum)),
+    threadAuthorId: target.authorUserId,
+  }
+  if (!authorizer.can(actor, 'thread.view', threadViewTarget)) notFound()
   if (!authorizer.can(actor, 'reply.post', scope)) notFound()
 
   const moderates = authorizer.can(actor, 'content.viewUnapproved', scope)

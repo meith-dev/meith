@@ -135,10 +135,14 @@ function profileFrom(claims: IdTokenClaims, userinfo: IdTokenClaims): ProviderPr
     throw new ValidationError(msg('error.accounts.identity-provider-sent-account-with'))
   }
 
+  const emailFromToken = stringClaim(claims, 'email')
+  const emailSource = emailFromToken !== null ? claims : userinfo
+  const email = emailFromToken ?? stringClaim(userinfo, 'email')
+
   return {
     subject,
-    email: stringClaim(merged, 'email') ?? stringClaim(userinfo, 'email'),
-    emailVerified: readBoolean(merged, 'email_verified') || readBoolean(userinfo, 'email_verified'),
+    email,
+    emailVerified: email !== null && readBoolean(emailSource, 'email_verified'),
     username:
       stringClaim(merged, 'preferred_username') ??
       stringClaim(merged, 'nickname') ??

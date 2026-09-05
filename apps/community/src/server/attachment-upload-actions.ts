@@ -4,6 +4,7 @@ import { ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
 import { attachmentHref, attachmentModel } from '../view/attachments'
+import { limitMessage, spendLimit } from './antispam'
 import { acceptSingleFile, attachmentLimits, attachmentService, canAttach } from './attachments'
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -41,6 +42,9 @@ export async function uploadInlineAttachmentAction(
         : (await resolveReplyTarget(actor, target.threadId)).scope
 
     if (!canAttach(actor, scope)) throw new ForbiddenError(msg('error.app.attach-files-forum'))
+
+    const limited = await spendLimit({ scope: 'upload', actor })
+    if (limited !== null && !limited.allowed) throw new ValidationError(limitMessage(limited))
 
     const accepted = await acceptSingleFile(form, attachmentLimits(scope))
 

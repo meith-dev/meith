@@ -594,6 +594,15 @@ export async function insertLedger(data: PluginData, entry: NewLedgerEntry): Pro
   )
 }
 
+export async function orderHasCharge(data: PluginData, orderId: number): Promise<boolean> {
+  const row = await data.one(
+    `select 1 as found from plugin_dues_ledger
+      where order_id = $1 and kind = 'charge' limit 1`,
+    [orderId],
+  )
+  return row !== null
+}
+
 export async function recentLedger(data: PluginData, limit = 50): Promise<readonly LedgerRow[]> {
   const rows = await data.query(
     `select * from plugin_dues_ledger order by occurred_at desc limit $1`,

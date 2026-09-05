@@ -67,6 +67,7 @@ function target(
       id: 20,
       slug: 'hello',
       title: 'Hello',
+      authorUserId: 7,
       isLocked: false,
       visibility: 'visible',
       ...overrides.thread,

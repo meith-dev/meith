@@ -1,7 +1,9 @@
 import type { NextRequest } from 'next/server'
 
+import { RateLimiter } from '@meith/antispam'
 import { logger, statusForError, toPublicError } from '@meith/core'
 
+import { rateLimitStore } from '@/server/antispam'
 import { recordAuthEvent } from '@/server/auth-events'
 import { configuredIdentity, configuredSessions } from '@/server/container'
 import { getActor } from '@/server/context'
@@ -16,7 +18,11 @@ import {
   relyingParty,
 } from '@/server/federation'
 import { tr } from '@/server/i18n'
-import { type PasskeyPurpose, unpackChallenge } from '@/server/passkey-challenge'
+import {
+  PASSKEY_CHALLENGE_TTL_SECONDS,
+  type PasskeyPurpose,
+  unpackChallenge,
+} from '@/server/passkey-challenge'
 import { retainedIpPrefix } from '@/server/request-fingerprint'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
@@ -59,6 +65,26 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value !== '' ? value : null
 }
 
+async function consumeChallengeOnce(challenge: string): Promise<boolean> {
+  const store = rateLimitStore()
+  if (store === null) return true
+
+  try {
+    const outcome = await new RateLimiter(store).consume({
+      scope: 'passkey',
+      subject: challenge,
+      rule: { max: 1, windowSeconds: PASSKEY_CHALLENGE_TTL_SECONDS },
+    })
+    return outcome.allowed
+  } catch (error) {
+    logger({ module: 'passkeys' }).warn(
+      { err: String(error) },
+      'could not enforce single-use on a passkey challenge',
+    )
+    return true
+  }
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   if (!isSameOrigin(request)) return crossOriginRefusal()
 
@@ -83,6 +109,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   await clearPasskeyChallengeCookie()
 
   if (challengeState === null) {
+    return problem(await tr('authRoute.passkey.attemptExpired'), 400)
+  }
+
+  if (!(await consumeChallengeOnce(challengeState.challenge))) {
     return problem(await tr('authRoute.passkey.attemptExpired'), 400)
   }
 

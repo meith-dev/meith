@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { openApiDocument, renderReference } from '../packages/api/src/index'
 import { emitGeneratedDoc } from './generated-doc.mjs'
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 
 const manifest = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8')) as {
   version: string

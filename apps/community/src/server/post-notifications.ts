@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { foldIdentifier } from '@meith/accounts'
-import { logger } from '@meith/core'
+import { audienceFilterIn, authorFilterAdmits, logger } from '@meith/core'
 import { extractMentions, extractQuotedAuthors, vocabularyOptions } from '@meith/markdown'
 
 import { postLink } from '@/view/post-link'
@@ -18,6 +18,7 @@ export interface NewPostNotice {
   readonly forumId: number
   readonly threadSlug: string
   readonly threadTitle: string
+  readonly threadAuthorId: number | null
   readonly message: string
   readonly authorUsername: string
   readonly visibility: 'visible' | 'unapproved'
@@ -55,8 +56,9 @@ export async function notifyPostAudience(notice: NewPostNotice): Promise<void> {
 
         const recipient = await actorSource.buildForUser(account.id)
         if (recipient === null) continue
-        const visibleForumIds = await authorizer.visibleForumIds(recipient)
-        if (!visibleForumIds.includes(notice.forumId)) continue
+        const audience = await authorizer.threadAudience(recipient)
+        const filter = audienceFilterIn(audience, notice.forumId)
+        if (!authorFilterAdmits(filter, notice.threadAuthorId)) continue
 
         await service.raise({
           userId: account.id,

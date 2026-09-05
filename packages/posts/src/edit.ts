@@ -22,6 +22,7 @@ export interface PostEditTarget {
     readonly id: number
     readonly slug: string
     readonly title: string
+    readonly authorUserId: number | null
     readonly isLocked: boolean
     readonly visibility: 'visible' | 'unapproved' | 'deleted'
   }

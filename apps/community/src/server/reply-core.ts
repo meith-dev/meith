@@ -165,6 +165,7 @@ export async function submitReply(
     forumId,
     threadSlug: created.slug,
     threadTitle: target.title,
+    threadAuthorId: target.authorUserId,
     message: draft.body,
     authorUsername: profile.username,
     visibility: created.visibility,
