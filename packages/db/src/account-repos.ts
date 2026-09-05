@@ -451,6 +451,35 @@ export class PostgresLoginAttemptRepository implements LoginAttemptRepository {
     await this.db.insert(loginAttempts).values({ bucket, succeeded, occurredAt: at })
   }
 
+  async recordFailureAndCount(
+    bucket: string,
+    since: Date,
+    at: Date,
+  ): Promise<{ readonly id: number; readonly count: number }> {
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${bucket}, 0))`)
+      const inserted = await tx
+        .insert(loginAttempts)
+        .values({ bucket, succeeded: false, occurredAt: at })
+        .returning({ id: loginAttempts.id })
+      const counted = await tx
+        .select({ id: loginAttempts.id })
+        .from(loginAttempts)
+        .where(
+          and(
+            eq(loginAttempts.bucket, bucket),
+            eq(loginAttempts.succeeded, false),
+            gt(loginAttempts.occurredAt, since),
+          ),
+        )
+      return { id: inserted[0]!.id, count: counted.length }
+    })
+  }
+
+  async removeAttempt(id: number): Promise<void> {
+    await this.db.delete(loginAttempts).where(eq(loginAttempts.id, id))
+  }
+
   async countFailuresSince(bucket: string, since: Date): Promise<number> {
     const rows = await this.db
       .select({ id: loginAttempts.id })

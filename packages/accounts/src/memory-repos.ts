@@ -414,17 +414,42 @@ class MemoryCredentialTokens implements CredentialTokenRepository {
 }
 
 interface Attempt {
+  id: number
   succeeded: boolean
   at: Date
 }
 
 class MemoryLoginAttempts implements LoginAttemptRepository {
   private readonly buckets = new Map<string, Attempt[]>()
+  private nextId = 1
 
   async record(bucket: string, succeeded: boolean, at: Date): Promise<void> {
     const list = this.buckets.get(bucket) ?? []
-    list.push({ succeeded, at })
+    list.push({ id: this.nextId++, succeeded, at })
     this.buckets.set(bucket, list)
+  }
+
+  async recordFailureAndCount(
+    bucket: string,
+    since: Date,
+    at: Date,
+  ): Promise<{ readonly id: number; readonly count: number }> {
+    const list = this.buckets.get(bucket) ?? []
+    const id = this.nextId++
+    list.push({ id, succeeded: false, at })
+    this.buckets.set(bucket, list)
+    const count = list.filter((a) => !a.succeeded && a.at.getTime() > since.getTime()).length
+    return { id, count }
+  }
+
+  async removeAttempt(id: number): Promise<void> {
+    for (const list of this.buckets.values()) {
+      const index = list.findIndex((a) => a.id === id)
+      if (index !== -1) {
+        list.splice(index, 1)
+        return
+      }
+    }
   }
 
   async countFailuresSince(bucket: string, since: Date): Promise<number> {

@@ -338,11 +338,18 @@ export class IdentityService {
     await this.assertNotFiltered({ ip: context.ip })
 
     const since = new Date(at.getTime() - this.config.lockoutMinutes * 60_000)
+    const spent: { readonly key: string; readonly id: number; readonly clearOnSuccess: boolean }[] =
+      []
     for (const counter of counters) {
       const max = counter.max ?? this.config.maxLoginAttempts
       if (max <= 0) continue
-      const failures = await this.store.loginAttempts.countFailuresSince(counter.key, since)
-      if (failures >= max) {
+      const { id, count } = await this.store.loginAttempts.recordFailureAndCount(
+        counter.key,
+        since,
+        at,
+      )
+      spent.push({ key: counter.key, id, clearOnSuccess: counter.clearOnSuccess !== false })
+      if (count > max) {
         throw new ForbiddenError(msg('error.accounts.too-many-failed-attempts-please'))
       }
     }
@@ -355,29 +362,20 @@ export class IdentityService {
     const encoded = account?.passwordHash ?? (await dummyHash())
     const ok = await verifyPassword(password, encoded)
 
-    const recordFailure = async (): Promise<void> => {
-      for (const counter of counters) {
-        await this.store.loginAttempts.record(counter.key, false, at)
-      }
-    }
-
     if (!account || !ok || account.passwordHash === null) {
-      await recordFailure()
       throw new ValidationError(msg('error.accounts.incorrect-username-password'))
     }
 
     const refusal = await this.signInRefusal(account)
     if (refusal !== null) {
-      await recordFailure()
       throw new ForbiddenError(refusal)
     }
 
     await this.assertNotFiltered({ username: account.username, email: account.email })
 
-    for (const counter of counters) {
-      if (counter.clearOnSuccess === false) continue
-      await this.store.loginAttempts.record(counter.key, true, at)
-      await this.store.loginAttempts.clear(counter.key)
+    for (const entry of spent) {
+      if (entry.clearOnSuccess) await this.store.loginAttempts.clear(entry.key)
+      else await this.store.loginAttempts.removeAttempt(entry.id)
     }
 
     if (needsRehash(encoded)) {
@@ -448,23 +446,20 @@ export class IdentityService {
     await this.store.tokens.revokeAllForUser(userId, 'second_factor')
   }
 
-  async assertSecondFactorAttemptsLeft(userId: number): Promise<void> {
+  async spendSecondFactorAttempt(userId: number): Promise<void> {
     const max = this.config.maxLoginAttempts
     if (max <= 0) return
 
     const since = new Date(this.now().getTime() - this.config.lockoutMinutes * 60_000)
-    const failures = await this.store.loginAttempts.countFailuresSince(
+    const { count } = await this.store.loginAttempts.recordFailureAndCount(
       secondFactorBucket(userId),
       since,
+      this.now(),
     )
 
-    if (failures >= max) {
+    if (count > max) {
       throw new ForbiddenError(msg('error.accounts.too-many-wrong-codes-please'))
     }
-  }
-
-  async recordSecondFactorFailure(userId: number): Promise<void> {
-    await this.store.loginAttempts.record(secondFactorBucket(userId), false, this.now())
   }
 
   async clearSecondFactorFailures(userId: number): Promise<void> {

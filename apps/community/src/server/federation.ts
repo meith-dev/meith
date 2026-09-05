@@ -54,7 +54,9 @@ export async function federationProvider(id: string): Promise<IdentityProvider |
   if (!isProviderKind(id)) return null
   if (getContainer().dataSource !== 'postgres') return null
 
-  return providerFor(id, federationOptions(await getSettingsUncached()))
+  return providerFor(id, federationOptions(await getSettingsUncached()), {
+    allowPrivateHosts: env.OIDC_ALLOW_PRIVATE_HOSTS,
+  })
 }
 
 export async function signInProviders(): Promise<readonly ProviderButton[]> {
