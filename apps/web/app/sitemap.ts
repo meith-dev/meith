@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 
+import { about } from '../src/content/about'
 import { audienceHref, audienceIndexHref, audiences } from '../src/content/segments'
 import { site } from '../src/content/site'
 import { documents } from '../src/docs/registry'
@@ -16,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     })),
+    { url: `${site.url}${about.href}`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${site.url}/marketplace`, changeFrequency: 'weekly', priority: 0.8 },
     ...listings.map((listing) => ({
       url: `${site.url}/marketplace/${listing.key}`,

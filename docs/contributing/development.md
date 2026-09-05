@@ -662,11 +662,12 @@ only lay it out.
 | `/who-its-for` | `segments.ts` | The chooser: one card per audience. |
 | `/who-its-for/developers` | `developers.ts` | The technical story — the board as a repository, fixture mode, the typed extension contracts and their counts, the measured performance, self-hosting, open source. Detailed developer copy belongs here, not on the homepage. |
 | `/who-its-for/<segment>` | `segments.ts` | One templated page per remaining audience: open source, communities, clubs and associations, and MyBB/phpBB boards. |
+| `/about` | `about.ts` | The ethos, as an essay: why the project exists, ownership and permanence, open source, handover, the code-first philosophy, the origin of the name, and the principles. It links into the audience pages rather than repeating them. |
 
 The developer page has its own file because its shape differs from the
 template; a new template audience is a new entry in `segments.ts` and
 nothing else. Every route also renders an Open Graph card from the same
-content (`app/og`, `app/who-its-for/og`), and the sitemap and the
+content (`app/og`, `app/who-its-for/og`, `app/about/og`), and the sitemap and the
 header's menu read the audience list, so adding an audience adds it
 everywhere at once. The old `/for/*` routes redirect permanently in
 `apps/web/next.config.mjs`.
@@ -752,7 +753,7 @@ silently breaks every anchor pointing at it. `docs:links:check` resolves
 every internal link and anchor: file targets, same-document and
 cross-document anchors, `README.md` against the manifest, and the
 `doc`/`anchor` pairs in the site's content modules — `apps/web/src/content/site.ts`,
-`segments.ts` and `developers.ts` — importing the
+`segments.ts`, `developers.ts` and `about.ts` — importing the
 site's own `slugify` so the gate and the published page cannot disagree
 about what a heading's anchor is.
 
