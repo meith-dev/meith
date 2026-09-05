@@ -32,7 +32,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "next": "16.3.1",
+    "next": "16.3.4",
     "postcss": "^8.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
