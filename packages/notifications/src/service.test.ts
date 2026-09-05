@@ -145,6 +145,17 @@ class MemoryNotifications implements NotificationRepository {
     return true
   }
 
+  async removeAllPushSubscriptions(userId: number): Promise<number> {
+    let removed = 0
+    for (let i = this.subscriptions.length - 1; i >= 0; i -= 1) {
+      if (this.subscriptions[i]!.userId === userId) {
+        this.subscriptions.splice(i, 1)
+        removed += 1
+      }
+    }
+    return removed
+  }
+
   async pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]> {
     return this.subscriptions.filter((row) => row.userId === userId)
   }

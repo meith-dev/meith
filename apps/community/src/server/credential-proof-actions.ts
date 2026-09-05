@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { verifyPassword } from '@meith/accounts'
 
+import { limitMessage, refused, spendCredentialProofLimit } from './antispam'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
@@ -16,6 +17,9 @@ import { twoFactorService } from './two-factor'
 export async function proveCredentialAction(_prev: FormState, form: FormData): Promise<FormState> {
   const actor = await getActor()
   if (actor.userId === null) return { error: await tr('credentialProof.signIn') }
+
+  const limited = await spendCredentialProofLimit(actor.userId)
+  if (refused(limited)) return { error: limitMessage(limited) }
 
   const method = text(form, 'method')
   let proved = false

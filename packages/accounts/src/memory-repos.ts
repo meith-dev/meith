@@ -524,11 +524,12 @@ class MemoryPasskeys implements PasskeyRepository {
     return true
   }
 
-  async markUsed(passkeyId: number, signCount: number, now: Date): Promise<void> {
+  async markUsed(passkeyId: number, signCount: number, now: Date): Promise<boolean> {
     const record = this.byId.get(passkeyId)
-    if (record !== undefined) {
-      this.byId.set(passkeyId, { ...record, signCount, lastUsedAt: now })
-    }
+    if (record === undefined) return false
+    if (signCount !== 0 && signCount <= record.signCount) return false
+    this.byId.set(passkeyId, { ...record, signCount, lastUsedAt: now })
+    return true
   }
 }
 

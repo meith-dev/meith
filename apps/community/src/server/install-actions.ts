@@ -20,7 +20,27 @@ import { mailConfigFromEnvironment } from '@meith/settings'
 
 import { getTranslator } from './i18n'
 import { gatherPreflight, installerIsSealed, runInstall } from './install'
+import { grantInstallUnlock, installUnlocked, operatorSecretMatches } from './install-unlock'
 import { sendTestMail } from './mail-test'
+
+export interface InstallUnlockState {
+  readonly error?: string
+}
+
+export async function installUnlockAction(
+  _previous: InstallUnlockState,
+  form: FormData,
+): Promise<InstallUnlockState> {
+  if (await installerIsSealed()) redirect('/')
+
+  const secret = typeof form.get('secret') === 'string' ? String(form.get('secret')) : ''
+  if (!operatorSecretMatches(secret)) {
+    return { error: (await getTranslator()).t('installUnlock.incorrect') }
+  }
+
+  await grantInstallUnlock()
+  redirect('/install')
+}
 
 export interface InstallFormState {
   readonly errors?: Record<string, string>
@@ -50,8 +70,12 @@ export async function installAction(
     redirect('/')
   }
 
-  const parsed = parseInstallInput(submitted)
   const t = await getTranslator()
+  if (!(await installUnlocked())) {
+    return { errors: { form: t.t('installUnlock.required') }, values }
+  }
+
+  const parsed = parseInstallInput(submitted)
   if (!parsed.ok) return { errors: translatedErrors(parsed.errors, t), values }
 
   if (!canProceed(await gatherPreflight())) {

@@ -266,6 +266,15 @@ export class PostgresNotificationRepository implements NotificationRepository {
     return rows.length > 0
   }
 
+  async removeAllPushSubscriptions(userId: number): Promise<number> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+        delete from push_subscriptions where user_id = ${userId} returning id
+      `),
+    ) as Array<{ id: number }>
+    return rows.length
+  }
+
   async pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]> {
     const rows = resultRows(
       await this.db.execute(sql`

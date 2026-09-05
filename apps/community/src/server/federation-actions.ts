@@ -9,6 +9,7 @@ import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
+import { requireFreshCredentialProof } from './credential-proof'
 import { assertDemoAccountChangeable } from './demo'
 import {
   federationService,
@@ -61,6 +62,8 @@ async function requireOwnAccount(): Promise<{
 }
 
 export async function unlinkIdentityAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const actor = await getActor()
+  if (actor.userId !== null) await requireFreshCredentialProof(actor.userId)
   try {
     const { userId, hasPassword } = await requireOwnAccount()
     const identityId = Number(text(form, 'identityId'))
@@ -84,6 +87,8 @@ export async function unlinkIdentityAction(_prev: FormState, form: FormData): Pr
 }
 
 export async function removePasskeyAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const actor = await getActor()
+  if (actor.userId !== null) await requireFreshCredentialProof(actor.userId)
   try {
     const { userId, hasPassword } = await requireOwnAccount()
     const passkeyId = Number(text(form, 'passkeyId'))

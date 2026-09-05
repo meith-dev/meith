@@ -5,6 +5,7 @@ import { isAppError, logger } from '@meith/core'
 import { getTranslator } from './i18n'
 import { installerIsSealed } from './install'
 import { type InstallRestoreOutcome, runInstallRestore } from './install-restore'
+import { installUnlocked } from './install-unlock'
 
 export interface InstallRestoreState {
   readonly error?: string
@@ -17,6 +18,7 @@ export async function installRestoreAction(
 ): Promise<InstallRestoreState> {
   const t = await getTranslator()
   if (await installerIsSealed()) return { error: t.t('installRestore.alreadyInstalled') }
+  if (!(await installUnlocked())) return { error: t.t('installUnlock.required') }
 
   const raw = form.get('bundle')
   const name = typeof raw === 'string' ? raw.trim() : ''

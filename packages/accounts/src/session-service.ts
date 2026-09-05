@@ -49,25 +49,19 @@ export class SessionService {
     return this.mintSession(userId, this.now(), context)
   }
 
-  async startRemembered(userId: number, context: RequestContext = {}): Promise<RememberedLogin> {
+  async issueRemember(
+    userId: number,
+  ): Promise<{ readonly rememberToken: string; readonly rememberExpiresAt: Date }> {
     const at = this.now()
-    const familyId = generateToken()
     const rememberToken = generateToken()
     const rememberExpiresAt = new Date(at.getTime() + this.rememberDays * DAY_MS)
     await this.store.remember.issue({
       tokenHash: await hashToken(rememberToken),
-      familyId,
+      familyId: generateToken(),
       userId,
       expiresAt: rememberExpiresAt,
     })
-    const session = await this.mintSession(userId, at, context)
-    return {
-      userId,
-      sessionToken: session.token,
-      sessionExpiresAt: session.expiresAt,
-      rememberToken,
-      rememberExpiresAt,
-    }
+    return { rememberToken, rememberExpiresAt }
   }
 
   async resume(rememberToken: string, context: RequestContext = {}): Promise<ResumeOutcome> {

@@ -120,6 +120,8 @@ export interface NotificationRepository {
 
   removePushSubscription(userId: number, endpoint: string): Promise<boolean>
 
+  removeAllPushSubscriptions(userId: number): Promise<number>
+
   pushSubscriptionsFor(userId: number): Promise<readonly PushSubscriptionRecord[]>
 
   countPushSubscriptions(userId: number): Promise<number>

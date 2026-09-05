@@ -508,6 +508,7 @@ function withDerivedDefaults(source: NodeJS.ProcessEnv): Derived {
         ? {}
         : { MAIL_HTTP_TOKEN: bridgedKey, MAIL_HTTP_ENDPOINT: RESEND_EMAILS_ENDPOINT }),
       ...(mailFrom === undefined ? {} : { MAIL_FROM: mailFrom }),
+      ...(onVercel && source.TRUSTED_PROXY_HOPS === undefined ? { TRUSTED_PROXY_HOPS: '1' } : {}),
       MAIL_DRIVER:
         source.MAIL_DRIVER ??
         (bridgedKey !== undefined && mailFrom !== undefined ? 'http' : undefined),

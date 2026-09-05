@@ -2384,6 +2384,13 @@
   "installRestore.failed": "The restore stopped: {error}",
 
   "installRestore.pickOne": "Pick a bundle to restore.",
+  "installUnlock.button": "Unlock the installer",
+  "installUnlock.incorrect": "That does not match the AUTH_SECRET this board runs with.",
+  "installUnlock.label": "AUTH_SECRET",
+  "installUnlock.lede": "Only the operator who deployed this board holds its AUTH_SECRET. Paste it to prove you are that operator before choosing the administrator account or restoring a backup.",
+  "installUnlock.pending": "Checking…",
+  "installUnlock.required": "Unlock the installer with the board's AUTH_SECRET first.",
+  "installUnlock.title": "Prove you deployed this board",
   "legal.page.privacy.footer": "Privacy",
   "legal.page.privacy.title": "Privacy policy",
   "legal.page.rules.footer": "Rules & FAQ",
