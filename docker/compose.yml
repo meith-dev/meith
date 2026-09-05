@@ -3,9 +3,16 @@
 #
 # `docker compose up -d --build` should produce a working board with no other
 # setup, which is the parity claim against MyBB's "upload and run" story. This
-# is the deployment route this project supports, in its by-hand shape;
-# docs/getting-started/deployment/docker-compose.md is the walkthrough, docs/getting-started/deployment/coolify.md is the guided
-# one, and everything below is meant to be read as well as run.
+# deploys **this repository's own stock board** directly — the same shape the
+# release pipeline builds and boot-tests the official image against, and what
+# the board-eject and board-workspace smoke tests exercise. It is not what the
+# getting-started guides point an operator at: docs/getting-started/deployment/docker-compose.md deploys a
+# scaffolded board of one's own instead (`npx create-meith` or the template),
+# by hand, because that is the shape docs/customization/marketplace.md can
+# actually install a plugin into — docs/getting-started/deployment/coolify.md is the guided version of the
+# same scaffold. Read this file when you are working on the release pipeline
+# itself, or deliberately want the unmodified stock board rather than a board
+# of your own; everything below is meant to be read as well as run.
 #
 # Four containers, and each earns its place: Postgres holds the board, `migrate`
 # runs to completion before anything serves so the schema is never behind the

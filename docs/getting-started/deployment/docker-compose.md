@@ -1,19 +1,14 @@
 # Deploying by hand
 
-**Advanced.** The [Quickstart](./coolify.md) deploys a board with
-[Coolify](https://coolify.io) — since 0.17.0, a board of your own rather
-than this repository's own image, which is what lets
-[the marketplace](../../customization/marketplace.md) actually install into it — and is the
-route most boards should take: same four containers, same environment
-contract either way, and it issues the certificate and generates the
-secrets for you. This page deploys **this repository's own stock board**
-instead, by hand — same shape, no panel — for whoever minds a community's
-machines, not for the organisers; it assumes a terminal, a text editor and
-no fear of either. Want your own board's shape without the panel? Skip to
-[Custom boards](#custom-boards).
-
-This page is the same board without the panel: the compose file, a `.env`
-you write, and a reverse proxy you already run. Take it if:
+**No panel.** The [Quickstart](./coolify.md) deploys a board with
+[Coolify](https://coolify.io) — a guided panel that issues the
+certificate, generates the secrets, and redeploys with one button — and
+is the route most boards should take: same four containers, same
+environment contract either way. This page deploys the identical
+board — the workspace `npx create-meith` or
+[the template](https://github.com/meith-dev/template) writes, the same
+shape [the marketplace](../../customization/marketplace.md) installs
+into — with Docker Compose alone. Take it if:
 
 - **you already run a proxy** (nginx, Traefik, Caddy) and would rather add
   one vhost than a second thing that wants ports 80 and 443;
@@ -23,9 +18,11 @@ you write, and a reverse proxy you already run. Take it if:
 - **you are deploying into something else** — an existing Swarm, a Nomad
   job, a CI pipeline that already builds images.
 
-What you give up: certificates, secret generation, the redeploy button,
-and the scheduled database backup. All four become yours, and the first is
-the one people underestimate.
+What you give up: Coolify's certificate, its generated secrets, its
+redeploy button, and its own scheduled off-host backup. All four become
+yours, and the first is the one people underestimate — the board still
+takes its own backups either way, see [What you are taking
+on](#what-you-are-taking-on).
 
 ## What you need
 
@@ -36,8 +33,8 @@ the one people underestimate.
 | **Half an hour** | And a terminal. |
 
 1 GB works for a quiet board but is tight during the build. If that is
-what you have, [use the published image](#building-somewhere-else) instead
-of building.
+what you have, [build somewhere else](#building-somewhere-else) instead
+of on the server.
 
 ## 1. Prepare the server
 
@@ -73,27 +70,58 @@ point is almost always that.
 ## 2. Get the board
 
 ```sh
-git clone https://github.com/meith-dev/meith.git
-cd meith
-git checkout "$(git describe --tags --abbrev=0)"   # the newest release
+curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board
+cd my-board
 ```
 
-A clone rather than a release tarball, because upgrading is a fetch and a
-checkout of the next tag, and because
-[`docker/compose.yml`](../../../docker/compose.yml) is a file you are meant to
-read and edit. The checkout matters: `main` is development and makes no
-promises between releases; a release tag is what the published images are
-built from and what [the release process](../../contributing/release.md) stands behind.
+Pick `my-board`'s replacement now — the name of the directory this writes
+and, if you push it anywhere, of the repository on GitHub. It is not the
+board's display name (the installer asks for that later, in [step
+6](#6-install-it)), so it does not have to be pretty, only lower-case
+with no spaces. `npx create-meith my-board` does the identical thing if
+you already have Node.js and would rather use it.
+
+Either command writes a small workspace — `package.json`,
+`meith.config.ts`, `board.plugins.json` — that depends on the published
+`@meith/web` and `@meith/cli` packages instead of containing a copy of
+this repository, which is what turns "installing a plugin" from a fork of
+this project into `npm install` and a line in a config file. See
+[Consuming the board from a workspace](../../contributing/development.md#consuming-the-board-from-a-workspace)
+for the mechanism (`forum-web`/`meith` — the bins the compose file below
+actually runs) and [the plugin API](../../customization/plugins.md) for
+installing one once the board exists.
+
+The workspace carries a deploy kit with **three** routes onto a server,
+not just this one — [Quickstart § Create your
+board](./coolify.md#2-create-your-board) is where the other two are
+written up in full:
+
+| File(s) | Route |
+|---|---|
+| `Dockerfile`, `docker-compose.yaml` | Coolify, building the image itself — the Quickstart's default |
+| `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`, `.github/workflows/build.yml` | Coolify, pulling an image GitHub Actions built — the Quickstart's advanced path |
+| `docker-compose.byhand.yaml` | This page — no panel, a `.env` you write |
+
+A board takes one route at a time. **Delete `docker-compose.yaml` now**,
+at least: it is the name Docker Compose guesses when nothing tells it
+otherwise, and it has no fallback of its own for any secret — it expects
+Coolify to have generated one. Leaving it in place is a loaded footgun for
+step 4; deleting it removes the trap rather than asking you to remember it
+is there. `Dockerfile`, `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`
+and `.github/workflows/build.yml` are harmless left in place — nothing
+auto-discovers any of them the way Compose does its default filename — so
+leave those for [Building somewhere else](#building-somewhere-else)
+below, or delete them too if you already know you will not need them.
 
 ## 3. Write the environment
 
-Everything from here on happens in `docker/` — the compose file lives
-there and reads `.env` from beside it. Nothing in that file belongs in
-git; `.gitignore` already covers it.
+The compose file reads `.env` from beside it, at the root of `my-board`.
+Nothing in it belongs in git; the scaffold's own `.gitignore` already
+covers it.
 
 ```sh
-cd docker
 cat > .env <<EOF
+COMPOSE_FILE=docker-compose.byhand.yaml
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 AUTH_SECRET=$(openssl rand -base64 32)
 TICK_SECRET=$(openssl rand -base64 32)
@@ -102,10 +130,12 @@ EOF
 chmod 600 .env
 ```
 
-Edit the last line to your real domain — it is the only line you type.
+Edit the `APP_URL` line to your real domain — it is the only line you
+type.
 
 | Line | What it is |
 |---|---|
+| `COMPOSE_FILE` | Names the file every plain `docker compose ...` command from here on should run, so nothing below needs a `-f`. Docker Compose reads it out of `.env` the same way it reads everything else in this file. If you kept `docker-compose.yaml` around in step 2, this is also what stops Compose silently preferring it instead. |
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed — and hex, see the note below. The compose file has a well-known default, so set your own. |
 | `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
 | `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick over HTTP](../../guides/operations/monitoring.md#driving-the-tick-over-http). Compose refuses to start without it too. |
@@ -131,15 +161,29 @@ it. What it breaks is the unsubscribe link in every message already sent
 enrolment, which has to be set up again. Safe if you think it leaked; not
 free.
 
-[`.env.example`](../../../.env.example) at the repository root documents every
-other variable, including the `MAIL_*` set — optional, overriding the
-board's own mail settings when present, and worth setting here if you
-would rather this deployment were configured entirely from files.
+`my-board`'s own `.env.example` documents the `MAIL_*` set too — optional,
+overriding the board's own mail settings when present, and worth setting
+here if you would rather this deployment were configured entirely from
+files.
 
-That includes `METRICS_ENABLED`/`METRICS_TOKEN` and `OTEL_ENABLED`/
-`OTEL_EXPORTER_OTLP_ENDPOINT` — off by default, and not needed for a working
-board. See [Monitoring & alerting](../../guides/operations/monitoring.md) once you want a
+Metrics and tracing are two more, and are not in that file:
+`METRICS_ENABLED`/`METRICS_TOKEN` and `OTEL_ENABLED`/
+`OTEL_EXPORTER_OTLP_ENDPOINT` are off by default and not needed for a
+working board. See [Monitoring & alerting](../../guides/operations/monitoring.md) once you want a
 Prometheus scrape target or distributed tracing.
+
+Anything the variables above do not reach goes in a
+`docker-compose.override.yaml` beside this one: name it second in
+`COMPOSE_FILE` —
+
+```sh
+COMPOSE_FILE=docker-compose.byhand.yaml:docker-compose.override.yaml
+```
+
+— and Compose merges the two on every command. It is yours, untracked,
+upgrade after upgrade; naming it explicitly like this is what an override
+file needs once the base file it extends is not the one Compose would
+have guessed on its own.
 
 ## 4. Start it
 
@@ -147,15 +191,14 @@ Prometheus scrape target or distributed tracing.
 docker compose up -d --build
 ```
 
-The first build takes five to ten minutes. Four containers come up in
-order:
+The first build takes five to ten minutes. Services come up in order:
 
 | Container | What it does |
 |---|---|
 | `postgres` | The database. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. `web` and `worker` wait for it, so the code never runs against a schema behind it. |
 | `web` | Next.js, on `127.0.0.1:3000`. |
-| `worker` | The background tick, in-process, on its own one-minute loop. |
+| `worker` | Calls `/api/system/tick` over HTTP once a minute. `@meith/worker` is not published, so a board outside the meith monorepo drives the tick this way rather than running the compiled process — the same shape [Quickstart § 3](./coolify.md#3-set-your-domain-and-deploy) uses under Coolify. It never touches the database itself; only the request it makes does. |
 
 Check all four:
 
@@ -165,35 +208,34 @@ docker compose logs -f worker
 ```
 
 `migrate` showing `Exited (0)` is correct — it is what the other two
-waited for. The worker should log `worker started` **once**, and then not
-much; if that line repeats every few seconds, the container is
-crash-looping and the log above it says why.
+waited for. `worker` should log **nothing** once it is healthy — it only
+ever writes a line when a tick request fails, so a quiet log here is the
+good sign, not a stuck one.
 
 One `web` container is the topology this walkthrough sets up, and the
 right one to start with. When the board outgrows it, [Scaling
-out](../../guides/operations/scaling.md) is the path — the compose file already carries the
-`redis` profile (running Valkey) and the variables it needs, so scaling
-later means changing configuration, not redoing this guide.
+out](../../guides/operations/scaling.md) is the path — the compose file
+already carries a `redis` profile (running Valkey) and the variables it
+needs, so scaling later means changing configuration, not writing a new
+file.
 
 Each long-running container carries a memory and CPU ceiling sized for a
 small VPS — a gigabyte and two cores for `web`, a gigabyte and a core for
-`postgres`, 768 MB for `worker` — and rotates its own logs at three files
-of 10 MB each. The ceilings are limits, not reservations: a quiet board
-holds nothing back, and their sum deliberately exceeds the 2 GB minimum
-above. They are not there to fit inside the machine but to contain a
-failure within one container — a leak in `web` gets `web` killed and
-restarted, rather than inviting the host's OOM killer to pick its own
-victim, which can be `sshd` or Docker itself. A bigger machine raises
-them from the same `.env` the
-secrets live in — `WEB_MEM_LIMIT`, `WEB_CPUS`, `POSTGRES_MEM_LIMIT`,
-`POSTGRES_CPUS`, `WORKER_MEM_LIMIT`, `WORKER_CPUS`, plus `REDIS_MEM_LIMIT`
-and `REDIS_CPUS` for the scaling profile — never by editing the compose
-file, so an upgrade's `git checkout` has nothing of yours to collide with.
-Anything the variables do not reach goes in a `compose.override.yml`
-beside the compose file: compose merges it automatically, and it is yours,
-untracked, upgrade after upgrade. The log cap is what keeps a
-crash-looping container from writing the disk full: `restart:
-unless-stopped` restarts it forever, and every restart logs.
+`postgres`, a fraction of either for `worker`, which is a small HTTP loop
+rather than a full process — and rotates its own logs at three files of
+10 MB each. The ceilings are limits, not reservations: a quiet board
+holds nothing back. They are not there to fit inside the machine but to
+contain a failure within one container — a leak in `web` gets `web`
+killed and restarted, rather than inviting the host's OOM killer to pick
+its own victim, which can be `sshd` or Docker itself. A bigger machine
+raises them from the same `.env` the secrets live in — `WEB_MEM_LIMIT`,
+`WEB_CPUS`, `POSTGRES_MEM_LIMIT`, `POSTGRES_CPUS`, `WORKER_MEM_LIMIT`,
+`WORKER_CPUS`, plus `REDIS_MEM_LIMIT` and `REDIS_CPUS` for the scaling
+profile — never by editing the compose file, so `npx create-meith@latest
+update` has nothing of yours to collide with when it rewrites that file
+to a new release's shape. The log cap is what keeps a crash-looping
+container from writing the disk full: `restart: unless-stopped` restarts
+it forever, and every restart logs.
 
 ## 5. Put a proxy in front
 
@@ -240,9 +282,9 @@ The board only sees a visitor's address because the proxy forwards it,
 and it has to be told how many proxies did the forwarding. `TRUSTED_PROXY_HOPS`
 defaults to `0` — nothing trusted, the header ignored outright — because
 that is the only safe default for an image that can also be run with its
-port published directly. The `web` service in `compose.yml` (and in the
-Coolify compose files) sets it to `1` for you, matching the one reverse
-proxy — Caddy, in the setup above — that those files assume, so **there is
+port published directly. `docker-compose.byhand.yaml` (and the Coolify
+compose files beside it) sets it to `1` for you, matching the one reverse
+proxy — Caddy, in the setup above — those files assume, so **there is
 nothing to set for this Caddyfile**.
 
 Put a CDN or a second load balancer in front of Caddy and the chain grows
@@ -297,202 +339,83 @@ written once:
 ## Upgrading
 
 ```sh
-cd ~/meith/docker
-git fetch --tags
-git checkout v0.6.0        # the release you are moving to
+cd ~/my-board
+npx create-meith@latest update
+```
+
+That moves every `@meith/*` pin — and `next` beside them — in
+`package.json`, and rewrites every deploy file the scaffold owns,
+`docker-compose.byhand.yaml` included, to the new release's shape; a file
+you have edited yourself is left alone and named in the output. Read what
+it prints before you deploy — the linked release notes' **Migrations:**
+line says what this release does to the schema — and **take a backup
+first**: migrations are forward-only and recovery is by restore; see
+[Backups](../../guides/operations/backups.md), whose *Back up before
+migrating* setting makes `migrate` take it itself. If this workspace
+lives in git, commit the result now.
+
+```sh
 docker compose up -d --build
 ```
 
 `migrate` runs first and the others wait for it, so the schema is never
-behind the code. **Take a backup first** — migrations are forward-only
-and recovery is by restore; see [Backups](../../guides/operations/backups.md),
-whose *Back up before migrating* setting makes `migrate` take it itself.
-
-That applies **core migrations only**. Plugin migrations run through
-`meith upgrade` — see
+behind the code. That covers **core migrations only**. Plugin migrations
+run through `meith upgrade` — see
 [the operator CLI](../../guides/operations/operating.md#the-operator-cli) for how to run it on
 this deployment, and [Upgrading a board](../../guides/operations/upgrading.md) for how far you
-can jump in one go.
+can jump in one go. A board pushed to GitHub does not even have to run
+the updater by hand: the scaffold's own
+`.github/workflows/update.yml` runs it weekly and opens a pull request
+with the result.
 
 ## Building somewhere else
 
-On a 1 GB server the Next build can run out of memory. The shortest fix
-is to not build at all: every release publishes this project's own image
-— multi-arch, boot-tested in every role — so replace each `build:` block
-in the compose file with `image: ghcr.io/meith-dev/meith:0.6.0` and
-everything else is unchanged.
+On a 1 GB server the Next build can run out of memory. The fix is not to
+build there: build `Dockerfile.prebuilt` — the one starting `FROM` the
+published, framework-only `ghcr.io/meith-dev/meith-base` image, so it
+only ever installs this board's own delta on top of an already-warm
+`node_modules` tree — somewhere else instead, and pull the result.
 
-Pin the exact version: a floating tag turns the next incidental
-`docker compose pull` into an unplanned upgrade. Upgrading is then
-editing the pin — the same deliberate act as checking out the next tag.
-Build on your own machine or in CI and push to your own registry only
-when you have patched the source; that is what this route is for.
+**On GitHub Actions, for free.** Push `my-board` to GitHub and
+`.github/workflows/build.yml`, already in the workspace if you kept it in
+step 2, builds `Dockerfile.prebuilt` on every push to `main` and pushes
+the result to `ghcr.io/<you>/my-board` — using only the automatic
+`GITHUB_TOKEN` every run already carries, no secret to add. Its own
+**Summary** tab prints the exact image once the run is green, and a link
+to check the package is public — a build from a public repository
+usually lands public already.
 
-The image takes `MEITH_ROLE` — `web`, `worker` or `migrate` — so one
-image is all three services. That is what makes the roles impossible to
-drift apart, and why there is no second Dockerfile.
-
-## Custom boards
-
-Everything above deploys **this board** — the stock one, whatever plugins
-and themes `apps/community`'s own `meith.config.ts` compiles in.
-Installing a third-party plugin does not mean forking this repository:
+**On your own machine**, if you would rather not use GitHub Actions at
+all:
 
 ```sh
-curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- <name>
+docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t my-board .
+docker push my-board   # wherever you tag it to push to
 ```
 
-scaffolds a small workspace of its own — `package.json`,
-`meith.config.ts`, `board.plugins.json` — that depends on the
-published `@meith/web` and `@meith/cli` packages instead, and comes with
-its own deploy kit already written, for **two** deploy paths: `Dockerfile`
-and `docker-compose.yaml` for the quick-start path (Coolify builds the
-image itself, from the repository, on every deploy — no extra setup);
-`Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml` and
-`.github/workflows/build.yml` for the advanced/prebuilt path (GitHub
-builds and pushes the image ahead of time, and Coolify only ever pulls
-it — for a low-spec build server or a faster deploy). A board takes one
-path or the other; the unused half is safe to delete. All of it comes with
-a git repository already initialized and staged. `npx create-meith <name>`
-does the identical thing for anyone who already has Node.js and would
-rather use it, and clicking **Use this template** on
-[meith-dev/template](https://github.com/meith-dev/template) does it with
-no local tooling at all — GitHub creates the repository and its first
-commit directly. See [Consuming the board
-from a workspace](../../contributing/development.md#consuming-the-board-from-a-workspace)
-for the mechanism (`forum-web`/`meith` — the same bins this
-repository's own image is built through, see [the stock
-board](../../reference/architecture.md#the-stock-board)) and [the plugin
-API](../../customization/plugins.md) for installing a plugin once the workspace exists.
+Either way, change the `build: .` line under **both** `migrate` and `web`
+in `docker-compose.byhand.yaml` to the image you just built:
 
-### Quick start (default)
-
-Push the scaffolded repository to GitHub, point Coolify at
-`docker-compose.yaml` — the path its **Compose file** field already
-contains — and deploy, the same mechanics the
-[Quickstart](./coolify.md#3-set-your-domain-and-deploy) walks through step
-by step for the same scaffold. `docker-compose.yaml` builds `web` and
-`migrate` from `Dockerfile` itself, so there is no image to look up or
-type in; it carries the same Coolify magic variables
-`docker/compose.coolify.yml` does for `AUTH_SECRET`, `TICK_SECRET` and the
-database password. The trade for that zero setup is a heavier build —
-`Dockerfile` installs the board's full dependency closure on the server
-itself, on every deploy, rather than starting from a warm base image. On a
-2 GB box, take the advanced/prebuilt path below instead.
-
-### Advanced/prebuilt
-
-The "server pulls an image; something else builds it" promise this
-document stands behind carries over here: instead of a release publishing
-`ghcr.io/meith-dev/meith`, an operator's own GitHub Actions build their
-own board and push it to their own registry. Three steps:
-
-1. **Push the scaffolded repository to GitHub.** `create-meith` already
-   initialized it and staged every file, so this is a commit and a push,
-   not a `git init` — see [Development § Consuming the board from a
-   workspace](../../contributing/development.md#consuming-the-board-from-a-workspace).
-   `.github/workflows/build.yml` builds `Dockerfile.prebuilt` on every
-   push to `main` and pushes the image to `ghcr.io/<you>/<board>` — the
-   automatic `GITHUB_TOKEN` every workflow run already carries is enough;
-   there is no secret to add. The run's own **Summary** tab, once it
-   finishes, prints the exact image for step 2 and a direct link to the
-   package itself, to check it is public — a build from a public
-   repository usually publishes a public package already, and a private
-   one fails Coolify's pull with an authentication error no operator can
-   act on until its visibility is changed.
-2. **Point Coolify at the scaffolded repository, on `docker-compose.prebuilt.yaml`**
-   — a **Public Git repository** resource with **Docker Compose** as its
-   build pack, that repository as its source, and its **Compose file**
-   field changed from Coolify's default of `docker-compose.yaml` to
-   `docker-compose.prebuilt.yaml`. It carries the same Coolify magic
-   variables `docker/compose.coolify.yml` does for `AUTH_SECRET`,
-   `TICK_SECRET` and the database password. The one thing it cannot
-   generate is the image step 1's Summary just printed, so the operator
-   sets `MEITH_IMAGE` once, in the resource's own environment — that
-   compose file refuses to start without it, with a message saying so.
-3. **Redeploy, then run `/install`** on the operator's own domain —
-   identical to [Quickstart § Run the installer](./coolify.md#4-run-the-installer).
-   Every push to `main` after this rebuilds the image; Coolify's own
-   **Redeploy** is what actually pulls it.
-
-No Docker Hub, no paid CI, whatever the board's size: GitHub Actions' free
-tier and GHCR are the whole build side, exactly as they are for the
-official image.
-
-`Dockerfile.prebuilt`'s `FROM` line pins
-`ghcr.io/meith-dev/meith-base:X.Y.Z` — a published, framework-only image
-(the `@meith/web`, `@meith/cli` and `@meith/theme-default` dependency
-closure, version-locked, no board config and no secret) that this
-project's release pipeline rebuilds alongside `ghcr.io/meith-dev/meith`
-itself on every release (`docker/Dockerfile.base`). `Dockerfile.prebuilt`
-only ever installs its own delta on top of that already-warm layer — a
-newly added plugin's own dependency, typically nothing more — which is
-what keeps "add a plugin, redeploy" a build of minutes rather than a cold
-toolchain build every time — the trade this path takes for that lighter
-build. `Dockerfile`, on the quick-start path, has no such base image to
-build on top of: it installs the board's full dependency closure itself,
-straight from `package.json`, on every build. Either way the base image's
-tag is not written into `Dockerfile.prebuilt` itself: `FROM` takes it as a
-build argument, and `.github/workflows/build.yml` reads the value straight
-out of `package.json`'s own `@meith/web` dependency on every build — so an
-upgrade is that one line in `package.json`, never a second pin to remember
-in `Dockerfile.prebuilt` too; `create-meith`'s own generated README
-documents the exact commands, for both paths.
-
-Both scaffolded Dockerfiles run their build as `RUN DATA_SOURCE=fixture
-npx forum-web build`, scoping fixture mode to that one command rather than
-declaring it `ENV` — neither Dockerfile has a later, separate runtime
-stage to reset a build-only `ENV` in, so an `ENV DATA_SOURCE=fixture`
-would leak into every container started from the image, silently forcing
-fixture mode (and the in-memory queue driver it implies) in production
-regardless of the `DATABASE_URL` an operator supplies at `docker run`
-time.
-
-`@meith/worker` is not published, so a scaffolded board's image carries no
-compiled worker binary — either compose file's own `worker` service drives
-the tick the way [below](#running-the-tick-without-a-second-set-of-credentials)
-describes instead: a small loop against `/api/system/tick`, needing nothing
-this image does not already expose.
-
-Building nowhere but a laptop is still available, exactly like ["Building
-somewhere else"](#building-somewhere-else) above, for an operator who would
-rather not use GitHub Actions for the build at all. On the advanced path,
-`MEITH_VERSION` has no default, so a bare
-`docker build -f Dockerfile.prebuilt -t <board> .` fails; the value is the
-scaffolded repository's own `@meith/web` dependency in `package.json`, the
-same one `.github/workflows/build.yml` reads:
-
-```sh
-docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t <board> .
+```yaml
+image: ghcr.io/<you>/my-board:latest
 ```
 
-On the quick-start path there is no version to pass — `docker build -t
-<board> .` builds `Dockerfile` straight from `package.json` as it is.
-
-## Running the tick without a second set of credentials
-
-The `worker` service holds database credentials, which some operators
-would rather only the web server did. The compose file ships an
-alternative behind a profile: a small container that calls
-`/api/system/tick` over HTTP once a minute, presenting `TICK_SECRET` in
-an `Authorization: Bearer` header:
-
-```sh
-docker compose --profile curl-tick up -d
-```
-
-Enable that **or** `worker`, never both. Running both is harmless — a
-task claims its work in the database, so concurrent ticks are safe — but
-it is two things doing one job.
+`docker compose up -d` then pulls rather than builds. Pin the exact tag
+once the board is settled and you want upgrades happening only when you
+choose — a floating tag turns the next incidental `docker compose pull`
+into an unplanned upgrade, the same reasoning
+[Quickstart § Set your domain and deploy](./coolify.md#3-set-your-domain-and-deploy)
+walks through for the equivalent Coolify setting.
 
 ## When it goes wrong
 
 | What you see | What it is |
 |---|---|
 | `AUTH_SECRET must be set`, before any container starts | Compose itself refusing to interpolate: `.env` is not beside the compose file, or you ran `docker compose` from another directory. |
+| Every secret in `docker compose config` comes back blank, or the board installs with a password you never set | `.env` was not read, and Compose fell back to `docker-compose.yaml` — Coolify's own file, still in this directory if you kept it in step 2. That file's secrets have no fallback of their own; they resolve empty rather than failing loudly. Delete it, or confirm `COMPOSE_FILE` is set in `.env` and that you are in `my-board`'s own directory. |
 | `TypeError: Invalid URL` from `migrate` | A `/` or `+` in `POSTGRES_PASSWORD`. Generate it with `openssl rand -hex 32`. |
 | `migrate` exits non-zero | Read its log. A failed migration stops the stack on purpose rather than serving against a half-applied schema. |
-| Worker logs `worker started` every few seconds | It is crash-looping. `docker compose logs worker` shows the throw above each restart. |
+| `worker` logs `tick failed` repeatedly | The board it is calling is not answering — check `web`'s own log first; the loop container has no logic of its own to break. |
 | 502 from the proxy | The web container is not up, or `PORT` is not `127.0.0.1:3000`. `curl -I http://127.0.0.1:3000/api/health` on the host settles which. |
 | 413 on an upload | The proxy's body limit, not the board's. See `max_size` above. |
 | Uploads vanish after a redeploy | The `uploads` volume is not mounted. `docker volume ls` and `docker compose config` will show it. |
@@ -518,7 +441,7 @@ it:
 - **Certificates are yours.** Caddy makes it a solved problem, but it is
   a problem you now own.
 - **Security updates are yours.** `unattended-upgrades` for the host; a
-  checkout of the next release and a rebuild for the board.
+  `create-meith` update and a rebuild for the board.
 - **Uptime is yours.** `restart: unless-stopped` covers a crash and a
   reboot; it does not cover a disk filling up. The compose file caps what
   each container may log, so a crash-loop cannot fill the disk by itself —

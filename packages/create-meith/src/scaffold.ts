@@ -377,6 +377,7 @@ const SELF_HOST_DEPLOY_KIT = [
   'Dockerfile.prebuilt',
   'docker-compose.yaml',
   'docker-compose.prebuilt.yaml',
+  'docker-compose.byhand.yaml',
   'docker-entrypoint.sh',
   'docker-healthcheck.sh',
 ] as const
@@ -1349,6 +1350,202 @@ volumes:
   )
 
   files.set(
+    'docker-compose.byhand.yaml',
+    `# ${name}, deployed by Docker Compose without a panel — your own \`.env\`,
+# your own reverse proxy, no Coolify. The same four services as
+# docker-compose.yaml and docker-compose.prebuilt.yaml above it (db,
+# migrate, web, worker), reshaped for a machine with nothing generating
+# secrets for you: every value Coolify would have filled in — the database
+# password, AUTH_SECRET, TICK_SECRET, the board's own address — comes from
+# a \`.env\` beside this file instead. See the meith repository's
+# docs/getting-started/deployment/docker-compose.md, which this file is
+# the last step of.
+#
+# \`docker compose\` only auto-discovers a file literally named
+# docker-compose.yaml, and that name is already spoken for — Coolify's own
+# zero-configuration default. Put \`COMPOSE_FILE=docker-compose.byhand.yaml\`
+# in \`.env\` once, and every plain \`docker compose ...\` command reads this
+# file without a \`-f\`, including the ones the rest of this project's
+# documentation already shows you.
+#
+# \`docker compose up -d --build\` builds \`Dockerfile\` from this repository,
+# on this machine — the same trade the quick-start path above takes. For a
+# low-spec server, build \`Dockerfile.prebuilt\` somewhere else instead (push
+# to GitHub and let \`.github/workflows/build.yml\` do it, or run
+# \`docker build -f Dockerfile.prebuilt ...\` by hand) and change the two
+# \`build: .\` lines below to \`image: <that image>:<version>\` — the
+# substitution docs/getting-started/deployment/docker-compose.md, "Building
+# somewhere else", walks through.
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    restart: unless-stopped
+    mem_limit: \${POSTGRES_MEM_LIMIT:-1g}
+    cpus: \${POSTGRES_CPUS:-1}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    environment:
+      POSTGRES_USER: community
+      # Generate with \`openssl rand -hex 32\`, not base64 — this value is
+      # substituted into the postgres:// URL below, and base64's alphabet
+      # includes \`/\` and \`+\`, which make the connection string unparseable.
+      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-community}
+      POSTGRES_DB: community
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U community -d community']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Runs to completion, then exits. web waits for it, so the schema is
+  # always applied before the first request rather than racing it.
+  migrate:
+    build: .
+    image: ${name}
+    environment:
+      MEITH_ROLE: migrate
+      DATABASE_URL: postgres://community:\${POSTGRES_PASSWORD:-community}@postgres:5432/community
+      AUTH_SECRET: \${AUTH_SECRET:?AUTH_SECRET must be set}
+      TICK_SECRET: \${TICK_SECRET:?TICK_SECRET must be set}
+      FILESTORE_DRIVER: local
+      # So that "back up before migrating" (a board setting) can ship the
+      # bundle it takes to the same off-site destination web uses.
+      BACKUP_S3_BUCKET: \${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: \${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: \${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: \${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: \${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: \${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: \${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: \${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: \${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      - uploads:/app/.uploads
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  web:
+    build: .
+    image: ${name}
+    restart: unless-stopped
+    mem_limit: \${WEB_MEM_LIMIT:-1g}
+    cpus: \${WEB_CPUS:-2}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    ports:
+      - '\${PORT:-127.0.0.1:3000}:3000'
+    environment:
+      DATABASE_URL: postgres://community:\${POSTGRES_PASSWORD:-community}@postgres:5432/community
+      AUTH_SECRET: \${AUTH_SECRET:?AUTH_SECRET must be set}
+      TICK_SECRET: \${TICK_SECRET:?TICK_SECRET must be set}
+      QUEUE_DRIVER: postgres
+      CACHE_DRIVER: \${CACHE_DRIVER:-next}
+      REDIS_URL: \${REDIS_URL:-}
+      FILESTORE_DRIVER: local
+      APP_URL: \${APP_URL:-http://localhost:3000}
+      # One reverse proxy (Caddy, in the guide's own walkthrough) sits in
+      # front of \`web\` — see "Count your proxies" in
+      # docs/getting-started/deployment/docker-compose.md.
+      TRUSTED_PROXY_HOPS: \${TRUSTED_PROXY_HOPS:-1}
+      # Leaving this at \`log\` does not mean no mail: it means the board
+      # decides, from the installer on first run or from
+      # /admin/settings?group=mail afterwards, with no redeploy. Setting it
+      # here makes this file authoritative instead.
+      MAIL_DRIVER: \${MAIL_DRIVER:-log}
+      MAIL_FROM: \${MAIL_FROM:-}
+      MAIL_HTTP_ENDPOINT: \${MAIL_HTTP_ENDPOINT:-}
+      MAIL_HTTP_TOKEN: \${MAIL_HTTP_TOKEN:-}
+      MAIL_SMTP_HOST: \${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: \${MAIL_SMTP_PORT:-}
+      MAIL_SMTP_SECURITY: \${MAIL_SMTP_SECURITY:-}
+      MAIL_SMTP_USERNAME: \${MAIL_SMTP_USERNAME:-}
+      MAIL_SMTP_PASSWORD: \${MAIL_SMTP_PASSWORD:-}
+      BACKUP_S3_BUCKET: \${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: \${BACKUP_S3_REGION:-}
+      BACKUP_S3_ACCESS_KEY_ID: \${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: \${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_ENDPOINT: \${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_PREFIX: \${BACKUP_S3_PREFIX:-}
+      BACKUP_WEBDAV_URL: \${BACKUP_WEBDAV_URL:-}
+      BACKUP_WEBDAV_USERNAME: \${BACKUP_WEBDAV_USERNAME:-}
+      BACKUP_WEBDAV_PASSWORD: \${BACKUP_WEBDAV_PASSWORD:-}
+    volumes:
+      - uploads:/app/.uploads
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # @meith/worker is not published (see the meith repository's
+  # docs/contributing/release.md), so there is no compiled worker binary
+  # this board can run — a small loop calling /api/system/tick instead, the
+  # same shape docker-compose.yaml and docker-compose.prebuilt.yaml use.
+  worker:
+    image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    restart: unless-stopped
+    mem_limit: \${WORKER_MEM_LIMIT:-64m}
+    cpus: \${WORKER_CPUS:-0.25}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    environment:
+      TICK_SECRET: \${TICK_SECRET:?TICK_SECRET must be set}
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null
+        while true; do
+          curl -fsS -m 55 -H "Authorization: Bearer $$TICK_SECRET" \\
+            http://web:3000/api/system/tick >/dev/null 2>&1 \\
+            || echo "tick failed at $$(date -Is)"
+          sleep 60
+        done
+    depends_on:
+      - web
+
+  # Off by default — see docs/guides/operations/scaling.md before setting
+  # CACHE_DRIVER=redis above. This is the server it needs.
+  redis:
+    profiles: ['redis']
+    image: valkey/valkey:9-alpine@sha256:a174b894902bd3367e330d47cc2054367dc4917701776aaf336f41d83b65ec7a
+    restart: unless-stopped
+    mem_limit: \${REDIS_MEM_LIMIT:-256m}
+    cpus: \${REDIS_CPUS:-0.5}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  uploads:
+  backups:
+`,
+  )
+
+  files.set(
     'README.md',
     `# ${name}
 
@@ -1356,11 +1553,13 @@ A forum, built on [Meith](${repositoryUrl}).
 
 ## Deploy
 
-Two paths onto [Coolify](https://coolify.io), both ending at the same
-\`/install\`. **Quick start** is the default and needs nothing but a push;
-**advanced/prebuilt** moves the build off the server, onto GitHub Actions, for
-a low-spec build server or a faster deploy. Pick one — a board only ever runs
-one of them at a time.
+Three paths onto a server, all ending at the same \`/install\`. **Quick
+start** onto [Coolify](https://coolify.io) is the default and needs nothing
+but a push; **advanced/prebuilt** moves the build off the server, onto
+GitHub Actions, for a low-spec build server or a faster deploy; **without a
+panel** is the same four containers run by hand, with your own \`.env\` and
+reverse proxy, and no Coolify at all. Pick one — a board only ever runs one
+of them at a time.
 
 ### Quick start (default)
 
@@ -1448,13 +1647,20 @@ rather not use GitHub Actions for the build — push the result wherever
 docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t ${name} .
 \`\`\`
 
-**Without a panel**: [docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md)
-is the same four containers by hand — your own \`.env\`, a reverse proxy you
-already run, no Coolify. \`Dockerfile\` and \`docker-compose.yaml\` here are this
-board's own version of exactly that shape (or \`Dockerfile.prebuilt\` and
-\`docker-compose.prebuilt.yaml\`, for the advanced path).
+### Without a panel
 
-Two things nothing configures for you, on either path:
+\`docker-compose.byhand.yaml\`, beside the two Coolify files above, is the same
+four containers deployed with nothing generating secrets for you: a \`.env\`
+you write yourself, a port published for the reverse proxy you already run,
+and \`docker compose up -d --build\` in place of a panel's Deploy button.
+[docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md)
+is the full walkthrough this file is the last step of, including the
+\`.env\` this repository does not carry — nothing here belongs in git. Delete
+this file if you know you will only ever deploy through Coolify; keep it,
+and it needs nothing else changed, if you later want to move away from
+Coolify without changing how the board itself is built.
+
+Two things nothing configures for you, on any path:
 
 - **Mail.** Until \`MAIL_DRIVER\` and its three settings exist, every message is
   written to the log and delivered to nobody, so password reset fails silently.

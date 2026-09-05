@@ -4,11 +4,13 @@ A forum, built on [Meith](https://github.com/meith-dev/meith).
 
 ## Deploy
 
-Two paths onto [Coolify](https://coolify.io), both ending at the same
-`/install`. **Quick start** is the default and needs nothing but a push;
-**advanced/prebuilt** moves the build off the server, onto GitHub Actions, for
-a low-spec build server or a faster deploy. Pick one — a board only ever runs
-one of them at a time.
+Three paths onto a server, all ending at the same `/install`. **Quick
+start** onto [Coolify](https://coolify.io) is the default and needs nothing
+but a push; **advanced/prebuilt** moves the build off the server, onto
+GitHub Actions, for a low-spec build server or a faster deploy; **without a
+panel** is the same four containers run by hand, with your own `.env` and
+reverse proxy, and no Coolify at all. Pick one — a board only ever runs one
+of them at a time.
 
 ### Quick start (default)
 
@@ -96,13 +98,20 @@ rather not use GitHub Actions for the build — push the result wherever
 docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t meith-board .
 ```
 
-**Without a panel**: [docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md)
-is the same four containers by hand — your own `.env`, a reverse proxy you
-already run, no Coolify. `Dockerfile` and `docker-compose.yaml` here are this
-board's own version of exactly that shape (or `Dockerfile.prebuilt` and
-`docker-compose.prebuilt.yaml`, for the advanced path).
+### Without a panel
 
-Two things nothing configures for you, on either path:
+`docker-compose.byhand.yaml`, beside the two Coolify files above, is the same
+four containers deployed with nothing generating secrets for you: a `.env`
+you write yourself, a port published for the reverse proxy you already run,
+and `docker compose up -d --build` in place of a panel's Deploy button.
+[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md)
+is the full walkthrough this file is the last step of, including the
+`.env` this repository does not carry — nothing here belongs in git. Delete
+this file if you know you will only ever deploy through Coolify; keep it,
+and it needs nothing else changed, if you later want to move away from
+Coolify without changing how the board itself is built.
+
+Two things nothing configures for you, on any path:
 
 - **Mail.** Until `MAIL_DRIVER` and its three settings exist, every message is
   written to the log and delivered to nobody, so password reset fails silently.

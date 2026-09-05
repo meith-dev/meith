@@ -50,6 +50,7 @@ describe('what the scaffold writes', () => {
       'Dockerfile.prebuilt',
       'README.md',
       'board.plugins.json',
+      'docker-compose.byhand.yaml',
       'docker-compose.prebuilt.yaml',
       'docker-compose.yaml',
       'docker-entrypoint.sh',
@@ -499,6 +500,81 @@ describe('the deploy kit — every file complete for someone with a GitHub accou
   })
 })
 
+describe('the by-hand compose file — the third path, with no panel generating secrets', () => {
+  const files = scaffold(OPTIONS)
+  const byHand = files.get('docker-compose.byhand.yaml')!
+
+  it('exists only on the self-host target', () => {
+    expect(byHand).toBeDefined()
+    expect(
+      scaffold({ ...OPTIONS, target: 'vercel' }).get('docker-compose.byhand.yaml'),
+    ).toBeUndefined()
+  })
+
+  it('runs the whole board, the same four services as the Coolify files', () => {
+    for (const service of ['postgres', 'migrate', 'web', 'worker']) {
+      expect(byHand).toMatch(new RegExp(`\\n {2}${service}:\\n`))
+    }
+  })
+
+  it('builds the image itself, with no MEITH_IMAGE to set', () => {
+    expect(byHand).toContain('build: .')
+    expect(byHand).toContain('image: my-board')
+    expect(byHand).not.toMatch(/image:\s*\$\{MEITH_IMAGE/)
+  })
+
+  it('reads every secret from its own .env, not from a panel', () => {
+    expect(byHand).not.toContain('SERVICE_BASE64_64_AUTH')
+    expect(byHand).not.toContain('SERVICE_PASSWORD_POSTGRES')
+    expect(byHand).toMatch(/AUTH_SECRET: \$\{AUTH_SECRET:\?/)
+    expect(byHand).toMatch(/TICK_SECRET: \$\{TICK_SECRET:\?/)
+    expect(byHand).toMatch(/POSTGRES_PASSWORD: \$\{POSTGRES_PASSWORD:-community\}/)
+    expect(byHand).toMatch(/APP_URL: \$\{APP_URL:-http:\/\/localhost:3000\}/)
+  })
+
+  it('publishes a port for the reverse proxy in front of it, unlike the Coolify files', () => {
+    expect(byHand).toMatch(/ports:\n\s*- '\$\{PORT:-127\.0\.0\.1:3000\}:3000'/)
+    expect(files.get('docker-compose.yaml')).not.toMatch(/^\s*ports:/m)
+  })
+
+  it('counts the one reverse proxy the guide sets up, unlike Coolify which is the only hop itself', () => {
+    expect(byHand).toMatch(/TRUSTED_PROXY_HOPS: \$\{TRUSTED_PROXY_HOPS:-1\}/)
+  })
+
+  it('drives the tick without a compiled worker binary, the same way as the Coolify files', () => {
+    expect(byHand).toMatch(/system\/tick/)
+    expect(byHand).toContain('Authorization: Bearer')
+  })
+
+  it('forwards the cache driver and offers a redis profile, so scaling out needs no new file', () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Compose variable syntax, not a template-string typo
+    expect(byHand).toContain('CACHE_DRIVER: ${CACHE_DRIVER:-next}')
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: literal Compose variable syntax, not a template-string typo
+    expect(byHand).toContain('REDIS_URL: ${REDIS_URL:-}')
+    expect(byHand).toMatch(/\n {2}redis:\n\s*profiles: \['redis'\]/)
+  })
+
+  it('mounts the uploads and backups volumes and forwards the off-site destination', () => {
+    expect([...byHand.matchAll(/uploads:\/app\/\.uploads/g)]).toHaveLength(2)
+    expect([...byHand.matchAll(/backups:\/backups/g)]).toHaveLength(2)
+    for (const variable of [
+      'BACKUP_S3_BUCKET',
+      'BACKUP_S3_REGION',
+      'BACKUP_S3_ACCESS_KEY_ID',
+      'BACKUP_S3_SECRET_ACCESS_KEY',
+      'BACKUP_S3_ENDPOINT',
+      'BACKUP_S3_PREFIX',
+    ]) {
+      expect(byHand).toContain(`${variable}: \${${variable}:-}`)
+    }
+  })
+
+  it('points the by-hand guide at itself, so a stale name would show up as a broken snippet', () => {
+    expect(byHand).toContain('docs/getting-started/deployment/docker-compose.md')
+    expect(byHand).toContain('COMPOSE_FILE=docker-compose.byhand.yaml')
+  })
+})
+
 describe('the update workflow — releases arrive as pull requests', () => {
   const selfHost = scaffold(OPTIONS).get('.github/workflows/update.yml')!
 
@@ -612,6 +688,7 @@ describe('the CLI', () => {
         'Dockerfile.prebuilt',
         'README.md',
         'board.plugins.json',
+        'docker-compose.byhand.yaml',
         'docker-compose.prebuilt.yaml',
         'docker-compose.yaml',
         'docker-entrypoint.sh',
@@ -750,7 +827,8 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'docker-compose.yaml': '6c9715262ce8e8f77c3cf661683bcb11be803544f5e902a7d1507ac45d2211b2',
   'docker-compose.prebuilt.yaml':
     '069997fca8288caaf2e24a98413d23ffa7903ea370e23b6bc4c01358cd7cd896',
-  'README.md': 'de94525ed6946dbf792ded665fd3f2dd5c7299a12b25688915b0083e36fb66af',
+  'docker-compose.byhand.yaml': '8217237f19f31db09572ba117c3c0708153254e8d25e22333b21c77abbe5c495',
+  'README.md': 'b7172e689c8b25d28f5143d02aa62087f6041bb0375b3e237d69a0fe8acc4648',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

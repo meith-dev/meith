@@ -7,12 +7,18 @@ there:
 - **A one-shot migration service** updates the schema, and finishes
   before anything else starts.
 - **The web service** answers browsers and the API.
-- **The worker** runs scheduled and queued work once a minute.
+- **The worker** runs scheduled and queued work once a minute — or, for a
+  board scaffolded outside this repository, a small loop that drives the
+  same work over HTTP instead, since the compiled worker process is not
+  something such a board depends on today.
 
-Every route below deploys that same shape from the same image, and ends
-the same way: open `/install` on the new board to name it and create its
-first administrator. Nothing is built on your server — the deploy pulls
-an image that was built and tested when the release was cut.
+Every route below deploys that same shape, starting from the same
+scaffold — `npx create-meith` or [the
+template](https://github.com/meith-dev/template) — and ends the same way:
+open `/install` on the new board to name it and create its first
+administrator. Building the image on the server is the default and the
+fastest way to a first deploy; a low-spec machine can instead pull one
+built elsewhere, and each route below says how.
 
 ## Pick your route
 

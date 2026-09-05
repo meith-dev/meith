@@ -149,19 +149,15 @@ The one ceremony you may skip is for a **patch**: the
 carries a migration, which is what makes taking one immediately always
 safe.
 
-**Under Compose** it is three commands — check out the release, never
-`main`:
-
-```sh
-git fetch --tags
-git checkout v0.6.0        # the release you are moving to
-docker compose up -d --build
-```
-
-Either way the ordering is handled for you: `migrate` runs to completion
-first, and `web` and `worker` wait for it, so the new code never serves
-against the old schema. That covers **core migrations only** — plugin
-migrations still go through `meith upgrade`.
+**Under Compose, by hand** — a board scaffolded outside this repository,
+whether deployed by hand or by Coolify, upgrades through the updater
+described next rather than a git checkout of this repository: there is no
+tag of *this* repository to check out, because the board's own
+`package.json` is what pins the version. `docker compose up -d --build`
+still handles the ordering once the updater has moved the pins: `migrate`
+runs to completion first, and `web` and `worker` wait for it, so the new
+code never serves against the old schema. That covers **core migrations
+only** — plugin migrations still go through `meith upgrade`.
 
 **A board scaffolded by `create-meith`** — one with its own `package.json`
 depending on `@meith/web`, whether it deploys as a container or to Vercel —
@@ -232,19 +228,23 @@ volume gets you a board that is *empty* rather than broken, which is
 worse, because it looks like data loss and is merely data ignored.
 
 The way across is the backup, which is the point of this page's first
-section. On Compose, from the checkout of the **new** release:
+section. On Compose, once the new release's pin is in place — a checked-out
+tag against `meith-dev/meith`'s own image, or the updater's rewrite of a
+scaffolded board's `docker-compose.yaml`/`docker-compose.prebuilt.yaml`/
+`docker-compose.byhand.yaml` — but before bringing it up:
 
 ```sh
 mkdir -p backups
 docker compose build web
 docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/backups":/backup web \
-  node apps/cli/cli.cjs backup --out /backup/pre-18.tar.gz
+  meith backup --out /backup/pre-18.tar.gz
 docker compose down
-docker volume rm docker_pgdata
+docker volume ls                    # find this project's own pgdata volume
+docker volume rm <the pgdata volume docker volume ls just named>
 docker compose up -d postgres
 RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/community" \
   docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD/backups":/backup web \
-  node apps/cli/cli.cjs restore /backup/pre-18.tar.gz --skip-uploads
+  meith restore /backup/pre-18.tar.gz --skip-uploads
 docker compose up -d --build
 ```
 

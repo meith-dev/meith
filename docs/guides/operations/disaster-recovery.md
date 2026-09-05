@@ -35,12 +35,21 @@ serving traffic before verifying does.
 
 A server like the one you lost: the
 [requirements](../../getting-started/deployment/docker-compose.md#what-you-need) have not changed because
-the old machine died. Install Docker, clone the repository, and check out
-**the release the board was running** — never a newer one, never `main`:
+the old machine died. Install Docker, then get the board back **at the
+release it was running**, never a newer one:
 
 ```sh
-git clone https://github.com/meith-dev/meith && cd meith/docker
-git checkout v0.12.0
+git clone https://github.com/<you>/my-board && cd my-board
+```
+
+if you pushed the scaffold to its own repository, which is what makes a
+checked-out `package.json` pin the exact version back without having to
+know the number. Without that repository, scaffold it fresh at the exact
+version your last backup names — the recorded version is in the dump, and
+the admin panel showed it every day the board that took it was up:
+
+```sh
+npx create-meith@0.12.0 my-board && cd my-board
 ```
 
 Recovering and upgrading are two changes; make them one at a time. Once
@@ -87,7 +96,7 @@ board down until the data is in:
 docker compose up -d postgres
 RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/community" \
   docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD":/backup web \
-  node apps/cli/cli.cjs restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz
+  meith restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz
 ```
 
 The fresh Postgres container created an empty `community` database, which

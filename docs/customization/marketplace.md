@@ -268,8 +268,8 @@ installed into a running container, which is exactly why the public
 marketplace shows a listing's install steps and links here rather than
 offering an install button. Because the stock image is itself built from
 a workspace shaped like [`create-meith`](../contributing/development.md#the-workspace)'s
-own scaffold (see [Self-hosting § Custom
-boards](../getting-started/deployment/docker-compose.md#custom-boards)), graduating to one is generating
+own scaffold (see [Quickstart § Create your
+board](../getting-started/deployment/coolify.md#2-create-your-board)), graduating to one is generating
 those same files from *this build's own state* and repointing the deploy
 — the database is untouched, because the board's identity lives in
 Postgres, not in the image.
@@ -316,11 +316,12 @@ where `mkdir` made it.
 
 `my-board` becomes a complete workspace: `package.json` pinned to
 *this image's exact release version* — never `latest`, so graduating is
-never a surprise upgrade — the full deploy kit for both paths
-(`Dockerfile`, `docker-compose.yaml`, `Dockerfile.prebuilt`,
-`docker-compose.prebuilt.yaml`, `.github/workflows/build.yml`, described
-in full in [Self-hosting § Custom
-boards](../getting-started/deployment/docker-compose.md#custom-boards)),
+never a surprise upgrade — the full deploy kit for all three routes onto
+a server (`Dockerfile`, `docker-compose.yaml`, `Dockerfile.prebuilt`,
+`docker-compose.prebuilt.yaml`, `.github/workflows/build.yml`,
+`docker-compose.byhand.yaml`, described
+in full in [Quickstart § Create your
+board](../getting-started/deployment/coolify.md#2-create-your-board)),
 `board.plugins.json` matching what this build actually compiled in, and
 `meith.config.ts` matching the stock configuration. Every plugin the
 manifest names is also added to `package.json`'s own `dependencies`, at
@@ -349,7 +350,8 @@ branch is pushed to.
 ### 3. Point Coolify at it and redeploy
 
 From here it is the same three-step advanced/prebuilt deploy
-[Self-hosting § Custom boards](../getting-started/deployment/docker-compose.md#custom-boards)
+[Quickstart § Set your domain and
+deploy](../getting-started/deployment/coolify.md#3-set-your-domain-and-deploy)
 describes for any scaffolded board: check the GitHub package is public,
 point Coolify at the new repository with its **Compose file** field
 changed to `docker-compose.prebuilt.yaml`, and set `MEITH_IMAGE` to the
