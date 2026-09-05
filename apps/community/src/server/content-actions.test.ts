@@ -90,6 +90,7 @@ const {
   createThreadAction,
   deletePostAction,
   editPostAction,
+  quotePostAction,
   restorePostAction,
 } = await import('./content-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
@@ -1122,5 +1123,27 @@ describe('post actions', () => {
       ).toBe('/thread/20-hello?post=50')
       expect(postWrites.moves[0]).toMatchObject({ from: 'deleted', to: 'visible' })
     })
+  })
+})
+
+describe('quotePostAction', () => {
+  const quoted = { id: 88, authorUsername: 'bea', message: 'the original words' }
+  const posts = {
+    findQuotable: async () => quoted,
+    listThread: async () => ({ rows: [], nextAfterId: null }),
+    findVisibleById: async () => null,
+    findRatingTarget: async () => null,
+  }
+
+  it('returns the quote for a post in a visible thread', async () => {
+    installContainer({ posts })
+    const block = await quotePostAction(4, 88)
+    expect(block).toContain('the original words')
+  })
+
+  it('refuses to quote a post in a thread the member cannot see', async () => {
+    writes.thread = { visibility: 'deleted' }
+    installContainer({ posts })
+    expect(await quotePostAction(4, 88)).toBeNull()
   })
 })

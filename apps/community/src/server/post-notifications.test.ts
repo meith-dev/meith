@@ -5,6 +5,7 @@ import type { NotificationChannelPreference, RaiseInput, RaiseResult } from '@me
 
 const { notifyPostAudience } = await import('./post-notifications')
 const { installTestContainer } = await import('./test-container')
+const { SEED_FORUM } = await import('./seed-board')
 
 class FakeNotifications {
   readonly raised: RaiseInput[] = []
@@ -61,6 +62,7 @@ function notice(over: Partial<Parameters<typeof notifyPostAudience>[0]> = {}) {
   return {
     postId: 99,
     threadId: 7,
+    forumId: SEED_FORUM.general,
     threadSlug: 'hello',
     threadTitle: 'Hello',
     message: '',
@@ -121,6 +123,12 @@ describe('notifyPostAudience', () => {
   it('tells nobody about a post the queue is still holding', async () => {
     await member('wren')
     await notifyPostAudience(notice({ message: '@wren look', visibility: 'unapproved' }))
+    expect(notifications.raised).toHaveLength(0)
+  })
+
+  it('never tells a member about a forum they cannot see', async () => {
+    await member('wren')
+    await notifyPostAudience(notice({ message: 'psst @wren', forumId: 999999 }))
     expect(notifications.raised).toHaveLength(0)
   })
 

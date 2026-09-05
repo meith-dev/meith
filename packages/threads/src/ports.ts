@@ -1,10 +1,11 @@
-import type { ContentScope, ThreadAuthorFilter } from '@meith/core'
+import type { ContentScope, ContentVisibility, ThreadAuthorFilter } from '@meith/core'
 
 import type { ThreadCursor, ThreadListingRow, ThreadPage, ThreadSort } from './types'
 
 export interface ThreadLocation {
   readonly forumId: number
   readonly authorUserId: number | null
+  readonly visibility: ContentVisibility
 }
 
 export interface ThreadRepository {

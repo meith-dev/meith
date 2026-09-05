@@ -162,6 +162,7 @@ export async function submitReply(
   await notifyPostAudience({
     postId: created.postId,
     threadId: created.threadId,
+    forumId,
     threadSlug: created.slug,
     threadTitle: target.title,
     message: draft.body,

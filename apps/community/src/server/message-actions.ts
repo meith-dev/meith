@@ -91,7 +91,7 @@ export async function messageBulkAction(_prev: FormState, form: FormData): Promi
           query = `moved=${await service.move(userId, copyIds, 'trash')}`
           break
         case 'restore':
-          query = `moved=${await service.move(userId, copyIds, 'inbox')}`
+          query = `moved=${await service.restore(userId, copyIds)}`
           break
         case 'delete':
           query = `deleted=${await service.remove(userId, copyIds)}`

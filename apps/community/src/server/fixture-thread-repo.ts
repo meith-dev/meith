@@ -40,7 +40,9 @@ export class FixtureThreadRepository implements ThreadRepository {
 
   async locate(threadId: number): Promise<ThreadLocation | null> {
     const row = this.rows.find((entry) => entry.id === threadId)
-    return row === undefined ? null : { forumId: row.forumId, authorUserId: row.authorUserId }
+    return row === undefined
+      ? null
+      : { forumId: row.forumId, authorUserId: row.authorUserId, visibility: row.visibility }
   }
 
   async findById(

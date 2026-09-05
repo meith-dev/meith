@@ -302,3 +302,29 @@ describe('forReport', () => {
     expect(await repo.forReport(4242)).toBeNull()
   })
 })
+
+describe('restore', () => {
+  it('returns each trashed copy to its own folder: sent for the author, inbox for a recipient', async () => {
+    const id = await send([{ userId: BOB, bcc: false }])
+    const authorCopy = await copyIdFor(id, IVAN)
+    const recipientCopy = await copyIdFor(id, BOB)
+
+    await repo.move({ userId: IVAN, copyIds: [authorCopy], folder: 'trash' })
+    await repo.move({ userId: BOB, copyIds: [recipientCopy], folder: 'trash' })
+
+    expect(await repo.restore({ userId: IVAN, copyIds: [authorCopy] })).toBe(1)
+    expect(await repo.restore({ userId: BOB, copyIds: [recipientCopy] })).toBe(1)
+
+    expect(await repo.list({ userId: IVAN, folder: 'sent', limit: 10 })).toHaveLength(1)
+    expect(await repo.list({ userId: IVAN, folder: 'inbox', limit: 10 })).toEqual([])
+    expect(await repo.list({ userId: BOB, folder: 'inbox', limit: 10 })).toHaveLength(1)
+  })
+
+  it('only touches copies that are in the trash', async () => {
+    const id = await send([{ userId: BOB, bcc: false }])
+    const recipientCopy = await copyIdFor(id, BOB)
+
+    expect(await repo.restore({ userId: BOB, copyIds: [recipientCopy] })).toBe(0)
+    expect(await repo.list({ userId: BOB, folder: 'inbox', limit: 10 })).toHaveLength(1)
+  })
+})

@@ -341,6 +341,10 @@ export class MessageService {
     return this.repository.move({ userId, copyIds, folder })
   }
 
+  restore(userId: number, copyIds: readonly number[]): Promise<number> {
+    return this.repository.restore({ userId, copyIds })
+  }
+
   remove(userId: number, copyIds: readonly number[]): Promise<number> {
     return this.repository.remove({ userId, copyIds })
   }

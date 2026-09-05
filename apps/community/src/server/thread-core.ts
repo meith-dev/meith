@@ -201,6 +201,7 @@ export async function submitThread(
   await notifyPostAudience({
     postId: created.postId,
     threadId: created.threadId,
+    forumId: forum.id,
     threadSlug: created.slug,
     threadTitle: draft.subject ?? input.title,
     message: draft.body,

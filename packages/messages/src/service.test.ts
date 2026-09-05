@@ -189,6 +189,14 @@ class FakeRepository implements MessageRepository {
     return affected.length
   }
 
+  async restore(input: { userId: number; copyIds: readonly number[] }): Promise<number> {
+    const affected = this.mine(input.userId, input.copyIds).filter(
+      (copy) => copy.folder === 'trash',
+    )
+    for (const copy of affected) copy.folder = copy.role === 'author' ? 'sent' : 'inbox'
+    return affected.length
+  }
+
   async remove(input: { userId: number; copyIds: readonly number[] }): Promise<number> {
     const affected = this.mine(input.userId, input.copyIds)
     this.copies = this.copies.filter((copy) => !affected.includes(copy))

@@ -114,7 +114,7 @@ function form(fields: Record<string, string | string[]>): FormData {
   return data
 }
 
-function install(): void {
+function install(visibility: 'visible' | 'unapproved' | 'deleted' = 'visible'): void {
   installTestContainer({
     overrides: [
       {
@@ -126,7 +126,7 @@ function install(): void {
     container: {
       polls,
       threads: {
-        locate: async () => ({ forumId: SEED_FORUM.general, authorUserId: 1 }),
+        locate: async () => ({ forumId: SEED_FORUM.general, authorUserId: 1, visibility }),
         findById: async () => ({ id: THREAD }),
         listForum: async () => ({ rows: [], nextCursor: null }),
       },
@@ -153,6 +153,17 @@ describe('votePollAction', () => {
 
     const fresh = await polls.find(THREAD, VOTER)
     expect(fresh?.votedOptionIds).toEqual([1])
+  })
+
+  it('refuses to vote on a thread the member cannot see', async () => {
+    install('deleted')
+
+    await expect(
+      votePollAction(null, form({ threadId: String(THREAD), pollId: String(POLL), optionId: '1' })),
+    ).rejects.toThrow()
+
+    const fresh = await polls.find(THREAD, VOTER)
+    expect(fresh?.votedOptionIds).toEqual([])
   })
 
   it('casts the vote and returns the fresh results without redirecting when enhanced', async () => {

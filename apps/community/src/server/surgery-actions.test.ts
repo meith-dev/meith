@@ -117,7 +117,11 @@ function installContainer(
         locate: async (id: number) =>
           forumOf[id] === undefined
             ? null
-            : { forumId: forumOf[id], authorUserId: authorOf[id] ?? null },
+            : {
+                forumId: forumOf[id],
+                authorUserId: authorOf[id] ?? null,
+                visibility: 'visible' as const,
+              },
         findById: async () => null,
         listForum: async () => ({ rows: [], nextCursor: null }),
       },

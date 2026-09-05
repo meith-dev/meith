@@ -38,6 +38,12 @@ export async function rateThreadAction(form: FormData): Promise<void> {
   }
   if (!authorizer.can(actor, 'thread.view', target))
     throw new ValidationError(msg('error.app.thread-exist'))
+  if (
+    (located?.visibility === 'deleted' && !authorizer.can(actor, 'content.viewDeleted', target)) ||
+    (located?.visibility === 'unapproved' &&
+      !authorizer.can(actor, 'content.viewUnapproved', target))
+  )
+    throw new ValidationError(msg('error.app.thread-exist'))
   const recorded = await new ThreadRatingService(polls).rate({
     threadId,
     userId: actor.userId,
