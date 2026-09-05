@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 import { standaloneRoot, standaloneServer } from './e2e/support/board-paths'
 import {
+  E2E_AUTH_SECRET,
   E2E_BASE_URL,
   E2E_DATABASE_URL,
   E2E_DB_PORT,
@@ -44,7 +45,7 @@ const SHARED_ENV = {
   QUEUE_DRIVER: 'postgres',
   CACHE_DRIVER: 'memory',
   FILESTORE_DRIVER: 'local',
-  AUTH_SECRET: 'e2e-only-secret-0000000000000000',
+  AUTH_SECRET: E2E_AUTH_SECRET,
   TICK_SECRET: E2E_TICK_SECRET,
   HOSTNAME: '127.0.0.1',
   NEXT_TELEMETRY_DISABLED: '1',

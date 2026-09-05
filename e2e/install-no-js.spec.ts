@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
+import { E2E_AUTH_SECRET } from './support/config'
+
 test.use({ javaScriptEnabled: false })
 
 const BOARD = 'E2E Test Board'
@@ -35,6 +37,10 @@ test('a board is installed from a migrated, empty database, with no scripting', 
   const passed = page.getByRole('group').filter({ hasText: /checks? passed/ })
   await expect(passed).toBeVisible()
   await expect(passed).not.toHaveAttribute('open', '')
+
+  await expect(page.getByRole('heading', { name: 'Prove you deployed this board' })).toBeVisible()
+  await page.getByLabel('AUTH_SECRET').fill(E2E_AUTH_SECRET)
+  await page.getByRole('button', { name: 'Unlock the installer' }).click()
 
   await expect(page.getByText('Mail is not configured yet')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Install' })).toBeVisible()

@@ -2,11 +2,13 @@ import { expect, type Page, test } from '@playwright/test'
 
 import { stepAt, totpCode } from '@meith/accounts'
 
-import { PASSWORD, signUp } from './support/session'
+import { PASSWORD, proveCredential, signUp } from './support/session'
 
 test.use({ javaScriptEnabled: false })
 
 async function enrol(page: Page): Promise<string> {
+  await proveCredential(page)
+
   await page.goto('/usercp/security')
   await page.getByRole('button', { name: 'Set up an authenticator app' }).click()
 

@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { enterAdminPanel, PASSWORD } from './support/session'
+import { enterAdminPanel, PASSWORD, proveCredential } from './support/session'
 
 const BOARD = 'http://localhost:3001'
 
@@ -71,10 +71,7 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await expect(memberPage.getByRole('heading', { name: 'Passkeys' })).toBeVisible()
     await expect(memberPage.getByText('You have no passkeys yet.')).toBeVisible()
 
-    await memberPage.goto(`${BOARD}/usercp/security/verify?next=%2Fusercp%2Fsecurity`)
-    await memberPage.getByLabel('Current password').fill(PASSWORD)
-    await memberPage.getByRole('button', { name: 'Verify password' }).click()
-    await expect(memberPage).toHaveURL(/\/usercp\/security$/)
+    await proveCredential(memberPage)
     await memberPage.getByLabel('What to call it').fill('Work laptop')
     await memberPage.getByRole('button', { name: 'Add a passkey' }).click()
 
@@ -94,6 +91,8 @@ test('a member adds a passkey and signs in with it afterwards', async ({ browser
     await memberPage.goto(`${BOARD}/usercp/security`)
     await expect(memberPage.getByText('Work laptop')).toBeVisible()
     await expect(memberPage.getByText(/last used/)).toBeVisible()
+
+    await proveCredential(memberPage)
 
     await memberPage.getByRole('button', { name: 'Remove' }).click()
     await expect(memberPage).toHaveURL(/\/usercp\/security\?passkey=removed$/)

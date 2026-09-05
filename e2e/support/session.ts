@@ -32,6 +32,14 @@ export async function signUp(page: Page, label: string): Promise<string> {
   return username
 }
 
+export async function proveCredential(page: Page, password = PASSWORD): Promise<void> {
+  const { origin } = new URL(page.url())
+  await page.goto(`${origin}/usercp/security/verify?next=%2Fusercp%2Fsecurity`)
+  await page.getByLabel('Current password').fill(password)
+  await page.getByRole('button', { name: 'Verify password' }).click()
+  await expect(page).toHaveURL(/\/usercp\/security$/)
+}
+
 export async function signIn(page: Page, username: string, password = PASSWORD): Promise<void> {
   await page.goto('/login')
   await page.getByLabel('Username or email').fill(username)

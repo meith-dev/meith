@@ -2,13 +2,15 @@ import { expect, type Page, test } from '@playwright/test'
 
 import { stepAt, totpCode } from '@meith/accounts'
 
-import { enterAdminPanel, PASSWORD, signUp } from './support/session'
+import { enterAdminPanel, PASSWORD, proveCredential, signUp } from './support/session'
 
 async function code(secret: string, offset = 0): Promise<string> {
   return totpCode(secret, stepAt(new Date()) + offset)
 }
 
 async function enrol(page: Page): Promise<string> {
+  await proveCredential(page)
+
   await page.goto('/usercp/security')
   await page.getByRole('button', { name: 'Set up an authenticator app' }).click()
 
