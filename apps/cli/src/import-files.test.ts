@@ -141,7 +141,7 @@ describe('copying avatars', () => {
 
 describe('when storage is unavailable', () => {
   class FailingStore extends MemoryStore {
-    async put(): Promise<StoredFile> {
+    override async put(): Promise<StoredFile> {
       throw new Error('storage offline')
     }
   }
