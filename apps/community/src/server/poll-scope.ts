@@ -32,6 +32,12 @@ export async function resolvePollScope(actor: Actor, threadId: number): Promise<
   }
   if (!authorizer.can(actor, 'thread.view', scope)) return null
 
+  if (
+    (located.visibility === 'deleted' && !authorizer.can(actor, 'content.viewDeleted', scope)) ||
+    (located.visibility === 'unapproved' && !authorizer.can(actor, 'content.viewUnapproved', scope))
+  )
+    return null
+
   const wroteIt = actor.userId !== null && located.authorUserId === actor.userId
   const editsOwn = wroteIt && authorizer.can(actor, 'post.editOwn', scope)
   const mayEditOthers = authorizer.can(actor, 'post.editOthers', scope)

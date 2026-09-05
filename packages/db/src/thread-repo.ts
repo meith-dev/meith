@@ -122,12 +122,19 @@ export class PostgresThreadRepository implements ThreadRepository {
       .select({
         forumId: threads.forumId,
         authorUserId: threads.authorUserId,
+        visibility: threads.visibility,
       })
       .from(threads)
       .where(eq(threads.id, threadId))
       .limit(1)
     const row = rows[0]
-    return row ? { forumId: row.forumId, authorUserId: row.authorUserId } : null
+    return row
+      ? {
+          forumId: row.forumId,
+          authorUserId: row.authorUserId,
+          visibility: row.visibility as ThreadLocation['visibility'],
+        }
+      : null
   }
 
   async findById(

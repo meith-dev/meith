@@ -146,7 +146,8 @@ function install(forumId: number | null = SEED_FORUM.general, hidden = false) {
       notifications,
       memberSettings,
       threads: {
-        locate: async () => (forumId === null ? null : { forumId, authorUserId: null }),
+        locate: async () =>
+          forumId === null ? null : { forumId, authorUserId: null, visibility: 'visible' },
         findById: async () => ({
           id: forumId ?? 0,
           type: 'forum',

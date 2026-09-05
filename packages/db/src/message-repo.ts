@@ -336,6 +336,29 @@ export class PostgresMessageRepository implements MessageRepository {
     return rows.length
   }
 
+  async restore(input: {
+    readonly userId: number
+    readonly copyIds: readonly number[]
+  }): Promise<number> {
+    if (input.copyIds.length === 0) return 0
+
+    const rows = resultRows(
+      await this.db.execute(sql`
+        update private_message_copies
+           set folder = case when role = 'author' then 'sent' else 'inbox' end
+         where owner_user_id = ${input.userId}
+           and folder = 'trash'
+           and id in (${sql.join(
+             input.copyIds.map((id) => sql`${id}`),
+             sql`, `,
+           )})
+        returning id
+      `),
+    ) as Array<{ id: number }>
+
+    return rows.length
+  }
+
   async remove(input: {
     readonly userId: number
     readonly copyIds: readonly number[]

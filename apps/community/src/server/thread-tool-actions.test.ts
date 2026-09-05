@@ -379,7 +379,11 @@ describe('deleting a thread you started', () => {
       container: {
         threadTools: tools,
         threads: {
-          locate: async () => ({ forumId: SEED_FORUM.general, authorUserId }),
+          locate: async () => ({
+            forumId: SEED_FORUM.general,
+            authorUserId,
+            visibility: 'visible',
+          }),
           findById: async () => null,
           listForum: async () => ({ rows: [], nextCursor: null }),
         },

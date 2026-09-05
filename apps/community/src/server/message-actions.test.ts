@@ -131,6 +131,11 @@ class FakeMessages implements MessageRepository {
     for (const copy of affected) copy.folder = input.folder
     return affected.length
   }
+  async restore(input: { userId: number; copyIds: readonly number[] }) {
+    const affected = this.mine(input.userId, input.copyIds).filter((c) => c.folder === 'trash')
+    for (const copy of affected) copy.folder = copy.role === 'author' ? 'sent' : 'inbox'
+    return affected.length
+  }
   async remove(input: { userId: number; copyIds: readonly number[] }) {
     const affected = this.mine(input.userId, input.copyIds)
     this.copies = this.copies.filter((c) => !affected.includes(c))
@@ -384,6 +389,28 @@ describe('the folder action bar', () => {
 
     expect(result.redirectedTo).toBe('/messages?moved=1')
     expect(messages.copies[0]?.folder).toBe('trash')
+  })
+
+  it('restores trashed copies to sent for the author and inbox for a recipient', async () => {
+    actorRef.current = await actorFor(SEED_GROUP.registered, BOB)
+    messages.copies.push(
+      { id: 30, messageId: 1, ownerUserId: BOB, folder: 'trash', role: 'author', readAt: null },
+      { id: 31, messageId: 2, ownerUserId: BOB, folder: 'trash', role: 'to', readAt: null },
+    )
+
+    const result = await run(
+      messageBulkAction,
+      form([
+        ['folder', 'trash'],
+        ['command', 'restore'],
+        ['copyId', '30'],
+        ['copyId', '31'],
+      ]),
+    )
+
+    expect(result.redirectedTo).toBe('/messages?folder=trash&moved=2')
+    expect(messages.copies.find((c) => c.id === 30)?.folder).toBe('sent')
+    expect(messages.copies.find((c) => c.id === 31)?.folder).toBe('inbox')
   })
 
   it('marks read and unread', async () => {

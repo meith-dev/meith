@@ -184,7 +184,7 @@ function install(postCount = 20): void {
         listThread: async () => ({ rows: [], nextAfterId: null }),
       },
       threads: {
-        locate: async () => ({ forumId: 1, authorUserId: TARGET }),
+        locate: async () => ({ forumId: 1, authorUserId: TARGET, visibility: 'visible' }),
         findById: async () => ({ id: 20 }),
         listForum: async () => ({ rows: [], nextCursor: null }),
       },

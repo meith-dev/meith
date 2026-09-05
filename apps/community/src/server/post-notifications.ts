@@ -15,6 +15,7 @@ const MAX_RECIPIENTS_PER_KIND = 10
 export interface NewPostNotice {
   readonly postId: number
   readonly threadId: number
+  readonly forumId: number
   readonly threadSlug: string
   readonly threadTitle: string
   readonly message: string
@@ -35,7 +36,7 @@ export async function notifyPostAudience(notice: NewPostNotice): Promise<void> {
     const href = postLink(`/thread/${notice.threadId}-${notice.threadSlug}`, notice.postId)
     const data = { byUsername: notice.authorUsername, threadTitle: notice.threadTitle }
 
-    const { accountStore } = getContainer()
+    const { accountStore, actorSource, authorizer } = getContainer()
     const told = new Set<string>([foldIdentifier(notice.authorUsername)])
 
     for (const [kind, names] of [
@@ -51,6 +52,11 @@ export async function notifyPostAudience(notice: NewPostNotice): Promise<void> {
 
         const account = await accountStore.accounts.findByUsernameLower(folded)
         if (account === null) continue
+
+        const recipient = await actorSource.buildForUser(account.id)
+        if (recipient === null) continue
+        const visibleForumIds = await authorizer.visibleForumIds(recipient)
+        if (!visibleForumIds.includes(notice.forumId)) continue
 
         await service.raise({
           userId: account.id,

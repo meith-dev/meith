@@ -82,11 +82,15 @@ export async function quotePostAction(threadId: number, postId: number): Promise
 
   const forumId = target.forum.id
   const matrix = await authorizer.forumMatrix(actor, forumId)
+  const scope = {
+    ...(await authorizer.moderatorTargetIn(actor, forumId, matrix)),
+    threadAuthorId: target.authorUserId,
+  }
+  if (!authorizer.can(actor, 'thread.view', scope)) return null
+
   if (
-    !authorizer.can(actor, 'thread.view', {
-      ...(await authorizer.moderatorTargetIn(actor, forumId, matrix)),
-      threadAuthorId: target.authorUserId,
-    })
+    (target.visibility === 'deleted' && !authorizer.can(actor, 'content.viewDeleted', scope)) ||
+    (target.visibility === 'unapproved' && !authorizer.can(actor, 'content.viewUnapproved', scope))
   )
     return null
 

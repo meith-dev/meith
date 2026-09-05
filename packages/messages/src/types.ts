@@ -126,6 +126,8 @@ export interface MessageRepository {
     readonly folder: MessageFolder
   }): Promise<number>
 
+  restore(input: { readonly userId: number; readonly copyIds: readonly number[] }): Promise<number>
+
   remove(input: { readonly userId: number; readonly copyIds: readonly number[] }): Promise<number>
 
   emptyFolder(input: { readonly userId: number; readonly folder: MessageFolder }): Promise<number>

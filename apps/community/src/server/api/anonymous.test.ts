@@ -37,7 +37,9 @@ function containerWith(): void {
       },
       threads: {
         locate: async (id: number) =>
-          id === THREAD.id ? { forumId: THREAD.forumId, authorUserId: THREAD.authorUserId } : null,
+          id === THREAD.id
+            ? { forumId: THREAD.forumId, authorUserId: THREAD.authorUserId, visibility: 'visible' }
+            : null,
         findById: async () => THREAD,
         listForum: async () => ({ rows: [], nextCursor: null }),
       },
