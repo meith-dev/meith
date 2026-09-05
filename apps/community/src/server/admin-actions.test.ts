@@ -6,7 +6,8 @@ const state = vi.hoisted(() => ({
   factorEnrolled: false,
   factorOutcome: 'ok' as 'ok' | 'wrong' | 'replayed',
   held: false,
-  attempts: new Map<string, Date[]>(),
+  attempts: new Map<string, { id: number; at: Date }[]>(),
+  nextAttemptId: 1,
   cleared: [] as string[],
 }))
 
@@ -65,10 +66,17 @@ vi.mock('./container', () => ({
     accountStore: {
       accounts: { findById: async () => ({ passwordHash: 'stored' }) },
       loginAttempts: {
-        countFailuresSince: async (bucket: string, since: Date) =>
-          (state.attempts.get(bucket) ?? []).filter((at) => at >= since).length,
-        record: async (bucket: string, succeeded: boolean, at: Date) => {
-          if (!succeeded) state.attempts.set(bucket, [...(state.attempts.get(bucket) ?? []), at])
+        recordFailureAndCount: async (bucket: string, since: Date, at: Date) => {
+          const id = state.nextAttemptId++
+          const list = [...(state.attempts.get(bucket) ?? []), { id, at }]
+          state.attempts.set(bucket, list)
+          return { id, count: list.filter((entry) => entry.at > since).length }
+        },
+        removeAttempt: async (id: number) => {
+          for (const [bucket, list] of state.attempts) {
+            const filtered = list.filter((entry) => entry.id !== id)
+            if (filtered.length !== list.length) state.attempts.set(bucket, filtered)
+          }
         },
         clear: async (bucket: string) => {
           state.attempts.delete(bucket)
@@ -124,6 +132,7 @@ beforeEach(() => {
   state.factorOutcome = 'ok'
   state.held = false
   state.attempts.clear()
+  state.nextAttemptId = 1
   state.cleared.length = 0
 })
 

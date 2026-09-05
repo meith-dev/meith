@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 
 import { type AuthConfig, foldIdentifier, hashToken, type LoginBucket } from '@meith/accounts'
 import { env, logger } from '@meith/core'
@@ -344,12 +345,11 @@ export async function verifySecondFactorAction(
   if (service === null) return { error: await tr('authAction.secondFactorExpired') }
 
   try {
-    await identity.assertSecondFactorAttemptsLeft(pending.userId)
+    await identity.spendSecondFactorAttempt(pending.userId)
 
     const outcome = await service.verify({ userId: pending.userId, code })
 
     if (outcome.status !== 'ok') {
-      await identity.recordSecondFactorFailure(pending.userId)
       await recordAuthEvent({ userId: pending.userId, kind: 'second_factor_failed' })
       return {
         error: await tr(
@@ -440,9 +440,10 @@ export async function requestResetAction(_prev: FormState, form: FormData): Prom
     const { token, userId } = await identity.requestPasswordReset(email)
 
     if (token !== null && userId !== null) {
-      const account = await getContainer().accountStore.accounts.findById(userId)
-      if (account !== null) {
+      const deliver = async (): Promise<void> => {
         try {
+          const account = await getContainer().accountStore.accounts.findById(userId)
+          if (account === null) return
           await sendPasswordResetEmail({
             token,
             email: account.email,
@@ -455,6 +456,12 @@ export async function requestResetAction(_prev: FormState, form: FormData): Prom
             'could not send a password reset e-mail',
           )
         }
+      }
+
+      try {
+        after(deliver)
+      } catch {
+        await deliver()
       }
     }
 
