@@ -1,15 +1,12 @@
-# Writing a post
+# Write and format posts
 
-Posts, replies, private messages and signatures are all written in
-Markdown. This page is the member-facing reference: what the composer's
-toolbar buttons do, and the syntax behind each of them — including the
-newer parts, which the toolbar's own **Formatting help** disclosure only
-has room to name in passing.
+Use Markdown to format posts, replies, private messages, and signatures.
+The toolbar helps insert the syntax; you can also type it directly.
+Toolbar controls, live previews, mention suggestions, and inline attachment
+insertion need JavaScript. Typed Markdown works without it.
 
-Everything on this page still works with JavaScript off. The toolbar,
-the live preview, mention suggestions and the "Insert attachment" button
-are enhancements layered on top of a composer that is a plain `<textarea>`
-underneath; typing the syntax by hand always works, whichever came first.
+For posting, search, notifications, and account settings, see the
+[Member guide](./member-guide.md).
 
 ## The basics
 

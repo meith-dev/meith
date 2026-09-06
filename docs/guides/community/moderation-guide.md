@@ -1,11 +1,9 @@
-# The moderator's guide
+# Moderation
 
-For the volunteers who approve first posts, handle reports, and keep
-threads tidy. Everything here is done in a browser. The board's
-settings, permissions and machinery belong to whoever administers it —
-that side is [The organiser's guide](./organiser-guide.md) and
-[Operations](../operations/operating.md) — and this page says when to hand
-something over rather than pretending you can reach it.
+Use this guide to approve posts, handle reports, and manage warnings and
+bans. Your available actions depend on the moderation permissions assigned
+to you. Board-wide settings and moderator appointments are covered in
+[Community administration](./organiser-guide.md).
 
 ## What you can do, and where
 
@@ -56,12 +54,10 @@ sections:
 A post can be held for approval before anybody else sees it. The usual
 reasons:
 
-- **The author is new.** The board has a setting for holding a member's
-  first posts until they have a few to their name. It is not working at
-  present — see
-  [Spam controls and rate limits § What each control is worth](./antispam.md#what-each-control-is-worth)
-  — so on a board today this reason will not be why something is in your
-  queue.
+- **The author is new.** `antispam.moderate_first_posts` holds posts while
+  the author's post count is below the configured threshold. It is off
+  by default. Members who may view unapproved content in that forum bypass
+  this particular hold. See [Spam controls](./antispam.md).
 - **The forum holds everything.** A forum can be set to hold all new
   threads, or all new replies, and the permission matrix can require
   approval from particular groups.

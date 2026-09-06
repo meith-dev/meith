@@ -1,12 +1,9 @@
-# The plugin API
+# Plugin development
 
-`@meith/plugin-kit` is the contract between the board and a plugin.
-
-This document is the policy: what a plugin is, what it may and may not do,
-and what the guarantees actually cover. The reference — every hook and every
-payload — is generated into [Plugin hooks](../reference/plugin-hooks.md). To
-**install** an existing plugin on a board you run, rather than write one, see
-[Installing plugins and themes](./installing.md).
+Use `@meith/plugin-kit` to add hooks, pages, UI regions, storage, and tasks.
+Start with [Write your first plugin](./first-plugin.md) for a walkthrough;
+use this guide and [Plugin hooks](../reference/plugin-hooks.md) for the contracts.
+To add an existing plugin, use [Installing plugins and themes](./installing.md).
 
 ## Writing a plugin
 

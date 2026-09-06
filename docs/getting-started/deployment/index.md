@@ -1,43 +1,39 @@
-# Deployment
+# Choose a deployment
 
-A production Meith board is four services, whichever route puts them
-there:
-
-- **PostgreSQL** stores everything the community makes.
-- **A one-shot migration service** updates the schema, and finishes
-  before anything else starts.
-- **The web service** answers browsers and the API.
-- **The worker** runs scheduled and queued work once a minute — or, for a
-  board scaffolded outside this repository, a small loop that drives the
-  same work over HTTP instead, since the compiled worker process is not
-  something such a board depends on today.
-
-Every route below deploys that same shape, starting from the same
-scaffold — `npx create-meith` or [the
-template](https://github.com/meith-dev/template) — and ends the same way:
-open `/install` on the new board to name it and create its first
-administrator. Building the image on the server is the default and the
-fastest way to a first deploy; a low-spec machine can instead pull one
-built elsewhere, and each route below says how.
+Choose where the board will run. For a local preview that needs no database,
+use [Try Meith locally](../quickstart.md).
 
 ## Pick your route
 
-| Route | For | You need |
+| Route | Use it when | You manage |
 |---|---|---|
-| [Coolify](./coolify.md) | Most boards — the guided route | A rented server and a domain; no terminal required after setup |
-| [Docker Compose by hand](./docker-compose.md) | Operators who already run a proxy | Docker Compose, a `.env` you write, a reverse proxy you operate |
-| [Vercel](./vercel.md) | Boards that would rather not have a server | A Vercel account and a hosted Postgres; the worker becomes a cron tick |
+| [Coolify](./coolify.md) | You want a panel to deploy on your own server | A server, domain, board repository, and backups |
+| [Docker Compose](./docker-compose.md) | You already manage Docker and a reverse proxy | Containers, secrets, HTTPS, and backups |
+| [Vercel](./vercel.md) | You want the web app on managed functions | Hosted PostgreSQL, shared cache, object storage, mail, and a scheduler |
 
-If you only want something the public can poke,
-[demo mode](../../guides/operations/demo-mode.md) runs a board that
-resets itself on a schedule.
+Coolify and Docker Compose run four services: PostgreSQL, a one-shot
+migration service, the web app, and a worker. The scaffold's worker calls
+`/api/system/tick` over HTTP; the repository's image runs the worker process.
+
+Vercel uses a different deployment: migrations run before the build, the web
+app runs in functions, and a scheduled HTTP call replaces the worker.
+Read its [limits](./vercel.md#the-limits-worth-knowing-first) before choosing it.
+
+All routes use a board repository with pinned Meith packages. The installer
+at `/install` creates the first administrator and forum after migrations
+have completed.
+
+## Moving an existing forum
+
+Follow [Migrate from MyBB or phpBB](../../guides/migrating.md) after installing
+the destination board. Rehearse against copies of the source
+database and uploads, and review the feature differences linked from that guide.
 
 ## After it is up
 
-- [Operations](../../guides/operations/operating.md) — health checks,
-  configuration, mail, backups, and the operator CLI.
-- [Upgrading](../../guides/operations/upgrading.md) — moving between
-  released versions safely; the board, its plugins and the compose file
-  carry one version number and move together.
-- [Monitoring](../../guides/operations/monitoring.md) — what to alert on
-  once people rely on it.
+1. [Set up your community](../first-steps.md).
+2. [Configure and test backups](../../guides/operations/backups.md).
+3. [Check services and scheduled work](../../guides/operations/monitoring.md).
+
+For an isolated board that visitors can experiment with and that resets its
+data, see [Demo mode](../../guides/operations/demo-mode.md).

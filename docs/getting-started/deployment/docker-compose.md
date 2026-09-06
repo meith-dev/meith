@@ -1,28 +1,7 @@
-# Deploying by hand
+# Deploy with Docker Compose
 
-**No panel.** The [Quickstart](./coolify.md) deploys a board with
-[Coolify](https://coolify.io) — a guided panel that issues the
-certificate, generates the secrets, and redeploys with one button — and
-is the route most boards should take: same four containers, same
-environment contract either way. This page deploys the identical
-board — the workspace `npx create-meith` or
-[the template](https://github.com/meith-dev/template) writes, the same
-shape [the marketplace](../../customization/marketplace.md) installs
-into — with Docker Compose alone. Take it if:
-
-- **you already run a proxy** (nginx, Traefik, Caddy) and would rather add
-  one vhost than a second thing that wants ports 80 and 443;
-- **you want no extra moving parts** — Coolify is a daemon, a database and
-  a proxy of its own, a fair price for what it does and not free;
-- **the machine is too small for it** — Coolify wants ~2 GB to itself;
-- **you are deploying into something else** — an existing Swarm, a Nomad
-  job, a CI pipeline that already builds images.
-
-What you give up: Coolify's certificate, its generated secrets, its
-redeploy button, and its own scheduled off-host backup. All four become
-yours, and the first is the one people underestimate — the board still
-takes its own backups either way, see [What you are taking
-on](#what-you-are-taking-on).
+Use this route to deploy a board with Docker Compose and a reverse proxy you
+manage. For deployment through a browser panel, use [Coolify](./coolify.md).
 
 ## What you need
 
@@ -74,44 +53,13 @@ curl -fsSL https://www.meith.dev/create-board.sh | bash -s -- my-board
 cd my-board
 ```
 
-Pick `my-board`'s replacement now — the name of the directory this writes
-and, if you push it anywhere, of the repository on GitHub. It is not the
-board's display name (the installer asks for that later, in [step
-6](#6-install-it)), so it does not have to be pretty, only lower-case
-with no spaces. `npx create-meith my-board` does the identical thing if
-you already have Node.js and would rather use it.
+Use your own directory name in place of `my-board`. If Node.js 22 or newer
+is installed, `npx create-meith my-board` creates the same board workspace.
 
-Either command writes a small workspace — `package.json`,
-`meith.config.ts`, `board.plugins.json` — that depends on the published
-`@meith/web` and `@meith/cli` packages instead of containing a copy of
-this repository, which is what turns "installing a plugin" from a fork of
-this project into `npm install` and a line in a config file. See
-[Consuming the board from a workspace](../../contributing/development.md#consuming-the-board-from-a-workspace)
-for the mechanism (`forum-web`/`meith` — the bins the compose file below
-actually runs) and [the plugin API](../../customization/plugins.md) for
-installing one once the board exists.
-
-The workspace carries a deploy kit with **three** routes onto a server,
-not just this one — [Quickstart § Create your
-board](./coolify.md#2-create-your-board) is where the other two are
-written up in full:
-
-| File(s) | Route |
-|---|---|
-| `Dockerfile`, `docker-compose.yaml` | Coolify, building the image itself — the Quickstart's default |
-| `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`, `.github/workflows/build.yml` | Coolify, pulling an image GitHub Actions built — the Quickstart's advanced path |
-| `docker-compose.byhand.yaml` | This page — no panel, a `.env` you write |
-
-A board takes one route at a time. **Delete `docker-compose.yaml` now**,
-at least: it is the name Docker Compose guesses when nothing tells it
-otherwise, and it has no fallback of its own for any secret — it expects
-Coolify to have generated one. Leaving it in place is a loaded footgun for
-step 4; deleting it removes the trap rather than asking you to remember it
-is there. `Dockerfile`, `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`
-and `.github/workflows/build.yml` are harmless left in place — nothing
-auto-discovers any of them the way Compose does its default filename — so
-leave those for [Building somewhere else](#building-somewhere-else)
-below, or delete them too if you already know you will not need them.
+This route uses `Dockerfile` and `docker-compose.byhand.yaml`. The default
+`docker-compose.yaml` is for Coolify; select the by-hand file with
+`COMPOSE_FILE` in the next step so plain `docker compose` commands use the
+right configuration.
 
 ## 3. Write the environment
 
@@ -198,7 +146,7 @@ The first build takes five to ten minutes. Services come up in order:
 | `postgres` | The database. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. `web` and `worker` wait for it, so the code never runs against a schema behind it. |
 | `web` | Next.js, on `127.0.0.1:3000`. |
-| `worker` | Calls `/api/system/tick` over HTTP once a minute. `@meith/worker` is not published, so a board outside the meith monorepo drives the tick this way rather than running the compiled process — the same shape [Quickstart § 3](./coolify.md#3-set-your-domain-and-deploy) uses under Coolify. It never touches the database itself; only the request it makes does. |
+| `worker` | Calls `/api/system/tick` over HTTP once a minute. `@meith/worker` is not published, so a board outside the meith monorepo drives the tick this way rather than running the compiled process — the same shape [Coolify § 3](./coolify.md#3-set-your-domain-and-deploy) uses under Coolify. It never touches the database itself; only the request it makes does. |
 
 Check all four:
 
@@ -306,6 +254,9 @@ whose scripts the browser refuses.
 Open `https://board.example/install` — your domain, over the proxy you
 just set up, not `127.0.0.1:3000`.
 
+Unlock the installer with the `AUTH_SECRET` stored in your `.env`. The
+browser unlock lasts 30 minutes and is also required for restore.
+
 The form is three numbered sections: **Your board** (its name), **Your
 account** (username, e-mail, password), and **Sending mail** (optional
 here, painful later). The board's address is not asked for — `APP_URL`
@@ -320,15 +271,14 @@ lists them under the box.
 
 Fill in mail here too. It is a list of providers rather than a page of
 server details — pick the one you have and the host, port and TLS mode
-come with it — and a **test message goes to your address before the first
-migration**, installing nothing if it fails.
+come with it — and a **test message goes to your address before any installation data is written**, installing nothing if it fails.
 
 Everything else about the installer — the preflight report, the five
 steps, the sealing that cannot be undone — is the same on both routes and
 written once:
 
-- **[Quickstart § Run the installer](./coolify.md#4-run-the-installer)**
-- **[Quickstart § Mail](./coolify.md#5-mail)** — the answer sheet for
+- **[Coolify § Run the installer](./coolify.md#4-run-the-installer)**
+- **[Coolify § Mail](./coolify.md#5-mail)** — the answer sheet for
   the provider list. `/admin/settings?group=mail` changes it afterwards
   with no redeploy; the `MAIL_*` variables in the `.env` beside this
   stack override both.
@@ -404,7 +354,7 @@ image: ghcr.io/<you>/my-board:latest
 once the board is settled and you want upgrades happening only when you
 choose — a floating tag turns the next incidental `docker compose pull`
 into an unplanned upgrade, the same reasoning
-[Quickstart § Set your domain and deploy](./coolify.md#3-set-your-domain-and-deploy)
+[Coolify § Set your domain and deploy](./coolify.md#3-set-your-domain-and-deploy)
 walks through for the equivalent Coolify setting.
 
 ## When it goes wrong
@@ -428,47 +378,15 @@ covers the failures that are about the board rather than the deployment.
 
 ## What you are taking on
 
-Worth being plain about, because this is the route with no panel behind
-it:
-
-- **Backups are yours.** Nobody else is taking one. The board schedules
-  its own — **Admin → Settings → Backups** — bundling the database *and*
-  the uploads into the `backups` volume and, once you name a bucket, off
-  the server; the bucket is still yours to rent. See
-  [Backups](../../guides/operations/backups.md), and the
-  [disaster-recovery runbook](../../guides/operations/disaster-recovery.md) for the day they
-  are all you have.
-- **Certificates are yours.** Caddy makes it a solved problem, but it is
-  a problem you now own.
-- **Security updates are yours.** `unattended-upgrades` for the host; a
-  `create-meith` update and a rebuild for the board.
-- **Uptime is yours.** `restart: unless-stopped` covers a crash and a
-  reboot; it does not cover a disk filling up. The compose file caps what
-  each container may log, so a crash-loop cannot fill the disk by itself —
-  but the database and the uploads still grow, and watching the disk is
-  still yours.
-
-In exchange: no platform limits, no per-seat pricing, no vendor reading
-your members' posts, and a board you can move to another machine with a
-`pg_dump` and a `tar`.
+Maintain the host, proxy certificates, board version, disk capacity, and
+backups. Configure [Backups](../../guides/operations/backups.md) to include
+both the database and uploads, copy bundles off-site, and test a restore.
+Container restart policies do not replace monitoring or backups.
 
 ## Why a server, and not functions
 
-You can run this board on functions, and [Running on
-Vercel](./vercel.md) is that route written out: the driver set, the build
-command that carries the migration, the cron job that stands in for the
-worker, and how to leave again.
+A server can run scheduled work continuously and keep uploads on persistent
+disk. [Vercel](./vercel.md) uses a scheduler and managed storage instead.
+Choose the route whose services you can maintain and verify.
 
-A server is still the recommended default, and the reason is that
-everything this page gives you for free becomes configuration and a
-second bill there. A process that outlives a request is what a worker
-*is*; without one, the tick is an HTTP endpoint somebody else's scheduler
-has to call, at a cadence their plan decides. A disk that survives a
-restart becomes an object store. A shared cache becomes a managed Redis.
-The migration stops being a one-shot job beside the board and becomes
-part of the build, which trades the deploy window for a different one
-rather than closing it. None of that is unworkable — it is documented
-because it works — but it is four vendors and a longer list of things to
-get right, in exchange for not owning a machine. One machine, one
-database, one `pg_dump` that is the whole board is the simpler answer,
-and it is the one most boards should take.
+Continue with [Set up your community](../first-steps.md).

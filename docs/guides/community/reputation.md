@@ -1,12 +1,8 @@
-# Reputation
+# Reputation settings
 
-Reputation is members rating each other. It gives a board a cheap,
-member-driven signal of who is worth reading — and, wired to
-[promotions](./groups.md#promotions), a way to move people into a group
-once the community has vouched for them.
-
-`/admin/settings?group=reputation` holds the four switches. This page is
-what each is worth, and what turning it on actually changes on a post.
+Configure ratings at `/admin/settings?group=reputation`. This guide explains
+who may rate, what a rating is worth, and when posts show **Thanks** or a
+rating form. Members can start with the [Member guide](./member-guide.md).
 
 ## What a rating is
 

@@ -65,7 +65,7 @@ export default async function DocumentPage({ params }: PageProps) {
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
             <a className="textlink" href={sourceUrl}>
-              {sourcePath}
+              Edit this page
             </a>
             {entry.generated ? <span className="chip">generated from the code</span> : null}
           </div>

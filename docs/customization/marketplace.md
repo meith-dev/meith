@@ -1,20 +1,12 @@
-# The marketplace
+# Publish to the marketplace
 
-A curated, reviewed feed of the plugins and themes worth pointing a board
-at — `marketplace/` in this repository, published at
+The marketplace publishes extension metadata at
 [meith.dev/marketplace/v1.json](https://www.meith.dev/marketplace/v1.json)
-and browsable, a page per listing, at
-[meith.dev/marketplace](https://www.meith.dev/marketplace).
+and listings at [meith.dev/marketplace](https://www.meith.dev/marketplace).
+Use this guide to prepare and submit a listing.
 
-It is metadata only. **Nothing is fetched through this feed.** Installing
-a plugin or theme is still a package install, a line in
-`meith.plugins.ts` or your theme selection, and a redeploy — the same
-procedure described in [the plugin API](./plugins.md#writing-a-plugin) and
-[the theme API](./themes.md), whose `pnpm add` is this repository's own
-checkout speaking; a board of your own is a single package and installs
-with `npm install` ([below](#moving-to-a-custom-board)). The feed exists so a board operator can
-find out what is available and whether it is worth their trust before they
-do any of that; it has no way to make the board do it for them.
+The feed does not install code. Board operators should follow
+[Installing plugins and themes](./installing.md).
 
 ## What is in a listing
 

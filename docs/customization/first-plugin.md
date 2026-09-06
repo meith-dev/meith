@@ -1,11 +1,8 @@
 # Write your first plugin
 
-This is the walkthrough: from an empty directory to a plugin running inside
-a board and submitted to the marketplace, with a working extension at every
-step. The policy — what a plugin may and may not do, and what the
-guarantees cover — lives in [Plugins](./plugins.md); every hook and payload
-is in the generated [Plugin hooks](../reference/plugin-hooks.md) reference.
-This page assumes both exist and shows the path through them.
+Scaffold a plugin, change a hook, test it, and run it in a board. You need
+Node.js 22 or newer and npm. The [plugin API](./plugins.md) explains the
+contracts; [Plugin hooks](../reference/plugin-hooks.md) lists the available hooks.
 
 ## Scaffold it
 

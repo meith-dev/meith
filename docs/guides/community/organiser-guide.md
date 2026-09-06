@@ -1,17 +1,11 @@
-# The organiser's guide
+# Community administration
 
-For the people who run a community's board day to day: the admin, the
-committee, the club secretary, the person who "looks after the website".
-Everything here happens in a browser, in the board's admin panel. Nothing
-here needs a terminal, and the one section that would is the
-[last one](#when-to-hand-it-to-somebody-technical) — it tells you what to
-hand to whoever set the board up.
+Use the browser admin panel to manage the community's forums, members,
+appearance, and announcements. For a newly installed board, start with
+[Set up your community](../../getting-started/first-steps.md).
 
-Two jobs have guides of their own: keeping threads civil is
-[The moderator's guide](./moderation-guide.md), and taking the money is
-[The memberships guide](./membership-guide.md). The full operator
-handbook is [Operations](../operations/operating.md) — this guide covers the
-day-to-day subset and links there for the detail.
+[Moderation](./moderation-guide.md), [paid memberships](./membership-guide.md),
+and [server operations](../operations/operating.md) have separate guides.
 
 ## The admin panel
 

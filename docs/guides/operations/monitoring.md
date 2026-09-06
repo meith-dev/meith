@@ -1,8 +1,9 @@
-# Monitoring & alerting
+# Monitoring
 
-This guide is for wiring a board into whatever your organisation already uses to watch its infrastructure: what to scrape, what to alert on, and how the pieces relate to each other. It assumes the [Compose deployment](../../getting-started/deployment/docker-compose.md) — `web`, `worker`, `postgres`, and `migrate` running to completion.
-
-None of this is required to run a board. Every feature here is off unless you turn it on, and a board with nothing configured still logs, still answers `/api/health`, and still drives its own container healthchecks.
+Monitor the web service, database, and scheduled work. This guide covers
+health endpoints, scheduler checks, optional metrics, and logs.
+The container examples assume a Compose deployment; the HTTP tick section
+also applies to deployments without a worker process.
 
 ## Liveness and readiness
 

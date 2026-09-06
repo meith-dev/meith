@@ -1,13 +1,8 @@
 # Backups
 
-A board accumulates years of a community's writing, and the backup is the
-only way back from a bad day. This page is the whole of how Meith takes
-one: from the control panel, on a schedule, off the server, before an
-upgrade, and by hand — and how a bundle becomes a board again.
-
-[Disaster recovery](./disaster-recovery.md) is the runbook for the day the
-server is gone; this page is what makes that runbook have something to
-work with.
+Back up both the database and uploaded files. This guide covers manual and
+scheduled backups, off-site storage, and restore testing.
+Use [Disaster recovery](./disaster-recovery.md) when the server must be replaced.
 
 ## What a bundle is
 
@@ -301,6 +296,9 @@ both routes, and it is what makes a restore safe to attempt: a bad bundle
 cannot become two lost boards.
 
 ### From the installer
+
+Unlock `/install` with the deployment’s `AUTH_SECRET` before the restore
+form appears. The unlock expires after 30 minutes.
 
 A fresh deployment — a new server, a fresh Coolify resource, the compose
 stack brought up against an empty database — serves `/install`, and that

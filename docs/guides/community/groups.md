@@ -1,13 +1,9 @@
 # Groups and promotions
 
-A group is a set of permissions and the members who hold it. Everything
-a member may do that is not decided per forum is decided by their groups,
-and so is the badge beside their name.
-
-`/admin/groups` lists them. This page is the reference for what a group
-carries; the per-forum half of the model — the matrix, and what overrides
-a group's defaults in one forum — is
-[Forums and permissions](./forums.md#permissions).
+Manage groups at `/admin/groups`. Groups grant permissions and allowances
+and control the badges shown beside members' names. This guide covers
+group settings and automatic promotions; see
+[Forums and permissions](./forums.md#permissions) for per-forum overrides.
 
 ## What a group holds
 

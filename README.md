@@ -1,137 +1,56 @@
 # Meith
 
-**Built for communities. Owned by them.** Meith is open-source, self-hosted forum software for conversations worth keeping: built on modern TypeScript, configured from a repository you own, and fast enough to run with JavaScript disabled. Threaded discussions, search, permissions, moderation, paid memberships, themes, plugins and an operator CLI — from a single config repo to a server of your own, with no per-member pricing.
+Open-source forum software for communities that want to run their own board.
+Meith includes discussions, search, moderation, themes, and plugins, with most
+reading and posting available without JavaScript.
 
-- [Website](https://meith.dev)
-- [Live demo](https://demo.meith.dev)
-- [Documentation](./docs/README.md)
-- [Issue tracker](https://github.com/meith-dev/meith/issues)
+[Website](https://www.meith.dev) · [Live demo](https://demo.meith.dev) ·
+[Documentation](./docs/README.md) · [Issues](https://github.com/meith-dev/meith/issues)
 
-## Try it in a minute
+## Try it locally
+
+You need **Node.js 22 or newer**.
 
 ```sh
 npx create-meith my-board
-cd my-board && npm install && npm run dev
+cd my-board
+npm install
+npm run dev
 ```
 
-That is a board of your own on <http://localhost:3000>, serving a realistic fixture dataset from memory — no database, no Docker. [The quickstart](./docs/getting-started/quickstart.md) is this route written out; [the introduction](./docs/getting-started/introduction.md) is the philosophy behind it.
+Open <http://localhost:3000>. This preview uses sample data and needs no
+database or Docker. Saving posts requires PostgreSQL; the
+[quickstart](./docs/getting-started/quickstart.md) explains the next step.
 
-## Run a board
+## Run a community
 
-[Deployment](./docs/getting-started/deployment/index.md) has three routes onto your own infrastructure: [guided with Coolify](./docs/getting-started/deployment/coolify.md) for most boards, [Docker Compose by hand](./docs/getting-started/deployment/docker-compose.md) if you already operate a proxy, or [Vercel](./docs/getting-started/deployment/vercel.md) if you would rather not have a server.
+[Choose a deployment](./docs/getting-started/deployment/index.md): Coolify,
+Docker Compose, or Vercel. After installation,
+[set up your community](./docs/getting-started/first-steps.md).
 
-A production board runs four services:
+Already running MyBB or phpBB? Start with the
+[migration guide](./docs/guides/migrating.md).
 
-- PostgreSQL stores board data.
-- A one-shot migration service updates the schema before startup.
-- The web service handles browser and API requests.
-- The worker runs scheduled and queued work once a minute.
+## Contribute
 
-After deployment, open `/install` to create the board and its first administrator.
-
-### Work on Meith
-
-You need Node.js 22 or newer and pnpm 10.
+To work on Meith itself, you need **Node.js 22 or newer** and **pnpm 10**.
 
 ```sh
+git clone https://github.com/meith-dev/meith.git
+cd meith
 pnpm install
 pnpm dev
 ```
 
-`pnpm dev` starts the community app at <http://localhost:3000> in fixture mode, so you can browse the interface without PostgreSQL. See [Development](./docs/contributing/development.md) before changing data or opening a pull request.
+The forum opens at <http://localhost:3000> with sample data. Read
+[Development](./docs/contributing/development.md) for the workspace layout,
+database setup, tests, and contribution workflow. Follow [AGENTS.md](./AGENTS.md)
+and run `pnpm verify` and `pnpm comments:check` before submitting a pull request.
 
-The main workspace applications are:
-
-| Path | Package | Purpose |
-|---|---|---|
-| `apps/community` | `@meith/web` | The forum application |
-| `apps/worker` | `@meith/worker` | Background and scheduled work |
-| `apps/cli` | `@meith/cli` | Operator commands |
-| `apps/web` | `@meith/site` | meith.dev and the documentation site |
-
-Business capabilities live in `packages/`. Themes, plugins, examples, deployment files, and documentation have their own top-level directories. [Architecture](./docs/reference/architecture.md) explains the boundaries and request flow.
-
-## Documentation
-
-Start with the task you need to complete:
-
-| Task | Guide |
-|---|---|
-| See it running locally | [Quickstart](./docs/getting-started/quickstart.md) |
-| Install a board | [Deployment](./docs/getting-started/deployment/index.md) |
-| Configure a board in code | [Configuration](./docs/guides/configuration.md) |
-| Move from MyBB or phpBB | [Migrating](./docs/guides/migrating.md) |
-| Administer forums and members | [Organiser guide](./docs/guides/community/organiser-guide.md) |
-| Moderate content | [Moderator guide](./docs/guides/community/moderation-guide.md) |
-| Manage paid memberships | [Memberships guide](./docs/guides/community/membership-guide.md) |
-| Operate the server | [Operations](./docs/guides/operations/operating.md) |
-| Upgrade or recover a board | [Upgrading](./docs/guides/operations/upgrading.md) · [Disaster recovery](./docs/guides/operations/disaster-recovery.md) |
-| Build a theme or plugin | [Themes](./docs/customization/themes.md) · [Plugins](./docs/customization/plugins.md) |
-| Contribute to Meith | [Development](./docs/contributing/development.md) |
-
-The complete index is in [`docs/README.md`](./docs/README.md). The website renders these Markdown files directly; there is no separate copy.
-
-The table below is generated from `apps/web/content/docs.manifest.json` by `pnpm site:docs`.
-
-<!-- docs:table start — generated by pnpm site:docs; edit the manifest instead -->
-
-| Section | Document | What it answers |
-|---|---|---|
-| Getting started | [`getting-started/introduction.md`](./docs/getting-started/introduction.md) | The philosophy: server-first pages that work with JavaScript off, a board pinned in a small repository, and a server of your own. Start here to see whether Meith thinks like you do. |
-| Getting started | [`getting-started/quickstart.md`](./docs/getting-started/quickstart.md) | npx create-meith, and a minute later a board is running on your machine in fixture mode — no database, no Docker, no account with anybody. |
-| Getting started | [`getting-started/deployment/index.md`](./docs/getting-started/deployment/index.md) | The four-service production shape every route deploys, and the chooser: Coolify guided, Compose by hand, or Vercel without a server. |
-| Getting started | [`getting-started/deployment/coolify.md`](./docs/getting-started/deployment/coolify.md) | From a rented server to a board on your own domain, with Coolify, in about twenty minutes. Written for whichever volunteer drew the short straw. |
-| Getting started | [`getting-started/deployment/docker-compose.md`](./docs/getting-started/deployment/docker-compose.md) | The advanced route: Docker Compose, a `.env` you write, and a reverse proxy you run. Most boards should deploy with Coolify instead. |
-| Getting started | [`getting-started/deployment/vercel.md`](./docs/getting-started/deployment/vercel.md) | The board on functions: the driver set, the build command that carries the migration, the cron job that replaces the worker, what previews and rollbacks do to your schema — and how to leave again. |
-| Configuration & guides | [`guides/configuration.md`](./docs/guides/configuration.md) | What the board repository pins — the engine version, the themes, the plugins — and the deliberate line between it and everything organisers run from the browser. |
-| Configuration & guides | [`guides/migrating.md`](./docs/guides/migrating.md) | The full procedure: what to check first, the import command for each source, what does and does not come across, and what to do after it finishes. |
-| Configuration & guides | [`guides/community/organiser-guide.md`](./docs/guides/community/organiser-guide.md) | Running the board from a browser: forums and the organisers' room, the community's name and colours, announcements, members — and handing it all over. |
-| Configuration & guides | [`guides/community/moderation-guide.md`](./docs/guides/community/moderation-guide.md) | For the volunteers who keep it civil: the approval queue, reports, tidying threads, warnings and bans — and where each screen lives. |
-| Configuration & guides | [`guides/community/membership-guide.md`](./docs/guides/community/membership-guide.md) | Taking memberships through the board: plans, discount codes, gifting, the memberships desk and the ledger — Dues end to end, without a terminal. |
-| Configuration & guides | [`guides/community/formatting.md`](./docs/guides/community/formatting.md) | The composer's toolbar and the syntax behind it: highlighted code, spoilers, mention suggestions, link previews, and placing an attachment inline. |
-| Configuration & guides | [`guides/community/forums.md`](./docs/guides/community/forums.md) | The board's shape and who may do what inside it: the forum tree, a forum's options, how a permission resolves, the matrix, and what a moderator appointment grants. |
-| Configuration & guides | [`guides/community/groups.md`](./docs/guides/community/groups.md) | What a group carries: board-wide permissions, the daily allowances, colours and badges, display groups, the groups a plugin may grant, and the rules that promote members automatically. |
-| Configuration & guides | [`guides/community/antispam.md`](./docs/guides/community/antispam.md) | The registration challenge, the rate limits and login counters, the render-time word filter, and the ban filters that turn somebody away before an account exists — what each is worth and what it costs a real visitor. |
-| Configuration & guides | [`guides/community/reputation.md`](./docs/guides/community/reputation.md) | Members rating each other: what a rating is worth, the four settings, the two that decide between a one-press thanks and a form, and why the totals cannot drift. |
-| Configuration & guides | [`guides/community/search.md`](./docs/guides/community/search.md) | The four controls over the most expensive thing a visitor can ask for: switching search off without losing the index, the shortest word a query may rest on, and the two different limits on how often. |
-| Configuration & guides | [`guides/operations/operating.md`](./docs/guides/operations/operating.md) | Routine checks, configuration, maintenance commands, backups, recovery, web push, the cookies and security headers the board serves, and troubleshooting for a running board. |
-| Configuration & guides | [`guides/operations/backups.md`](./docs/guides/operations/backups.md) | Taking a backup from the control panel, on a schedule, off the server and before an upgrade; what a bundle carries; and restoring one from the installer or the command line. |
-| Configuration & guides | [`guides/operations/monitoring.md`](./docs/guides/operations/monitoring.md) | Liveness versus readiness, the optional Prometheus metrics endpoint and what to alert on, distributed tracing, and shipping logs. |
-| Configuration & guides | [`guides/operations/webhooks.md`](./docs/guides/operations/webhooks.md) | Deliver board events to an endpoint you choose: creating a subscription, the topics and payload formats, verifying a delivery's signature, and how retries and dead-lettering work. |
-| Configuration & guides | [`guides/operations/upgrading.md`](./docs/guides/operations/upgrading.md) | Moving a board between versions: the upgrade command, how far you can jump, and the behaviour changes each release brings. |
-| Configuration & guides | [`guides/operations/disaster-recovery.md`](./docs/guides/operations/disaster-recovery.md) | The runbook for the day the server is gone: what recovery consumes, the order of operations from provisioning to DNS, and the rehearsal that turns it from a hope into a plan. |
-| Configuration & guides | [`guides/operations/single-sign-on.md`](./docs/guides/operations/single-sign-on.md) | Two-factor authentication, federated sign-in and passkeys: what each means for your members, how to configure them, and the record of what has opened an account. |
-| Configuration & guides | [`guides/operations/internationalisation.md`](./docs/guides/operations/internationalisation.md) | How a page picks its language, how to add one, and how a theme or plugin ships its own words. |
-| Configuration & guides | [`guides/operations/scaling.md`](./docs/guides/operations/scaling.md) | Running more than one web container: the Redis cache that keeps them coherent, what already scales, and the step-by-step migration from a single-instance board. |
-| Configuration & guides | [`guides/operations/demo-mode.md`](./docs/guides/operations/demo-mode.md) | The self-resetting public demo board that runs at demo.meith.dev — what it changes, and how to run one yourself. |
-| Customization | [`customization/installing.md`](./docs/customization/installing.md) | The board admin's guide to adding a plugin or theme: find one, install the package, register it, redeploy, and manage it from the panel. |
-| Customization | [`customization/first-plugin.md`](./docs/customization/first-plugin.md) | The walkthrough from an empty directory to a plugin running inside a board and listed on the marketplace: scaffold, change a hook, test it, install it, publish it. |
-| Customization | [`customization/themes.md`](./docs/customization/themes.md) | How to write a theme, what a theme may do, and what the API freeze covers. |
-| Customization | [`customization/plugins.md`](./docs/customization/plugins.md) | What a plugin is, what it may and may not do, and how a failure is contained. |
-| Customization | [`customization/marketplace.md`](./docs/customization/marketplace.md) | The curated, reviewed feed of plugins and themes: the listing schema, the review bar, the trust it does and does not extend, and how to submit or remove one. |
-| Reference | [`reference/api.md`](./docs/reference/api.md) | Every endpoint, scope and rate limit, generated from the route registry. *(generated)* |
-| Reference | [`reference/theme-slots.md`](./docs/reference/theme-slots.md) | Every slot and every view model, generated from the slot registry. *(generated)* |
-| Reference | [`reference/plugin-hooks.md`](./docs/reference/plugin-hooks.md) | Every hook and payload, generated from the hook registry. *(generated)* |
-| Reference | [`reference/performance.md`](./docs/reference/performance.md) | The p95 budgets for the hot pages, and what the last recorded run measured against a full-scale board. *(generated)* |
-| Reference | [`reference/architecture.md`](./docs/reference/architecture.md) | How Meith fits together: the processes, the layers, the path a request takes, and the extension seams. |
-| Reference | [`reference/mybb-parity.md`](./docs/reference/mybb-parity.md) | Every place Meith deliberately behaves differently from MyBB, with the reasoning and the cost. Read it before promising anyone a like-for-like move. |
-| Reference | [`reference/phpbb-parity.md`](./docs/reference/phpbb-parity.md) | Where a Meith board imported from phpBB behaves differently from the one it came from — the ACL, warnings, bans, announcements and polls, and a couple of places phpBB's own model already matches Meith's. |
-| Working on Meith | [`contributing/development.md`](./docs/contributing/development.md) | Running the board on your own machine, the workspace layout, the commands, and what to do before opening a pull request. |
-
-<!-- docs:table end -->
-
-## Checks
-
-Run the full repository gate before opening a pull request:
-
-```sh
-pnpm verify
-```
-
-It checks workspace invariants, generated references, formatting, dependency boundaries, types, and tests. Do not edit generated references directly; the documentation index identifies them and names their generators.
+To build an extension for your own board, start with
+[Write your first plugin](./docs/customization/first-plugin.md) or
+[Theme development](./docs/customization/themes.md).
 
 ## Licence
 
-Meith is distributed under the [MIT licence](./LICENSE.md). Use it, modify it, and ship it — including in closed-source and commercial work — provided the copyright notice and permission notice travel with it.
-
-Copyright © 2026 Jordan Harrison and the Meith contributors.
+[MIT](./LICENSE.md). Copyright © 2026 Jordan Harrison and the Meith contributors.

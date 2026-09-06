@@ -1,9 +1,7 @@
 # Spam controls and filters
 
-Everything a board has for keeping automated traffic out, bounding what
-one visitor can do in an hour, rewriting words a reader should not meet,
-and turning somebody away before an account exists. The rate limits and
-challenges live in three places:
+Use these controls to limit automated registration, posting, and other
+requests. Configuration is split across:
 
 - **`/admin/antispam`** — the registration questions themselves.
 - **`/admin/settings?group=antispam`** — every threshold on this page.
@@ -13,17 +11,13 @@ challenges live in three places:
 [The word filter](#the-word-filter) and [ban filters](#ban-filters), at
 the end of this page, have screens of their own under `/admin`.
 
-Most of it ships switched off — a fresh board has no spam on it, and a
-feature that arrives switched on introduces itself by breaking your
-registration form. What ships on is what no human ever notices: the
-hidden-field trap, a three-second minimum fill time, and the four
-pre-authentication limits below.
+The defaults enable the hidden-field trap, a three-second minimum fill time,
+and pre-authentication limits. Other controls start disabled; the table
+below lists their purpose and defaults.
 
-> [!NOTE]
-> **The counters live in the database**, so every instance of your board
-> shares one allowance — and a board running without Postgres (fixture
-> mode, `pnpm dev`, the demo) has no counters and applies none of the
-> rate limits on this page.
+Rate-limit counters are stored in PostgreSQL and shared across web instances.
+Fixture mode has no database counters. [Demo mode](../operations/demo-mode.md)
+uses PostgreSQL and has counters; it is separate from fixture mode.
 
 ## What each control is worth
 

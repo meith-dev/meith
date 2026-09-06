@@ -1,10 +1,8 @@
 # Webhooks
 
-Deliver board events to an endpoint of your choosing. A new thread, a new
-post, an edit, a deletion, a registration or a report becomes an HTTP `POST`
-to a URL you control — signed, queued, and retried with backoff. Nothing is
-sent from the request that caused the event, so a slow or unreachable
-endpoint never delays a member.
+Send board events to your own HTTP endpoint. Deliveries are signed, queued,
+and retried in the background. Use this guide to create a subscription and
+verify each delivery.
 
 ## Creating a subscription
 

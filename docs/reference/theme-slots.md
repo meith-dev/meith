@@ -106,8 +106,12 @@ Props: `UserPanelModel`
 | `unreadMessages` | `CountModel` |  |
 | `notificationsHref` | `string` | optional — Where the two counts above lead, so a theme can make them clickable. A count that cannot be acted on is a notification the reader has to go hunting for. Both are absent for a guest, who has neither. Themes read these rather than searching `links` for the one labelled "Notifications", which two of them were doing and which breaks the moment that label is reworded or translated. |
 | `messagesHref` | `string` | optional |
-| `regions` | `{ /** * The notifications menu the app supplies — a single control that opens the * reader's notifications, private messages and, for staff, the moderation * queue in tabs, marks them seen and links each one through (0.16). * * It is app-rendered rather than modelled field by field because it is an * interactive island carrying Server Actions — the same reason logging out * arrives as `children` and the quick-reply island as a region. A theme * places it where the two unread counts used to sit; the island renders its * own no-JavaScript fallback, so a theme that renders this needs no separate * badge markup. Absent for a guest and on a board with neither service, and * a theme that ignores it falls back to `unreadNotifications` and * `unreadMessages`, which is what makes the field additive. */ readonly notifications?: ReactNode }` | optional |
+| `regions` | `{ readonly notifications?: ReactNode }` | optional |
 | `children` | `ReactNode` | optional — Account controls the app supplies — today, the log-out form. Log out cannot be a `LinkModel`: it is a POST to a Server Action, because a GET that ends a session is fired by every prefetcher and link scanner that touches the page. A Server Action reference is also not plain data and could never cross this contract, so the app renders the form and the theme decides where in the panel it sits. |
+
+**`regions.notifications`**
+
+The notifications menu the app supplies — a single control that opens the reader's notifications, private messages and, for staff, the moderation queue in tabs, marks them seen and links each one through (0.16). It is app-rendered rather than modelled field by field because it is an interactive island carrying Server Actions — the same reason logging out arrives as `children` and the quick-reply island as a region. A theme places it where the two unread counts used to sit; the island renders its own no-JavaScript fallback, so a theme that renders this needs no separate badge markup. Absent for a guest and on a board with neither service, and a theme that ignores it falls back to `unreadNotifications` and `unreadMessages`, which is what makes the field additive.
 
 ### Navigation
 
@@ -178,7 +182,23 @@ Props: `BoardIndexModel`
 | Field | Type | Notes |
 |---|---|---|
 | `markAllReadAction` | `string \| null` | The "mark all read" target — a form target, not a client handler. |
-| `regions` | `{ /** One `CategoryBlock` per top-level category, already rendered. */ readonly categories: ReactNode readonly stats: ReactNode readonly online: ReactNode /** * The self-refreshing pair: newest threads and newest posts, already * rendered, or absent on a board that cannot answer either question. * * **One region rather than two, and that is the contract rather than a * convenience.** The pair is refreshed by a single round trip while the page * is open, so it arrives as one node; two regions would be two polls of the * same board for the same reason, or one poll that could only update half of * what a theme had placed. A theme places it — the default puts it at the * top of a sidebar — but does not take it apart. * * Optional, so a theme written against an earlier minor compiles and simply * does not show it. Same rule as every other region field here. */ readonly latest?: ReactNode /** * The `index.footer` region: whatever plugins contributed, already * rendered and ordered by the host. * * Optional, which is what makes this a **minor** addition under the * versioning policy — a theme written against 0.1 keeps compiling and simply * does not render plugin output. Every region field below follows the same rule. */ readonly plugins?: ReactNode /** * Live announcements, already rendered — one `Announcement` per row, * or absent when there are none. * * Optional for the same reason the plugin region is, and under the same * policy: a theme written against an earlier minor compiles and simply does * not show them. */ readonly announcements?: ReactNode }` |  |
+| `regions` | `{ readonly categories: ReactNode; readonly stats: ReactNode; readonly online: ReactNode; readonly latest?: ReactNode; readonly plugins?: ReactNode; readonly announcements?: ReactNode }` |  |
+
+**`regions.categories`**
+
+One `CategoryBlock` per top-level category, already rendered.
+
+**`regions.latest`**
+
+The self-refreshing pair: newest threads and newest posts, already rendered, or absent on a board that cannot answer either question. **One region rather than two, and that is the contract rather than a convenience.** The pair is refreshed by a single round trip while the page is open, so it arrives as one node; two regions would be two polls of the same board for the same reason, or one poll that could only update half of what a theme had placed. A theme places it — the default puts it at the top of a sidebar — but does not take it apart. Optional, so a theme written against an earlier minor compiles and simply does not show it. Same rule as every other region field here.
+
+**`regions.plugins`**
+
+The `index.footer` region: whatever plugins contributed, already rendered and ordered by the host. Optional, which is what makes this a **minor** addition under the versioning policy — a theme written against 0.1 keeps compiling and simply does not render plugin output. Every region field below follows the same rule.
+
+**`regions.announcements`**
+
+Live announcements, already rendered — one `Announcement` per row, or absent when there are none. Optional for the same reason the plugin region is, and under the same policy: a theme written against an earlier minor compiles and simply does not show them.
 
 ### CategoryBlock
 
@@ -278,7 +298,23 @@ Props: `ForumDisplayModel`
 | `forum` | `ForumRowModel` |  |
 | `newThreadHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` |  |
-| `regions` | `{ /** * Controls scoped to this forum — the thread ordering, and the follow * form for a member who may subscribe. Rendered by the route because both * carry a Server Action or a URL contract the theme does not own. * * **A theme renders this under its heading, not above it.** That placement * is the reason the field exists: these were app-rendered strips stacked * *before* `ForumDisplay`, so the first thing on a forum page was a filter * with nothing yet to say what it filtered. A control belongs after the * thing it acts on has been named. * * Optional, which is what makes it a **minor** addition under the * versioning policy — a theme written against 0.3 keeps compiling. * * Only what acts on the listing *below* it belongs here. Following the * forum is in `afterContent`, for the reason given there. */ readonly tools?: ReactNode readonly subforums: ReactNode /** One `ThreadRow` per thread. Empty-state markup is the theme's. */ readonly threads: ReactNode readonly pagination: ReactNode /** * This forum's announcements *and* the board's — an announcement being * board-wide would mean little if it appeared only on the index, which is * the page fewest people arrive on. */ readonly announcements?: ReactNode /** * Controls for somebody who has finished with the page — today, the form * that follows this forum. * * A theme renders it after the listing. "Do you want to hear about this * forum?" is a question you can only answer once you have seen what is in * it, and asked above the threads it is a panel between a reader and the * thing they came for. The ordering tabs stay at the top in `tools`, * because those act on the list underneath them. */ readonly afterContent?: ReactNode }` |  |
+| `regions` | `{ readonly tools?: ReactNode; readonly subforums: ReactNode; readonly threads: ReactNode; readonly pagination: ReactNode; readonly announcements?: ReactNode; readonly afterContent?: ReactNode }` |  |
+
+**`regions.tools`**
+
+Controls scoped to this forum — the thread ordering, and the follow form for a member who may subscribe. Rendered by the route because both carry a Server Action or a URL contract the theme does not own. **A theme renders this under its heading, not above it.** That placement is the reason the field exists: these were app-rendered strips stacked *before* `ForumDisplay`, so the first thing on a forum page was a filter with nothing yet to say what it filtered. A control belongs after the thing it acts on has been named. Optional, which is what makes it a **minor** addition under the versioning policy — a theme written against 0.3 keeps compiling. Only what acts on the listing *below* it belongs here. Following the forum is in `afterContent`, for the reason given there.
+
+**`regions.threads`**
+
+One `ThreadRow` per thread. Empty-state markup is the theme's.
+
+**`regions.announcements`**
+
+This forum's announcements *and* the board's — an announcement being board-wide would mean little if it appeared only on the index, which is the page fewest people arrive on.
+
+**`regions.afterContent`**
+
+Controls for somebody who has finished with the page — today, the form that follows this forum. A theme renders it after the listing. "Do you want to hear about this forum?" is a question you can only answer once you have seen what is in it, and asked above the threads it is a panel between a reader and the thing they came for. The ordering tabs stay at the top in `tools`, because those act on the list underneath them.
 
 ### ThreadRow
 
@@ -292,7 +328,11 @@ Props: `ThreadRowSlotModel`
 |---|---|---|
 | `thread` | `ThreadRowModel` |  |
 | `select` | `SelectionModel \| null` | The inline-moderation checkbox, or `null`. |
-| `regions` | `{ /** * The `threadrow.badges` region, beside the thread's title (0.22). * * Filled from a single per-page call rather than one per row — a forum page * lists twenty threads on a tight budget, so the region runs once with the * whole page and hands each row its badges. Optional, which is what makes it * additive: a theme written against 0.21 compiles and simply shows no plugin * badges. Absent on a row no plugin marked; a theme places it wherever a * thread's own flags (pinned, locked) sit. */ readonly pluginBadges?: ReactNode }` | optional |
+| `regions` | `{ readonly pluginBadges?: ReactNode }` | optional |
+
+**`regions.pluginBadges`**
+
+The `threadrow.badges` region, beside the thread's title (0.22). Filled from a single per-page call rather than one per row — a forum page lists twenty threads on a tight budget, so the region runs once with the whole page and hands each row its badges. Optional, which is what makes it additive: a theme written against 0.21 compiles and simply shows no plugin badges. Absent on a row no plugin marked; a theme places it wherever a thread's own flags (pinned, locked) sit.
 
 ### SubforumList
 
@@ -319,7 +359,7 @@ Props: `PaginationModel`
 | `page` | `number` |  |
 | `pageCount` | `number` |  |
 | `pageCountIsExact` | `boolean` | Whether `pageCount` is the real number of pages or only what has been proved so far. A keyset-paged list knows the page it is on and whether another one follows; it does not know how many there are, and counting rows to find out is the query the cursor exists to avoid. So `pageCount` is a floor when this is `false`, and a theme that prints "3 of 4" from it is telling the reader something nobody checked. Print the page on its own instead, and keep "of N" for the lists that do know. |
-| `pages` | `readonly { readonly page: number readonly href: string readonly isCurrent: boolean }[]` |  |
+| `pages` | `readonly { readonly page: number; readonly href: string; readonly isCurrent: boolean }[]` |  |
 | `previousHref` | `string \| null` |  |
 | `nextHref` | `string \| null` |  |
 
@@ -338,7 +378,23 @@ Props: `ThreadViewModel`
 | `replyHref` | `string \| null` |  |
 | `markReadAction` | `string \| null` | A native POST target for the last visible post on this page. |
 | `watch` | `ThreadWatchModel \| null` | optional — The header's watch toggle, or `null` for a guest — who cannot subscribe to anything — and on a board running without the subscription service. Optional under the versioning policy: a theme written against 0.23 compiles and renders no toggle, the same as it already does for the cadence picker in `regions.afterContent`. |
-| `regions` | `{ /** * Controls scoped to this thread — following it, rating it, its poll, and * the moderator's thread tools. Rendered by the route, for the reason * every app-rendered region exists: each one carries a Server Action. * * **A theme renders this under its heading, not above it**, and the same * history is behind this field as behind `ForumDisplayModel`'s. Four of * these strips used to stack before `ThreadView`, so a thread opened on a * phone began with a follow control, a star rating and a poll, and the * title of the thing being followed, rated and voted on was a screen * further down. * * Only what belongs *before* the posts: the moderator's bar, and the * poll, which is content rather than a control. Rating and following are * in `afterContent`. * * Optional under the versioning policy: a theme written against 0.3 compiles * and simply does not offer them. */ readonly tools?: ReactNode /** One `PostBit` per post on this page. */ readonly posts: ReactNode readonly pagination: ReactNode /** * Controls for a reader who has reached the end — rating the thread, and * following it. * * A theme renders it after the posts and **before** the quick reply, which * is the order the two are wanted in: somebody who has just read fifty * posts is deciding what they think and whether to keep hearing about it, * and then whether to answer. Both used to be above the first post, where * they were asking for a verdict on something the reader had not read yet. */ readonly afterContent?: ReactNode /** * The quick-reply island, or `null` when the viewer may not reply — in which * case nothing is rendered and no island bytes are shipped. */ readonly quickReply: ReactNode }` |  |
+| `regions` | `{ readonly tools?: ReactNode; readonly posts: ReactNode; readonly pagination: ReactNode; readonly afterContent?: ReactNode; readonly quickReply: ReactNode }` |  |
+
+**`regions.tools`**
+
+Controls scoped to this thread — following it, rating it, its poll, and the moderator's thread tools. Rendered by the route, for the reason every app-rendered region exists: each one carries a Server Action. **A theme renders this under its heading, not above it**, and the same history is behind this field as behind `ForumDisplayModel`'s. Four of these strips used to stack before `ThreadView`, so a thread opened on a phone began with a follow control, a star rating and a poll, and the title of the thing being followed, rated and voted on was a screen further down. Only what belongs *before* the posts: the moderator's bar, and the poll, which is content rather than a control. Rating and following are in `afterContent`. Optional under the versioning policy: a theme written against 0.3 compiles and simply does not offer them.
+
+**`regions.posts`**
+
+One `PostBit` per post on this page.
+
+**`regions.afterContent`**
+
+Controls for a reader who has reached the end — rating the thread, and following it. A theme renders it after the posts and **before** the quick reply, which is the order the two are wanted in: somebody who has just read fifty posts is deciding what they think and whether to keep hearing about it, and then whether to answer. Both used to be above the first post, where they were asking for a verdict on something the reader had not read yet.
+
+**`regions.quickReply`**
+
+The quick-reply island, or `null` when the viewer may not reply — in which case nothing is rendered and no island bytes are shipped.
 
 ### PostBit
 
@@ -352,7 +408,19 @@ Props: `PostBitSlotModel`
 |---|---|---|
 | `post` | `PostBitModel` |  |
 | `select` | `SelectionModel \| null` | The inline-moderation checkbox, or `null`. A theme that ignores it loses only bulk actions. |
-| `regions` | `{ /** The `PostActions` slot, rendered by the page. */ readonly actions: ReactNode /** The `postbit.badges` region, beside the author's name. */ readonly pluginBadges?: ReactNode /** The `postbit.footer` region, below the body. */ readonly pluginFooter?: ReactNode }` |  |
+| `regions` | `{ readonly actions: ReactNode; readonly pluginBadges?: ReactNode; readonly pluginFooter?: ReactNode }` |  |
+
+**`regions.actions`**
+
+The `PostActions` slot, rendered by the page.
+
+**`regions.pluginBadges`**
+
+The `postbit.badges` region, beside the author's name.
+
+**`regions.pluginFooter`**
+
+The `postbit.footer` region, below the body.
 
 ### PostActions
 
@@ -399,7 +467,15 @@ Props: `PostFormModel`
 | `cancelHref` | `string` | Where a cancel link returns to — the forum, or the thread being replied to. |
 | `cancelLabel` | `string` |  |
 | `errorMessage` | `string \| null` |  |
-| `regions` | `{ /** The app-rendered `<form>` carrying the Server Action and its controls. */ readonly form: ReactNode /** * Kept for a theme that wants a toolbar affordance of its own at the top of * the composer. The built-in composer no longer fills it: a formatting * toolbar belongs against the box it formats, not at the head of a card a * subject field and a prefix picker can sit below, so the `EditorToolbar` * island renders inside `form`, joined to the message textarea, and this is * `null` there. A `null` must leave a working plain-textarea form: the * island enhances, it never enables. */ readonly toolbar: ReactNode }` |  |
+| `regions` | `{ readonly form: ReactNode; readonly toolbar: ReactNode }` |  |
+
+**`regions.form`**
+
+The app-rendered `<form>` carrying the Server Action and its controls.
+
+**`regions.toolbar`**
+
+Kept for a theme that wants a toolbar affordance of its own at the top of the composer. The built-in composer no longer fills it: a formatting toolbar belongs against the box it formats, not at the head of a card a subject field and a prefix picker can sit below, so the `EditorToolbar` island renders inside `form`, joined to the message textarea, and this is `null` there. A `null` must leave a working plain-textarea form: the island enhances, it never enables.
 
 ### EditorToolbar
 
@@ -437,7 +513,11 @@ Props: `MemberProfileModel`
 | `signatureHtml` | `string \| null` |  |
 | `fields` | `readonly { readonly label: string; readonly value: string }[]` | Custom profile fields, already filtered by visibility. |
 | `actions` | `readonly LinkModel[]` |  |
-| `regions` | `{ /** The `profile.panel` region. */ readonly plugins?: ReactNode }` | optional |
+| `regions` | `{ readonly plugins?: ReactNode }` | optional |
+
+**`regions.plugins`**
+
+The `profile.panel` region.
 
 ### SearchForm
 
@@ -450,7 +530,7 @@ Props: `SearchFormModel`
 | Field | Type | Notes |
 |---|---|---|
 | `action` | `string` | Where the form submits. A GET form: a search is a URL. |
-| `fields` | `{ readonly query: string readonly forum: string readonly sort: string }` | The names to give the controls, owned by the app. |
+| `fields` | `{ readonly query: string; readonly forum: string; readonly sort: string }` | The names to give the controls, owned by the app. |
 | `query` | `string` |  |
 | `maxQueryLength` | `number` | The server's limit, so the browser can refuse over-long input first. |
 | `forums` | `readonly OptionModel[]` | Forums this viewer may search. The first option is "everywhere". |
@@ -475,9 +555,13 @@ Props: `SearchResultsModel`
 | `nextHref` | `string \| null` | The next page of this same search, or `null` at the end. Superseded by `regions.pagination`, which walks backwards as well and says which page this is. Both are populated: a theme written before the region existed keeps working, and one that renders the region should not also render this link or the page carries two pagers. |
 | `nextLabel` | `string` |  |
 | `newSearchHref` | `string` | Back to an empty form. Always offered: a search that found nothing needs it most. |
-| `within` | `{ readonly action: string readonly field: string readonly value: string readonly label: string readonly hint: string readonly submitLabel: string readonly hidden?: readonly HiddenFieldModel[] }` | The narrow-this-search form. A GET form, like `SearchForm` and for the same reason — the narrowed search is a URL of its own, not a state this page holds. `hidden` carries the advanced options this search was run with, one input per entry, so that narrowing it keeps them; a theme that drops them narrows within the words alone. |
+| `within` | `{ readonly action: string; readonly field: string; readonly value: string; readonly label: string; readonly hint: string; readonly submitLabel: string; readonly hidden?: readonly HiddenFieldModel[] }` | The narrow-this-search form. A GET form, like `SearchForm` and for the same reason — the narrowed search is a URL of its own, not a state this page holds. `hidden` carries the advanced options this search was run with, one input per entry, so that narrowing it keeps them; a theme that drops them narrows within the words alone. |
 | `refine` | `SearchRefineModel` | optional — Filtering and sorting for the set on screen. Optional: a theme that ignores it shows the results as the search asked for them. |
-| `regions` | `{ /** The `Pagination` for this result set, rendered by the page. */ readonly pagination?: ReactNode }` | optional |
+| `regions` | `{ readonly pagination?: ReactNode }` | optional |
+
+**`regions.pagination`**
+
+The `Pagination` for this result set, rendered by the page.
 
 ### DiscoveryView
 
@@ -497,7 +581,7 @@ Props: `DiscoveryViewModel`
 | `nextHref` | `string \| null` |  |
 | `nextLabel` | `string` |  |
 | `emptyMessage` | `string` | What to say when `rows` is empty — different at the end of a paged list ("you have reached the end") from at the start of one ("nothing here yet"). |
-| `refusal` | `{ readonly message: string readonly signInHref: string readonly signInLabel: string } \| null` | Set when the view refused rather than failed: a guest asking for their own threads. The listing is empty and this says why, with `signInHref` to fix it. Not an error — a themed page, not the error page. |
+| `refusal` | `{ readonly message: string; readonly signInHref: string; readonly signInLabel: string } \| null` | Set when the view refused rather than failed: a guest asking for their own threads. The listing is empty and this says why, with `signInHref` to fix it. Not an error — a themed page, not the error page. |
 
 ### PanelShell
 
@@ -512,8 +596,12 @@ Props: `PanelShellModel`
 | `panel` | `PanelKind` |  |
 | `links` | `readonly LinkModel[]` | The other panels this viewer may reach, resolved and already filtered by permission. Never contains the panel being rendered. |
 | `linksLabel` | `string` |  |
-| `regions` | `{ /** The `PanelNav` for this panel. */ readonly nav: ReactNode }` |  |
+| `regions` | `{ readonly nav: ReactNode }` |  |
 | `children` | `ReactNode` | optional |
+
+**`regions.nav`**
+
+The `PanelNav` for this panel.
 
 ### PanelNav
 
@@ -546,8 +634,20 @@ Props: `PanelPageModel`
 | `frame` | `'panel' \| 'standalone'` | optional — `panel` when a `PanelShell` is already around this page — it has centred the column and set the gutters, and the page fills what the rail leaves. `standalone` when nothing wraps the page and it has to find its own middle: who's online, the board statistics, the report form. Absent reads as `panel`, which is what a theme that ignores this renders today. |
 | `width` | `'reading' \| 'wide'` | `reading` for prose and forms, `wide` for a table nobody can read at reading width. The theme decides what each measures. |
 | `gap` | `'normal' \| 'loose'` | `loose` for a page built of `PanelSection`s, `normal` for a page that is one thing. The theme decides what each measures; the distinction is whether the body has internal headings that need air around them. |
-| `regions` | `{ /** A sentence under the heading saying what this page is for. */ readonly lede?: ReactNode /** Smaller detail under the lede — counts, timestamps, scope. */ readonly meta?: ReactNode /** Controls that act on the whole page, beside the heading. */ readonly actions?: ReactNode }` |  |
+| `regions` | `{ readonly lede?: ReactNode; readonly meta?: ReactNode; readonly actions?: ReactNode }` |  |
 | `children` | `ReactNode` | optional |
+
+**`regions.lede`**
+
+A sentence under the heading saying what this page is for.
+
+**`regions.meta`**
+
+Smaller detail under the lede — counts, timestamps, scope.
+
+**`regions.actions`**
+
+Controls that act on the whole page, beside the heading.
 
 ### PanelSection
 
@@ -561,7 +661,7 @@ Props: `PanelSectionModel`
 |---|---|---|
 | `title` | `string` |  |
 | `headingId` | `string` | The id the heading takes, so the section's landmark can point at it. Given by the page because the page is where the section is named twice — once as a heading and once as the region's accessible name. |
-| `regions` | `{ readonly description?: ReactNode readonly actions?: ReactNode }` |  |
+| `regions` | `{ readonly description?: ReactNode; readonly actions?: ReactNode }` |  |
 | `children` | `ReactNode` | optional |
 
 ### AuthPage
@@ -577,7 +677,19 @@ Props: `AuthPageModel`
 | `title` | `string` |  |
 | `alert` | `string \| null` | `null` unless something about the way in went wrong. |
 | `links` | `readonly AuthLinkModel[]` |  |
-| `regions` | `{ /** A sentence under the heading. */ readonly lede?: ReactNode /** The form itself, or nothing on a page that only explains something. */ readonly form?: ReactNode /** Standing advice beside the form — where to look before asking again. */ readonly note?: ReactNode }` |  |
+| `regions` | `{ readonly lede?: ReactNode; readonly form?: ReactNode; readonly note?: ReactNode }` |  |
+
+**`regions.lede`**
+
+A sentence under the heading.
+
+**`regions.form`**
+
+The form itself, or nothing on a page that only explains something.
+
+**`regions.note`**
+
+Standing advice beside the form — where to look before asking again.
 
 ### ForumJump
 
@@ -897,9 +1009,13 @@ The author block beside a post.
 | `editedNote` | `string \| null` | "Last edited by X on Y", already assembled, or `null`. |
 | `isFirstPost` | `boolean` |  |
 | `visibility` | `'visible' \| 'unapproved' \| 'deleted'` | A moderator sees deleted and unapproved posts, marked as such. |
-| `ignored` | `{ readonly authorUsername: string /** Same page, this post revealed. A GET: revealing changes nothing. */ readonly revealHref: string } \| null` | Set when this viewer ignores the author and has not revealed this post; `null` otherwise, which is the case on almost every post. The body is **withheld server-side** when this is set — `bodyHtml` is empty, the signature and custom fields are gone — rather than hidden with CSS, because "ignored" that ships the text to the browser is a preference rather than a feature. The post keeps its place and its number: filtering it out would give every viewer a different page size and make "#12" mean different posts to different people. A theme renders the placeholder and the link. Both are required — a hidden post with no way to see it is a hole in a conversation. |
+| `ignored` | `{ readonly authorUsername: string; readonly revealHref: string } \| null` | Set when this viewer ignores the author and has not revealed this post; `null` otherwise, which is the case on almost every post. The body is **withheld server-side** when this is set — `bodyHtml` is empty, the signature and custom fields are gone — rather than hidden with CSS, because "ignored" that ships the text to the browser is a preference rather than a feature. The post keeps its place and its number: filtering it out would give every viewer a different page size and make "#12" mean different posts to different people. A theme renders the placeholder and the link. Both are required — a hidden post with no way to see it is a hole in a conversation. |
 | `attachments` | `readonly PostAttachmentModel[]` | The files attached to this post. Empty on almost every post, and empty rather than absent so a theme has one shape to render. **Every entry is already downloadable**: a `pending` upload — one whose re-encode has not finished — and a failed one are not in this list, because a link to a file that is not there yet is worse than the file appearing a minute later. `thumbnailHref` is `null` for anything that is not an image, and for an image small enough that a thumbnail would be the same picture again. A theme showing an image inline uses `thumbnailHref ?? href` and gets the right answer in both cases. |
 | `actions` | `PostActionsModel` |  |
+
+**`ignored.revealHref`**
+
+Same page, this post revealed. A GET: revealing changes nothing.
 
 ### PrefixModel
 

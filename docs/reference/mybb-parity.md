@@ -1,28 +1,9 @@
-# MyBB parity decisions
+# MyBB differences
 
-Every place a Meith board deliberately behaves differently from MyBB, what
-it does instead, and why. **Read this before promising anyone a
-like-for-like move.**
-
-> [!NOTE]
-> Looking for the procedure instead — the import command, what comes
-> across, what to do afterwards? That is
-> [Migrating from MyBB or phpBB](../guides/migrating.md), which also has the
-> [full coverage table](../guides/migrating.md#what-comes-across-and-what-does-not).
-> This page is about behaviour, not transfer. Coming from phpBB, most of
-> it still applies — it is a decision about this board, not about MyBB —
-> but also read [phpBB parity decisions](./phpbb-parity.md) for the
-> handful of places phpBB needed a different answer.
-
-Each entry has the same four parts, and only exists when the divergence
-was **chosen** — a surprise is a bug, not a parity decision:
-
-| Part | What it tells you |
-|---|---|
-| **MyBB** | What the board you are leaving does |
-| **Meith** | What this board does instead |
-| **Why** | The reasoning, so you can judge whether it suits your community |
-| **Cost** | What an imported board actually loses, stated plainly |
+Review these behaviour differences before importing a MyBB board. Each entry
+compares the feature, explains Meith's approach, and records the migration
+cost. Use [Migrating](../guides/migrating.md) for commands and import coverage,
+and [phpBB differences](./phpbb-parity.md) for phpBB-specific behaviour.
 
 ## What is on this page
 

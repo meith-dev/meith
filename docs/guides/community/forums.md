@@ -1,15 +1,11 @@
 # Forums and permissions
 
-The board's shape, and who may do what inside it. Three screens carry all
-of it: **`/admin/forums`** draws the tree, **`/admin/forums/[id]`** holds
-one forum's options and its moderators, and
-**`/admin/forums/[id]/permissions`** holds the matrix for that forum.
+Manage the forum tree at `/admin/forums`. Open a forum to change its options
+or moderators, and its **Permissions** tab to control access.
 
-This is the reference. For the shorter task-shaped version — making a
-forum, building an organisers' room — read
-[The organiser's guide](./organiser-guide.md). What a *group* is worth
-board-wide, and the allowances a group carries, are in
-[Groups and promotions](./groups.md).
+For a step-by-step private forum setup, see
+[Community administration](./organiser-guide.md#a-private-forum-for-the-organisers).
+Board-wide group permissions are covered in [Groups and promotions](./groups.md).
 
 ## The forum tree
 

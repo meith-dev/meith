@@ -1,16 +1,11 @@
-# Scaling out
+# Scaling
 
-One web container, one worker, one Postgres. That is the topology every
-guide in this documentation sets up, and it is the right one for almost
-every board — a forum is mostly reads, the reads are cached, and a single
-modern container comfortably serves a far larger community than the one
-the [Quickstart](../../getting-started/deployment/coolify.md) was written for.
+Use this guide when you need multiple web instances for capacity or
+availability. They must share PostgreSQL, a Redis-compatible cache, and
+upload storage. Set `CACHE_DRIVER=redis` and `REDIS_URL`, then follow the
+migration procedure below.
 
-This page is for the board that has outgrown it, and for the operator who
-wants more than one web container for resilience rather than load. The
-short version: **set `CACHE_DRIVER=redis`, point `REDIS_URL` at a Valkey
-or Redis server, give uploads a store every instance can reach, and add
-web containers.** Everything else already works.
+For a single-server installation, use [Deployment](../../getting-started/deployment/index.md).
 
 ## What already scales
 

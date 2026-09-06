@@ -29,12 +29,7 @@ export function announcementCopy(t: Translator): SlotCopy {
 }
 
 export function boardIndexCopy(t: Translator): SlotCopy {
-  return copyFor(t, [
-    'default.boardIndex.boardActivity',
-    'default.boardIndex.markAllRead',
-    'default.boardIndex.heading',
-    'default.boardIndex.description',
-  ])
+  return copyFor(t, ['default.boardIndex.boardActivity', 'default.boardIndex.markAllRead'])
 }
 
 export function boardStatsCopy(t: Translator): SlotCopy {

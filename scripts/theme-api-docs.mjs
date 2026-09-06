@@ -4,7 +4,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { emitGeneratedDoc } from './generated-doc.mjs'
-import { balancedBlock, balancedList, joinStringLiterals } from './source-parse.mjs'
+import {
+  balancedBlock,
+  balancedList,
+  flattenTypeLiteral,
+  joinStringLiterals,
+} from './source-parse.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
 
@@ -186,13 +191,13 @@ function parseMembers(interfaceName, body) {
       buffer = line
       depth = depthDelta(line)
     } else {
-      buffer += ` ${line}`
+      buffer += `\n${line}`
       depth += depthDelta(line)
     }
 
     if (depth !== 0) continue
 
-    const member = /^(?:readonly\s+)?(\w+)(\?)?:\s*(.+?);?$/.exec(buffer.replace(/\s+/g, ' '))
+    const member = /^(?:readonly\s+)?(\w+)(\?)?:\s*(.+?);?$/s.exec(buffer)
     if (member === null) {
       throw new Error(
         `theme-api-docs: cannot read member "${buffer}" of ${interfaceName}. Members must ` +
@@ -204,8 +209,14 @@ function parseMembers(interfaceName, body) {
     members.push({
       name: member[1],
       optional: member[2] === '?',
-      type: member[3].trim(),
+      type: flattenTypeLiteral(member[3]),
       doc: flattenDoc(doc),
+      nestedDocs: [...member[3].matchAll(/\/\*\*([\s\S]*?)\*\/\s*readonly\s+(\w+)\??:/g)].map(
+        (nested) => ({
+          name: nested[2],
+          doc: flattenDoc(nested[1].split('\n').map(stripDocMarkers)),
+        }),
+      ),
     })
     buffer = null
     doc = []
@@ -295,7 +306,11 @@ function renderFieldTable(models, name) {
     return `| \`${field.name}\` | \`${cell(field.type)}\` | ${cell(notes)} |`
   })
 
-  return ['| Field | Type | Notes |', '|---|---|---|', ...rows, ''].join('\n')
+  const nested = fields.flatMap((field) =>
+    field.nestedDocs.flatMap((entry) => [`**\`${field.name}.${entry.name}\`**`, '', entry.doc, '']),
+  )
+
+  return ['| Field | Type | Notes |', '|---|---|---|', ...rows, '', ...nested].join('\n')
 }
 
 function render({ slots, freeze, models, slotModels }) {
