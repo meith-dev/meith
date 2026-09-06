@@ -743,13 +743,32 @@ test('the plugins screen names what is installed and how installing works', asyn
 test('the system screen reports the scheduler, the volumes and its own sweeps', async ({
   page,
   request,
-}) => {
+}, testInfo) => {
   await enterAdminPanel(page)
 
   await runTick(request)
   await page.goto('/admin/system')
 
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`system-${width}.png`), fullPage: true })
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 })
+
+  const runs = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Recent runs', exact: true }) })
+  if ((await runs.locator('details').getAttribute('open')) === null) {
+    await runs.locator('summary').click()
+  }
+  await expect(runs.locator('dl').first()).toBeVisible()
+  await expect(runs).not.toContainText('{"')
+  await expect(runs).not.toContainText('[object Object]')
+  await page.screenshot({ path: testInfo.outputPath('system-runs.png'), fullPage: true })
+
   const tasks = page.locator('section').filter({ hasText: 'Scheduled tasks' }).last()
+  await tasks.getByText('View scheduled tasks', { exact: true }).click()
   await expect(tasks.locator('li').filter({ hasText: 'queue.drain' })).toContainText('every 60s')
   await expect(tasks.locator('li').filter({ hasText: 'search.reindex' })).toBeVisible()
   await expect(
@@ -761,6 +780,7 @@ test('the system screen reports the scheduler, the volumes and its own sweeps', 
   await expect(page.getByText(/\d+ posts/)).toBeVisible()
   await expect(page.getByText(/\d+ jobs waiting/)).toBeVisible()
 
+  await page.getByText('Open maintenance tools', { exact: true }).click()
   await page.getByRole('button', { name: /Prune \d+ expired sessions?/ }).click()
   await expect(page.getByText(/\d+ session rows removed\./)).toBeVisible()
 

@@ -237,7 +237,7 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
           ) : (
             <div className={`flex-1 py-4 sm:py-5 ${BODY_X}`}>
               <div
-                className="prose-md max-w-prose text-[0.9375rem] sm:text-base"
+                className="prose-md text-[0.9375rem] sm:text-base"
                 dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
               />
 

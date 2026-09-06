@@ -620,7 +620,7 @@ recipe into a slot when the shared primitive already expresses it.
 | Surfaces | Page uses `background`, cards use `card`, and card headers use a quieter `surface` band. Cards share token-derived corners, borders and elevation. |
 | Controls | Standard buttons, inputs and selects are at least 40px high; large actions are 44px. Compact controls are 32px on a fine pointer. Shared controls have a 44px minimum touch height. |
 | States | Primary actions use `primary` and `primary-hover`; keyboard focus uses an explicit 2px `ring` outline; invalid fields use `destructive` for border and focus. Disabled controls retain their label and reduce emphasis. |
-| Reading | Default post bodies stop at a prose measure, while attachments and post actions retain the available width. Long titles wrap without widening the page. |
+| Reading | Default post bodies fill the available content width inside the post padding, matching attachments and post actions. Long titles wrap without widening the page. |
 
 `PageHeader`, `PageHeaderContent`, `PageTitle`, `PageDescription` and
 `PageHeaderActions` compose a page introduction. Content and actions wrap
