@@ -1,25 +1,22 @@
 # Migrating from MyBB or phpBB
 
-This is the procedure: what to do, in order, to move a MyBB or phpBB board
-onto Meith with its members, content and old URLs intact. If you are
-deciding *whether* your community will feel at home here rather than *how*
-to run the move, read [MyBB parity decisions](./mybb-parity.md) or
-[phpBB parity decisions](./phpbb-parity.md) instead — each is the list of
-places Meith deliberately behaves differently from that board, with the
-reasoning and what an imported board loses. This page assumes you have
-already made that call.
+This is the procedure for moving a MyBB or phpBB board onto Meith with
+its members, content and old URLs intact. If you are still deciding
+*whether* to move, read [MyBB parity decisions](./mybb-parity.md) or
+[phpBB parity decisions](./phpbb-parity.md) first: each lists where Meith
+deliberately behaves differently from that board, and what an imported
+board loses.
 
 The importer is one command, run against the old board's database. It is
-resumable — interrupt it or its budget runs out, run the same command
-again, and it continues from where it stopped — and it is designed to be
-rehearsed: point it at a copy of the old database as many times as you
-like before you point it at the real one.
+resumable: interrupt it, or let its budget run out, and the same command
+continues from where it stopped. Rehearse it against a copy of the old
+database as many times as you like before pointing it at the real one.
 
 ## Before you start
 
 | You need | Because |
 |---|---|
-| A Meith board, already installed | The importer writes into `users`, `forums` and the rest of the live schema — run [Quickstart](../setting-up/deployment/coolify.md) or [Deploying by hand](../setting-up/deployment/docker-compose.md) first, including the `/install` step, so the default groups and settings the importer relies on already exist. |
+| A Meith board, already installed | The importer writes into `users`, `forums` and the rest of the live schema — deploy with [Coolify](../setting-up/deployment/coolify.md) or [Docker Compose by hand](../setting-up/deployment/docker-compose.md) first, including the `/install` step, so the default groups and settings the importer relies on already exist. |
 | Read access to the old board's MySQL or MariaDB database | Both sources connect over MySQL's wire protocol — a phpBB installed on PostgreSQL or SQLite is out of scope. A dedicated read-only account is worth creating; the importer never writes to the source. |
 | The old board's uploads on disk, reachable from where you run the command | Attachments and avatars are copied as files, not rewritten as URLs. For MyBB, the board's `uploads/` directory; for phpBB, the installation root, so both `files/` and `images/avatars/` resolve underneath it. |
 | A rehearsal copy of the old database | Restore a dump onto a throwaway MySQL instance and import into a throwaway Meith board first. This is the only way to see your board's actual skipped-row list and page-load feel before it matters. |
