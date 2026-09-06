@@ -4,6 +4,7 @@ export const buttonVariants = cva(
   [
     'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap',
     'rounded-md border text-sm font-medium leading-none',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
     'transition-[color,background-color,border-color,opacity] duration-100 ease-out',
     'disabled:pointer-events-none disabled:opacity-50',
     'aria-disabled:pointer-events-none aria-disabled:opacity-50',
@@ -12,7 +13,8 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'border-transparent bg-primary text-primary-foreground hover:bg-primary-hover',
+        primary:
+          'border-transparent bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover',
         secondary:
           'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/70',
         outline: 'border-border bg-card text-foreground hover:bg-muted',
@@ -23,10 +25,10 @@ export const buttonVariants = cva(
         link: 'h-auto border-transparent p-0 text-foreground underline underline-offset-4 decoration-border hover:decoration-current',
       },
       size: {
-        sm: 'h-8 gap-1.5 px-2.5 text-xs',
-        default: 'h-9 px-3.5',
-        lg: 'h-10 px-4',
-        icon: 'size-9 p-0',
+        sm: 'h-8 gap-1.5 px-2.5 text-xs pointer-coarse:min-h-11',
+        default: 'h-10 px-4 pointer-coarse:min-h-11',
+        lg: 'h-11 px-5',
+        icon: 'size-10 p-0 pointer-coarse:size-11',
       },
     },
     defaultVariants: { variant: 'secondary', size: 'default' },
@@ -93,3 +95,56 @@ export const textLinkVariants = cva(
 )
 
 export type TextLinkVariants = VariantProps<typeof textLinkVariants>
+
+export const controlVariants = cva(
+  [
+    'w-full min-w-0 rounded-md border border-input bg-card text-foreground',
+    'transition-[border-color,box-shadow]',
+    'duration-150',
+    'placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60',
+    'focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+    'aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive',
+    'pointer-coarse:min-h-11 pointer-coarse:text-base',
+  ],
+  {
+    variants: {
+      size: {
+        sm: 'min-h-8 px-2.5 py-1 text-xs',
+        default: 'min-h-10 px-3 py-2 text-sm',
+      },
+    },
+    defaultVariants: { size: 'default' },
+  },
+)
+
+export type ControlVariants = VariantProps<typeof controlVariants>
+
+export const surfaceVariants = cva(
+  'min-w-0 rounded-xl border border-border bg-card text-card-foreground shadow-elevation',
+  {
+    variants: {
+      padded: { true: 'flex flex-col gap-4 p-5', false: '' },
+    },
+    defaultVariants: { padded: false },
+  },
+)
+
+export const navTabListVariants = cva(
+  'inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1',
+)
+
+export const navTabVariants = cva(
+  [
+    'inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors pointer-coarse:min-h-11',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+  ],
+  {
+    variants: {
+      active: {
+        true: 'bg-card font-semibold text-primary shadow-sm',
+        false: 'font-medium text-muted-foreground hover:bg-card/60 hover:text-foreground',
+      },
+    },
+    defaultVariants: { active: false },
+  },
+)

@@ -495,6 +495,36 @@ without documenting the reason in the same change. (`packages/drafts` is
 interfaces only — erased at runtime, checked by `index.type-test.ts`, and
 due a floor when it grows runtime behavior.)
 
+## Reviewing the design system
+
+Run the populated demo review with:
+
+```sh
+pnpm exec playwright test --config e2e/screenshot-ui-polish.config.ts
+```
+
+It starts an isolated PGlite demo database on port 55434 and the demo board
+on port 3003. Screenshots and a browsable gallery are written under
+`test-results/ui-polish/`. It covers all five themes in both schemes,
+reading, composing, user and staff panels, Calendar and Dues, and touch
+layouts. The board's data and published demo logins come from the normal
+demo reset task, not a separate screenshot fixture.
+
+`e2e/ui-layout.spec.ts` keeps the important layout checks in the ordinary
+browser suite: all themes at phone, tablet and desktop widths, compact
+listing cards inside wide windows, and 44px touch controls. The shared
+components and recipes are documented in [The theme API](../customization/themes.md#shared-design-system).
+
+The UI regression suite also covers password visibility with and without
+JavaScript, Escape focus recovery in mobile navigation, hamburger drawers with
+right-side placement, top-bar triggers and expandable sub-sections across all
+five themes with JavaScript enabled and disabled,
+and search-filter touch targets. Drawer alignment is checked against the document
+content edge, which excludes the stable scrollbar gutter on platforms with
+classic scrollbars. Header branding checks target the home link, because the
+closed mobile drawer repeats the board name in its title. Run `e2e/ui-interactions.spec.ts` together with
+`e2e/mobile-nav.spec.ts` and `e2e/ui-layout.spec.ts` after changing these controls.
+
 ## UI primitives and destructive actions
 
 App components share the primitives in `@meith/ui` rather than re-declaring

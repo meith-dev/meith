@@ -3,7 +3,7 @@ import type { PanelShellModel } from '@meith/theme-kit'
 import { EYEBROW, MUTED_LINK } from '../shared'
 
 const RAIL =
-  'flex flex-col gap-4 px-4 pt-5 sm:px-6 lg:sticky lg:w-64 lg:shrink-0 lg:self-start lg:pt-8 lg:pr-0'
+  'flex flex-col gap-4 lg:px-6 lg:sticky lg:w-64 lg:shrink-0 lg:self-start lg:pt-8 lg:pr-0'
 
 function SwitchGlyph() {
   return (
@@ -24,7 +24,7 @@ function SwitchGlyph() {
 
 export function PanelShell({ links, linksLabel, regions, children }: PanelShellModel) {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col lg:flex-row lg:gap-8">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row lg:gap-8">
       <aside className={`${RAIL} lg:top-14`}>
         {regions.nav}
 

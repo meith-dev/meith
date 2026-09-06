@@ -1,4 +1,5 @@
 import type { PluginAdminPageContext } from '@meith/plugin-kit'
+import { buttonVariants, controlVariants, surfaceVariants } from '@meith/ui'
 
 import en from '../messages/en.json'
 import { organiserIds } from '../store'
@@ -18,7 +19,7 @@ export async function OrganisersPage(context: PluginAdminPageContext) {
   )
 
   return (
-    <div className="flex flex-col gap-4 text-sm">
+    <div className={surfaceVariants({ padded: true, className: 'text-sm' })}>
       {named.length === 0 ? (
         <p className="text-muted-foreground">
           {translated(context, 'calendar.admin.organisers.empty')}
@@ -30,7 +31,10 @@ export async function OrganisersPage(context: PluginAdminPageContext) {
               <span>{organiser.username}</span>
               <form method="post" action="/admin/api/plugins/calendar/organisers/remove">
                 <input type="hidden" name="user_id" value={organiser.userId} />
-                <button type="submit" className="rounded border px-2 py-0.5 text-xs">
+                <button
+                  type="submit"
+                  className={buttonVariants({ variant: 'destructive', size: 'sm' })}
+                >
                   {translated(context, 'calendar.admin.organisers.remove')}
                 </button>
               </form>
@@ -42,13 +46,13 @@ export async function OrganisersPage(context: PluginAdminPageContext) {
       <form
         method="post"
         action="/admin/api/plugins/calendar/organisers/add"
-        className="flex items-end gap-2"
+        className="flex flex-wrap items-end gap-3"
       >
         <label className="flex flex-col gap-1">
           {translated(context, 'calendar.admin.organisers.username')}
-          <input name="username" required className="rounded border p-1" />
+          <input name="username" required className={controlVariants()} />
         </label>
-        <button type="submit" className="rounded border px-3 py-1">
+        <button type="submit" className={buttonVariants({ variant: 'primary' })}>
           {translated(context, 'calendar.admin.organisers.add')}
         </button>
       </form>

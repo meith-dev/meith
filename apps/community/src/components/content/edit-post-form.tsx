@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useActionState } from 'react'
 
 import type { UploadLimits } from '@meith/attachments/limits'
+import { buttonVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { deletePostAction, editPostAction, restorePostAction } from '@/server/content-actions'
@@ -131,7 +132,7 @@ export function EditPostForm({
           name="intent"
           value="preview"
           showWorking
-          className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={buttonVariants({ variant: 'outline', size: 'default' })}
         >
           {fromCopy(copy, 'composer.preview')}
         </PendingButton>
@@ -160,7 +161,7 @@ export function DeletePostForm({
       <div>
         <PendingButton
           showWorking
-          className="inline-flex h-10 items-center justify-center rounded-md border border-destructive/40 px-4 text-sm font-medium text-destructive transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={buttonVariants({ variant: 'destructive', size: 'default' })}
         >
           {fromCopy(copy, 'composer.edit.delete')}
         </PendingButton>

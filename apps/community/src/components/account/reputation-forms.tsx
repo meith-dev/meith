@@ -2,16 +2,17 @@
 
 import { useActionState } from 'react'
 
+import { controlVariants, surfaceVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { rateMemberAction, withdrawRatingAction } from '@/server/reputation-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const FIELD =
-  'w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const FIELD = controlVariants()
 
-const CARD = 'flex flex-col gap-3 rounded-lg border border-border bg-card p-5'
+const CARD = surfaceVariants({ padded: true })
 
 const CHOICE =
   'inline-flex h-9 items-center justify-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -52,7 +53,7 @@ export function RateMemberForm({
           : fromCopy(copy, 'accountForm.rate.changeTitle')}
       </h2>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">
           {commentRequired
             ? fromCopy(copy, 'accountForm.rate.why')

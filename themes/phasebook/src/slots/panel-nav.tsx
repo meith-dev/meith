@@ -1,6 +1,7 @@
+import { MobilePanelNav } from '@meith/theme-default'
 import type { PanelNavItemModel, PanelNavModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { cn, Disclosure } from '@meith/ui'
+import { cn } from '@meith/ui'
 
 import { Chip } from '../shared'
 
@@ -98,6 +99,7 @@ function Sections({
 }
 
 export function PanelNav({
+  panel,
   label,
   sections,
   currentTitle,
@@ -105,14 +107,13 @@ export function PanelNav({
 }: PanelNavModel & { copy: SlotCopy }) {
   return (
     <>
-      <Disclosure
-        summary={label}
-        className="lg:hidden"
-        contentClassName="p-2"
-        {...(currentTitle === null ? {} : { aside: currentTitle })}
-      >
-        <Sections label={label} sections={sections} copy={copy} />
-      </Disclosure>
+      <MobilePanelNav
+        panel={panel}
+        label={label}
+        sections={sections}
+        currentTitle={currentTitle}
+        copy={copy}
+      />
 
       <div className="hidden rounded-lg border border-border bg-card p-2 shadow-elevation lg:block">
         <Sections label={label} sections={sections} copy={copy} />

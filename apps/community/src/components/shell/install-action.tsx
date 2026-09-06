@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
+import { buttonVariants } from '@meith/ui'
+
 import { INSTALL_BANNER_COOKIE, INSTALL_BANNER_COOKIE_MAX_AGE } from '@/view/install-banner'
 
 interface InstallPrompt extends Event {
@@ -23,8 +25,7 @@ function isInstallPrompt(event: Event): event is InstallPrompt {
   return 'prompt' in event && 'userChoice' in event
 }
 
-const BUTTON =
-  'inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'outline', size: 'sm' })
 
 export function InstallAction({ label, how }: { label: string; how: string }) {
   const [pending, setPending] = useState<InstallPrompt | null>(null)

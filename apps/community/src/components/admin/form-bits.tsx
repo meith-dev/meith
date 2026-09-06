@@ -1,7 +1,6 @@
-import { Alert, AlertDescription } from '@meith/ui'
+import { Alert, AlertDescription, controlVariants } from '@meith/ui'
 
-export const INPUT =
-  'w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+export const INPUT = controlVariants()
 
 export function Saved({ when = true, children }: { when?: boolean; children: React.ReactNode }) {
   if (!when) return null

@@ -7,11 +7,11 @@ import type {
 } from '@meith/theme-kit'
 import { Badge, cn } from '@meith/ui'
 
-const PAGE_WIDTH = 'max-w-6xl'
+const PAGE_WIDTH = 'max-w-7xl'
 
 export const PAGE = `mx-auto w-full ${PAGE_WIDTH} px-4 sm:px-6`
 
-export const PAGE_BODY = `${PAGE} flex w-full flex-col gap-5 py-5 sm:py-6`
+export const PAGE_BODY = `${PAGE} flex w-full flex-col gap-6 py-6 sm:py-8`
 
 export function pageAt(width: 'max-w-3xl' | 'max-w-4xl'): string {
   return `mx-auto w-full ${width} px-4 sm:px-6`
@@ -25,9 +25,6 @@ export const PRIMARY_HEADER = 'border-b-primary/15 bg-primary/6'
 export const MUTED_LINK = `text-muted-foreground ${LINK}`
 
 export const BELOW_HEADER = 'top-14'
-
-export const PAGE_TITLE =
-  'font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl'
 
 export const SECTION_TITLE = 'font-heading text-lg font-semibold tracking-tight text-foreground'
 
@@ -163,17 +160,20 @@ export function Figures({ items, className }: { items: readonly CountItem[]; cla
   return (
     <dl
       className={cn(
-        'flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground md:grid md:grid-cols-2 md:gap-x-5 md:text-center',
+        'flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground @3xl/card:grid @3xl/card:grid-cols-2 @3xl/card:gap-x-5 @3xl/card:text-center',
         className,
       )}
     >
       {items.map((item) => (
-        <div key={item.label} className="flex items-baseline gap-x-1 md:flex-col md:gap-0">
+        <div
+          key={item.label}
+          className="flex items-baseline gap-x-1 @3xl/card:flex-col @3xl/card:gap-0"
+        >
           <dt className="sr-only">{item.label}</dt>
-          <dd className={cn('font-semibold text-foreground md:text-sm', NUMERIC)}>
+          <dd className={cn('font-semibold text-foreground @3xl/card:text-sm', NUMERIC)}>
             {item.value.label}
           </dd>
-          <dd className="md:text-[0.6875rem] md:leading-4">
+          <dd className="@3xl/card:text-[0.6875rem] @3xl/card:leading-4">
             {item.value.value === 1 ? item.one : item.many}
           </dd>
         </div>

@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { buttonVariants } from '@meith/ui'
+
 import { PANEL_CARD } from '@/components/shell/panel-list'
 import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 import { sendTestMailAction } from '@/server/mail-test-actions'
@@ -69,7 +71,7 @@ export function MailTestCard({
         <div>
           <PendingButton
             disabled={pending || !sends}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+            className={buttonVariants({ variant: 'primary', size: 'default' })}
           >
             {pending
               ? fromCopy(copy, 'adminPanel.mail.sending')

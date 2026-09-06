@@ -1,4 +1,5 @@
 import { cn } from './utils'
+import { surfaceVariants } from './variants'
 
 type CardElement = 'section' | 'article' | 'div'
 
@@ -12,10 +13,7 @@ function Card({ as = 'section', className, ...props }: CardProps) {
   return (
     <Component
       data-slot="card"
-      className={cn(
-        'overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-elevation',
-        className,
-      )}
+      className={cn(surfaceVariants(), '@container/card overflow-hidden', className)}
       {...props}
     />
   )
@@ -26,7 +24,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card-header"
       className={cn(
-        'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface px-4 py-2.5',
+        'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface/60 px-5 py-3',
         className,
       )}
       {...props}
@@ -48,7 +46,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       data-slot="card-description"
-      className={cn('text-sm text-muted-foreground', className)}
+      className={cn('text-sm leading-relaxed text-muted-foreground', className)}
       {...props}
     />
   )
@@ -65,7 +63,7 @@ function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="card-content" className={cn('px-4 py-3.5', className)} {...props} />
+  return <div data-slot="card-content" className={cn('px-5 py-4', className)} {...props} />
 }
 
 function CardRows({ className, ...props }: React.ComponentProps<'ul'>) {
@@ -77,7 +75,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card-footer"
       className={cn(
-        'flex flex-wrap items-center gap-3 border-t border-border px-4 py-2.5 text-xs text-muted-foreground',
+        'flex flex-wrap items-center gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground',
         className,
       )}
       {...props}

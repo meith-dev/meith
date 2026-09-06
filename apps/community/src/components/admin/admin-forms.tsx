@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { buttonVariants, cn, controlVariants, PageTitle, surfaceVariants } from '@meith/ui'
+
 import {
   adminAbandonSecondFactorAction,
   adminSignInAction,
@@ -30,9 +32,9 @@ export function AdminSignInForm({
   return (
     <form
       action={action}
-      className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-card p-6"
+      className={cn(surfaceVariants({ padded: true }), 'w-full max-w-md gap-6 p-6 sm:p-8')}
     >
-      <h1 className="text-xl font-semibold tracking-tight">{fromCopy(copy, 'adminPanel.title')}</h1>
+      <PageTitle className="sm:text-2xl">{fromCopy(copy, 'adminPanel.title')}</PageTitle>
 
       <p className="text-sm text-muted-foreground">
         {reason === 'reauth'
@@ -52,14 +54,11 @@ export function AdminSignInForm({
           name="password"
           autoComplete="current-password"
           required
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+          className={controlVariants()}
         />
       </label>
 
-      <PendingButton
-        showWorking
-        className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
+      <PendingButton showWorking className={buttonVariants({ variant: 'primary' })}>
         {fromCopy(copy, 'adminPanel.enter')}
       </PendingButton>
 
@@ -80,10 +79,8 @@ export function AdminSecondFactorForm({
   const [state, action] = useActionState(adminVerifySecondFactorAction, EMPTY_STATE)
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-card p-6">
-      <h1 className="text-xl font-semibold tracking-tight">
-        {fromCopy(copy, 'adminPanel.twoFactor.title')}
-      </h1>
+    <div className={cn(surfaceVariants({ padded: true }), 'w-full max-w-md gap-6 p-6 sm:p-8')}>
+      <PageTitle className="sm:text-2xl">{fromCopy(copy, 'adminPanel.twoFactor.title')}</PageTitle>
 
       <p className="text-sm text-muted-foreground">{fromCopy(copy, 'adminPanel.twoFactor.lede')}</p>
 
@@ -101,10 +98,7 @@ export function AdminSecondFactorForm({
           recovery={otpRecoveryFromCopy(copy)}
         />
 
-        <PendingButton
-          showWorking
-          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
+        <PendingButton showWorking className={buttonVariants({ variant: 'primary' })}>
           {fromCopy(copy, 'adminPanel.twoFactor.submit')}
         </PendingButton>
       </form>
@@ -125,10 +119,25 @@ export function AdminSignOutForm({ copy }: { copy: Copy }) {
   return (
     <form action={adminSignOutAction}>
       <PendingButton
-        showWorking
-        className="text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        title={fromCopy(copy, 'adminPanel.leave')}
+        className={cn(
+          buttonVariants({ variant: 'ghost', size: 'icon' }),
+          'size-11 sm:w-auto sm:px-3',
+        )}
       >
-        {fromCopy(copy, 'adminPanel.leave')}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-5 sm:hidden"
+        >
+          <path d="M9 5H5v14h4M14 8l4 4-4 4M9 12h9" />
+        </svg>
+        <span className="sr-only sm:not-sr-only">{fromCopy(copy, 'adminPanel.leave')}</span>
       </PendingButton>
     </form>
   )

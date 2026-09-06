@@ -1,6 +1,6 @@
 import type { RedirectNoticeModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { buttonVariants, Card, CardContent } from '@meith/ui'
+import { buttonVariants, Card, CardContent, PageTitle } from '@meith/ui'
 
 export function RedirectNotice({
   message,
@@ -16,7 +16,7 @@ export function RedirectNotice({
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {c('redirecting')}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{c('pleaseWait')}</h1>
+        <PageTitle className="mt-1 sm:text-2xl">{c('pleaseWait')}</PageTitle>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">

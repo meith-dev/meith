@@ -17,7 +17,7 @@ export function Pagination({
 
   const c = (key: string) => fromSlotCopy(copy, `default.pagination.${key}`)
 
-  const step = cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'min-w-20 rounded-full')
+  const step = cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'min-w-20')
   const stepDisabled = cn(step, 'pointer-events-none opacity-40')
 
   return (
@@ -53,7 +53,7 @@ export function Pagination({
                     variant: entry.isCurrent ? 'primary' : 'ghost',
                     size: 'sm',
                   }),
-                  'min-w-8 rounded-full px-2',
+                  'min-w-8 px-2 pointer-coarse:min-w-11',
                   NUMERIC,
                   entry.isCurrent ? '' : 'hidden sm:inline-flex',
                 )}

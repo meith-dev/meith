@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 
-import { buttonVariants } from '@meith/ui'
+import { buttonVariants, surfaceVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removePasskeyAction, unlinkIdentityAction } from '@/server/federation-actions'
@@ -10,7 +10,7 @@ import { removePasskeyAction, unlinkIdentityAction } from '@/server/federation-a
 import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
+const CARD = surfaceVariants({ padded: true })
 
 const ROW =
   'flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2'

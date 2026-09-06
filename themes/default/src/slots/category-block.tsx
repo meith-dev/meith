@@ -8,7 +8,7 @@ export function CategoryBlock({ category, children }: CategoryBlockModel) {
 
   return (
     <Card aria-labelledby={headingId} className="rounded-xl">
-      <CardHeader className="flex-col items-start gap-0 bg-card px-5 py-3">
+      <CardHeader className="flex-col items-start gap-1 bg-surface/50 px-5 py-4">
         <CardTitle id={headingId} className="flex items-center gap-2.5 text-base">
           <span aria-hidden="true" className="h-4 w-1 rounded-full bg-primary" />
           <a href={category.href} className={`${LINK} text-foreground`}>

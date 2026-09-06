@@ -2,19 +2,19 @@
 
 import { useActionState } from 'react'
 
+import { buttonVariants, surfaceVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { regenerateFeedTokenAction, revokeFeedTokenAction } from '@/server/feed-token-actions'
 
 import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
+const CARD = surfaceVariants({ padded: true })
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
-const GHOST_BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const GHOST_BUTTON = buttonVariants({ variant: 'outline', size: 'default' })
 
 const REVEAL_CODE = 'block overflow-x-auto rounded-sm bg-card px-2 py-1 font-mono text-xs'
 

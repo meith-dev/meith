@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { env } from '@meith/core'
 import { readUnsubscribeToken } from '@meith/subscriptions'
-import { TextLink } from '@meith/ui'
+import { PageTitle, TextLink } from '@meith/ui'
 
 import { UnsubscribeConfirmForm } from '@/components/account/subscription-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -30,7 +30,7 @@ export default async function UnsubscribePage({
   return (
     <main id="board-content" tabIndex={-1} className="flex-1">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-6 py-10">
-        <h1 className="font-heading text-2xl font-semibold">{translator.t('page.unsubscribe')}</h1>
+        <PageTitle>{translator.t('page.unsubscribe')}</PageTitle>
 
         {done !== null ? (
           <>

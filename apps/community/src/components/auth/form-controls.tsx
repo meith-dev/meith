@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom'
 
 import { Alert, AlertDescription, AlertTitle, cn, Input, Field as UiField } from '@meith/ui'
 import { Button } from '@meith/ui/button'
+import { PasswordInput } from '@meith/ui/password-input'
 
 import { fromCopy, useCopy } from '../shell/copy'
 
@@ -115,6 +116,15 @@ export function Field({
   error,
   id,
 }: FieldProps) {
+  const copy = useCopy()
+  const inputProps = {
+    required,
+    ...(autoComplete === undefined ? {} : { autoComplete }),
+    ...(defaultValue === undefined ? {} : { defaultValue }),
+    ...(minLength === undefined ? {} : { minLength }),
+    ...(maxLength === undefined ? {} : { maxLength }),
+  }
+
   return (
     <UiField
       name={name}
@@ -123,17 +133,18 @@ export function Field({
       {...(id === undefined ? {} : { id })}
       {...(hint === undefined ? {} : { description: hint })}
     >
-      {(control) => (
-        <Input
-          {...control}
-          type={type}
-          required={required}
-          {...(autoComplete === undefined ? {} : { autoComplete })}
-          {...(defaultValue === undefined ? {} : { defaultValue })}
-          {...(minLength === undefined ? {} : { minLength })}
-          {...(maxLength === undefined ? {} : { maxLength })}
-        />
-      )}
+      {(control) =>
+        type === 'password' ? (
+          <PasswordInput
+            {...control}
+            {...inputProps}
+            showLabel={fromCopy(copy, 'form.showPassword')}
+            hideLabel={fromCopy(copy, 'form.hidePassword')}
+          />
+        ) : (
+          <Input {...control} {...inputProps} type={type} />
+        )
+      }
     </UiField>
   )
 }

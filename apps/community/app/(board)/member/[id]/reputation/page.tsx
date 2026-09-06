@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { TextLink } from '@meith/ui'
+import { PageTitle, TextLink } from '@meith/ui'
 
 import { RateMemberForm, WithdrawRatingForm } from '@/components/account/reputation-forms'
 import { BoardNotice } from '@/components/shell/board-notice'
@@ -92,9 +92,7 @@ export default async function ReputationPage({
         )}
 
         <div className="flex flex-col gap-1">
-          <h1 className="font-heading text-2xl font-semibold">
-            {profile.username}&rsquo;s reputation
-          </h1>
+          <PageTitle>{profile.username}&rsquo;s reputation</PageTitle>
           <p className="text-sm text-muted-foreground">
             {reputationLabel(view.summary, translator)}
           </p>

@@ -22,6 +22,7 @@ import {
   type SearchFormModel,
   slotCopy,
 } from '@meith/theme-kit'
+import { PageTitle } from '@meith/ui'
 
 import { SearchOffNotice } from '@/components/board/search-off-notice'
 import { getContainer } from '@/server/container'
@@ -126,7 +127,7 @@ async function Page({ children }: { children: React.ReactNode }) {
       tabIndex={-1}
       className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8 flex-1"
     >
-      <h1 className="font-heading text-2xl font-semibold">{translator.t('board.search.title')}</h1>
+      <PageTitle>{translator.t('board.search.title')}</PageTitle>
       {children}
     </main>
   )

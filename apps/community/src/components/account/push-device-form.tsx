@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
+import { buttonVariants } from '@meith/ui'
+
 import { subscribeToPushAction, unsubscribeFromPushAction } from '@/server/push-actions'
 
 import { FormError, FormNotice } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
 type Status = 'checking' | 'unsupported' | 'blocked' | 'off' | 'on' | 'working'
 

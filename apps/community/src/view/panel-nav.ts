@@ -178,16 +178,14 @@ export function buildPanelNavModel(input: {
       isRecord: false,
       isOpen,
       isOverview: section.href === input.overviewHref,
-      children: isOpen
-        ? visibleChildren(section, deepest).map((child) => ({
-            href: child.href,
-            title: panelText(t, child),
-            icon: null,
-            count: countFor(input.counts, child.href),
-            current: currentFor(input.location, child.href, deepest),
-            isRecord: child.record === true,
-          }))
-        : [],
+      children: visibleChildren(section, deepest).map((child) => ({
+        href: child.href,
+        title: panelText(t, child),
+        icon: null,
+        count: countFor(input.counts, child.href),
+        current: currentFor(input.location, child.href, deepest),
+        isRecord: child.record === true,
+      })),
     }
   })
 

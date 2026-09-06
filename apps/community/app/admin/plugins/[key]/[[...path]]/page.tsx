@@ -72,9 +72,7 @@ export default async function AdminPluginPage({
         {rendered.node === null ? (
           <p className={PANEL_NOTE}>{t.t('adminPluginDetail.pluginPageError')}</p>
         ) : (
-          <section className="rounded-xl border border-border bg-surface p-4">
-            {rendered.node}
-          </section>
+          <section className="min-w-0">{rendered.node}</section>
         )}
       </PanelPage>
     )

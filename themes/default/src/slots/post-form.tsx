@@ -1,8 +1,8 @@
 import type { PostFormModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { Alert, AlertDescription, AlertTitle, buttonVariants, Card, cn } from '@meith/ui'
+import { Alert, AlertDescription, AlertTitle, buttonVariants, Card, cn, PageTitle } from '@meith/ui'
 
-import { PAGE_TITLE, pageAt } from '../shared'
+import { pageAt } from '../shared'
 
 export function PostForm({
   heading,
@@ -17,7 +17,7 @@ export function PostForm({
   return (
     <div className={`${pageAt('max-w-3xl')} flex w-full flex-col gap-5 py-6 sm:py-8`}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 className={PAGE_TITLE}>{heading}</h1>
+        <PageTitle>{heading}</PageTitle>
         <a href={cancelHref} className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
           {cancelLabel}
         </a>

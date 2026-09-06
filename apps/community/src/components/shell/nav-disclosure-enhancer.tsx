@@ -19,6 +19,9 @@ export function NavDisclosureEnhancer() {
       if (event.key !== 'Escape') return
 
       for (const details of document.querySelectorAll<HTMLDetailsElement>(OPEN_DISCLOSURES)) {
+        if (details.contains(document.activeElement)) {
+          details.querySelector('summary')?.focus()
+        }
         details.open = false
       }
     }

@@ -26,7 +26,7 @@ function Disclosure({
     >
       <summary
         className={cn(
-          'flex cursor-default list-none items-center gap-2 px-4 py-2.5 text-sm font-medium select-none',
+          'flex cursor-pointer list-none items-center gap-2 min-h-11 px-4 py-3 text-sm font-medium select-none',
           'transition-colors hover:bg-muted',
           '[&::-webkit-details-marker]:hidden [&::marker]:content-none',
         )}
@@ -44,7 +44,7 @@ function Disclosure({
           <path d="m4.5 3 3 3-3 3" />
         </svg>
 
-        <span className="min-w-0 flex-1 truncate">{summary}</span>
+        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{summary}</span>
 
         {aside !== undefined && (
           <span className="shrink-0 text-xs font-normal text-muted-foreground">{aside}</span>

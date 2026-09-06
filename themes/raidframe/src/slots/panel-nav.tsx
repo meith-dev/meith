@@ -1,3 +1,4 @@
+import { MobilePanelNav } from '@meith/theme-default'
 import type { PanelNavItemModel, PanelNavModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
 
@@ -105,6 +106,7 @@ function Sections({
 }
 
 export function PanelNav({
+  panel,
   label,
   sections,
   currentTitle,
@@ -112,16 +114,13 @@ export function PanelNav({
 }: PanelNavModel & { copy: SlotCopy }) {
   return (
     <>
-      <details className="border border-border bg-card lg:hidden">
-        <summary className="flex cursor-pointer items-center justify-between gap-2 bg-surface px-3 py-2">
-          <span className={`${MICRO} text-foreground`}>{label}</span>
-          {currentTitle !== null && <span className={MICRO}>{currentTitle}</span>}
-        </summary>
-        <div className={RULE} aria-hidden="true" />
-        <div className="p-2">
-          <Sections label={label} sections={sections} copy={copy} />
-        </div>
-      </details>
+      <MobilePanelNav
+        panel={panel}
+        label={label}
+        sections={sections}
+        currentTitle={currentTitle}
+        copy={copy}
+      />
 
       <div className="hidden border border-border bg-card shadow-elevation lg:block">
         <p className={`${MICRO} border-b border-border bg-surface px-3 py-2 text-foreground`}>

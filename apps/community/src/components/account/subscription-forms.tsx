@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react'
 
+import { buttonVariants, controlVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
   subscribeAction,
@@ -13,17 +15,13 @@ import { FormError, PendingButton } from '../auth/form-controls'
 import { ProgressiveMarker } from '../content/progressive-marker'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
-const QUIET_BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const QUIET_BUTTON = buttonVariants({ variant: 'outline', size: 'default' })
 
-const GHOST_BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const GHOST_BUTTON = buttonVariants({ variant: 'ghost', size: 'default' })
 
-const FIELD =
-  'rounded-md border border-border bg-background px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const FIELD = controlVariants({ size: 'sm', className: 'w-auto max-w-full' })
 
 export interface ModeOption {
   readonly value: string

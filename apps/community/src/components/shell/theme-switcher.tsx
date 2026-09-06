@@ -1,3 +1,5 @@
+import { buttonVariants, cn, controlVariants } from '@meith/ui'
+
 import { PendingButton } from '@/components/auth/form-controls'
 import { MonitorIcon, MoonIcon, SunIcon } from '@/components/shell/appearance-icons'
 import { SchemeToggle } from '@/components/shell/scheme-toggle'
@@ -12,9 +14,6 @@ const SCHEME_LABEL_KEY: Record<ColourSchemePreference, string> = {
   light: 'appearance.scheme.light',
   dark: 'appearance.scheme.dark',
 }
-
-const CONTROL =
-  'h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export async function ThemeSwitcher() {
   const [{ choices }, theme, scheme, t] = await Promise.all([
@@ -43,17 +42,19 @@ export async function ThemeSwitcher() {
           <label htmlFor="appearance-theme" className="text-xs text-muted-foreground">
             {t.t('appearance.theme')}
           </label>
-          <select id="appearance-theme" name="theme" defaultValue={theme} className={CONTROL}>
+          <select
+            id="appearance-theme"
+            name="theme"
+            defaultValue={theme}
+            className={cn(controlVariants({ size: 'sm' }), 'w-auto')}
+          >
             {choices.map((choice) => (
               <option key={choice.key} value={choice.key}>
                 {choice.title}
               </option>
             ))}
           </select>
-          <PendingButton
-            showWorking
-            className="h-8 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
+          <PendingButton showWorking className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             {t.t('appearance.apply')}
           </PendingButton>
         </form>

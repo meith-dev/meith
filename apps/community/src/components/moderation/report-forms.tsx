@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 
-import { Card, CardContent, Field, Textarea, textLinkVariants } from '@meith/ui'
+import { buttonVariants, Card, CardContent, Field, Textarea, textLinkVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { assignReportAction, closeReportAction, fileReportAction } from '@/server/report-actions'
@@ -120,14 +120,14 @@ export function CloseReportForm({ reportId, copy }: { reportId: number; copy: Co
         <PendingButton
           name="status"
           value="resolved"
-          className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={buttonVariants({ variant: 'primary', size: 'sm' })}
         >
           {fromCopy(copy, 'moderationForm.report.resolve')}
         </PendingButton>
         <PendingButton
           name="status"
           value="rejected"
-          className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={buttonVariants({ variant: 'outline', size: 'sm' })}
         >
           {fromCopy(copy, 'moderationForm.report.dismiss')}
         </PendingButton>

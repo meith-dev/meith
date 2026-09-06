@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { buttonVariants } from '@meith/ui'
+
 import { BOARD_MEASURE } from '@/components/shell/measure'
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { inlineModerateAction } from '@/server/inline-moderation-actions'
@@ -11,8 +13,7 @@ import { FormError, PendingButton } from '../auth/form-controls'
 import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const BUTTON =
-  'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'outline', size: 'sm' })
 
 export interface InlineMoveOption {
   readonly id: number

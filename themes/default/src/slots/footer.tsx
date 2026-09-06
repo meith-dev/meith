@@ -17,7 +17,7 @@ export function Footer({
     <footer className="mt-auto border-t border-border bg-card">
       {regions?.controls && (
         <div
-          className={`${PAGE} flex flex-wrap items-center justify-end gap-x-6 gap-y-3 border-b border-border py-3`}
+          className={`${PAGE} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border py-3`}
         >
           {regions.controls}
         </div>

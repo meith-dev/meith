@@ -1,8 +1,8 @@
 import type { PanelPageModel, PanelSectionModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { cn } from '@meith/ui'
+import { cn, PageHeader, PageHeaderActions, PageHeaderContent, PageTitle } from '@meith/ui'
 
-import { MUTED_LINK, PAGE, PAGE_TITLE, pageAt, SECTION_TITLE } from '../shared'
+import { MUTED_LINK, PAGE, pageAt, SECTION_TITLE } from '../shared'
 
 export function PanelPage({
   title,
@@ -28,8 +28,8 @@ export function PanelPage({
         gap === 'loose' ? 'gap-8' : 'gap-6',
       )}
     >
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border pb-5">
-        <div className="flex min-w-0 flex-col gap-1">
+      <PageHeader className="border-b border-border pb-5">
+        <PageHeaderContent>
           {back !== null && (
             <a
               href={back.href}
@@ -39,7 +39,7 @@ export function PanelPage({
             </a>
           )}
 
-          <h1 className={PAGE_TITLE}>{title}</h1>
+          <PageTitle>{title}</PageTitle>
 
           {regions.lede !== undefined && (
             <p className="max-w-prose text-sm text-muted-foreground">{regions.lede}</p>
@@ -47,12 +47,10 @@ export function PanelPage({
           {regions.meta !== undefined && (
             <p className="text-xs text-muted-foreground">{regions.meta}</p>
           )}
-        </div>
+        </PageHeaderContent>
 
-        {regions.actions !== undefined && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">{regions.actions}</div>
-        )}
-      </div>
+        {regions.actions !== undefined && <PageHeaderActions>{regions.actions}</PageHeaderActions>}
+      </PageHeader>
 
       {children}
     </main>

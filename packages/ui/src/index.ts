@@ -19,10 +19,31 @@ export { Disclosure } from './disclosure'
 export { Empty, EmptyAction, EmptyDescription, EmptyTitle } from './empty'
 export type { FieldProps } from './field'
 export { Field, Input, Label, NativeSelect, Textarea } from './field'
+export { type NavTab, NavTabs } from './nav-tabs'
+export {
+  NavigationDrawer,
+  type NavigationDrawerProps,
+  NavigationDrawerTrigger,
+} from './navigation-drawer'
+export {
+  PageDescription,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageTitle,
+} from './page-header'
 export type { SeparatorProps } from './separator'
 export { Separator } from './separator'
 export type { TextLinkProps } from './text-link'
 export { TextLink } from './text-link'
 export { cn } from './utils'
-export type { BadgeVariants, ButtonVariants, TextLinkVariants } from './variants'
-export { badgeVariants, buttonVariants, textLinkVariants } from './variants'
+export type { BadgeVariants, ButtonVariants, ControlVariants, TextLinkVariants } from './variants'
+export {
+  badgeVariants,
+  buttonVariants,
+  controlVariants,
+  navTabListVariants,
+  navTabVariants,
+  surfaceVariants,
+  textLinkVariants,
+} from './variants'

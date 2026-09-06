@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import type { SubscriptionMode } from '@meith/subscriptions'
+import { buttonVariants, controlVariants, surfaceVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
@@ -14,20 +15,18 @@ import {
   saveSignatureAction,
 } from '@/server/usercp-actions'
 
-import { FormError, PendingButton } from '../auth/form-controls'
+import { Field, FormError, PendingButton } from '../auth/form-controls'
 import { MarkdownEditor } from '../content/markdown-editor'
 import { CustomField, type CustomFieldInput } from '../profile/custom-field'
 import { type Copy, fromCopy } from '../shell/copy'
 
 export type { CustomFieldInput }
 
-const FIELD =
-  'w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const FIELD = controlVariants()
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
-const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
+const CARD = surfaceVariants({ padded: true })
 
 export function ProfileForm({
   location,
@@ -48,12 +47,12 @@ export function ProfileForm({
     <form action={action} className={CARD}>
       <FormError message={state.error} />
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.profile.location')}</span>
         <input name="location" defaultValue={location} className={FIELD} maxLength={100} />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.profile.website')}</span>
         <input
           name="website"
@@ -64,7 +63,7 @@ export function ProfileForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.profile.bio')}</span>
         <textarea name="bio" defaultValue={bio} className={FIELD} rows={5} maxLength={1000} />
         <span className="text-xs text-muted-foreground">
@@ -103,7 +102,7 @@ export function DisplayGroupForm({
       </h2>
       <FormError message={state.error} />
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.displayGroup.label')}</span>
         <select name="displayGroupId" defaultValue={selected} className={FIELD}>
           {choices.map((choice) => (
@@ -157,7 +156,7 @@ export function OptionsForm({
     <form action={action} className={CARD}>
       <FormError message={state.error} />
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.options.timezone')}</span>
         <select name="timezone" defaultValue={timezone} className={FIELD}>
           {timezones.map((zone) => (
@@ -171,7 +170,7 @@ export function OptionsForm({
         </span>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.options.locale')}</span>
         <select name="locale" defaultValue={locale} className={FIELD}>
           {locales.map((choice) => (
@@ -185,7 +184,7 @@ export function OptionsForm({
         </span>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.options.postsPerPage')}</span>
         <input
           name="postsPerPage"
@@ -196,7 +195,7 @@ export function OptionsForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.options.threadsPerPage')}</span>
         <input
           name="threadsPerPage"
@@ -221,7 +220,7 @@ export function OptionsForm({
         </span>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">
           {fromCopy(copy, 'accountForm.options.autoWatchOwnThreads')}
         </span>
@@ -237,7 +236,7 @@ export function OptionsForm({
         </span>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">
           {fromCopy(copy, 'accountForm.options.autoWatchRepliedThreads')}
         </span>
@@ -276,40 +275,32 @@ export function PasswordForm({ minLength, copy }: { minLength: number; copy: Cop
       </h2>
       <FormError message={state.error} />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{fromCopy(copy, 'accountForm.password.current')}</span>
-        <input
-          type="password"
-          name="currentPassword"
-          className={FIELD}
-          autoComplete="current-password"
-          required
-        />
-      </label>
+      <Field
+        label={fromCopy(copy, 'accountForm.password.current')}
+        type="password"
+        name="currentPassword"
+        autoComplete="current-password"
+        required
+        id="password-currentPassword"
+      />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{fromCopy(copy, 'accountForm.password.new')}</span>
-        <input
-          type="password"
-          name="newPassword"
-          className={FIELD}
-          autoComplete="new-password"
-          minLength={minLength}
-          required
-        />
-      </label>
+      <Field
+        label={fromCopy(copy, 'accountForm.password.new')}
+        type="password"
+        name="newPassword"
+        autoComplete="new-password"
+        minLength={minLength}
+        required
+      />
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{fromCopy(copy, 'accountForm.password.confirm')}</span>
-        <input
-          type="password"
-          name="confirmPassword"
-          className={FIELD}
-          autoComplete="new-password"
-          minLength={minLength}
-          required
-        />
-      </label>
+      <Field
+        label={fromCopy(copy, 'accountForm.password.confirm')}
+        type="password"
+        name="confirmPassword"
+        autoComplete="new-password"
+        minLength={minLength}
+        required
+      />
 
       <p className="text-xs text-muted-foreground">{fromCopy(copy, 'accountForm.password.note')}</p>
 
@@ -338,18 +329,16 @@ export function EmailForm({ email, copy }: { email: string; copy: Copy }) {
         {copy['accountForm.email.currentTail']}
       </p>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">{fromCopy(copy, 'accountForm.password.current')}</span>
-        <input
-          type="password"
-          name="currentPassword"
-          className={FIELD}
-          autoComplete="current-password"
-          required
-        />
-      </label>
+      <Field
+        label={fromCopy(copy, 'accountForm.password.current')}
+        type="password"
+        name="currentPassword"
+        autoComplete="current-password"
+        required
+        id="email-currentPassword"
+      />
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.email.new')}</span>
         <input type="email" name="newEmail" className={FIELD} autoComplete="email" required />
       </label>

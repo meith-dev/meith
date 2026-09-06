@@ -9,9 +9,13 @@ import {
   EmptyAction,
   EmptyDescription,
   EmptyTitle,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageTitle,
 } from '@meith/ui'
 
-import { Counts, isEmptyRegion, PAGE_BODY, PAGE_TITLE } from '../shared'
+import { Counts, isEmptyRegion, PAGE_BODY } from '../shared'
 
 export function ForumDisplay({
   forum,
@@ -24,9 +28,9 @@ export function ForumDisplay({
 
   return (
     <div className={PAGE_BODY}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div className="min-w-0">
-          <h1 className={PAGE_TITLE}>{forum.title}</h1>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageTitle>{forum.title}</PageTitle>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {forum.description !== null && <p className="max-w-prose">{forum.description}</p>}
             {forum.type !== 'link' && (
@@ -48,9 +52,9 @@ export function ForumDisplay({
               />
             )}
           </div>
-        </div>
+        </PageHeaderContent>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <PageHeaderActions>
           {markReadAction !== null && (
             <form action={markReadAction} method="post">
               <button type="submit" className={buttonVariants({ variant: 'ghost' })}>
@@ -66,8 +70,8 @@ export function ForumDisplay({
               {c('newThread')}
             </a>
           )}
-        </div>
-      </div>
+        </PageHeaderActions>
+      </PageHeader>
 
       {regions.announcements !== undefined && (
         <div className="flex flex-col gap-3">{regions.announcements}</div>

@@ -13,10 +13,11 @@ export function ForumJump({ action, field, forums, submitLabel, label }: ForumJu
       </Label>
 
       <NativeSelect
+        controlSize="sm"
         id={id}
         name={field}
         defaultValue={forums.find((forum) => forum.isSelected)?.value ?? ''}
-        className="h-8 w-auto min-w-48 flex-1 text-xs sm:flex-none"
+        className="h-8 w-auto min-w-0 max-w-full flex-1 sm:w-48 text-xs sm:flex-none"
       >
         {forums.map((forum) => (
           <option

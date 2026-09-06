@@ -13,11 +13,16 @@ test('the collapsed header nav is reachable without JavaScript', async ({ page }
   const link = mobileNav.getByRole('link', { name: 'New posts' })
   await expect(link).toBeHidden()
 
-  const toggle = mobileNav.locator('summary').filter({ hasText: 'Board sections' })
+  const toggle = mobileNav.getByRole('button', { name: 'Open navigation', exact: true })
   await expect(toggle).toBeVisible()
 
   await toggle.click()
   await expect(link).toBeVisible()
+  await expect
+    .poll(() =>
+      mobileNav.getByRole('dialog').evaluate((element) => getComputedStyle(element).translate),
+    )
+    .toBe('0px')
 
   await link.click()
   await expect(page).toHaveURL(/\/discover\/new$/)
@@ -40,13 +45,15 @@ test("a nav item's dropdown opens and closes via its own disclosure, without Jav
 
   await page.goto('/')
   const mobileNav = page.getByRole('banner').locator('[data-nav-view="mobile"]')
-  await mobileNav.locator('summary').filter({ hasText: 'Board sections' }).click()
+  await mobileNav.getByRole('button', { name: 'Open navigation', exact: true }).click()
 
-  const submenuToggle = mobileNav
-    .locator('summary')
-    .filter({ has: page.getByRole('link', { name: 'Members', exact: true }) })
-    .locator('span')
-    .last()
+  await expect
+    .poll(() =>
+      mobileNav.getByRole('dialog').evaluate((element) => getComputedStyle(element).translate),
+    )
+    .toBe('0px')
+
+  const submenuToggle = mobileNav.locator('summary').filter({ hasText: /^Members$/ })
   const child = mobileNav.getByRole('link', { name: 'Guidelines', exact: true })
 
   await expect(child).toBeHidden()
