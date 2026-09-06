@@ -110,7 +110,10 @@ for (const javaScriptEnabled of [true, false]) {
         .toBe('0px')
       await expect(drawer).toBeVisible()
       const bounds = (await drawer.boundingBox())!
-      expect(bounds.x + bounds.width).toBe(390)
+      const contentRight = await page.evaluate(
+        () => document.documentElement.getBoundingClientRect().right,
+      )
+      expect(bounds.x + bounds.width).toBeCloseTo(contentRight, 1)
       expect(bounds.x).toBeGreaterThan(0)
       await drawer.locator('summary').filter({ hasText: 'Board settings' }).click()
       const registration = drawer.getByRole('link', { name: 'Registration', exact: true })

@@ -519,7 +519,10 @@ The UI regression suite also covers password visibility with and without
 JavaScript, Escape focus recovery in mobile navigation, hamburger drawers with
 right-side placement, top-bar triggers and expandable sub-sections across all
 five themes with JavaScript enabled and disabled,
-and search-filter touch targets. Run `e2e/ui-interactions.spec.ts` together with
+and search-filter touch targets. Drawer alignment is checked against the document
+content edge, which excludes the stable scrollbar gutter on platforms with
+classic scrollbars. Header branding checks target the home link, because the
+closed mobile drawer repeats the board name in its title. Run `e2e/ui-interactions.spec.ts` together with
 `e2e/mobile-nav.spec.ts` and `e2e/ui-layout.spec.ts` after changing these controls.
 
 ## UI primitives and destructive actions

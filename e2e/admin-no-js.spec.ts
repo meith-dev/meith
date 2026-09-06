@@ -43,7 +43,7 @@ test('a board setting saved in the panel reaches the header and the title', asyn
   await expect(page.getByLabel('Board name')).toHaveValue(name)
 
   await page.goto('/')
-  await expect(page.getByRole('banner').getByText(name)).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name, exact: true })).toBeVisible()
   await expect(page).toHaveTitle(new RegExp(name.replace(/ /g, '\\s')))
 
   await page.goto('/admin/settings?group=board')
