@@ -5,6 +5,23 @@ health endpoints, scheduler checks, optional metrics, and logs.
 The container examples assume a Compose deployment; the HTTP tick section
 also applies to deployments without a worker process.
 
+## Admin System page
+
+The System page starts with alerts, board totals, mail readiness and the running
+version. Scheduled work shows a count for each task status; expand **View
+scheduled tasks** for individual tasks, then **Task details** for a task's
+technical identifier and explanation. Stale or failing tasks expand the list
+automatically.
+
+**View recent runs** shows task names, outcomes, timing and readable result
+fields instead of JSON. Nested plugin results retain their field paths, and
+plain-text results remain readable. The history opens automatically when a
+recent run failed, with its error visible. **Open maintenance tools** contains
+recount, session and token cleanup, cache clearing and job retry. It stays open
+after submitting an action so its result remains visible. Search index
+progress and its backfill action stay visible. These disclosures work without
+JavaScript.
+
 ## Liveness and readiness
 
 Two endpoints answer different questions, both unauthenticated (neither returns anything an anonymous visitor could not already infer from the board being up):
