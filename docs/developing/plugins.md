@@ -11,9 +11,9 @@ is generated into [Plugin hooks](../reference/plugin-hooks.md). To
 ## Writing a plugin
 
 A plugin is a module that calls `definePlugin`. `meith.plugins.ts` is the
-installed list, kept in its own file beside `meith.config.ts` so the operator
-CLI can read it without importing the themes' component trees. It is
-**generated** from `board.plugins.json`, and that manifest is the
+installed list. It sits beside `meith.config.ts` in its own file so the
+operator CLI can read it without importing the themes' component trees. It
+is **generated** from `board.plugins.json`, and that manifest is the
 installation path for any plugin that fits it:
 
 ```ts
@@ -35,8 +35,7 @@ export const greeter = definePlugin({
 
 **Fitting the manifest** means the package's entry point exports the
 finished plugin under two fixed names, built with no arguments. Its own
-configuration comes from [settings](#settings) rather than a constructor,
-the way `plugins/dues`'s plans moved there:
+configuration comes from [settings](#settings) rather than a constructor:
 
 ```ts
 // index.ts of @meith/plugin-greeter
@@ -44,11 +43,11 @@ export { greeter as plugin } from './definition'
 export { greeterMessages as messages } from './messages'
 ```
 
-A plugin ships TypeScript source, the way every `@meith/*` package does.
-The board build compiles every dependency named in the board's own
-`package.json` from source (they join Next's `transpilePackages`), so there
-is no build step to ship. `scripts/extension-workspace-smoke.mts` proves
-this path end to end against a scaffolded plugin.
+A plugin ships TypeScript source, like every `@meith/*` package. The board
+build compiles every dependency named in the board's own `package.json`
+from source through Next's `transpilePackages`, so there is no build step to
+ship. `scripts/extension-workspace-smoke.mts` proves this path end to end
+against a scaffolded plugin.
 
 ### Installing a plugin
 

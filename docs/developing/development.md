@@ -16,12 +16,12 @@ pnpm install
 pnpm dev
 ```
 
-That is a working board on <http://localhost:3000>, with **no database at
-all**; see [fixture mode](#fixture-mode) below. It is enough to click
-through every reading surface and try a theme.
+That is a working board on <http://localhost:3000> with **no database at
+all**; see [fixture mode](#fixture-mode). It is enough to click through
+every reading surface and try a theme.
 
-For anything that writes, such as posting, moderation or the installer, you
-need Postgres:
+Anything that writes, such as posting, moderation or the installer, needs
+Postgres:
 
 ```sh
 docker compose -f docker/compose.dev.yml up -d    # Postgres on port 55432
@@ -43,11 +43,10 @@ pnpm dev
 ```
 
 Open <http://localhost:3000/install> and run the installer, the same one a
-real deployment runs. It seals itself when it finishes; on a scratch
-database that is fine, and `docker compose -f docker/compose.dev.yml down -v`
-gives you a clean one. The dev compose file uses a named volume, so the
-board survives the container being recreated; the `-v` throws the data
-away.
+real deployment runs. It seals itself when it finishes. The dev compose
+file uses a named volume, so the board survives the container being
+recreated; `docker compose -f docker/compose.dev.yml down -v` throws the
+data away and gives you a clean database.
 
 > [!NOTE]
 > The dev database and the e2e suite both use port 55432, so stop the dev
@@ -58,14 +57,14 @@ away.
 
 With no `DATABASE_URL`, `DATA_SOURCE` falls back to `fixture`:
 deterministic in-memory repositories with a sample board in them. It is a
-driver behind the same interfaces as Postgres, not a mock layer for tests,
-and three things depend on it:
+driver behind the same interfaces as Postgres, not a mock layer for tests.
+Three things depend on it:
 
 - **A fresh checkout runs.** `pnpm install && pnpm dev` needs nothing else.
 - **The production build needs no database.** `next build` prerenders, and
   a build that opened a connection would fail wherever the build runs
-  before the database is reachable. CI builds in fixture mode; so does the
-  Docker image.
+  before the database is reachable. CI and the Docker image both build in
+  fixture mode.
 - **The test suite is fast**, because most of it never touches a socket.
 
 Fixture mode does not fake a write. It has no installer, no presence store
