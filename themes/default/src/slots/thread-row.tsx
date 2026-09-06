@@ -19,7 +19,7 @@ export function ThreadRow({
     <li
       data-unread={thread.isUnread ? '' : undefined}
       data-visibility={hidden ? thread.visibility : undefined}
-      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-4 py-3.5 transition-colors hover:bg-muted/50 sm:px-5 md:grid-cols-[auto_minmax(0,1fr)_9rem_15rem] md:items-center md:gap-x-5 ${hidden ? tint : ''}`}
+      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-4 py-4 transition-colors hover:bg-muted/50 sm:px-5 @3xl/card:grid-cols-[auto_minmax(0,1fr)_6rem_13rem] @3xl/card:items-center @3xl/card:gap-x-5 ${hidden ? tint : ''}`}
     >
       <span className="flex items-center gap-2.5">
         {select !== null && (
@@ -41,7 +41,7 @@ export function ThreadRow({
         </span>
       </span>
 
-      <div className="min-w-0">
+      <div className="min-w-0 [overflow-wrap:anywhere]">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
           {thread.isSticky && <Badge tone="pinned">{c('pinned')}</Badge>}
@@ -68,9 +68,9 @@ export function ThreadRow({
         </p>
       </div>
 
-      <div className="col-start-2 flex min-w-0 flex-col gap-y-1 text-xs text-muted-foreground md:contents">
+      <div className="col-start-2 flex min-w-0 flex-col gap-y-1 text-xs text-muted-foreground @3xl/card:contents">
         <Figures
-          className="md:col-start-3 md:justify-self-end"
+          className="@3xl/card:col-start-3 @3xl/card:justify-self-end"
           items={[
             {
               label: c('repliesLabel'),
@@ -87,18 +87,18 @@ export function ThreadRow({
           ]}
         />
 
-        <div className="order-first flex min-w-0 max-w-full flex-wrap gap-x-1 md:order-none md:col-start-4 md:block md:border-l md:border-border md:pl-5">
+        <div className="order-first flex min-w-0 max-w-full flex-wrap gap-x-1 @3xl/card:order-none @3xl/card:col-start-4 @3xl/card:block @3xl/card:border-l @3xl/card:border-border @3xl/card:pl-5">
           {thread.lastPost === null ? (
             <span className="text-thread-moved">{c('noRepliesYet')}</span>
           ) : (
             <>
               <a
                 href={thread.lastPost.href}
-                className={`font-medium text-foreground md:block ${LINK}`}
+                className={`font-medium text-foreground @3xl/card:block ${LINK}`}
               >
                 {c('latestReply')}
               </a>
-              <span className="md:mt-0.5 md:block md:truncate">
+              <span className="@3xl/card:mt-0.5 @3xl/card:block @3xl/card:truncate">
                 {c('by')} <UserRef user={thread.lastPost.author} className="font-normal" />{' '}
                 {c('dot')} <Stamp at={thread.lastPost.at} />
               </span>

@@ -1,12 +1,11 @@
 import type { PanelNavItemModel, PanelNavModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { cn, Disclosure } from '@meith/ui'
+import { cn, NavigationDrawer } from '@meith/ui'
 
 import { PanelIcon } from '../panel-icons'
-import { BELOW_HEADER } from '../shared'
 
 const ITEM =
-  'group/item relative flex items-center gap-3 rounded-lg px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'group/item relative flex items-center gap-3 rounded-lg px-3 py-2 pointer-coarse:min-h-11 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 const HERE = 'bg-primary/10 font-semibold text-primary [&_svg]:text-primary'
 const OPEN = 'font-semibold text-foreground hover:bg-muted'
@@ -30,6 +29,20 @@ function Count({ count, copy }: { count: number; copy: SlotCopy }) {
   )
 }
 
+function ItemContent({ item, copy }: { item: PanelNavItemModel; copy: SlotCopy }) {
+  return (
+    <>
+      {item.icon !== null && (
+        <span className="text-muted-foreground/70 transition-colors group-hover/item:text-foreground">
+          <PanelIcon icon={item.icon} />
+        </span>
+      )}
+      <span className="min-w-0 flex-1 text-start [overflow-wrap:anywhere]">{item.title}</span>
+      {item.count !== null && <Count count={item.count} copy={copy} />}
+    </>
+  )
+}
+
 function Item({
   item,
   className,
@@ -39,17 +52,7 @@ function Item({
   className: string
   copy: SlotCopy
 }) {
-  const body = (
-    <>
-      {item.icon !== null && (
-        <span className="text-muted-foreground/70 transition-colors group-hover/item:text-foreground">
-          <PanelIcon icon={item.icon} />
-        </span>
-      )}
-      <span className="min-w-0 flex-1 truncate">{item.title}</span>
-      {item.count !== null && <Count count={item.count} copy={copy} />}
-    </>
-  )
+  const body = <ItemContent item={item} copy={copy} />
 
   if (item.isRecord) {
     return (
@@ -113,28 +116,94 @@ function Sections({
   )
 }
 
-export function PanelNav({
+export function MobilePanelNav({
+  panel,
   label,
   sections,
-  currentTitle,
   copy,
 }: PanelNavModel & { copy: SlotCopy }) {
+  const c = (key: string) => fromSlotCopy(copy, `default.panelNav.${key}`)
+
+  return (
+    <div className="lg:hidden">
+      <NavigationDrawer
+        showTrigger={false}
+        id={`panel-${panel}-navigation`}
+        title={c(`title.${panel}`)}
+        openLabel={c('open')}
+        closeLabel={c('close')}
+      >
+        <nav aria-label={label} className="text-sm">
+          <ul className="flex flex-col gap-1">
+            {sections.map((section) => (
+              <li
+                key={section.href}
+                className={cn(section.isOverview && 'mb-2 border-b border-border pb-2')}
+              >
+                {section.children.length > 0 ? (
+                  <details open={section.isOpen} className="group/section">
+                    <summary
+                      className={cn(
+                        ITEM,
+                        'min-h-11 cursor-pointer list-none [&::-webkit-details-marker]:hidden',
+                        section.isOpen ? OPEN : ELSEWHERE,
+                      )}
+                    >
+                      <ItemContent item={section} copy={copy} />
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 16 16"
+                        className="size-4 shrink-0 transition-transform group-open/section:rotate-90"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m6 4 4 4-4 4" />
+                      </svg>
+                    </summary>
+                    <ul className="my-1 ms-5 flex flex-col gap-1 border-s-2 border-border ps-2">
+                      <li>
+                        <Item
+                          item={{ ...section, title: c('overview'), icon: null, count: null }}
+                          className={cn('min-h-11', section.current === 'here' ? HERE : ELSEWHERE)}
+                          copy={copy}
+                        />
+                      </li>
+                      {section.children.map((child) => (
+                        <li key={child.href}>
+                          <Item
+                            item={child}
+                            className={cn('min-h-11', child.current === 'here' ? HERE : ELSEWHERE)}
+                            copy={copy}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  <Item
+                    item={section}
+                    className={cn('min-h-11', section.current === 'here' ? HERE : ELSEWHERE)}
+                    copy={copy}
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </NavigationDrawer>
+    </div>
+  )
+}
+
+export function PanelNav(props: PanelNavModel & { copy: SlotCopy }) {
   return (
     <>
-      <div
-        className={`sticky ${BELOW_HEADER} z-20 -mx-4 bg-background/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:hidden`}
-      >
-        <Disclosure
-          summary={label}
-          contentClassName="p-2"
-          {...(currentTitle === null ? {} : { aside: currentTitle })}
-        >
-          <Sections label={label} sections={sections} copy={copy} />
-        </Disclosure>
-      </div>
-
+      <MobilePanelNav {...props} />
       <div className="hidden rounded-xl border border-border bg-card p-2 shadow-elevation lg:block">
-        <Sections label={label} sections={sections} copy={copy} />
+        <Sections label={props.label} sections={props.sections} copy={props.copy} />
       </div>
     </>
   )

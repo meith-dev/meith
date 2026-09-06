@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 
-import { textLinkVariants } from '@meith/ui'
+import { buttonVariants, controlVariants, textLinkVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
@@ -16,8 +16,7 @@ import { saveBoardDigestCadenceAction } from '@/server/usercp-actions'
 import { FormError, PendingButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
 const LINK_BUTTON = `${textLinkVariants({ size: 'sm' })} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`
 
@@ -203,8 +202,7 @@ export function AnnouncementsOptInForm({ optedIn, copy }: { optedIn: boolean; co
   )
 }
 
-const FIELD =
-  'w-full max-w-xs rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const FIELD = controlVariants()
 
 export function BoardDigestCadenceForm({ cadence, copy }: { cadence: string; copy: Copy }) {
   const [state, action] = useActionState(saveBoardDigestCadenceAction, EMPTY_STATE)
@@ -216,7 +214,7 @@ export function BoardDigestCadenceForm({ cadence, copy }: { cadence: string; cop
     >
       <FormError message={state.error} />
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'accountForm.boardDigest.legend')}</span>
         <span className="text-xs text-muted-foreground">
           {fromCopy(copy, 'accountForm.boardDigest.description')}

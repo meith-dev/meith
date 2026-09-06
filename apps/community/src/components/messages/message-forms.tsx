@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { buttonVariants, controlVariants, surfaceVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { messageBulkAction, sendMessageAction } from '@/server/message-actions'
 
@@ -11,16 +13,13 @@ import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 import { RecipientField } from './recipient-field'
 
-const FIELD =
-  'w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const FIELD = controlVariants()
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
-const SECONDARY =
-  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const SECONDARY = buttonVariants({ variant: 'outline', size: 'sm' })
 
-const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
+const CARD = surfaceVariants({ padded: true })
 
 export function ComposeForm({
   to,
@@ -44,7 +43,7 @@ export function ComposeForm({
       <FormError message={state.error} />
       {replyToId === null ? null : <input type="hidden" name="replyTo" value={replyToId} />}
 
-      <label htmlFor="message-to" className="flex flex-col gap-1 text-sm">
+      <label htmlFor="message-to" className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'messageForm.to')}</span>
         <RecipientField
           id="message-to"
@@ -58,7 +57,7 @@ export function ComposeForm({
         </span>
       </label>
 
-      <label htmlFor="message-bcc" className="flex flex-col gap-1 text-sm">
+      <label htmlFor="message-bcc" className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'messageForm.bcc')}</span>
         <RecipientField
           id="message-bcc"
@@ -71,7 +70,7 @@ export function ComposeForm({
         </span>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'messageForm.subject')}</span>
         <input
           name="subject"

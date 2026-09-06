@@ -55,7 +55,7 @@ export function SchemeToggle({
               title={labels[option]}
               aria-pressed={selected}
               onClick={() => applySchemeImmediately(option)}
-              className={`inline-flex h-8 items-center justify-center border-border px-2.5 transition-colors [&:not(:first-child)]:border-l focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
+              className={`inline-flex h-8 pointer-coarse:min-h-11 pointer-coarse:min-w-11 items-center justify-center border-border px-2.5 transition-colors [&:not(:first-child)]:border-l focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${
                 selected
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-background hover:bg-accent hover:text-accent-foreground'

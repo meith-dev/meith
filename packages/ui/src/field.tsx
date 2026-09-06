@@ -1,19 +1,12 @@
 import { cn } from './utils'
-
-const CONTROL = [
-  'w-full rounded-md border border-input bg-card px-3 text-sm text-foreground',
-  'transition-[border-color,box-shadow] duration-100',
-  'placeholder:text-muted-foreground',
-  'disabled:cursor-not-allowed disabled:opacity-60',
-  'aria-invalid:border-destructive',
-].join(' ')
+import { controlVariants } from './variants'
 
 function Input({ className, type = 'text', ...props }: React.ComponentProps<'input'>) {
   return (
     <input
       data-slot="input"
       type={type}
-      className={cn(CONTROL, 'h-9 py-1', className)}
+      className={cn(controlVariants(), 'py-2', className)}
       {...props}
     />
   )
@@ -23,15 +16,23 @@ function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
   return (
     <textarea
       data-slot="textarea"
-      className={cn(CONTROL, 'min-h-32 resize-y py-2 leading-relaxed', className)}
+      className={cn(controlVariants(), 'h-auto min-h-36 resize-y py-3 leading-relaxed', className)}
       {...props}
     />
   )
 }
 
-function NativeSelect({ className, ...props }: React.ComponentProps<'select'>) {
+function NativeSelect({
+  className,
+  controlSize = 'default',
+  ...props
+}: React.ComponentProps<'select'> & { controlSize?: 'sm' | 'default' }) {
   return (
-    <select data-slot="native-select" className={cn(CONTROL, 'h-9 pr-8', className)} {...props} />
+    <select
+      data-slot="native-select"
+      className={cn(controlVariants({ size: controlSize }), 'pr-8', className)}
+      {...props}
+    />
   )
 }
 
@@ -40,7 +41,7 @@ function Label({ className, ...props }: React.ComponentProps<'label'>) {
     // biome-ignore lint/a11y/noLabelWithoutControl: the Label primitive itself — its caller supplies the control it wraps
     <label
       data-slot="label"
-      className={cn('text-sm font-medium leading-none text-foreground select-none', className)}
+      className={cn('text-sm font-medium leading-5 text-foreground select-none', className)}
       {...props}
     />
   )
@@ -77,7 +78,7 @@ function Field({
   const describedBy = [errorId, descriptionId].filter((value) => value !== null).join(' ')
 
   return (
-    <div data-slot="field" className={cn('flex flex-col gap-1.5', className)} {...props}>
+    <div data-slot="field" className={cn('flex min-w-0 flex-col gap-2', className)} {...props}>
       <Label htmlFor={id}>{label}</Label>
 
       {children({
@@ -94,7 +95,7 @@ function Field({
       )}
 
       {descriptionId !== null && (
-        <p id={descriptionId} className="text-xs text-muted-foreground">
+        <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
       )}

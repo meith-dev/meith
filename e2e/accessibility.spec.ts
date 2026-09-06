@@ -49,7 +49,7 @@ test('a tab row scrolls sideways only, and gives a focus ring room to draw', asy
 test('a failed login submit moves focus to the error alert', async ({ page }) => {
   await page.goto('/login')
   await page.getByLabel('Username or email').fill('e2e-nobody-with-this-name')
-  await page.getByLabel('Password').fill('the-wrong-password')
+  await page.getByLabel('Password', { exact: true }).fill('the-wrong-password')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 
   const alert = page.getByRole('alert').filter({ hasText: 'Not saved' })

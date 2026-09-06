@@ -17,6 +17,8 @@
     "./dialog": "./src/dialog.tsx",
     "./input-otp": "./src/input-otp.tsx",
     "./menu": "./src/menu.tsx",
+    "./nav-tabs-enhancer": "./src/nav-tabs-enhancer.tsx",
+    "./password-input": "./src/password-input.tsx",
     "./popover": "./src/popover.tsx",
     "./tabs": "./src/tabs.tsx",
     "./toast": "./src/toast.tsx",

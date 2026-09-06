@@ -2188,7 +2188,9 @@
   "errorNotice.home": "Forum home",
   "errorNotice.notFound.message": "The page you requested does not exist or is no longer available.",
   "errorNotice.notFound.title": "Page not found",
+  "form.hidePassword": "Hide password",
   "form.notSaved": "Not saved.",
+  "form.showPassword": "Show password",
   "form.working": "Working…",
   "forum.threadDeleted": "The thread was deleted. It is removed rather than destroyed, so a moderator can restore it.",
   "forum.threadHeld": "Your thread was posted and is waiting for a moderator to approve it.",
@@ -2273,7 +2275,6 @@
   "install.restore.hint": "A bundle taken by another deployment of this board — the nightly one, or the one you took before the server died — becomes this board again. It replaces the empty schema the migrator just wrote, applies any migrations the bundle predates, and puts the uploads back. Nothing here can be overwritten: a board with members refuses to restore.",
   "install.restore.idleNote": "Takes seconds for a small board and minutes for a large one. When it finishes, the installer is gone and the board is back.",
   "install.restore.migrated": "{count, plural, one {# migration the bundle predates was} other {# migrations the bundle predates were}} applied on top.",
-
   "install.restore.next": "Restart the web and worker containers so nothing holds a connection from before the restore, then sign in with an account from the restored board.",
   "install.restore.noUploads": "The bundle carried no uploads. If they lived in an object store, point this deployment at the same bucket; otherwise posts will have broken images.",
   "install.restore.noneAnywhere": "No bundles in the backup directory, and none at {destination}.",
@@ -2382,7 +2383,6 @@
   "installRestore.busy": "Another install or restore is running on this board. Wait for it and reload.",
   "installRestore.confirmFirst": "Confirm that you hold the AUTH_SECRET the board ran with before restoring.",
   "installRestore.failed": "The restore stopped: {error}",
-
   "installRestore.pickOne": "Pick a bundle to restore.",
   "installUnlock.button": "Unlock the installer",
   "installUnlock.incorrect": "That does not match the AUTH_SECRET this board runs with.",

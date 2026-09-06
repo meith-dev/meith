@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { ADMIN_IDLE_MINUTES } from '@meith/admin'
+import { NavigationDrawerTrigger } from '@meith/ui'
 
 import {
   AdminSecondFactorForm,
@@ -9,6 +10,7 @@ import {
   AdminSignOutForm,
 } from '@/components/admin/admin-forms'
 import { AdminNav } from '@/components/admin/admin-nav'
+import { NavDisclosureEnhancer } from '@/components/shell/nav-disclosure-enhancer'
 import { PanelShell } from '@/components/shell/panel-shell'
 import { askForPassword, pendingAdminSecondFactor, resolveAdmin } from '@/server/admin'
 import { getActor } from '@/server/context'
@@ -66,6 +68,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <NavDisclosureEnhancer />
       <a
         href="#board-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-9 focus-visible:items-center focus-visible:rounded-md focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-3 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-lg"
@@ -74,7 +77,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </a>
 
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-x-3 px-4 sm:gap-x-4 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-x-3 px-4 sm:gap-x-4 sm:px-6">
           <a
             href="/admin"
             className="flex min-w-0 items-center gap-2.5 font-heading text-base font-semibold whitespace-nowrap text-foreground sm:text-lg"
@@ -100,6 +103,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-3 text-sm whitespace-nowrap sm:gap-4">
             <AdminSignOutForm copy={adminFormsCopy(t)} />
+            <NavigationDrawerTrigger
+              target="panel-admincp-navigation"
+              label={t.t('default.panelNav.open')}
+              className="lg:hidden"
+            />
           </div>
         </div>
       </header>

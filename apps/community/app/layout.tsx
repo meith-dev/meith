@@ -5,6 +5,7 @@ import { env } from '@meith/core'
 import { currentRequestId } from '@meith/core/logger'
 import { localeDirection, SOURCE_LOCALE } from '@meith/i18n'
 import { resolveBoardUrl } from '@meith/settings'
+import { NavTabsEnhancer } from '@meith/ui/nav-tabs-enhancer'
 
 import { CopyProvider } from '@/components/shell/copy'
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
@@ -108,6 +109,7 @@ export default async function RootLayout({
         <ServiceWorkerRegistrar />
       </head>
       <body className="font-sans antialiased">
+        <NavTabsEnhancer />
         <DemoBanner />
         <CrashNoticeProvider
           notice={notice}

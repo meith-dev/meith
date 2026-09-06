@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 
+import { buttonVariants, controlVariants } from '@meith/ui'
+
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { threadToolAction } from '@/server/thread-tool-actions'
 
@@ -9,10 +11,8 @@ import { FormError, PendingButton } from '../auth/form-controls'
 import { ConfirmDialog } from '../shell/confirm-dialog'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const BUTTON =
-  'inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-const SELECT =
-  'h-8 min-w-0 max-w-full rounded-md border border-border bg-background px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'outline', size: 'sm' })
+const SELECT = controlVariants({ size: 'sm', className: 'w-auto max-w-full' })
 const SUMMARY =
   'flex cursor-pointer list-none items-center gap-2 rounded-lg px-4 py-3 text-xs font-medium text-muted-foreground select-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden'
 

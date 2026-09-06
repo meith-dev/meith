@@ -528,7 +528,7 @@ Props: `PanelNavModel`
 | `panel` | `PanelKind` |  |
 | `label` | `string` | Accessible name for the navigation landmark. |
 | `sections` | `readonly PanelNavSectionModel[]` |  |
-| `currentTitle` | `string \| null` | The title of the deepest item the reader is under, for a collapsed rail's summary — "Sections · Attachments" says where a tap would leave from. `null` when nothing matched the path. |
+| `currentTitle` | `string \| null` | The title of the deepest item the reader is under, for the current location beside a mobile navigation trigger. `null` when no path matched. |
 
 ### PanelPage
 
@@ -830,7 +830,7 @@ One choice in a `<select>` or a radio group, with the current one marked. `isSel
 | `count` | `number \| null` | from `PanelNavItemModel` — A waiting count — the approval queue, unread messages — or `null`. |
 | `current` | `PanelNavCurrent \| null` | from `PanelNavItemModel` — `null` when the reader is somewhere else entirely. |
 | `isRecord` | `boolean` | from `PanelNavItemModel` — A page reached from elsewhere rather than from the rail — warning a member, editing one forum. It is shown as where you are and it is not a link, because a link to the page you are on that also needs an argument you no longer have is a dead end. Only ever present while the reader is on it. |
-| `children` | `readonly PanelNavItemModel[]` | Already filtered to what belongs on screen: a section's children are listed while it `isOpen`, and a record child only while it is the page. |
+| `children` | `readonly PanelNavItemModel[]` | Available destinations, including those in closed sections so a menu can expand them without navigation. A record child appears only on its page. |
 | `isOpen` | `boolean` | The reader is on this section or inside it. |
 | `isOverview` | `boolean` | The panel's front page, which sits above the sections rather than among them. Exactly one section carries this. |
 
@@ -956,7 +956,7 @@ One search result: where it goes, and enough of it to decide whether to go. `exc
 
 ### SearchRefineModel
 
-Filtering and sorting for a results page, in the order of how often it is used: the count, the order, what is already narrowing the page, and — folded away until wanted — the filters themselves. ## Why the order is links and the filters are a form Changing the order is one decision and the commonest one, so `sorts` are links: one click, nothing to submit, and each href carries the filters already applied. Filtering is several decisions at once — a forum *and* a date, say — so `choices` are a GET form with one submit, and the result is a URL. `applied` is the reverse of both: one chip per filter that is on, each with an href that removes only itself. A reader with JavaScript off gets all three, because all three are ordinary HTML. ## The space this is allowed to take A results page is a listing, and a filter panel that fills the screen above it is a listing you cannot see. This is a strip, not a panel: labels sit beside their controls rather than above them, and the whole thing is meant to read as one bar between the heading and the results. Hiding it behind a disclosure is the other way to save the space and a worse one — a filter nobody can see is a filter nobody uses, and a reader who cannot see how a page was narrowed does not trust it. ## Counts, and what they count An option's label carries the number of results it would leave, counted against the search *without* the forum and author filters applied — so the counts stay put as a reader moves between forums instead of collapsing to the one they are already in. `note` carries the caveat when the board is big enough that the count is a floor rather than a total.
+Filtering and sorting for a results page, in the order of how often it is used: the count, the order, what is already narrowing the page, and — folded away until wanted — the filters themselves. ## Why the order is links and the filters are a form Changing the order is one decision and the commonest one, so `sorts` are links: one click, nothing to submit, and each href carries the filters already applied. Filtering is several decisions at once — a forum *and* a date, say — so `choices` are a GET form with one submit, and the result is a URL. `applied` is the reverse of both: one chip per filter that is on, each with an href that removes only itself. A reader with JavaScript off gets all three, because all three are ordinary HTML. ## The space this is allowed to take Keep the count, sort links and applied filters together above the results. Labeled controls can use columns on wider screens and stack on phones so long forum and author names remain readable. Preserve visible labels and usable touch targets without making the page scroll horizontally. ## Counts, and what they count An option's label carries the number of results it would leave, counted against the search *without* the forum and author filters applied — so the counts stay put as a reader moves between forums instead of collapsing to the one they are already in. `note` carries the caveat when the board is big enough that the count is a floor rather than a total.
 
 | Field | Type | Notes |
 |---|---|---|

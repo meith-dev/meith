@@ -5,6 +5,7 @@ import {
   type PluginPageContext,
   pluginTabClass,
 } from '@meith/plugin-kit'
+import { buttonVariants, controlVariants, textLinkVariants } from '@meith/ui'
 
 import { mayAdd, mayManage, resolveCalendarConfig } from '../access'
 import {
@@ -60,7 +61,7 @@ function EventRow({
       <DateBlock event={event} locale={locale} />
 
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-semibold leading-tight">{event.title}</p>
+        <p className="font-semibold leading-snug [overflow-wrap:anywhere]">{event.title}</p>
 
         <p className="text-muted-foreground text-sm">
           <time dateTime={event.startsAt.toISOString()}>
@@ -72,27 +73,27 @@ function EventRow({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <span className="text-muted-foreground">{relativeHint(event.startsAt, now, locale)}</span>
           {href !== null && (
-            <a className="underline underline-offset-2" href={href}>
+            <a className={textLinkVariants()} href={href}>
               {translated(context, 'calendar.event.discuss')}
             </a>
           )}
           <a
-            className="underline underline-offset-2"
+            className={textLinkVariants()}
             href={`/api/plugins/calendar/events/ics?id=${event.id}`}
           >
             {translated(context, 'calendar.event.download')}
           </a>
           {manageable && (
             <>
-              <a
-                className="underline underline-offset-2"
-                href={`/plugins/calendar?edit=${event.id}`}
-              >
+              <a className={textLinkVariants()} href={`/plugins/calendar?edit=${event.id}`}>
                 {translated(context, 'calendar.event.edit')}
               </a>
               <form method="post" action="/api/plugins/calendar/events/delete">
                 <input type="hidden" name="id" value={event.id} />
-                <button type="submit" className="underline underline-offset-2">
+                <button
+                  type="submit"
+                  className={buttonVariants({ variant: 'destructive', size: 'sm' })}
+                >
                   {translated(context, 'calendar.event.delete')}
                 </button>
               </form>
@@ -173,53 +174,53 @@ function EventForm({
       {event !== null && <input type="hidden" name="id" value={event.id} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+        <label className="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2">
           {translated(context, 'calendar.event.title')}
           <input
             name="title"
             required
             maxLength={120}
             defaultValue={event?.title ?? ''}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           {translated(context, 'calendar.event.starts')}
           <input
             name="starts_at"
             type="datetime-local"
             required
             defaultValue={toDateTimeInput(event?.startsAt ?? null)}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           {translated(context, 'calendar.event.until')}
           <input
             name="ends_at"
             type="datetime-local"
             defaultValue={toDateTimeInput(event?.endsAt ?? null)}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           {translated(context, 'calendar.event.location')}
           <input
             name="location"
             maxLength={120}
             defaultValue={event?.location ?? ''}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           {translated(context, 'calendar.event.thread')}
           <input
             name="thread"
             defaultValue={event?.threadId == null ? '' : String(event.threadId)}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           {translated(context, 'calendar.event.link')}
           <input
             name="link"
@@ -227,19 +228,19 @@ function EventForm({
             maxLength={500}
             placeholder="https://"
             defaultValue={event?.linkUrl ?? ''}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
           <span className="text-muted-foreground text-xs">
             {translated(context, 'calendar.event.linkHint')}
           </span>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           {translated(context, 'calendar.event.linkText')}
           <input
             name="link_text"
             maxLength={40}
             defaultValue={event?.linkLabel ?? ''}
-            className="rounded border p-1.5"
+            className={controlVariants()}
           />
           <span className="text-muted-foreground text-xs">
             {translated(context, 'calendar.event.linkTextHint')}
@@ -248,7 +249,7 @@ function EventForm({
       </div>
 
       <div className="flex items-center gap-3">
-        <button type="submit" className="bg-muted rounded border px-3 py-1.5 text-sm">
+        <button type="submit" className={buttonVariants({ variant: 'primary' })}>
           {submit}
         </button>
         {event !== null && (
@@ -295,7 +296,7 @@ export async function CalendarPage(context: PluginPageContext) {
   return (
     <div className="flex flex-col gap-6">
       <nav aria-label={translated(context, 'calendar.page.views')}>
-        <ul className={PLUGIN_TAB_LIST}>
+        <ul data-nav-tabs className={PLUGIN_TAB_LIST}>
           <li className="shrink-0">
             <a
               href="/plugins/calendar"

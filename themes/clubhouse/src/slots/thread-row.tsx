@@ -62,18 +62,18 @@ export function ThreadRow({
         </p>
       </div>
 
-      <span className="col-start-2 md:col-start-3 md:block md:text-right">
+      <span className="col-start-2 @3xl/card:col-start-3 @3xl/card:block @3xl/card:text-right">
         <Tally value={thread.replyCount} label={c('replies')} />
-        <span className="ms-3 md:hidden">
+        <span className="ms-3 @3xl/card:hidden">
           <Tally value={thread.viewCount} label={c('views')} />
         </span>
       </span>
 
-      <span className="hidden md:block md:text-right">
+      <span className="hidden @3xl/card:block @3xl/card:text-right">
         <Tally value={thread.viewCount} label={c('views')} />
       </span>
 
-      <div className="col-start-2 min-w-0 text-xs text-muted-foreground md:col-start-5">
+      <div className="col-start-2 min-w-0 text-xs text-muted-foreground @3xl/card:col-start-5">
         {thread.lastPost === null ? (
           <span className={MICRO}>{c('noRepliesYet')}</span>
         ) : (

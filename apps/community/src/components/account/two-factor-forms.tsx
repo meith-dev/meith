@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 
-import { buttonVariants } from '@meith/ui'
+import { buttonVariants, surfaceVariants } from '@meith/ui'
 
 import { EMPTY_STATE, type FormState } from '@/server/auth-form-state'
 import {
@@ -18,10 +18,9 @@ import { Field, FormError, PendingButton } from '../auth/form-controls'
 import { OtpField, otpRecoveryFromCopy } from '../auth/otp-field'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const CARD = 'flex flex-col gap-4 rounded-lg border border-border bg-card p-5'
+const CARD = surfaceVariants({ padded: true })
 
-const BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const BUTTON = buttonVariants({ variant: 'primary', size: 'default' })
 
 function RecoveryCodes({ state, copy }: { readonly state: FormState; readonly copy: Copy }) {
   const codes = state.values?.[RECOVERY_CODES_FIELD]

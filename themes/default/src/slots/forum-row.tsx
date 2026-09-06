@@ -29,15 +29,17 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
     <li
       data-unread={forum.isUnread ? '' : undefined}
       className={
-        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-4 py-3.5 transition-colors hover:bg-muted/50 sm:px-5' +
-        (isLink ? '' : ' md:grid-cols-[auto_minmax(0,1fr)_9rem_16rem] md:items-center md:gap-x-5')
+        'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 px-4 py-4 transition-colors hover:bg-muted/50 sm:px-5' +
+        (isLink
+          ? ''
+          : ' @3xl/card:grid-cols-[auto_minmax(0,1fr)_6rem_13rem] @3xl/card:items-center @3xl/card:gap-x-5')
       }
     >
-      <Tile label={forum.title} unread={forum.isUnread} className="mt-0.5 md:mt-0">
+      <Tile label={forum.title} unread={forum.isUnread} className="mt-0.5 @3xl/card:mt-0">
         {isLink ? <LinkGlyph /> : undefined}
       </Tile>
 
-      <div className="min-w-0">
+      <div className="min-w-0 [overflow-wrap:anywhere]">
         <a
           href={forum.href}
           className={
@@ -70,9 +72,9 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
       </div>
 
       {!isLink && (
-        <div className="col-start-2 flex min-w-0 flex-col gap-y-1 text-xs text-muted-foreground md:contents">
+        <div className="col-start-2 flex min-w-0 flex-col gap-y-1 text-xs text-muted-foreground @3xl/card:contents">
           <Figures
-            className="md:col-start-3 md:justify-self-end"
+            className="@3xl/card:col-start-3 @3xl/card:justify-self-end"
             items={[
               {
                 label: c('threadsLabel'),
@@ -89,18 +91,18 @@ export function ForumRow({ forum, copy }: ForumRowSlotModel & { copy: SlotCopy }
             ]}
           />
 
-          <div className="order-first flex min-w-0 max-w-full flex-wrap gap-x-1 md:order-none md:col-start-4 md:block md:border-l md:border-border md:pl-5">
+          <div className="order-first flex min-w-0 max-w-full flex-wrap gap-x-1 @3xl/card:order-none @3xl/card:col-start-4 @3xl/card:block @3xl/card:border-l @3xl/card:border-border @3xl/card:pl-5">
             {forum.lastPost === null ? (
               <span className="text-forum-read">{c('noPostsYet')}</span>
             ) : (
               <>
                 <a
                   href={forum.lastPost.href}
-                  className={`max-w-full truncate font-medium text-foreground md:block ${LINK}`}
+                  className={`max-w-full truncate font-medium text-foreground @3xl/card:block ${LINK}`}
                 >
                   {forum.lastPost.threadTitle}
                 </a>
-                <span className="md:mt-0.5 md:block md:truncate">
+                <span className="@3xl/card:mt-0.5 @3xl/card:block @3xl/card:truncate">
                   {c('by')} <UserRef user={forum.lastPost.author} className="font-normal" />{' '}
                   {c('dot')} <Stamp at={forum.lastPost.at} />
                 </span>

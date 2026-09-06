@@ -1,3 +1,4 @@
+import { mobileHeaderNavCopy } from '@meith/theme-default'
 import type { SlotCopy, Translator } from '@meith/theme-kit'
 
 function copyFor(t: Translator, keys: readonly string[]): SlotCopy {
@@ -60,7 +61,7 @@ export function forumRowCopy(t: Translator): SlotCopy {
 }
 
 export function headerCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['midnight.header.sectionsLabel'])
+  return { ...mobileHeaderNavCopy(t), ...copyFor(t, ['midnight.header.sectionsLabel']) }
 }
 
 export function latestPostsCopy(t: Translator): SlotCopy {

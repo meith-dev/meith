@@ -13,6 +13,11 @@ import {
   Field,
   Input,
   NativeSelect,
+  NavTabs,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageTitle,
 } from '@meith/ui'
 
 import { LINK, pageAt, Stamp } from '../shared'
@@ -37,16 +42,18 @@ export function SearchResults({
       tabIndex={-1}
       className={`${pageAt('max-w-3xl')} flex flex-1 flex-col gap-6 py-8`}
     >
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">
-          {c('resultsFor')} {c('openQuote')}
-          {terms}
-          {c('closeQuote')}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {c('searched')} <Stamp at={searchedAt} />. {c('searchedNote')}
-        </p>
-      </div>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageTitle>
+            {c('resultsFor')} {c('openQuote')}
+            {terms}
+            {c('closeQuote')}
+          </PageTitle>
+          <PageDescription>
+            {c('searched')} <Stamp at={searchedAt} />. {c('searchedNote')}
+          </PageDescription>
+        </PageHeaderContent>
+      </PageHeader>
 
       {refine !== undefined && <Refine {...refine} copy={copy} />}
 
@@ -147,32 +154,13 @@ function Refine({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="text-sm font-medium text-foreground">{summary}</p>
 
-        <nav
-          aria-label={sortsLabel}
-          className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface p-1"
-        >
-          {sorts.map((sort) => (
-            <a
-              key={sort.label}
-              href={sort.href}
-              {...(sort.isCurrent ? { 'aria-current': 'true' as const } : {})}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs whitespace-nowrap transition-colors',
-                sort.isCurrent
-                  ? 'bg-card font-semibold text-foreground shadow-sm'
-                  : 'font-medium text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {sort.label}
-            </a>
-          ))}
-        </nav>
+        <NavTabs label={sortsLabel} tabs={sorts} />
 
         {applied.map((chip) => (
           <a
             key={chip.label}
             href={chip.removeHref}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/20"
+            className="inline-flex min-h-8 pointer-coarse:min-h-11 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/20"
           >
             {chip.label}
             <span aria-hidden="true">{c('removeFilterX')}</span>
@@ -184,7 +172,7 @@ function Refine({
       <form
         method="get"
         action={action}
-        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-2.5"
+        className="grid grid-cols-1 items-end gap-3 border-t border-border pt-3 sm:grid-cols-2"
       >
         {choices.map((choice) => (
           <Filter
@@ -197,7 +185,7 @@ function Refine({
 
         <button
           type="submit"
-          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'h-8')}
+          className={cn(buttonVariants({ variant: 'secondary' }), 'justify-self-start')}
         >
           {submitLabel}
         </button>
@@ -227,16 +215,11 @@ function Filter({
   const id = `filter-${name}`
 
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="flex min-w-0 flex-col gap-2">
       <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
-      <NativeSelect
-        id={id}
-        name={name}
-        defaultValue={selected?.value ?? ''}
-        className="h-8 w-auto min-w-0 py-0 text-xs"
-      >
+      <NativeSelect id={id} name={name} defaultValue={selected?.value ?? ''} className="w-full">
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

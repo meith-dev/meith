@@ -13,7 +13,7 @@ import {
   warnings,
 } from '@meith/install'
 import { isUsableOrigin, MAIL_PRESETS, normaliseOrigin } from '@meith/settings'
-import { Alert, AlertDescription, AlertTitle, Disclosure } from '@meith/ui'
+import { Alert, AlertDescription, AlertTitle, Disclosure, PageTitle } from '@meith/ui'
 
 import { InstallForm } from '@/components/install/install-form'
 import { InstallRestoreForm } from '@/components/install/restore-form'
@@ -88,9 +88,7 @@ export default async function InstallPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          {t.t('page.install-this-board')}
-        </h1>
+        <PageTitle>{t.t('page.install-this-board')}</PageTitle>
         <p className="text-sm text-muted-foreground">{t.t('page.this-page-works-once-when')}</p>
       </header>
 

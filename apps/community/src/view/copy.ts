@@ -21,6 +21,8 @@ export function patternCopy(
 }
 
 const CHROME_KEYS = [
+  'form.showPassword',
+  'form.hidePassword',
   'form.working',
   'form.notSaved',
   'confirm.confirm',

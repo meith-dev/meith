@@ -34,10 +34,10 @@ export const TAB =
   'inline-flex h-11 items-center px-3.5 text-sm font-bold tracking-[0.03em] whitespace-nowrap uppercase transition-colors'
 
 export const BUTTON =
-  'inline-flex h-8 items-center rounded-sm px-3 text-[0.6875rem] font-bold tracking-[0.08em] whitespace-nowrap uppercase transition-colors'
+  'inline-flex h-8 pointer-coarse:min-h-11 items-center rounded-sm px-3 text-[0.6875rem] font-bold tracking-[0.08em] whitespace-nowrap uppercase transition-colors'
 
 export const TABLE_ROW =
-  'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 px-4 py-2.5 md:grid-cols-[auto_minmax(0,1fr)_4.5rem_4.5rem_14rem] md:items-center'
+  'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 px-4 py-2.5 @3xl/card:grid-cols-[auto_minmax(0,1fr)_4.5rem_4.5rem_14rem] @3xl/card:items-center'
 
 export function ClubBar({ className }: { className?: string }) {
   return (
@@ -72,7 +72,7 @@ export function ColumnHeads({
   return (
     <div
       aria-hidden="true"
-      className={`hidden border-b-2 border-b-secondary bg-surface md:grid ${TABLE_ROW} py-1.5`}
+      className={`hidden border-b-2 border-b-secondary bg-surface @3xl/card:grid ${TABLE_ROW} py-1.5`}
     >
       <span />
       <span className={MICRO}>{first}</span>

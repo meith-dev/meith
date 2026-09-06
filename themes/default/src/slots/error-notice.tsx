@@ -1,6 +1,6 @@
 import type { ErrorNoticeModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { buttonVariants, Card, CardContent, CardFooter } from '@meith/ui'
+import { buttonVariants, Card, CardContent, CardFooter, PageTitle } from '@meith/ui'
 
 import { NUMERIC } from '../shared'
 
@@ -20,7 +20,7 @@ export function ErrorNotice({
         <p className={`text-xs font-medium tracking-wide text-destructive uppercase ${NUMERIC}`}>
           {c('error')} {status}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">{title}</h1>
+        <PageTitle className="mt-1 sm:text-2xl">{title}</PageTitle>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
 
         <a href={homeHref} className={`mt-5 ${buttonVariants({ variant: 'primary' })}`}>

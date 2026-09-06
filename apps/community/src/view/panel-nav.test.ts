@@ -129,8 +129,10 @@ describe('buildPanelNavModel', () => {
     expect(build('/panel/things').sections.map((s) => s.isOpen)).toEqual([false, true])
   })
 
-  it('lists a closed section’s children nowhere', () => {
-    expect(build('/panel').sections[1]?.children).toEqual([])
+  it('keeps a closed section’s destinations available for an expandable menu, excluding record pages', () => {
+    expect(build('/panel').sections[1]?.children.map((child) => child.href)).toEqual([
+      '/panel/things/new',
+    ])
   })
 
   it('lists an open section’s children, and the record only where it is', () => {

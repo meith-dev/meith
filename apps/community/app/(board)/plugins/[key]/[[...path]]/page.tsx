@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
 import { pluginPagePath } from '@meith/plugin-kit'
+import { PageTitle } from '@meith/ui'
 
 import { boardUrl } from '@/server/board-url'
 import { getActor } from '@/server/context'
@@ -59,7 +60,7 @@ export default async function PluginBoardPage({
       tabIndex={-1}
       className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8 flex-1"
     >
-      <h1 className="font-heading text-2xl font-semibold">{result.title}</h1>
+      <PageTitle>{result.title}</PageTitle>
       {result.node === null ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           {(await getTranslator()).t('board.plugin.failed')}

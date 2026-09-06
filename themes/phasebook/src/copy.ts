@@ -1,3 +1,4 @@
+import { mobileHeaderNavCopy, mobilePanelNavCopy } from '@meith/theme-default'
 import type { SlotCopy, Translator } from '@meith/theme-kit'
 
 function copyFor(t: Translator, keys: readonly string[]): SlotCopy {
@@ -77,7 +78,7 @@ export function forumRowCopy(t: Translator): SlotCopy {
 }
 
 export function headerCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['phasebook.header.sectionsAriaLabel'])
+  return { ...mobileHeaderNavCopy(t), ...copyFor(t, ['phasebook.header.sectionsAriaLabel']) }
 }
 
 export function latestPostsCopy(t: Translator): SlotCopy {
@@ -134,7 +135,7 @@ export function paginationCopy(t: Translator): SlotCopy {
 }
 
 export function panelNavCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['phasebook.panelNav.waiting'])
+  return { ...mobilePanelNavCopy(t), ...copyFor(t, ['phasebook.panelNav.waiting']) }
 }
 
 export function postActionsCopy(t: Translator): SlotCopy {

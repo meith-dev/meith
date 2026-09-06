@@ -52,7 +52,7 @@ test('the whole second-factor lifecycle survives being hydrated', async ({ page 
   await page.context().clearCookies()
   await page.goto('/login')
   await page.getByLabel('Username or email').fill(member)
-  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 
   await expect(page).toHaveURL(/\/login\/verify$/)
@@ -80,7 +80,7 @@ test('the code boxes hydrate in, and a recovery code still signs in through the 
   await page.context().clearCookies()
   await page.goto('/login')
   await page.getByLabel('Username or email').fill(member)
-  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 
   await expect(page).toHaveURL(/\/login\/verify$/)

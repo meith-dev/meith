@@ -582,7 +582,9 @@ understand before importing from it:
 
 | Import | What it is |
 |---|---|
-| `@meith/ui` | Everything that renders on the **server**: `Card`, `Badge`, `Alert`, `Avatar`, `Field`, `Input`, `NativeSelect`, `Separator`, `Empty`, `Disclosure`, plus the `buttonVariants` and `badgeVariants` class recipes |
+| `@meith/ui` | Everything that renders on the **server**: `Card`, `Badge`, `Alert`, `Avatar`, `Field`, `Input`, `NativeSelect`, `Separator`, `Empty`, `Disclosure`, `PageHeader`, `PageTitle`, `NavTabs`, plus the `buttonVariants`, `controlVariants` and `badgeVariants` class recipes |
+| `@meith/ui/nav-tabs-enhancer` | `NavTabsEnhancer` — keeps the current navigation link in view without moving the page |
+| `@meith/ui/password-input` | `PasswordInput` — an optional client island with localized `showLabel` and `hideLabel` props |
 | `@meith/ui/button` | The Base UI `Button` — a `"use client"` island |
 | `@meith/ui/menu` | The Base UI `Menu` — the other `"use client"` island |
 
@@ -608,6 +610,85 @@ None of this is required. `@meith/theme-kit` is the only dependency a theme
 *needs*, and a theme that builds its own markup from scratch (as
 `themes/midnight` largely does) is a supported thing to be.
 
+### Shared design system
+
+The default theme and app surfaces use the same foundation. New themes can
+change colours, typefaces, radius and elevation through tokens while reusing
+the layout and interaction components. Avoid copying a component's class
+recipe into a slot when the shared primitive already expresses it.
+
+| Foundation | Shared rule |
+|---|---|
+| Spacing | Use the 4px scale: 8px within a control or field, 16–20px inside cards, 24px between page sections, and 32px of desktop page padding. |
+| Typography | `PageTitle` uses the heading token at 24px on small screens and 30px on larger screens. Card headings are 16px; body and form text are 14–16px; supporting metadata is 12px. |
+| Surfaces | Page uses `background`, cards use `card`, and card headers use a quieter `surface` band. Cards share token-derived corners, borders and elevation. |
+| Controls | Standard buttons, inputs and selects are at least 40px high; large actions are 44px. Compact controls are 32px on a fine pointer. Shared controls have a 44px minimum touch height. |
+| States | Primary actions use `primary` and `primary-hover`; keyboard focus uses an explicit 2px `ring` outline; invalid fields use `destructive` for border and focus. Disabled controls retain their label and reduce emphasis. |
+| Reading | Default post bodies stop at a prose measure, while attachments and post actions retain the available width. Long titles wrap without widening the page. |
+
+`PageHeader`, `PageHeaderContent`, `PageTitle`, `PageDescription` and
+`PageHeaderActions` compose a page introduction. Content and actions wrap
+when they cannot fit alongside each other. Use them for listings, search,
+composers and control panels; `className` overrides allow a theme's own
+heading treatment. Authentication uses the same pieces with a smaller title.
+
+```tsx
+<PageHeader>
+  <PageHeaderContent>
+    <PageTitle>{title}</PageTitle>
+    <PageDescription>{description}</PageDescription>
+  </PageHeaderContent>
+  <PageHeaderActions>{actions}</PageHeaderActions>
+</PageHeader>
+```
+
+`NavTabs` renders ordinary navigation links with `aria-current="page"`,
+optional counts and an optional aside. Its single row scrolls horizontally
+when space is limited, with padding for keyboard focus. It is server-rendered navigation,
+not an ARIA tab widget: links still navigate with JavaScript disabled.
+The app's `ViewTabs` and the default discovery screen use this one component.
+The root layout mounts `NavTabsEnhancer` once. It reveals the current link on
+initial render, when the active link changes, and when the strip resizes; it
+scrolls only the strip horizontally and leaves manual scrolling alone. This
+also handles navigation that arrives after the initial page render. Custom
+plugin strips opt in with `data-nav-tabs` and `aria-current` on the active link.
+Without JavaScript, the same native links remain horizontally scrollable.
+
+`controlVariants({ size: 'sm' })` supplies compact native controls, such as
+the appearance selector. `Input`, `NativeSelect` and `Textarea` use its
+standard recipe; native attributes and `className` remain available.
+`NativeSelect` also accepts `controlSize="sm"` independently of the native
+`size` attribute used by multiple-selection lists.
+
+`PasswordInput` preserves native input attributes, password manager autocomplete
+and the same field value when visibility changes. It starts masked; the localized
+visibility button appears only after hydration, so JavaScript-free forms do not
+show an inert control. Pair it with `Field` rather than placing the input and
+button together inside a wrapping label. Login, registration, reset and account
+password forms use this shared control.
+
+Search refinements use the same navigation and field recipes, stacking labeled
+filters on phones and using two columns when space allows. Poll composer inputs
+also use the standard field geometry.
+
+`surfaceVariants({ padded: true })` styles native forms and plugin sections
+with the same surface, spacing and depth as cards. The plugin kit's existing
+`PLUGIN_CARD`, `PLUGIN_NOTE`, `PLUGIN_TAB_LIST` and `pluginTabClass` exports
+now delegate to these shared recipes. Calendar and Dues use the same control
+and button recipes as the user, moderation and administration panels.
+
+Every `Card` establishes the named `card` size container. The default and
+Clubhouse forum and thread rows use `@3xl/card:` (48rem of card width),
+including their figures and column headings, to reveal desktop columns.
+A sidebar or narrow panel therefore retains the compact arrangement even
+on a wide browser. Use the same named container when adding a listing,
+and keep its title and metadata usable in the compact layout.
+
+The default board index includes a visible page heading, and the default
+shell shares a 1280px maximum width across its header, content, panels and
+footer. Its footer separates forum navigation from appearance preferences.
+Theme and scheme controls continue to submit native forms without scripting.
+
 ### Form controls are 16px on a touch screen, whatever a theme asks for
 
 `globals.css` ends with one rule, outside every Tailwind layer, that sets
@@ -632,68 +713,63 @@ button a theme wants at least 44px tall on a touch screen: a Tailwind
 `pointer-coarse:h-11` (or `pointer-coarse:min-h-11`) alongside the desktop
 size, exactly as `Header`'s own nav links do in every shipped theme.
 
-### Mobile navigation is a disclosure, not an island
+### Panel navigation on phones
 
-`Header`'s nav collapses behind the house `<details>`/`<summary>` disclosure
-below the `lg` breakpoint — the same pattern `PanelNav` uses for the admin
-rail (`themes/default/src/slots/panel-nav.tsx`). A theme that renders
-`navigation` for a reader on a phone should render two things, not one:
+`NavigationDrawer` from `@meith/ui` is a server-rendered hamburger trigger and
+drawer opening from the right (the inline end in RTL). `NavigationDrawerTrigger`
+can live separately in the top navigation bar by targeting the drawer ID; set
+`showTrigger={false}` on that drawer. Native `popover="auto"` controls open and close it, including an
+outside tap and Escape, even with JavaScript disabled. The board stylesheet
+keeps its header visible, scrolls the navigation independently, dims the page
+and respects reduced motion. It uses the browser's top layer to avoid clipping
+inside a panel or sticky header.
 
-- The existing hover/`:focus-within` dropdown strip, now `hidden lg:flex` (or
-  `lg:block`) so it only reaches a pointer wide enough to hover with.
-- A second, `lg:hidden` block: the nav items in a `<details>` a reader taps
-  open, with any item carrying a `submenu` as its own nested `<details>`
-  rather than a hover panel. The default theme puts that `<details>` in the
-  header's top row as a menu button beside the account controls, and lays
-  the open list over the page as an absolutely positioned panel under the
-  header (the header is `sticky`, so the panel stays put while the page
-  scrolls, and `PanelNav`'s own phone-size disclosure sticks just below it
-  at the same `top-14` offset); a theme may just as well render it as a row of its own that
-  pushes the page down, as `themes/midnight` does. Either way the
-  `<summary>` must carry the nav's label — visibly, or in an `sr-only`
-  span beside an icon — because it is the only name the control has. Give every submenu `<details>` in one `Header`
-  the same `name` attribute — the HTML standard makes same-named `<details>`
-  siblings mutually exclusive, so opening one closes another without a line
-  of script. That attribute is a recent addition (Chrome 120, Firefox 124,
-  Safari 17.4 — late 2023 into early 2024) and degrades gracefully: on an
-  older browser each submenu simply stops auto-closing its siblings and
-  keeps opening and closing independently, with no script involved either
-  way, so this is never a no-JS-safety concern — only a tidiness one.
+All five themes share `MobilePanelNav` from `@meith/theme-default` while keeping
+their desktop rails. The drawer starts the current group expanded, highlights
+the current page, and gives other groups native disclosure controls. Every
+sub-section has a full-width touch target and wrapping text. Each expandable
+group includes an Overview link to the group's own page. `mobilePanelNavCopy`
+provides its localized labels when a theme supplies its own PanelNav copy.
 
-Both blocks render the same links at once — only CSS decides which one a
-reader sees — so anything that inspects the DOM directly (a test, a script)
-rather than asking for what is actually rendered will find every link
-twice. Mark the two blocks with `data-nav-view="desktop"` and
-`data-nav-view="mobile"` so a test can say which copy it means — the
-desktop marker on the `<ul>` whose direct children are the top-level
-items, since the admin navigation spec walks `> li > a` from it: an
-accessibility-tree query (`getByRole`) already only sees the one CSS is
-showing and needs no help, but a raw CSS locator (`page.locator(...)`,
-`toHaveCount`) does not know about `display: none` at all and must be
-scoped to one block explicitly.
+`PanelNavSectionModel.children` includes destinations from closed sections so
+readers can expand them without navigating to the parent. Record-specific
+items remain limited to their current page. Desktop rails continue to show
+children only when `isOpen` is true.
 
-This is no-JS-safe by construction: a `<details>` opens and closes on tap or
-click with no script running at all, which is what lets the mobile nav reach
-every reader regardless of JavaScript. Nothing about it may become the only
-way to reach a page — the desktop dropdown and the collapsed one must expose
-the same links.
+### Mobile header navigation
 
-An item's own link still belongs inside its `<summary>`, next to the
-disclosure triangle, so a reader who wants that item's own page can tap its
-label directly rather than opening the submenu first. A `<summary>` may not
-validly contain another link, but every browser tolerates it: a tap on the
-label runs the link's own default action (the page navigates, so whatever
-the `<details>` did next never matters), and a tap anywhere else on the row —
-the triangle included — toggles the disclosure, because that tap has no
-interactive element of its own to answer to. Give the triangle a dedicated,
-non-overlapping `size-11` box so that "anywhere else" is a real 44px target
-and not the sliver of padding a `flex-1` label leaves beside it.
+All five headers share `MobileHeaderNav` from `@meith/theme-default`, with
+localized labels supplied by `mobileHeaderNavCopy`. Below `lg`, the hamburger
+sits at the end of the top bar and opens the same right-side `NavigationDrawer`
+as the panels. The desktop navigation keeps each theme's own layout.
+
+On account and moderator pages, the header button targets the panel drawer.
+The stylesheet selects this button from the presence of the panel drawer ID,
+so there is one visible hamburger and no duplicate toolbar above the content.
+The admin header uses `NavigationDrawerTrigger` directly, alongside a compact
+sign-out icon on phones that retains its full accessible label. Custom headers should
+include `MobileHeaderNav` even when the board navigation array is empty, so
+panel navigation remains reachable.
+
+Main navigation groups use native `<details>` with a full-width summary that
+expands the group. An Overview link inside the group reaches its parent page;
+child links wrap and have touch-sized targets. The drawer and its groups work
+with JavaScript disabled. Outside taps, Escape and the close button dismiss
+the drawer through native popover behavior. The scrollable body keeps the
+close button available on short screens.
+
+Both desktop and mobile blocks render the same destinations. Their
+`data-nav-view="desktop"` and `data-nav-view="mobile"` markers let DOM-based
+tests select the intended copy. Keep the desktop marker on the list whose
+direct children contain the top-level links.
 
 A theme may go further and tag any disclosure it wants dismissed by an
 outside tap or <kbd>Escape</kbd> with `data-nav-disclosure`. `PageShell`
 mounts `NavDisclosureEnhancer` — an app-level, `"use client"` component,
 never a slot — once per page; it closes every open `[data-nav-disclosure]`
-on a pointer down outside it or an <kbd>Escape</kbd> keypress. This is
+on a pointer down outside it or an <kbd>Escape</kbd> keypress. Escape returns
+focus to the summary when focus was inside the closing disclosure. The admin
+shell mounts the same enhancer for any themed disclosures that opt in. This is
 strictly additive: a theme that never adds the attribute still has a working
 disclosure, just without the tap-outside convenience, and a slot itself must
 never become the client boundary — `Header` stays a plain, "use client"-free

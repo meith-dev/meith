@@ -1,38 +1,21 @@
-import type { DiscoveryViewModel, SlotCopy, TabModel } from '@meith/theme-kit'
+import type { DiscoveryViewModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { Avatar, buttonVariants, Card, CardRows, cn, Empty, EmptyDescription } from '@meith/ui'
+import {
+  Avatar,
+  buttonVariants,
+  Card,
+  CardRows,
+  cn,
+  Empty,
+  EmptyDescription,
+  NavTabs,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageTitle,
+} from '@meith/ui'
 
-import { LINK, NUMERIC, PAGE_TITLE, PILL, pageAt, Stamp } from '../shared'
-
-const TAB =
-  'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-
-function Tabs({ label, tabs }: { label: string; tabs: readonly TabModel[] }) {
-  if (tabs.length === 0) return null
-
-  return (
-    <nav aria-label={label} className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <ul className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
-        {tabs.map((tab) => (
-          <li key={tab.href} className="shrink-0">
-            <a
-              href={tab.href}
-              {...(tab.isCurrent ? { 'aria-current': 'page' as const } : {})}
-              className={cn(
-                TAB,
-                tab.isCurrent
-                  ? 'bg-card font-semibold text-primary shadow-sm'
-                  : 'font-medium text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  )
-}
+import { LINK, NUMERIC, PILL, pageAt, Stamp } from '../shared'
 
 export function DiscoveryView({
   title,
@@ -54,12 +37,14 @@ export function DiscoveryView({
       tabIndex={-1}
       className={`${pageAt('max-w-4xl')} flex flex-1 flex-col gap-6 py-6 sm:py-8`}
     >
-      <div className="flex flex-col gap-1">
-        <h1 className={PAGE_TITLE}>{title}</h1>
-        <p className="text-sm text-muted-foreground">{blurb}</p>
-      </div>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageTitle>{title}</PageTitle>
+          <PageDescription>{blurb}</PageDescription>
+        </PageHeaderContent>
+      </PageHeader>
 
-      <Tabs label={tabsLabel} tabs={tabs} />
+      <NavTabs label={tabsLabel} tabs={tabs} />
 
       {refusal !== null ? (
         <p role="alert" className="rounded-lg border border-border bg-card px-4 py-3 text-sm">
@@ -88,7 +73,7 @@ export function DiscoveryView({
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <a
                       href={row.href}
-                      className={`truncate text-[0.9375rem] font-medium text-foreground ${LINK}`}
+                      className={`line-clamp-2 [overflow-wrap:anywhere] text-[0.9375rem] font-medium text-foreground ${LINK}`}
                     >
                       {row.title}
                     </a>

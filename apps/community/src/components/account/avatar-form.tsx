@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import { AVATAR_BOX } from '@meith/avatars/limits'
+import { surfaceVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import { removeAvatarAction, saveAvatarAction } from '@/server/usercp-actions'
@@ -10,7 +11,7 @@ import { removeAvatarAction, saveAvatarAction } from '@/server/usercp-actions'
 import { FormError, SubmitButton } from '../auth/form-controls'
 import { type Copy, fromCopy } from '../shell/copy'
 
-const CARD = 'flex flex-col gap-3 rounded-lg border border-border bg-card p-4'
+const CARD = surfaceVariants({ padded: true })
 
 export function AvatarForm({
   currentUrl,
@@ -86,7 +87,7 @@ export function AvatarForm({
 
       <form action={save} className={CARD} noValidate>
         <FormError message={saveState.error} />
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           <span className="font-medium">{fromCopy(copy, 'accountForm.avatar.choose')}</span>
           <input
             type="file"

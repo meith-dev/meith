@@ -29,7 +29,12 @@ export function announcementCopy(t: Translator): SlotCopy {
 }
 
 export function boardIndexCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['default.boardIndex.boardActivity', 'default.boardIndex.markAllRead'])
+  return copyFor(t, [
+    'default.boardIndex.boardActivity',
+    'default.boardIndex.markAllRead',
+    'default.boardIndex.heading',
+    'default.boardIndex.description',
+  ])
 }
 
 export function boardStatsCopy(t: Translator): SlotCopy {
@@ -103,7 +108,13 @@ export function forumRowCopy(t: Translator): SlotCopy {
 }
 
 export function headerCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['default.header.sections'])
+  return copyFor(t, [
+    'default.header.sections',
+    'default.header.openMenu',
+    'default.header.closeMenu',
+    'default.header.overview',
+    'default.panelNav.open',
+  ])
 }
 
 export function latestPostsCopy(t: Translator): SlotCopy {
@@ -168,7 +179,16 @@ export function paginationCopy(t: Translator): SlotCopy {
 }
 
 export function panelNavCopy(t: Translator): SlotCopy {
-  return copyFor(t, ['default.panelNav.countCap', 'default.panelNav.waiting'])
+  return copyFor(t, [
+    'default.panelNav.countCap',
+    'default.panelNav.waiting',
+    'default.panelNav.open',
+    'default.panelNav.close',
+    'default.panelNav.overview',
+    'default.panelNav.title.admincp',
+    'default.panelNav.title.usercp',
+    'default.panelNav.title.modcp',
+  ])
 }
 
 export function panelPageCopy(t: Translator): SlotCopy {

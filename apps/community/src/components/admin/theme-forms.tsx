@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 
-import { textLinkVariants } from '@meith/ui'
+import { buttonVariants, textLinkVariants } from '@meith/ui'
 
 import { EMPTY_STATE } from '@/server/auth-form-state'
 import {
@@ -42,8 +42,7 @@ import { ThemePreview, ValidatedSample } from './theme-preview'
 const INPUT =
   'w-full rounded-md border border-input bg-card px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const GHOST_BUTTON =
-  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+const GHOST_BUTTON = buttonVariants({ variant: 'outline', size: 'sm' })
 
 const LINK = `${textLinkVariants({ tone: 'inherit', size: 'xs' })} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`
 
@@ -437,7 +436,7 @@ export function ThemeEditorForm({
             )
           })}
 
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="font-medium">{fromCopy(copy, 'adminTheme.css.label')}</span>
             <textarea
               name="customCss"
@@ -552,7 +551,7 @@ export function ImportThemeForm({ themeKey, copy }: { themeKey: string; copy: Co
       <Saved when={state.notice === 'imported'}>{fromCopy(copy, 'adminTheme.import.done')}</Saved>
       <input type="hidden" name="key" value={themeKey} />
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="font-medium">{fromCopy(copy, 'adminTheme.import.label')}</span>
         <textarea name="document" rows={8} className={INPUT} required />
         <span className="text-xs text-muted-foreground">

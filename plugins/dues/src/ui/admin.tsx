@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { PLUGIN_CARD, PLUGIN_NOTE, type PluginAdminPageContext } from '@meith/plugin-kit'
+import { buttonVariants, controlVariants } from '@meith/ui'
 
 import { type DuesConfig, MAX_GRACE_DAYS } from '../config'
 import { formatMinor } from '../money'
@@ -24,14 +25,9 @@ const QUIET_PANEL = PLUGIN_NOTE
 const CARD = PLUGIN_CARD
 const TH = 'px-2 py-1.5 text-left text-xs font-medium text-muted-foreground'
 const TD = 'px-2 py-1.5 align-top'
-const INPUT =
-  'rounded-md border border-border bg-background px-3 py-2 text-sm ' +
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-const ACT_BUTTON =
-  'inline-flex h-8 items-center justify-center rounded-md border border-transparent ' +
-  'bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover'
-const QUIET_BUTTON =
-  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-sm'
+const INPUT = controlVariants()
+const ACT_BUTTON = buttonVariants({ variant: 'primary', size: 'sm' })
+const QUIET_BUTTON = buttonVariants({ variant: 'outline', size: 'sm' })
 
 function fmt(date: Date, context: PluginAdminPageContext): string {
   return context.t.parts(date, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })
@@ -127,7 +123,7 @@ export async function StatusPage({
         <h2 className="font-heading text-lg font-semibold">
           {context.t.t('dues.admin.status.working')}
         </h2>
-        <dl className="flex flex-col gap-1 text-sm">
+        <dl className="flex min-w-0 flex-col gap-2 text-sm">
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">{context.t.t('dues.admin.status.secret')}</dt>
             <dd>
@@ -584,19 +580,19 @@ export async function CodesPage({
           action="/admin/api/plugins/dues/codes/create"
           className="grid gap-3 sm:grid-cols-2"
         >
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.codes.codeHelp')}
             </span>
             <input name="code" autoComplete="off" placeholder="LAUNCH50" className={INPUT} />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.codes.percentHelp')}
             </span>
             <input type="number" name="percent" min={1} max={100} required className={INPUT} />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.codes.planHelp')}
             </span>
@@ -609,13 +605,13 @@ export async function CodesPage({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.codes.redemptionCap')}
             </span>
             <input type="number" name="max" min={1} className={INPUT} />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.codes.expiresHelp')}
             </span>
@@ -731,26 +727,26 @@ function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPag
   const period = plan === undefined ? { length: 90, unit: 'days' } : planPeriodParts(plan)
   return (
     <>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="text-xs text-muted-foreground">
           {context.t.t('dues.admin.plans.name')}
         </span>
         <input name="name" defaultValue={plan?.name ?? ''} required className={INPUT} />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="text-xs text-muted-foreground">
           {context.t.t('dues.admin.plans.description')}
         </span>
         <input name="description" defaultValue={plan?.description ?? ''} className={INPUT} />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex min-w-0 flex-col gap-2 text-sm">
         <span className="text-xs text-muted-foreground">
           {context.t.t('dues.admin.plans.giftGroup')}
         </span>
         <input name="group" defaultValue={plan?.groupKey ?? ''} required className={INPUT} />
       </label>
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           <span className="text-xs text-muted-foreground">
             {context.t.t('dues.admin.plans.price')}
           </span>
@@ -763,7 +759,7 @@ function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPag
             className={INPUT}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           <span className="text-xs text-muted-foreground">
             {context.t.t('dues.admin.plans.currency')}
           </span>
@@ -778,8 +774,8 @@ function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPag
         </label>
       </div>
       {(plan === undefined || plan.mode === 'fixed') && (
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1 text-sm">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.plans.length')}
             </span>
@@ -791,7 +787,7 @@ function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPag
               className={INPUT}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">
               {context.t.t('dues.admin.plans.unit')}
             </span>
@@ -805,7 +801,7 @@ function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPag
         </div>
       )}
       {(plan === undefined || plan.mode === 'auto') && (
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           <span className="text-xs text-muted-foreground">
             {context.t.t('dues.admin.plans.interval')}
           </span>
@@ -816,7 +812,7 @@ function PlanFields({ plan, context }: { plan?: PlanRow; context: PluginAdminPag
         </label>
       )}
       {(plan === undefined || plan.mode === 'auto') && (
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-2 text-sm">
           <span className="text-xs text-muted-foreground">
             {context.t.t('dues.admin.plans.stripePrice')}
           </span>
@@ -937,14 +933,14 @@ export async function PlansAdminPage({
           action="/admin/api/plugins/dues/plans/create"
           className="flex flex-col gap-3"
         >
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-sm">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-2 text-sm">
               <span className="text-xs text-muted-foreground">
                 {context.t.t('dues.admin.plans.key')}
               </span>
               <input name="key" placeholder="day-pass" required className={INPUT} />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-2 text-sm">
               <span className="text-xs text-muted-foreground">
                 {context.t.t('dues.admin.plans.bills')}
               </span>

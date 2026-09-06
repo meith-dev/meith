@@ -1,8 +1,16 @@
 import type { SlotCopy, ThreadViewModel } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import { Badge, buttonVariants, cn } from '@meith/ui'
+import {
+  Badge,
+  buttonVariants,
+  cn,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageTitle,
+} from '@meith/ui'
 
-import { Counts, PAGE_BODY, PAGE_TITLE, Prefix } from '../shared'
+import { Counts, PAGE_BODY, Prefix } from '../shared'
 
 export function ThreadView({
   thread,
@@ -16,9 +24,9 @@ export function ThreadView({
 
   return (
     <div className={PAGE_BODY}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="min-w-0">
-          <h1 className={PAGE_TITLE}>{thread.title}</h1>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageTitle>{thread.title}</PageTitle>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             {thread.prefix !== null && <Prefix prefix={thread.prefix} />}
@@ -43,9 +51,9 @@ export function ThreadView({
               ]}
             />
           </div>
-        </div>
+        </PageHeaderContent>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <PageHeaderActions>
           {watch != null && (
             <form action={watch.action} method="post">
               <button type="submit" className={buttonVariants({ variant: 'outline' })}>
@@ -74,8 +82,8 @@ export function ThreadView({
               {c('replyAction')}
             </a>
           )}
-        </div>
-      </div>
+        </PageHeaderActions>
+      </PageHeader>
 
       {regions.tools !== undefined && (
         <div className="-mb-1 flex flex-col gap-3 empty:hidden">{regions.tools}</div>

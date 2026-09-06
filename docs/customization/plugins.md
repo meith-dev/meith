@@ -1291,3 +1291,20 @@ feature that needs it and documented, if at all, afterwards — which is why
 this one is a gate rather than a habit.
 
 If the check fails, run `pnpm plugin:docs` and commit the result.
+
+### Shared presentation recipes
+
+Plugin pages can import `buttonVariants`, `controlVariants`, `surfaceVariants`
+and `NavTabs` from `@meith/ui` to match the board's controls and surfaces.
+Navigation links scroll horizontally on smaller screens. `NavTabs` marks the
+strip for the shared enhancer to reveal its active link. Custom strips using
+`PLUGIN_TAB_LIST` should add `data-nav-tabs` and mark their active link with
+`aria-current="page"` for the same behavior.
+Declare `@meith/ui` as a dependency when importing it. The kit's existing
+`PLUGIN_CARD`, `PLUGIN_NOTE`, `PLUGIN_TAB_LIST` and `pluginTabClass` remain
+available and now use those same recipes. These are server-safe exports.
+
+The admin host provides the page heading and navigation. It gives the plugin
+an unstyled content region, so a plugin using `PLUGIN_CARD` does not acquire
+a second panel around its own cards. Calendar and Dues demonstrate shared
+fields, actions and surfaces on public pages and in administration.

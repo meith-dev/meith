@@ -850,6 +850,9 @@ importers:
       '@meith/theme-kit':
         specifier: workspace:^
         version: link:../theme-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../ui
       react:
         specifier: ^19.2.0
         version: 19.2.0
@@ -1105,6 +1108,9 @@ importers:
       '@meith/plugin-kit':
         specifier: workspace:^
         version: link:../../packages/plugin-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       react:
         specifier: ^19.2.0
         version: 19.2.8
@@ -1121,6 +1127,9 @@ importers:
       '@meith/theme-kit':
         specifier: workspace:^
         version: link:../../packages/theme-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       react:
         specifier: ^19.2.0
         version: 19.2.0

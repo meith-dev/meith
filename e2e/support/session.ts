@@ -19,13 +19,13 @@ export async function signUp(page: Page, label: string): Promise<string> {
   await page.goto('/register')
   await page.getByLabel('Username').fill(username)
   await page.getByLabel('Email').fill(`${username}@example.test`)
-  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByLabel(/I have read and accept/).check()
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page).toHaveURL(/\/login\?registered=1$/)
 
   await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/')
 
@@ -43,7 +43,7 @@ export async function proveCredential(page: Page, password = PASSWORD): Promise<
 export async function signIn(page: Page, username: string, password = PASSWORD): Promise<void> {
   await page.goto('/login')
   await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password').fill(password)
+  await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/')
 }
@@ -62,7 +62,7 @@ export async function enterAdminPanel(page: Page): Promise<void> {
   await signInAsAdmin(page)
 
   await page.goto('/admin')
-  await page.getByLabel('Password').fill(STAFF_PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(STAFF_PASSWORD)
   await page.getByRole('button', { name: 'Enter the control panel' }).click()
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
 }

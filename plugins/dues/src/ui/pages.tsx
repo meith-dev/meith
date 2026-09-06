@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { PLUGIN_CARD, PLUGIN_NOTE, type PluginPageContext } from '@meith/plugin-kit'
 import type { Translator } from '@meith/theme-kit'
+import { buttonVariants, controlVariants } from '@meith/ui'
 
 import type { DuesConfig } from '../config'
 import { formatMinor } from '../money'
@@ -18,14 +19,9 @@ import {
 const QUIET_PANEL = PLUGIN_NOTE
 
 const CARD = PLUGIN_CARD
-const INPUT =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm ' +
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-const BUY_BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md border border-transparent ' +
-  'bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover'
-const QUIET_BUTTON =
-  'inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm'
+const INPUT = controlVariants()
+const BUY_BUTTON = buttonVariants({ variant: 'primary' })
+const QUIET_BUTTON = buttonVariants({ variant: 'outline', size: 'sm' })
 
 function fmtDate(date: Date, t: Translator): ReactNode {
   const label = t.parts(date, {
@@ -180,10 +176,14 @@ function PlanCard({
       </div>
 
       {viewerSignedIn ? (
-        <form method="post" action="/api/plugins/dues/checkout" className="flex flex-col gap-3">
+        <form
+          method="post"
+          action="/api/plugins/dues/checkout"
+          className="mt-auto flex flex-col gap-3"
+        >
           <input type="hidden" name="plan" value={plan.key} />
           {plan.giftable && (
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-2 text-sm">
               <span className="text-xs text-muted-foreground">{t.t('dues.plan.gift')}</span>
               <input
                 name="recipient"
@@ -193,7 +193,7 @@ function PlanCard({
               />
             </label>
           )}
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-2 text-sm">
             <span className="text-xs text-muted-foreground">{t.t('dues.plan.discountCode')}</span>
             <input name="code" defaultValue={defaultCode} autoComplete="off" className={INPUT} />
           </label>
