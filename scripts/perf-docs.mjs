@@ -308,9 +308,7 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
   out.push('')
   out.push('Every number here is measured on a **single-instance** board — one web')
   out.push('process with the per-process cache, no Redis. That is the stock topology')
-  out.push(
-    'and the honest baseline. A board [scaled out](../operating/scaling.md) answers from a',
-  )
+  out.push('and the honest baseline. A board [scaled out](../operating/scaling.md) answers from a')
   out.push('shared cache instead of an in-process map, so its numbers differ; measure')
   out.push('your own rather than reading these across.')
   out.push('')
