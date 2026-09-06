@@ -1,6 +1,6 @@
 # Deploying by hand
 
-**No panel.** The [Quickstart](./coolify.md) deploys a board with
+**No panel.** The [Deploying with Coolify](./coolify.md) deploys a board with
 [Coolify](https://coolify.io) — a guided panel that issues the
 certificate, generates the secrets, and redeploys with one button — and
 is the route most boards should take: same four containers, same
@@ -92,14 +92,13 @@ actually runs) and [the plugin API](../../developing/plugins.md) for
 installing one once the board exists.
 
 The workspace carries a deploy kit with **three** routes onto a server,
-not just this one — [Quickstart § Create your
-board](./coolify.md#2-create-your-board) is where the other two are
+not just this one — [Deploying with Coolify § Create your board](./coolify.md#2-create-your-board) is where the other two are
 written up in full:
 
 | File(s) | Route |
 |---|---|
-| `Dockerfile`, `docker-compose.yaml` | Coolify, building the image itself — the Quickstart's default |
-| `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`, `.github/workflows/build.yml` | Coolify, pulling an image GitHub Actions built — the Quickstart's advanced path |
+| `Dockerfile`, `docker-compose.yaml` | Coolify, building the image itself: the Coolify guide's default |
+| `Dockerfile.prebuilt`, `docker-compose.prebuilt.yaml`, `.github/workflows/build.yml` | Coolify, pulling an image GitHub Actions built: the Coolify guide's advanced path |
 | `docker-compose.byhand.yaml` | This page — no panel, a `.env` you write |
 
 A board takes one route at a time. **Delete `docker-compose.yaml` now**,
@@ -137,8 +136,8 @@ type.
 |---|---|
 | `COMPOSE_FILE` | Names the file every plain `docker compose ...` command from here on should run, so nothing below needs a `-f`. Docker Compose reads it out of `.env` the same way it reads everything else in this file. If you kept `docker-compose.yaml` around in step 2, this is also what stops Compose silently preferring it instead. |
 | `POSTGRES_PASSWORD` | The database's own password. Generated, never typed — and hex, see the note below. The compose file has a well-known default, so set your own. |
-| `AUTH_SECRET` | Signs unsubscribe links in outgoing mail and seals two-factor secrets. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
-| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header, never in the query string — see [driving the tick over HTTP](../../operating/monitoring.md#driving-the-tick-over-http). Compose refuses to start without it too. |
+| `AUTH_SECRET` | Signs unsubscribe links in outgoing mail, seals two-factor secrets and the credentials stored for the off-site backup destination, keys the passkey challenge, and unlocks the installer. Sessions are not derived from it — they are random tokens stored hashed. There is deliberately no default: a shipped one is a link every reader of the source can forge. Compose refuses to start without it. |
+| `TICK_SECRET` | Guards `/api/system/tick`, which is publicly routable. Presented as an `Authorization: Bearer` header or an `x-tick-secret` header, never in the query string — see [driving the tick over HTTP](../../operating/monitoring.md#driving-the-tick-over-http). Compose refuses to start without it too. |
 | `PORT` | Optional. The Compose default is `127.0.0.1:3000`, so the TLS proxy is the only route in. Setting this to `3000` deliberately binds every interface and publishes a plaintext route alongside HTTPS; Docker writes its own iptables rules, so `ufw` may not stop it. |
 | `APP_URL` | The board's public origin. The compose file otherwise defaults it to `http://localhost:3000`, which is suitable only for local access; every link in every password-reset and confirmation e-mail is built from it. It must be your real origin, not a placeholder. |
 
@@ -155,11 +154,12 @@ Rerunning that heredoc rewrites every value. If the board is already
 installed, changing `POSTGRES_PASSWORD` locks it out of its own database —
 Postgres keeps the password from when the volume was created.
 
-Rotating `AUTH_SECRET` later signs nobody out — sessions do not depend on
-it. What it breaks is the unsubscribe link in every message already sent
-(they answer with a polite failure), and every member's two-factor
-enrolment, which has to be set up again. Safe if you think it leaked; not
-free.
+Rotating `AUTH_SECRET` later signs nobody out, because sessions do not
+depend on it. What it breaks: the unsubscribe link in every message
+already sent (they answer with a polite failure), every member's
+two-factor enrolment, which has to be set up again, and the off-site
+backup credentials stored in settings, which have to be entered again.
+Safe if you think it leaked; not free.
 
 `my-board`'s own `.env.example` documents the `MAIL_*` set too — optional,
 overriding the board's own mail settings when present, and worth setting
@@ -198,7 +198,7 @@ The first build takes five to ten minutes. Services come up in order:
 | `postgres` | The database. A named volume, so recreating the container keeps the data. |
 | `migrate` | Applies the schema and **exits 0**. `web` and `worker` wait for it, so the code never runs against a schema behind it. |
 | `web` | Next.js, on `127.0.0.1:3000`. |
-| `worker` | Calls `/api/system/tick` over HTTP once a minute. `@meith/worker` is not published, so a board outside the meith monorepo drives the tick this way rather than running the compiled process — the same shape [Quickstart § 3](./coolify.md#3-set-your-domain-and-deploy) uses under Coolify. It never touches the database itself; only the request it makes does. |
+| `worker` | Calls `/api/system/tick` over HTTP once a minute. `@meith/worker` is not published, so a board outside the meith monorepo drives the tick this way rather than running the compiled process — the same shape [Deploying with Coolify § 3](./coolify.md#3-set-your-domain-and-deploy) uses under Coolify. It never touches the database itself; only the request it makes does. |
 
 Check all four:
 
@@ -282,10 +282,10 @@ The board only sees a visitor's address because the proxy forwards it,
 and it has to be told how many proxies did the forwarding. `TRUSTED_PROXY_HOPS`
 defaults to `0` — nothing trusted, the header ignored outright — because
 that is the only safe default for an image that can also be run with its
-port published directly. `docker-compose.byhand.yaml` (and the Coolify
-compose files beside it) sets it to `1` for you, matching the one reverse
-proxy — Caddy, in the setup above — those files assume, so **there is
-nothing to set for this Caddyfile**.
+port published directly. `docker-compose.byhand.yaml` sets it to `1` for you, matching the one
+reverse proxy (Caddy, in the setup above) it assumes, so **there is
+nothing to set for this Caddyfile**. The other two compose files in the
+workspace do not set it.
 
 Put a CDN or a second load balancer in front of Caddy and the chain grows
 by one: set `TRUSTED_PROXY_HOPS=2` in your `.env`. Whatever the number, it
@@ -305,6 +305,13 @@ whose scripts the browser refuses.
 
 Open `https://board.example/install` — your domain, over the proxy you
 just set up, not `127.0.0.1:3000`.
+
+The page asks for the board's `AUTH_SECRET` first, the value in your
+`.env`, to prove you deployed this board. That unlock lasts thirty
+minutes. Behind it, the preflight report lists anything blocking an
+install, and offers two things: the install form, or restoring a backup
+bundle into this empty board instead
+([Backups § From the installer](../../operating/backups.md#from-the-installer)).
 
 The form is three numbered sections: **Your board** (its name), **Your
 account** (username, e-mail, password), and **Sending mail** (optional
@@ -327,8 +334,8 @@ Everything else about the installer — the preflight report, the five
 steps, the sealing that cannot be undone — is the same on both routes and
 written once:
 
-- **[Quickstart § Run the installer](./coolify.md#4-run-the-installer)**
-- **[Quickstart § Mail](./coolify.md#5-mail)** — the answer sheet for
+- **[Deploying with Coolify § Run the installer](./coolify.md#4-run-the-installer)**
+- **[Deploying with Coolify § Mail](./coolify.md#5-mail)** — the answer sheet for
   the provider list. `/admin/settings?group=mail` changes it afterwards
   with no redeploy; the `MAIL_*` variables in the `.env` beside this
   stack override both.
@@ -404,7 +411,7 @@ image: ghcr.io/<you>/my-board:latest
 once the board is settled and you want upgrades happening only when you
 choose — a floating tag turns the next incidental `docker compose pull`
 into an unplanned upgrade, the same reasoning
-[Quickstart § Set your domain and deploy](./coolify.md#3-set-your-domain-and-deploy)
+[Deploying with Coolify § Set your domain and deploy](./coolify.md#3-set-your-domain-and-deploy)
 walks through for the equivalent Coolify setting.
 
 ## When it goes wrong
@@ -428,47 +435,24 @@ covers the failures that are about the board rather than the deployment.
 
 ## What you are taking on
 
-Worth being plain about, because this is the route with no panel behind
-it:
+This is the route with no panel behind it, so these are yours:
 
-- **Backups are yours.** Nobody else is taking one. The board schedules
-  its own — **Admin → Settings → Backups** — bundling the database *and*
-  the uploads into the `backups` volume and, once you name a bucket, off
-  the server; the bucket is still yours to rent. See
-  [Backups](../../operating/backups.md), and the
-  [disaster-recovery runbook](../../operating/disaster-recovery.md) for the day they
-  are all you have.
-- **Certificates are yours.** Caddy makes it a solved problem, but it is
-  a problem you now own.
-- **Security updates are yours.** `unattended-upgrades` for the host; a
+- **Backups.** The board schedules its own under **Admin → Settings →
+  Backups**, bundling the database and the uploads into the `backups`
+  volume and, once you name a bucket, off the server. The bucket is
+  yours to rent. See [Backups](../../operating/backups.md) and the
+  [disaster-recovery runbook](../../operating/disaster-recovery.md).
+- **Certificates.** Caddy makes it a solved problem, but you own it.
+- **Security updates.** `unattended-upgrades` for the host; a
   `create-meith` update and a rebuild for the board.
-- **Uptime is yours.** `restart: unless-stopped` covers a crash and a
-  reboot; it does not cover a disk filling up. The compose file caps what
-  each container may log, so a crash-loop cannot fill the disk by itself —
-  but the database and the uploads still grow, and watching the disk is
-  still yours.
+- **Uptime.** `restart: unless-stopped` covers a crash and a reboot. It
+  does not cover a disk filling up: the compose file caps container logs,
+  but the database and the uploads still grow.
 
-In exchange: no platform limits, no per-seat pricing, no vendor reading
-your members' posts, and a board you can move to another machine with a
-`pg_dump` and a `tar`.
+In exchange: no platform limits, no per-seat pricing, and a board you can
+move to another machine with a `pg_dump` and a `tar`.
 
-## Why a server, and not functions
-
-You can run this board on functions, and [Running on
-Vercel](./vercel.md) is that route written out: the driver set, the build
-command that carries the migration, the cron job that stands in for the
-worker, and how to leave again.
-
-A server is still the recommended default, and the reason is that
-everything this page gives you for free becomes configuration and a
-second bill there. A process that outlives a request is what a worker
-*is*; without one, the tick is an HTTP endpoint somebody else's scheduler
-has to call, at a cadence their plan decides. A disk that survives a
-restart becomes an object store. A shared cache becomes a managed Redis.
-The migration stops being a one-shot job beside the board and becomes
-part of the build, which trades the deploy window for a different one
-rather than closing it. None of that is unworkable — it is documented
-because it works — but it is four vendors and a longer list of things to
-get right, in exchange for not owning a machine. One machine, one
-database, one `pg_dump` that is the whole board is the simpler answer,
-and it is the one most boards should take.
+If you would rather not own a machine at all, [Running on
+Vercel](./vercel.md) is the board on functions. A server stays the
+recommended default: a worker, a disk and a one-shot migration come free
+here and become configuration and a second bill there.

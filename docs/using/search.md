@@ -99,11 +99,34 @@ If a board is struggling under search load, the hourly cap is usually
 the one to reach for. The flood interval slows a person down; the hourly
 cap is what stops a script.
 
+## Narrowing a search
+
+The search form at **`/search`** takes the words, and its **Advanced**
+disclosure takes the rest: one forum or every forum you can see, with a
+tick to include its subforums; **Posted by**, a comma-separated list of
+usernames; **Posted**, any time or the past day, week, month or year;
+**Matching in**, titles and post text or thread titles only; and
+**Show**, every matching post or one row per thread. A phrase in quotes
+matches exactly, and a minus in front of a word excludes it.
+
+Running a search saves it and opens its results at **`/search/<token>`**.
+The results page carries a filter panel with the same choices, and the
+forum and author options show how many hits each would leave. Pick some
+and press **Apply filters**; a link beside the applied filters clears
+them. Three sort orders sit above it as links: best match, newest first,
+oldest first. Every refinement narrows the saved search through the
+address bar, so the address always reproduces what is on the page, and
+**Search within these results** adds more words to the same search. A
+saved search belongs to the member who ran it, or to the guest's own
+session, so its address works for them and answers "no such search" to
+anybody else.
+
 ## What a result shows
 
-Search results carry an excerpt from the post, and **the excerpt has the
-[word filter](./antispam.md#the-word-filter) applied**. The thread title
-beside it does not — see that section for what the filter covers.
+Search results carry an excerpt from the post and the thread title
+beside it, and **both have the
+[word filter](./antispam.md#the-word-filter) applied**, on the results
+page and in the API alike. See that section for what the filter covers.
 
 Results obey permissions. The scope is built from the same forum
 audience the rest of the board uses, so a member never sees a hit in a

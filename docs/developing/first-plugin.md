@@ -28,8 +28,15 @@ example, not a boilerplate that drifted from it. It contains:
   way the board will.
 - `src/index.ts` — the entry point, exporting the plugin under the two
   fixed names (`plugin`, `messages`) the board's install path expects.
+- `src/messages/index.ts` and `src/messages/en.json` — the plugin's own
+  words, in a catalog the board merges with its own.
 - `listing.json` — a pre-filled marketplace listing for later.
 - `README.md` — a shorter copy of this walkthrough, kept with the code.
+- `tsconfig.json`, `vitest.config.ts` and a `.gitignore`.
+
+Pass `--repo <url>` to record the repository the listing will point at,
+and `--no-git` to skip initialising a git repository in the new
+directory.
 
 `definePlugin` validates the whole manifest at import time — a bad key, a
 migration touching a table outside the plugin's namespace, a secret setting
@@ -65,7 +72,10 @@ payload for every hook name.
 
 The scaffold's test file shows the pattern: call the handler directly with
 a model shaped like the reference says, and assert on what comes back.
-Handlers are plain functions — no board, no database, no mocking layer:
+Handlers are plain functions — no board, no database, no mocking layer.
+The third argument is the runtime accessor; a unit test passes
+`unavailableHookRuntime` from `@meith/plugin-kit`, which throws with the
+reason you give if the handler reaches for the board:
 
 ```ts
 it('appends its link without disturbing the board’s own', () => {
@@ -76,7 +86,11 @@ it('appends its link without disturbing the board’s own', () => {
     timezoneLabel: 'Europe/Dublin',
   }
 
-  const filtered = filter(footer, { userId: null, isGuest: true, requestId: null })
+  const filtered = filter(
+    footer,
+    { userId: null, isGuest: true, requestId: null },
+    unavailableHookRuntime('this test drives the filter directly'),
+  )
 
   expect(filtered.links).toHaveLength(2)
   expect(footer.links).toHaveLength(1)
@@ -227,9 +241,10 @@ npm publish
 
 The scaffold publishes `src/` as TypeScript source, the way every
 `@meith/*` package ships. A board that installs your published package gets
-the same files a path install gets. Version it honestly: the `version` in
-`package.json` is what the admin panel shows and what your migration
-history is recorded against.
+the same files a path install gets. Version it honestly. The board reads the `version` passed to
+`definePlugin` in `src/plugin.tsx`: that is what the admin panel shows and
+what your migration history is recorded against. Keep it in step with the
+`version` in `package.json`, which is what npm publishes.
 
 ## Submit it to the marketplace
 

@@ -18,6 +18,21 @@ the everyday Markdown set — work as you would expect, and the composer's
 own **Formatting help** disclosure lists the exact syntax for each. This
 page covers everything past that set.
 
+**Quoting several posts at once.** Every post you may quote carries a
+**Multi-quote** button beside its **Quote** link. Press it on each post
+in the thread you want to answer, and the reply box shows how many posts
+are selected to quote. **Add to reply** drops a quote of each into your
+reply at once, and **Clear** empties the selection; opening the full
+reply page adds them on its own. The selection lives in your browser tab
+and needs JavaScript. A single **Quote** works without it.
+
+**Smilies.** A board can turn short codes into pictures as a post is
+rendered. Which codes exist, and what each shows, is set by an
+administrator under **Admin → Content**; the code is matched as literal
+text, the longest code wins where two overlap, and nothing is expanded
+inside a code block. Removing a smiley puts the code back as the
+characters you typed.
+
 ## Syntax-highlighted code
 
 A fenced code block names its language the way GitHub's does:
@@ -92,6 +107,14 @@ default, opened with a click or a keypress. `spoiler` is reserved: it
 always works, on every board, whatever directives an administrator has
 or has not configured. The composer's **Spoiler** toolbar button wraps
 your selection in the fences for you.
+
+`spoiler` is one directive; a board can define more of its own under
+**Admin → Content**. Each has a name and is either a block directive,
+written `:::name` … `:::` like a spoiler, or an inline one, written
+`:name[the text]`. A custom directive renders as a container carrying a
+class the board's theme can style, so what it looks like is the theme's
+decision. If an administrator removes one, posts that use it show the
+markup as written.
 
 ## Mentioning a member
 

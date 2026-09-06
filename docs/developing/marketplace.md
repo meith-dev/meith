@@ -268,7 +268,7 @@ installed into a running container, which is exactly why the public
 marketplace shows a listing's install steps and links here rather than
 offering an install button. Because the stock image is itself built from
 a workspace shaped like [`create-meith`](./development.md#the-workspace)'s
-own scaffold (see [Quickstart § Create your
+own scaffold (see [Deploying with Coolify § Create your
 board](../setting-up/deployment/coolify.md#2-create-your-board)), graduating to one is generating
 those same files from *this build's own state* and repointing the deploy
 — the database is untouched, because the board's identity lives in
@@ -320,7 +320,7 @@ never a surprise upgrade — the full deploy kit for all three routes onto
 a server (`Dockerfile`, `docker-compose.yaml`, `Dockerfile.prebuilt`,
 `docker-compose.prebuilt.yaml`, `.github/workflows/build.yml`,
 `docker-compose.byhand.yaml`, described
-in full in [Quickstart § Create your
+in full in [Deploying with Coolify § Create your
 board](../setting-up/deployment/coolify.md#2-create-your-board)),
 `board.plugins.json` matching what this build actually compiled in, and
 `meith.config.ts` matching the stock configuration. Every plugin the
@@ -350,7 +350,7 @@ branch is pushed to.
 ### 3. Point Coolify at it and redeploy
 
 From here it is the same three-step advanced/prebuilt deploy
-[Quickstart § Set your domain and
+[Deploying with Coolify § Set your domain and
 deploy](../setting-up/deployment/coolify.md#3-set-your-domain-and-deploy)
 describes for any scaffolded board: check the GitHub package is public,
 point Coolify at the new repository with its **Compose file** field

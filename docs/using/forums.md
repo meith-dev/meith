@@ -5,44 +5,39 @@ of it: **`/admin/forums`** draws the tree, **`/admin/forums/[id]`** holds
 one forum's options and its moderators, and
 **`/admin/forums/[id]/permissions`** holds the matrix for that forum.
 
-This is the reference. For the shorter task-shaped version — making a
-forum, building an organisers' room — read
+For the task-shaped version, read
 [The organiser's guide](./organiser-guide.md). What a *group* is worth
-board-wide, and the allowances a group carries, are in
-[Groups and promotions](./groups.md).
+board-wide is in [Groups and promotions](./groups.md).
 
 ## The forum tree
 
-`/admin/forums` draws the tree in the order the board renders it, and
-that screen is where the order is decided. An **Add forum** form sits
-beneath it.
+`/admin/forums` draws the tree in the order the board renders it, and is
+where the order is decided. An **Add forum** form sits beneath it.
 
 A row is one of three kinds, and the kind decides what it can hold:
 
 | Kind | Holds threads | Holds forums |
 |---|---|---|
-| **Category** — a heading | Only if **Allow new threads** is on | Yes |
+| **Category**, a heading | Only if **Allow new threads** is on | Yes |
 | **Forum** | Yes | Yes |
-| **Link** — a redirect row | No | No |
+| **Link**, a redirect row | No | No |
 
-A category holding threads is the unusual one: turn **Allow new threads**
-on and its page lists its own threads under the forums it contains.
-Turning it off again stops new ones; the threads already there keep their
-addresses.
+A category with **Allow new threads** on lists its own threads under the
+forums it contains. Turning it off again stops new ones; the threads
+already there keep their addresses.
 
 ### Moving a forum
 
 Drag a row by its handle: up and down to reorder, sideways to change how
 deep it sits. Nothing is written until you let go.
 
-Each row also carries four arrows — up, down, in, out. **In** nests the
+Each row also carries four arrows: up, down, in, out. **In** nests the
 row under the sibling directly above it; **out** lifts it to sit after
-its own parent. They are what a keyboard gets, what a screen reader gets,
-and what the screen falls back to with JavaScript off, where each arrow
-is an ordinary form submission. An arrow with nowhere to go is disabled
-rather than hidden.
+its own parent. They serve keyboards, screen readers and JavaScript-off
+browsers, where each arrow is an ordinary form submission. An arrow with
+nowhere to go is disabled rather than hidden.
 
-Four rules the screen enforces, because the tree does:
+Four rules the screen enforces:
 
 - **A forum takes its subforums with it.** The whole subtree is re-hung
   in one write, keeping its internal order.
@@ -54,20 +49,19 @@ Four rules the screen enforces, because the tree does:
 - **A forum cannot move into its own descendant**, and cannot land beside
   a sibling that already uses its slug. Both are refused with the reason.
 
-Reordering under the same parent does not ask for your password again —
-it changes nothing about who may read what. **Re-parenting does**, on the
-same fifteen-minute re-authentication rule as everything else destructive
-in the panel, because it changes what the subtree inherits.
+Reordering under the same parent does not ask for your password again.
+**Re-parenting does**, on the same fifteen-minute re-authentication rule
+as everything else destructive in the panel, because it changes what the
+subtree inherits.
 
-Each forum's **Display order** on `/admin/forums/[id]` is the same number
-the tree screen writes. A move renumbers the new siblings densely from
-zero, so the numbers never drift into ties; typing one by hand still
-works.
+Each forum's **Display order** on `/admin/forums/[id]` is the number the
+tree screen writes. A move renumbers the new siblings densely from zero,
+so the numbers never tie; typing one by hand still works.
 
 ### A forum's own options
 
 `/admin/forums/[id]` carries everything about a forum except where it
-sits: its title, slug, description, link URL for a link row, and these
+sits: title, slug, description, link URL for a link row, and these
 switches.
 
 | Switch | What it decides |
@@ -81,130 +75,100 @@ switches.
 | **Hold new threads for approval** | New threads land unapproved |
 | **Hold new replies for approval** | New replies land unapproved |
 
-These are properties of the forum, not of anybody's permissions: they
-apply to every group at once. The two approval switches are the forum's
-own; the per-group version of the same idea is the three *requires
+These are properties of the forum, and apply to every group at once. The
+per-group version of the two approval switches is the three *requires
 approval* rows in the matrix below.
 
 ## Permissions
 
-There are **45 permission fields** — 26 resolved per member per forum, 19
-board-wide. Every read path — pages, search, feeds, the REST API — asks
-the same resolver, so there is no route that quietly reads around the
-rules, and every field on the screen is one some decision reads.
+There are **45 permission fields**: 26 resolved per member per forum, 19
+board-wide. Every read path (pages, search, feeds, the REST API) asks the
+same resolver.
 
 ### What decides a value
 
 A forum permission is resolved per group and then combined, in that
-order. Getting the order the right way round is most of understanding the
-model.
+order.
 
 1. **Each of the member's groups is resolved on its own.** For one field,
    the board walks the forum's ancestor chain from the forum itself
    upwards and takes the first explicit value that group has anywhere on
    it. If the group has none, the group's own default is used.
 2. **Those per-group answers are then combined**, by kind:
-   - **Switches** are OR — granted if any group grants it.
+   - **Switches** are OR: granted if any group grants it.
    - **Numbers** take the most generous value, and `0` means unlimited,
      so a member in any group set to `0` is unlimited.
-   - **The three *requires approval* rows** are AND — a member is exempt
+   - **The three *requires approval* rows** are AND: a member is exempt
      as soon as one of their groups does not require it.
-3. **Moderator appointments** are separate from all of that, per forum,
-   per member or group. They are the subject of
-   [what an appointment grants](#what-an-appointment-grants).
+3. **Moderator appointments** are separate, per forum, per member or
+   group. See [what an appointment grants](#what-an-appointment-grants).
 
 > [!IMPORTANT]
-> **Deny is not board-wide.** Because the combination happens *after*
-> each group is resolved, denying a cell for one group only removes that
-> group's contribution. A member who is also in a group that grants the
-> same thing still has it. To close a forum, deny it for every group that
-> would otherwise grant it — including Guests.
+> **Deny is not board-wide.** Denying a cell for one group only removes
+> that group's contribution. A member who is also in a group that grants
+> the same thing still has it. To close a forum, deny it for every group
+> that would otherwise grant it, including Guests.
 
 > [!IMPORTANT]
-> **Empty means inherit, and it is not the same as "no".** That is why
-> each cell is a three-state control rather than a checkbox: a checkbox
-> would write an explicit value into every cell on first save, pinning
-> the forum so later changes at its parent do nothing. Silently pinned
-> forums are the commonest way a board's permissions end up wrong.
+> **Empty means inherit, and it is not the same as "no".** Each cell is a
+> three-state control rather than a checkbox: a checkbox would write an
+> explicit value into every cell on first save, pinning the forum so
+> later changes at its parent do nothing.
 
 ### Reading the matrix
 
 `/admin/forums/[id]/permissions` is one grid: **rows are permission
-fields, columns are groups.** That shape answers the question a stack of
-per-group forms could not — "who can post here?" is one row, read across
-every group at once, rather than eight separate screens each showing one
-group's whole permission set. The rows are gathered under the same
-headings as before (viewing, posting, own content, moderation,
-attachments, approvals), and each table scrolls horizontally inside its
-own frame — the left-hand permission column stays in view as you scroll
-sideways, so a wide board's groups stay reachable without losing your
-place in the list of permissions. That pin is sideways only: the
-group-header row sits at the top of its own table, not the page, so it
-scrolls away with the rest of the table as you read down a long section.
+fields, columns are groups**, gathered under headings (viewing, posting,
+own content, moderation, attachments, approvals). Each table scrolls
+horizontally inside its own frame with the permission column pinned on
+the left. The group-header row is not pinned.
 
-Each switch cell is a three-way toggle — **Inherit**, **Grant**, **Deny**
-— and the three approval rows read **Required** and **Not required**
-instead, because they are requirements rather than rights. A cell left on
-**Inherit** shows the effective value it currently resolves to, in muted
-type beneath the toggle, so abstaining is never mistaken for "no": the
-grey text is what the group actually gets today, by inheritance, and it
-moves if an ancestor forum's cell changes later.
+Each switch cell is a three-way toggle: **Inherit**, **Grant**, **Deny**.
+The three approval rows read **Required** and **Not required** instead. A
+cell left on **Inherit** shows the value it currently resolves to, in
+muted type beneath the toggle; that value moves if an ancestor forum's
+cell changes later.
 
-The three numeric fields — edit window, attachments per post, attachment
-size — do not fit a checkbox grid, so they sit in their own section below
-the switches: the same shape, rows are fields and columns are groups, but
-each cell is a number box that may be left blank for inherit, again with
-the effective value shown beneath a blank one.
+The three numeric fields (edit window, attachments per post, attachment
+size) sit in their own section below, in the same shape. Each cell is a
+number box that may be left blank for inherit, with the effective value
+shown beneath a blank one.
 
 **One save writes every cell that changed, across every group, in a
 single transaction**, and logs one admin action per group that actually
-changed — a group whose submitted cells all match what was already stored
-writes nothing and is not logged. A cell left on Inherit round-trips as
-inherit; it is never coerced into an explicit Deny by the act of saving
-the form.
+changed. A group whose cells all match what was stored writes nothing
+and is not logged. A cell left on Inherit round-trips as inherit; saving
+never turns it into an explicit Deny.
 
 **Copy to subforums** means *identical*, not *merged*: it writes the
 source forum's stored overrides into every forum beneath it and clears
-the ones the source does not have, because a descendant that denied
-something the source inherits would leave you with two forums you had
-just been told now match. The screen previews it — how many settings,
-across how many forums, and how many are left unchanged — before you
-press it, and it asks for your password again.
+the ones the source does not have. The screen previews how many
+settings, across how many forums, and how many are left unchanged, and
+asks for your password again.
 
 ### The forum grants worth understanding
 
-Most cells do what their name says. These do something a name does not
-carry.
+Most cells do what their name says. These do more.
 
 #### A "your threads only" forum
 
 Denying **see threads started by other users** (`canViewOthersThreads`)
 turns a forum into a support desk: everybody may post, and nobody but a
-thread's author reads it. Reach for it when a forum collects
-applications, appeals, or anything a member should be able to write
-without the rest of the board reading it.
+thread's author reads it. Use it for applications, appeals, or anything
+a member should write without the rest of the board reading it.
 
-The deny is answered by the same resolver every read path uses, and the
-audience it produces is carried into the queries rather than applied to
-an already-rendered page, so it holds on the thread list and on a thread
-reached by a guessed URL alike. A refused thread is a 404 — the same
-answer a thread that does not exist gives, because a distinguishable
-refusal is itself an answer.
-
-What a deny looks like:
+The deny holds on the thread list and on a thread reached by a guessed
+URL alike. A refused thread is a 404, the same answer a thread that does
+not exist gives.
 
 - **A member** sees the forum and may post in it. In the listing they see
   only threads they started. On the board index the forum's counts read
-  `0`, its last-post column is blank, and it never shows the unread mark
-  — all three describe other people's threads, and a forum that will not
-  show them should not summarise them.
-- **A guest** sees the forum and nothing in it: a guest has authored
-  nothing, so "your threads only" resolves to no threads. Grant the
-  permission to the Guests group if the forum is meant to be publicly
-  readable.
+  `0`, its last-post column is blank, and it never shows the unread mark,
+  because all three describe other people's threads.
+- **A guest** sees the forum and nothing in it. Grant the permission to
+  the Guests group if the forum is meant to be publicly readable.
 - **Anybody appointed to the forum** sees everything in it, whatever the
-  cell says, on the same footing as *see unapproved* and *see deleted*:
-  the appointment carries the right, so a support desk stays workable.
+  cell says, as with *see unapproved* and *see deleted*.
 
 > [!IMPORTANT]
 > Denying this permission does **not** hide the forum. `canView` decides
@@ -216,75 +180,67 @@ What a deny looks like:
 
 `canDeleteOwnThreads` is the thread-sized twin of `canDeleteOwnPosts`.
 Granted, the member who **started** a thread may delete it, which moves
-the whole thread to `visibility=deleted` — the same reversible state a
+the whole thread to `visibility=deleted`, the same reversible state a
 moderator's delete produces. It is off by default.
 
-Three things to know before granting it:
-
-- **It is per forum**, like every other matrix cell, so it can be granted
-  in a scratch forum and denied in the one that holds your rules.
+- **It is per forum**, like every matrix cell, so it can be granted in a
+  scratch forum and denied in the one that holds your rules.
 - **It does not carry the undo.** Restoring a thread needs *Restore
-  posts*, which is a moderator right and stays one: a member who deletes
-  by accident has to ask.
-- **It takes the replies with it.** A thread is deleted whole, so in a
-  busy forum one member can remove a conversation other people wrote in.
-  Where that matters, leave it denied and let members delete their own
-  *posts* instead.
+  posts*, a moderator right: a member who deletes by accident has to ask.
+- **It takes the replies with it.** One member can remove a conversation
+  other people wrote in. Where that matters, leave it denied and let
+  members delete their own *posts* instead.
 
 #### Delete and restore, for a group
 
 **`canSoftDeletePosts` granted in the matrix covers posts, both ways.** A
-group with that cell may delete *and* restore anyone's post in that forum
-— the cell has always meant "may move a post to deleted, reversibly", and
-there is no second cell beside it. It does not reach threads: deleting or
+group with that cell may delete *and* restore anyone's post in that
+forum; there is no second cell. It does not reach threads: deleting or
 restoring a whole thread is a moderator right.
 
 ### What an appointment grants
 
-`/admin/forums/[id]` appoints a member **or** a group to one forum — one
-or the other, not both — optionally cascading to everything beneath it.
-It offers **nine** checkboxes, each read by a real authorization
-decision:
+`/admin/forums/[id]` appoints a member **or** a group to one forum, not
+both, optionally cascading to everything beneath it. It offers **nine**
+checkboxes:
 
 | Checkbox | What it decides |
 |---|---|
-| Edit posts | `post.editOthers` — editing somebody else's post |
-| Delete posts | `post.softDelete` and `thread.delete` — moving content to `visibility=deleted` |
-| Restore posts | `post.restore` and `thread.restore` — putting deleted content back |
-| Approve content | `content.approve` — releasing held content, and the approval queue |
+| Edit posts | `post.editOthers`: editing somebody else's post |
+| Delete posts | `post.softDelete` and `thread.delete`: moving content to `visibility=deleted` |
+| Restore posts | `post.restore` and `thread.restore`: putting deleted content back |
+| Approve content | `content.approve`: releasing held content, and the approval queue |
 | Open and close threads | `thread.lock` |
 | Stick threads | `thread.stick` |
-| Move threads | `thread.move` — in the source forum and the destination alike |
+| Move threads | `thread.move`: in the source forum and the destination alike |
 | Merge threads | `thread.merge` |
 | Split threads | `thread.split` |
 
 Appointing somebody who already moderates the forum replaces what they
 may do rather than adding to it. Where a member is covered by several
-appointments — their own and one their group holds, or a cascading one
-from an ancestor — the rights are unioned.
+appointments (their own, one their group holds, a cascading one from an
+ancestor) the rights are unioned.
 
-**Any appointment at all — even one carrying no checkbox — lets its
-holder *see* held and deleted content in that forum.** That is what makes
-the queue readable; acting on what is in it needs the right that names
-the act. The screen labels an empty appointment exactly that way: *no
-rights — can read the queue and nothing else*.
+**Any appointment at all, even one carrying no checkbox, lets its holder
+*see* held and deleted content in that forum.** Acting on it needs the
+right that names the act. The screen labels an empty appointment *no
+rights: can read the queue and nothing else*.
 
 > [!IMPORTANT]
 > **Delete and restore are two grants, not one.** Somebody appointed with
-> *Delete posts* alone can remove a post and cannot put it back —
+> *Delete posts* alone can remove a post and cannot put it back,
 > including one they removed themselves. Tick *Restore posts* as well
 > unless withholding the undo is what you meant.
 
 > [!NOTE]
-> **There is no hard delete, and no permission claims there is.** Deleting
-> a post or a thread always means `visibility=deleted`: the row stays, and
-> somebody with *Restore posts* can undo it.
+> **There is no hard delete.** Deleting a post or a thread always means
+> `visibility=deleted`: the row stays, and somebody with *Restore posts*
+> can undo it.
 
 **"My forums" in the moderator control panel lists what somebody actually
-holds**, per forum. Two rights wear their working names there: *Open and
-close threads* shows as **Lock and unlock**, and *Stick threads* as **Pin
-and unpin**. If a right is not in that list, the board will refuse the
-act; if it is, it will not.
+holds**, per forum. *Open and close threads* shows there as **Lock and
+unlock**, and *Stick threads* as **Pin and unpin**. If a right is not in
+that list, the board will refuse the act.
 
 ### The doors no bypass opens
 
@@ -293,10 +249,9 @@ Two global permissions bypass the matrix:
 - **`isSuperModerator`** passes every forum-scoped action.
 - **`isAdministrator`** passes those and most board-wide ones as well.
 
-Both are recorded: each use is written to the **server log** as an
-`authorization bypass` line naming the kind, the member, the action and
-the forum. That is the application log rather than the admin log at
-`/admin/log`, so it is read wherever your logs are shipped.
+Each use is written to the **server log** (the application log, not
+`/admin/log`) as an `authorization bypass` line naming the kind, the
+member, the action and the forum.
 
 Three permissions sit outside the administrator bypass, and are checked
 against the member's groups like anybody else's:
@@ -307,11 +262,10 @@ against the member's groups like anybody else's:
 | `canWarnUsers` | Issuing and revoking warnings |
 | `canUploadAvatar` | Uploading a custom avatar |
 
-`canAccessAdminCp` is deliberately separate from `isAdministrator` so a
-trusted role can be given the panel without the permission bypass, or the
-bypass without the panel.
+`canAccessAdminCp` is separate from `isAdministrator` so a trusted role
+can be given the panel without the bypass, or the bypass without the
+panel.
 
-Two states come before permissions entirely, and no grant reaches past
-them: a **banned** member is refused everything, and a member **awaiting
-activation** may only read — forums, threads, profiles, the member list
-and search.
+Two states come before permissions entirely: a **banned** member is
+refused everything, and a member **awaiting activation** may only read
+forums, threads, profiles, the member list and search.

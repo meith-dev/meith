@@ -42,11 +42,13 @@ pending core migration, and no migration when the bundle fails. See
 
 ## What `meith upgrade` does
 
-Four things, in this order:
+In this order:
 
 1. **Core migrations.** Everything else assumes the schema they create.
-2. **Plugin migrations**, per plugin.
-3. **Plugin versions recorded**, one per plugin.
+2. **Plugin migrations**, per plugin, then a newly installed plugin's
+   `onInstall` lifecycle, then that plugin's version recorded.
+3. **Plugin navigation items reconciled**: menu entries a plugin declares
+   are added, and entries for plugins no longer installed are removed.
 4. **The core version recorded**, last.
 
 The version is written last on purpose: a version written before the work
@@ -121,7 +123,7 @@ appears to work and corrupts something a week later.
 
 **Under [Coolify](../setting-up/deployment/coolify.md)**, the upgrade is the **Redeploy**
 button, pressed after a release. The compose file pins the exact version
-(`ghcr.io/meith-dev/meith:0.6.0`), and every release moves that pin on
+(`ghcr.io/meith-dev/meith:0.35.1` today), and every release moves that pin on
 the `release` branch — so a redeploy deploys whatever release the branch
 holds, exactly.
 
@@ -133,7 +135,7 @@ landed since you last deployed, Restart upgrades you to it, migrations
 and all. Only restarts below the panel — a crash, a host reboot — are
 guaranteed to re-create the version already running.
 
-That is why the [Quickstart](../setting-up/deployment/coolify.md#3-set-your-domain-and-deploy)
+That is why the [Deploying with Coolify](../setting-up/deployment/coolify.md#3-set-your-domain-and-deploy)
 has you pin the version on the resource: `MEITH_IMAGE` in the resource's
 environment, set to the exact image, wins over whatever the branch
 holds, so Restart and Redeploy re-create that version and nothing else.
@@ -777,12 +779,14 @@ member who genuinely wants UTC picks it once, under **UserCP → Options**.
 
 The board used to take the **left-most** `X-Forwarded-For` entry — which
 is whatever the caller put there. It now counts back from the right-hand
-end, and `TRUSTED_PROXY_HOPS` says how far. **A board behind one reverse
-proxy — the documented shape — needs nothing**: the default of `1`
-resolves the same address it always did. Behind more than one hop (a CDN
-in front of your proxy), set `TRUSTED_PROXY_HOPS=2` — leave it at `1`
-and every visitor resolves to the CDN, visible immediately as an
-allowlist that admits nobody and a moderator log full of one address.
+end, and `TRUSTED_PROXY_HOPS` says how far. The default is `0`: nothing
+trusted, the header ignored. The compose files that assume one reverse
+proxy set `TRUSTED_PROXY_HOPS=1` themselves; a board deployed another way
+behind a proxy must set it. Behind more than one hop (a CDN in front of
+your proxy), set `TRUSTED_PROXY_HOPS=2`. Leave it too low and every
+visitor resolves to the proxy, or to no address at all, visible at once
+as an allowlist that admits nobody and a moderator log full of one
+address.
 See
 [Deploying by hand § Count your proxies](../setting-up/deployment/docker-compose.md#count-your-proxies).
 

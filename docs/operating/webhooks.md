@@ -2,7 +2,7 @@
 
 Deliver board events to an endpoint of your choosing. A new thread, a new
 post, an edit, a deletion, a registration or a report becomes an HTTP `POST`
-to a URL you control — signed, queued, and retried with backoff. Nothing is
+to a URL you control: signed, queued, and retried with backoff. Nothing is
 sent from the request that caused the event, so a slow or unreachable
 endpoint never delays a member.
 
@@ -22,14 +22,14 @@ it then: every plain-JSON delivery is signed with it, and it is what your
 receiver checks a delivery against.
 
 The **Recent deliveries** panel on each subscription shows what happened to
-the last deliveries — delivered, still pending or retrying, or given up on —
+the last deliveries: delivered, still pending or retrying, or given up on,
 with the last status code or error.
 
 ## Topics
 
 | Topic | Fires when |
 |---|---|
-| `thread.created` | A new thread is created **visible** — one held for approval does not fire it. |
+| `thread.created` | A new thread is created **visible**. One held for approval does not fire it. |
 | `post.created` | A new post (a reply, or a thread's first post) is created **visible**. |
 | `post.edited` | A visible post is edited and stays visible. |
 | `post.deleted` | A post that was **visible** is removed. |
@@ -44,14 +44,14 @@ approval and restore moments themselves, are deliberately quiet:
 
 - `thread.created` and `post.created` fire the moment content is created
   **visible**. A thread or post held for approval fires nothing on creation.
-- **A held post that is later approved does not emit `post.created`** — the
+- **A held post that is later approved does not emit `post.created`.** The
   approval is a `post.visibility_changed` internally, not a creation. Treat
   the absence of a delivery as "not visible yet", not as "never posted".
 - `post.edited` fires only while the post is visible. An edit that sends a
   post back for approval, or an edit to an already-unapproved post, fires
   nothing.
 - `post.deleted` fires only when the post being removed was visible. Deleting
-  an unapproved post — one no subscriber was told about — fires nothing.
+  an unapproved post, one no subscriber was told about, fires nothing.
 - **Restoring a deleted post does not re-emit `post.created`.**
 
 ### What the ids mean
@@ -59,14 +59,14 @@ approval and restore moments themselves, are deliberately quiet:
 - `report.created` carries `targetKind`, one of `post`, `thread`, `user` or
   `private_message`, with the matching `targetId`. `reporterId` is `null` for
   a report filed by a guest.
-- `user.registered` is emitted for an account created interactively —
+- `user.registered` is emitted for an account created interactively:
   registration or an administrator adding a member. **Bulk import and the
   demo-board seed do not emit it**, so restoring a backup or reseeding a demo
   board does not flood every subscriber with one delivery per member.
 
 ## Payload format
 
-A **plain JSON** body carries the event name and its ids — never whole rows.
+A **plain JSON** body carries the event name and its ids, never whole rows.
 A receiver that needs the full thread or post fetches it through the
 [REST API](../reference/api.md). A `post.created` delivery looks like:
 
@@ -81,7 +81,7 @@ A receiver that needs the full thread or post fetches it through the
 }
 ```
 
-A **Discord** body is what a Discord channel webhook expects — a `content`
+A **Discord** body is what a Discord channel webhook expects: a `content`
 field with a link to the thread or post. Discord ignores the signature
 headers; the other formats are verified as below.
 
@@ -92,14 +92,14 @@ Every delivery carries four headers:
 | Header | Meaning |
 |---|---|
 | `x-forum-event` | The topic. |
-| `x-forum-delivery` | The delivery id — stable across retries, so de-duplicate on it. |
+| `x-forum-delivery` | The delivery id, stable across retries, so de-duplicate on it. |
 | `x-forum-timestamp` | Unix seconds, and part of the signed material. |
 | `x-forum-signature` | `sha256=<hex>` of `HMAC-SHA256(secret, "<timestamp>.<body>")`. |
 
 ## Verifying a delivery
 
 Recompute the signature over the raw body and compare it in constant time.
-Reject a timestamp too far from your own clock — that is what makes a
+Reject a timestamp too far from your own clock. That is what makes a
 captured delivery unreplayable.
 
 ```js
@@ -123,19 +123,24 @@ re-serialises them.
 ## Delivery, retries and dead-lettering
 
 Delivery is queued and drained by the `webhooks.deliver` scheduled task,
-never sent inline. A delivery is retried on a timeout, a refused connection,
-a 5xx, a 408 or a 429, backing off from 30 seconds and doubling to an hour,
-up to six attempts. Any other 4xx is treated as permanent and given up on
-immediately — a `410 Gone` is dead-lettered at once. Dead-lettered and
-retrying deliveries are visible in the subscription's delivery log.
+never sent inline. A `2xx` response marks a delivery as delivered. Only a
+`410 Gone` is permanent: it is dead-lettered on the spot, since the
+endpoint has said it no longer exists. Every other failure retries: a
+timeout, a refused connection, any other non-2xx status, `4xx` and `5xx`
+alike. Retries back off from 30 seconds, doubling to a ceiling of an hour
+with a little jitter, up to **six attempts** in total (`MAX_ATTEMPTS` in
+`packages/api/src/webhooks.ts`), after which the delivery is dead-lettered.
+The one other immediate dead letter is an endpoint the outbound guard
+refuses, described next. Dead-lettered and retrying deliveries are
+visible in the subscription's delivery log.
 
-The task runs on the worker (or over HTTP where there is no worker — see
+The task runs on the worker, or over HTTP where there is no worker (see
 [Monitoring](./monitoring.md#driving-the-tick-over-http)). Outbound requests
 go through the board's outbound guard: the endpoint must resolve to a public
-address, and a name that resolves to a private one is refused. In
-development the guard allows private hosts; in production set
-`WEBHOOK_ALLOW_PRIVATE_HOSTS=1` only if you deliberately deliver to an
-internal address. Each attempt runs against a wall-clock deadline and reads
-only a bounded response, so a slow or hostile subscriber cannot hold the
-delivery task open — see [the outbound address
+address, and a name that resolves to a private one is refused and the
+delivery dead-lettered at once. In development the guard allows private
+hosts; in production set `WEBHOOK_ALLOW_PRIVATE_HOSTS=1` only if you
+deliberately deliver to an internal address. Each attempt runs against a
+wall-clock deadline and reads only a bounded response, so a slow or hostile
+subscriber cannot hold the delivery task open. See [the outbound address
 policy](./operating.md#outbound-address-policy).

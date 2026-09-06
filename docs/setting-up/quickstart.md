@@ -14,7 +14,8 @@ npm run dev
 ```
 
 Open <http://localhost:3000>. That is a board of your own: a workspace
-that pins the engine at one exact version in `package.json`, with
+that pins the engine, the CLI, the default theme and Next.js at exact
+versions in `package.json`, with
 [the config files](../getting-started/configuration.md) that decide its themes
 and plugins, a Dockerfile, and a compose file for when it goes to a
 server. The same scaffold comes from
@@ -27,6 +28,10 @@ threads, members, search — so you can browse every screen and read every
 page without PostgreSQL. Fixture mode deliberately does not fake writes;
 the moment you want to post rather than look,
 [point it at a database](../developing/development.md#fixture-mode).
+
+`create-meith --plugin <name>` and `--theme <name>` scaffold an extension
+instead of a board; [Write your first plugin](../developing/first-plugin.md)
+starts there.
 
 ## Or run the engine itself
 
