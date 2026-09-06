@@ -68,9 +68,6 @@ export function docHref(slug: string, anchor?: string): string {
 }
 
 export function quickstartHref(): string {
-  const gettingStarted = findSection('getting-started')
-  const quickstart = gettingStarted
-    ? documentsInSection(gettingStarted.id).find((doc) => doc.primary)
-    : undefined
+  const quickstart = findDocument('quickstart')
   return quickstart ? docHref(quickstart.slug) : '/docs'
 }

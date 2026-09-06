@@ -1,13 +1,9 @@
-# The memberships guide
+# Paid memberships with Dues
 
-For whoever looks after the community's money — the treasurer, where
-there is one — on running paid membership with **Dues**, the membership
-plugin that ships with the board
-([plugins/dues](https://github.com/meith-dev/meith/tree/main/plugins/dues)).
-Everything here happens in a browser. The few steps that genuinely need a
-terminal belong to whoever runs the server — the operator — and are marked
-as theirs. The rest of the board's day-to-day is
-[The organiser's guide](./organiser-guide.md).
+Use the Dues plugin to offer paid membership plans and manage payments,
+gifts, and the ledger from the browser. Dues must be installed on the board;
+see [Installing plugins and themes](../../customization/installing.md).
+Payment-provider configuration needs the operator's help.
 
 ## What Dues is
 

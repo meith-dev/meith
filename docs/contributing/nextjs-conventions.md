@@ -1,13 +1,8 @@
 # Next.js conventions
 
-The decisions that would otherwise be re-litigated in every pull request.
-Link this from your PR description.
-
-> [!NOTE]
-> Everything here is drawn from code that exists. The file paths are real,
-> and the failure each rule prevents has actually happened in this
-> repository. If you need to depart from a rule, say so in the PR
-> description rather than quietly doing something else.
+Follow these patterns when changing Meith's routes, components, actions, and
+view models. Explain departures in the pull request. For local setup and
+validation commands, see [Development](./development.md).
 
 ## The rules, in one table
 

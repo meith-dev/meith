@@ -29,12 +29,16 @@ docker compose -f docker/compose.dev.yml up -d    # Postgres on port 55432
 cp .env.example .env
 ```
 
-Set two lines in `.env`:
+Set these values in `.env`:
 
 ```sh
 DATA_SOURCE=postgres
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test
+AUTH_SECRET=<a-random-secret-at-least-32-characters-long>
 ```
+
+Generate the secret with `openssl rand -hex 32`. Keep it in `.env`, which is
+ignored by git. The installer requires this secret even in development.
 
 Then migrate and start:
 
@@ -43,8 +47,8 @@ pnpm meith migrate
 pnpm dev
 ```
 
-Open <http://localhost:3000/install> and run the installer — the same one a
-real deployment runs. It seals itself when it finishes; on a scratch
+Open <http://localhost:3000/install>, unlock it with your `AUTH_SECRET`,
+and run the installer. It seals itself when it finishes; on a scratch
 database that is fine, and
 `docker compose -f docker/compose.dev.yml down -v` gives you a clean one.
 
@@ -825,26 +829,51 @@ pnpm api:docs        # docs/reference/openapi.json,    from the route registry
 pnpm perf:docs       # docs/reference/performance.md,  from the last load run
 ```
 
-`pnpm verify` fails when one is stale, deliberately: a reference read by
-somebody who cannot see the source is worse than no reference when it is
-wrong.
+`pnpm verify` fails when a generated reference is stale. The theme generator
+keeps property documentation in its description column and renders nested
+property notes below the table. Type signatures omit embedded source comments;
+the shared type formatter preserves member separators.
 
 ## The documentation itself
 
-`docs/*.md` is the one editable copy. The site at
+`docs/**/*.md` is the one editable copy. The site at
 [meith.dev/docs](https://www.meith.dev/docs) renders those same files at
 build time and holds no copy of any of them, so a correction is one edit in
 one place.
 
+The manifest groups documents into **Setting up**, **Getting started with
+Meith**, **Operating Meith**, **Using Meith**, and **Developing Meith**.
+Keep member instructions in Using, community administration and server
+maintenance in Operating, and extension contracts and contributor procedures
+in Developing. Each section has one primary guide, marked **Start here** on
+the index. The sidebar expands the current page's section; the index links
+to every section. Search, the sitemap, and previous/next links use the same
+manifest. Keep a document's published `slug` stable when changing its section
+or source path. The site's quickstart links always target `quickstart`,
+independently of its section.
+
+Keep introductions brief and lead with the task, prerequisites, and next
+step. Link to the relevant reference instead of repeating deployment or
+implementation details in every guide. Keep essential limits and recovery
+steps; they are part of the procedure.
+
+When reviewing documentation against code, run the generated-reference and
+link checks, then inspect the relevant commands, settings, routes, and tests.
+Those checks prove registry and link consistency; they do not prove every
+prose claim or third-party deployment step. Verify changing provider behaviour
+against the provider's own documentation.
+
 Adding a document means putting it in `docs/`, naming it in
 `apps/web/content/docs.manifest.json` — under `documents` to publish it, or
-`internal` to keep it repository-only — linking it from
-[`docs/README.md`](../README.md), and running:
+`internal` to keep it repository-only — then running the generator to link it from
+[`docs/README.md`](../README.md):
 
 ```sh
-pnpm site:docs      # rewrites the documentation table in the root README and checks the set
+pnpm site:docs      # rewrites the generated sections in docs/README.md and checks the set
 ```
 
+The root README stays a short introduction for newcomers and contributors.
+It links to the documentation index and does not duplicate the catalog.
 Both index checks fail on a file that is in neither list, so a new document
 cannot quietly go unlinked.
 

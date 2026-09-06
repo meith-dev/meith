@@ -1,21 +1,10 @@
-# Running on Vercel
+# Deploy on Vercel
 
-A Meith board runs on Vercel from a Deploy Button: one click provisions the
-database, cache, object store and mail account, you generate two secrets,
-and the board is live. [Deploy it](#deploy-it) is that route, and it is
-four steps long.
-
-The rest of this page is the part worth reading before you commit — what
-this route cannot do, what it costs, and the handful of places where a
-platform of functions behaves differently from a server you own. It ends
-with [how to leave](#leaving-vercel), because that is what decides whether
-this is a home or a trap.
-
-This is a narrower route than the [Quickstart](./coolify.md), not a
-better one. There is no server to SSH into, no worker process, no disk, and
-no `docker compose run` to reach for when something needs a command run
-against the board. What you get in exchange is that none of those are yours
-to keep alive.
+Deploy the web app on Vercel with managed PostgreSQL, Redis, object storage,
+and mail. Read the [limits](#the-limits-worth-knowing-first) and
+[scheduler requirements](#the-tick-replaces-the-worker) first. The template's
+daily cron is suitable for trying the deployment; active boards usually need
+a more frequent tick.
 
 ## Deploy it
 
@@ -48,16 +37,14 @@ suggestion. Vercel's own cron documentation suggests a 16-character
 `CRON_SECRET`; that value is refused here. Generate each separately.
 
 **4. Deploy, then open `https://your-deployment/install`.** The build
-applies the schema and builds the board; the installer asks for the board's
-name, your account, and nothing else. When it finishes it seals itself and
+applies the schema and builds the board. Unlock the installer using the
+`AUTH_SECRET` you saved in step 3, then enter the board name and your account
+details. Review the supplied URL and mail settings. When it finishes it seals itself and
 `/install` answers 404 from then on.
 
-That is the whole route. Everything the board needs beyond those two
-secrets is derived from what the four products publish — the drivers, both
-database strings, the Redis URL, and the mail sender — which is why the
-form asks for two fields rather than sixteen. [What the board looks
-for](#what-the-board-looks-for-and-in-what-order) is the full order of
-resolution, and matters only when something does not resolve.
+The board derives driver configuration from the connected services. See
+[environment resolution](#what-the-board-looks-for-and-in-what-order) if a
+value is missing.
 
 > [!NOTE]
 > **`APP_URL` is the one value to check afterwards.** Every link in every
@@ -67,64 +54,26 @@ resolution, and matters only when something does not resolve.
 
 ## Before you commit to this route
 
-Whether this route suits the board you have in mind is decided by what it
-is for, what it costs, and what it cannot do. The third is the one to read
-twice: those limits are properties of running on functions, and no amount
-of configuration moves them.
-
 ### Who this route is for
 
-Take it if:
+Use this route when you want managed hosting or already operate on Vercel.
+There is no persistent server or local upload disk. Operator commands run
+from a board checkout with access to the hosted services.
+For a server you manage, use [Coolify](./coolify.md) or
+[Docker Compose](./docker-compose.md).
 
-- **you have no server and no wish to acquire one.** Nobody on the
-  committee has to learn `ufw`, renew a certificate, or notice that a disk
-  filled up.
-- **traffic is bursty.** A board that is quiet for six days and busy on
-  club night pays for the busy part rather than for a machine sized to it.
-- **you are already on Vercel** and adding one more project is less work
-  than adding the first server.
-
-Do not take it if:
-
-- **where the data lives is the point.** This route spreads a board across
-  a platform, a managed database, a managed cache and an object store —
-  four companies holding your members' posts, none of them you. If that
-  sentence is the reason your community is leaving whatever it is leaving,
-  stop here and read [Deploying by hand](./docker-compose.md) instead. One
-  machine you rent, one database on it, one `pg_dump` that is the whole
-  board. That is the honest answer to data sovereignty, and this page is
-  not it.
-- **you want the documented default.** A server is still what most boards
-  should run, and what most of this documentation assumes.
-- **you are importing a large MyBB or phpBB board.** The importer is a
-  long-running command against two databases; see
-  [the limits](#the-limits-worth-knowing-first).
-
-> [!NOTE]
-> **This route is not covered by an automated deployment test.** The
-> drivers underneath it are — the cache contract suite runs against a real
-> Redis-compatible server on every CI run, and the environment rules below
-> are unit-tested — but nothing in CI deploys a board to Vercel and checks
-> that it came up. Treat a Vercel deploy as something you verify yourself,
-> the same way you would verify any deployment nobody has rehearsed for
-> you.
+CI tests the drivers and environment rules, but does not deploy to a live
+Vercel account. Verify the completed deployment before inviting members.
 
 ### What it costs
 
-Usage-based, and spread across four bills rather than one:
+Budget for web functions, PostgreSQL, Redis, object storage, mail, and the
+scheduler. These may be separate services or bundled by a provider. Check
+the providers' current plans against your traffic and storage requirements.
 
-| Service | What it is | Notes |
-|---|---|---|
-| Vercel | Serving the board, and the cron scheduler | A tick faster than daily needs a paid plan — see [the tick](#the-tick-replaces-the-worker) |
-| Managed PostgreSQL | Everything durable: posts, members, sessions, the queue | Needs both a pooled and a direct connection string |
-| Managed Redis | The shared cache, and nothing else | Losing it costs a warm cache, not data |
-| Object storage | Avatars and attachments | A Vercel Blob store, which is on the Vercel bill and provisions itself, or any S3-compatible bucket: R2, S3, Spaces, MinIO |
-
-Some providers bundle two of these, which makes it three bills rather than
-four. None of them bundle all of it. A single rented server running the
-[Quickstart](./coolify.md) is one bill, a fixed one, and usually a
-smaller one — the case for this route is the operational work it removes,
-not the money.
+Vercel Hobby cron runs at most daily. More frequent Vercel cron schedules
+require a suitable paid plan, or you can use an external scheduler.
+See [Vercel's cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing).
 
 ### The limits worth knowing first
 
@@ -137,15 +86,12 @@ does. Run it from a checkout of your board repository, pointed at the same
 `DATABASE_URL`, and follow
 [Migrating from MyBB or phpBB](../../guides/migrating.md).
 
-**Uploads and downloads both buffer wholly in function memory.** The board
-uploads each object in a single request rather than a multipart one,
-holding the whole file in memory while it is processed and sent; reads have
-the same ceiling, because the download route buffers the whole object
-before it answers. So **the function's memory limit — not the bucket —
-caps attachment size, in both directions**. An attachment uploaded on a
-larger function will exhaust a smaller one on the way back down. Set the
-board's own attachment limit below what the function can hold, and remember
-it applies to serving as well as receiving.
+**Request and response size limits apply before memory limits.** Vercel
+Functions limit request and response payloads to 4.5 MB. Allow for the complete
+form payload, including multiple attachments and multipart overhead. Meith
+also buffers uploaded and downloaded files in function memory. Raising the
+board's attachment limit or the function's memory does not bypass the
+platform payload limit. See [Vercel Function limits](https://vercel.com/docs/functions/limitations).
 
 **Redis connections scale with concurrent instances**, and the platform
 decides how many of those exist. A traffic spike that creates two hundred
@@ -163,10 +109,6 @@ of your board repository with the production environment in front of it,
 rather than inside a container on a server.
 
 ## Things to know
-
-Each of these is a property of running on functions rather than a bug, and
-each one has surprised someone. Nothing here is needed to deploy — come
-back to it when something behaves unlike the server you expected.
 
 ### The tick replaces the worker
 
@@ -268,124 +210,47 @@ means to a scheduler.
 
 ### What build-time migration means
 
-Welding the migration to the build buys the `&&` guarantee, and it costs
-three things. All three are properties of the arrangement rather than bugs,
-and [Upgrading § When the build runs the migration](../../guides/operations/upgrading.md#when-the-build-runs-the-migration)
-is the full treatment.
+The template runs `meith migrate && forum-web build --at-root`. If migration
+fails, the build stops. If migration succeeds but the build fails, the old
+code continues serving against the migrated schema.
 
 #### The deploy window is inverted, not closed
 
-When the deploy and the migration are separate events, new code serves
-against an old schema until somebody runs the command. Build-time migration
-does not remove that window — it turns it around. The migration runs during
-the build, while the **previous** deployment is still serving, so between
-the migration and the cutover it is **old code against a new schema**.
-
-For a release that only adds things, that is safe. For one that removes or
-renames, the two-step rule still holds but you no longer get to order its
-steps, which leaves a single invariant:
-
-> A release's migration must be tolerated by the release *before* it,
-> because that is the code serving while this release's build migrates.
-
-So a destructive migration cannot travel in the same release as the code
-that tolerates it. Those have to be two deploys.
+Keep migrations compatible with the currently serving release: it remains
+live during the build. Split destructive changes across compatible releases.
 
 #### Every build migrates, previews included
 
-The build command is the build command. It runs for every deployment the
-platform builds: the pull-request preview, the branch deployment, the
-redeploy of an old commit. Each one runs `meith migrate` against
-whatever database that deployment's own environment variables name.
-
-This is where the pattern cuts, and Vercel's default is on the wrong side
-of it. **Vercel documents that a new environment variable applies to all
-environments unless you narrow it**, which points preview and branch builds
-at the production database — and then the first preview build of an
-unmerged branch migrates production, from a schema nobody has reviewed,
-with no deploy of that branch ever having happened. Nothing in the build
-command can detect this: from the migration's point of view it is an
-ordinary run against an ordinary `DATABASE_URL`.
-
-> [!CAUTION]
-> **Scope `DATABASE_URL` and `DIRECT_DATABASE_URL` to Production only**,
-> and give preview and branch environments a database of their own — a
-> separate instance, or a branch of the managed one where the provider
-> offers that. Check the scoping before the first preview build rather than
-> after. By the time it is visible the migration has applied, and a
-> migration does not come back off.
-
-Overlapping deploys themselves are safe. Two builds triggered close
-together queue on the advisory lock, and the second finds the schema
-current and applies nothing.
+Give previews and branch deployments separate databases. Check both
+`DATABASE_URL` and `DIRECT_DATABASE_URL`; every build runs migrations against
+the database those variables name. Core migrations serialize through a
+session-level advisory lock; apply plugin upgrades one at a time.
 
 #### Rollback does not un-migrate
 
-Vercel documents its instant rollback as promoting a previous deployment
-by re-pointing an alias at an artefact that was built already. That
-**runs no build**, so it never calls `meith migrate`. There is nothing to undo
-the schema with. Rolling back the other way, by redeploying an older
-commit, does build and does run `meith migrate`, which then applies
-nothing, because migrations are forward-only.
+An instant rollback changes the deployed code, not the schema. Redeploying
+an old commit does not reverse migrations either. Use a backup to recover
+from an incompatible schema change.
 
-Either route puts the old code back and leaves the schema where it is. A
-rollback is therefore only safe while the older code tolerates the newer
-schema.
-
-There is one more shape to know: **a successful migrate followed by a
-failed build**. The `&&` guards one direction only. It stops new code
-reaching an old schema and does nothing about the reverse, so the
-deployment aborts with the migration already applied and the previous
-release still serving — and it stays that way until some later build
-succeeds. The instinct is to roll back, and rolling back does nothing: the
-old code is already what is serving. Fix the build and deploy forward.
+See [Upgrading — build-time migrations](../../guides/operations/upgrading.md#when-the-build-runs-the-migration)
+for the upgrade procedure and rollback limits.
 
 ### The installer, and the four things specific to here
 
-Everything about the installer is the same here as on every other route and
-is written once, in
-[Quickstart § Run the installer](./coolify.md#4-run-the-installer): the
-preflight report that separates blockers from warnings, the three form
-sections, the five steps, and the sealing that cannot be undone. Read that,
-then come back for the four things specific to this route:
+Use the [installer procedure](./coolify.md#4-run-the-installer), with these
+Vercel-specific checks:
 
-- **The board's address is not asked for.** `APP_URL` supplies it, and the
-  preflight names the value it is using. Check that line — a preview URL
-  left in `APP_URL` is a board whose password-reset links point at a
-  deployment that will not exist next week.
-- **The installer checks the schema rather than applying it.** Its first
-  step confirms every table the board needs is there and stops with the
-  names of any that are not; it never migrates. The build command already
-  did that — `meith migrate && forum-web build --at-root` — and a
-  serverless function is the wrong place to try: several cold starts would
-  contend for the same migration lock, and the function timeout bounds how
-  long a migration is allowed to take. The step reads the table names out
-  of the schema definitions, which are ordinary imported code, because the
-  migration `.sql` files are not in the function: nothing imports them, so
-  nothing traces them in, and nothing lists them in
-  `outputFileTracingIncludes` either. Listing them there would not have been
-  inert, for the record — Turbopack emits its trace files and applies those
-  globs whether or not `output` is `'standalone'`, which is the configuration
-  Vercel builds ([Building where Vercel
-  looks](../../contributing/development.md#building-where-vercel-looks)) — so
-  this is a design choice rather than the only option: a schema check needs no
-  files and cannot contend for the migration lock. If that step does report
-  missing tables, run `meith migrate` against the same database and
-  reload — `MIGRATIONS_DIR` cannot help when the files are absent.
-- **The installer takes the same session-level advisory lock migrations
-  do**, so it needs `DIRECT_DATABASE_URL` for the same reason. Run against
-  a pooler, it can report itself permanently in flight.
-- **A warning about `TICK_SECRET` means what it says, not that the tick is
-  unprotected.** The preflight checks that one variable by name, so a board
-  configured the way Vercel Cron needs — `CRON_SECRET` and nothing else —
-  is warned that the tick has no secret while the tick is in fact guarded.
-  It is a warning rather than a blocker, so you can install straight past
-  it. Setting `TICK_SECRET` as well, as [the environment](#the-environment-variable-by-variable)
-  recommends, is the tidier answer and clears the check.
+- Unlock `/install` with the deployment's `AUTH_SECRET` before installing or
+  restoring. The browser unlock expires after 30 minutes.
+- Check `APP_URL`; email links must point at the public board, not a preview.
+- Core migrations run during the build. The installer checks the resulting
+  schema and does not apply migrations itself.
+- Set `DIRECT_DATABASE_URL` for the installer's session-level lock. The
+  preflight checks `TICK_SECRET` by name and may warn if you set only
+  `CRON_SECRET`, even though the endpoint accepts either secret. Setting
+  both clears that warning.
 
-Sealing is recorded in the database rather than in the deployment, so it
-survives every redeploy: `/install` answers 404 from then on, however many
-times the project builds afterwards.
+After installation, the seal is stored in PostgreSQL and survives redeploys.
 
 ### Mail
 
@@ -585,7 +450,7 @@ nothing.
 
 The lists live in `packages/core/src/env.ts` as
 `VERCEL_REDIS_URL_SOURCES`, `VERCEL_DIRECT_DATABASE_URL_SOURCES`,
-`VERCEL_BLOB_TOKEN_SOURCES` and `VERCEL_BLOB_STORE_MARKERS`. If your
+and `VERCEL_BLOB_CREDENTIAL_SOURCES`. If your
 provider publishes a name that is not on one of them, the shortest fix is
 to set `REDIS_URL` or `DIRECT_DATABASE_URL` yourself — the derivation
 stands aside for anything already set — and the durable one is to add the
@@ -657,7 +522,7 @@ What you have to bring, which the Deploy Button would otherwise provision:
 
 | | |
 |---|---|
-| **A board repository** | A scaffolded board of your own, not a clone of the Meith repository — the same workspace [Quickstart § 2](./coolify.md#2-create-your-board) creates. It depends on the published `@meith/web` and `@meith/cli` packages, which is what puts the `forum-web` and `meith` commands in the build. |
+| **A board repository** | A scaffolded board of your own, not a clone of the Meith repository — the same workspace [Coolify § 2](./coolify.md#2-create-your-board) creates. It depends on the published `@meith/web` and `@meith/cli` packages, which is what puts the `forum-web` and `meith` commands in the build. |
 | **A managed PostgreSQL** | With both connection strings: the transaction-mode pooler and the direct one. Both are needed, for the reason under [why both database strings](#why-both-database-strings). |
 | **A managed Redis** | Reachable over TLS (`rediss://`). |
 | **Somewhere to put uploads** | Either a Vercel Blob store, which costs nothing to set up, or an S3-compatible bucket and a key pair for it. The choice has consequences for [leaving](#leaving-vercel); read that first. |
@@ -833,7 +698,7 @@ above; [Backups](../../guides/operations/backups.md) is the reference.
 ### 2. Stand up the destination
 
 Follow [Deploying by hand](./docker-compose.md) — a server, the compose file,
-a `.env` and a proxy — or the [Quickstart](./coolify.md) if you would
+a `.env` and a proxy — or [Coolify](./coolify.md) if you would
 rather have the panel. Write the `.env`, and then **bring up Postgres
 alone**:
 
@@ -854,7 +719,7 @@ stack.
 You are restoring a board, not installing one — though the installer can
 do it for you: bring the whole stack up instead, set the `BACKUP_S3_*`
 values so the fresh board can see the bucket the bundle shipped to, open
-`/install`, and pick the bundle under **Or restore a backup**. That route
+`/install`, unlock it with `AUTH_SECRET`, and pick the bundle under **Or restore a backup**. That route
 is [Restoring from the installer](../../guides/operations/backups.md#from-the-installer);
 the one below is the same restore from a shell.
 
@@ -918,7 +783,7 @@ restore run against a destination that keeps the objects.
 | The build fails naming `BLOB_STORE_ID` and `BLOB_READ_WRITE_TOKEN` | `FILESTORE_DRIVER=blob` is set but no Blob store is attached to the project, or it was attached after this build's environment was read. Attach one under **Storage**, then redeploy. |
 | The board boots, then an upload fails saying the store was reached with no usable credential | The board is on the OIDC path and the platform supplied no identity token — OIDC is off for the project, or this is running off the platform, as a local `meith backup` is. Create a read-write token on the store and set `BLOB_READ_WRITE_TOKEN`. |
 | A refusal names a variable your store does publish, under another name | The candidate list does not have that name. Set `REDIS_URL` or `DIRECT_DATABASE_URL` directly — an explicit value stands the derivation down — and [add the name to the list](#what-the-board-looks-for-and-in-what-order). |
-| The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the build log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. A sender is needed too: `RESEND_EMAIL_DOMAIN` derives one, or set `MAIL_FROM` by hand. |
+| The board boots but sends no mail | No mail token is set, so `MAIL_DRIVER` fell back to `log` and every message goes to the runtime log. Add Resend to the project, or set `MAIL_HTTP_ENDPOINT` and `MAIL_HTTP_TOKEN`. A sender is needed too: `RESEND_EMAIL_DOMAIN` derives one, or set `MAIL_FROM` by hand. |
 | Mail is rejected with a sender error | The sender is at a domain the provider has not verified — whether it came from `MAIL_FROM` or was derived from `RESEND_EMAIL_DOMAIN`. Verify it in the provider's dashboard; nothing on this side can work around it. |
 | Production migrated and nobody deployed anything | A preview or branch build did it, because the database variables reach every environment — [scope them to Production](#every-build-migrates-previews-included). The migration has applied and does not come back off. |
 | A rollback did not fix the schema | It never could. Rollback runs no build and so runs no migration — [above](#rollback-does-not-un-migrate). Deploy forward. |

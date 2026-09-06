@@ -1,13 +1,8 @@
 # Disaster recovery
 
-This page is the runbook for the bad day: the server is gone — seized,
-dead, deleted, or unreachable in a way that is not coming back — and the
-board has to exist again somewhere else.
-[Backups](./backups.md) is the everyday
-half of this story: what to take, how to take it, and how to restore one
-piece. This page is the order of operations when *everything* has to be
-restored at once, written to be followed under stress. Read it once on a
-calm day; the last section asks you to do slightly more than read it.
+Follow this runbook to restore a board on a replacement server. You need a
+backup bundle, the board's deployment files, and its saved secrets.
+For taking backups and testing them before an incident, see [Backups](./backups.md).
 
 ## What recovery consumes
 
@@ -18,7 +13,7 @@ machine is gone:
 | Artifact | Without it |
 |---|---|
 | The database dump — the `meith backup` bundle carries it | There is no board to recover. Everything the board knows — accounts, posts, settings, permissions — is here. |
-| The uploads — in the same bundle on local disk, or the S3 bucket, or a Vercel Blob store | Every post keeps its text and loses its images; every member loses their avatar. A board on [object storage](./scaling.md#what-already-scales) skips this step entirely: the bucket never lived on the machine. A board on a Vercel Blob store cannot skip it — the store has no second copy and no way to sync one out, so the bundle is it. |
+| The uploads — in the same bundle on local disk, or an S3 bucket, or a Vercel Blob store | Posts keep their text but lose their images. If the remote store and credentials survived, verify access; otherwise restore the objects from a backup. |
 | The environment — your `.env`, or the secrets the panel generated | The board boots with new secrets, but `AUTH_SECRET` seals members' two-factor secrets: lose it and every enrolled authenticator app is stranded, and every unsubscribe link in already-sent mail dies. Sessions survive either way — they are random tokens stored hashed in the database. |
 
 The code is not on the list. It is in git, pinned by the release tag the
@@ -49,8 +44,11 @@ version your last backup names — the recorded version is in the dump, and
 the admin panel showed it every day the board that took it was up:
 
 ```sh
-npx create-meith@0.12.0 my-board && cd my-board
+npx create-meith@X.Y.Z my-board
+cd my-board
 ```
+
+Replace `X.Y.Z` with the version recorded in the backup.
 
 Recovering and upgrading are two changes; make them one at a time. Once
 the board is verified and serving, upgrade the ordinary way —
@@ -76,7 +74,7 @@ Two ways in, and the first needs no shell.
 
 **From the installer.** Bring the whole stack up — `docker compose up -d
 --build` — and open the board. `migrate` writes an empty schema, the board
-serves `/install`, and that page offers **Or restore a backup** beside the
+serves `/install`. Unlock it with the deployment’s `AUTH_SECRET`; the page then offers **Or restore a backup** beside the
 ordinary install form: every bundle in the `backups` volume and every
 bundle at the off-site destination the `.env` names, newest first. Put
 the bundle you saved into the volume (`docker compose cp
@@ -94,9 +92,8 @@ board down until the data is in:
 
 ```sh
 docker compose up -d postgres
-RESTORE_DATABASE_URL="postgres://community:$POSTGRES_PASSWORD@postgres:5432/community" \
-  docker compose run --rm --no-deps -e RESTORE_DATABASE_URL -v "$PWD":/backup web \
-  meith restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz
+docker compose run --rm --no-deps -v "$PWD":/backup web \
+  sh -c 'RESTORE_DATABASE_URL="$DATABASE_URL" meith restore /backup/meith-backup-2026-08-20T04-17-03Z.tar.gz'
 ```
 
 The fresh Postgres container created an empty `community` database, which
@@ -129,14 +126,10 @@ the argument for
 [moving uploads to object storage](./scaling.md#migrating-a-single-instance-board)
 on a calm day.
 
-On a **Vercel Blob store** the asymmetry runs the other way, and it is the
-one case where the backup is the only copy. A Blob store is reachable only
-through Vercel's API — there is no bucket to sync, no credential to hand a
-second tool, and deleting the Vercel project deletes the attachments with
-it. So `meith backup` includes the uploads by default under
-`FILESTORE_DRIVER=blob`, and the command runs from anywhere with the
-project's variables in the environment rather than having to run on
-Vercel:
+For a **Vercel Blob store**, verify whether the original store and credentials
+are still available. `meith backup` includes Blob uploads by default; keeping
+an off-site bundle lets you recover if the store is lost or inaccessible.
+Run the backup from a board checkout with the database and Blob credentials:
 
 ```sh
 DATABASE_URL=…            # the pooled string
@@ -163,9 +156,7 @@ a key with a `.` segment, a control character, anything else the board
 cannot use — skips that object, finishes the bundle, names the key, and
 exits **2** instead of 0. The bundle is sound and is the most complete
 copy that can be taken; it records the skipped keys in its manifest, and
-the restore below prints them back. On a Blob store those objects have no
-second copy, so treat the list as a loss to be understood now rather than
-discovered by a member six months from now.
+the restore below prints them back. Investigate the skipped keys and preserve any recoverable originals.
 [When a bundle is incomplete](./backups.md#when-a-bundle-is-incomplete)
 covers the whole of it, including why a scheduled backup should not
 retry.
@@ -253,7 +244,8 @@ from itself. The same order, mapped:
    installed, sealed board, and an installer run here would create a
    second board you would only have to drop again.
 
-4. **Restore** — on `/install`, **Or restore a backup** lists every
+4. **Restore** — unlock `/install` with the saved `AUTH_SECRET`.
+   **Or restore a backup** lists every
    bundle at the off-site destination, because the `BACKUP_S3_*` values
    went in at step 2. Pick the newest, confirm you hold the
    `AUTH_SECRET`, and press **Restore this bundle**: the fresh schema is

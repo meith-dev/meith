@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { site } from '../content/site'
 import { linkResolver, loadAllDocuments } from './load'
-import { documents, internalDocuments, readingOrder } from './registry'
+import { documents, internalDocuments, quickstartHref, readingOrder } from './registry'
 
 describe('linkResolver', () => {
   const fromDocs = linkResolver('guides/operations/operating.md')
@@ -76,6 +76,10 @@ describe('linkResolver', () => {
 })
 
 describe('the published set', () => {
+  it('keeps the local-preview call to action pointing to the quickstart after regrouping', () => {
+    expect(quickstartHref()).toBe('/docs/quickstart')
+  })
+
   it('renders every document in the manifest', async () => {
     const loaded = await loadAllDocuments()
 

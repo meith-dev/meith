@@ -1,11 +1,11 @@
-# Search
+# Search settings
 
-Search is the most expensive thing a visitor can ask a board to do, and
-on a busy board it is the first thing to misbehave. This page is the
-five controls over it and what each is actually worth.
+Configure search at `/admin/settings?group=search`: language, availability,
+minimum word length, and the interval between searches. The hourly cap lives
+under [Spam controls](./antispam.md).
 
-Four live under `/admin/settings?group=search`. The fifth is a rate
-limit and sits with the [spam controls](./antispam.md).
+For finding discussions as a member, see
+[Find a discussion](./member-guide.md#find-a-discussion).
 
 ## The language a board is written in
 

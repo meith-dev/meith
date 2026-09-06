@@ -2,7 +2,7 @@
 
 This guide is for the person responsible for a running Meith server. It covers routine checks, configuration, maintenance, backup, web push, the cookies and security headers the board serves, and common failures.
 
-Installing a board? Use the [Quickstart](../../getting-started/deployment/coolify.md) or [Deploying by hand](../../getting-started/deployment/docker-compose.md). Community administration belongs in the [Organiser guide](../community/organiser-guide.md).
+Installing a board? Use the [Coolify](../../getting-started/deployment/coolify.md) or [Deploying by hand](../../getting-started/deployment/docker-compose.md). Community administration belongs in the [Organiser guide](../community/organiser-guide.md).
 
 ## Services
 
@@ -27,7 +27,10 @@ meith migrate && forum-web build
 
 `meith migrate` applies every migration the installed release has that the board does not, reports how many it applied, and exits 0 having done nothing when the schema is already current. It needs no build output and no running board, so either end of a deploy is a valid place for it. A failure exits non-zero, which is what stops the `&&` and fails the deployment instead of serving new code against an old schema.
 
-Which migrations the board does not have is decided one migration at a time, by content. The runner records the SHA-256 of each migration file it applies in `drizzle.__drizzle_migrations`, and a run applies, in journal order and in one transaction, every migration whose hash is not recorded there — so a run that fails part-way records nothing, and a re-run starts from the same place. The timestamps in `migrations/meta/_journal.json` are bookkeeping, not the test: `0059`–`0061` carry timestamps later than the migrations that follow them, and a runner that took "newer than the newest one applied" as the test — which is what drizzle's own runner does, and what `meith migrate` did before it consulted the hashes — applied `0060` and `0061` on a board arriving from 0.29–0.31 and then skipped `0062`–`0065` as already applied, reporting "already up to date" with four migrations missing. A fresh database applies the journal from the top and never met the case, which is why no boot test caught it; a board that upgraded through it is missing those migrations until it runs `meith migrate` on a release that decides by hash. See [`meith migrate` decides by hash](./upgrading.md#meith-migrate-decides-by-hash-not-by-timestamp) for who is affected and what to run.
+The runner compares migration file hashes with `drizzle.__drizzle_migrations`
+and applies missing migrations in journal order, within one transaction.
+A failed run rolls back. For boards upgraded through the older timestamp-based
+runner, see [migration recovery](./upgrading.md#meith-migrate-decides-by-hash-not-by-timestamp).
 
 Once the board is up, an admin can apply pending **plugin** migrations from **Admin → System** (**Version & migrations**) after a re-entered password — the setup a newly installed plugin needs, which the Compose `migrate` service (it runs `meith migrate`, core only) does not. Core schema migrations are not run from the panel: they belong to the deploy step, run against a direct connection before `web` serves, which is what keeps it from ever serving against an older schema. The panel does count them, though: the notice on **Admin → System** and the admin index asks the database which core migrations of the running release are not recorded, and names how many are missing — whatever version the board has recorded, so a schema that fell behind is reported even when the versions agree. While any are missing the panel's own upgrade refuses to run, naming them and pointing at `meith migrate`, rather than recording the code version over a schema that is not at it. A runtime that cannot reach the migration files (a build-and-serve platform's serverless function) is the one place the count is unavailable; the notice then falls back to comparing versions, and says so once in the log.
 
@@ -93,6 +96,16 @@ Set a value from the terminal only when the admin interface is unavailable:
 docker compose run --rm web meith settings:set <key> <value>
 ```
 
+Secret settings refuse a value passed as a command argument. Pipe the value
+on standard input (use `-T` with Compose), or name an environment variable
+available inside the container:
+
+```sh
+docker compose exec web meith settings:set mail.http_token --from-env MAIL_HTTP_TOKEN
+```
+
+`settings:get` and `settings:list` show `<set>` or `<unset>` for secrets.
+
 The standard deployment requires a PostgreSQL password, `AUTH_SECRET`, `TICK_SECRET`, and the public `APP_URL`. Generate secrets independently, protect the `.env` file, and never commit it.
 
 `TICK_SECRET` protects `/api/system/tick`, the HTTP form of the worker's tick. A deployment with no long-lived worker process drives that endpoint from a cron scheduler instead, and `CRON_SECRET` is the second name the same endpoint accepts it under, for a scheduler that can only send `Authorization: Bearer` under that name. Either variable on its own protects the endpoint, and production refuses to boot with neither — see [Monitoring](./monitoring.md#driving-the-tick-over-http) for the request and response contract.
@@ -112,9 +125,12 @@ Use `meith --help` for the exact commands supported by the installed release.
 
 `meith` is on `PATH` inside the board image, so `exec`-ing into the running `web` container is the quick way — nothing to build, and it shares the board the container is already serving. `run --rm` starts a fresh container instead, which is what you want when `web` is not up (a broken migration, say); `--rm` stops those accumulating, and `-T` is needed when the command reads standard input, as creating a user does under [Account recovery](#account-recovery). On Coolify, both run from the resource's **Terminal** with no SSH — see [Running commands on Coolify](../../getting-started/deployment/coolify.md#running-commands-the-cli-without-ssh).
 
-There is no container to run a command inside on the second route, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
+On a platform that only builds and serves, there is no container to run a command inside, which is why it runs from a checkout instead; the one command that does not wait for an operator is `meith migrate`, which belongs in the build command ahead of the build — see [Migrations](#migrations).
 
-The CLI reaches the database directly, so it works when the board's pages do not — which is what makes it the route back in when administrator access is lost. Pending **plugin** migrations can also be applied from the panel, under **Admin → System** (**Version & migrations**), so a newly installed plugin's setup needs no shell, and [backups](./backups.md) are taken, downloaded and — on a fresh deployment — restored from the panel; the core schema `migrate` and `upgrade` stay CLI-only.
+The CLI reaches PostgreSQL directly and can recover administrator access when
+the web interface is unavailable. **Admin → System** can apply pending plugin
+migrations after core migrations have run during deployment. Core migrations
+must run from the CLI; see [Migrations](#migrations).
 
 `meith --help` lists what the installed release actually has. A command documented here that is missing there means the running image is older than the page — see [A documented command is unavailable](#a-documented-command-is-unavailable).
 

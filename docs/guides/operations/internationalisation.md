@@ -1,13 +1,12 @@
-# Languages
+# Translations
 
-Meith renders in the reader's language when it has a catalog for it, and in
-English when it does not. This document is how a board picks its language, how
-you add a new one, and how a theme or a plugin ships its own words.
+Meith chooses from the language catalogs compiled into the board and falls
+back to English for unavailable translations. Use this guide to add a
+language or translate a theme or plugin with `@meith/i18n`.
 
-Everything here is served by one package, `@meith/i18n`. It has no dependencies
-and no network calls: messages are ordinary JSON compiled into the build, and
-the formatting comes from `Intl`, which every runtime Meith supports already
-carries.
+Members choose their language at `/usercp/options`. The
+[search language](../community/search.md#the-language-a-board-is-written-in)
+is a separate board setting.
 
 ## How a page picks its language
 

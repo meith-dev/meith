@@ -1,23 +1,9 @@
-# phpBB parity decisions
+# phpBB differences
 
-Where a Meith board imported from phpBB behaves differently from the one it
-came from — what changed, and why. Read this alongside
-[Migrating from MyBB or phpBB](../guides/migrating.md), which has the procedure and
-the per-source coverage table; this page is about behaviour, not transfer.
-
-This page is deliberately shorter than
-[MyBB parity decisions](./mybb-parity.md). Most of what makes Meith behave
-differently from an old-school forum — Markdown instead of BBCode,
-one notification centre instead of e-mail-and-a-count, reputation with no
-per-group multiplier, timezones as IANA names, a control panel with its own
-session — is a decision about *this board*, not about the one you are
-leaving, and that page already states each one, its reasoning and its
-cost in full. Nothing here repeats it. What follows is specific to phpBB:
-where its own model does not fit Meith's, and — a few times — where it fits
-better than MyBB's did.
-
-Each entry: what phpBB does, what happens on import or by design here, and
-why.
+Review these differences before importing a phpBB board. The import
+procedure and coverage table are in [Migrating](../guides/migrating.md).
+Also review [MyBB differences](./mybb-parity.md) for shared design choices,
+including Markdown, reputation, timezones, and admin sessions.
 
 ## What is on this page
 

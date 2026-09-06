@@ -1,12 +1,8 @@
 # Installing plugins and themes
 
-A Meith board is a small code repository you own. Plugins and themes are npm
-packages **built into that repository**, not uploaded into a running site — so
-adding one is always the same three moves: install the package, register it,
-redeploy. Nothing here needs to touch the server directly.
-
-If you would rather build your own than install one, start with
-[Write your first plugin](./first-plugin.md).
+Plugins and themes are built into your board. Install and register them in
+the board repository, then commit and redeploy. The admin panel manages
+the extensions already included in that build.
 
 ## Find one
 

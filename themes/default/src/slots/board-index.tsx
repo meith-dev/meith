@@ -1,12 +1,6 @@
 import type { BoardIndexModel, SlotCopy } from '@meith/theme-kit'
 import { fromSlotCopy } from '@meith/theme-kit'
-import {
-  buttonVariants,
-  PageDescription,
-  PageHeader,
-  PageHeaderContent,
-  PageTitle,
-} from '@meith/ui'
+import { buttonVariants } from '@meith/ui'
 
 import { PAGE_BODY } from '../shared'
 
@@ -27,19 +21,13 @@ export function BoardIndex({
         <div className="flex flex-col gap-3">{regions.announcements}</div>
       )}
 
-      <PageHeader>
-        <PageHeaderContent>
-          <PageTitle>{c('heading')}</PageTitle>
-          <PageDescription>{c('description')}</PageDescription>
-        </PageHeaderContent>
-        {markAllReadAction !== null && (
-          <form action={markAllReadAction} method="post">
-            <button type="submit" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-              {c('markAllRead')}
-            </button>
-          </form>
-        )}
-      </PageHeader>
+      {markAllReadAction !== null && (
+        <form action={markAllReadAction} method="post" className="self-end">
+          <button type="submit" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+            {c('markAllRead')}
+          </button>
+        </form>
+      )}
 
       <div
         className={
