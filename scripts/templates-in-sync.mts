@@ -58,7 +58,7 @@ async function main() {
   if (drift) {
     console.error(
       'The deploy template repositories are out of sync. A release runs `pnpm templates:sync`; ' +
-        'see docs/contributing/release.md, "Deploy template repositories".',
+        'see docs/developing/release.md, "Deploy template repositories".',
     )
     process.exit(1)
   }

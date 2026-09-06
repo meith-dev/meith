@@ -27,7 +27,7 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else â€
   *is* the published document. Run `pnpm comments:check` before you finish: it
   lists every comment your change added, and it is the same check the git
   `pre-commit` hook runs, so a commit carrying one is refused whoever or
-  whatever wrote it. `docs/contributing/development.md` explains both.
+  whatever wrote it. `docs/developing/development.md` explains both.
 - **Update the docs with every change.** Behavior described in `docs/` changes
   in the same commit that changes the behavior. A new document is registered in
   `apps/web/content/docs.manifest.json` and linked from `docs/README.md`.
@@ -41,10 +41,10 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else â€
 - **Biome is the formatter and the linter**, configured in `biome.json`.
   `pnpm lint` checks; `pnpm format` writes. A suppression is a
   `biome-ignore lint/<group>/<rule>: <reason>` on the line above, never a
-  blanket disable. `docs/contributing/development.md` explains the rules that carry an
+  blanket disable. `docs/developing/development.md` explains the rules that carry an
   invariant.
 - **Versions never move in a feature change.** Releases move them
-  (`docs/contributing/release.md`); `pnpm release:check` will object.
+  (`docs/developing/release.md`); `pnpm release:check` will object.
 - **The root is a registry.** A new root file goes in a folder, or is added to
   `scripts/root-check.mjs` with the reason it must live there.
 
@@ -53,4 +53,4 @@ interface lives in `docker/`. Documentation lives in `docs/` and nowhere else â€
 - `pnpm verify` â€” everything CI's static job runs.
 - `pnpm test:e2e` â€” the browser suite; self-contained, mostly JavaScript-off.
 - `pnpm dev` â€” the board on :3000 with no database (fixture mode);
-  `docs/contributing/development.md` for the Postgres-backed setup.
+  `docs/developing/development.md` for the Postgres-backed setup.

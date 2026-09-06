@@ -59,7 +59,7 @@ export function validateEntry(file, entry) {
     if (!REQUIRED_FIELDS.includes(field)) {
       problems.push(
         `${file}: field "${field}" is not part of the marketplace schema — extend it only ` +
-          'with maintainer sign-off (see docs/customization/marketplace.md), not by adding a field here',
+          'with maintainer sign-off (see docs/developing/marketplace.md), not by adding a field here',
       )
     }
   }

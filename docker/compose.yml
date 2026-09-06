@@ -6,10 +6,10 @@
 # deploys **this repository's own stock board** directly — the same shape the
 # release pipeline builds and boot-tests the official image against, and what
 # the board-eject and board-workspace smoke tests exercise. It is not what the
-# getting-started guides point an operator at: docs/getting-started/deployment/docker-compose.md deploys a
+# getting-started guides point an operator at: docs/setting-up/deployment/docker-compose.md deploys a
 # scaffolded board of one's own instead (`npx create-meith` or the template),
-# by hand, because that is the shape docs/customization/marketplace.md can
-# actually install a plugin into — docs/getting-started/deployment/coolify.md is the guided version of the
+# by hand, because that is the shape docs/developing/marketplace.md can
+# actually install a plugin into — docs/setting-up/deployment/coolify.md is the guided version of the
 # same scaffold. Read this file when you are working on the release pipeline
 # itself, or deliberately want the unmodified stock board rather than a board
 # of your own; everything below is meant to be read as well as run.
@@ -133,7 +133,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       # One reverse proxy (Caddy, by the setup this file's guide walks through)
       # sits in front of `web` — see "Count your proxies" in
-      # docs/getting-started/deployment/docker-compose.md. Override in `.env` if
+      # docs/setting-up/deployment/docker-compose.md. Override in `.env` if
       # that shape changes.
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       # Mail, forwarded rather than hard-coded so it can be configured in `.env`
@@ -171,7 +171,7 @@ services:
       - uploads:/app/.uploads
       # The ring of backup bundles the admin panel lists and downloads. A
       # named volume, so the ring survives a redeploy; the worker below writes
-      # into the same one. See docs/guides/operations/backups.md.
+      # into the same one. See docs/operating/backups.md.
       - backups:/backups
     depends_on:
       postgres:

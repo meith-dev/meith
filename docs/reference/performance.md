@@ -16,7 +16,7 @@ and what a board full of members reading at once measured on the same data.
 
 Every number here is measured on a **single-instance** board — one web
 process with the per-process cache, no Redis. That is the stock topology
-and the honest baseline. A board [scaled out](../guides/operations/scaling.md) answers from a
+and the honest baseline. A board [scaled out](../operating/scaling.md) answers from a
 shared cache instead of an in-process map, so its numbers differ; measure
 your own rather than reading these across.
 

@@ -5,7 +5,7 @@ import { linkResolver, loadAllDocuments } from './load'
 import { documents, internalDocuments, readingOrder } from './registry'
 
 describe('linkResolver', () => {
-  const fromDocs = linkResolver('guides/operations/operating.md')
+  const fromDocs = linkResolver('operating/operating.md')
   const fromNested = linkResolver('notes/example.md')
 
   it('keeps an anchor within the page', () => {
@@ -16,18 +16,18 @@ describe('linkResolver', () => {
   })
 
   it('sends a published document to its page, anchor and all', () => {
-    expect(fromDocs('../../customization/themes.md')).toEqual({
+    expect(fromDocs('../developing/themes.md')).toEqual({
       href: '/docs/themes',
       external: false,
     })
-    expect(fromDocs('../../customization/plugins.md#failure')).toEqual({
+    expect(fromDocs('../developing/plugins.md#failure')).toEqual({
       href: '/docs/plugins#failure',
       external: false,
     })
   })
 
   it('resolves relative to the document doing the linking', () => {
-    expect(fromNested('../guides/operations/operating.md')).toEqual({
+    expect(fromNested('../operating/operating.md')).toEqual({
       href: '/docs/operating',
       external: false,
     })
@@ -38,15 +38,15 @@ describe('linkResolver', () => {
   })
 
   it("sends the documentation index to this site's own index", () => {
-    expect(fromDocs('../../README.md')).toEqual({ href: '/docs', external: false })
+    expect(fromDocs('../README.md')).toEqual({ href: '/docs', external: false })
   })
 
   it('sends a link that climbs out of docs/ to the repository root', () => {
-    expect(fromDocs('../../../docker/compose.yml')).toEqual({
+    expect(fromDocs('../../docker/compose.yml')).toEqual({
       href: `${site.repository}/blob/main/docker/compose.yml`,
       external: true,
     })
-    expect(fromDocs('../../../.env.example')).toEqual({
+    expect(fromDocs('../../.env.example')).toEqual({
       href: `${site.repository}/blob/main/.env.example`,
       external: true,
     })
@@ -54,11 +54,11 @@ describe('linkResolver', () => {
 
   it('sends an unpublished document to the repository rather than to a 404', () => {
     expect(fromDocs('./internal-notes.md')).toEqual({
-      href: `${site.repository}/blob/main/docs/guides/operations/internal-notes.md`,
+      href: `${site.repository}/blob/main/docs/operating/internal-notes.md`,
       external: true,
     })
     expect(fromDocs('./notes')).toEqual({
-      href: `${site.repository}/tree/main/docs/guides/operations/notes`,
+      href: `${site.repository}/tree/main/docs/operating/notes`,
       external: true,
     })
   })

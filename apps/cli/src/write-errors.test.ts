@@ -12,7 +12,7 @@ const FAILURE = {
   command: 'backup',
   path: '/backup/pre-18.tar.gz',
   target: '/backup',
-  reference: 'docs/guides/operations/operating.md, "Backup"',
+  reference: 'docs/operating/operating.md, "Backup"',
 }
 
 describe('isFsPermissionError', () => {
@@ -43,7 +43,7 @@ describe('translateWriteError', () => {
     expect(message).toContain('backup could not write to /backup/pre-18.tar.gz')
     expect(message).toContain('needs write access to /backup')
     expect(message).toContain('fixed, non-root user')
-    expect(message).toContain('docs/guides/operations/operating.md, "Backup"')
+    expect(message).toContain('docs/operating/operating.md, "Backup"')
   })
 
   it('translates EPERM the same way', () => {

@@ -160,7 +160,7 @@ describe('what the scaffold writes', () => {
       'README.md',
     )!
     expect(readme).toContain(
-      'https://example.test/board/blob/main/docs/getting-started/deployment/docker-compose.md',
+      'https://example.test/board/blob/main/docs/setting-up/deployment/docker-compose.md',
     )
   })
 
@@ -570,7 +570,7 @@ describe('the by-hand compose file — the third path, with no panel generating 
   })
 
   it('points the by-hand guide at itself, so a stale name would show up as a broken snippet', () => {
-    expect(byHand).toContain('docs/getting-started/deployment/docker-compose.md')
+    expect(byHand).toContain('docs/setting-up/deployment/docker-compose.md')
     expect(byHand).toContain('COMPOSE_FILE=docker-compose.byhand.yaml')
   })
 })
@@ -810,13 +810,13 @@ describe('the published bin, run the way npx actually runs it', () => {
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'package.json': '0cfc3fa53d8d1976c1b9e252e15672ff9f71e4741109a7fd2e475cf40d9c7ab1',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
-  'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
+  'meith.config.ts': '26ab54a53c5fb000dc06bb4b464ecba55cc8093f4b942f13bb8b3619c536e246',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
+  'meith.plugins.ts': '0ce0f8f04766a471eacf0ffa998df61dd247b91ce0b1cb1ceeb41c98ebd2dd91',
   '.env.example': 'e160944cbb1fba18c67ef7e55d6f640cb847f77125d7fbf9e6f2426344aa8865',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'd012f8daa0f10ffb0f3887c8b7658fc4276133c978576b2b3a3216ba8c0ee292',
-  'Dockerfile.prebuilt': 'e5a9ecdd9bc2e9a9da4523ecc2c204be9c45b769e8d4bdb2a70928f8bade17a8',
+  Dockerfile: '30b08404dd4a8e42f344c8a66ab09434605a1203cc5c77d0cbb213239e6dcd12',
+  'Dockerfile.prebuilt': 'aef56a700826d93cb902712b51acd712363fa32eb9a312f23f204ffd876c844d',
   'docker-entrypoint.sh': '7b8ce8a48ade0285f0954ed5dff3dd82a94586ec321e54fb1c65dec768258117',
   'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
@@ -824,11 +824,11 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
   '.github/workflows/update.yml':
     '5c56ff79b04d29928645b49be82bc47fac65d88a84cfc066d64b932123c620f0',
-  'docker-compose.yaml': '6c9715262ce8e8f77c3cf661683bcb11be803544f5e902a7d1507ac45d2211b2',
+  'docker-compose.yaml': '0044290129b7ebd29aa6abdbd8eac768094cd753fb0e7afbff548b03eaa1e4ca',
   'docker-compose.prebuilt.yaml':
-    '069997fca8288caaf2e24a98413d23ffa7903ea370e23b6bc4c01358cd7cd896',
-  'docker-compose.byhand.yaml': '8217237f19f31db09572ba117c3c0708153254e8d25e22333b21c77abbe5c495',
-  'README.md': 'b7172e689c8b25d28f5143d02aa62087f6041bb0375b3e237d69a0fe8acc4648',
+    'c003976e2e4aebf44ee7cf158bc823de1be020b991e7b856f92b408600c8e381',
+  'docker-compose.byhand.yaml': '7b302525f0418258fcef39a4e4862e93ac48b952f992308406d9cddd73ecbbb6',
+  'README.md': '48709bcc574ef574a4eb7fca929c6ddd400f1358a511f499fc3496829ba446a0',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const

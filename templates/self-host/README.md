@@ -31,7 +31,7 @@ in. Two steps:
 
 3. **Deploy, then `/install` on your own domain.** Coolify issues the
    certificate; the installer from there is the one
-   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
+   [docs/setting-up/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/setting-up/deployment/coolify.md#4-run-the-installer)
    walks through, screen for screen. It seals itself when it finishes, and
    `/install` answers 404 from then on — run it **against the database you
    are going to keep**. Every push to `main` after this is picked up the next
@@ -82,7 +82,7 @@ one. Three steps, nothing to configure by hand beyond one value only you know:
    redeploy pulling whatever `main` most recently built.
 
 3. **Deploy, then `/install` on your own domain.** Same installer, same
-   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
+   [docs/setting-up/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/setting-up/deployment/coolify.md#4-run-the-installer)
    walk-through, same one-time seal. Every push to `main` after this rebuilds
    the image; Coolify's own **Redeploy** button is what actually pulls it —
    pushing alone does not.
@@ -104,7 +104,7 @@ docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require
 four containers deployed with nothing generating secrets for you: a `.env`
 you write yourself, a port published for the reverse proxy you already run,
 and `docker compose up -d --build` in place of a panel's Deploy button.
-[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md)
+[docs/setting-up/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/setting-up/deployment/docker-compose.md)
 is the full walkthrough this file is the last step of, including the
 `.env` this repository does not carry — nothing here belongs in git. Delete
 this file if you know you will only ever deploy through Coolify; keep it,
@@ -183,7 +183,7 @@ built into the image. In this repository:
    docker compose run --rm web meith upgrade
    ```
 
-See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/customization/installing.md)
+See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/getting-started/installing.md)
 for the full guide.
 
 ## Upgrading
@@ -252,7 +252,7 @@ project's own `.npmrc` sets `save-exact=true` for the same reason, so an
 build workflow also refuses to build from anything but an exact version, as
 a second line of defense. Once the rebuilt image is deployed, run
 `npm run meith -- upgrade` against it for the plugin migrations — see
-[the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/guides/operations/operating.md#the-operator-cli)
+[the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/operating/operating.md#the-operator-cli)
 for running it against this deployment.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —

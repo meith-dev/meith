@@ -18,8 +18,8 @@ this directory by `pnpm extension:gen`, and `pnpm verify` fails when they
 drift, so editing an example is editing the scaffold.
 
 The policy documents are the place to start before copying either:
-[docs/customization/plugins.md](../docs/customization/plugins.md) and
-[docs/customization/themes.md](../docs/customization/themes.md). The generated references —
+[docs/developing/plugins.md](../docs/developing/plugins.md) and
+[docs/developing/themes.md](../docs/developing/themes.md). The generated references —
 [docs/reference/plugin-hooks.md](../docs/reference/plugin-hooks.md) and
 [docs/reference/theme-slots.md](../docs/reference/theme-slots.md) — list every hook and slot.
 

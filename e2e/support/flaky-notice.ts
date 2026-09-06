@@ -25,7 +25,7 @@ export default class FlakyNoticeReporter implements Reporter {
         [...this.flaky].map((title) => `  ${title}`).join('\n'),
         '',
         'The shard is green because the retry passed, not because the run was clean.',
-        'docs/contributing/development.md explains what a retried browser test means, and why a red',
+        'docs/developing/development.md explains what a retried browser test means, and why a red',
         'browser shard is often not the fault of the change under test.',
         '',
       ].join('\n'),

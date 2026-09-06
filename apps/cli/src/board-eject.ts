@@ -220,7 +220,7 @@ export async function boardEject(args: readonly string[]): Promise<number> {
         command: 'board:eject',
         path,
         target,
-        reference: 'docs/customization/marketplace.md, "Moving to a custom board"',
+        reference: 'docs/developing/marketplace.md, "Moving to a custom board"',
       })
     }
   }
@@ -247,7 +247,7 @@ export async function boardEject(args: readonly string[]): Promise<number> {
   console.log('  # no panel? docker-compose.byhand.yaml is the same board without Coolify')
   console.log('')
   console.log(
-    'See docs/customization/marketplace.md, "Moving to a custom board", for the full walkthrough.',
+    'See docs/developing/marketplace.md, "Moving to a custom board", for the full walkthrough.',
   )
 
   return 0

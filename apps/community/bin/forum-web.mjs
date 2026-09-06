@@ -172,7 +172,7 @@ function warnAboutStrayBoardFiles(intended) {
       'They are left exactly as they are. A scaffolded board gitignores these directories as ' +
       'a unit, though, so nothing above is committed, and a deploy that builds from the ' +
       'checkout will not see it. A board extends the forum through plugins and themes ' +
-      '(docs/customization/plugins.md, docs/customization/themes.md), not by adding files here.',
+      '(docs/developing/plugins.md, docs/developing/themes.md), not by adding files here.',
   )
 }
 

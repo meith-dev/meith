@@ -49,20 +49,20 @@ jobs:
       - name: Every verify gate runs in CI
         run: pnpm ci:parity:check
 
-      # The workspace releases in lockstep — see docs/contributing/release.md. This fails on
+      # The workspace releases in lockstep — see docs/developing/release.md. This fails on
       # a manifest, constant or compose pin that names any other version.
       - name: One version everywhere
         run: pnpm release:check
 
       # create-meith is the one published package with a dist step — see
-      # docs/contributing/release.md, "They ship TypeScript source, deliberately". The
+      # docs/developing/release.md, "They ship TypeScript source, deliberately". The
       # dry run below packs it with `pnpm pack`, which only sees what is
       # already on disk, so the build has to run first — release.yml's `npm`
       # job orders these the same way, immediately before npm-publish.mjs.
       - name: Build create-meith
         run: pnpm --filter create-meith build
 
-      # docs/contributing/release.md documents this as the gate that catches, before a
+      # docs/developing/release.md documents this as the gate that catches, before a
       # release ever runs, a `files` allowlist or `bin` path that has rotted:
       # every publishable package is packed with `pnpm pack` and its tarball
       # checked against its own manifest, with nothing published and the
@@ -263,7 +263,7 @@ jobs:
       - name: Build the image
         run: docker build -f docker/Dockerfile -t forum:ci .
 
-      # MEI-90: docs/customization/marketplace.md documents `board:eject` as a bind-mounted,
+      # MEI-90: docs/developing/marketplace.md documents `board:eject` as a bind-mounted,
       # non-root `docker run`/`docker compose run` invocation — this is what
       # proves that invocation against the real image this job just built,
       # not board-eject-smoke.mts's stand-in (that script runs `meith
@@ -312,7 +312,7 @@ jobs:
             -e TICK_SECRET=ci-tick-secret-ci-tick-secret-32b \
             forum:ci
 
-      # MEI-104: docs/guides/operations/operating.md and upgrading.md document the
+      # MEI-104: docs/operating/operating.md and upgrading.md document the
       # backup as a bind-mounted, non-root `docker compose run`, and the upgrade
       # runbook destroys the pgdata volume two lines after taking it. The image
       # runs as uid 1001, which owns nothing on the host, so the documented shape
@@ -433,7 +433,7 @@ jobs:
   # user would, installs it from the packed tarballs, and builds and boots
   # the result — twice, once at each materialization depth, because Vercel
   # deploys through `--at-root` and every board bug found so far shipped
-  # through that one. See docs/contributing/development.md, "Consuming the board from a
+  # through that one. See docs/developing/development.md, "Consuming the board from a
   # workspace", and scripts/board-workspace-smoke.mts for the mechanism and
   # why the boot check runs against Postgres rather than fixture mode.
   board-workspace:
@@ -636,7 +636,7 @@ jobs:
           docker compose -f compose.dev.yml config >/dev/null
           docker compose -f compose.site.coolify.yml config >/dev/null
 
-      # docs/getting-started/deployment/docker-compose.md tells an operator to write a `.env` and run one
+      # docs/setting-up/deployment/docker-compose.md tells an operator to write a `.env` and run one
       # command. This job is that, verbatim, because three separate bugs got
       # into this repository behind a compose file nothing ever started:
       # `migrate` was never passed the two secrets so the stack could not come
@@ -732,7 +732,7 @@ jobs:
             || { echo "::error::web and worker do not share uploads"; exit 1; }
 
       # The operator CLI ships inside the image, so a server needs no checkout
-      # and no toolchain. docs/guides/operations/operating.md documents every command as
+      # and no toolchain. docs/operating/operating.md documents every command as
       # `meith <cmd>` — checked here too (MEI-81), not just the
       # underlying `node apps/cli/cli.cjs` this comment used to call "the
       # guide's alias" back when nothing in the image actually put a
@@ -761,7 +761,7 @@ jobs:
 
       # ── the other shape ──────────────────────────────────────────────────
       #
-      # docs/getting-started/deployment/coolify.md tells an operator to point Coolify at this file and
+      # docs/setting-up/deployment/coolify.md tells an operator to point Coolify at this file and
       # expect a working board that asks them for nothing. The magic variables
       # are supplied here the way Coolify supplies them, which is the only part
       # of that promise CI can stand in for — but it is the part that breaks:

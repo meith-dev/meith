@@ -72,7 +72,7 @@ async function main() {
   if (token === undefined || token === '') {
     console.warn(
       '::warning::TEMPLATE_SYNC_TOKEN is not set — skipping deploy-template sync. ' +
-        'See docs/contributing/release.md, "Deploy template repositories".',
+        'See docs/developing/release.md, "Deploy template repositories".',
     )
     return
   }

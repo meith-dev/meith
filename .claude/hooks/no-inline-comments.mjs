@@ -73,6 +73,6 @@ console.error(
     'the relevant document under docs/, changed in the same commit — never in the code. ' +
     'Suppressions (biome-ignore, @ts-expect-error), type annotations (@type, @satisfies) ' +
     'and the JSDoc a generated reference is built from are not counted, so these are real ' +
-    'comments. See docs/contributing/development.md, "No inline comments".',
+    'comments. See docs/developing/development.md, "No inline comments".',
 )
 process.exit(2)

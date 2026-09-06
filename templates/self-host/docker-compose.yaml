@@ -107,7 +107,7 @@ services:
       # service the variables the file names, so a Scheduled Task running
       # `meith backup` in this container would never see them without these
       # lines — see the meith repository's
-      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      # docs/setting-up/deployment/coolify.md, "Set up backups".
       - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-}
       - BACKUP_S3_REGION=${BACKUP_S3_REGION:-}
       - BACKUP_S3_ACCESS_KEY_ID=${BACKUP_S3_ACCESS_KEY_ID:-}
@@ -131,9 +131,9 @@ services:
         condition: service_completed_successfully
 
   # @meith/worker is not published (see the meith repository's
-  # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
+  # docs/developing/release.md), so there is no compiled worker binary a scaffolded
   # board can run — this drives the tick the alternative way the meith
-  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # repository documents in docs/setting-up/deployment/docker-compose.md, "Running the tick without
   # a second set of credentials": a small loop calling /api/system/tick.
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b

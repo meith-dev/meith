@@ -179,7 +179,7 @@ function render({ hooks, signatures, regions, wired }) {
     'Every handler is called inside the host’s try/catch and is timed. Failures are',
     'counted in the database, so a plugin that fails repeatedly is switched off across',
     'the whole board and stays off until an operator clears the record. See',
-    '[`plugins.md`](../customization/plugins.md) for the policy, the lifecycle and the limits.',
+    '[`plugins.md`](../developing/plugins.md) for the policy, the lifecycle and the limits.',
     '',
   )
 

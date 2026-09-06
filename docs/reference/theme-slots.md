@@ -11,7 +11,7 @@
 **theme-kit v0.24.** 36 slots: 36 stable, 0 provisional, 0 deprecated.
 
 What the marks mean, and how something is removed, is in
-[`themes.md`](../customization/themes.md). In short: a **stable** slot and the fields of its
+[`themes.md`](../developing/themes.md). In short: a **stable** slot and the fields of its
 model do not change before the next major; a **provisional** slot is named but not yet rendered
 by any page, so its model may change in a minor release; a **deprecated** slot still
 works and has a removal scheduled below.

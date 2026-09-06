@@ -3251,7 +3251,7 @@
   "setting.reputation.min_posts_to_give.label": "Posts required before rating",
   "setting.search.enabled.description": "Off takes the Search link out of the board navigation, replaces /search and any results page still linked to with a line saying so, and answers GET /api/v1/search with a 403. The index is kept and goes on being maintained, so switching it back on needs no reindex.",
   "setting.search.enabled.label": "Enable search",
-  "setting.search.flood_seconds.description": "Minimum seconds between searches per user. Replaces the per-group searchfloodtime permission, which could not obey the numeric combination rule — see docs/reference/mybb-parity.md.",
+  "setting.search.flood_seconds.description": "Minimum seconds between searches per user. Replaces the per-group searchfloodtime permission, which could not obey the numeric combination rule — see docs/getting-started/mybb-parity.md.",
   "setting.search.flood_seconds.label": "Search flood interval",
   "setting.search.language.description": "The Postgres text-search configuration used to stem posts as they are indexed and to stem the words a member searches for. Match it to the language the board is written in, so a search for one form of a word finds the others — the German configuration ties \"Häuser\" to \"Haus\", where English would leave them apart. \"No stemming\" indexes and matches whole words only, which is the safe choice for a board that mixes languages. Changing it schedules a background reindex: every post is rewritten under the new configuration by the search reindex task, a batch at a time, and stays findable under the old one until its turn comes.",
   "setting.search.language.label": "Search language",

@@ -92,6 +92,6 @@ console.error(
     '  Suppressions (biome-ignore, @ts-expect-error), compiler-read type annotations\n' +
     '  (@type, @satisfies) and the prose in the six files a generated reference is\n' +
     '  built from are not counted, so these are real comments.\n\n' +
-    '  docs/contributing/development.md, "No inline comments", has the whole rule.\n',
+    '  docs/developing/development.md, "No inline comments", has the whole rule.\n',
 )
 process.exit(1)

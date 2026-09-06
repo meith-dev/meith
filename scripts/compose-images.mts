@@ -18,7 +18,7 @@ export async function pinnedComposeImage(service: string): Promise<string> {
   if (match === null) {
     throw new Error(
       `compose-images: ${COMPOSE_FILE}'s "${service}" service carries no digest-pinned image. ` +
-        'Every base image there is pinned by digest — see docs/contributing/release.md, ' +
+        'Every base image there is pinned by digest — see docs/developing/release.md, ' +
         '"Deploys are deterministic, and that is load-bearing".',
     )
   }

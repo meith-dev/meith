@@ -4,7 +4,7 @@
 // them. A plugin that does not fit that convention can be added here by hand instead —
 // keep it out of board.plugins.json so a regenerate does not drop it.
 //
-// docs/customization/plugins.md explains both.
+// docs/developing/plugins.md explains both.
 
 import type { InstalledPlugin } from '@meith/web/config'
 

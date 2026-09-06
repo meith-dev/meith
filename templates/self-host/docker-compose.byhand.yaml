@@ -5,7 +5,7 @@
 # secrets for you: every value Coolify would have filled in — the database
 # password, AUTH_SECRET, TICK_SECRET, the board's own address — comes from
 # a `.env` beside this file instead. See the meith repository's
-# docs/getting-started/deployment/docker-compose.md, which this file is
+# docs/setting-up/deployment/docker-compose.md, which this file is
 # the last step of.
 #
 # `docker compose` only auto-discovers a file literally named
@@ -21,7 +21,7 @@
 # to GitHub and let `.github/workflows/build.yml` do it, or run
 # `docker build -f Dockerfile.prebuilt ...` by hand) and change the two
 # `build: .` lines below to `image: <that image>:<version>` — the
-# substitution docs/getting-started/deployment/docker-compose.md, "Building
+# substitution docs/setting-up/deployment/docker-compose.md, "Building
 # somewhere else", walks through.
 services:
   postgres:
@@ -103,7 +103,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       # One reverse proxy (Caddy, in the guide's own walkthrough) sits in
       # front of `web` — see "Count your proxies" in
-      # docs/getting-started/deployment/docker-compose.md.
+      # docs/setting-up/deployment/docker-compose.md.
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       # Leaving this at `log` does not mean no mail: it means the board
       # decides, from the installer on first run or from
@@ -137,7 +137,7 @@ services:
         condition: service_completed_successfully
 
   # @meith/worker is not published (see the meith repository's
-  # docs/contributing/release.md), so there is no compiled worker binary
+  # docs/developing/release.md), so there is no compiled worker binary
   # this board can run — a small loop calling /api/system/tick instead, the
   # same shape docker-compose.yaml and docker-compose.prebuilt.yaml use.
   worker:
@@ -166,7 +166,7 @@ services:
     depends_on:
       - web
 
-  # Off by default — see docs/guides/operations/scaling.md before setting
+  # Off by default — see docs/operating/scaling.md before setting
   # CACHE_DRIVER=redis above. This is the server it needs.
   redis:
     profiles: ['redis']

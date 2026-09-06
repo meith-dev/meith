@@ -178,7 +178,7 @@ exercised once, each easy to delete.
     npm test
 
 \`src/plugin.tsx\` is the plugin. What a plugin may and may not do is
-documented in the meith repository under \`docs/customization/plugins.md\`;
+documented in the meith repository under \`docs/developing/plugins.md\`;
 every hook and payload is listed in \`docs/reference/plugin-hooks.md\`.
 
 ## Run it inside a board
@@ -216,7 +216,7 @@ migration, run \`npx meith migrate\`. The plugin then appears under
 finish \`listing.json\` (its \`repository\` field starts as a placeholder),
 add the screenshot it names, and open a pull request against the meith
 repository — the submission process and the review bar are documented there
-in \`docs/customization/marketplace.md\`.
+in \`docs/developing/marketplace.md\`.
 `
 }
 
@@ -235,7 +235,7 @@ tokens) plus a single slot override, the footer.
 
 \`src/theme.ts\` declares the theme, \`src/tokens.ts\` carries the palette,
 and slots live in \`src/slots/\`. What a theme may and may not do is
-documented in the meith repository under \`docs/customization/themes.md\`;
+documented in the meith repository under \`docs/developing/themes.md\`;
 every slot and view model is listed in \`docs/reference/theme-slots.md\`.
 
 ## Run it inside a board
@@ -276,7 +276,7 @@ on the appearance screen and to administrators under **Admin → Themes**.
 finish \`listing.json\` (its \`repository\` field starts as a placeholder),
 add the screenshot it names, and open a pull request against the meith
 repository — the submission process and the review bar are documented there
-in \`docs/customization/marketplace.md\`.
+in \`docs/developing/marketplace.md\`.
 `
 }
 

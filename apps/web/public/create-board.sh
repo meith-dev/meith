@@ -69,7 +69,7 @@ cat > "$BOARD_NAME/meith.config.ts" <<'MEITH_SCAFFOLD_EOF'
  *
  * Adding a theme is: `npm install` it, add a line here, redeploy. Adding a
  * plugin is the same, through board.plugins.json and meith.plugins.ts —
- * see docs/customization/plugins.md.
+ * see docs/developing/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
 import {
@@ -114,7 +114,7 @@ cat > "$BOARD_NAME/meith.plugins.ts" <<'MEITH_SCAFFOLD_EOF'
 // them. A plugin that does not fit that convention can be added here by hand instead —
 // keep it out of board.plugins.json so a regenerate does not drop it.
 //
-// docs/customization/plugins.md explains both.
+// docs/developing/plugins.md explains both.
 
 import type { InstalledPlugin } from '@meith/web/config'
 
@@ -343,19 +343,19 @@ cat > "$BOARD_NAME/Dockerfile" <<'MEITH_SCAFFOLD_EOF'
 # `npm install` below), so a build here is heavier than `Dockerfile.prebuilt`'s
 # thin delta — that image, pulled rather than built, is the trade the advanced
 # path takes for a low-spec build server or a faster deploy (see `README.md`
-# and, in the meith repository, docs/getting-started/deployment/docker-compose.md,
+# and, in the meith repository, docs/setting-up/deployment/docker-compose.md,
 # "Custom boards").
 #
 # Two stages, not three: unlike the official image, this does not prune down
 # to Next's own standalone output. The migrate role below runs `meith
 # migrate`, and `meith` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
-# docs/contributing/development.md, "Consuming the board from a workspace") — it needs
+# docs/developing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
 # traced as reachable from the web server alone. The tick itself is driven
 # by docker-compose.yaml's own `worker` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
-# not published (see the meith repository's docs/contributing/release.md).
+# not published (see the meith repository's docs/developing/release.md).
 FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
 WORKDIR /board
 
@@ -379,7 +379,7 @@ ENV NODE_ENV=production
 # persists into every container started from this image afterward, and this
 # Dockerfile has no later stage to reset it in (see "Two stages, not three"
 # above). The build needs neither a database nor a production secret (see
-# the meith repository's docs/contributing/development.md, "Fixture mode"), but baking
+# the meith repository's docs/developing/development.md, "Fixture mode"), but baking
 # DATA_SOURCE=fixture into the image itself would silently force fixture
 # mode — and with it the in-memory queue driver — at runtime too, no matter
 # what DATABASE_URL an operator supplies to `docker run`.
@@ -441,7 +441,7 @@ cat > "$BOARD_NAME/Dockerfile.prebuilt" <<'MEITH_SCAFFOLD_EOF'
 #
 # FROM the published framework base image — deps + framework layers only,
 # locked to this exact release (see the meith repository's
-# docs/getting-started/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
+# docs/setting-up/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
 # it is and is not). This board's own Dockerfile only ever installs its own
 # delta on top of it — a new plugin's own dependency, typically nothing more
 # — which is what keeps a rebuild after `npm install some-plugin` a matter
@@ -451,12 +451,12 @@ cat > "$BOARD_NAME/Dockerfile.prebuilt" <<'MEITH_SCAFFOLD_EOF'
 # to Next's own standalone output. The migrate role below runs `meith
 # migrate`, and `meith` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
-# docs/contributing/development.md, "Consuming the board from a workspace") — it needs
+# docs/developing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
 # traced as reachable from the web server alone. The tick itself is driven
 # by docker-compose.yaml's own `worker` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
-# not published (see the meith repository's docs/contributing/release.md).
+# not published (see the meith repository's docs/developing/release.md).
 ARG MEITH_VERSION
 FROM ghcr.io/meith-dev/meith-base:${MEITH_VERSION} AS deps
 WORKDIR /board
@@ -481,7 +481,7 @@ ENV NODE_ENV=production
 # persists into every container started from this image afterward, and this
 # Dockerfile has no later stage to reset it in (see "Two stages, not three"
 # above). The build needs neither a database nor a production secret (see
-# the meith repository's docs/contributing/development.md, "Fixture mode"), but baking
+# the meith repository's docs/developing/development.md, "Fixture mode"), but baking
 # DATA_SOURCE=fixture into the image itself would silently force fixture
 # mode — and with it the in-memory queue driver — at runtime too, no matter
 # what DATABASE_URL an operator supplies to `docker run`.
@@ -780,7 +780,7 @@ services:
       # service the variables the file names, so a Scheduled Task running
       # `meith backup` in this container would never see them without these
       # lines — see the meith repository's
-      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      # docs/setting-up/deployment/coolify.md, "Set up backups".
       - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-}
       - BACKUP_S3_REGION=${BACKUP_S3_REGION:-}
       - BACKUP_S3_ACCESS_KEY_ID=${BACKUP_S3_ACCESS_KEY_ID:-}
@@ -804,9 +804,9 @@ services:
         condition: service_completed_successfully
 
   # @meith/worker is not published (see the meith repository's
-  # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
+  # docs/developing/release.md), so there is no compiled worker binary a scaffolded
   # board can run — this drives the tick the alternative way the meith
-  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # repository documents in docs/setting-up/deployment/docker-compose.md, "Running the tick without
   # a second set of credentials": a small loop calling /api/system/tick.
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
@@ -952,7 +952,7 @@ services:
       # service the variables the file names, so a Scheduled Task running
       # `meith backup` in this container would never see them without these
       # lines — see the meith repository's
-      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      # docs/setting-up/deployment/coolify.md, "Set up backups".
       - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-}
       - BACKUP_S3_REGION=${BACKUP_S3_REGION:-}
       - BACKUP_S3_ACCESS_KEY_ID=${BACKUP_S3_ACCESS_KEY_ID:-}
@@ -976,9 +976,9 @@ services:
         condition: service_completed_successfully
 
   # @meith/worker is not published (see the meith repository's
-  # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
+  # docs/developing/release.md), so there is no compiled worker binary a scaffolded
   # board can run — this drives the tick the alternative way the meith
-  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # repository documents in docs/setting-up/deployment/docker-compose.md, "Running the tick without
   # a second set of credentials": a small loop calling /api/system/tick.
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
@@ -1016,7 +1016,7 @@ cat > "$BOARD_NAME/docker-compose.byhand.yaml" <<'MEITH_SCAFFOLD_EOF'
 # secrets for you: every value Coolify would have filled in — the database
 # password, AUTH_SECRET, TICK_SECRET, the board's own address — comes from
 # a `.env` beside this file instead. See the meith repository's
-# docs/getting-started/deployment/docker-compose.md, which this file is
+# docs/setting-up/deployment/docker-compose.md, which this file is
 # the last step of.
 #
 # `docker compose` only auto-discovers a file literally named
@@ -1032,7 +1032,7 @@ cat > "$BOARD_NAME/docker-compose.byhand.yaml" <<'MEITH_SCAFFOLD_EOF'
 # to GitHub and let `.github/workflows/build.yml` do it, or run
 # `docker build -f Dockerfile.prebuilt ...` by hand) and change the two
 # `build: .` lines below to `image: <that image>:<version>` — the
-# substitution docs/getting-started/deployment/docker-compose.md, "Building
+# substitution docs/setting-up/deployment/docker-compose.md, "Building
 # somewhere else", walks through.
 services:
   postgres:
@@ -1114,7 +1114,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       # One reverse proxy (Caddy, in the guide's own walkthrough) sits in
       # front of `web` — see "Count your proxies" in
-      # docs/getting-started/deployment/docker-compose.md.
+      # docs/setting-up/deployment/docker-compose.md.
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       # Leaving this at `log` does not mean no mail: it means the board
       # decides, from the installer on first run or from
@@ -1148,7 +1148,7 @@ services:
         condition: service_completed_successfully
 
   # @meith/worker is not published (see the meith repository's
-  # docs/contributing/release.md), so there is no compiled worker binary
+  # docs/developing/release.md), so there is no compiled worker binary
   # this board can run — a small loop calling /api/system/tick instead, the
   # same shape docker-compose.yaml and docker-compose.prebuilt.yaml use.
   worker:
@@ -1177,7 +1177,7 @@ services:
     depends_on:
       - web
 
-  # Off by default — see docs/guides/operations/scaling.md before setting
+  # Off by default — see docs/operating/scaling.md before setting
   # CACHE_DRIVER=redis above. This is the server it needs.
   redis:
     profiles: ['redis']
@@ -1237,7 +1237,7 @@ in. Two steps:
 
 3. **Deploy, then `/install` on your own domain.** Coolify issues the
    certificate; the installer from there is the one
-   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
+   [docs/setting-up/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/setting-up/deployment/coolify.md#4-run-the-installer)
    walks through, screen for screen. It seals itself when it finishes, and
    `/install` answers 404 from then on — run it **against the database you
    are going to keep**. Every push to `main` after this is picked up the next
@@ -1288,7 +1288,7 @@ one. Three steps, nothing to configure by hand beyond one value only you know:
    redeploy pulling whatever `main` most recently built.
 
 3. **Deploy, then `/install` on your own domain.** Same installer, same
-   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
+   [docs/setting-up/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/setting-up/deployment/coolify.md#4-run-the-installer)
    walk-through, same one-time seal. Every push to `main` after this rebuilds
    the image; Coolify's own **Redeploy** button is what actually pulls it —
    pushing alone does not.
@@ -1310,7 +1310,7 @@ docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require
 four containers deployed with nothing generating secrets for you: a `.env`
 you write yourself, a port published for the reverse proxy you already run,
 and `docker compose up -d --build` in place of a panel's Deploy button.
-[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md)
+[docs/setting-up/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/setting-up/deployment/docker-compose.md)
 is the full walkthrough this file is the last step of, including the
 `.env` this repository does not carry — nothing here belongs in git. Delete
 this file if you know you will only ever deploy through Coolify; keep it,
@@ -1389,7 +1389,7 @@ built into the image. In this repository:
    docker compose run --rm web meith upgrade
    ```
 
-See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/customization/installing.md)
+See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/getting-started/installing.md)
 for the full guide.
 
 ## Upgrading
@@ -1458,7 +1458,7 @@ project's own `.npmrc` sets `save-exact=true` for the same reason, so an
 build workflow also refuses to build from anything but an exact version, as
 a second line of defense. Once the rebuilt image is deployed, run
 `npm run meith -- upgrade` against it for the plugin migrations — see
-[the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/guides/operations/operating.md#the-operator-cli)
+[the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/operating/operating.md#the-operator-cli)
 for running it against this deployment.
 
 Migrations are forward-only. Recovery is by restore, so take a backup first —

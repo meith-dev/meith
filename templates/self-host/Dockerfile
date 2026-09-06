@@ -11,19 +11,19 @@
 # `npm install` below), so a build here is heavier than `Dockerfile.prebuilt`'s
 # thin delta — that image, pulled rather than built, is the trade the advanced
 # path takes for a low-spec build server or a faster deploy (see `README.md`
-# and, in the meith repository, docs/getting-started/deployment/docker-compose.md,
+# and, in the meith repository, docs/setting-up/deployment/docker-compose.md,
 # "Custom boards").
 #
 # Two stages, not three: unlike the official image, this does not prune down
 # to Next's own standalone output. The migrate role below runs `meith
 # migrate`, and `meith` materializes @meith/cli's sources and runs them
 # with tsx at the moment it runs (see the meith repository's
-# docs/contributing/development.md, "Consuming the board from a workspace") — it needs
+# docs/developing/development.md, "Consuming the board from a workspace") — it needs
 # the full, un-pruned node_modules tree this board installed, not what Next
 # traced as reachable from the web server alone. The tick itself is driven
 # by docker-compose.yaml's own `worker` service — a lightweight loop against
 # /api/system/tick, not a compiled worker process, because @meith/worker is
-# not published (see the meith repository's docs/contributing/release.md).
+# not published (see the meith repository's docs/developing/release.md).
 FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
 WORKDIR /board
 
@@ -47,7 +47,7 @@ ENV NODE_ENV=production
 # persists into every container started from this image afterward, and this
 # Dockerfile has no later stage to reset it in (see "Two stages, not three"
 # above). The build needs neither a database nor a production secret (see
-# the meith repository's docs/contributing/development.md, "Fixture mode"), but baking
+# the meith repository's docs/developing/development.md, "Fixture mode"), but baking
 # DATA_SOURCE=fixture into the image itself would silently force fixture
 # mode — and with it the in-memory queue driver — at runtime too, no matter
 # what DATABASE_URL an operator supplies to `docker run`.

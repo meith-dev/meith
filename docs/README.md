@@ -1,85 +1,89 @@
 # Meith documentation
 
-This directory is the source for [meith.dev/docs](https://www.meith.dev/docs). Choose a guide by task; you do not need to read the set in order.
-
-## Start here
+This directory is the source for [meith.dev/docs](https://www.meith.dev/docs). The site renders these files as they are. Pick the section for what you are doing; nothing here needs reading in order.
 
 | If you want to… | Read… |
 |---|---|
-| See what Meith is | [Introduction](./getting-started/introduction.md) |
-| Run a board on your machine | [Quickstart](./getting-started/quickstart.md) |
-| Put a board on your own server | [Deployment](./getting-started/deployment/index.md) |
-| Add a plugin or theme to a board | [Installing plugins and themes](./customization/installing.md) |
-| Build a theme or plugin | [Write your first plugin](./customization/first-plugin.md) · [Themes](./customization/themes.md) · [Plugins](./customization/plugins.md) |
-| Run an existing board from the browser | [Organiser guide](./guides/community/organiser-guide.md) |
-| Contribute code | [Development](./contributing/development.md) |
+| See what Meith is | [Introduction](./setting-up/introduction.md) |
+| Run a board on your machine | [Quickstart](./setting-up/quickstart.md) |
+| Put a board on a server | [Deployment](./setting-up/deployment/index.md) |
+| Set up a board that has just been installed | [First steps](./getting-started/first-steps.md) |
+| Move a MyBB or phpBB community across | [Migrating](./getting-started/migrating.md) |
+| Mind the server a board runs on | [Operations](./operating/operating.md) |
+| Run the community from the browser | [The organiser's guide](./using/organiser-guide.md) |
+| Add a plugin or theme to a board | [Installing plugins and themes](./getting-started/installing.md) |
+| Build a theme or plugin | [Write your first plugin](./developing/first-plugin.md) |
+| Contribute to Meith | [Development](./developing/development.md) |
+
+## Setting up
+
+What Meith is, and a board running: on your machine in a minute, then on a server of your own.
+
+- [Introduction](./setting-up/introduction.md) — what Meith is and the three ideas it is built on.
+- [Quickstart](./setting-up/quickstart.md) — a board on your machine, no database required.
+- [Deployment](./setting-up/deployment/index.md) — the four-service production shape and which route to take.
+  - [Coolify](./setting-up/deployment/coolify.md) — the guided route, from a browser.
+  - [Docker Compose by hand](./setting-up/deployment/docker-compose.md) — a `.env` you write and a proxy you run.
+  - [Vercel](./setting-up/deployment/vercel.md) — the board on functions, and how to leave again.
 
 ## Getting started
 
-- [Introduction](./getting-started/introduction.md) — the philosophy: server-first, code-first, self-hosted.
-- [Quickstart](./getting-started/quickstart.md) — a board on your machine in about a minute, no database required.
-- [Deployment](./getting-started/deployment/index.md) — the four-service production shape and the route chooser.
-  - [Coolify](./getting-started/deployment/coolify.md) — the guided route: deploy on your own server from a browser.
-  - [Docker Compose by hand](./getting-started/deployment/docker-compose.md) — a `.env` you write and a reverse proxy you operate.
-  - [Vercel](./getting-started/deployment/vercel.md) — the board on functions, and how to leave again.
+The first hour with a running board, and what a board is made of.
 
-## Configuration & guides
+- [First steps](./getting-started/first-steps.md) — name it, create the forums, decide who may join, appoint the staff, switch the backups on.
+- [Configuration in code](./getting-started/configuration.md) — what the board repository pins, and what stays in the admin panel.
+- [Installing plugins and themes](./getting-started/installing.md) — install the package, register it, redeploy, manage it from the panel.
+- [Migrating from MyBB or phpBB](./getting-started/migrating.md) — the import command, what comes across, and the cut-over.
+  - [MyBB parity decisions](./getting-started/mybb-parity.md) and [phpBB parity decisions](./getting-started/phpbb-parity.md) — where a migrated board deliberately behaves differently.
 
-- [Configuration in code](./guides/configuration.md) — the board repository: what is pinned in code, what stays in the admin panel.
-- [Migrating from MyBB or phpBB](./guides/migrating.md) — the importer moves members, content, private messages, attachments, subscriptions, polls, reputation, warnings and bans, with working passwords and redirects from the old URLs.
+## Operating
 
-Running your community — browser only, no shell access:
+For the person minding the server. Assumes an evening a month, not a pager.
 
-- [Organiser guide](./guides/community/organiser-guide.md) — board settings, forums, groups, members, and handover.
-- [Moderator guide](./guides/community/moderation-guide.md) — approval, reports, thread maintenance, warnings, and bans.
-- [Memberships guide](./guides/community/membership-guide.md) — Stripe plans, discounts, gifts, the membership desk, and the ledger.
-- [Writing a post](./guides/community/formatting.md) — the composer's toolbar and its Markdown.
-- [Forums and permissions](./guides/community/forums.md) — the forum tree and the per-forum permission matrix.
-- [Groups and promotions](./guides/community/groups.md) — what a group carries board-wide.
-- [Spam controls and filters](./guides/community/antispam.md) — the registration challenge, every threshold, the render-time word filter, and the ban filters that turn somebody away before an account exists.
-- [Reputation](./guides/community/reputation.md) — members rating each other, and the two settings that decide what a post offers.
-- [Search](./guides/community/search.md) — switching it off without losing the index, and the two limits on how often.
+- [Operations](./operating/operating.md) — services, health checks, configuration, the CLI, mail, web push, cookies and headers, troubleshooting.
+- [Backups](./operating/backups.md) — take one, schedule them, ship them off-site, restore one.
+- [Upgrading](./operating/upgrading.md) — move between released versions, and what each release changed.
+- [Monitoring & alerting](./operating/monitoring.md) — liveness, readiness, metrics, tracing, logs.
+- [Disaster recovery](./operating/disaster-recovery.md) — rebuild a board when the server is gone.
+- [Signing in](./operating/single-sign-on.md) — two-factor, federated sign-in, passkeys, sessions.
+- [Languages](./operating/internationalisation.md) — locale selection and translation packages.
+- [Webhooks](./operating/webhooks.md) — deliver board events to an endpoint and verify the signatures.
+- [Scaling out](./operating/scaling.md) — more than one web instance and a shared cache.
+- [Demo mode](./operating/demo-mode.md) — a public board that resets itself.
 
-Operating the server:
+## Using
 
-- [Operations](./guides/operations/operating.md) — health checks, configuration, CLI commands, mail, backups, web push, the cookies and security headers the board serves, and troubleshooting.
-- [Backups](./guides/operations/backups.md) — take one from the panel, schedule them, ship them off the server, and restore from the installer.
-- [Monitoring & alerting](./guides/operations/monitoring.md) — liveness versus readiness, metrics, tracing, and logs.
-- [Webhooks](./guides/operations/webhooks.md) — deliver board events to an endpoint you choose, and verify the signatures.
-- [Upgrading](./guides/operations/upgrading.md) — move between released versions safely.
-- [Disaster recovery](./guides/operations/disaster-recovery.md) — restore a board when the original server is unavailable.
-- [Signing in](./guides/operations/single-sign-on.md) — passwords, two-factor authentication, federated sign-in, passkeys, and sessions.
-- [Languages](./guides/operations/internationalisation.md) — locale selection and translation packages.
-- [Scaling out](./guides/operations/scaling.md) — add web instances and a shared cache.
-- [Demo mode](./guides/operations/demo-mode.md) — run a public board that resets itself.
+For organisers, moderators and members. Browser only, no shell access.
 
-## Customization
+- [The organiser's guide](./using/organiser-guide.md) — settings, forums, appearance, announcements, members, handover.
+- [The moderator's guide](./using/moderation-guide.md) — approval, reports, tidying threads, warnings, bans.
+- [Forums and permissions](./using/forums.md) — the forum tree and the per-forum permission matrix.
+- [Groups and promotions](./using/groups.md) — what a group carries board-wide, and automatic promotion.
+- [Spam controls and filters](./using/antispam.md) — the registration challenge, the limits, the word filter, the ban filters.
+- [Reputation](./using/reputation.md) — members rating each other.
+- [Search](./using/search.md) — the language, switching it off, and the limits.
+- [The memberships guide](./using/membership-guide.md) — plans, discounts, gifts, the desk and the ledger.
+- [Writing a post](./using/formatting.md) — the composer and its Markdown.
 
-- [Installing plugins and themes](./customization/installing.md) — the board admin's guide: find one, install the package, register it, redeploy, and manage it from the panel.
-- [Write your first plugin](./customization/first-plugin.md) — the walkthrough from an empty directory to a plugin running inside a board and listed on the marketplace.
-- [Themes](./customization/themes.md) — theme slots, view models, and packaging.
-- [Plugins](./customization/plugins.md) — plugin boundaries, typed hooks, lifecycle, and crash isolation.
-- [The marketplace](./customization/marketplace.md) — the curated feed of plugins and themes, and the listing-by-PR process.
+## Developing
 
-## Reference
+Extending a board, the generated references, and working on Meith itself.
 
-- [REST API v1](./reference/api.md) — generated routes, scopes, request bodies, and responses.
-- `reference/openapi.json` — machine-readable OpenAPI document generated alongside the REST reference.
-- [Theme slot reference](./reference/theme-slots.md) — generated slot and view-model reference.
-- [Plugin hook reference](./reference/plugin-hooks.md) — generated hook and payload reference.
-- [Architecture](./reference/architecture.md) — processes, package boundaries, and request flow.
-- [Performance](./reference/performance.md) — generated performance budgets and recorded results.
-- [MyBB parity decisions](./reference/mybb-parity.md) and [phpBB parity decisions](./reference/phpbb-parity.md) — intentional product differences from the board you are leaving; appendices to [Migrating](./guides/migrating.md).
-
-## Contributing
-
-- [Development](./contributing/development.md) — local setup, tests, and pull-request checks.
-- [Next.js conventions](./contributing/nextjs-conventions.md) — application-layer patterns enforced in this repository.
-- [Releasing](./contributing/release.md) — versioning and release outputs.
+- [Write your first plugin](./developing/first-plugin.md) — from an empty directory to a plugin running in a board.
+- [Themes](./developing/themes.md) — slots, view models, tokens, packaging.
+- [Plugins](./developing/plugins.md) — hooks, lifecycle, routes, pages, and crash isolation.
+- [The marketplace](./developing/marketplace.md) — the curated feed and listing by pull request.
+- [REST API v1](./reference/api.md) — generated; `reference/openapi.json` is the machine-readable form.
+- [Theme slot reference](./reference/theme-slots.md) — generated.
+- [Plugin hook reference](./reference/plugin-hooks.md) — generated.
+- [Architecture](./developing/architecture.md) — processes, package boundaries, request flow.
+- [Performance](./reference/performance.md) — generated budgets and recorded results.
+- [Development](./developing/development.md) — local setup, the workspace, tests, and the checks before a pull request.
+- [Next.js conventions](./developing/nextjs-conventions.md) and [Releasing](./developing/release.md) — kept in the repository; not published on the site.
 
 ## Generated references
 
-Do not edit generated files directly.
+`docs/reference/` holds only generated files. Edit the source, then regenerate.
 
 | File | Command |
 |---|---|
