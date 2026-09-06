@@ -4,10 +4,9 @@ How a version of Meith is cut, what each release publishes, and the policy
 that decides what a version number may contain. This is the maintainer's
 document; the operator's side is [Upgrading a board](../operating/upgrading.md).
 
-One rule underlies everything here: **a release is a git tag `vX.Y.Z` on a
-commit of `main` that CI has passed.** Pushing the tag runs
-`.github/workflows/release.yml`, and every artifact a release produces comes
-out of that one act. Nothing is published by hand, and no tag is ever
+**A release is a git tag `vX.Y.Z` on a commit of `main` that CI has
+passed.** Pushing the tag runs `.github/workflows/release.yml`, which
+produces every artifact. Nothing is published by hand, and no tag is ever
 re-pointed.
 
 ## Cutting a release
@@ -26,8 +25,8 @@ re-pointed.
    generated notes to what an operator needs, publish.
 
 A version that would not move the tree forward is refused before anything is
-written. The bump lands on `main` before the tag: tagging a tree that still
-says the old version is what `release-check --tag` refuses.
+written. The bump lands on `main` before the tag: `release-check --tag`
+refuses a tag on a tree that still says the old version.
 
 The same thing by hand, when the Actions tab is not an option:
 
@@ -50,7 +49,7 @@ The jobs, in dependency order:
   arch-suffixed tag, `X.Y.Z-amd64` or `X.Y.Z-arm64`.
 - **`npm`** publishes the packages, dependencies first. A re-run skips
   whatever already reached the registry. A name the registry has never seen
-  is skipped with a notice, because only a person can make a first publish
+  is skipped with a notice; only a person can make a first publish
   ([below](#a-packages-first-publish)).
 - **`published-board`** scaffolds a board from the packages just published,
   installed from the real registry, and boots it at both materialization
@@ -63,17 +62,14 @@ The jobs, in dependency order:
   then merges the architecture tags under `X.Y.Z`, `X.Y` and `latest`, merges
   the base image under its exact version, fast-forwards the `release` branch
   to the tag, and drafts the GitHub Release. The branch push is
-  fast-forward only: a tag not descended from `release` is refused, which
-  guards against tagging a side branch.
+  fast-forward only: a tag not descended from `release` is refused.
 - **`publish-templates`** mirrors the deploy templates into their
   repositories ([below](#deploy-template-repositories)).
 
 `published-board` exists because 0.21.0 shipped with only one of its two
-fixes: a stacked pull request had merged into a base that had already
-merged, so its commits never reached `main`, and `main` was green, the tag
-coherent and the notes wrong. Every other gate examines the repository; this
-one examines what a user downloads. It cannot un-publish, but `publish`
-waits on it, so a broken artefact stops the release being announced.
+fixes: a stacked pull request's commits never reached `main`, while `main`
+was green and the tag coherent. This gate examines what a user downloads,
+and `publish` waits on it.
 
 ### The notes say which kind of upgrade this is
 
@@ -94,14 +90,13 @@ every release with a **Migrations:** line the maintainer must complete,
 | The `release` branch | Fast-forwarded to the tag, so `git log release` is the history of what has been released. No deploy route reads it: a scaffolded board follows its own repository, and `docker/compose.coolify.yml` is pinned by version, not by branch. |
 | A GitHub Release | Drafted by the workflow with generated notes and a header the maintainer must finish. |
 
-No image tag except `X.Y` and `latest` is ever re-pushed. A release that turns
-out to be broken gets a new patch release.
+No image tag except `X.Y` and `latest` is ever re-pushed. A broken release
+gets a new patch release.
 
 ## The version policy
 
 Semantic versioning, with the boundaries drawn by **migrations** rather than
-API surface, because a schema change is the one thing an operator cannot
-shrug off:
+API surface:
 
 | Bump | May contain | May migrate? |
 |---|---|---|
@@ -109,11 +104,10 @@ shrug off:
 | **Minor** | Features, new settings, new migrations | Yes, additive by strong preference. |
 | **Major** | Removals, renames, destructive backfills | Yes, including the kind that needs a two-step deploy. |
 
-The patch rule is what makes "take the patch now" always the right advice,
-however many patches a board is behind. A fix that needs a migration is a
-minor release, whatever its size. No gate compares a version bump against
-the migrations directory, so this is a promise to keep, not a check to lean
-on.
+The patch rule is what makes "take the patch now" always safe. A fix that
+needs a migration is a minor release, whatever its size. No gate compares a
+version bump against the migrations directory, so this is a promise to keep,
+not a check to lean on.
 
 Two other rules live in the code and bind releases:
 
@@ -130,7 +124,7 @@ release version, and every workspace manifest carries the same one.
 ### Where the version is written
 
 Beyond the manifests, the version appears in places npm never reads. They
-divide into two kinds, and the difference decides how each is kept honest:
+divide into two kinds, and the kind decides how each is kept honest:
 
 | Written in | What it is | Kept honest by |
 |---|---|---|
@@ -153,13 +147,12 @@ generated, so a stale value is caught by the generator's own `--check`.
 `pnpm release:bump` moves the first group and re-runs every generator in the
 same command.
 
-Nothing fails at runtime if these drift, but the drift is visible: the
-plugin version once sat at `0.1.0` through two releases, and later two
-plugins added after the check was written sat a release behind, because the
-check named its plugins in a hardcoded list. So the plugin and theme
-manifests and the marketplace listings are **discovered**: `release:check`
-walks `plugins/`, `themes/` and `marketplace/listings/` and covers whatever
-it finds, and a manifest whose version it cannot read is an error.
+Nothing fails at runtime if these drift. The plugin version once sat at
+`0.1.0` through two releases, and later two plugins sat a release behind
+because the check named its plugins in a hardcoded list. So the plugin and
+theme manifests and the marketplace listings are **discovered**:
+`release:check` walks `plugins/`, `themes/` and `marketplace/listings/`,
+and a manifest whose version it cannot read is an error.
 
 `release:check` runs in `pnpm verify` and in CI, and the release workflow runs
 it with `--tag`. Its final line counts everything it checked, and that line,
@@ -169,29 +162,22 @@ not this page, is the number to trust:
 ✓ release coherence: 0.35.1 in the root manifest, 59 workspace manifests, 4 source constants, 3 plugin manifests, 5 theme manifests, 7 first-party marketplace listings, and the compose pin; 53 packages publish to npm and the set is closed
 ```
 
-The image additionally carries the version as `MEITH_VERSION`, an environment
+The image also carries the version as `MEITH_VERSION`, an environment
 variable and OCI labels stamped by the workflow. A local `docker build`
-leaves it at `0.0.0-dev`, and the entrypoint prints it at boot, so a
-container's log always says whether it came from a release or a checkout.
+leaves it at `0.0.0-dev`, and the entrypoint prints it at boot.
 
 ### Why lockstep
 
 Every package publishes at the release version, including ones the release
-did not touch. None of them is independent software: the kits re-export the
-board's own contracts, the themes and plugins are compiled into the board's
-build, and CI only ever tests one combination, the tree at the tag. Lockstep
-makes the npm version state exactly what was tested: `@meith/theme-phasebook@0.1.4`
-is the theme as board 0.1.4 shipped it.
+did not touch. None is independent software: the kits re-export the board's
+contracts, the themes and plugins are compiled into the board's build, and
+CI only tests one combination, the tree at the tag. So
+`@meith/theme-phasebook@0.1.4` is the theme as board 0.1.4 shipped it.
 
-The cost is that a version bump does not mean the package changed; the release
-notes carry that information. A plugin's *schema* has its own version
-besides, the one in its `definePlugin` manifest that migrations are recorded
-against, so "did this plugin's data model change" is answered by a number
-that only moves when it did.
-
-The decision gets revisited the day something genuinely standalone joins the
-set. Going from lockstep to independent later is versions diverging from a
-shared point; the reverse is a renumbering nobody downstream enjoys.
+A version bump therefore does not mean the package changed; the release
+notes carry that. A plugin's *schema* has its own version, the one in its
+`definePlugin` manifest that migrations are recorded against, which only
+moves when the data model did.
 
 ## What publishes to npm
 
@@ -208,113 +194,103 @@ line counts them (53 at 0.35.1).
 | The plugins | The first-party plugins: `dues`, `reference`, `calendar`. |
 | The initializer | `create-meith`: `npx create-meith` scaffolds a board whose `package.json` depends on `@meith/web`, `@meith/cli` and `@meith/theme-default`. |
 
-To ask whether a given package publishes, read its manifest: `private: true`
-or not. To list them, `pnpm release:check` counts them and
-`scripts/npm-publish.mjs --dry-run` names every one it would pack.
+Whether a package publishes is its manifest's `private: true` or not.
+`pnpm release:check` counts them and `scripts/npm-publish.mjs --dry-run`
+names every one it would pack.
 
 ### What stays private, and why
 
 - **`@meith/worker`** (`apps/worker`): no [board-config seam](./architecture.md#the-board-config-seam)
-  import anywhere in its source, so it needs no per-installation
-  customization, and `create-meith`'s scaffold does not depend on it.
-  Something has to run the tick every minute, the worker process or
-  `meith task:run`, but neither requires `@meith/worker` on the registry.
-- **`@meith/site`** (`apps/web`): meith.dev itself, not part of what an
-  operator installs.
+  import in its source, so it needs no per-installation customization, and
+  `create-meith`'s scaffold does not depend on it. The tick runs through the
+  worker process or `meith task:run`; neither needs `@meith/worker` on the
+  registry.
+- **`@meith/site`** (`apps/web`): meith.dev itself.
 - **`@meith/board-stock`** (`boards/stock`): the workspace `docker/Dockerfile`
   builds the official image from (see [the stock board](./architecture.md)).
-  It is a board, not a library, so it stays private the same way
-  `apps/community` does; the version lockstep still applies to it.
+  A board, not a library, so private like `apps/community`; the version
+  lockstep still applies to it.
 - **`@meith/testkit`**: it drags `@meith/db` and `@meith/drivers` behind it,
   and that closure is most of the board.
-- **The examples**: `hello-plugin` and `iris-theme` are documentation. They
-  are copied, not installed, and their `definePlugin` versions are deliberately
-  their own rather than the release's.
+- **The examples**: `hello-plugin` and `iris-theme` are documentation,
+  copied rather than installed, and their `definePlugin` versions are
+  deliberately their own rather than the release's.
 
 ### How packages are packed and published
 
 `scripts/npm-publish.mjs` is the mechanism. Dependencies before dependents,
 where a dependency is a `dependencies`, `peerDependencies` or
 `optionalDependencies` edge, so a workspace-internal peer orders and holds
-back exactly like a plain dependency. A version already on the registry is
-skipped rather than failed.
-
+back like a plain dependency. A version already on the registry is skipped.
 Each package is packed by `pnpm`, which rewrites the `workspace:` ranges into
 real ones, and published by the `npm` CLI, which implements trusted
 publishing.
 
 **Every tarball is checked against its own manifest before anything is
 published**: every non-excluded entry in `files` must have put something in
-the tarball, and every `bin` target must be a real file in it. That catches a
-`files` allowlist that still names a directory nothing is written into any
-more. Under `@meith/web`, `app/` and `public/` are the two to watch: nothing
-exercises either externally except a board built from the published tarball,
-and a `public/` left out of the allowlist costs web push its service worker
-without failing anything inside this repository.
+the tarball, and every `bin` target must be a real file in it. Under
+`@meith/web`, `app/` and `public/` are the two to watch: nothing exercises
+either except a board built from the published tarball, and a `public/` left
+out of the allowlist costs web push its service worker without failing
+anything in this repository.
 
-`--dry-run` stops at the packing and the tarball check; it never reaches the
-registry. That is what makes it a gate a pull request can run: the tree
-between releases carries a version that is already published, so
-`npm publish --dry-run` would refuse every package, every time. Nothing is
-lost, because the failure this catches is a local disagreement between a
-manifest and the tarball its own `files` allowlist produces.
+`--dry-run` stops at the packing and the tarball check and never reaches the
+registry, which is what lets a pull request run it: the tree between releases
+carries a version that is already published, so `npm publish --dry-run`
+would refuse every package.
 
 CI's `static` job runs the dry run on every push and pull request
 (`.github/workflows/ci.yml`), building `create-meith`'s `dist` first;
 release.yml's `npm` job orders the same two steps the same way, since only
 `pnpm build` writes `dist/bin.mjs`. That is the only packing coverage for a
-package outside the `board-workspace` job's closure, so a `files`-allowlist
-or `bin`-path rot in a theme or a domain package fails on the pull request
-that caused it rather than mid-release.
+package outside the `board-workspace` job's closure, so `files` or `bin` rot
+in a theme or a domain package fails on the pull request rather than
+mid-release.
 
-### The set is closed, and closing it is the cost of publishing
+### The set is closed
 
 A published package may not depend on a private one; that would be an
 `npm install` that resolves for nobody. `release-check` enforces the closure
 across `dependencies`, `peerDependencies` and `optionalDependencies` alike.
 Publishing a package means deleting its `private: true`, and the check then
-names everything that decision drags with it. That is how `@meith/core` and
-`@meith/ui` entered the set, because the kits and themes stand on them.
+names everything that drags with it. That is how `@meith/core` and
+`@meith/ui` entered the set: the kits and themes stand on them.
 
 Dependency ranges between published packages are `workspace:^`, so a published
 manifest says `^X.Y.Z`. A plugin published at 0.1.0 accepts every 0.1 patch
-of the kits and refuses 0.2, the same compatibility promise the image tags
-make.
+of the kits and refuses 0.2, the same promise the image tags make.
 
 ### The npm surface is a compatibility commitment
 
-Publishing `@meith/web` and `@meith/cli` makes "install this version of the
-board, alongside this version of a theme or plugin" a real question. It is
-governed by the same policy that backs `apiVersion` for themes and plugins
-([theme API versioning](./themes.md#versioning),
+"Install this version of the board alongside this version of a theme or
+plugin" is governed by the same policy that backs `apiVersion` for themes
+and plugins ([theme API versioning](./themes.md#versioning),
 [plugin API versioning](./plugins.md#versioning)): a minor may add
 capability, only a major may remove or rename it, and a package built against
 one major keeps working against every release on that major.
 
 `@meith/web`, `@meith/cli` and `@meith/theme-default` are not exempt from [the
 version policy](#the-version-policy). A scaffolded board pins all three to an
-exact version rather than a range, deliberately: the scaffold upgrades by
-`npx create-meith@latest update`, which runs `npm install --save-exact
-@meith/web@latest @meith/cli@latest @meith/theme-default@latest` plus the
-deploy-file rewrite. That is an explicit act, or an explicitly merged pull
-request from the scaffold's update workflow, never a silent range resolution
-on a board process holding a database migration. The scaffolded `.npmrc` sets
-`save-exact=true` so the same holds for an install run by hand, and the
-generated `build.yml` refuses to build from anything but an exact version.
+exact version: the scaffold upgrades by `npx create-meith@latest update`,
+which runs `npm install --save-exact @meith/web@latest @meith/cli@latest
+@meith/theme-default@latest` plus the deploy-file rewrite. That is an
+explicit act, or an explicitly merged pull request from the scaffold's
+update workflow, never a silent range resolution on a board process holding
+a database migration. The scaffolded `.npmrc` sets `save-exact=true` so the
+same holds for an install run by hand, and the generated `build.yml` refuses
+to build from anything but an exact version.
 
-A theme or plugin's `workspace:^` on the kits is the same policy stated as a
-version range. Different mechanism for the different risk: a board upgrade
-runs migrations, a theme or plugin upgrade does not.
+A theme or plugin's `workspace:^` on the kits is the same policy as a version
+range; a theme or plugin upgrade runs no migrations, so the risk is lower.
 
-### They ship TypeScript source, deliberately
+### They ship TypeScript source
 
-A theme or plugin is only ever consumed inside a board's Next build, and that
-build compiles these packages **from source** wherever they come from: the
+A theme or plugin is only ever consumed inside a board's Next build, which
+compiles these packages **from source** wherever they come from: the
 workspace today (`transpilePackages` in the board's Next config, Tailwind's
 `@source` scan for class names), npm tomorrow. So the published tarball is the
-`src/` directory the monorepo tests, byte for byte, minus the test files.
-There is no dist step, so the published artifact cannot drift from what CI
-exercised.
+`src/` directory the monorepo tests, minus the test files. There is no dist
+step, so the published artifact cannot drift from what CI exercised.
 
 Two consequences bind whoever wires an npm-installed package into a board
 build:
@@ -326,32 +302,29 @@ build:
   path, or its class names are silently dropped from the stylesheet and its
   pages render unstyled with no error anywhere.
 
-The one package this does not describe is `create-meith`: its published `bin`
-runs under plain `node`, invoked by `npx`, never inside a board's Next build.
-Node's native TypeScript support refuses to strip types for a file under
-`node_modules` (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), which is where
-npm always installs a package before running its bin, so a `bin` entry
-pointing at raw `.ts` fails for every real `npx create-meith` even though it
-runs fine from this repository's tsx-driven tooling. `create-meith`'s own
-`pnpm build` (esbuild, bundling `src/bin.ts` to `dist/bin.mjs`) is the one
-dist step in the published set, and the release workflow's `npm` job runs it
-immediately before `node scripts/npm-publish.mjs`.
+The one exception is `create-meith`: its published `bin` runs under plain
+`node`, invoked by `npx`, never inside a board's Next build. Node's native
+TypeScript support refuses to strip types for a file under `node_modules`
+(`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), which is where npm installs
+a package before running its bin, so a `bin` entry pointing at raw `.ts`
+fails for every real `npx create-meith`. `create-meith`'s own `pnpm build`
+(esbuild, bundling `src/bin.ts` to `dist/bin.mjs`) is the one dist step in
+the published set, and the release workflow's `npm` job runs it immediately
+before `node scripts/npm-publish.mjs`.
 
 ### How the workflow authenticates
 
 **Trusted publishing, not a token.** Each package on npmjs.com names this
-repository and the `release.yml` workflow as its trusted publisher. When the
-release workflow runs, npm exchanges the job's OIDC identity for a short-lived
-credential scoped to that publish, and provenance is generated automatically.
-There is no long-lived secret to leak, rotate, or scope too widely.
-
-Two consequences:
+repository and the `release.yml` workflow as its trusted publisher. npm
+exchanges the job's OIDC identity for a short-lived credential scoped to that
+publish, and provenance is generated automatically. There is no long-lived
+secret to leak, rotate, or scope too widely. Two consequences:
 
 - **Configuration lives on npmjs.com, per package**: package → Settings →
   Trusted Publisher → GitHub Actions, with the organisation (`meith-dev`),
   repository (`meith`) and workflow filename (`release.yml`). Renaming the
-  workflow file breaks publishing until every one of those configurations is
-  updated; the failure is a clear authentication error at the npm job.
+  workflow file breaks publishing, with an authentication error at the npm
+  job, until every one of those configurations is updated.
 - **A brand-new package cannot first-publish this way**, because trusted
   publishing attaches to a package that already exists. A name the registry
   has never seen is skipped with a notice, and the rest of the release goes
@@ -377,11 +350,11 @@ tags the repository `vX.Y.Z`. It runs after `publish`, so a release that did
 not ship never pushes a template, and a re-run with nothing to change makes
 no commit.
 
-Those `vX.Y.Z` tags are more than provenance. `npx create-meith@latest
-update` fetches the tag of the version a board is *on* to tell the
-operator's edits from files the scaffold wrote: a file still matching that
-tree is the scaffold's to rewrite, one that differs is the operator's to
-keep ([Upgrading § Upgrading each deployment route](../operating/upgrading.md#upgrading-each-deployment-route)).
+`npx create-meith@latest update` fetches the `vX.Y.Z` tag of the version a
+board is *on* to tell the operator's edits from files the scaffold wrote: a
+file still matching that tree is the scaffold's to rewrite, one that differs
+is the operator's to keep
+([Upgrading § Upgrading each deployment route](../operating/upgrading.md#upgrading-each-deployment-route)).
 A release whose template sync did not run leaves the *next* update degraded:
 `package.json` still moves, but every other file is handed back to the
 operator to review. The repository names are one constant,
@@ -390,28 +363,25 @@ the mirror and the updater read.
 
 The tracked content of each repository is **owned entirely** by its
 `templates/<target>/` source; anything the source does not contain, the mirror
-removes. A file a repository needs, such as a `LICENSE`, belongs in the scaffold
-so the source carries it, never added to the repository by hand. `pnpm
-templates:sync:check` verifies in CI that the repositories still match the
-generated trees.
+removes. A file a repository needs, such as a `LICENSE`, belongs in the
+scaffold, never added to the repository by hand. `pnpm templates:sync:check`
+verifies in CI that the repositories still match the generated trees.
 
 **The push credential.** `GITHUB_TOKEN` grants write to this repository only, so
-the cross-repository push authenticates as a **GitHub App**, which unlike a
-personal access token does not expire. Create an organisation-owned App with
-the **Contents: read and write** and **Workflows: read and write** repository
-permissions: the mirror includes `.github/workflows/build.yml`, and GitHub
-rejects an App push that creates or updates any file under
-`.github/workflows/` without the Workflows permission. Install it on
+the cross-repository push authenticates as a **GitHub App**, which does not
+expire. Create an organisation-owned App with the **Contents: read and
+write** and **Workflows: read and write** repository permissions: the mirror
+includes `.github/workflows/build.yml`, and GitHub rejects an App push that
+touches `.github/workflows/` without the Workflows permission. Install it on
 `meith-dev/template` and `meith-dev/vercel-template`, approving the Workflows
 permission on the installation if you add it later, and store its **App ID**
 and a generated **private key** as the Actions secrets
 `TEMPLATE_SYNC_APP_ID` and `TEMPLATE_SYNC_APP_PRIVATE_KEY` here. The
 `publish-templates` job mints a short-lived installation token from them on
-each run (`actions/create-github-app-token`, scoped to just those two
+each run (`actions/create-github-app-token`, scoped to those two
 repositories) and hands it to `templates:sync` as `TEMPLATE_SYNC_TOKEN`.
 Without the App configured the job logs a warning and does nothing, so
-releases still succeed; add the two secrets before the first release that
-should propagate templates. The repositories are created once, up front, with
+releases still succeed. The repositories are created once, up front, with
 `meith-dev/template` marked as a *template repository* in its settings so the
 "Use this template" button appears.
 
@@ -423,41 +393,36 @@ should propagate templates. The repositories are created once, up front, with
 | A template or [by-hand](../setting-up/deployment/docker-compose.md) board ([Upgrading](../operating/upgrading.md#upgrading-each-deployment-route)) | Its own `package.json`, pinned exact | The same update workflow or `npx create-meith@latest update`, then `docker compose up -d --build`. Either moves the pins and the scaffold-owned deploy files together; the backup and `meith upgrade` stay the operator's. |
 | meith.dev and demo.meith.dev | `main` | The project's own resources, deliberately ahead of any release: the demo shows what is coming, and both redeploy on push. Nobody self-hosting should copy this arrangement. |
 
-### Deploys are deterministic, and that is load-bearing
+### Deploys are deterministic
 
 No deploy path resolves "the newest anything". A scaffolded board's
 `package.json` names exact versions and its `Dockerfile.prebuilt` starts
 `FROM` an exact `meith-base` tag, so a version change always has a commit in
-the board's own repository behind it, and "what is this board running, and
-since when" is answerable from git history. `docker/compose.coolify.yml`,
-the stock-image compose file that CI's `compose` job still boots, names an
-exact image the same way, with `MEITH_IMAGE` in the resource's environment
-overriding the file's default so a Coolify **Restart** or **Redeploy**
-re-creates exactly that version. The same variable takes a digest, for an
-operator who wants a pin immune even to a re-pushed tag.
+the board's own repository behind it. `docker/compose.coolify.yml`, the
+stock-image compose file that CI's `compose` job still boots, names an exact
+image the same way; `MEITH_IMAGE` in the resource's environment overrides the
+file's default so a Coolify **Restart** or **Redeploy** re-creates exactly
+that version. The same variable takes a digest.
 
 The base images, `node`, `postgres`, `valkey`, `alpine` and `curl`, are
 pinned by digest in the Dockerfiles and compose files, and every action in
 the workflows is pinned to a full commit SHA with the version tag kept as a
 comment: the workflows hold publish rights, and a re-tagged action is code
 they would run. Dependabot moves all of these pins on the same weekly schedule
-as the npm dependencies, so the pinning costs review, not staleness.
+as the npm dependencies.
 
-That bounds where a pin belongs. The `docker` and `docker-compose`
-ecosystems in `.github/dependabot.yml` are scoped to `docker/`, so a digest
-written by hand anywhere else is a digest nothing ever moves. Where
-something outside `docker/` needs one of these images, it *reads* the pinned
-value instead of repeating it: `scripts/board-eject-smoke.mts` takes the
-`psql` client it shells out to from `docker/compose.yml`'s `postgres`
-service, through `pinnedComposeImage` (`scripts/compose-images.mts`).
+The `docker` and `docker-compose` ecosystems in `.github/dependabot.yml` are
+scoped to `docker/`, so a digest written by hand anywhere else never moves.
+Where something outside `docker/` needs one of these images, it *reads* the
+pinned value: `scripts/board-eject-smoke.mts` takes the `psql` client it
+shells out to from `docker/compose.yml`'s `postgres` service, through
+`pinnedComposeImage` (`scripts/compose-images.mts`).
 
 The throwaway Postgres that GitHub Actions starts as a job's `services:`
-container is the deliberate exception, and stays on the bare
-`postgres:18-alpine` tag: it is created empty for one job and discarded with
-it, and no Dependabot ecosystem reads a workflow's `services:` block, so a
-digest there would rot in place. A bare tag in a `services:` block is a
-decision; a bare tag in a Dockerfile, a compose file, or a script that reads
-one is the bug.
+container is the deliberate exception and stays on the bare
+`postgres:18-alpine` tag: no Dependabot ecosystem reads a workflow's
+`services:` block, so a digest there would rot in place. A bare tag in a
+Dockerfile, a compose file, or a script that reads one is a bug.
 
 ## One-time setup
 
@@ -466,9 +431,9 @@ one is the bug.
 The cut workflow pushes straight to `main`, and a ruleset requiring pull
 requests blocks that (`GH013`, at the push step, before anything is tagged).
 Rulesets cannot grant bypass to the built-in Actions app, so the workflow
-pushes over SSH with a **deploy key** instead, which rulesets can bypass.
-The key solves a second problem: a tag pushed with `GITHUB_TOKEN` triggers
-no workflows, GitHub's recursion guard, while a deploy-key push starts the
+pushes over SSH with a **deploy key**, which rulesets can bypass. The key
+also solves a second problem: a tag pushed with `GITHUB_TOKEN` triggers no
+workflows, GitHub's recursion guard, while a deploy-key push starts the
 Release workflow the ordinary way.
 
 1. `ssh-keygen -t ed25519 -f meith-release -N ""`, anywhere; delete both
@@ -481,11 +446,9 @@ Release workflow the ordinary way.
 4. **Settings → Rules → Rulesets → the rule on `main` → Bypass list → add
    "Deploy keys"**.
 
-The protection keeps applying to people and to every app; the one thing
-allowed through is a key that exists only as this repository's secret, used
-only by this workflow, revocable in one click. The workflow is safe to re-run
-after a failure at any step: a tree already bumped, a commit already pushed,
-or a tag already made is skipped rather than refused.
+The protection still applies to people and to every app. The workflow is
+safe to re-run after a failure at any step: a tree already bumped, a commit
+already pushed, or a tag already made is skipped rather than refused.
 
 ### The first release
 
@@ -499,9 +462,8 @@ One-time steps around `v0.1.0`, in order:
    Package settings → change visibility → public.
 3. **Create the npm organisation, and publish each package by hand once.** The
    `meith` organisation owns the `@meith` scope, and a package's very first
-   publish is made from a maintainer's own machine; the workflow cannot make
-   one. [A package's first publish](#a-packages-first-publish) is the
-   procedure.
+   publish is made from a maintainer's own machine.
+   [A package's first publish](#a-packages-first-publish) is the procedure.
 4. Protect the `release` branch from manual pushes, so the workflow's
    fast-forward is the only thing that moves it.
 
@@ -523,10 +485,10 @@ npm trust github @meith/theme-clubhouse \
 
 Each line is load-bearing:
 
-- **`npm login`, not a token.** Creating a package is the act that should
-  carry 2FA, and a CI token cannot answer a 2FA prompt. The only token that
-  publishes unattended is one marked *bypass 2FA*, a long-lived secret with
-  the run of the whole scope, which this arrangement exists to avoid.
+- **`npm login`, not a token.** Creating a package should carry 2FA, and a
+  CI token cannot answer a 2FA prompt. The only token that publishes
+  unattended is one marked *bypass 2FA*, a long-lived secret with the run of
+  the whole scope.
 - **`pnpm pack`, not `npm publish .`.** pnpm rewrites the `workspace:` ranges
   into real ones. A manifest published with `workspace:^` still in it is an
   `npm install` that resolves for nobody.
@@ -540,4 +502,4 @@ other. Do it after and the package is one release behind; re-running the
 Release workflow against the tag catches it up, since a run publishes whatever
 is missing and skips whatever is already there. A package that depends on a
 skipped one is held back too, and the job says so; publishing the new package
-by hand and re-running the workflow clears both together.
+by hand and re-running the workflow clears both.
