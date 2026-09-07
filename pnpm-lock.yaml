@@ -178,6 +178,9 @@ importers:
       '@meith/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@meith/plugin-awards':
+        specifier: workspace:*
+        version: link:../../plugins/awards
       '@meith/plugin-calendar':
         specifier: workspace:*
         version: link:../../plugins/calendar
@@ -357,6 +360,9 @@ importers:
       '@meith/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@meith/plugin-awards':
+        specifier: workspace:*
+        version: link:../../plugins/awards
       '@meith/plugin-calendar':
         specifier: workspace:*
         version: link:../../plugins/calendar
@@ -1102,6 +1108,22 @@ importers:
         version: 19.2.4(@types/react@19.2.18)
 
   packages/upgrade: {}
+
+  plugins/awards:
+    dependencies:
+      '@meith/plugin-kit':
+        specifier: workspace:^
+        version: link:../../packages/plugin-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
 
   plugins/calendar:
     dependencies:

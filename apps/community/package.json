@@ -66,6 +66,7 @@
     "@meith/messages": "workspace:*",
     "@meith/moderation": "workspace:*",
     "@meith/notifications": "workspace:*",
+    "@meith/plugin-awards": "workspace:*",
     "@meith/plugin-calendar": "workspace:*",
     "@meith/plugin-dues": "workspace:*",
     "@meith/plugin-kit": "workspace:*",
