@@ -595,6 +595,11 @@ than retried. `e2e/support/flaky-notice.ts` stays wired so that if anyone
 runs with `--retries` during triage, a test that failed and then passed
 prints a warning instead of counting as plain green.
 
+Navigation ordering specs create their own neighbouring menu items and
+assert relative order and the intended submenu parent. They must not assume
+a fixed number of arrow clicks relative to a bundled plugin link: enabling
+another plugin legitimately adds a sibling to the navigation.
+
 The `/install` database carries the schema and no rows, which is the state
 a real board is in when someone opens `/install`: migrations run before the
 board serves anything, and the installer checks the schema rather than
