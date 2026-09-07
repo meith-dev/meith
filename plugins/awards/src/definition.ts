@@ -1,9 +1,10 @@
 import { definePlugin } from '@meith/plugin-kit'
 
-import { handleAward, handleGrant } from './handlers'
+import { handleAward, handleGrant, handleRules } from './handlers'
 import en from './messages/en.json'
 import { AWARDS_MIGRATIONS } from './schema'
 import { deleteMember, mergeMember } from './store'
+import { evaluateAwards, queueMember } from './tasks'
 import { AwardsAdmin, GrantAdmin } from './ui/admin'
 import {
   AwardPage,
@@ -13,6 +14,7 @@ import {
   PostbitBadges,
   ProfilePanel,
 } from './ui/page'
+import { RulesAdmin } from './ui/rules'
 
 export const plugin = definePlugin({
   key: 'awards',
@@ -23,6 +25,7 @@ export const plugin = definePlugin({
   description: en['awards.definition.description'],
   descriptionKey: 'awards.definition.description',
   migrations: AWARDS_MIGRATIONS,
+  tasks: [{ id: 'evaluate', intervalSeconds: 300, run: evaluateAwards }],
   settings: [
     {
       key: 'postbit_limit',
@@ -85,12 +88,21 @@ export const plugin = definePlugin({
   adminPages: [
     { path: 'awards', title: en['awards.title'], titleKey: 'awards.title', render: AwardsAdmin },
     { path: 'grant', title: en['awards.grant'], titleKey: 'awards.grant', render: GrantAdmin },
+    { path: 'rules', title: en['awards.rules'], titleKey: 'awards.rules', render: RulesAdmin },
   ],
   routes: [
+    { path: 'rules', method: 'POST', access: 'admin', handler: handleRules },
     { path: 'awards', method: 'POST', access: 'admin', handler: handleAward },
     { path: 'grant', method: 'POST', access: 'admin', handler: handleGrant },
   ],
   hooks: {
+    'post.created': async (post, _context, runtime) => queueMember(await runtime(), post.authorId),
+    'thread.created': async (thread, _context, runtime) =>
+      queueMember(await runtime(), thread.authorId),
+    'reputation.changed': async (user, _context, runtime) =>
+      queueMember(await runtime(), user.userId),
+    'user.registered': async (user, _context, runtime) => queueMember(await runtime(), user.userId),
+    'user.activated': async (user, _context, runtime) => queueMember(await runtime(), user.userId),
     'user.deleted': async (user, _context, runtime) =>
       deleteMember((await runtime()).data, user.userId),
     'user.merged': async (user, _context, runtime) =>

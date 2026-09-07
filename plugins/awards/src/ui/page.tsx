@@ -7,11 +7,13 @@ import { surfaceVariants, textLinkVariants } from '@meith/ui'
 
 import { asId, postbitLimit } from '../awards'
 import { cachedAwards } from '../display-cache'
-import { allAwards, awardById, type GrantRow, memberGrants } from '../store'
+import { allAwards, awardById, awardRules, type GrantRow, memberGrants } from '../store'
+import { ruleSummary } from './rules'
 import { date, icon, type TextContext, translated } from './shared'
 
 export async function AwardsPage(context: PluginPageContext) {
   const awards = await allAwards(context.data, true)
+  const rules = await awardRules(context.data, true)
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {awards.length === 0 && <p>{translated(context, 'awards.empty')}</p>}
@@ -32,7 +34,15 @@ export async function AwardsPage(context: PluginPageContext) {
           <p className="text-sm text-muted-foreground">
             {translated(context, 'awards.holders')}: {award.count}
           </p>
-          <p className="text-sm">{translated(context, 'awards.staff')}</p>
+          <div className="text-sm">
+            {rules.some((rule) => rule.awardId === Number(award.id)) ? (
+              rules
+                .filter((rule) => rule.awardId === Number(award.id))
+                .map((rule) => <p key={rule.id}>{ruleSummary(context, rule)}</p>)
+            ) : (
+              <p>{translated(context, 'awards.staff')}</p>
+            )}
+          </div>
         </article>
       ))}
     </div>

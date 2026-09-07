@@ -2,9 +2,11 @@ import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest'
 
 import { pluginData, pluginUsers } from '@meith/db'
 import { createTestDb, type TestDb } from '@meith/db/pglite.fixture'
+import { createTranslator } from '@meith/i18n'
 import { type PluginRuntimeContext, unavailablePluginRuntime } from '@meith/plugin-kit'
 
 import { displayAwards } from '../plugins/awards/src/display-cache'
+import { handleRules } from '../plugins/awards/src/handlers'
 import { AWARDS_MIGRATIONS } from '../plugins/awards/src/schema'
 import {
   deleteAward,
@@ -14,7 +16,10 @@ import {
   mergeMember,
   revokeGrant,
   saveAward,
+  saveRule,
 } from '../plugins/awards/src/store'
+import { evaluateAwards, queueMember } from '../plugins/awards/src/tasks'
+import { memberList, PostbitBadges } from '../plugins/awards/src/ui/page'
 
 let h: TestDb
 let context: PluginRuntimeContext
@@ -135,4 +140,133 @@ it('keeps archived awards out of public display and rejects conversion while dup
   ])
   expect(await grantAward(context, input)).toBeNull()
   expect(await memberGrants(context.data, alice)).toEqual([])
+})
+
+it('evaluates real member standing, grants each rule once and wraps the scan', async () => {
+  const awardId = await award(true)
+  await saveRule(
+    context.data,
+    {
+      awardId,
+      title: 'Contributor',
+      enabled: true,
+      minPostCount: 10,
+      minThreadCount: 2,
+      minReputation: 5,
+      minDaysRegistered: 30,
+    },
+    null,
+  )
+  await queueMember(context, alice)
+  await queueMember(context, alice)
+  expect(await context.data.query(`select * from plugin_awards_dirty`)).toHaveLength(1)
+  await evaluateAwards(context)
+  await evaluateAwards(context)
+  expect(await memberGrants(context.data, alice)).toHaveLength(1)
+  expect(await memberGrants(context.data, bob)).toHaveLength(1)
+  expect(notified).toHaveLength(2)
+  expect(
+    await context.data.one(`select cursor, completed_at from plugin_awards_scan`),
+  ).toMatchObject({ cursor: 0, completed_at: expect.anything() })
+  await h.client.query(`update users set state = 'deleted' where id = $1`, [bob])
+  const other = await award(true)
+  await saveRule(
+    context.data,
+    {
+      awardId: other,
+      title: 'Everyone',
+      enabled: true,
+      minPostCount: 0,
+      minThreadCount: null,
+      minReputation: null,
+      minDaysRegistered: null,
+    },
+    null,
+  )
+  await queueMember(context, bob)
+  await evaluateAwards(context)
+  expect(await memberGrants(context.data, bob)).toHaveLength(1)
+  expect(await memberGrants(context.data, alice)).toHaveLength(2)
+  expect(await context.data.query(`select * from plugin_awards_dirty`)).toEqual([])
+})
+
+it('renders capped awards with an exact remainder and hides reasons when configured', async () => {
+  for (let i = 0; i < 4; i++) {
+    await grantAward(context, {
+      awardId: await award(),
+      userId: alice,
+      byUserId: bob,
+      reason: 'Private thanks',
+    })
+  }
+  const t = createTranslator({ locale: 'en', catalog: {} })
+  const region = {
+    region: 'postbit.badges' as const,
+    authorId: alice,
+    subjectId: 1,
+    viewer: { userId: null, isGuest: true },
+    locale: 'en',
+    t,
+    runtime: async () => ({ ...context, settings: { postbit_limit: 2 } }),
+  }
+  const node = await PostbitBadges(region)
+  expect(node?.props.children[0]).toHaveLength(2)
+  expect(node?.props.children[1]).toMatchObject({
+    props: { href: `/plugins/awards/member?id=${alice}`, children: ['+', 2] },
+  })
+  expect(
+    await PostbitBadges({
+      ...region,
+      runtime: async () => ({ ...context, settings: { postbit_limit: 0 } }),
+    }),
+  ).toBeNull()
+  expect(JSON.stringify(await memberList({ ...context, t, locale: 'en' }, alice))).toContain(
+    'Private thanks',
+  )
+  expect(
+    JSON.stringify(
+      await memberList({ ...context, settings: { show_reasons: false }, t, locale: 'en' }, alice),
+    ),
+  ).not.toContain('Private thanks')
+})
+
+it('supports rule administration and bounded run/reset notices', async () => {
+  const awardId = await award()
+  const request = (form: Record<string, string>) => ({
+    form,
+    viewer: { userId: alice, isGuest: false },
+    method: 'POST',
+    path: 'rules',
+    query: {},
+    headers: {},
+    rawBody: null,
+    json: null,
+    boardUrl: 'https://board.test',
+  })
+  const form = { award_id: String(awardId), title: 'Welcome', enabled: 'on', min_post_count: '0' }
+  expect(await handleRules(request({ ...form, min_post_count: '' }), context)).toMatchObject({
+    to: expect.stringContaining('notice=rule-empty'),
+  })
+  expect(await handleRules(request(form), context)).toMatchObject({
+    to: expect.stringContaining('notice=rule-saved'),
+  })
+  const id = String((await context.data.one(`select id from plugin_awards_rule`))!.id)
+  await handleRules(request({ ...form, id, min_post_count: '20' }), context)
+  await handleRules(request({ action: 'run' }), context)
+  expect(notified).toHaveLength(0)
+  await handleRules(request({ ...form, id }), context)
+  await handleRules(request({ action: 'disable', id }), context)
+  await evaluateAwards(context)
+  expect(notified).toHaveLength(0)
+  await handleRules(request({ action: 'enable', id }), context)
+  expect(await handleRules(request({ action: 'run' }), context)).toMatchObject({
+    to: expect.stringContaining('notice=evaluated'),
+  })
+  expect(notified).toHaveLength(2)
+  expect(await handleRules(request({ action: 'reset' }), context)).toMatchObject({
+    to: expect.stringContaining('notice=reset'),
+  })
+  await handleRules(request({ action: 'delete', id }), context)
+  expect(await context.data.query(`select * from plugin_awards_rule`)).toEqual([])
+  expect(await memberGrants(context.data, alice)).toHaveLength(1)
 })

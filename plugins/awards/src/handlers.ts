@@ -1,7 +1,18 @@
 import type { PluginRequest, PluginResponse, PluginRuntimeContext } from '@meith/plugin-kit'
 
 import { asId, parseAward } from './awards'
-import { archiveAward, awardById, deleteAward, grantAward, revokeGrant, saveAward } from './store'
+import { awardRuleProblem, parseRule } from './rules'
+import {
+  archiveAward,
+  awardById,
+  awardRules,
+  deleteAward,
+  grantAward,
+  revokeGrant,
+  saveAward,
+  saveRule,
+} from './store'
+import { evaluateAwards } from './tasks'
 
 export function toAdmin(page: string, notice: string): PluginResponse {
   return {
@@ -74,4 +85,41 @@ export async function handleGrant(
     'grant',
     granted === members.length ? 'granted' : granted === 0 ? 'already' : 'partial',
   )
+}
+
+export async function handleRules(
+  request: PluginRequest,
+  context: PluginRuntimeContext,
+): Promise<PluginResponse> {
+  const form = request.form ?? {}
+  if (form.action === 'run') {
+    await evaluateAwards(context)
+    return toAdmin('rules', 'evaluated')
+  }
+  if (form.action === 'reset') {
+    await context.data.query(`update plugin_awards_scan set cursor = 0 where id = 1`)
+    return toAdmin('rules', 'reset')
+  }
+  const id = asId(form.id)
+  if (form.id && id === null) return toAdmin('rules', 'rule-invalid')
+  if (id !== null && !(await awardRules(context.data)).some((rule) => rule.id === id))
+    return toAdmin('rules', 'rule-missing')
+  if (form.action === 'delete' || form.action === 'enable' || form.action === 'disable') {
+    if (id === null) return toAdmin('rules', 'rule-missing')
+    if (form.action === 'delete')
+      await context.data.query(`delete from plugin_awards_rule where id = $1`, [id])
+    else
+      await context.data.query(
+        `update plugin_awards_rule set enabled = $2, updated_at = now() where id = $1`,
+        [id, form.action === 'enable'],
+      )
+    return toAdmin('rules', 'rule-saved')
+  }
+  const rule = parseRule(form)
+  const problem = awardRuleProblem(rule)
+  if (problem !== null) return toAdmin('rules', problem)
+  const award = await awardById(context.data, rule.awardId)
+  if (award === null || award.archived_at !== null) return toAdmin('rules', 'missing')
+  await saveRule(context.data, rule, id)
+  return toAdmin('rules', 'rule-saved')
 }

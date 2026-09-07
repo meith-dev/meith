@@ -2,6 +2,7 @@ import type { PluginData, PluginRuntimeContext } from '@meith/plugin-kit'
 
 import type { Award, AwardDraft, DisplayAward } from './awards'
 import { clearDisplay } from './display-cache'
+import type { AwardRule, AwardRuleInput } from './rules'
 
 type AwardRow = Award & Record<string, unknown>
 export interface GrantRow extends AwardRow {
@@ -206,4 +207,53 @@ export async function mergeMember(data: PluginData, kept: number, merged: number
   })
   clearDisplay(kept)
   clearDisplay(merged)
+}
+
+export async function awardRules(
+  data: PluginData,
+  enabledOnly = false,
+): Promise<readonly AwardRule[]> {
+  return data
+    .query<AwardRule & Record<string, unknown>>(
+      `select r.id, r.award_id as "awardId", r.title, r.enabled,
+    r.min_post_count as "minPostCount", r.min_thread_count as "minThreadCount",
+    r.min_reputation as "minReputation", r.min_days_registered as "minDaysRegistered"
+    from plugin_awards_rule r join plugin_awards_award a on a.id = r.award_id
+    where ($1 = false or (r.enabled and a.archived_at is null)) order by r.id`,
+      [enabledOnly],
+    )
+    .then((rows) =>
+      rows.map((row) => ({ ...row, id: Number(row.id), awardId: Number(row.awardId) })),
+    )
+}
+
+export async function saveRule(
+  data: PluginData,
+  rule: AwardRuleInput,
+  id: number | null,
+): Promise<void> {
+  const params = [
+    rule.awardId,
+    rule.title,
+    rule.enabled,
+    rule.minPostCount,
+    rule.minThreadCount,
+    rule.minReputation,
+    rule.minDaysRegistered,
+  ]
+  if (id === null) {
+    await data.query(
+      `insert into plugin_awards_rule
+      (award_id, title, enabled, min_post_count, min_thread_count, min_reputation, min_days_registered)
+      values ($1, $2, $3, $4, $5, $6, $7)`,
+      params,
+    )
+  } else {
+    await data.query(
+      `update plugin_awards_rule set award_id = $1, title = $2, enabled = $3,
+      min_post_count = $4, min_thread_count = $5, min_reputation = $6, min_days_registered = $7,
+      updated_at = now() where id = $8`,
+      [...params, id],
+    )
+  }
 }

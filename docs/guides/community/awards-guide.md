@@ -65,3 +65,37 @@ There are no repeating tiers, categories, icon uploads, or automatic revocation
 when criteria stop holding. Awards confer recognition, never permissions or
 group membership. Plugin tables contain only award data and plain member ids;
 member lookup exposes public names and standing, not private account data.
+
+## Automatic achievements
+
+Open **Rules** to create a rule for an award. Enter a title and any combination
+of minimum posts, threads, reputation and days registered. Every configured
+threshold must hold. Blank means ignored; at least one is required, and zero
+explicitly allows every member for that criterion. Whole days are elapsed
+24-hour periods from registration. Enable or disable rules, edit them through
+their title links, or delete a rule without removing awards already granted.
+
+Each rule grants once per member while its grant exists, even if the award
+allows multiple grants. Separate rules can grant the same multiple award.
+Single-only awards still refuse a second grant, whether manual or automatic.
+Revoke removes the grant: an enabled rule may award it again on re-evaluation
+if its criteria still hold. Disable that rule first to stop further automatic
+grants. Lowering counts or raising thresholds never revokes an existing award.
+The public catalogue explains enabled rules instead of saying “Given by staff”.
+
+The `evaluate` task runs every 300 seconds. Post and thread creation, reputation
+changes, registration and activation queue the affected member with one insert.
+Each run drains up to 500 queued members in batches of at most 200, then walks
+up to 1,000 members by ascending id. This full scan catches tenure thresholds
+and contributions made before installation. **Run now** performs the same
+bounded batch synchronously; **Re-check everyone** resets the scan cursor.
+The rules screen shows the cursor and the last completed pass. Large boards
+need several runs to complete a pass; an exact batch boundary is recognised
+as the end when the next scan is empty.
+
+Queued batches are claimed before lookup and requeued on failure. Scan progress
+is saved only after evaluating its batch, and a concurrent run cannot overwrite
+a cursor it did not read. Repeated evaluation does not duplicate a rule's grant
+or send another notification. Newly granted awards use the same cache invalidation
+and notification path as manual assignments. Rules use only the public member
+standing API; no plugin query reaches the board's account or content tables.

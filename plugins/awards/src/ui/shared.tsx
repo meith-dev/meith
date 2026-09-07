@@ -106,6 +106,12 @@ export function action(
 }
 export function notice(context: TextContext, value: string | undefined) {
   const notices = {
+    evaluated: 'awards.notice.evaluated',
+    reset: 'awards.notice.reset',
+    'rule-invalid': 'awards.notice.rule-invalid',
+    'rule-empty': 'awards.notice.rule-empty',
+    'rule-missing': 'awards.notice.rule-missing',
+    'rule-saved': 'awards.notice.rule-saved',
     already: 'awards.notice.already',
     deleted: 'awards.notice.deleted',
     granted: 'awards.notice.granted',

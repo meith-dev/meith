@@ -23,3 +23,11 @@ One migration creates awards, grants, rules, a dirty-member queue and a scan
 cursor, all under `plugin_awards_*`. Foreign keys remain inside that namespace;
 member ids are plain columns. Account deletion removes grants; account merging
 preserves recognition while collapsing single-only and same-rule duplicates.
+
+## Automatic rules
+
+Administrators can combine minimum posts, threads, reputation and registration
+age. A five-minute task drains queued changes and scans existing members in
+bounded, resumable batches. Its rule/member unique index prevents duplicate
+awards from repeated runs. The public catalogue describes how awards are earned.
+See the guide for progress controls, revocation behaviour and failure recovery.
