@@ -34,6 +34,8 @@ vi.mock('@meith/db', () => ({
   }),
   pluginUsers: () => ({
     byUsername: async () => null,
+    standing: async () => [],
+    scan: async () => [],
     byId: async () => null,
   }),
 }))

@@ -114,6 +114,7 @@ export {
   type PluginNotifyBackend,
   type PluginNotifyKindInput,
   type PluginUserRef,
+  type PluginUserStanding,
   type PluginUsers,
   pluginNotificationKindSpecs,
   pluginNotify,
