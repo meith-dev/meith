@@ -6,6 +6,7 @@ test.use({ javaScriptEnabled: false })
 
 test('an administrator creates and grants an award visible in the catalogue, profile and postbit', async ({
   page,
+  browser,
 }, testInfo) => {
   test.setTimeout(90_000)
   const username = await signUp(page, 'awards')
@@ -38,7 +39,6 @@ test('an administrator creates and grants an award visible in the catalogue, pro
   await page.goto('/plugins/awards')
   await expect(page.getByRole('link', { name: 'Community helper', exact: true })).toBeVisible()
   await expect(page.getByText('Holders: 1')).toBeVisible()
-  await page.screenshot({ path: testInfo.outputPath('awards-light.png'), fullPage: true })
   await page.getByRole('link', { name: 'Community helper', exact: true }).click()
   await page.getByRole('link', { name: username, exact: true }).click()
   await expect(page.getByText('Thank you for helping new members.')).toBeVisible()
@@ -52,4 +52,32 @@ test('an administrator creates and grants an award visible in the catalogue, pro
     'title',
     'Community helper',
   )
+
+  const preview = await browser.newContext({
+    storageState: await page.context().storageState(),
+    javaScriptEnabled: true,
+    colorScheme: 'light',
+    viewport: { width: 1440, height: 900 },
+  })
+  try {
+    const screenshotPage = await preview.newPage()
+    await screenshotPage.goto(new URL('/plugins/awards', page.url()).href)
+    await expect(screenshotPage.getByText('Holders: 1')).toBeVisible()
+    await expect(screenshotPage.locator('[data-account="plain"]')).toBeHidden()
+    await screenshotPage.getByRole('button', { name: 'Your account', exact: true }).click()
+    await expect(screenshotPage.getByRole('menu')).toBeVisible()
+    await expect(
+      screenshotPage.getByRole('menuitem', { name: 'Profile', exact: true }),
+    ).toBeVisible()
+    await screenshotPage.keyboard.press('Escape')
+    await expect(screenshotPage.getByRole('menu')).toBeHidden()
+    await screenshotPage.evaluate(() => document.fonts.ready)
+    await screenshotPage.screenshot({
+      path: testInfo.outputPath('awards-light.png'),
+      fullPage: true,
+      animations: 'disabled',
+    })
+  } finally {
+    await preview.close()
+  }
 })

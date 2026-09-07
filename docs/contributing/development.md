@@ -746,6 +746,16 @@ driven until search answers; and search is rate-limited, so the
 light-and-dark pair is taken from the stored `/search/<token>` URL rather
 than asking the search route twice.
 
+The Awards marketplace screenshot is captured by
+`pnpm test:e2e:build && pnpm exec playwright test e2e/awards-no-js.spec.ts`.
+The award workflow runs with JavaScript disabled; the screenshot uses a
+separate JavaScript-enabled context with the same session and checks that
+the account dropdown opens and closes. This captures the normal header
+instead of the intentional plain-link account navigation used without
+JavaScript. Copy the resulting `awards-light.png` from `test-results` to
+`marketplace/screenshots/awards-light.png`, then run `pnpm marketplace:gen`
+to update the published copy.
+
 ## The checks that fail on purpose
 
 Several gates in `pnpm verify` exist because something once passed every
