@@ -35,4 +35,33 @@ export const CALENDAR_MIGRATIONS: readonly PluginMigration[] = [
          add column if not exists link_label text not null default ''`,
     ],
   },
+  {
+    id: '0003_recurrence_and_rsvps',
+    statements: [
+      `alter table plugin_calendar_event
+         add column repeat text not null default 'none'
+           check (repeat in ('none', 'weekly', 'fortnightly', 'monthly')),
+         add column repeat_until date`,
+      `create table plugin_calendar_rsvps (
+         event_id bigint not null references plugin_calendar_event(id) on delete cascade,
+         occurrence_date date not null,
+         user_id integer not null,
+         status text not null check (status in ('yes', 'no', 'maybe')),
+         updated_at timestamptz not null default now(),
+         primary key (event_id, occurrence_date, user_id)
+       )`,
+    ],
+  },
+  {
+    id: '0004_reminder_deliveries',
+    statements: [
+      `create table plugin_calendar_reminders (
+         event_id bigint not null references plugin_calendar_event(id) on delete cascade,
+         occurrence_date date not null,
+         user_id integer not null,
+         processed_at timestamptz not null default now(),
+         primary key (event_id, occurrence_date, user_id)
+       )`,
+    ],
+  },
 ]

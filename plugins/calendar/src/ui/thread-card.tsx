@@ -2,8 +2,9 @@ import type { PluginRegionContext, PluginRuntimeContext } from '@meith/plugin-ki
 
 import { type CalendarEvent, formatRange, pickThreadEvent } from '../events'
 import en from '../messages/en.json'
-import { eventsForThread } from '../store'
+import { eventsForThread, rsvpSummary } from '../store'
 import { EventLink } from './event-link'
+import { Rsvp } from './rsvp'
 
 function translated(context: PluginRegionContext, key: keyof typeof en): string {
   return context.t.has(key) ? context.t.t(key) : en[key]
@@ -12,10 +13,12 @@ function translated(context: PluginRegionContext, key: keyof typeof en): string 
 export async function ThreadEventCard(context: PluginRegionContext) {
   if (context.subjectId === null) return null
 
+  let summary: Awaited<ReturnType<typeof rsvpSummary>> = { counts: {}, own: null }
   let event: CalendarEvent | null = null
   try {
     const runtime = (await context.runtime()) as PluginRuntimeContext
     event = pickThreadEvent(await eventsForThread(runtime.data, context.subjectId), new Date())
+    if (event !== null) summary = await rsvpSummary(runtime.data, event, context.viewer.userId)
   } catch {
     return null
   }
@@ -34,6 +37,8 @@ export async function ThreadEventCard(context: PluginRegionContext) {
         </time>
         {event.location !== '' && <span> · {event.location}</span>}
       </p>
+      <p>{translated(context, 'calendar.event.utc')}</p>
+      <Rsvp event={event} summary={summary} context={context} />
       <EventLink event={event} label={translated(context, 'calendar.event.linkFallback')} />
     </section>
   )

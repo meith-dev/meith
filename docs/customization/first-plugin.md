@@ -253,3 +253,51 @@ for a theme — the default board recoloured plus one slot override,
 generated from `examples/iris-theme` the same way. From there,
 [Themes](./themes.md) is the policy and [Theme slots](../reference/theme-slots.md)
 the reference.
+
+## Calendar: occurrence responses
+
+The bundled calendar demonstrates member-only form POST routes and a
+forward-only third migration. Its RSVP table is keyed by event, UTC
+occurrence date and member; the sole foreign key references the plugin's
+own event table with cascading deletion. Yes, No and Maybe responses can
+be changed or cleared with JavaScript disabled. Board readers see counts;
+members see their own answer. The organiser roster and event creator gate
+the username-only response list.
+
+Recurrence supports weekly, fortnightly and monthly series with an optional
+inclusive UTC until date. Weekly intervals are fixed instants, so local
+times may shift with daylight saving. Monthly series skip nonexistent days.
+Calendar forms and labels explicitly use UTC, unlike the core viewer-zone
+TimeModel rendering. Month navigation expands only the requested month;
+thread cards search recurring occurrences within a year either side of now.
+ICS exports carry the unexpanded series and RRULE.
+
+Editing a series preserves responses on unchanged UTC dates. Removed dates
+are hidden; a moved occurrence needs new answers. Deleting the event removes
+its responses. Reminders are described below.
+
+## Calendar reminders
+
+The cron scheduler runs `plugin.calendar.reminders` every five minutes in UTC.
+The operator's **Reminder lead time (hours)** setting defaults to 2 and
+accepts 0–168 hours, including fractions; 0 disables reminders. Members
+who answered Yes or Maybe receive `plugin.calendar.reminder` with a link
+to that occurrence. No and cleared responses receive nothing. Notifications
+appear on the board; email is off by default and members can enable it in
+their notification preferences.
+
+The task catches up on unsent reminders inside the lead-time window,
+including late RSVPs, but never sends for an occurrence that has started.
+Delivery depends on the board's system tick. Each run handles up to 100
+recipients, earliest events first; a larger backlog drains on later ticks.
+
+A fourth forward-only migration records handled event/date/member triples
+in `plugin_calendar_reminders`. Reading a notification, changing an RSVP,
+or editing the time within the same UTC date does not cause another reminder.
+Moving to a different date creates a new occurrence. Event deletion cascades
+to these records. Deleted members are recorded as skipped.
+
+The existing scheduler prevents concurrent normal runs. Failed notification
+sends remain eligible for retry. Sending and recording delivery use separate
+host APIs, so a process crash between them can retry a delivered notification;
+the host coalesces an unread duplicate, but this is not exactly-once delivery.

@@ -105,6 +105,8 @@ describe('adding an event', () => {
       7,
       '',
       '',
+      'none',
+      null,
     ])
   })
 

@@ -15,6 +15,7 @@ import {
   SEED_POST_ROWS,
   SEED_THREAD_ROWS,
 } from '../../apps/community/src/server/seed-board'
+import { CALENDAR_MIGRATIONS } from '../../plugins/calendar/src/schema'
 import {
   E2E_DATABASE_URL,
   E2E_DB_PORT,
@@ -299,19 +300,26 @@ export async function startDatabase(
   const db = await PGlite.create()
   if (migrated) {
     await db.exec(migrationSql())
+    await db.exec(CALENDAR_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
     await db.exec(DUES_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
   }
   if (seeded) {
     await db.exec(
-      insert(
-        'plugin_migrations',
-        DUES_MIGRATIONS.map((migration) => ({
+      insert('plugin_migrations', [
+        ...DUES_MIGRATIONS.map((migration) => ({
           plugin_key: 'dues',
           migration_id: migration.id,
         })),
-      ),
+        ...CALENDAR_MIGRATIONS.map((migration) => ({
+          plugin_key: 'calendar',
+          migration_id: migration.id,
+        })),
+      ]),
     )
     await db.exec(seedSql(await hashPassword(STAFF_PASSWORD)))
+    await db.exec(
+      "insert into plugin_calendar_event (title, starts_at, repeat) values ('E2E recurring training', '2026-01-05T19:00:00Z', 'weekly')",
+    )
     await seedBadgeFiles()
   }
 
