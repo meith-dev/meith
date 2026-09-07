@@ -50,6 +50,7 @@ Administer the community and maintain the services behind it.
 - [Spam controls and filters](./guides/community/antispam.md) — Configure registration challenges, rate limits, and content filters.
 - [Search settings](./guides/community/search.md) — Configure search language, availability, and query limits.
 - [Reputation settings](./guides/community/reputation.md) — Configure ratings, thanks, and who may give reputation.
+- [Community awards](./guides/community/awards-guide.md) — Create awards, recognise members and manage achievements.
 - [Paid memberships with Dues](./guides/community/membership-guide.md) — Configure plans and manage payments, gifts, and the ledger.
 ### Server operations
 

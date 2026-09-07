@@ -71,3 +71,48 @@ describe('pluginUsers', () => {
     expect(await pluginUsers(h.db).byId(id)).toEqual({ userId: id, username: 'Trouble' })
   })
 })
+
+it('reads only public standing and excludes deleted accounts in both batch APIs', async () => {
+  const first = await member('First')
+  const deleted = await member('Gone', 'deleted')
+  const last = await member('Last')
+  const lookup = pluginUsers(h.db)
+  const standing = await lookup.standing([last, deleted, first, first])
+  expect(standing.map((row) => row.userId)).toEqual([first, last])
+  expect(standing[0]).toEqual({
+    userId: first,
+    username: 'First',
+    postCount: 0,
+    threadCount: 0,
+    reputation: 0,
+    registeredAt: expect.any(Date),
+  })
+  expect(await lookup.scan({ afterUserId: first, limit: 200 })).toEqual([standing[1]])
+  expect(await lookup.scan({ afterUserId: last, limit: 200 })).toEqual([])
+  expect(await lookup.standing([])).toEqual([])
+  await expect(lookup.standing(Array(201).fill(first))).rejects.toThrow('200')
+  await expect(lookup.standing([-1])).rejects.toThrow('positive')
+})
+
+it('caps scans at 200 and honours smaller limits and cursors', async () => {
+  await h.db.insert(users).values(
+    Array.from({ length: 205 }, (_, i) => ({
+      username: `Batch${i}`,
+      usernameLower: `batch${i}`,
+      email: `batch${i}@example.com`,
+      emailLower: `batch${i}@example.com`,
+      primaryGroupId: groupId,
+      postCount: i,
+      threadCount: i + 1,
+      reputation: i + 2,
+    })),
+  )
+  const lookup = pluginUsers(h.db)
+  const rows = await lookup.scan({ afterUserId: 0, limit: 999 })
+  expect(rows).toHaveLength(200)
+  expect(rows[0]).toMatchObject({ postCount: 0, threadCount: 1, reputation: 2 })
+  expect(await lookup.scan({ afterUserId: rows[199]!.userId, limit: 2 })).toHaveLength(2)
+  expect(await lookup.scan({ afterUserId: 0, limit: -5 })).toEqual([])
+  await expect(lookup.scan({ afterUserId: -1, limit: 1 })).rejects.toThrow('cursor')
+  await expect(lookup.scan({ afterUserId: 0, limit: Number.NaN })).rejects.toThrow('finite')
+})

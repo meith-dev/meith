@@ -2,6 +2,21 @@
   "schema": "https://www.meith.dev/marketplace/v1.json#/schema",
   "listings": [
     {
+      "key": "awards",
+      "kind": "plugin",
+      "package": "@meith/plugin-awards",
+      "name": "Awards",
+      "description": "Community awards, manual recognition and achievements.",
+      "screenshots": [
+        "/marketplace/screenshots/awards-light.png"
+      ],
+      "version": "0.36.2",
+      "apiVersion": 0,
+      "meith": ">=0.16 <1",
+      "repository": "https://github.com/meith-dev/meith",
+      "licence": "MIT"
+    },
+    {
       "key": "calendar",
       "kind": "plugin",
       "package": "@meith/plugin-calendar",

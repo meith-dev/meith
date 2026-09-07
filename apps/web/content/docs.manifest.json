@@ -199,6 +199,16 @@
       "group": "Community administration"
     },
     {
+      "slug": "awards-guide",
+      "file": "guides/community/awards-guide.md",
+      "section": "operating",
+      "title": "Community awards",
+      "blurb": "Create awards, recognise members and manage achievements.",
+      "generated": false,
+      "primary": false,
+      "group": "Community administration"
+    },
+    {
       "slug": "membership-guide",
       "file": "guides/community/membership-guide.md",
       "section": "operating",

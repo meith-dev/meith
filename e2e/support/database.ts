@@ -15,6 +15,7 @@ import {
   SEED_POST_ROWS,
   SEED_THREAD_ROWS,
 } from '../../apps/community/src/server/seed-board'
+import { AWARDS_MIGRATIONS } from '../../plugins/awards/src/schema'
 import { CALENDAR_MIGRATIONS } from '../../plugins/calendar/src/schema'
 import {
   E2E_DATABASE_URL,
@@ -300,12 +301,17 @@ export async function startDatabase(
   const db = await PGlite.create()
   if (migrated) {
     await db.exec(migrationSql())
+    await db.exec(AWARDS_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
     await db.exec(CALENDAR_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
     await db.exec(DUES_MIGRATIONS.flatMap((migration) => migration.statements).join(';\n'))
   }
   if (seeded) {
     await db.exec(
       insert('plugin_migrations', [
+        ...AWARDS_MIGRATIONS.map((migration) => ({
+          plugin_key: 'awards',
+          migration_id: migration.id,
+        })),
         ...DUES_MIGRATIONS.map((migration) => ({
           plugin_key: 'dues',
           migration_id: migration.id,

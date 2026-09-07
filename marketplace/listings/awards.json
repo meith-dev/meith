@@ -1,0 +1,13 @@
+{
+  "key": "awards",
+  "kind": "plugin",
+  "package": "@meith/plugin-awards",
+  "name": "Awards",
+  "description": "Community awards, manual recognition and achievements.",
+  "screenshots": ["awards-light.png"],
+  "version": "0.36.2",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "MIT"
+}

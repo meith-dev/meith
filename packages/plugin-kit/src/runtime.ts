@@ -62,16 +62,28 @@ export interface PluginUserRef {
   readonly username: string
 }
 
+export interface PluginUserStanding extends PluginUserRef {
+  readonly postCount: number
+  readonly threadCount: number
+  readonly reputation: number
+  readonly registeredAt: Date
+}
+
 export interface PluginUsers {
   byUsername(username: string): Promise<PluginUserRef | null>
   byId(userId: number): Promise<PluginUserRef | null>
+  standing(userIds: readonly number[]): Promise<readonly PluginUserStanding[]>
+  scan(input: {
+    readonly afterUserId: number
+    readonly limit: number
+  }): Promise<readonly PluginUserStanding[]>
 }
 
 export function unavailablePluginUsers(reason: string): PluginUsers {
   const refuse = async (): Promise<never> => {
     throw new Error(`Plugin user lookup is unavailable: ${reason}`)
   }
-  return { byUsername: refuse, byId: refuse }
+  return { byUsername: refuse, byId: refuse, standing: refuse, scan: refuse }
 }
 
 export interface PluginNotify {

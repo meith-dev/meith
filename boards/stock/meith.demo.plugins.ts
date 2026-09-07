@@ -1,5 +1,6 @@
 import type { InstalledPlugin } from '@meith/core'
 import { readPluginEnv } from '@meith/core'
+import { messages as awardsMessages, plugin as awardsPlugin } from '@meith/plugin-awards'
 import { calendarMessages, calendarPlugin } from '@meith/plugin-calendar'
 import { createDues, duesMessages } from '@meith/plugin-dues'
 import type { PluginDefinition } from '@meith/plugin-kit'
@@ -28,6 +29,7 @@ function boardHosts(): readonly string[] {
 }
 
 const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
+  { key: 'awards', messages: awardsMessages, plugin: awardsPlugin },
   { key: 'calendar', messages: calendarMessages, plugin: calendarPlugin },
   {
     key: 'dues',
@@ -61,6 +63,7 @@ const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
 ]
 
 const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
+  { key: 'awards', messages: awardsMessages, plugin: awardsPlugin },
   {
     key: 'dues',
     messages: duesMessages,

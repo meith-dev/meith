@@ -837,9 +837,19 @@ const recipient = await context.users.byUsername(input)   // null if unknown
 
 It exists because a plugin's own records point at members and its UI asks
 for them by name — "award this to @name" needs an id before anything can be
-stored. Deleted accounts do not resolve. Nothing richer is exposed — no
-e-mail, no state, no groups — for the same reason payloads carry a
-`ViewerRef` and not an `Actor`.
+stored. Deleted accounts do not resolve.
+
+`standing(userIds)` returns those pairs plus `postCount`, `threadCount`,
+`reputation` and `registeredAt` (a `Date`) for at most 200 ids; more ids
+throw. `scan({ afterUserId, limit })` returns the same shape in ascending
+user-id order, strictly after the cursor, with the limit clamped to 0–200.
+Both exclude deleted accounts. An empty scan marks the end of a pass; use
+the last returned user id to continue.
+
+These four public numbers do not move the privacy line: post and thread
+counts, reputation and registration date are already on every postbit.
+Nothing else is exposed — no e-mail, state or groups — for the same reason
+payloads carry a `ViewerRef` and not an `Actor`.
 
 ## HTTP routes
 
