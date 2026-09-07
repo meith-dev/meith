@@ -746,6 +746,15 @@ driven until search answers; and search is rate-limited, so the
 light-and-dark pair is taken from the stored `/search/<token>` URL rather
 than asking the search route twice.
 
+For the marketplace's five theme previews, Calendar and Dues, run
+`pnpm site:shots --grep marketplace`, then `pnpm marketplace:gen`.
+This uses the populated demo board at 1440 × 900 with JavaScript enabled,
+checks each theme's account dropdown, and writes real light-mode captures
+to `marketplace/screenshots`. Each capture starts at the top with the board
+header visible after hiding the demo banner. The generator copies them into the site's
+published marketplace directory. The capture checks for seeded forums,
+events and plans so an empty board cannot silently become a preview.
+
 The Awards marketplace screenshot is captured by
 `pnpm test:e2e:build && pnpm exec playwright test e2e/awards-no-js.spec.ts`.
 The award workflow runs with JavaScript disabled; the screenshot uses a
