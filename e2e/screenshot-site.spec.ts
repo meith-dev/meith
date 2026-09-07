@@ -36,14 +36,16 @@ const HIDE_DEV_CHROME = `
   nextjs-portal { display: none !important }
 `
 
-async function shoot(page: Page, name: string): Promise<void> {
+async function shoot(page: Page, name: string, directory = shotsDirectory()): Promise<void> {
   await page.addStyleTag({ content: HIDE_DEV_CHROME })
 
   await expect(page.locator('aside[aria-label="About this demo"]')).toBeHidden()
 
   await page.waitForLoadState('domcontentloaded')
   await page.evaluate(() => document.fonts.ready)
-  await page.screenshot({ path: path.join(shotsDirectory(), `${name}.png`) })
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await expect(page.getByRole('banner')).toBeInViewport()
+  await page.screenshot({ path: path.join(directory, `${name}.png`), animations: 'disabled' })
 }
 
 async function paint(
@@ -164,4 +166,54 @@ test('the marketing site, photographed', async ({ browser, request }) => {
   }
 
   await phone.close()
+})
+
+test('the marketplace, photographed', async ({ browser, request }) => {
+  const directory = path.resolve(test.info().config.rootDir, '../marketplace/screenshots')
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    javaScriptEnabled: true,
+    colorScheme: 'light',
+  })
+  context.setDefaultTimeout(15_000)
+  try {
+    const page = await context.newPage()
+    await signIn(page, 'member', 'member')
+    await warmTheBoard(request, page)
+
+    for (const theme of THEMES) {
+      await paint(context, page, { theme, scheme: 'light' }, '/')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await expect(
+        page.getByRole('link', { name: 'Noticeboard', exact: true }).first(),
+      ).toBeVisible()
+      await page.getByRole('button', { name: /^your account$/i }).click()
+      await expect(page.getByRole('menu')).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('menu')).toBeHidden()
+      await expect(page).toHaveURL('/')
+      await shoot(page, `${theme}-light`, directory)
+    }
+
+    const eventMonth = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 7)
+    await paint(
+      context,
+      page,
+      { theme: 'default', scheme: 'light' },
+      `/plugins/calendar?month=${eventMonth}`,
+    )
+    await expect(
+      page.getByRole('link', { name: 'Away to Ballyquin — bus at 12:15', exact: true }),
+    ).toBeVisible()
+    await shoot(page, 'calendar-light', directory)
+
+    await page.goto('/plugins/dues')
+    await expect(page.getByRole('heading', { name: '90-day pass', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Lifetime membership', exact: true }),
+    ).toBeVisible()
+    await shoot(page, 'dues-light', directory)
+  } finally {
+    await context.close()
+  }
 })
