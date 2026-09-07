@@ -77,6 +77,11 @@ export function toIcs(event: CalendarEvent, boardUrl: string, now: Date): string
     `DTSTAMP:${stamp(now)}`,
     `DTSTART:${stamp(event.startsAt)}`,
     `DTEND:${stamp(ends)}`,
+    ...((event.repeat ?? 'none') === 'none'
+      ? []
+      : [
+          `RRULE:FREQ=${event.repeat === 'monthly' ? 'MONTHLY' : 'WEEKLY'}${event.repeat === 'fortnightly' ? ';INTERVAL=2' : ''}${event.repeatUntil ? ';UNTIL=' + event.repeatUntil.replaceAll('-', '') + 'T235959Z' : ''}`,
+        ]),
     `SUMMARY:${escapeText(event.title)}`,
     ...(event.location === '' ? [] : [`LOCATION:${escapeText(event.location)}`]),
     ...(actionUrl === null ? [] : [`URL:${escapeText(actionUrl)}`]),

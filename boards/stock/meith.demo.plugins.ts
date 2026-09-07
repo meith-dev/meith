@@ -28,6 +28,7 @@ function boardHosts(): readonly string[] {
 }
 
 const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
+  { key: 'calendar', messages: calendarMessages, plugin: calendarPlugin },
   {
     key: 'dues',
     messages: duesMessages,

@@ -215,6 +215,9 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
 
   const label = `Wiki ${Date.now().toString(36)}`
   const href = `https://example.com/wiki-${Date.now().toString(36)}`
+  const neighbour = `Neighbour ${Date.now().toString(36)}`
+  const neighbourHref = `${href}-neighbour`
+  await addMenuItem(page, neighbour, neighbourHref)
   await addMenuItem(page, label, href)
 
   const navLabels = async (): Promise<string[]> =>
@@ -229,18 +232,20 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
 
   await page.goto('/')
   const before = await navLabels()
-  expect(before.indexOf(label)).toBeGreaterThan(before.indexOf('Membership'))
+  expect(before.indexOf(neighbour)).toBeGreaterThan(-1)
+  expect(before.indexOf(label)).toBeGreaterThan(before.indexOf(neighbour))
 
   await page.goto('/admin/content/navigation')
-  await nudge('up')
   await nudge('up')
 
   await page.goto('/')
   const after = await navLabels()
   expect(after.indexOf(label)).toBeGreaterThan(-1)
-  expect(after.indexOf(label)).toBeLessThan(after.indexOf('Membership'))
+  expect(after.indexOf(neighbour)).toBeGreaterThan(-1)
+  expect(after.indexOf(label)).toBeLessThan(after.indexOf(neighbour))
 
   await page.goto('/admin/content/navigation')
+  await nudge('down')
   await nudge('under the item above it')
   await expect(
     page.getByRole('button', { name: `Move ${label} back to the top level` }),
@@ -248,7 +253,10 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
 
   await page.goto('/')
   const desktopNav = page.getByRole('banner').locator('[data-nav-view="desktop"]')
-  await expect(desktopNav.locator(`ul a[href="${href}"]`)).toHaveCount(1)
+  const parent = desktopNav.locator(':scope > li').filter({
+    has: page.locator(`a[href="${neighbourHref}"]`),
+  })
+  await expect(parent.locator(`ul a[href="${href}"]`)).toHaveCount(1)
   await expect(desktopNav.locator(`a[href="${href}"]`)).toHaveCount(1)
   await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(0)
 
@@ -260,6 +268,7 @@ test('the arrows reorder the menu and tuck an item into a sub-menu', async ({ pa
   await expect(page.getByRole('banner').getByRole('link', { name: label })).toHaveCount(1)
 
   await removeMenuItem(page, label)
+  await removeMenuItem(page, neighbour)
 })
 
 test('a word filter added in the panel rewrites a post written before it', async ({ browser }) => {

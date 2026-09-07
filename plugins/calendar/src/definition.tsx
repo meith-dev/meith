@@ -6,9 +6,11 @@ import {
   handleDeleteEvent,
   handleEventIcs,
   handleRemoveOrganiser,
+  handleRsvp,
   handleUpdateEvent,
 } from './handlers'
 import en from './messages/en.json'
+import { sendReminders } from './reminders'
 import { CALENDAR_MIGRATIONS } from './schema'
 import { OrganisersPage } from './ui/admin'
 import { CalendarPage } from './ui/page'
@@ -27,6 +29,15 @@ export const calendarPlugin = definePlugin({
 
   settings: [
     {
+      key: 'reminder_hours',
+      label: en['calendar.setting.reminders.label'],
+      labelKey: 'calendar.setting.reminders.label',
+      description: en['calendar.setting.reminders.description'],
+      descriptionKey: 'calendar.setting.reminders.description',
+      type: 'number',
+      default: 2,
+    },
+    {
       key: 'any_member_may_add',
       label: en['calendar.setting.anyMember.label'],
       labelKey: 'calendar.setting.anyMember.label',
@@ -38,6 +49,19 @@ export const calendarPlugin = definePlugin({
   ],
 
   migrations: CALENDAR_MIGRATIONS,
+
+  tasks: [{ id: 'reminders', schedule: '*/5 * * * *', run: sendReminders }],
+
+  notifications: [
+    {
+      key: 'reminder',
+      title: en['calendar.reminder.title'],
+      titleKey: 'calendar.reminder.title',
+      description: en['calendar.reminder.description'],
+      descriptionKey: 'calendar.reminder.description',
+      emailByDefault: false,
+    },
+  ],
 
   pages: [
     {
@@ -69,6 +93,13 @@ export const calendarPlugin = definePlugin({
   ],
 
   routes: [
+    {
+      path: 'events/rsvp',
+      method: 'POST',
+      access: 'member',
+      rateLimit: ADD_RATE_LIMIT,
+      handler: handleRsvp,
+    },
     {
       path: 'events',
       method: 'POST',

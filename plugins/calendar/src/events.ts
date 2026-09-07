@@ -8,7 +8,18 @@ export const MAX_LINK_URL = 500
 
 export const MAX_DURATION_HOURS = 24 * 14
 
+export const REPEATS = ['none', 'weekly', 'fortnightly', 'monthly'] as const
+export const REPEAT_LABELS = {
+  none: 'calendar.repeat.none',
+  weekly: 'calendar.repeat.weekly',
+  fortnightly: 'calendar.repeat.fortnightly',
+  monthly: 'calendar.repeat.monthly',
+} as const
+export type Repeat = (typeof REPEATS)[number]
+
 export interface EventDraft {
+  readonly repeat?: Repeat
+  readonly repeatUntil?: string | null
   readonly title: string
   readonly startsAt: Date
   readonly endsAt: Date | null
@@ -19,6 +30,8 @@ export interface EventDraft {
 }
 
 export type DraftProblem =
+  | 'repeat-invalid'
+  | 'until-invalid'
   | 'title-missing'
   | 'title-too-long'
   | 'location-too-long'
@@ -31,6 +44,8 @@ export type DraftProblem =
   | 'link-label-without-link'
 
 export interface CalendarEvent {
+  readonly repeat?: Repeat
+  readonly repeatUntil?: string | null
   readonly id: string
   readonly title: string
   readonly startsAt: Date
@@ -65,7 +80,9 @@ function parseDate(raw: string): Date | null {
   const trimmed = raw.trim()
   if (trimmed === '') return null
 
-  const parsed = new Date(trimmed)
+  const parsed = new Date(
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(trimmed) ? trimmed + 'Z' : trimmed,
+  )
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
@@ -115,10 +132,24 @@ export function readDraft(form: Readonly<Record<string, string>>): {
   if (linkLabel.length > MAX_LINK_LABEL) problems.push('link-label-too-long')
   if (linkLabel !== '' && rawLink === '') problems.push('link-label-without-link')
 
+  const repeat = form.repeat ?? 'none'
+  const repeatUntil = form.repeat_until?.trim() || null
+  if (!REPEATS.includes(repeat as Repeat)) problems.push('repeat-invalid')
+  if (
+    repeatUntil !== null &&
+    (!validDay(repeatUntil) ||
+      repeat === 'none' ||
+      (startsAt !== null && repeatUntil < startsAt.toISOString().slice(0, 10)))
+  ) {
+    problems.push('until-invalid')
+  }
+
   if (problems.length > 0 || startsAt === null) return { draft: null, problems }
 
   return {
     draft: {
+      repeat: repeat as Repeat,
+      repeatUntil,
       title,
       startsAt,
       endsAt,
@@ -246,4 +277,68 @@ export function byStart(a: CalendarEvent, b: CalendarEvent): number {
 
 export function eventHref(event: CalendarEvent): string | null {
   return event.threadId === null ? null : `/thread/${event.threadId}`
+}
+
+export function validDay(day: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false
+  const date = new Date(day + 'T00:00:00Z')
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === day
+}
+
+export function occurrences(event: CalendarEvent, from: Date, to: Date): CalendarEvent[] {
+  const result: CalendarEvent[] = []
+  const repeat = event.repeat ?? 'none'
+  const start = event.startsAt
+  const duration = event.endsAt === null ? 0 : event.endsAt.getTime() - start.getTime()
+  const step = (repeat === 'fortnightly' ? 14 : 7) * 86_400_000
+  let index =
+    repeat === 'monthly'
+      ? Math.max(
+          0,
+          (from.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+            from.getUTCMonth() -
+            start.getUTCMonth(),
+        )
+      : repeat === 'none'
+        ? 0
+        : Math.max(0, Math.floor((from.getTime() - start.getTime()) / step))
+  while (true) {
+    const date = new Date(start)
+    if (repeat === 'monthly') {
+      date.setUTCDate(1)
+      date.setUTCMonth(start.getUTCMonth() + index)
+      const month = date.getUTCMonth()
+      date.setUTCDate(start.getUTCDate())
+      if (date.getUTCMonth() !== month) {
+        index++
+        if (date >= to) break
+        continue
+      }
+    } else if (repeat !== 'none') date.setTime(start.getTime() + index * step)
+    if (
+      !Number.isFinite(date.getTime()) ||
+      date >= to ||
+      (event.repeatUntil && date.toISOString().slice(0, 10) > event.repeatUntil)
+    )
+      break
+    if (date >= from)
+      result.push({
+        ...event,
+        startsAt: date,
+        endsAt: event.endsAt === null ? null : new Date(date.getTime() + duration),
+      })
+    if (repeat === 'none') break
+    index++
+  }
+  return result
+}
+
+export function occurrenceOn(event: CalendarEvent, day: string): CalendarEvent | null {
+  if (!validDay(day)) return null
+  const from = new Date(day + 'T00:00:00Z')
+  return occurrences(event, from, new Date(from.getTime() + 86_400_000))[0] ?? null
+}
+
+export function occurrenceHref(event: CalendarEvent): string {
+  return `/plugins/calendar?event=${event.id}&occurrence=${event.startsAt.toISOString().slice(0, 10)}`
 }

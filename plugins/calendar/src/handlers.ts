@@ -1,7 +1,7 @@
 import type { PluginRequest, PluginResponse, PluginRuntimeContext } from '@meith/plugin-kit'
 
 import { mayAdd, mayManage, resolveCalendarConfig } from './access'
-import { type CalendarEvent, readDraft } from './events'
+import { type CalendarEvent, occurrenceHref, occurrenceOn, readDraft } from './events'
 import { ICS_CONTENT_TYPE, toIcs } from './ics'
 import {
   addOrganiser,
@@ -9,7 +9,10 @@ import {
   deleteEvent,
   eventById,
   organiserIds,
+  RSVP_STATUSES,
+  type RsvpStatus,
   removeOrganiser,
+  saveRsvp,
   updateEvent,
 } from './store'
 
@@ -137,4 +140,28 @@ export async function handleRemoveOrganiser(
 
   await removeOrganiser(context.data, userId)
   return { kind: 'redirect', to: '/admin/plugins/calendar/organisers' }
+}
+
+export async function handleRsvp(
+  request: PluginRequest,
+  context: PluginRuntimeContext,
+): Promise<PluginResponse> {
+  if (request.viewer.userId === null) return refused(403, 'guest')
+  const form = request.form
+  if (form === null) return refused(400, 'form-required')
+  if (!/^\d+$/.test(form.id ?? '')) return refused(400, 'id-required')
+  if (form.status !== 'clear' && !RSVP_STATUSES.includes(form.status as RsvpStatus)) {
+    return refused(400, 'status-invalid')
+  }
+  const series = await eventById(context.data, form.id ?? '')
+  if (series === null) return refused(404, 'no-such-event')
+  const event = occurrenceOn(series, form.occurrence ?? '')
+  if (event === null) return refused(400, 'occurrence-invalid')
+  await saveRsvp(
+    context.data,
+    event,
+    request.viewer.userId,
+    form.status === 'clear' ? null : (form.status as RsvpStatus),
+  )
+  return { kind: 'redirect', to: occurrenceHref(event) }
 }

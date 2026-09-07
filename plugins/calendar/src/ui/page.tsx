@@ -14,15 +14,23 @@ import {
   eventHref,
   formatRange,
   groupByMonth,
+  occurrenceHref,
+  occurrenceOn,
+  REPEAT_LABELS,
+  REPEATS,
   relativeHint,
 } from '../events'
 import en from '../messages/en.json'
-import { eventById, organiserIds, pastEvents, upcomingEvents } from '../store'
+import {
+  eventById,
+  organiserIds,
+  RSVP_LABELS,
+  type RsvpStatus,
+  rsvpSummary,
+  windowEvents,
+} from '../store'
 import { EventLink } from './event-link'
-
-export const UPCOMING_LIMIT = 50
-
-export const PAST_LIMIT = 30
+import { Rsvp } from './rsvp'
 
 function translated(context: PluginPageContext, key: keyof typeof en): string {
   return context.t.has(key) ? context.t.t(key) : en[key]
@@ -61,7 +69,11 @@ function EventRow({
       <DateBlock event={event} locale={locale} />
 
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-semibold leading-snug [overflow-wrap:anywhere]">{event.title}</p>
+        <p className="font-semibold leading-snug [overflow-wrap:anywhere]">
+          <a className={textLinkVariants()} href={occurrenceHref(event)}>
+            {event.title}
+          </a>
+        </p>
 
         <p className="text-muted-foreground text-sm">
           <time dateTime={event.startsAt.toISOString()}>
@@ -130,7 +142,7 @@ function Agenda({
           <ul className="divide-border divide-y">
             {month.events.map((event) => (
               <EventRow
-                key={event.id}
+                key={event.id + event.startsAt.toISOString()}
                 event={event}
                 locale={locale}
                 now={now}
@@ -173,7 +185,31 @@ function EventForm({
       <h2 className="font-semibold">{heading}</h2>
       {event !== null && <input type="hidden" name="id" value={event.id} />}
 
+      <p className={PLUGIN_NOTE}>{translated(context, 'calendar.event.utc')}</p>
       <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm">
+          {translated(context, 'calendar.event.repeat')}
+          <select
+            name="repeat"
+            defaultValue={event?.repeat ?? 'none'}
+            className={controlVariants()}
+          >
+            {REPEATS.map((repeat) => (
+              <option key={repeat} value={repeat}>
+                {translated(context, REPEAT_LABELS[repeat])}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm">
+          {translated(context, 'calendar.event.repeatUntil')}
+          <input
+            type="date"
+            name="repeat_until"
+            defaultValue={event?.repeatUntil ?? ''}
+            className={controlVariants()}
+          />
+        </label>
         <label className="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2">
           {translated(context, 'calendar.event.title')}
           <input
@@ -267,13 +303,46 @@ export async function CalendarPage(context: PluginPageContext) {
   const showingPast = context.query.show === 'past'
   const now = new Date()
 
+  const rawMonth = context.query.month ?? ''
+  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : now.toISOString().slice(0, 7)
+  const from = new Date(month + '-01T00:00:00Z')
+  if (showingPast && rawMonth === '') from.setUTCMonth(from.getUTCMonth() - 1)
+  const to = new Date(from)
+  to.setUTCMonth(to.getUTCMonth() + 1)
+  const previous = new Date(from)
+  previous.setUTCMonth(previous.getUTCMonth() - 1)
   const [events, organisers] = await Promise.all([
-    (showingPast
-      ? pastEvents(context.data, PAST_LIMIT)
-      : upcomingEvents(context.data, UPCOMING_LIMIT)
-    ).catch(() => [] as readonly CalendarEvent[]),
+    windowEvents(context.data, from, to).catch(() => [] as readonly CalendarEvent[]),
     organiserIds(context.data).catch(() => [] as readonly number[]),
   ])
+  const selectedId = context.query.event ?? ''
+  const series = /^\d+$/.test(selectedId) ? await eventById(context.data, selectedId) : null
+  const selected =
+    series === null
+      ? null
+      : occurrenceOn(series, context.query.occurrence ?? series.startsAt.toISOString().slice(0, 10))
+  const summary =
+    selected === null ? null : await rsvpSummary(context.data, selected, context.viewer.userId)
+  const maySeeAttendees =
+    selected !== null &&
+    mayManage({
+      userId: context.viewer.userId,
+      createdByUserId: selected.createdByUserId,
+      organisers,
+    })
+  const attendees =
+    selected === null || !maySeeAttendees
+      ? []
+      : await context.data.query<{ user_id: number; status: RsvpStatus }>(
+          `select user_id, status from plugin_calendar_rsvps where event_id = $1 and occurrence_date = $2 order by updated_at`,
+          [selected.id, selected.startsAt.toISOString().slice(0, 10)],
+        )
+  const names = await Promise.all(
+    attendees.map(async (row) => ({
+      ...row,
+      member: await context.users.byId(row.user_id),
+    })),
+  )
 
   const verdict = mayAdd({ userId: context.viewer.userId, config, organisers })
 
@@ -295,6 +364,46 @@ export async function CalendarPage(context: PluginPageContext) {
 
   return (
     <div className="flex flex-col gap-6">
+      <p className={PLUGIN_NOTE}>{translated(context, 'calendar.event.utc')}</p>
+      {selected !== null && summary !== null && (
+        <section className={PLUGIN_CARD}>
+          <h2 className="font-semibold">{selected.title}</h2>
+          <time dateTime={selected.startsAt.toISOString()}>
+            {formatRange(selected.startsAt, selected.endsAt, context.locale)}
+          </time>
+          {selected.location !== '' && <p>{selected.location}</p>}
+          <EventLink event={selected} label={translated(context, 'calendar.event.linkFallback')} />
+          <a
+            className={textLinkVariants()}
+            href={`/api/plugins/calendar/events/ics?id=${selected.id}`}
+          >
+            {translated(context, 'calendar.event.download')}
+          </a>
+          <Rsvp event={selected} summary={summary} context={context} form />
+          {maySeeAttendees && (
+            <div>
+              <h3>{translated(context, 'calendar.rsvp.attendees')}</h3>
+              <ul>
+                {names.map(({ user_id, status, member }) =>
+                  member === null ? null : (
+                    <li key={user_id}>
+                      {member.username}: {translated(context, RSVP_LABELS[status])}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+      <nav className="flex gap-4" aria-label={translated(context, 'calendar.page.months')}>
+        <a href={`?month=${previous.toISOString().slice(0, 7)}`}>
+          {translated(context, 'calendar.page.previous')}
+        </a>
+        <a href={`?month=${to.toISOString().slice(0, 7)}`}>
+          {translated(context, 'calendar.page.next')}
+        </a>
+      </nav>
       <nav aria-label={translated(context, 'calendar.page.views')}>
         <ul data-nav-tabs className={PLUGIN_TAB_LIST}>
           <li className="shrink-0">
