@@ -5,7 +5,7 @@
   "name": "Awards",
   "description": "Community awards, manual recognition and achievements.",
   "screenshots": ["awards-light.png"],
-  "version": "0.36.2",
+  "version": "0.37.0",
   "apiVersion": 0,
   "meith": ">=0.16 <1",
   "repository": "https://github.com/meith-dev/meith",

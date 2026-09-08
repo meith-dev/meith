@@ -17,7 +17,7 @@ import { planUpgrade, type UpgradeState, upgradeNotice } from '@meith/upgrade'
 
 import { activeDefinitions } from './plugin-host'
 
-export const CODE_VERSION = '0.36.2'
+export const CODE_VERSION = '0.37.0'
 
 export interface UpgradeApplied {
   readonly plugins: readonly string[]
