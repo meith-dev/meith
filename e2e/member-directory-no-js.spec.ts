@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.use({ javaScriptEnabled: false })
 
-test('the member list names everyone, with their displayed groups beside them', async ({
+test('the member list names everyone across pages, with their displayed groups beside them', async ({
   page,
 }) => {
   await page.goto('/members')
@@ -14,7 +14,15 @@ test('the member list names everyone, with their displayed groups beside them', 
   await expect(adminRow.getByText('Administrators', { exact: true })).toBeVisible()
   await expect(adminRow.getByText('Supporters', { exact: true })).toBeVisible()
 
-  await expect(page.getByRole('link', { name: 'wellwisher', exact: true })).toBeVisible()
+  const names = await page.locator('li a[href^="/member/"]').allTextContents()
+  const next = page.getByRole('link', { name: 'Next', exact: true })
+  await expect(next).toBeVisible()
+  while ((await next.count()) > 0) {
+    await next.click()
+    names.push(...(await page.locator('li a[href^="/member/"]').allTextContents()))
+  }
+  expect(names).toContain('wellwisher')
+  expect(new Set(names).size).toBe(names.length)
 })
 
 test('the member list narrows to a searched name', async ({ page }) => {

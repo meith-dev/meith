@@ -427,7 +427,7 @@ for (const [index, forum] of content.forums.entries()) {
     allowThreads: forum.type === 'forum',
     title: forum.title,
     slug: forum.slug,
-    description: 'description' in forum ? forum.description : null,
+    description: forum.description ?? null,
     parentId,
     path: parentId === null ? String(id) : `${parentId}.${id}`,
     depth: parentId === null ? 0 : 1,
@@ -447,7 +447,7 @@ for (const [index, thread] of content.threads.entries()) {
   const posts: PostListingRow[] = []
   for (const [number, reply] of [{ ...thread, hoursAfter: 0 }, ...thread.replies].entries()) {
     const member = MEMBER_PROFILES.find((profile) => profile.id === memberIds.get(reply.author))!
-    const quoted = 'quotes' in reply ? posts[reply.quotes] : undefined
+    const quoted = 'quotes' in reply && reply.quotes !== undefined ? posts[reply.quotes] : undefined
     const message =
       quoted === undefined
         ? reply.message

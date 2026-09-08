@@ -89,6 +89,8 @@ and thread URLs stay stable.
 Public sample content lives in `apps/community/src/server/fixture-content.json`;
 `seed-board.ts` builds the rows, permission chains and counts from it. Dates are
 fixed so development, browser tests and hosted previews show the same board.
+Optional descriptions and quote references are checked for missing values so the
+JSON fixtures also compile with the generated board's TypeScript configuration.
 The small, fixed dataset is assembled once per process; use indexed repositories
 if it ever grows large enough for the array scans to matter.
 
@@ -111,6 +113,8 @@ the authentication secret. Use this same fixture configuration for the public de
 Database smoke tests load the same content through `scripts/seed-smoke-board.mts`,
 which reuses the browser suite seed SQL after migrations. It only inserts into
 an empty test database; it has no reset or delete path.
+The populated member directory spans multiple pages; browser checks follow its
+pagination instead of assuming every seeded member appears on the first page.
 
 ## The workspace
 
