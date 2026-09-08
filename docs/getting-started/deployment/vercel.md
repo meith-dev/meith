@@ -541,7 +541,7 @@ each is in [Scaling out](../../guides/operations/scaling.md).
 | Variable | Value | Why |
 |---|---|---|
 | `DATA_SOURCE` | `postgres` | `fixture` is a read-only sample board with no write side. |
-| `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. The environment refuses it in production. |
+| `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. PostgreSQL production boards refuse it. |
 | `CACHE_DRIVER` | `redis` | `next` and `memory` cache inside the process. With instances created and destroyed constantly, a per-process cache is close to no cache. |
 | `FILESTORE_DRIVER` | `blob` or `s3` | `local` writes to a disk no other instance can read and that is discarded with the instance. On Vercel the environment **refuses `local` outright** rather than losing uploads quietly. `blob` is a Vercel Blob store and needs no configuration beyond the token the store publishes; `s3` is any S3-compatible bucket and is the portable one. See [choosing between them](#blob-or-a-bucket). |
 | `MAIL_DRIVER` | `http` | Reaches the provider over ordinary HTTPS on 443, the one outbound path a function can rely on. |

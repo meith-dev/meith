@@ -1,0 +1,23 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    environment:
+      - SERVICE_FQDN_WEB_3000
+      - APP_URL=$SERVICE_URL_WEB
+      - DATA_SOURCE=fixture
+      - AUTH_SECRET=$SERVICE_BASE64_64_AUTH
+      - TRUSTED_PROXY_HOPS=1
+      - QUEUE_DRIVER=memory
+      - CACHE_DRIVER=next
+      - MAIL_DRIVER=log
+      - SHOWCASE_THEMES=1

@@ -251,7 +251,7 @@ request's translator, and every client component under `src/components/`
 (member forms, the composer, moderation tools, the installer, the whole admin
 panel) reads from a copy record. The built-in themes and the complete Dues UI
 are extracted too. What still holds English is the shrinking long tail of
-server-side fragments and packages — where most of the count is the demo
+server-side fragments and packages — where most of the count is the fixture
 board's fixture posts and the deliberately mirrored setting definitions, which
 are staying English on purpose.
 

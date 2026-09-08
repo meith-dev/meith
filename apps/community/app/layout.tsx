@@ -9,7 +9,6 @@ import { NavTabsEnhancer } from '@meith/ui/nav-tabs-enhancer'
 
 import { CopyProvider } from '@/components/shell/copy'
 import { CrashNoticeProvider } from '@/components/shell/crash-notice'
-import { DemoBanner } from '@/components/shell/demo-banner'
 import { GroupNameStyle } from '@/components/shell/group-name-style'
 import { ServiceWorkerRegistrar } from '@/components/shell/service-worker'
 import { ThemeRuntimeStyle } from '@/components/shell/theme-runtime-style'
@@ -110,7 +109,6 @@ export default async function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <NavTabsEnhancer />
-        <DemoBanner />
         <CrashNoticeProvider
           notice={notice}
           requestId={currentRequestId() ?? null}

@@ -59,7 +59,7 @@ approval and restore moments themselves, are deliberately quiet:
   a report filed by a guest.
 - `user.registered` is emitted for an account created interactively —
   registration or an administrator adding a member. **Bulk import and the
-  demo-board seed do not emit it**, so restoring a backup or reseeding a demo
+  fixture data do not emit it**, so restoring a backup or loading sample content
   board does not flood every subscriber with one delivery per member.
 
 ## Payload format

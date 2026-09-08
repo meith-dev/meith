@@ -64,7 +64,7 @@ covers validation and the main runtime controls. The complete environment
 schema is in `packages/core/src/env.ts`, with deployment examples in
 `.env.example` and your board's generated `.env.example`.
 
-Without `DATABASE_URL`, development and builds can use
-[fixture mode](../contributing/development.md#fixture-mode). A production
-server requires PostgreSQL and production credentials; it cannot serve the
-in-memory queue used by fixtures.
+Without `DATABASE_URL`, development, builds and public read-only previews can use
+[fixture mode](../contributing/development.md#fixture-mode). A fixture production
+server needs `AUTH_SECRET` and can use the memory queue. A board that stores
+member activity requires PostgreSQL, a durable queue and scheduler credentials.

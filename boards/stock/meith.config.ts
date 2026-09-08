@@ -7,8 +7,8 @@ import {
 } from '@meith/theme-default'
 import { defineForumConfig } from '@meith/web/config'
 
-import { SHOWCASE_THEMES, showcaseEnabled } from './meith.demo.config'
 import { INSTALLED_PLUGINS } from './meith.plugins'
+import { SHOWCASE_THEMES, showcaseEnabled } from './meith.showcase.config'
 
 export default defineForumConfig({
   themes: {

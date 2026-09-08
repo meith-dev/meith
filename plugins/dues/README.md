@@ -30,11 +30,6 @@ membership — but their standing does not move, and they are still shown as
 staff. Selling a badge is fine; selling somebody out of the one that says who
 answers for the board is not.
 
-**Try it before you read any of this**: [demo.meith.dev](https://demo.meith.dev)
-runs this plugin against a Stripe that is not Stripe — a shop with a year of
-history behind it, and a checkout a visitor can actually go through. See
-[demo mode](../../docs/guides/operations/demo-mode.md#the-shop-and-a-stripe-that-is-not-stripe).
-
 ## Setting up a board
 
 1. **Register the plugin** where plugins are registered:
@@ -52,10 +47,10 @@ history behind it, and a checkout a visitor can actually go through. See
 
    A board that registers plugins in code and genuinely needs a code-only
    escape hatch — an extra redirect host for a proxy or a loopback address,
-   or code-declared seed plans for a demo or test board — calls `createDues`
+   or code-declared seed plans for a test board — calls `createDues`
    instead: `createDues({ extraRedirectHosts: ['proxy.example'] })`. This
-   repository's own demo and test boards do exactly that, in
-   `meith.demo.plugins.ts`, behind `DEMO_MODE` and `DUES_TEST_BOARD`. A
+   repository's test boards do exactly that, in
+   `meith.test.plugins.ts`, behind `DUES_TEST_BOARD`. A
    seed plan populates the plan table on the board's first run and is
    ignored once it has rows — after that, the panel owns the plans, exactly
    as for a board that never declared any.

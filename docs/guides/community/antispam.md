@@ -16,8 +16,7 @@ and pre-authentication limits. Other controls start disabled; the table
 below lists their purpose and defaults.
 
 Rate-limit counters are stored in PostgreSQL and shared across web instances.
-Fixture mode has no database counters. [Demo mode](../operations/demo-mode.md)
-uses PostgreSQL and has counters; it is separate from fixture mode.
+Fixture mode has no database counters; posting and antispam counters require PostgreSQL.
 
 ## What each control is worth
 

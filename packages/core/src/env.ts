@@ -137,9 +137,6 @@ const envSchema = z
 
     REMOTE_IMAGES: flag,
 
-    DEMO_MODE: flag,
-    DEMO_RESET_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
-
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
     METRICS_ENABLED: flag,
@@ -154,16 +151,6 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['DATABASE_URL'],
         message: 'is required when DATA_SOURCE=postgres',
-      })
-    }
-
-    if (value.DEMO_MODE && value.DATA_SOURCE !== 'postgres') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['DEMO_MODE'],
-        message:
-          'requires DATA_SOURCE=postgres. A demo whose visitors cannot post is ' +
-          'a screenshot, and fixture mode has no write side to offer them.',
       })
     }
 
@@ -271,7 +258,7 @@ const envSchema = z
     }
 
     if (value.NODE_ENV === 'production' && value.NEXT_PHASE !== 'phase-production-build') {
-      if (value.QUEUE_DRIVER === 'memory') {
+      if (value.DATA_SOURCE === 'postgres' && value.QUEUE_DRIVER === 'memory') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['QUEUE_DRIVER'],
@@ -289,7 +276,7 @@ const envSchema = z
         })
       }
 
-      if (!value.TICK_SECRET && !value.CRON_SECRET) {
+      if (value.DATA_SOURCE === 'postgres' && !value.TICK_SECRET && !value.CRON_SECRET) {
         for (const name of ['TICK_SECRET', 'CRON_SECRET'] as const) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -598,4 +585,3 @@ export function resetEnvForTests(): void {
 
 export const isProduction = (): boolean => assertEnv().NODE_ENV === 'production'
 export const isTest = (): boolean => assertEnv().NODE_ENV === 'test'
-export const isDemoMode = (): boolean => assertEnv().DEMO_MODE

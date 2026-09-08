@@ -17,15 +17,15 @@ describe("boards/stock reproduces apps/community's board config", () => {
     )
   })
 
-  it('meith.demo.config.ts is byte-identical — it carries no board-seam import, so nothing should differ', () => {
-    expect(read('boards/stock/meith.demo.config.ts')).toBe(
-      read('apps/community/meith.demo.config.ts'),
+  it('meith.showcase.config.ts is byte-identical — it carries no board-seam import, so nothing should differ', () => {
+    expect(read('boards/stock/meith.showcase.config.ts')).toBe(
+      read('apps/community/meith.showcase.config.ts'),
     )
   })
 
-  it('meith.demo.plugins.ts is byte-identical — same env-gated demo/test plugin spreading', () => {
-    expect(read('boards/stock/meith.demo.plugins.ts')).toBe(
-      read('apps/community/meith.demo.plugins.ts'),
+  it('meith.test.plugins.ts is byte-identical — same env-gated test plugin spreading', () => {
+    expect(read('boards/stock/meith.test.plugins.ts')).toBe(
+      read('apps/community/meith.test.plugins.ts'),
     )
   })
 

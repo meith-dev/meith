@@ -146,21 +146,18 @@ async function main() {
       TICK_SECRET,
     })
 
-    console.log('== seeding a distinctive board (meith demo:seed) — content before graduation ==')
-    run('pnpm', ['meith', 'demo:seed'], ROOT, {
+    console.log('== seeding the fixture content — content before graduation ==')
+    run('pnpm', ['exec', 'tsx', 'scripts/seed-smoke-board.mts'], ROOT, {
       ...process.env,
       DATABASE_URL,
       DATA_SOURCE: 'postgres',
       AUTH_SECRET,
       TICK_SECRET,
-      DEMO_MODE: '1',
     })
 
-    const seededThread = psql(
-      "select id || '-' || slug from threads where title like 'Start here%' limit 1",
-    )
+    const seededThread = psql("select id || '-' || slug from threads where id = 4 limit 1")
     if (seededThread === '')
-      throw new Error('board-eject-smoke: the seeded start-here thread is gone')
+      throw new Error('board-eject-smoke: the seeded announcement thread is gone')
     console.log(`seeded thread: ${seededThread}`)
 
     console.log('== meith board:eject (against this checkout, standing in for a stock image) ==')
@@ -268,7 +265,7 @@ async function main() {
         )
       }
       const threadBody = await threadResponse.text()
-      if (!threadBody.includes('Start here')) {
+      if (!threadBody.includes('Version 0.1 is live')) {
         throw new Error('board-eject-smoke: the seeded thread did not render after graduation')
       }
       console.log('== the graduated board renders the same content it had before ejecting ==')

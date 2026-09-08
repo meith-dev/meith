@@ -7,8 +7,8 @@ import {
   LIGHT_TOKENS,
 } from '@meith/theme-default'
 
-import { SHOWCASE_THEMES, showcaseEnabled } from './meith.demo.config'
 import { INSTALLED_PLUGINS } from './meith.plugins'
+import { SHOWCASE_THEMES, showcaseEnabled } from './meith.showcase.config'
 
 export default defineForumConfig({
   themes: {

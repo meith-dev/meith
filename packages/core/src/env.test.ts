@@ -98,6 +98,19 @@ describe('cross-field rules', () => {
 })
 
 describe('production rules', () => {
+  it('hosts fixture data without a database or scheduler secrets', () => {
+    const fixture = parseEnv({
+      NODE_ENV: 'production',
+      DATA_SOURCE: 'fixture',
+      AUTH_SECRET: 'a'.repeat(32),
+    })
+    expect(fixture.DATA_SOURCE).toBe('fixture')
+    expect(fixture.QUEUE_DRIVER).toBe('memory')
+    expect(fixture.DATABASE_URL).toBeUndefined()
+    expect(fixture.TICK_SECRET).toBeUndefined()
+    expect(fixture.CRON_SECRET).toBeUndefined()
+  })
+
   it('refuses to boot a production server with a memory queue', () => {
     expect(() => parseEnv({ ...base, QUEUE_DRIVER: 'memory' })).toThrow(/QUEUE_DRIVER/)
   })
@@ -180,41 +193,6 @@ describe('production rules', () => {
     }
     expect(() => parseEnv(source, { ignoreBuildPhase: true })).toThrow()
     expect(source.NEXT_PHASE).toBe('phase-production-build')
-  })
-})
-
-describe('demo mode', () => {
-  const demo = {
-    ...base,
-    DATA_SOURCE: 'postgres',
-    DATABASE_URL: 'postgres://u:p@localhost:5432/demo',
-  } satisfies NodeJS.ProcessEnv
-
-  it('is off unless something turns it on', () => {
-    expect(parseEnv(base).DEMO_MODE).toBe(false)
-  })
-
-  it('accepts the two spellings a compose file is likely to use', () => {
-    expect(parseEnv({ ...demo, DEMO_MODE: '1' }).DEMO_MODE).toBe(true)
-    expect(parseEnv({ ...demo, DEMO_MODE: 'true' }).DEMO_MODE).toBe(true)
-    expect(parseEnv({ ...demo, DEMO_MODE: '0' }).DEMO_MODE).toBe(false)
-    expect(parseEnv({ ...demo, DEMO_MODE: 'false' }).DEMO_MODE).toBe(false)
-  })
-
-  it('refuses a value it cannot read, rather than guessing that it means yes', () => {
-    expect(() => parseEnv({ ...demo, DEMO_MODE: 'yes' })).toThrow(/DEMO_MODE/)
-  })
-
-  it('refuses to arm a demo that has no write side', () => {
-    expect(() => parseEnv({ ...base, DATA_SOURCE: 'fixture', DEMO_MODE: '1' })).toThrow(
-      /DEMO_MODE.*DATA_SOURCE=postgres/s,
-    )
-  })
-
-  it('defaults the reset interval to an hour, and bounds what may replace it', () => {
-    expect(parseEnv(demo).DEMO_RESET_MINUTES).toBe(60)
-    expect(parseEnv({ ...demo, DEMO_RESET_MINUTES: '15' }).DEMO_RESET_MINUTES).toBe(15)
-    expect(() => parseEnv({ ...demo, DEMO_RESET_MINUTES: '1' })).toThrow(/DEMO_RESET_MINUTES/)
   })
 })
 

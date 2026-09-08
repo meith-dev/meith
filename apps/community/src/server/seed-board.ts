@@ -2,9 +2,11 @@ import type { MemberProfileRecord } from '@meith/accounts'
 import type { GroupDefaults, MemoryBoard } from '@meith/authorization'
 import { emptyPermissionSet, type ForumPermissions, type PermissionSet } from '@meith/core'
 import type { ForumListingRow } from '@meith/forums'
-import { BodyFormat } from '@meith/markdown'
+import { BodyFormat, quoteBlock } from '@meith/markdown'
 import type { PostListingRow } from '@meith/posts'
-import type { ThreadListingRow } from '@meith/threads'
+import { type ThreadListingRow, threadSlug } from '@meith/threads'
+
+import content from './fixture-content.json'
 
 export const SEED_GROUP = {
   guest: 1,
@@ -16,7 +18,7 @@ export const SEED_GROUP = {
   banned: 7,
 } as const
 
-export const FIXTURE_DATA_VERSION = 4
+export const FIXTURE_DATA_VERSION = 5
 
 export const SEED_FORUM = {
   main: 10,
@@ -88,29 +90,7 @@ const ANNOUNCEMENT_READONLY: Partial<ForumPermissions> = {
   canPostReplies: false,
 }
 
-export const SEED_BOARD: MemoryBoard = {
-  groups: GROUPS,
-  chains: {
-    [SEED_FORUM.main]: [SEED_FORUM.main],
-    [SEED_FORUM.announcements]: [SEED_FORUM.announcements, SEED_FORUM.main],
-    [SEED_FORUM.general]: [SEED_FORUM.general, SEED_FORUM.main],
-    [SEED_FORUM.generalOffTopic]: [SEED_FORUM.generalOffTopic, SEED_FORUM.general, SEED_FORUM.main],
-  },
-  overrides: [
-    {
-      forumId: SEED_FORUM.announcements,
-      groupId: SEED_GROUP.guest,
-      overrides: ANNOUNCEMENT_READONLY,
-    },
-    {
-      forumId: SEED_FORUM.announcements,
-      groupId: SEED_GROUP.registered,
-      overrides: ANNOUNCEMENT_READONLY,
-    },
-  ],
-}
-
-export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
+const FORUM_ROWS: ForumListingRow[] = [
   {
     id: SEED_FORUM.main,
     type: 'category',
@@ -198,7 +178,7 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = [
   },
 ]
 
-export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
+const THREAD_ROWS: ThreadListingRow[] = [
   {
     id: 4,
     forumId: SEED_FORUM.announcements,
@@ -273,7 +253,7 @@ export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = [
   },
 ]
 
-export const SEED_POST_ROWS: readonly PostListingRow[] = [
+const POST_ROWS: PostListingRow[] = [
   {
     id: 10,
     threadId: 4,
@@ -402,7 +382,7 @@ export const SEED_POST_ROWS: readonly PostListingRow[] = [
   },
 ]
 
-export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
+const MEMBER_PROFILES: MemberProfileRecord[] = [
   {
     id: 1,
     username: 'admin',
@@ -415,3 +395,174 @@ export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = [
     bio: 'Runs this board. Fixture data — nothing here is durable.',
   },
 ]
+
+const SNAPSHOT_AT = new Date('2026-07-30T12:00:00Z')
+const forumIds = new Map(content.forums.map((forum, index) => [forum.key, 1000 + index]))
+const memberIds = new Map(
+  content.members.map((member, index) => [member.key, member.key === 'admin' ? 1 : 100 + index]),
+)
+
+for (const member of content.members) {
+  const id = memberIds.get(member.key)!
+  if (id === 1) continue
+  MEMBER_PROFILES.push({
+    id,
+    username: member.username,
+    title: 'Members',
+    postCount: 0,
+    createdAt: new Date(SNAPSHOT_AT.getTime() - member.joinedDaysAgo * 86_400_000),
+    lastActiveAt: SNAPSHOT_AT,
+    location: member.location,
+    website: member.website,
+    bio: member.bio,
+  })
+}
+
+for (const [index, forum] of content.forums.entries()) {
+  const id = forumIds.get(forum.key)!
+  const parentId = forum.parent === null ? null : forumIds.get(forum.parent)!
+  FORUM_ROWS.push({
+    id,
+    type: forum.type as 'category' | 'forum',
+    allowThreads: forum.type === 'forum',
+    title: forum.title,
+    slug: forum.slug,
+    description: 'description' in forum ? forum.description : null,
+    parentId,
+    path: parentId === null ? String(id) : `${parentId}.${id}`,
+    depth: parentId === null ? 0 : 1,
+    displayOrder: 10 + index,
+    linkUrl: null,
+    threadCount: 0,
+    postCount: 0,
+    lastPost: null,
+  })
+}
+
+for (const [index, thread] of content.threads.entries()) {
+  const id = 1000 + index
+  const forumId = forumIds.get(thread.forum)!
+  const createdAt = new Date(SNAPSHOT_AT.getTime() - thread.daysAgo * 86_400_000)
+  const slug = threadSlug(thread.title)
+  const posts: PostListingRow[] = []
+  for (const [number, reply] of [{ ...thread, hoursAfter: 0 }, ...thread.replies].entries()) {
+    const member = MEMBER_PROFILES.find((profile) => profile.id === memberIds.get(reply.author))!
+    const quoted = 'quotes' in reply ? posts[reply.quotes] : undefined
+    const message =
+      quoted === undefined
+        ? reply.message
+        : `${quoteBlock({
+            author: quoted.authorUsername,
+            markdown: quoted.message,
+            sourceHref: `/thread/${id}-${slug}?post=${quoted.id}`,
+          })}\n\n${reply.message}`
+    posts.push({
+      id: 1000 + POST_ROWS.length + number,
+      threadId: id,
+      forumId,
+      number: number + 1,
+      authorUserId: member.id,
+      authorUsername: member.username,
+      authorPostCount: 0,
+      authorJoinedAt: member.createdAt,
+      message,
+      messageHtml: null,
+      renderVersion: 0,
+      bodyFormat: BodyFormat.Markdown,
+      editedAt: null,
+      editedByUsername: null,
+      editReason: null,
+      isFirstPost: number === 0,
+      visibility: 'visible',
+      createdAt: new Date(createdAt.getTime() + reply.hoursAfter * 3_600_000),
+    })
+  }
+  POST_ROWS.push(...posts)
+  const first = posts[0]!
+  const last = posts.at(-1)!
+  const prefix =
+    'prefix' in thread ? content.prefixes.find((prefix) => prefix.key === thread.prefix) : undefined
+  THREAD_ROWS.push({
+    id,
+    forumId,
+    title: thread.title,
+    slug,
+    prefix: prefix === undefined ? null : { label: prefix.label, token: prefix.token },
+    authorUserId: first.authorUserId,
+    authorUsername: first.authorUsername,
+    replyCount: posts.length - 1,
+    viewCount: posts.length * 37,
+    ratingTotal: 0,
+    ratingCount: 0,
+    visibility: 'visible',
+    isSticky: 'sticky' in thread && thread.sticky === true,
+    isLocked: 'locked' in thread && thread.locked === true,
+    isMoved: false,
+    lastPost: {
+      postId: last.id,
+      userId: last.authorUserId,
+      username: last.authorUsername,
+      at: last.createdAt,
+    },
+    lastPostAt: last.createdAt,
+  })
+}
+
+export const SEED_THREAD_ROWS: readonly ThreadListingRow[] = THREAD_ROWS
+export const SEED_MEMBER_PROFILES: readonly MemberProfileRecord[] = MEMBER_PROFILES.map(
+  (member) => ({
+    ...member,
+    postCount: POST_ROWS.filter((post) => post.authorUserId === member.id).length,
+  }),
+)
+export const SEED_POST_ROWS: readonly PostListingRow[] = POST_ROWS.map((post) => ({
+  ...post,
+  authorPostCount:
+    SEED_MEMBER_PROFILES.find((member) => member.id === post.authorUserId)?.postCount ?? 0,
+}))
+export const SEED_FORUM_ROWS: readonly ForumListingRow[] = FORUM_ROWS.map((forum) => {
+  const beneath = new Set(
+    FORUM_ROWS.filter(
+      (row) => row.path === forum.path || row.path.startsWith(`${forum.path}.`),
+    ).map((row) => row.id),
+  )
+  const posts = POST_ROWS.filter((post) => beneath.has(post.forumId))
+  const last = [...posts].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id - a.id,
+  )[0]
+  return {
+    ...forum,
+    threadCount: THREAD_ROWS.filter((thread) => beneath.has(thread.forumId)).length,
+    postCount: posts.length,
+    lastPost:
+      last === undefined
+        ? null
+        : {
+            postId: last.id,
+            threadId: last.threadId,
+            threadTitle: THREAD_ROWS.find((thread) => thread.id === last.threadId)!.title,
+            userId: last.authorUserId,
+            username: last.authorUsername,
+            at: last.createdAt,
+          },
+  }
+})
+
+export const SEED_BOARD: MemoryBoard = {
+  groups: GROUPS,
+  chains: Object.fromEntries(
+    SEED_FORUM_ROWS.map((forum) => [forum.id, forum.path.split('.').map(Number).reverse()]),
+  ),
+  overrides: [
+    {
+      forumId: SEED_FORUM.announcements,
+      groupId: SEED_GROUP.guest,
+      overrides: ANNOUNCEMENT_READONLY,
+    },
+    {
+      forumId: SEED_FORUM.announcements,
+      groupId: SEED_GROUP.registered,
+      overrides: ANNOUNCEMENT_READONLY,
+    },
+  ],
+}

@@ -309,16 +309,6 @@
       "group": "Server operations"
     },
     {
-      "slug": "demo-mode",
-      "file": "guides/operations/demo-mode.md",
-      "section": "operating",
-      "title": "Run a public demo",
-      "blurb": "Deploy an isolated demo that resets its data on a schedule.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
       "slug": "member-guide",
       "file": "guides/community/member-guide.md",
       "section": "using",

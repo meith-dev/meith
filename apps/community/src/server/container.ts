@@ -63,7 +63,6 @@ import {
   PostgresThreadWriteRepository,
   PostgresWarningRepository,
 } from '@meith/db'
-import { demoResetTask } from '@meith/demo'
 import type { DraftRepository } from '@meith/drafts'
 import { drivers } from '@meith/drivers'
 import { imageProcessor } from '@meith/drivers/images'
@@ -103,7 +102,6 @@ import {
   REMEMBER_DAYS,
   SESSION_LIFETIME_DAYS,
 } from './auth-config'
-import { clearUploadedFiles } from './demo-uploads'
 import { FixtureActorSource } from './fixture-actor-source'
 import { FixtureForumRepository } from './fixture-forum-repo'
 import { FixtureMemberProfileRepository } from './fixture-member-profile-repo'
@@ -296,44 +294,24 @@ function buildPostgres(onBypass: (e: BypassEvent) => void): Container {
     fixtureDataVersion: null,
     accountStore: store,
     ...identityServices(store, new PostgresBanFilterRepository(db), new PostgresBanRepository(db)),
-    scheduler: withDemoReset(
-      buildSchedulerBundle({
-        queue: drivers().queue,
-        db,
-        mail: drivers().mail,
-        themeKey: forumConfig.defaultTheme,
-        themeTokens: Object.fromEntries(
-          Object.values(forumConfig.themes).map((theme) => [theme.key, theme.tokens]),
-        ),
-        themeVersions: Object.values(forumConfig.themes).map((theme) => ({
-          key: theme.key,
-          version: theme.theme?.version ?? null,
-        })),
-        files: drivers().files,
-        images: imageProcessor,
-        plugins: activeDefinitions(),
-        translatorForLocale,
-      }),
+    scheduler: buildSchedulerBundle({
+      queue: drivers().queue,
       db,
-    ),
+      mail: drivers().mail,
+      themeKey: forumConfig.defaultTheme,
+      themeTokens: Object.fromEntries(
+        Object.values(forumConfig.themes).map((theme) => [theme.key, theme.tokens]),
+      ),
+      themeVersions: Object.values(forumConfig.themes).map((theme) => ({
+        key: theme.key,
+        version: theme.theme?.version ?? null,
+      })),
+      files: drivers().files,
+      images: imageProcessor,
+      plugins: activeDefinitions(),
+      translatorForLocale,
+    }),
     dataSource: 'postgres',
-  }
-}
-
-function withDemoReset(bundle: SchedulerBundle, db: ReturnType<typeof getDb>): SchedulerBundle {
-  if (!env.DEMO_MODE) return bundle
-
-  return {
-    ...bundle,
-    tasks: [
-      ...bundle.tasks,
-      demoResetTask({
-        db,
-        cache: drivers().cache,
-        clearUploads: () => clearUploadedFiles(),
-        plugins: activeDefinitions(),
-      }),
-    ],
   }
 }
 

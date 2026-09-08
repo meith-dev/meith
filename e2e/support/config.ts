@@ -48,14 +48,6 @@ export const E2E_PORT = 3001
 
 export const E2E_BASE_URL = `http://127.0.0.1:${E2E_PORT}`
 
-export const DEMO_DB_PORT = 55_434
+export const FIXTURE_PORT = 3003
 
-export const DEMO_DATABASE_URL = `postgres://postgres:postgres@127.0.0.1:${DEMO_DB_PORT}/postgres`
-
-export const DEMO_READY_PORT = 55_435
-
-export const DEMO_PORT = 3003
-
-export const DEMO_BASE_URL = `http://127.0.0.1:${DEMO_PORT}`
-
-export const DEMO_UPLOADS_DIR = join(tmpdir(), 'meith-demo-shot-uploads')
+export const FIXTURE_BASE_URL = `http://127.0.0.1:${FIXTURE_PORT}`

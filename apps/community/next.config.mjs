@@ -63,7 +63,6 @@ const nextConfig = {
     '@meith/board-digest',
     '@meith/core',
     '@meith/db',
-    '@meith/demo',
     '@meith/drafts',
     '@meith/drivers',
     '@meith/events',

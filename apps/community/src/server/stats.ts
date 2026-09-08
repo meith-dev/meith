@@ -12,11 +12,14 @@ import {
 } from '@meith/db'
 
 import { getContainer } from './container'
+import { FixtureActivityRepository } from './fixture-activity-repo'
 
 export const LEADERBOARD_SIZE = 10
 
-export function statsRepository(): PostgresStatsRepository | null {
-  return getContainer().dataSource === 'postgres' ? new PostgresStatsRepository(getDb()) : null
+export function statsRepository(): PostgresStatsRepository | FixtureActivityRepository {
+  return getContainer().dataSource === 'postgres'
+    ? new PostgresStatsRepository(getDb())
+    : new FixtureActivityRepository()
 }
 
 export async function statsScopeFor(actor: Actor): Promise<StatsScope> {
@@ -38,7 +41,6 @@ export interface StatsView {
 
 export async function buildStatsView(actor: Actor): Promise<StatsView | null> {
   const repo = statsRepository()
-  if (repo === null) return null
 
   const scope = await statsScopeFor(actor)
   const [totals, topPosters, mostViewed, mostReplied] = await Promise.all([
@@ -53,7 +55,6 @@ export async function buildStatsView(actor: Actor): Promise<StatsView | null> {
 
 export async function readTotals(): Promise<BoardTotals | null> {
   const repo = statsRepository()
-  if (repo === null) return null
 
   try {
     return await repo.readTotals()

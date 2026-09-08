@@ -65,7 +65,7 @@ container being recreated; it is the `-v` that throws the data away.
 With no `DATABASE_URL`, `DATA_SOURCE` falls back to `fixture`:
 deterministic in-memory repositories with a sample board in them. It is not
 a mock layer bolted on for tests — it is a driver behind the same
-interfaces as Postgres, and three things depend on it:
+interfaces as Postgres:
 
 - **A fresh checkout runs.** `pnpm install && pnpm dev` needs nothing else,
   which is the difference between somebody trying this project and closing
@@ -77,8 +77,36 @@ interfaces as Postgres, and three things depend on it:
 - **The test suite is fast**, because most of it never touches a socket.
 
 What fixture mode deliberately does *not* do is fake a write. It has no
-installer, no presence store and no statistics store, and each surface that
-needs one says so rather than returning a convincing zero.
+installer or live presence store. Recent activity, board totals and leaderboards
+are derived from the sample rows; surfaces that need a database say so.
+
+The sample includes introductions, events, photos, a noticeboard, a marketplace,
+community support and feedback, with linked profiles, replies, quotes, prefixes,
+and pinned and locked threads. The sidebar shows recent threads, recent posts
+and board statistics from that same content. Activity and leaderboard queries
+respect the viewer’s forum permissions and visibility scope. The original forum
+and thread URLs stay stable.
+Public sample content lives in `apps/community/src/server/fixture-content.json`;
+`seed-board.ts` builds the rows, permission chains and counts from it. Dates are
+fixed so development, browser tests and hosted previews show the same board.
+The small, fixed dataset is assembled once per process; use indexed repositories
+if it ever grows large enough for the array scans to matter.
+
+To host the same read-only board, set `DATA_SOURCE=fixture`, leave `DATABASE_URL`
+unset, set `AUTH_SECRET` to a generated secret, then run `pnpm build && pnpm start`.
+Fixture production runs use `QUEUE_DRIVER=memory` and need no tick secret, worker,
+migrations, database or reset task. PostgreSQL production boards still require a
+durable queue and a protected scheduler. Fixture mode does not persist posts or
+provide shared login accounts, search results, staff panels or plugin stores.
+
+For Coolify, use `docker/compose.fixture.coolify.yml` from the repository root.
+It builds the stock board as one web service and sets `SHOWCASE_THEMES=1` so
+visitors can browse all five themes. Assign its domain and deploy; Coolify supplies
+the authentication secret. Use this same fixture configuration for the public demo.
+
+Database smoke tests load the same content through `scripts/seed-smoke-board.mts`,
+which reuses the browser suite seed SQL after migrations. It only inserts into
+an empty test database; it has no reset or delete path.
 
 ## The workspace
 
@@ -199,13 +227,10 @@ dependency graph, so `scripts/workspace-check.mjs` holds the two in step:
 every reachable `@meith/*` package must appear in `transpilePackages` or
 `serverExternalPackages`, and a name nothing reaches any more fails too.
 
-**Fixture mode covers `forum-web dev` and `forum-web build`, not
-`forum-web start`.** A production process refuses `QUEUE_DRIVER=memory` —
-fixture mode's only queue driver — on purpose
-(`packages/core/src/env.ts`): queued work would be lost on every cold
-start. So a fresh scaffold builds and browses with nothing configured, and
-running the built server for real needs `DATA_SOURCE=postgres` and the same
-secrets a deployed board needs.
+**Fixture mode covers `forum-web dev`, `forum-web build` and `forum-web start`.**
+Running the built fixture server needs `AUTH_SECRET`; it serves the same
+read-only sample content without a database. PostgreSQL boards require a
+durable queue and scheduler secrets because queued work must survive restarts.
 
 **The CLI materializes for its own reason:** `apps/cli/src/index.ts`
 imports `@board/plugins` dynamically, so the `meith` bin must resolve the
@@ -329,7 +354,7 @@ generated `templates/self-host/` and `templates/vercel/` trees back to
 | `pnpm lint` | Biome: formatting, lint rules and import order, in one pass. `pnpm format` writes the fixes. |
 | `pnpm verify` | **The full static gate.** Run it before opening a pull request — see below. |
 | `pnpm test:e2e` | Playwright: the no-JavaScript paths, the staff panels, and the accessibility checks. It builds the board and runs the standalone output against its own databases — nothing to install. `pnpm test:e2e:build` is the build on its own. |
-| `pnpm site:shots` | Re-photographs meith.dev's screenshots against the demo board. Deliberate, never on CI — see [the site's screenshots](#the-sites-screenshots). |
+| `pnpm site:shots` | Re-photographs meith.dev's theme and thread screenshots against the fixture board. Deliberate, never on CI — see [the site's screenshots](#the-sites-screenshots). |
 
 `pnpm verify` is the one that matters. It runs, in order: the workspace
 check and the verify/CI parity check, the root and release checks, the
@@ -501,18 +526,16 @@ due a floor when it grows runtime behavior.)
 
 ## Reviewing the design system
 
-Run the populated demo review with:
+Run the populated fixture review with:
 
 ```sh
 pnpm exec playwright test --config e2e/screenshot-ui-polish.config.ts
 ```
 
-It starts an isolated PGlite demo database on port 55434 and the demo board
-on port 3003. Screenshots and a browsable gallery are written under
-`test-results/ui-polish/`. It covers all five themes in both schemes,
-reading, composing, user and staff panels, Calendar and Dues, and touch
-layouts. The board's data and published demo logins come from the normal
-demo reset task, not a separate screenshot fixture.
+It starts the fixture board on port 3003. Screenshots and a browsable gallery
+are written under `test-results/ui-polish/`. It covers all five themes in both
+schemes, forum and thread reading, profiles, and touch layouts. Database-backed
+workflows remain covered by the ordinary browser suite.
 
 `e2e/ui-layout.spec.ts` keeps the important layout checks in the ordinary
 browser suite: all themes at phone, tablet and desktop widths, compact
@@ -723,37 +746,21 @@ Every image on meith.dev is a screenshot of a real board, and
 and the site references them by name, so a rename there is a broken image
 on the page.
 
-It photographs the **demo board** — the twenty forums of `packages/demo`,
-all five themes, and the Dues shop — rather than the behaviour specs'
-fixture, whose content is written to be asserted rather than looked at.
-That needs its own board on its own ports, so it has its own config
-(`e2e/screenshot-site.config.ts`) rather than a project in
-`playwright.config.ts`.
+It photographs the populated fixture board as a guest on port 3003, using
+`e2e/screenshot-site.config.ts`. Theme previews and mobile thread captures use
+the same deterministic content as local development and the hosted demo.
+Search, Calendar and Dues need PostgreSQL and retain their existing screenshots;
+recapture those separately against the database-backed browser test board when
+those surfaces change.
 
-**It does not run on CI**, deliberately: the shots change whenever the
-seed's relative timestamps move, so a run on every push would put megabytes
-of visually identical PNGs into every pull request. Re-take them when the
-board's appearance actually changes, and commit only the images that
-differ.
+The capture does not run on CI. Re-take images when the board's appearance
+changes and commit only the images that differ. The script updates the captures
+it owns without deleting screenshots of other surfaces.
 
-Four facts about the demo board decide how the shots are taken, each
-asserted in `e2e/screenshot-site.spec.ts` rather than left to hold on its
-own: the demo strip publishes `admin / admin` and is hidden before each
-shot; the seed holds a spam thread in the moderation queue, so shots are
-taken as `member` rather than an administrator who can see it; a freshly
-seeded board has indexed nothing and counted nothing, so the scheduler is
-driven until search answers; and search is rate-limited, so the
-light-and-dark pair is taken from the stored `/search/<token>` URL rather
-than asking the search route twice.
-
-For the marketplace's five theme previews, Calendar and Dues, run
+For the marketplace's five theme previews, run
 `pnpm site:shots --grep marketplace`, then `pnpm marketplace:gen`.
-This uses the populated demo board at 1440 × 900 with JavaScript enabled,
-checks each theme's account dropdown, and writes real light-mode captures
-to `marketplace/screenshots`. Each capture starts at the top with the board
-header visible after hiding the demo banner. The generator copies them into the site's
-published marketplace directory. The capture checks for seeded forums,
-events and plans so an empty board cannot silently become a preview.
+This writes light-mode captures at 1440 × 900 to `marketplace/screenshots`.
+Each capture checks for populated forums and keeps the board header visible.
 
 The Awards marketplace screenshot is captured by
 `pnpm test:e2e:build && pnpm exec playwright test e2e/awards-no-js.spec.ts`.

@@ -12,6 +12,7 @@ import { distinctUserIds } from '@/view/member-identity'
 import { getContainer } from './container'
 import { activeWordFilter } from './content-admin'
 import { getActor } from './context'
+import { FixtureActivityRepository } from './fixture-activity-repo'
 import { identitiesFor } from './group-identity'
 import { filterView, viewerRef } from './plugin-view'
 import { currentTheme } from './theme'
@@ -21,8 +22,10 @@ export const LATEST_ROWS = 5
 
 export const LATEST_REFRESH_SECONDS = 60
 
-export function latestRepository(): PostgresLatestRepository | null {
-  return getContainer().dataSource === 'postgres' ? new PostgresLatestRepository(getDb()) : null
+export function latestRepository(): PostgresLatestRepository | FixtureActivityRepository {
+  return getContainer().dataSource === 'postgres'
+    ? new PostgresLatestRepository(getDb())
+    : new FixtureActivityRepository()
 }
 
 export async function latestScopeFor(actor: Actor): Promise<LatestScope> {
@@ -37,7 +40,6 @@ export async function latestScopeFor(actor: Actor): Promise<LatestScope> {
 
 export async function renderLatestPanels(): Promise<React.ReactNode> {
   const repo = latestRepository()
-  if (repo === null) return null
 
   const actor = await getActor()
   const now = new Date()

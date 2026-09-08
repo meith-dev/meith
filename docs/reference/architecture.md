@@ -86,9 +86,9 @@ What `forum-web` and `meith` do for a genuine external board is
 
 A board's installed themes and plugins are declared in its own
 `meith.config.ts` and `meith.plugins.ts` — plus the hand-written
-`meith.demo.plugins.ts` each pulls in ([Plugins](../customization/plugins.md)
+`meith.test.plugins.ts` each pulls in ([Plugins](../customization/plugins.md)
 describes it). Everything in this repository that reads them —
-`apps/community` itself, `apps/cli`, `e2e/support/demo-board.ts` — reaches
+`apps/community` itself and `apps/cli` — reaches
 its own board's files through one named boundary: the `@board/config` and
 `@board/plugins` tsconfig path aliases, defined identically in
 `tsconfig.base.json` and `apps/community/tsconfig.json`. Never through a

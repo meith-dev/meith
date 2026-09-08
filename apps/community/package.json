@@ -51,7 +51,6 @@
     "@meith/board-digest": "workspace:*",
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
-    "@meith/demo": "workspace:*",
     "@meith/drafts": "workspace:*",
     "@meith/drivers": "workspace:*",
     "@meith/events": "workspace:*",
