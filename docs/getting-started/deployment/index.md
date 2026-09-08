@@ -35,5 +35,4 @@ database and uploads, and review the feature differences linked from that guide.
 2. [Configure and test backups](../../guides/operations/backups.md).
 3. [Check services and scheduled work](../../guides/operations/monitoring.md).
 
-For an isolated board that visitors can experiment with and that resets its
-data, see [Demo mode](../../guides/operations/demo-mode.md).
+For a public, read-only sample board, deploy [fixture mode](../../contributing/development.md#fixture-mode).

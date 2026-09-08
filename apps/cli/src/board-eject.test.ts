@@ -158,7 +158,7 @@ describe('boardEject', () => {
 
     const generated = await readFile(join(target, 'meith.plugins.ts'), 'utf8')
     expect(generated).toContain('export const INSTALLED_PLUGINS: readonly InstalledPlugin[] = []')
-    expect(generated).not.toContain('meith.demo.plugins')
+    expect(generated).not.toContain('meith.test.plugins')
     expect(generated).not.toContain('showcasePlugins')
   })
 
@@ -185,7 +185,7 @@ describe('boardEject', () => {
     expect(generated).toContain(
       "{ key: 'reference', enabled: false, plugin: referencePlugin, messages: referenceMessages },",
     )
-    expect(generated).not.toContain('meith.demo.plugins')
+    expect(generated).not.toContain('meith.test.plugins')
   })
 
   it('prints next steps naming what does not move', async () => {

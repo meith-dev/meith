@@ -134,8 +134,8 @@ REDIS_URL=redis://redis:6379
 ```
 
 (Substitute the URL from step 1; `rediss://` for a TLS endpoint.) Giving
-the worker the same cache matters — it is what lets a scheduled task or a
-demo reset invalidate what the web instances are serving. Redeploy. The
+the worker the same cache matters — it is what lets scheduled tasks and
+content changes invalidate what the web instances are serving. Redeploy. The
 board is still single-instance at this point; it has simply moved its
 cache out of the process, which is the whole migration risk, taken while
 there is still only one instance to watch. If boot fails naming
@@ -184,7 +184,7 @@ driver keeps anything in the instance:
 | Driver | Value | Why nothing else works |
 |---|---|---|
 | `DATA_SOURCE` | `postgres` | `fixture` is a read-only sample board with no write side. |
-| `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. The environment already refuses it in production. |
+| `QUEUE_DRIVER` | `postgres` | `memory` loses every queued job when the instance goes away, which is after almost every request. PostgreSQL production boards refuse it. |
 | `CACHE_DRIVER` | `redis` | `next` and `memory` cache inside the process. With instances created and destroyed constantly, a per-process cache is close to no cache, and each one serves its own stale copy for up to a minute. |
 | `FILESTORE_DRIVER` | `s3` or `blob` | `local` writes to a disk that no other instance can read and that is discarded with the instance. On Vercel the environment refuses it outright rather than losing uploads quietly. `s3` is any S3-compatible bucket and is the portable choice; `blob` is a Vercel Blob store, which costs no configuration on Vercel and cannot be read from anywhere else. |
 | `MAIL_DRIVER` | `http` | Reaches the provider over ordinary HTTPS on 443, which is the one outbound path a function can rely on. |

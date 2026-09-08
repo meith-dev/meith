@@ -108,9 +108,8 @@ the setup screen for as long as `?factor=setup` is in the address rather than
 swapping straight to the settled panel — otherwise a member browsing without
 JavaScript never sees the codes at all.
 
-A board can refuse the whole operation — the feature switched off between the
-page rendering and the button being pressed, or a shared demo login whose
-sign-in method is fixed. A refusal is reported on the page like any other
+A board can refuse the whole operation if the feature is switched off between
+the page rendering and the button being pressed. A refusal is reported on the page like any other
 form error; it never fails the request.
 
 Turning the second factor off — or replacing the recovery codes — asks for

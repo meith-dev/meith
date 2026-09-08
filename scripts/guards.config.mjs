@@ -322,14 +322,8 @@ export const GUARDS = [
   {
     id: 'no-address-outside-the-fingerprint',
     why:
-      'An address is truncated in one place only: retainedIpPrefix() and its two ' +
-      'counting siblings in apps/community/src/server/request-fingerprint.ts. ' +
-      'Every other module asks that module for a prefix, because it is where the ' +
-      'demo rule lives: a board whose administrator password is printed on the ' +
-      'page must keep no addresses at all, or one visitor reads the last one out ' +
-      'of the admin log. A fresh truncateIp() call site is a column that fills up ' +
-      'again on the demo and nowhere else, which no test on any other board can ' +
-      'see. docs/guides/operations/demo-mode.md carries the reasoning.',
+      'Address truncation is centralised in request-fingerprint.ts so every retained ' +
+      'prefix and rate-limit key follows the same proxy and privacy policy.',
     files: /^apps\/community\/.*\.tsx?$/,
     pattern: /truncateIp\s*\(/,
     allow: /^(apps\/community\/src\/server\/request-fingerprint\.ts|.*\.test\.tsx?$)/,
@@ -345,7 +339,7 @@ export const GUARDS = [
   {
     id: 'no-relative-board-config-import',
     why:
-      'meith.config.ts, meith.plugins.ts, and meith.demo.plugins.ts are ' +
+      'meith.config.ts, meith.plugins.ts, and meith.test.plugins.ts are ' +
       'reached through one seam — @board/config and @board/plugins (tsconfig path ' +
       'aliases in tsconfig.base.json and apps/community/tsconfig.json) — never a ' +
       'relative path into apps/community, at any depth or through any intermediate ' +
@@ -353,13 +347,13 @@ export const GUARDS = [
       'must resolve board config through a name a consuming workspace can supply, not ' +
       "through a relative path that assumes today's directory layout. The board files " +
       'may still import each other by relative path (meith.config.ts pulls in ' +
-      'meith.plugins.ts, which pulls in meith.demo.plugins.ts); that is the ' +
+      'meith.plugins.ts, which pulls in meith.test.plugins.ts); that is the ' +
       "seam's own definition, not a caller reaching around it — see " +
       'docs/reference/architecture.md, "The board-config seam", and see docs/customization/plugins.md for ' +
-      'why meith.demo.plugins.ts exists at all.',
+      'why meith.test.plugins.ts exists at all.',
     files: /\.(ts|tsx)$/,
     pattern:
-      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[^'"]*meith\.(?:config|plugins|demo\.plugins)['"]/,
+      /(?:\bfrom\s+|\bimport\s*\(\s*|\bvi\.mock\(\s*)['"]\.[^'"]*meith\.(?:config|plugins|test\.plugins)['"]/,
     allow:
       /^apps\/community\/meith\.(?:config|plugins)\.ts$|^boards\/stock\/meith\.(?:config|plugins)\.ts$|^packages\/create-meith\/src\/scaffold\.ts$|^templates\/[^/]+\/meith\.(?:config|plugins)\.ts$/,
     probe: {
@@ -367,7 +361,7 @@ export const GUARDS = [
       clean: "import forumConfig from '@board/config'",
     },
     alsoViolates: [
-      "import { showcasePlugins } from '../../meith.demo.plugins'",
+      "import { showcasePlugins } from '../../meith.test.plugins'",
       "import forumConfig from '../apps/community/meith.config'",
       "import { installedPluginDefinitions } from '../../boards/stock/meith.plugins'",
     ],

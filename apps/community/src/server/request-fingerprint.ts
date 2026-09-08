@@ -3,7 +3,6 @@ import 'server-only'
 import { headers } from 'next/headers'
 
 import { env, logger, resolveClientAddress, truncateIp } from '@meith/core'
-import { demoAddressToken, demoDiscardsAddresses } from '@meith/demo'
 
 export interface RequestFingerprint {
   readonly ipPrefix: string | null
@@ -32,25 +31,13 @@ export async function remoteAddress(): Promise<string | null> {
 }
 
 export async function retainedIpPrefix(): Promise<string | null> {
-  if (demoDiscardsAddresses()) return null
   return truncateIp(await remoteAddress()) ?? null
 }
 
-export async function countingPrefix(): Promise<string | null> {
-  const address = await remoteAddress()
-  if (address === null || address === '') return null
-
-  const prefix = truncateIp(address)
-  if (prefix === undefined) return null
-
-  return demoDiscardsAddresses() ? demoAddressToken(prefix) : prefix
-}
+export const countingPrefix = retainedIpPrefix
 
 export async function countingAddress(): Promise<string | null> {
-  const address = await remoteAddress()
-  if (address === null || address === '') return null
-
-  return demoDiscardsAddresses() ? demoAddressToken(address) : address
+  return (await remoteAddress()) || null
 }
 
 export async function requestFingerprint(): Promise<RequestFingerprint> {

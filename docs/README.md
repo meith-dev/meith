@@ -63,7 +63,6 @@ Administer the community and maintain the services behind it.
 - [Disaster recovery](./guides/operations/disaster-recovery.md) — Restore the database, uploads, and secrets after losing a server.
 - [Monitoring](./guides/operations/monitoring.md) — Check readiness, scheduler activity, logs, and metrics.
 - [Scaling](./guides/operations/scaling.md) — Run multiple web instances with shared cache and storage.
-- [Run a public demo](./guides/operations/demo-mode.md) — Deploy an isolated demo that resets its data on a schedule.
 
 ## Using Meith
 

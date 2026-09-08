@@ -12,7 +12,6 @@ import { claimAdminUndo, issueAdminUndo } from './admin-undo'
 import { recordStaffAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
-import { assertDemoAccountChangeable, assertDemoIdentityUnchanged } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { trimmedText } from './form-values'
 import { getTranslator } from './i18n'
@@ -64,7 +63,6 @@ export async function saveMemberAccountAction(
 
     const username = trimmedText(form, 'username')
     const email = trimmedText(form, 'email')
-    await assertDemoIdentityUnchanged(id, { username, email })
 
     const before = await getContainer().accountStore.accounts.findById(id)
 
@@ -101,8 +99,6 @@ export async function clearSecondFactorAction(
   try {
     await requireFreshAdmin()
     const id = userId(form)
-
-    await assertDemoAccountChangeable(id, 'sign-in method')
 
     const cleared = await clearMemberSecondFactor(id)
     if (!cleared) return { notice: 'cleared' }

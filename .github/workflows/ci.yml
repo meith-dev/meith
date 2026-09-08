@@ -991,11 +991,9 @@ jobs:
       - name: Seed a board with content and an upload
         run: |
           pnpm --filter @meith/db migrate
-          pnpm meith demo:seed
+          pnpm exec tsx scripts/seed-smoke-board.mts
           mkdir -p /tmp/uploads-live/avatars/ab
           cp apps/community/public/placeholder-user.jpg /tmp/uploads-live/avatars/ab/attachment.jpg
-        env:
-          DEMO_MODE: '1'
 
       - name: Take a backup
         run: |
@@ -1050,9 +1048,9 @@ jobs:
           curl -fsS http://127.0.0.1:3000/ | grep -q '<main' \
             || { echo "::error::the restored board did not render"; tail -50 /tmp/dev.log; exit 1; }
           thread=$(psql -h localhost -U postgres -d forum_restored -tAc \
-            "select id || '-' || slug from threads where title like 'Start here%' limit 1")
-          test -n "$thread" || { echo "::error::the seeded start-here thread is gone"; exit 1; }
-          curl -fsS "http://127.0.0.1:3000/thread/$thread" | grep -qF 'Start here' \
+            "select id || '-' || slug from threads where id = 4 limit 1")
+          test -n "$thread" || { echo "::error::the seeded announcement thread is gone"; exit 1; }
+          curl -fsS "http://127.0.0.1:3000/thread/$thread" | grep -qF 'Version 0.1 is live' \
             || { echo "::error::the seeded thread did not render after the restore"; tail -50 /tmp/dev.log; exit 1; }
 
   templates-in-sync:

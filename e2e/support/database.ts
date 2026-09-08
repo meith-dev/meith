@@ -78,7 +78,7 @@ function insert(table: string, rows: readonly Record<string, unknown>[]): string
   return `insert into ${table} (${columns.join(', ')}) values\n       ${values};`
 }
 
-function seedSql(staffHash: string): string {
+export function seedSql(staffHash: string): string {
   const authors = new Map<number, string>()
   for (const post of SEED_POST_ROWS) {
     if (post.authorUserId !== null) authors.set(post.authorUserId, post.authorUsername)

@@ -35,7 +35,6 @@ export {
   blobStoreIdFromToken,
   type Env,
   env,
-  isDemoMode,
   isProduction,
   isTest,
   parseEnv,

@@ -5,29 +5,6 @@ import { calendarMessages, calendarPlugin } from '@meith/plugin-calendar'
 import { createDues, duesMessages } from '@meith/plugin-dues'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
-const PLAIN_HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/
-
-export function testBoardEnabled(): boolean {
-  return readPluginEnv('DUES_TEST_BOARD') === '1'
-}
-
-export function demoModeEnabled(): boolean {
-  const flag = readPluginEnv('DEMO_MODE')
-  return flag === '1' || flag === 'true'
-}
-
-function boardHosts(): readonly string[] {
-  const configured = readPluginEnv('APP_URL')
-  if (configured === undefined) return ['127.0.0.1']
-
-  try {
-    const host = new URL(configured).hostname.toLowerCase()
-    return PLAIN_HOST.test(host) ? [host] : ['127.0.0.1']
-  } catch {
-    return ['127.0.0.1']
-  }
-}
-
 const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   { key: 'awards', messages: awardsMessages, plugin: awardsPlugin },
   { key: 'calendar', messages: calendarMessages, plugin: calendarPlugin },
@@ -62,24 +39,6 @@ const testBoardPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
   },
 ]
 
-const demoPlugins = (): readonly InstalledPlugin<PluginDefinition>[] => [
-  { key: 'awards', messages: awardsMessages, plugin: awardsPlugin },
-  {
-    key: 'dues',
-    messages: duesMessages,
-    plugin: createDues({
-      extraRedirectHosts: boardHosts(),
-    }),
-  },
-  {
-    key: 'calendar',
-    messages: calendarMessages,
-    plugin: calendarPlugin,
-  },
-]
-
 export function showcasePlugins(): readonly InstalledPlugin<PluginDefinition>[] {
-  if (testBoardEnabled()) return testBoardPlugins()
-  if (demoModeEnabled()) return demoPlugins()
-  return []
+  return readPluginEnv('DUES_TEST_BOARD') === '1' ? testBoardPlugins() : []
 }

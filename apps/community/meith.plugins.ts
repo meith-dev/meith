@@ -7,7 +7,7 @@
 import type { InstalledPlugin } from '@meith/core'
 import type { PluginDefinition } from '@meith/plugin-kit'
 
-import { showcasePlugins } from './meith.demo.plugins'
+import { showcasePlugins } from './meith.test.plugins'
 
 export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = [
   ...showcasePlugins(),

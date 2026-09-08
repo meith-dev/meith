@@ -62,8 +62,6 @@ function buildFiles(): FileStore {
 }
 
 export async function currentMailConfig(): Promise<MailConfig> {
-  if (env.DEMO_MODE) return NO_MAIL
-
   const fromEnvironment = mailConfigFromEnvironment(env)
   if (fromEnvironment !== null) return fromEnvironment
 

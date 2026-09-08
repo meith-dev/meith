@@ -13,7 +13,6 @@ import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { requireFreshCredentialProof } from './credential-proof'
-import { assertDemoAccountChangeable } from './demo'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
 import { getSettingsUncached } from './settings'
@@ -32,8 +31,6 @@ interface Owner {
 async function ownAccount(): Promise<Owner> {
   const actor = await getActor()
   if (actor.userId === null) throw new ForbiddenError(msg('error.app.must-logged'))
-
-  await assertDemoAccountChangeable(actor.userId, 'sign-in method')
 
   const account = await getContainer().accountStore.accounts.findById(actor.userId)
   if (account === null) throw new ForbiddenError(msg('error.app.account-longer-exists'))

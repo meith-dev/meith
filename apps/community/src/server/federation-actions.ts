@@ -10,7 +10,6 @@ import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
 import { getActor } from './context'
 import { requireFreshCredentialProof } from './credential-proof'
-import { assertDemoAccountChangeable } from './demo'
 import {
   federationService,
   memberManagedSignIns,
@@ -52,8 +51,6 @@ async function requireOwnAccount(): Promise<{
   if (!(await memberManagedSignIns())) {
     throw new ForbiddenError(msg('error.app.board-manages-sign-ins-for-its'))
   }
-
-  await assertDemoAccountChangeable(actor.userId, 'password')
 
   const account = await getContainer().accountStore.accounts.findById(actor.userId)
   if (account === null) throw new ForbiddenError(msg('error.app.account-longer-exists'))

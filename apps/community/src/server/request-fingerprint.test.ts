@@ -12,13 +12,6 @@ vi.mock('next/headers', () => ({
 const { countingAddress, countingPrefix, remoteAddress, requestFingerprint, retainedIpPrefix } =
   await import('./request-fingerprint')
 
-function demoMode(): void {
-  vi.stubEnv('DEMO_MODE', '1')
-  vi.stubEnv('DATA_SOURCE', 'postgres')
-  vi.stubEnv('DATABASE_URL', 'postgres://u:p@localhost:5432/demo')
-  resetEnvForTests()
-}
-
 beforeEach(() => {
   headerRef.current = { 'x-forwarded-for': '203.0.113.7', 'user-agent': 'Firefox' }
   vi.stubEnv('TRUSTED_PROXY_HOPS', '1')
@@ -43,32 +36,8 @@ describe('an ordinary board', () => {
   })
 })
 
-describe('a demo', () => {
-  it('keeps no prefix to write anywhere', async () => {
-    demoMode()
-
-    expect(await retainedIpPrefix()).toBeNull()
-    expect(await requestFingerprint()).toEqual({ ipPrefix: null, userAgent: 'Firefox' })
-  })
-
-  it('still tells one visitor from another, without holding the address', async () => {
-    demoMode()
-
-    const first = await countingPrefix()
-    expect(first).not.toBeNull()
-    expect(first).not.toContain('203')
-    expect(await countingPrefix()).toBe(first)
-
-    headerRef.current = { 'x-forwarded-for': '198.51.100.4' }
-    expect(await countingPrefix()).not.toBe(first)
-    expect(await countingAddress()).not.toContain('198')
-  })
-
-  it('has nothing to count when the address does not resolve', async () => {
-    demoMode()
-    headerRef.current = {}
-
-    expect(await countingPrefix()).toBeNull()
-    expect(await countingAddress()).toBeNull()
-  })
+it('has nothing to count when the address does not resolve', async () => {
+  headerRef.current = {}
+  expect(await countingPrefix()).toBeNull()
+  expect(await countingAddress()).toBeNull()
 })

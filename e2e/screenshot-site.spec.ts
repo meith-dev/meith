@@ -1,22 +1,14 @@
-import { mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
-import {
-  type APIRequestContext,
-  type BrowserContext,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
+import { type BrowserContext, expect, type Page, test } from '@playwright/test'
 
 import { SCHEME_COOKIE, THEME_COOKIE } from '../apps/community/src/view/theme-preference'
-import { DEMO_BASE_URL } from './support/config'
+import { FIXTURE_BASE_URL } from './support/config'
 
 function shotsDirectory(): string {
   return path.resolve(test.info().config.rootDir, '../apps/web/public/shots')
 }
-
-const TICK_SECRET = 'shots-only-tick-secret-0000000000'
 
 const DESKTOP = { width: 1280, height: 820 }
 const PHONE = { width: 390, height: 780 }
@@ -26,20 +18,15 @@ const THEMES = ['default', 'clubhouse', 'midnight', 'phasebook', 'raidframe'] as
 
 const SCHEMES = ['light', 'dark'] as const
 
-const RECENT_THREADS = '/discover/new'
+const RECENT_THREADS = '/200-general'
 const THREAD_LINK = 'a[href^="/thread/"]'
 
-const SEARCH_TERM = 'training'
-
 const HIDE_DEV_CHROME = `
-  aside[aria-label="About this demo"] { display: none !important }
   nextjs-portal { display: none !important }
 `
 
 async function shoot(page: Page, name: string, directory = shotsDirectory()): Promise<void> {
   await page.addStyleTag({ content: HIDE_DEV_CHROME })
-
-  await expect(page.locator('aside[aria-label="About this demo"]')).toBeHidden()
 
   await page.waitForLoadState('domcontentloaded')
   await page.evaluate(() => document.fonts.ready)
@@ -54,7 +41,7 @@ async function paint(
   options: { theme?: string; scheme?: 'light' | 'dark' },
   at?: string,
 ): Promise<void> {
-  const scope = { domain: new URL(DEMO_BASE_URL).hostname, path: '/' } as const
+  const scope = { domain: new URL(FIXTURE_BASE_URL).hostname, path: '/' } as const
 
   const cookies = []
   if (options.theme !== undefined) {
@@ -70,45 +57,11 @@ async function paint(
   else await page.goto(at)
 }
 
-async function signIn(page: Page, username: string, password: string): Promise<void> {
-  await page.goto('/login')
-  await page.getByLabel('Username or email').fill(username)
-  await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page).toHaveURL('/')
-}
-
-async function warmTheBoard(request: APIRequestContext, page: Page): Promise<void> {
-  await expect(async () => {
-    await request.post('/api/system/tick', {
-      headers: { authorization: `Bearer ${TICK_SECRET}` },
-    })
-    await page.goto(`/search?q=${SEARCH_TERM}`)
-    await expectResults(page)
-  }).toPass({ timeout: 120_000, intervals: [1_000, 2_000, 5_000, 10_000] })
-}
-
-async function expectResults(page: Page): Promise<void> {
-  await expect(page).toHaveURL(/\/search\/[\w-]+$/)
-  await expect(page.getByRole('heading', { name: /Results for/ })).toBeVisible()
-  await expect(page.getByText(/searching very quickly/i)).toBeHidden()
-  await expect(page.getByText(/^No results/i)).toBeHidden()
-  await expect(page.getByText(/Nothing matched/i)).toBeHidden()
-  await expect(page.locator('a[href^="/thread/"]').first()).toBeVisible()
-}
-
-test('the marketing site, photographed', async ({ browser, request }) => {
-  rmSync(shotsDirectory(), { recursive: true, force: true })
+test('the marketing site, photographed', async ({ browser }) => {
   mkdirSync(shotsDirectory(), { recursive: true })
 
   const desktop = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: SCALE })
   const page = await desktop.newPage()
-
-  await signIn(page, 'member', 'member')
-
-  await warmTheBoard(request, page)
-
-  await expect(page.getByRole('button', { name: 'Your account' })).toBeVisible()
 
   await page.goto('/')
 
@@ -121,38 +74,10 @@ test('the marketing site, photographed', async ({ browser, request }) => {
     }
   }
 
-  await paint(desktop, page, { theme: 'default' })
-
-  await expect(async () => {
-    await page.goto(`/search?q=${SEARCH_TERM}`)
-    await expectResults(page)
-  }).toPass({ timeout: 120_000, intervals: [2_000, 5_000, 10_000, 15_000] })
-
-  const results = page.url()
-
-  for (const scheme of SCHEMES) {
-    await paint(desktop, page, { scheme }, results)
-    await expectResults(page)
-    await shoot(page, `search-${scheme}`)
-  }
-
-  const guest = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: SCALE })
-  const guestPage = await guest.newPage()
-  await guestPage.goto('/plugins/dues')
-  await expect(guestPage.getByRole('heading', { level: 1 })).toBeVisible()
-
-  for (const scheme of SCHEMES) {
-    await paint(guest, guestPage, { scheme })
-    await shoot(guestPage, `dues-${scheme}`)
-  }
-
-  await guest.close()
   await desktop.close()
 
   const phone = await browser.newContext({ viewport: PHONE, deviceScaleFactor: SCALE })
   const phonePage = await phone.newPage()
-
-  await signIn(phonePage, 'member', 'member')
 
   await phonePage.goto(RECENT_THREADS)
   const phoneThread = phonePage.locator(THREAD_LINK).first()
@@ -168,7 +93,7 @@ test('the marketing site, photographed', async ({ browser, request }) => {
   await phone.close()
 })
 
-test('the marketplace, photographed', async ({ browser, request }) => {
+test('the marketplace, photographed', async ({ browser }) => {
   const directory = path.resolve(test.info().config.rootDir, '../marketplace/screenshots')
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
@@ -178,8 +103,6 @@ test('the marketplace, photographed', async ({ browser, request }) => {
   context.setDefaultTimeout(15_000)
   try {
     const page = await context.newPage()
-    await signIn(page, 'member', 'member')
-    await warmTheBoard(request, page)
 
     for (const theme of THEMES) {
       await paint(context, page, { theme, scheme: 'light' }, '/')
@@ -187,32 +110,8 @@ test('the marketplace, photographed', async ({ browser, request }) => {
       await expect(
         page.getByRole('link', { name: 'Noticeboard', exact: true }).first(),
       ).toBeVisible()
-      await page.getByRole('button', { name: /^your account$/i }).click()
-      await expect(page.getByRole('menu')).toBeVisible()
-      await page.keyboard.press('Escape')
-      await expect(page.getByRole('menu')).toBeHidden()
-      await expect(page).toHaveURL('/')
       await shoot(page, `${theme}-light`, directory)
     }
-
-    const eventMonth = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 7)
-    await paint(
-      context,
-      page,
-      { theme: 'default', scheme: 'light' },
-      `/plugins/calendar?month=${eventMonth}`,
-    )
-    await expect(
-      page.getByRole('link', { name: 'Away to Ballyquin — bus at 12:15', exact: true }),
-    ).toBeVisible()
-    await shoot(page, 'calendar-light', directory)
-
-    await page.goto('/plugins/dues')
-    await expect(page.getByRole('heading', { name: '90-day pass', exact: true })).toBeVisible()
-    await expect(
-      page.getByRole('heading', { name: 'Lifetime membership', exact: true }),
-    ).toBeVisible()
-    await shoot(page, 'dues-light', directory)
   } finally {
     await context.close()
   }

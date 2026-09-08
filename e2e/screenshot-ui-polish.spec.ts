@@ -2,10 +2,89 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { DEMO_BASE_URL } from './support/config'
+import { SLOT_NAMES } from '@meith/theme-kit'
+
+import { FIXTURE_BASE_URL } from './support/config'
 
 const DIRECTORY = 'test-results/ui-polish'
 const shots: string[] = []
+
+test('theme developers can browse every fixture slot', async ({ page, context }) => {
+  mkdirSync(DIRECTORY, { recursive: true })
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']) {
+    await context.addCookies([{ name: 'meith_theme', value: theme, url: FIXTURE_BASE_URL }])
+    for (const slot of SLOT_NAMES) {
+      const response = await page.goto(`/fixtures?slot=${slot}`)
+      expect(response?.status(), `${theme} ${slot}`).toBe(200)
+      await expect(page.locator('[data-fixture-slot]')).toHaveAttribute('data-fixture-slot', slot)
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+    }
+    await page.goto('/fixtures?slot=ThreadView&variant=poll')
+    await expect(page.getByRole('heading', { name: 'When should we meet?' })).toBeVisible()
+    await snap(page, `${theme}-fixture-poll`)
+    await page.goto('/fixtures?slot=PanelShell&variant=admincp')
+    await snap(page, `${theme}-fixture-panel`)
+    expect(errors, theme).toEqual([])
+  }
+})
+
+test('fixture editors and native forms stay read-only', async ({ page, context, browser }) => {
+  mkdirSync(DIRECTORY, { recursive: true })
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await context.addCookies([{ name: 'meith_theme', value: 'default', url: FIXTURE_BASE_URL }])
+  await page.goto('/fixtures?slot=EditorToolbar')
+  const requests: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST') requests.push(request.url())
+  })
+  const field = page.getByRole('textbox', { name: 'Message', exact: true })
+  await field.fill('A sample')
+  await field.selectText()
+  await page.getByRole('button', { name: 'Bold', exact: true }).click()
+  await expect(field).toHaveValue('**A sample**')
+  await page.getByRole('button', { name: 'Preview submission' }).click()
+  await expect(page.getByRole('status')).toContainText('not saved')
+  expect(requests).toEqual([])
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/fixtures?slot=PostBit&variant=rich')
+  await expect(page.locator('[data-fixture-slot] img:visible').first()).toBeVisible()
+  for (const image of await page.locator('[data-fixture-slot] img:visible').all())
+    await image.scrollIntoViewIfNeeded()
+  expect(
+    await page
+      .locator('[data-fixture-slot] img:visible')
+      .evaluateAll((images) =>
+        images.every(
+          (image) =>
+            (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+        ),
+      ),
+  ).toBe(true)
+  await snap(page, 'default-fixture-rich-mobile')
+
+  const native = await browser.newContext({ baseURL: FIXTURE_BASE_URL, javaScriptEnabled: false })
+  const nativePage = await native.newPage()
+  await nativePage.goto('/fixtures?slot=SearchResults&variant=empty')
+  await expect(nativePage.locator('[data-fixture-slot]')).toHaveAttribute(
+    'data-fixture-variant',
+    'empty',
+  )
+  await nativePage.getByRole('combobox', { name: 'Slot', exact: true }).selectOption('PostForm')
+  await nativePage.getByRole('button', { name: 'Show slot' }).click()
+  await expect(nativePage.getByRole('textbox', { name: 'Message', exact: true })).toBeVisible()
+  const submitted = await nativePage.request.post('/fixtures', {
+    form: { message: 'Must not save' },
+  })
+  expect(submitted.status()).toBe(200)
+  expect(await submitted.text()).toContain('submissions are not saved')
+  expect(await submitted.text()).not.toContain('Must not save')
+  await native.close()
+  expect(errors).toEqual([])
+})
 
 async function snap(page: Page, name: string, fullPage = true) {
   if (name !== 'default-mobile-login') {
@@ -38,87 +117,47 @@ function gallery() {
     .join('')
   writeFileSync(
     `${DIRECTORY}/index.html`,
-    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meith · UI review</title><style>body{margin:0;padding:40px;font:15px/1.5 system-ui;background:#f4f4f4;color:#222}main{max-width:1280px;margin:auto}h1{font-size:32px;margin:0}p{color:#666;margin-bottom:32px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}a{overflow:hidden;border:1px solid #ddd;border-radius:12px;background:white;color:inherit;text-decoration:none}a:hover{border-color:#087f5b}a:focus-visible{outline:3px solid #087f5b;outline-offset:4px}img{display:block;width:100%;height:240px;object-fit:cover;object-position:top;border-bottom:1px solid #ddd}span{display:block;padding:16px;text-transform:capitalize;font-weight:600}</style><main><h1>Meith · UI review</h1><p>Populated demo · shared design system · all five themes · light, dark and touch layouts. Select a screenshot to see the full page.</p><div class="grid">${cards}</div></main></html>`,
+    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meith · UI review</title><style>body{margin:0;padding:40px;font:15px/1.5 system-ui;background:#f4f4f4;color:#222}main{max-width:1280px;margin:auto}h1{font-size:32px;margin:0}p{color:#666;margin-bottom:32px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}a{overflow:hidden;border:1px solid #ddd;border-radius:12px;background:white;color:inherit;text-decoration:none}a:hover{border-color:#087f5b}a:focus-visible{outline:3px solid #087f5b;outline-offset:4px}img{display:block;width:100%;height:240px;object-fit:cover;object-position:top;border-bottom:1px solid #ddd}span{display:block;padding:16px;text-transform:capitalize;font-weight:600}</style><main><h1>Meith · UI review</h1><p>Populated fixture · shared design system · all five themes · light, dark and touch layouts. Select a screenshot to see the full page.</p><div class="grid">${cards}</div></main></html>`,
   )
 }
 
-test('the populated demo across themes, panels and plugins', async ({
+test('the populated fixture across themes and reading layouts', async ({
   page,
   context,
   browser,
-  request,
 }) => {
   mkdirSync(DIRECTORY, { recursive: true })
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await request.post('/api/system/tick', {
-    headers: { authorization: 'Bearer shots-only-tick-secret-0000000000' },
-  })
-  await page.goto('/login')
-  await page.getByLabel('Username or email').fill('admin')
-  await page.getByLabel('Password', { exact: true }).fill('admin')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).toHaveURL('/')
-
   for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']) {
     for (const scheme of ['light', 'dark']) {
       await context.addCookies([
-        { name: 'meith_theme', value: theme, url: DEMO_BASE_URL },
-        { name: 'meith_scheme', value: scheme, url: DEMO_BASE_URL },
+        { name: 'meith_theme', value: theme, url: FIXTURE_BASE_URL },
+        { name: 'meith_scheme', value: scheme, url: FIXTURE_BASE_URL },
       ])
       await page.goto('/')
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await expect(page.getByRole('heading', { name: 'Latest threads', exact: true })).toBeVisible()
+      await expect(
+        page.getByRole('region', { name: /^(Board statistics|Board stats|Club record)$/ }),
+      ).toBeVisible()
       await snap(page, `${theme}-${scheme}`)
     }
   }
   await context.addCookies([
-    { name: 'meith_theme', value: 'default', url: DEMO_BASE_URL },
-    { name: 'meith_scheme', value: 'light', url: DEMO_BASE_URL },
+    { name: 'meith_theme', value: 'default', url: FIXTURE_BASE_URL },
+    { name: 'meith_scheme', value: 'light', url: FIXTURE_BASE_URL },
   ])
   for (const [name, path] of [
-    ['forum', '/15-general-discussion'],
-    ['thread', '/thread/121'],
-    ['composer', '/thread/121/reply'],
+    ['forum', '/200-general'],
+    ['thread', '/thread/21-show-us-your-desk-setup'],
     ['search', '/search'],
-    ['search-results', '/search?q=club'],
     ['profile', '/member/1'],
-    ['user-panel', '/usercp'],
-    ['account-options', '/usercp/options'],
-    ['messages', '/messages'],
-    ['moderator-panel', '/modcp'],
-    ['moderation-queue', '/moderation'],
-    ['calendar', '/plugins/calendar'],
-    ['membership', '/plugins/dues'],
   ] as const) {
     await page.goto(path)
     await snap(page, `default-${name}`)
   }
-  await page.goto('/admin')
-  await page.getByLabel('Password', { exact: true }).fill('admin')
-  await page.getByRole('button', { name: 'Enter the control panel' }).click()
-  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible()
-  for (const [name, path] of [
-    ['admin-panel', '/admin'],
-    ['admin-themes', '/admin/themes'],
-    ['admin-calendar', '/admin/plugins/calendar/organisers'],
-    ['admin-membership', '/admin/plugins/dues/plans'],
-  ] as const) {
-    await page.goto(path)
-    await snap(page, `default-${name}`)
-  }
-  await context.addCookies([{ name: 'meith_scheme', value: 'dark', url: DEMO_BASE_URL }])
-  for (const [name, path] of [
-    ['account-options', '/usercp/options'],
-    ['moderator-panel', '/modcp'],
-    ['admin-panel', '/admin'],
-    ['calendar', '/plugins/calendar'],
-    ['membership', '/plugins/dues'],
-  ] as const) {
-    await page.goto(path)
-    await snap(page, `default-dark-${name}`)
-  }
-  await context.addCookies([{ name: 'meith_scheme', value: 'light', url: DEMO_BASE_URL }])
   const mobile = await browser.newContext({
-    baseURL: DEMO_BASE_URL,
+    baseURL: FIXTURE_BASE_URL,
     storageState: await context.storageState(),
     hasTouch: true,
     isMobile: true,
@@ -127,43 +166,15 @@ test('the populated demo across themes, panels and plugins', async ({
   const phone = await mobile.newPage()
   for (const [name, path] of [
     ['home', '/'],
-    ['thread', '/thread/121'],
-    ['user-panel', '/usercp/options'],
-    ['moderator-panel', '/modcp'],
-    ['admin-panel', '/admin'],
-    ['calendar', '/plugins/calendar'],
-    ['membership', '/plugins/dues'],
-    ['admin-membership', '/admin/plugins/dues/plans'],
+    ['thread', '/thread/21-show-us-your-desk-setup'],
+    ['profile', '/member/1'],
   ] as const) {
     await phone.goto(path)
     await snap(phone, `default-mobile-${name}`)
   }
-  await phone.goto('/admin/plugins/dues/codes')
-  const activeTab = phone.locator('[data-nav-tabs] [aria-current="page"]')
-  await expect(activeTab).toBeInViewport({ ratio: 1 })
-  await snap(phone, 'default-mobile-active-plugin-tab', false)
   await phone.goto('/')
   await phone.getByRole('button', { name: 'Open navigation', exact: true }).click()
-  await phone
-    .getByRole('dialog')
-    .locator('summary')
-    .filter({ hasText: /^Membership$/ })
-    .click()
   await snap(phone, 'default-mobile-main-navigation', false)
-  await phone.goto('/admin')
-  await snap(phone, 'default-mobile-panel-header', false)
-  await phone.getByRole('button', { name: 'Open panel navigation' }).click()
-  await phone.getByRole('dialog').locator('summary').filter({ hasText: 'Board settings' }).click()
-  await snap(phone, 'default-mobile-admin-navigation', false)
-  await phone.goto('/admin/settings?group=registration')
-  await phone.getByRole('button', { name: 'Open panel navigation' }).click()
-  await snap(phone, 'default-mobile-admin-subsections', false)
-  await phone.goto('/usercp/options')
-  await phone.getByRole('button', { name: 'Open panel navigation' }).click()
-  await snap(phone, 'default-mobile-account-navigation', false)
-  await phone.goto('/search?q=club')
-  await snap(phone, 'default-mobile-search-results')
-  await mobile.clearCookies()
   await phone.goto('/login')
   await snap(phone, 'default-mobile-login')
   await mobile.close()

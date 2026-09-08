@@ -114,7 +114,7 @@ export function renderPluginsModule(plugins) {
 import type { InstalledPlugin } from '@meith/core'
 ${importLines.length > 0 ? `${importLines.join('\n')}\n` : ''}import type { PluginDefinition } from '@meith/plugin-kit'
 
-import { showcasePlugins } from './meith.demo.plugins'
+import { showcasePlugins } from './meith.test.plugins'
 
 export const INSTALLED_PLUGINS: readonly InstalledPlugin<PluginDefinition>[] = [
 ${entryLines.length > 0 ? `${entryLines.join('\n')}\n` : ''}  ...showcasePlugins(),

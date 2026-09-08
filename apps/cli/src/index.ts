@@ -13,7 +13,6 @@ import {
   userCreate,
   userPromote,
 } from './commands'
-import { demoReset, demoSeed } from './demo'
 import { importCommand } from './import'
 import { profileFieldAdd, profileFieldList, profileFieldRemove } from './profile-fields'
 import { pushKeys } from './push'
@@ -387,19 +386,6 @@ const commands: Command[] = [
     name: 'search:reindex',
     summary: 'Build the full-text index for posts that have none. Resumable.',
     run: searchReindex,
-  },
-
-  {
-    name: 'demo:seed',
-    summary: 'Write the demo board into an empty database. Needs DEMO_MODE.',
-    run: demoSeed,
-  },
-
-  {
-    name: 'demo:reset',
-    summary: 'Drop everything and rebuild the demo board. Needs DEMO_MODE.',
-    usage: 'meith demo:reset --yes',
-    run: demoReset,
   },
 ]
 

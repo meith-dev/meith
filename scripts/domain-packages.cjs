@@ -5,7 +5,6 @@ const INFRASTRUCTURE = new Set([
   'core',
   'create-meith',
   'db',
-  'demo',
   'drivers',
   'plugin-kit',
   'runtime',

@@ -1,0 +1,3045 @@
+{
+  "forums": [
+    {
+      "key": "cat-start",
+      "type": "category",
+      "title": "Start here",
+      "slug": "start-here",
+      "parent": null
+    },
+    {
+      "key": "introductions",
+      "type": "forum",
+      "title": "Introductions",
+      "slug": "introductions",
+      "description": "New here? Say who you are and what you turned up for.",
+      "parent": "cat-start"
+    },
+    {
+      "key": "cat-community",
+      "type": "category",
+      "title": "The community",
+      "slug": "the-community",
+      "parent": null
+    },
+    {
+      "key": "events",
+      "type": "forum",
+      "title": "Events and fixtures",
+      "slug": "events-and-fixtures",
+      "description": "Matches, raid nights, tournaments, socials. Sign-ups before, results after.",
+      "parent": "cat-community"
+    },
+    {
+      "key": "media",
+      "type": "forum",
+      "title": "Photos and clips",
+      "slug": "photos-and-clips",
+      "description": "Match photos, screenshots, highlight reels, and the team photo nobody likes.",
+      "parent": "cat-community"
+    },
+    {
+      "key": "noticeboard",
+      "type": "forum",
+      "title": "Noticeboard",
+      "slug": "noticeboard",
+      "description": "Lifts, lost property, volunteers wanted, and the small stuff that still needs saying.",
+      "parent": "cat-community"
+    },
+    {
+      "key": "market",
+      "type": "forum",
+      "title": "Buy, sell and swap",
+      "slug": "buy-sell-and-swap",
+      "description": "Kit, gear, tickets, hardware. Mark it sold and everyone thanks you.",
+      "parent": "cat-community"
+    },
+    {
+      "key": "cat-running",
+      "type": "category",
+      "title": "Running the place",
+      "slug": "running-the-place",
+      "parent": null
+    },
+    {
+      "key": "membership",
+      "type": "forum",
+      "title": "Membership and subs",
+      "slug": "membership-and-subs",
+      "description": "Joining, renewing, fees, fundraising, and where the money went.",
+      "parent": "cat-running"
+    },
+    {
+      "key": "support",
+      "type": "forum",
+      "title": "Help with the board",
+      "slug": "help-with-the-board",
+      "description": "Cannot log in, cannot upload, notifications gone quiet. Say what you are on.",
+      "parent": "cat-running"
+    },
+    {
+      "key": "feedback",
+      "type": "forum",
+      "title": "Feedback and ideas",
+      "slug": "feedback-and-ideas",
+      "description": "Suggestions for the board and for how we do things. Somebody does read them.",
+      "parent": "cat-running"
+    },
+    {
+      "key": "moderation",
+      "type": "forum",
+      "title": "Moderation and rules",
+      "slug": "moderation-and-rules",
+      "description": "How this place is run, in the open.",
+      "parent": "cat-running"
+    }
+  ],
+  "threads": [
+    {
+      "forum": "introductions",
+      "author": "rosa",
+      "title": "Hello — I brought ten years of notices with me",
+      "daysAgo": 587,
+      "message": "I am on the community centre committee, which shares this board with the club since the two of us gave up pretending we had different members.\n\nI have spent the last month moving about a decade of notices, minutes and event listings onto here from a website that only I could edit. It took three sittings and most of it was me deciding what was worth keeping.\n\nThe answer, if it helps anyone: minutes, yes. Photos, yes. Every \"hall booked Tuesday\" from 2016, no.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 6,
+          "message": "Welcome, and thank you — the AGM minutes going back that far have already settled two arguments."
+        },
+        {
+          "author": "ken",
+          "hoursAfter": 11,
+          "message": "Did the old links keep working? Half the parish has the hall page bookmarked."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 15,
+          "quotes": 2,
+          "message": "They do. The old addresses redirect here, which mattered more than I expected — the school newsletter has linked the hall page every September since 2014."
+        },
+        {
+          "author": "mira",
+          "hoursAfter": 40,
+          "message": "She is underselling this. It was three weekends and she did it on her own."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "luca",
+      "title": "Moved here for work, joined the seconds for something to do",
+      "daysAgo": 322,
+      "message": "Hello. I moved over in August, knew nobody, and turned up to a Tuesday training session because the sign outside said everyone welcome and I decided to believe it.\n\nFour months later I have played eleven games, been to two quizzes and I am on the lifts rota. Highly recommend believing signs.",
+      "replies": [
+        {
+          "author": "marty",
+          "hoursAfter": 2,
+          "message": "Best signing of the season and he found us himself."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 5,
+          "message": "Welcome. Fair warning: being on the lifts rota is a life sentence."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 9,
+          "message": "If you know anyone else new to the area, send them. That is genuinely how half this club works."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 31,
+          "message": "Two of the lads from my job are coming Tuesday. One of them says he is a goalkeeper, which I think means he is not."
+        },
+        {
+          "author": "deco",
+          "hoursAfter": 34,
+          "quotes": 4,
+          "message": "Tell him the job is taken."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "bernie",
+      "title": "Two in the U12s, one in the U16s, saying hello",
+      "daysAgo": 590,
+      "message": "Hi all. Three children, three teams, and a car that has not been clean since 2019.\n\nI am mostly here to know what time things start, which I appreciate is not a glamorous reason to join a forum.",
+      "replies": [
+        {
+          "author": "mairead",
+          "hoursAfter": 4,
+          "message": "That is exactly the reason to join it. Subscribe to the juvenile threads and it will email you when a time changes."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 30,
+          "message": "Done, and it has already saved me a wasted trip to a pitch in Ballyquin. Sold."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 52,
+          "message": "Bernie has since driven roughly a third of the juvenile section to a match at some point. Give her a badge."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "rook",
+      "title": "Turned up for the tournament, stayed for the Tuesday nonsense",
+      "daysAgo": 71,
+      "message": "Signed up for the winter tournament as a filler for a team that was one short, we went out in the second round, and I have been on every Tuesday run since.\n\nHave not been to the clubhouse. Have strong opinions about the clubhouse based on photographs.",
+      "replies": [
+        {
+          "author": "vex",
+          "hoursAfter": 3,
+          "message": "Welcome. Roster is in Events, sign up by Monday night and Tinker will shout at you if you no-show twice."
+        },
+        {
+          "author": "tinker",
+          "hoursAfter": 4,
+          "message": "I will shout at you once. The second time I just take you off the roster, which is worse."
+        },
+        {
+          "author": "pixel",
+          "hoursAfter": 7,
+          "message": "The clubhouse is exactly as good as it looks and the tea is worse. You would love it."
+        },
+        {
+          "author": "rook",
+          "hoursAfter": 29,
+          "message": "This is the friendliest place I have joined in years and I say that having joined a lot of them."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "una",
+      "title": "Ladies firsts, back after five years away",
+      "daysAgo": 401,
+      "message": "Played here from fifteen to twenty-two, went away for college and work, came back last month and walked into training on a Thursday expecting to know nobody.\n\nKnew four people. One of them is now the manager, which is very strange.",
+      "replies": [
+        {
+          "author": "hana",
+          "hoursAfter": 1,
+          "message": "Welcome home. You are centre half, I have decided."
+        },
+        {
+          "author": "una",
+          "hoursAfter": 2,
+          "quotes": 1,
+          "message": "I was a winger."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 3,
+          "message": "You were."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 22,
+          "message": "This happens more than people expect. If you played here as a teenager, come back. Nobody will make you run the line."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "bram",
+      "title": "Hello from the person making the Tuesday runs look worse than they are",
+      "daysAgo": 96,
+      "message": "I stream the Tuesday nights. Small audience, mostly my sister and two people who I think are bots.\n\nRule I follow: nobody is on the stream who has not said they are fine with it, and I cut anything that gets said in the heat of a wipe. If you would rather not be in it at all, say so and you never will be.",
+      "replies": [
+        {
+          "author": "tinker",
+          "hoursAfter": 5,
+          "message": "Appreciated, and that rule is now in the guild post. Anyone can opt out any week without giving a reason."
+        },
+        {
+          "author": "sunny",
+          "hoursAfter": 8,
+          "message": "I am fine with being on it and would like it noted that the wipe on Tuesday was not my fault."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 14,
+          "message": "It was."
+        },
+        {
+          "author": "mango",
+          "hoursAfter": 20,
+          "message": "It was."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "aoife",
+      "title": "Found this looking for the five-a-side",
+      "daysAgo": 44,
+      "message": "Searched for the Thursday five-a-side, ended up here, made an account. Have not actually played yet.\n\nIs it competitive? I have not kicked a ball since school and I do not want to ruin anyone's evening.",
+      "replies": [
+        {
+          "author": "olu",
+          "hoursAfter": 2,
+          "message": "It is not. Two of the regulars are over sixty, one plays in goal because of a knee, and we have a rule that nobody keeps score after twenty minutes because we all lose track anyway. Come Thursday, €3, bring water."
+        },
+        {
+          "author": "aoife",
+          "hoursAfter": 27,
+          "message": "Played. Was terrible. Going back next week."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 30,
+          "message": "That is the whole review of the Thursday five-a-side and I could not have put it better."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 51,
+          "message": "Welcome. I am one of the over-sixties and I would like it on the record that I scored."
+        }
+      ]
+    },
+    {
+      "forum": "introductions",
+      "author": "newcomer",
+      "title": "Just found this, working out if it fits us",
+      "daysAgo": 3,
+      "message": "Hi. I help run a running club two towns over — about ninety members, currently a chat group and a spreadsheet of race entries.\n\nSomebody in our group sent me your fixtures forum as an example of what we should be doing. Is this a lot of work to keep going, honestly?",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 4,
+          "message": "Honestly: the first month is work and after that it is less than the chat was. The thing that decides it is not the software, it is whether two or three of you will post without being asked. If you have those people it runs itself. If you do not, it will be quiet and you will blame the tool."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 9,
+          "message": "Second that, and one practical thing: do not migrate the chat. Leave it running and start the board for the things worth keeping — race entries, results, minutes. The chat gets quieter on its own."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 14,
+          "message": "Come to the quiz on the 14th and I will talk your ear off about it. We made every mistake available."
+        },
+        {
+          "author": "newcomer",
+          "hoursAfter": 22,
+          "message": "That is more useful than what I asked. Thank you — I will take you up on the quiz."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "paudie",
+      "title": "Pre-season friendly: firsts v the over-35s, and it got out of hand",
+      "daysAgo": 140,
+      "prefix": "result",
+      "message": "Final score 4-3 to the over-35s and I will be talking about it until I die.\n\nIn fairness to the firsts they had six players who were on holidays and we had a goalkeeper who used to play semi-professionally and has been waiting eleven years for this.\n\nSixty euro on the gate for the pitch fund and about a hundred and fifty people there on a Wednesday evening in July.",
+      "replies": [
+        {
+          "author": "deco",
+          "hoursAfter": 1,
+          "message": "I was not playing. I want that in the record. I was in Portugal."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 2,
+          "message": "We were not trying."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 3,
+          "quotes": 2,
+          "message": "You were trying by the second half. I could hear you trying."
+        },
+        {
+          "author": "jt",
+          "hoursAfter": 14,
+          "message": "Four separate men over forty asked me for ice afterwards. Worth every minute."
+        },
+        {
+          "author": "dara",
+          "hoursAfter": 20,
+          "message": "Best attended thing we did all summer and it cost us nothing. Doing it again in July."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 40,
+          "message": "The gate was €160, not €60. Paudie was counting after the third pint."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "mairead",
+      "title": "Summer camp: dates, and we need six helpers",
+      "daysAgo": 88,
+      "prefix": "signup",
+      "message": "Camp is the first week of August, 10 to 2, ages 6 to 12. Eighty places, and it filled in four days last year.\n\nWhat we actually need is six adults for the week. Vetted, and if you are not, we will sort it — it takes about three weeks so say now rather than in July.\n\nTransition-year students are very welcome as helpers and it counts for their work experience.",
+      "replies": [
+        {
+          "author": "zoe",
+          "hoursAfter": 2,
+          "message": "In for the full week. I have the vetting."
+        },
+        {
+          "author": "ellie",
+          "hoursAfter": 6,
+          "message": "Tuesday to Thursday for me. Not vetted, please start me on the form."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 9,
+          "message": "I can do it as my work experience if that counts. I did the two-day thing last year."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 11,
+          "quotes": 3,
+          "message": "It counts and you were great with the small ones. In."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 30,
+          "message": "Two full days from me, whichever two are hardest to fill."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 72,
+          "message": "Six and a half helpers and all eighty places gone. The half is Cormac, who is doing four days and negotiating."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "nova",
+      "title": "Winter tournament: brackets, rules and what you win",
+      "daysAgo": 40,
+      "prefix": "signup",
+      "message": "Sixteen teams of three, double elimination, seeded by nothing at all because none of us know what we are doing.\n\nRules, such as they are:\n\n- Teams of three. One sub allowed, named before your first match.\n- Best of three until the semis, best of five after.\n- **Two under-18 places per team maximum**, and they play the early slots only.\n- The prize is a trophy that Tomás is making out of an old cup we found in the clubhouse. It is genuinely hideous.\n\nSign up by replying with your three names. Fourteen teams so far.",
+      "replies": [
+        {
+          "author": "pixel",
+          "hoursAfter": 1,
+          "message": "Pixel, Sunny, Bram. Team name is \"Healer Aggro\" and we will not be taking questions."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 3,
+          "message": "Wraith, Mango, Otter. We are in three different timezones and this is going to be a nightmare to schedule, which is our whole strategy."
+        },
+        {
+          "author": "rook",
+          "hoursAfter": 8,
+          "message": "I have no team and I am new. Is there a pile of spare people?"
+        },
+        {
+          "author": "nova",
+          "hoursAfter": 9,
+          "quotes": 3,
+          "message": "There is now. Post here if you are one and I will pair you up — three others have said the same."
+        },
+        {
+          "author": "glitch",
+          "hoursAfter": 14,
+          "message": "Take me, I will play with anybody, I am mediocre in a very supportive way."
+        },
+        {
+          "author": "tinker",
+          "hoursAfter": 26,
+          "message": "Sixteen teams. Bracket goes up Friday and the first round is the weekend after."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 30,
+          "message": "Under-18 here, dad has signed the thing, I am in with two lads from school."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "nova",
+      "title": "Winter tournament final: result, and the bracket that broke",
+      "daysAgo": 33,
+      "prefix": "result",
+      "message": "**Winners: Healer Aggro** (Pixel, Sunny, Bram), 3-1 in the final over the three-timezone menace.\n\nThe bracket broke in the quarters when two teams both had a player unavailable and we ended up playing a match at 6am for one of them. Worked. Would not do it again.\n\nForty-one people watched the final on Bram's stream, which is about forty more than any of us expected.",
+      "replies": [
+        {
+          "author": "pixel",
+          "hoursAfter": 1,
+          "message": "The trophy is the worst object I have ever been given and it is on my desk forever."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 2,
+          "message": "We lost to a team who were awake. Next year we insist on 4am for everything."
+        },
+        {
+          "author": "rook",
+          "hoursAfter": 5,
+          "message": "My scratch team went out in round two and I have made three friends. Best €0 I ever spent."
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 9,
+          "message": "The trophy is made from a 1983 five-a-side cup nobody could identify. I am calling that heritage, not vandalism."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 22,
+          "message": "It was a 1983 five-a-side cup and we won it. Tomás, we will be talking."
+        },
+        {
+          "author": "nova",
+          "hoursAfter": 44,
+          "message": "Doing it again in the spring, thirty-two teams, and I will seed it properly. Ish."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "rosa",
+      "title": "Table quiz for the pitch fund — teams of four, 14th",
+      "daysAgo": 31,
+      "message": "Quiz is on the 14th at half eight, teams of four, €5 a head. Raffle at the interval and Frank is doing the music round, which is a warning rather than an attraction.\n\nPrizes are donated by the shop, the garage and Tomás's cycling crowd. If you can get a prize out of anyone, tell me by Friday.\n\nWe raised €1,180 last year and the drainage is not going to pay for itself.",
+      "replies": [
+        {
+          "author": "frank",
+          "hoursAfter": 2,
+          "message": "The music round is fair and everybody says that until it starts."
+        },
+        {
+          "author": "ken",
+          "hoursAfter": 4,
+          "message": "Team of four from the board games night. We will lose the sport round by a historic margin."
+        },
+        {
+          "author": "pixel",
+          "hoursAfter": 8,
+          "message": "Two of us are travelling for it. Genuinely. We have never met any of you in person."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 9,
+          "quotes": 3,
+          "message": "Then you are on my team and I will hear no argument."
+        },
+        {
+          "author": "nia",
+          "hoursAfter": 20,
+          "message": "Got a voucher out of the hairdresser and a hamper from the shop. Both dropped to the clubhouse."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 48,
+          "message": "Nineteen teams, €1,340, and the music round caused an actual argument. Same again in the autumn."
+        },
+        {
+          "author": "sam",
+          "hoursAfter": 55,
+          "message": "The argument was because \"Come On Eileen\" is not a nineties song, Frank."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "dara",
+      "title": "Cup draw is out: away in round two",
+      "daysAgo": 26,
+      "prefix": "fixture",
+      "message": "Away to Ballyquin Celtic, Sunday the 12th, 2pm. Bus from the clubhouse at 12:15 and it will leave at 12:15.\n\nThey are a division above us and they beat us 5-0 in a friendly in 2023. Nobody in the current squad was playing that day except Paudie, who has asked me not to mention it.",
+      "replies": [
+        {
+          "author": "paudie",
+          "hoursAfter": 1,
+          "message": "I asked you specifically not to mention it."
+        },
+        {
+          "author": "marty",
+          "hoursAfter": 3,
+          "message": "Squad goes up Thursday. Tick available in the thread, not in my ear at training."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 6,
+          "message": "Bus. Both ways. No exceptions, I am not doing four cars again."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 20,
+          "message": "Room for three supporters in mine if the bus is full with the squad."
+        },
+        {
+          "author": "dev",
+          "hoursAfter": 26,
+          "message": "I will be there with the camera. Cup games are the only ones anyone ever wants a photo of."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "dara",
+      "title": "Saturday: away to Ballyquin, bus at 12:15",
+      "daysAgo": 16,
+      "prefix": "fixture",
+      "message": "League game, away to Ballyquin, 2pm kick-off. Bus at 12:15 from the clubhouse.\n\nSeconds are at home at the same time, so the clubhouse will be open and there will be soup, which is the actual reason most people come.",
+      "replies": [
+        {
+          "author": "marty",
+          "hoursAfter": 4,
+          "message": "Seconds squad is up. Fourteen available, which after the season we have had is a small miracle."
+        },
+        {
+          "author": "shay",
+          "hoursAfter": 9,
+          "message": "Working till one. Can somebody bring my boots on the bus, they are in the far dressing room."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 10,
+          "quotes": 2,
+          "message": "Got them. They are disgusting."
+        },
+        {
+          "author": "jt",
+          "hoursAfter": 20,
+          "message": "I am at the seconds game, not the away one. Anyone travelling who needs strapping, catch me at the clubhouse before twelve."
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 30,
+          "message": "Pitch passed the inspection at nine this morning. It was close."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "dara",
+      "title": "Result: Ballyquin 1-3, and the seconds drew",
+      "daysAgo": 14,
+      "prefix": "result",
+      "message": "**Ballyquin 1 Rovers 3.** Oisín two, Luca one, and Deco with a save at 1-1 that changed the game.\n\n**Seconds 2-2** at home, having been two down at half time. Cormac scored his first for the adult side and did not stop grinning for an hour.\n\nBest day we have had all season. Photos in the other forum once Devinder has been through four hundred of them.",
+      "replies": [
+        {
+          "author": "deco",
+          "hoursAfter": 1,
+          "message": "It was a good save. I would like the record to show it was a very good save."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 2,
+          "message": "Both of mine were tap-ins off Luca. Give him the write-up."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 4,
+          "message": "I have played eleven games here and that was the first time the away crowd was louder than the home one. Thank you to everyone who travelled."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 6,
+          "message": "Three cars and the bus. The bus sang the whole way home, which the driver has asked me to describe as \"singing\"."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 9,
+          "message": "First goal. It went in off my shin. Do not care."
+        },
+        {
+          "author": "marty",
+          "hoursAfter": 20,
+          "message": "Two down at half time and I said one thing at the break and it was not repeatable here. Delighted with them."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 30,
+          "message": "A hundred and ten people at a seconds game in February. That is the club working."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "mairead",
+      "title": "U14 blitz on the 8th: lifts rota",
+      "daysAgo": 19,
+      "prefix": "signup",
+      "message": "Blitz is in Ennis on the 8th, three games, 10am to about 2pm. Fifteen children and, at the last count, four cars.\n\nReply with how many seats you have and whether you can do there, back, or both. **Please do not offer a lift for a child who is not yours without checking with their parent here first** — it is the one rule I will be tediously strict about.",
+      "replies": [
+        {
+          "author": "bernie",
+          "hoursAfter": 1,
+          "message": "Four seats, both ways. Happy to take anyone whose parent says so here."
+        },
+        {
+          "author": "ellie",
+          "hoursAfter": 3,
+          "message": "Three seats there only, I have to be back by half twelve. Mine can come home with Bernie if that suits her."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 4,
+          "quotes": 2,
+          "message": "That suits me. Consider it done."
+        },
+        {
+          "author": "donal",
+          "hoursAfter": 8,
+          "message": "Four seats both ways and I will bring the first aid bag and the spare kit."
+        },
+        {
+          "author": "zoe",
+          "hoursAfter": 14,
+          "message": "Two seats. I will be there anyway for the U10 lads playing up."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 26,
+          "message": "Thirteen seats for fifteen children plus four adults. Sorted, and this took eleven minutes instead of forty messages."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 250,
+          "message": "Blitz done: won one, drew one, lost one, and every single child got at least half a game. That is the whole point of a blitz."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "olu",
+      "title": "Sports hall Thursday instead of the pitch — nine needed",
+      "daysAgo": 11,
+      "prefix": "signup",
+      "message": "Pitch is shut, so I have the sports hall for Thursday at seven. €4 a head to cover it, need at least nine to make it worth taking.\n\nIndoor, so trainers not boots, and the hall people will genuinely throw us out at eight sharp.",
+      "replies": [
+        {
+          "author": "frank",
+          "hoursAfter": 1,
+          "message": "In."
+        },
+        {
+          "author": "aoife",
+          "hoursAfter": 2,
+          "message": "In, and I will bring the two from work who keep saying they will come."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 4,
+          "message": "In."
+        },
+        {
+          "author": "sam",
+          "hoursAfter": 5,
+          "message": "In. Dog stays home for the indoor one, I have learned."
+        },
+        {
+          "author": "petra",
+          "hoursAfter": 9,
+          "message": "In, first time, be gentle."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 26,
+          "message": "Thirteen. Booked. See you at seven."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 51,
+          "message": "Thirteen played, nobody died, and the hall is ours every Thursday the pitch is off. Best €4 in the county."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "frank",
+      "title": "Awards night and social: the 22nd, and there is a menu this year",
+      "daysAgo": 58,
+      "message": "Awards night is the 22nd at the clubhouse, half seven for eight. €25 a head which covers the food.\n\nThere is an actual menu this year instead of a tray of sandwiches at eleven o'clock. Three options, and I need numbers and choices by the 15th because the caterer is doing us a favour.\n\nPartners, parents and the people who do not play are all very welcome. Half this club has never seen the inside of the clubhouse on a Saturday night and that is a shame.",
+      "replies": [
+        {
+          "author": "noelle",
+          "hoursAfter": 3,
+          "message": "Two, both the chicken. Paid."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 6,
+          "message": "Nine from the ladies squad. Six chicken, two vegetarian, one who says she will decide on the night — she will not, put her down for chicken."
+        },
+        {
+          "author": "vex",
+          "hoursAfter": 11,
+          "message": "Four of the gaming crowd travelling for it, including one who is flying. That is a longer trip than the away bus has ever done."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 12,
+          "quotes": 3,
+          "message": "If somebody is getting on a plane for the awards night then somebody is getting a lift from the airport. I will do it."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 30,
+          "message": "It is me. I am the one flying. I have been in this club for two years and met four of you."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 74,
+          "message": "Ninety-one for the meal, which is thirty more than last year and the caterer has stopped answering me warmly."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "nova",
+      "title": "Sunday ranked block, week 6 — sign up by Saturday",
+      "daysAgo": 8,
+      "prefix": "signup",
+      "message": "Same as always: 6pm to 8, teams drawn from whoever signs up, under-18s in the first hour only.\n\nSign up by Saturday night so I can make the teams even rather than making them at 5:58 in a panic.",
+      "replies": [
+        {
+          "author": "sunny",
+          "hoursAfter": 2,
+          "message": "In."
+        },
+        {
+          "author": "glitch",
+          "hoursAfter": 3,
+          "message": "In, and I would like to be on a different team to Wraith for once in my life."
+        },
+        {
+          "author": "bolt",
+          "hoursAfter": 5,
+          "message": "In for the first hour, it is half eleven here for the second."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 9,
+          "message": "In for the first hour."
+        },
+        {
+          "author": "otter",
+          "hoursAfter": 14,
+          "message": "In. It is 5am for me and I have made my peace with that."
+        },
+        {
+          "author": "rook",
+          "hoursAfter": 20,
+          "message": "In."
+        },
+        {
+          "author": "nova",
+          "hoursAfter": 30,
+          "message": "Fourteen signed up, teams are drawn, and Glitch is on a different team to Wraith. Enjoy that."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "nova",
+      "title": "Ranked block results, week 6",
+      "daysAgo": 6,
+      "prefix": "result",
+      "message": "Week 6 done. Standings after six weeks:\n\n1. Wraith — 41\n2. Pixel — 38\n3. Nova — 34\n4. Mango — 33\n5. Glitch — 29\n\nFull table in the pinned post. Cormac is top of the under-18 side of it by eleven points and has been unbearable about it, correctly.",
+      "replies": [
+        {
+          "author": "glitch",
+          "hoursAfter": 1,
+          "message": "Fifth. On a different team to Wraith. I am not saying they are connected, I am pointing at them."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 3,
+          "message": "They are connected. I carry you."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 6,
+          "message": "Top of the U18s and I have three weeks left before I am eighteen, so this is my whole legacy."
+        },
+        {
+          "author": "pixel",
+          "hoursAfter": 9,
+          "message": "Three points off. Two weeks left. It is on."
+        },
+        {
+          "author": "bram",
+          "hoursAfter": 20,
+          "message": "Clipped the last round of week six, it is up in Photos and clips. Sunny's face at the end is worth it on its own."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "tinker",
+      "title": "Tuesday raid night: roster and sign-ups",
+      "daysAgo": 4,
+      "prefix": "signup",
+      "message": "Tuesday, half eight, same as every Tuesday for two years.\n\nSign up by Monday night. Roster goes up Monday and if you are on it and do not turn up, you are behind the people who did next week — that is the whole discipline system and it has never needed to be more than that.\n\nTwo spots for anyone who has never done one. You will not be shouted at. Somebody will explain the whole thing badly and then Pixel will explain it properly.",
+      "replies": [
+        {
+          "author": "pixel",
+          "hoursAfter": 1,
+          "message": "In, and I will take the new people. It is genuinely my favourite part."
+        },
+        {
+          "author": "mango",
+          "hoursAfter": 2,
+          "message": "In."
+        },
+        {
+          "author": "sunny",
+          "hoursAfter": 3,
+          "message": "In. Not Wednesday. It is Tuesday. I know."
+        },
+        {
+          "author": "rook",
+          "hoursAfter": 6,
+          "message": "In. Never done one. Terrified in a fun way."
+        },
+        {
+          "author": "bolt",
+          "hoursAfter": 8,
+          "message": "In, and I can take the other new slot person through the first bit if Pixel is busy."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 11,
+          "message": "In, and I am on time this week, and I will hear no commentary about that."
+        },
+        {
+          "author": "tinker",
+          "hoursAfter": 20,
+          "message": "Roster is up. Eighteen signed up for fourteen places, which is a lovely problem — the four who miss out are first on next week."
+        }
+      ]
+    },
+    {
+      "forum": "events",
+      "author": "dara",
+      "title": "Saturday: home to St Bridget's, 2pm",
+      "daysAgo": 2,
+      "prefix": "fixture",
+      "message": "Home game, 2pm, and it is the first one back on our own pitch since the closure.\n\nGerry wants the far side of the pitch left alone at half time — no warm-ups, no children, no dogs. Two weeks of dry weather does not undo three weeks of rain.\n\nSoup, teas and the raffle in the clubhouse afterwards. Bring change.",
+      "replies": [
+        {
+          "author": "gerry",
+          "hoursAfter": 2,
+          "message": "Far side. Nobody on it. I will be watching and I have nothing else to do on a Saturday."
+        },
+        {
+          "author": "marty",
+          "hoursAfter": 5,
+          "message": "Squad is up. Shay is back, Oisín is suspended, and I have named Cormac."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 6,
+          "message": "First start. Going to be sick."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 9,
+          "message": "One booking in November and one in January and apparently that is a suspension. I will be behind the goal shouting."
+        },
+        {
+          "author": "sam",
+          "hoursAfter": 20,
+          "message": "Dog will be on the near side, on a lead, being extremely well behaved."
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 22,
+          "quotes": 5,
+          "message": "The dog is the only one of you I trust."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 30,
+          "message": "Two seats going from the far end of the village if anyone needs a lift up."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "mango",
+      "title": "Screenshot thread: post yours",
+      "daysAgo": 150,
+      "message": "No theme, no rules, nothing has to be impressive. Post the thing you took a picture of because it looked good at the time.\n\nStarting with the one from Tuesday where four of us ended up standing in a perfect line by accident and it looks entirely staged.",
+      "replies": [
+        {
+          "author": "pixel",
+          "hoursAfter": 3,
+          "message": "Mine is a screenshot of the exact frame before it all went wrong, which is the only kind I seem to take."
+        },
+        {
+          "author": "otter",
+          "hoursAfter": 14,
+          "message": "Sunrise over the thing, taken at what was 5am for me and mid-afternoon for the rest of you."
+        },
+        {
+          "author": "bolt",
+          "hoursAfter": 40,
+          "message": "Posted three. One is genuinely good and two are of Wraith falling."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 47,
+          "message": "Delete two of those."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 200,
+          "message": "Scrolled the whole thread instead of doing homework. Worth it."
+        },
+        {
+          "author": "glitch",
+          "hoursAfter": 900,
+          "message": "Reviving this because I got a genuinely lovely one last night and there is nowhere else for it to go."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "dev",
+      "title": "Team photo, take four",
+      "daysAgo": 90,
+      "message": "Fourth attempt. The first was in the rain, the second had nine players, the third had a bin in it.\n\nThis one has everybody, no bin, and Frank blinking. I have decided that is the one.",
+      "replies": [
+        {
+          "author": "frank",
+          "hoursAfter": 1,
+          "message": "I was not blinking, that is my face."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 5,
+          "message": "It is going on the clubhouse wall beside the 1996 one, so Frank will be blinking for twenty years."
+        },
+        {
+          "author": "una",
+          "hoursAfter": 11,
+          "message": "Can we do a ladies squad one on a Thursday? We have never had one and there are nineteen of us now."
+        },
+        {
+          "author": "dev",
+          "hoursAfter": 12,
+          "quotes": 3,
+          "message": "Thursday after training, ten minutes, no rain or I will not do it. Booked."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 30,
+          "message": "Nineteen of us and one of them was a bin in 2019, so we have come a long way."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "mairead",
+      "title": "Summer camp photos — parents, read the first post before you scroll",
+      "daysAgo": 80,
+      "message": "Photos from the camp are up. Before anybody asks why their child is not in them: **only children whose parents ticked the photo box on the form are in here.** Eleven did not, and that is completely fine and nobody needs a reason.\n\nIf you ticked it and want a specific photo taken down, message me and it is gone within the hour. No explanation needed, ever.",
+      "replies": [
+        {
+          "author": "ellie",
+          "hoursAfter": 4,
+          "message": "Thank you for doing it this way round. The last place we were in put everything up and asked afterwards."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 9,
+          "message": "Mine are in there having the time of their lives and one of them is eating a sandwich in every single photo."
+        },
+        {
+          "author": "zoe",
+          "hoursAfter": 20,
+          "message": "Eighty children and the photo with all of them in it took twenty-five minutes. Devinder earned his tea."
+        },
+        {
+          "author": "dev",
+          "hoursAfter": 26,
+          "message": "It took twenty-five minutes because a child kept lying down. Great week though."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "rosa",
+      "title": "The 1996 team photo, scanned, and we cannot name four of them",
+      "daysAgo": 25,
+      "message": "First of the box. 1996 squad photo, in colour, in remarkably good condition given where it has been living.\n\nWe have names for fourteen of the eighteen. Four we cannot get: back row second from left, back row far right, and the two lads sitting on the ground at the front.\n\nAsk your parents. Somebody knows.",
+      "replies": [
+        {
+          "author": "paudie",
+          "hoursAfter": 2,
+          "message": "Back row far right is my uncle. He will be thrilled and he will also tell you he was man of the match in the county final, which he was not."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 6,
+          "message": "The one on the left at the front went to Boston in 1998 and I think his sister is still in the village. I will ask."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 14,
+          "message": "Second from left is Mattie. Certain of it. He had that jacket for a decade."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 30,
+          "message": "Three of four named in a day and a half. This is why the box is worth doing."
+        },
+        {
+          "author": "dev",
+          "hoursAfter": 50,
+          "message": "Forty more scanned this weekend. There is one of a pitch with actual grass on it that will upset Gerry."
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 55,
+          "message": "That was 1996. Nothing has drained since."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "deco",
+      "title": "Clip: the save at 1-1 that nobody believes",
+      "daysAgo": 13,
+      "message": "Somebody on the sideline got it on their phone, which is the only reason this exists.\n\nWatch the second one. The first one is fine. The second one is off my elbow and I have no idea how it stayed out.",
+      "replies": [
+        {
+          "author": "oisin",
+          "hoursAfter": 1,
+          "message": "It hit you."
+        },
+        {
+          "author": "deco",
+          "hoursAfter": 2,
+          "quotes": 1,
+          "message": "It hit me because I was there, which is the job."
+        },
+        {
+          "author": "marty",
+          "hoursAfter": 5,
+          "message": "It is a very good save and he will be showing it at the awards night."
+        },
+        {
+          "author": "bram",
+          "hoursAfter": 9,
+          "message": "Cut it to nine seconds and put it up properly, it deserves better than a shaky wide shot."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 20,
+          "message": "This has been sent to me by four different people, one of whom was Deco."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "dev",
+      "title": "Photos from Saturday, all four hundred of them",
+      "daysAgo": 13,
+      "message": "Both games. The away one is mostly action and the seconds one is mostly the crowd, because the crowd was the story.\n\nFull resolution ones are there if you want to print anything. If you are in one and would rather not be, tell me and it is gone, no questions.",
+      "replies": [
+        {
+          "author": "bernie",
+          "hoursAfter": 2,
+          "message": "The one of the bus is going in a frame. Fourteen faces and every one of them roaring."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 5,
+          "message": "There are eleven photos of my goal. It went in off my shin in all eleven."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 9,
+          "message": "Sequence of the save is unbelievable. Four frames and you can see the ball change direction."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 14,
+          "message": "Sent one home to my parents and my mother has asked whether this is a professional club. I did not correct her."
+        },
+        {
+          "author": "dev",
+          "hoursAfter": 30,
+          "message": "Four hundred and twelve, culled to a hundred and ninety, and it still took me two evenings."
+        },
+        {
+          "author": "dara",
+          "hoursAfter": 44,
+          "message": "They are on the club social accounts too, credited. This lad does it for nothing and has done for two years."
+        }
+      ]
+    },
+    {
+      "forum": "media",
+      "author": "bram",
+      "title": "Clipped the last round of week six",
+      "daysAgo": 5,
+      "message": "Ninety seconds, no commentary, just the last round from Sunday.\n\nSunny's face at the end is the whole clip. Everything else is context.",
+      "replies": [
+        {
+          "author": "sunny",
+          "hoursAfter": 2,
+          "message": "I am asking, formally, for the right to be forgotten."
+        },
+        {
+          "author": "nova",
+          "hoursAfter": 4,
+          "message": "Denied."
+        },
+        {
+          "author": "glitch",
+          "hoursAfter": 8,
+          "message": "This is the best thing on the board and it is ninety seconds long."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 20,
+          "message": "Watched it four times. Still do not know how that was allowed to happen."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "mira",
+      "title": "Shoebox appeal: collection point is the clubhouse until the 30th",
+      "daysAgo": 55,
+      "message": "Same as every year. Boxes in the clubhouse porch, anything at all is welcome, and there is a list of what they actually need on the wall beside them.\n\nLast year the club sent seventy-one boxes, which was the most in the parish by a distance and nobody made a fuss about it.",
+      "replies": [
+        {
+          "author": "nia",
+          "hoursAfter": 9,
+          "message": "The U10 parents did fourteen between them last year. I will put it in the team thread."
+        },
+        {
+          "author": "ken",
+          "hoursAfter": 26,
+          "message": "Board games night will do a box. We will overthink what goes in it, that is our contribution."
+        },
+        {
+          "author": "mira",
+          "hoursAfter": 300,
+          "message": "Eighty-eight boxes. Thank you, all of you. The porch was unusable for a fortnight and it was worth it."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "jt",
+      "title": "Defibrillator and first aid training: two dates, everyone welcome",
+      "daysAgo": 42,
+      "message": "Two sessions, two hours each, free, and you do not need to be a coach or a player or anything at all.\n\nThere is a defibrillator on the clubhouse wall. Nineteen people in this club know how to use it. That number should be a hundred and it costs us nothing to make it so.\n\nReply with which date suits and I will put you down.",
+      "replies": [
+        {
+          "author": "bernie",
+          "hoursAfter": 1,
+          "message": "The first date. Should have done this years ago."
+        },
+        {
+          "author": "zoe",
+          "hoursAfter": 3,
+          "message": "First date for me too, and I will bring two of the other juvenile coaches."
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 8,
+          "message": "Second one. I am at that pitch on my own most mornings, which I have thought about more than once."
+        },
+        {
+          "author": "aoife",
+          "hoursAfter": 20,
+          "message": "Second. I am not even a member yet, is that all right?"
+        },
+        {
+          "author": "jt",
+          "hoursAfter": 21,
+          "quotes": 4,
+          "message": "Especially all right. Come."
+        },
+        {
+          "author": "jt",
+          "hoursAfter": 200,
+          "message": "Forty-six people across the two nights. That is a genuinely different club to the one that had nineteen."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "admin",
+      "title": "Clubhouse wifi has a new password",
+      "daysAgo": 29,
+      "message": "It is on the card behind the bar and on the notice by the door. Not posting it here because this board is public and the wifi is not.\n\nThe old one had been the same since 2019 and was known to at least one entire opposing team.",
+      "replies": [
+        {
+          "author": "frank",
+          "hoursAfter": 4,
+          "message": "It was known to the whole village. My son has never asked me for it once."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 20,
+          "message": "Everyone in my year knows the old one. Nobody has ever been in the clubhouse."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "kev",
+      "title": "Lost: navy gear bag, initials on the strap",
+      "daysAgo": 22,
+      "message": "Left in the far dressing room two Saturdays ago. Navy, initials D.M. written on the strap in marker, boots and a set of gloves in it.\n\nNot mine — I am posting it for somebody who is not on here. If it turned up in your car after the away game, that is where it came from.",
+      "replies": [
+        {
+          "author": "oisin",
+          "hoursAfter": 20,
+          "message": "There is a navy bag in the boot of the minibus that is not anybody's. Will check the strap tonight."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 30,
+          "message": "D.M. on the strap. Found. It has been in the minibus for a fortnight."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 33,
+          "message": "Reunited. That is the second thing the minibus has quietly eaten this season."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "nia",
+      "title": "Anyone driving to Ennis on Saturday morning?",
+      "daysAgo": 21,
+      "message": "Looking for a lift for the blitz — my car is in the garage until Monday and mine is playing.\n\nHappy to pay for the diesel and happy to bring the flask that everyone pretends they do not want.",
+      "replies": [
+        {
+          "author": "donal",
+          "hoursAfter": 2,
+          "message": "I am going and I have two seats. Flask is compulsory."
+        },
+        {
+          "author": "nia",
+          "hoursAfter": 3,
+          "message": "Perfect, thank you. Flask is a promise."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 9,
+          "message": "For future reference there is a lifts thread for every juvenile fixture in Events — you will get an answer in ten minutes in there."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "siobhan",
+      "title": "Volunteers: two hours on a Saturday morning, and that is the whole ask",
+      "daysAgo": 17,
+      "message": "We need four people for two hours on Saturday mornings, on a rota, so it works out at about once every six weeks.\n\nIt is: open up, put the nets up, make tea, take the money at the gate, close the shutter. It is not skilled and it is not a committee position and nobody will ask you to do anything else, which I know is the fear.",
+      "replies": [
+        {
+          "author": "petra",
+          "hoursAfter": 3,
+          "message": "I will do it. I have been coming to games for a year and doing nothing and feeling slightly guilty about it."
+        },
+        {
+          "author": "sam",
+          "hoursAfter": 6,
+          "message": "Me. I am there anyway."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 9,
+          "message": "Me, on the weeks I am not playing."
+        },
+        {
+          "author": "aoife",
+          "hoursAfter": 26,
+          "message": "And me. That is four in a day, which I suspect says something about how the ask was worded."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 30,
+          "quotes": 4,
+          "message": "It does. Twelve years of \"we need volunteers\" got us nothing. \"Two hours, once every six weeks, here is exactly what it is\" got us four in a day."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "tomas",
+      "title": "Anyone with a trailer free on Sunday?",
+      "daysAgo": 12,
+      "message": "Need to shift the old goals to the recycling centre and they will not go in anything I own.\n\nHalf an hour of work, two people, and I will buy the lunch.",
+      "replies": [
+        {
+          "author": "gerry",
+          "hoursAfter": 3,
+          "message": "I have a trailer and I want those goals gone more than you do."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 8,
+          "message": "I will be the second pair of hands. Lunch is non-negotiable."
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 30,
+          "message": "Done in forty minutes and the far corner of the car park is a car park again."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "petra",
+      "title": "Found: keys with a bottle opener on the ring",
+      "daysAgo": 10,
+      "message": "On the wall outside the clubhouse after the quiz. Two house keys, a car key, and a bottle opener with a crest on it that I do not recognise.\n\nBehind the bar now. Describe the crest and they are yours.",
+      "replies": [
+        {
+          "author": "frank",
+          "hoursAfter": 2,
+          "message": "It is a darts crest and they are mine and I have been going out of my mind since Friday."
+        },
+        {
+          "author": "petra",
+          "hoursAfter": 4,
+          "message": "Correct. Collect them from Marie behind the bar."
+        },
+        {
+          "author": "ken",
+          "hoursAfter": 20,
+          "message": "A man who loses his keys at a table quiz and does not notice until Sunday is a man who enjoyed the table quiz."
+        }
+      ]
+    },
+    {
+      "forum": "noticeboard",
+      "author": "gerry",
+      "title": "The bins after Saturday. Please.",
+      "daysAgo": 3,
+      "message": "Three bins, all of them empty at two o'clock, all of them overflowing by five, and about forty cups on the ground behind the far goal.\n\nI am not going to give out. I am going to point out that the same six people tidy up after every single home game and none of them played in it.",
+      "replies": [
+        {
+          "author": "marty",
+          "hoursAfter": 1,
+          "message": "Squad will do the far side after the game on Saturday. It should never have been anybody else's job."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 3,
+          "message": "Ladies squad will do the near side and the clubhouse. Ten minutes with twenty of us."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 6,
+          "message": "The U16s will do the car park. Some of us are the ones dropping the cups, in fairness."
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 9,
+          "message": "Well now I feel like a curmudgeon and the place will be spotless. Both of those are fine."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 26,
+          "message": "Every club has this thread and most of them have it as a row. This one took nine hours and three teams volunteered. Noted for the AGM."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "tomas",
+      "title": "Club shop clear-out: last season's training tops, €10",
+      "daysAgo": 60,
+      "prefix": "sold",
+      "message": "Thirty-odd training tops from last season's design, all sizes from small to XXL, €10 each and every cent goes to the pitch fund.\n\nThey are perfectly good tops. The only thing wrong with them is that they say last season on the sleeve.",
+      "replies": [
+        {
+          "author": "paudie",
+          "hoursAfter": 2,
+          "message": "Two XL. I do not care what the sleeve says."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 5,
+          "message": "Three smalls for the children, who do care what the sleeve says, and will get over it."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 11,
+          "message": "One medium. It is the first club top I have ever owned and I am delighted with it."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 26,
+          "message": "Take the last of them and put them in the raffle at the quiz, they will go for more than a tenner."
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 74,
+          "message": "All gone. €340 to the pitch fund, and four went in the raffle for €15 each, so Frank was right and I hate it."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "pixel",
+      "title": "Graphics card, works fine, upgrading",
+      "daysAgo": 44,
+      "prefix": "sold",
+      "message": "Selling because I upgraded, not because there is anything wrong with it. Three years old, never overclocked, and it has been in a case with actual airflow.\n\n€120 and I will drop it anywhere within an hour of the clubhouse, or post it at cost.",
+      "replies": [
+        {
+          "author": "glitch",
+          "hoursAfter": 2,
+          "message": "Is it enough for the Tuesday runs at 1440? That is my whole use case."
+        },
+        {
+          "author": "pixel",
+          "hoursAfter": 3,
+          "quotes": 1,
+          "message": "Comfortably. It is what I have been doing them on for three years."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 8,
+          "message": "If Glitch does not take it, I will, and I will need three weeks to convince my father."
+        },
+        {
+          "author": "glitch",
+          "hoursAfter": 20,
+          "message": "Taking it. Sorry Cormac."
+        },
+        {
+          "author": "pixel",
+          "hoursAfter": 30,
+          "message": "Sold and posted. Cormac, I have a spare cooler you can have for nothing when you get one."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "frank",
+      "title": "Half a home gym, collection only, and I mean collection",
+      "daysAgo": 35,
+      "prefix": "forsale",
+      "message": "Bench, a bar, and about 80kg of plates. €90 the lot.\n\nIt is in a shed at the back of the house and it weighs what 80kg of plates weighs. Bring somebody who lifts, which was the plan when I bought it.",
+      "replies": [
+        {
+          "author": "shay",
+          "hoursAfter": 4,
+          "message": "Interested. Can collect Sunday with the van."
+        },
+        {
+          "author": "jt",
+          "hoursAfter": 9,
+          "message": "If nobody takes it, the club could do with a bench in the gym room. I will ask the committee."
+        },
+        {
+          "author": "shay",
+          "hoursAfter": 26,
+          "message": "Took it. Two of us and it still took forty minutes."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 30,
+          "message": "And that is how a home gym works. Six weeks of use, four years of storage, one afternoon of regret for somebody else."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "oisin",
+      "title": "Boots, size 9, worn twice",
+      "daysAgo": 30,
+      "prefix": "forsale",
+      "message": "Bought them, wore them twice, they are not for me. Firm ground studs, no marks on them at all.\n\n€45 or nearest. In the clubhouse most Tuesdays and Thursdays.",
+      "replies": [
+        {
+          "author": "cormac",
+          "hoursAfter": 6,
+          "message": "What are they like on the far pitch when it is soft? That is all I care about."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 8,
+          "quotes": 1,
+          "message": "Useless. That is why I wore them twice."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 20,
+          "message": "I will take them for the hall on Thursdays. €45 is fine."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 30,
+          "message": "Gone. Sold to a man who has understood exactly what he is buying."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "olu",
+      "title": "Wanted: five-a-side goals that are not falling apart",
+      "daysAgo": 27,
+      "prefix": "wanted",
+      "message": "The two we have in the hall are held together with cable ties and hope. Looking for a pair of freestanding ones, secondhand is completely fine.\n\nThursday group would go halves with the club if the club is interested.",
+      "replies": [
+        {
+          "author": "gerry",
+          "hoursAfter": 5,
+          "message": "The old juvenile ones are in the container and they are sound. They just need new nets."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 8,
+          "quotes": 1,
+          "message": "That is a much better answer than buying anything. Can I get at them Saturday?"
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 9,
+          "message": "I will open the container at ten."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 74,
+          "message": "Two goals, two new nets, €38 total. Cancelling the whole fundraising plan I had in my head."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "bernie",
+      "title": "Child's bike, 20 inch, grown out of",
+      "daysAgo": 18,
+      "prefix": "forsale",
+      "message": "Twenty inch wheels, blue, one careful owner and one careless one. Brakes are good, tyres are good, there is a sticker on the frame that is not coming off.\n\n€40, or free to anyone who needs it for a child and would rather not say so publicly — message me and it is yours, no questions.",
+      "replies": [
+        {
+          "author": "mira",
+          "hoursAfter": 5,
+          "message": "That last line is a lovely thing to put in a for-sale post and more people should do it."
+        },
+        {
+          "author": "nia",
+          "hoursAfter": 20,
+          "message": "Took it. Thank you Bernie."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 26,
+          "message": "Gone to a good home. There are two more bikes in my shed if anyone is in the same boat."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "sunny",
+      "title": "Wanted: a decent mic, under €60",
+      "daysAgo": 12,
+      "prefix": "wanted",
+      "message": "Mine has been described on the Tuesday call as \"a man shouting into a biscuit tin\", which is fair.\n\nUnder €60, secondhand is fine, does not need to be fancy. Just needs to not be a biscuit tin.",
+      "replies": [
+        {
+          "author": "bram",
+          "hoursAfter": 2,
+          "message": "I have a spare that is genuinely fine and you can have it for nothing. It is in a box under the desk doing no good to anybody."
+        },
+        {
+          "author": "sunny",
+          "hoursAfter": 4,
+          "message": "That is very kind. Are you sure?"
+        },
+        {
+          "author": "bram",
+          "hoursAfter": 5,
+          "quotes": 2,
+          "message": "Completely. The condition is that you stop apologising for your audio every single week."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 20,
+          "message": "Seconded, and I would have paid the €60 myself to make that happen."
+        },
+        {
+          "author": "sunny",
+          "hoursAfter": 48,
+          "message": "Arrived, plugged in, and apparently I have a voice. Thanks Bram."
+        }
+      ]
+    },
+    {
+      "forum": "market",
+      "author": "petra",
+      "title": "Two tickets for the final, face value only",
+      "daysAgo": 5,
+      "prefix": "forsale",
+      "message": "Two together, face value, because we cannot go any more and I am not having them wasted.\n\n**Face value.** If you message me offering more I will give them to the next person who does not.",
+      "replies": [
+        {
+          "author": "shay",
+          "hoursAfter": 2,
+          "message": "Would take them at face value if they are still going. Can collect tonight."
+        },
+        {
+          "author": "petra",
+          "hoursAfter": 3,
+          "message": "They are yours. See you at the clubhouse at eight."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 9,
+          "message": "Face value only is the correct way to do this and I wish every club in the country would copy it."
+        },
+        {
+          "author": "ciara",
+          "hoursAfter": 106,
+          "message": "Two spare tickets for the final on Sunday, at face value. We cannot make it after all. Happy to hand them over at the clubhouse on Saturday morning."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "noelle",
+      "title": "How subs work, in plain English",
+      "daysAgo": 90,
+      "sticky": true,
+      "message": "Pinned because I answer this eleven times every January.\n\n**Adult playing** covers the league registration, insurance, pitch hire and referees. It is the biggest one and roughly two-thirds of it goes straight back out to the league before we see it.\n\n**Adult social** is the same membership without the playing registration. You get a vote at the AGM, the clubhouse, and every event we run.\n\n**Juvenile** covers a child for a full season, including the camp week at a reduced rate. **Family** covers everybody in a household and works out cheaper from the second child.\n\n**Supporters** is the optional one on top. It is not a membership — it is people choosing to put a few euro a month in, and it is currently paying for the juvenile jerseys.\n\nNobody has ever been turned away for not being able to pay. If that is you, message me and it is dealt with quietly and nobody else knows.",
+      "replies": [
+        {
+          "author": "bernie",
+          "hoursAfter": 5,
+          "message": "That last line should be in bold and on the front page. It is the single most important sentence this club has written down."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 9,
+          "message": "It has been true for fifty years and written down for one. That is on us."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 26,
+          "message": "Joining a club in a country you have just moved to and not knowing what any of it costs is genuinely stressful. This post would have saved me a fortnight of wondering."
+        },
+        {
+          "author": "member",
+          "hoursAfter": 74,
+          "message": "What is the actual difference between Supporters and just paying more? Is it a badge?"
+        },
+        {
+          "author": "noelle",
+          "hoursAfter": 80,
+          "quotes": 4,
+          "message": "It is a badge, honestly. And a coloured name, and the knowledge that the juveniles have jerseys. It buys nothing you cannot already do — we deliberately kept it that way, because a club where the people who pay more can see more is not a club."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "tomas",
+      "title": "Kit order: sizes, form and the deadline I will actually enforce",
+      "daysAgo": 130,
+      "message": "Order form is open until the end of the month. Sizes run small — if you are between two, take the bigger one, and I say that every year and every year eleven people ignore me.\n\nNumbers are €4 extra and names are €6. Juvenile sets come with the number included because the alternative is chaos.",
+      "replies": [
+        {
+          "author": "shay",
+          "hoursAfter": 4,
+          "message": "Took the bigger one. Learned my lesson in 2023."
+        },
+        {
+          "author": "zoe",
+          "hoursAfter": 9,
+          "message": "Nineteen U10s, nineteen forms, all in by Friday. I have made it a competition and they do not know."
+        },
+        {
+          "author": "oisin",
+          "hoursAfter": 20,
+          "message": "Can I get the same number as last year or is that a whole thing?"
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 22,
+          "quotes": 3,
+          "message": "It is not a whole thing. It is a spreadsheet and you are on it. Nine, as always."
+        },
+        {
+          "author": "paudie",
+          "hoursAfter": 50,
+          "message": "Ordered a medium out of hope. Will report back in shame."
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 200,
+          "message": "Order in, and eleven people ordered too small. Same eleven as last year, near enough."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "bernie",
+      "title": "Can we do a family rate?",
+      "daysAgo": 240,
+      "message": "Three children playing costs me more than my own membership, my husband's and the two of us going to everything for a year.\n\nI am not pleading poverty and we will pay it. I am saying that the family down the road with three children looked at the number and did not join, and that is the club's loss more than theirs.",
+      "replies": [
+        {
+          "author": "noelle",
+          "hoursAfter": 6,
+          "message": "The maths, honestly: a household cap costs us about €1,400 a year at current numbers. It is not nothing and it is not fatal."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 11,
+          "message": "I voted no and I will say why rather than sulking: the same argument gets made for the social membership every year and we cannot discount everything. Happy to be outvoted."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 20,
+          "message": "That is exactly how to disagree with something. Noted, and it will get said at the AGM by me rather than being a rumour."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 30,
+          "message": "Four families in the juvenile section have more than two playing. Four. This is not a flood."
+        },
+        {
+          "author": "ellie",
+          "hoursAfter": 74,
+          "message": "We are one of the four and we joined in spite of the price rather than because it was fine."
+        },
+        {
+          "author": "noelle",
+          "hoursAfter": 700,
+          "message": "Passed at the AGM, uncapped, in for this season. Eleven households on it already and two of them are new members."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "siobhan",
+      "title": "Where the pitch fund money went, in numbers",
+      "daysAgo": 88,
+      "message": "Because \"the pitch fund\" has become a thing people put money into without ever being told where it goes.\n\n- Quiz nights, two of them: **€2,310**\n- The July friendly gate: **€160**\n- Club shop clear-out: **€340**\n- Supporters memberships: **€1,180**\n- Straight donations, including one anonymous €500: **€890**\n\nOut: **€1,900** on the far-corner drainage patch that lasted one winter, **€680** on the mower service, and **€240** on nets.\n\nSitting at **€6,200**, and the full drainage job is €14,000. That is the whole picture and it is why the AGM matters this year.",
+      "replies": [
+        {
+          "author": "gerry",
+          "hoursAfter": 3,
+          "message": "The €1,900 patch was my call and it did not work. Worth saying out loud so nobody repeats it."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 8,
+          "message": "A committee that posts a failed €1,900 spend in public is a committee I will keep giving money to."
+        },
+        {
+          "author": "noelle",
+          "hoursAfter": 14,
+          "message": "Every figure in that post comes off the same account and I will show the statements to anybody who asks, at any time."
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 26,
+          "message": "The grant application closes in April and would cover half of the fourteen. I am doing it with Noelle and we could use a third pair of eyes."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 30,
+          "message": "I have written eleven of these for the community centre. Send it to me before you submit it."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 50,
+          "message": "And that reply is worth more than the anonymous €500. Thank you."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "tomas",
+      "title": "Sponsorship: the shirt is spoken for, the shorts are not",
+      "daysAgo": 70,
+      "message": "The garage has taken the shirt front for another two seasons, which is the eleventh year and they have never once asked for anything in return.\n\nStill available: shorts, the juvenile set, the sideline board, and the seconds' shirt. Prices are on the sheet in the clubhouse and they are negotiable, especially for anything that keeps a local business going.\n\nIf you work somewhere that might, ask them. It is a much easier conversation from an employee than from me.",
+      "replies": [
+        {
+          "author": "luca",
+          "hoursAfter": 9,
+          "message": "My employer does community sponsorship and nobody has ever asked them. I will bring it to them Monday."
+        },
+        {
+          "author": "hana",
+          "hoursAfter": 20,
+          "message": "The hairdresser did the ladies set for two years and got more business out of it than she expected. Worth mentioning to anyone hesitating."
+        },
+        {
+          "author": "luca",
+          "hoursAfter": 200,
+          "message": "They said yes. Seconds' shirt, two seasons, and they are sending someone to the awards night."
+        },
+        {
+          "author": "tomas",
+          "hoursAfter": 210,
+          "message": "Eleven years of me asking and the new lad gets one in a fortnight. Delighted and mildly insulted."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "member",
+      "title": "What does the Supporters thing actually get you?",
+      "daysAgo": 26,
+      "message": "Saw it on the subs page. It is a few euro a month and I cannot work out from the description whether I am buying something or just donating.\n\nHappy to donate. Would just like to know which one it is.",
+      "replies": [
+        {
+          "author": "noelle",
+          "hoursAfter": 2,
+          "message": "You are donating, with a badge attached. Concretely: your name is a different colour, there is a badge beside it, and the money is ring-fenced for the juvenile section. That is the whole of it — no forums you cannot otherwise see, no queue you skip."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 4,
+          "message": "And it stops on its own when you stop paying, without anybody having to remember to take it off you. That was the part that made it worth doing at all."
+        },
+        {
+          "author": "member",
+          "hoursAfter": 9,
+          "message": "That is a straight answer, thank you. I will do it when the subs come round in January."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 26,
+          "message": "Do. Everybody I know who signed up said it was only for the badge and then quietly kept paying for two years."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "admin",
+      "title": "Some of you got two renewal reminders. Sorry.",
+      "daysAgo": 40,
+      "message": "If you got the renewal email twice on Tuesday, that was me. I ran the reminder task by hand after it had already run on schedule, because I did not check whether it had already run on schedule.\n\nNobody was charged twice. Nothing is wrong with your membership. It was two emails and one red face.",
+      "replies": [
+        {
+          "author": "paudie",
+          "hoursAfter": 1,
+          "message": "I got three."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 2,
+          "quotes": 1,
+          "message": "You got three because you are also in the juvenile parents list. That one is on the list, not on me, and I have fixed it."
+        },
+        {
+          "author": "petra",
+          "hoursAfter": 9,
+          "message": "Two emails from a club that is chasing €40 is not a scandal. Two emails from anywhere else and I would have unsubscribed."
+        },
+        {
+          "author": "noelle",
+          "hoursAfter": 20,
+          "message": "Renewals are at 84% which is the highest we have ever been at this point in the year, so the emails are doing their job even when they do it twice."
+        }
+      ]
+    },
+    {
+      "forum": "membership",
+      "author": "noelle",
+      "title": "Lapsed members: we are not chasing you, but the door is open",
+      "daysAgo": 15,
+      "message": "Thirty-one people who were members last year have not renewed. I am not going to ring any of you, because being rung about money is horrible.\n\nWhat I will say once, here: if you stopped because of the cost, see the pinned post. If you stopped because you stopped playing, the social membership is €25 and gets you the same clubhouse and the same vote.\n\nAnd if you stopped because something happened here that put you off, I would genuinely like to know, and you can message me or Siobhán and it goes no further.",
+      "replies": [
+        {
+          "author": "siobhan",
+          "hoursAfter": 4,
+          "message": "That third one is not a formality. Two people told us last year and both of them were right, and one of the things they raised is why the match thread rules exist now."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 11,
+          "message": "Renewed three lads from the over-35s by forwarding this to them. None of them had realised the social one existed."
+        },
+        {
+          "author": "noelle",
+          "hoursAfter": 74,
+          "message": "Nine of the thirty-one renewed in a week and one of them is back playing. Worth writing."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "admin",
+      "title": "People were getting logged out every couple of hours. Fixed.",
+      "daysAgo": 45,
+      "prefix": "solved",
+      "message": "Four people told me they were being logged out during the day and I could not reproduce it on my own account, which is the worst kind of bug.\n\nCause: I put a second web container in when the board got busy on match days, and the two of them did not share the same signing secret. A session made by one was gibberish to the other, so every second request looked like a stranger.\n\nSame secret on both, redeployed, gone. Writing it down because it took me two evenings and the symptom points nowhere near the cause.",
+      "replies": [
+        {
+          "author": "paudie",
+          "hoursAfter": 3,
+          "message": "I thought I was doing something wrong and had stopped mentioning it. That is the real cost of a bug like that."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 9,
+          "message": "Same, and I had started keeping the tab open all day so I would not have to log in again."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 11,
+          "quotes": 2,
+          "message": "That is exactly the behaviour that hides it — the people it affects stop reporting it and work around it. Please always tell me, even when you assume it is you."
+        },
+        {
+          "author": "vex",
+          "hoursAfter": 30,
+          "message": "Two containers on match day is a nice problem for a club board to have, in fairness."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "rosa",
+      "title": "Search finds nothing for a thread I am looking straight at",
+      "daysAgo": 34,
+      "prefix": "solved",
+      "message": "Searching for \"shoebox\" gives me nothing, and the shoebox thread is right there on the noticeboard with my name on it.\n\nEverything else about the site is completely normal. It is only search.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 1,
+          "message": "That will be me. I moved the board to the new server on Sunday and restored from a dump, and the search index does not always come across in one — the posts are all there, the thing that makes them findable is not.\n\nRunning the reindex now. It works through the whole board in the background, so it will start finding things again gradually rather than all at once."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 3,
+          "message": "Shoebox thread is back. So are the minutes from 2019, which I could not find last week either and had assumed I had imagined."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 5,
+          "message": "Ninety thousand posts in about twelve minutes. Everything is findable again, including the things you had given up on."
+        },
+        {
+          "author": "mira",
+          "hoursAfter": 26,
+          "message": "Worth knowing that search covers the old parish notices too. I found a 2017 hall booking argument that I would rather have left buried."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "paudie",
+      "title": "Cannot log in on the phone, grand on the laptop",
+      "daysAgo": 20,
+      "prefix": "solved",
+      "message": "Same password. Works on the laptop every time, fails on the phone every time. I have typed it slowly. I have typed it very slowly.",
+      "replies": [
+        {
+          "author": "moderator",
+          "hoursAfter": 1,
+          "message": "Is the phone putting a capital on the first letter? It does that in the username box and the username is not the problem, the capital is."
+        },
+        {
+          "author": "paudie",
+          "hoursAfter": 2,
+          "message": "It is putting a capital on it."
+        },
+        {
+          "author": "paudie",
+          "hoursAfter": 2,
+          "message": "I am in. Twenty-five years of technology and I am beaten by an automatic capital letter."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 4,
+          "quotes": 2,
+          "message": "You are the fourth. It is the single most common thing anyone asks me here."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 20,
+          "message": "Fourth is enough. Names are matched without case now, so the capital does not matter any more."
+        },
+        {
+          "author": "frank",
+          "hoursAfter": 30,
+          "message": "A support thread that ends with the software changing is a good day for everybody."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "cormac",
+      "title": "Is there an app?",
+      "daysAgo": 17,
+      "message": "Not complaining, the site is fine on the phone. Just asking whether there is an app I am missing.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 4,
+          "message": "There is not, and there will not be. What there is: add it to your home screen from the browser menu and it opens like one, full screen, no address bar. That gets you 95% of an app for none of the maintenance."
+        },
+        {
+          "author": "cormac",
+          "hoursAfter": 6,
+          "message": "Did that. It is an app now as far as I am concerned."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 20,
+          "message": "Somebody should put those five words in the pinned post because I did not know you could do that."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 26,
+          "quotes": 3,
+          "message": "Added, with a screenshot for both kinds of phone."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "bernie",
+      "title": "My notifications have gone quiet",
+      "daysAgo": 14,
+      "message": "I used to get an email when the U12 thread got a reply and I have had none for about a fortnight. The thread is definitely getting replies.\n\nHave I turned something off by accident?",
+      "replies": [
+        {
+          "author": "moderator",
+          "hoursAfter": 2,
+          "message": "Check the subscription on the thread first — it is at the top of the thread and it will say \"watching\" or \"not watching\". A reply from a phone sometimes gets sent with the box unticked."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 3,
+          "message": "It says not watching. I did not do that on purpose."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 5,
+          "message": "You did, though not knowingly — replying with \"subscribe\" unticked replaces the old setting. It is a bad default and I have changed it: replying now leaves an existing subscription alone."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 9,
+          "message": "Back to normal, and I now know what that box does after a year of ignoring it."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 26,
+          "message": "Two other parents have said the same thing this month. That change will save me a lot of \"did you not see the thread\"."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "sam",
+      "title": "How do I turn the emails off without leaving?",
+      "daysAgo": 9,
+      "message": "I am on here every day. I do not need to be told by email that a thread I read an hour ago has a reply.\n\nI do want the ones about my own account and the fixture cancellations. Is that a setting or is it all or nothing?",
+      "replies": [
+        {
+          "author": "moderator",
+          "hoursAfter": 2,
+          "message": "It is a setting, in your account under notifications, and it splits about six ways. Turn off thread replies, leave the account and announcement ones on."
+        },
+        {
+          "author": "sam",
+          "hoursAfter": 4,
+          "message": "Found it. Six switches and I have flicked four. Perfect."
+        },
+        {
+          "author": "petra",
+          "hoursAfter": 20,
+          "message": "I did the opposite last month — turned everything on and it is far too much. Somewhere in the middle is the answer and it took me a while to find it."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 30,
+          "message": "The middle is going to be the default for new accounts from now on. Nobody's first week should be forty emails."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "dev",
+      "title": "Photos upload fine and then are not on the post",
+      "daysAgo": 6,
+      "prefix": "solved",
+      "message": "Progress bar goes all the way, post saves, and there is no photo on it. Happened with about sixty from Saturday.\n\nStarted after the server move. Working on a laptop and on the phone, so it is not me.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 2,
+          "message": "Photos are resized in the background rather than while you wait — that is why a hundred of them do not lock the page up. So this is almost always the background worker not running rather than the upload failing. Checking the tasks screen now."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 3,
+          "message": "The worker is not in the new setup at all. It never got copied across in the move. That is entirely my fault and nothing is lost — everything queued is still queued."
+        },
+        {
+          "author": "dev",
+          "hoursAfter": 4,
+          "message": "All sixty appeared within a minute of each other just now. That was alarming and then delightful."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 9,
+          "quotes": 2,
+          "message": "That is the queue draining. The reminder emails and the membership expiries run on the same thing, which explains two other small mysteries this week."
+        },
+        {
+          "author": "noelle",
+          "hoursAfter": 20,
+          "message": "It explains why three renewals did not expire on time. I had assumed I had done something wrong."
+        }
+      ]
+    },
+    {
+      "forum": "support",
+      "author": "kev",
+      "title": "Can somebody be stopped from opening six threads a day without banning them?",
+      "daysAgo": 2,
+      "message": "One person, breaking no rule, being perfectly pleasant, and opening five or six threads a day in Buy, sell and swap where one would do.\n\nI would like them to be able to reply and not to open new ones, in that one forum. Is that a thing or am I inventing it?",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 2,
+          "message": "It is a thing. Permissions resolve per group per forum, so you make a group with \"post threads\" off and \"post replies\" on, put them in it, and apply it to that one forum. They will not notice anywhere else on the board."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 4,
+          "message": "Did not know it went per forum. That is exactly the shape of the problem."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 6,
+          "message": "Talk to them first though. Nine times out of ten \"you are posting a lot, could you do one thread\" works and nobody has to be quietly restricted."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 20,
+          "message": "Talked to them. They had no idea and were mortified. One thread now, updated as things sell. No permissions needed."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 26,
+          "quotes": 3,
+          "message": "That is the right order to do it in and I should have said so first."
+        }
+      ]
+    },
+    {
+      "forum": "feedback",
+      "author": "donal",
+      "title": "The board on a phone at a pitch with one bar of signal",
+      "daysAgo": 60,
+      "message": "Standing in a field in Ennis trying to check whether the second game was 12 or 12:30, on one bar, in the rain.\n\nIt loaded. That is the whole feedback. I have used club websites that would not have loaded on the wifi at home and this one came up in a field.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 4,
+          "message": "That is the thing I care most about and almost nobody ever mentions, so thank you. Pages are plain HTML first and the clever bits come after — which is why it works on one bar."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 9,
+          "message": "Twelve. It was 12. And I know because I checked it in the same field."
+        },
+        {
+          "author": "zoe",
+          "hoursAfter": 26,
+          "message": "The old site needed the app to do anything and the app needed a signal. Two seasons of standing on a wall holding a phone in the air."
+        }
+      ]
+    },
+    {
+      "forum": "feedback",
+      "author": "pixel",
+      "title": "Dark mode, and can we have the club colours in it",
+      "daysAgo": 33,
+      "message": "Half the Tuesday crowd is on this at eleven at night and the board is very white.\n\nAlso, and I say this with love: the default look is fine, but a club with green and white on the crest could have green and white on the site.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 3,
+          "message": "There is a picker at the bottom of every page and it takes a click, no account needed. Try the dark one now and tell me if the greens are wrong on your screen."
+        },
+        {
+          "author": "pixel",
+          "hoursAfter": 5,
+          "message": "Found it. Four options. Two of them are genuinely lovely and one of them looks like a raid interface, which I did not expect from a club website."
+        },
+        {
+          "author": "wraith",
+          "hoursAfter": 9,
+          "message": "The raid one is the only one I will use and I will hear nothing about it."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 20,
+          "message": "And the club colours are in the crest at the top, which is the compromise I am happy with. The whole site in green and white was tried in 2011 and it was unreadable."
+        },
+        {
+          "author": "bram",
+          "hoursAfter": 30,
+          "message": "The picker sticking without an account is the good bit. My mother reads the fixtures on here and will never make an account, and she has it on the big-text one."
+        }
+      ]
+    },
+    {
+      "forum": "feedback",
+      "author": "mairead",
+      "title": "A calendar view would be lovely",
+      "daysAgo": 25,
+      "message": "Everything is in Events and it is all findable, but a parent with children in three teams is reading four threads to work out one Saturday.\n\nA month at a glance would save me the twelve messages I get every Friday.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 5,
+          "message": "Fair, and it is not there. What is there today: subscribe to a team's threads and the emails arrive as things change. That is not a calendar and I am not pretending it is."
+        },
+        {
+          "author": "bernie",
+          "hoursAfter": 9,
+          "message": "Seconding hard. Three children, three teams, and I keep a paper calendar on the fridge because of this exact thing."
+        },
+        {
+          "author": "nova",
+          "hoursAfter": 14,
+          "message": "Same on our side for a completely different reason — the ranked block and the raid night are fixed times and new people cannot see them at a glance anywhere."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 26,
+          "message": "That is two very different groups asking for the same screen, which is usually the sign it is worth building. On the list, honestly rather than politely."
+        },
+        {
+          "author": "mairead",
+          "hoursAfter": 50,
+          "message": "Honestly rather than politely is all I ask of any committee."
+        }
+      ]
+    },
+    {
+      "forum": "feedback",
+      "author": "dara",
+      "title": "A prefix for a called-off fixture",
+      "daysAgo": 19,
+      "message": "We have Fixture, Sign-up and Result. When a game is off I edit the title to start with \"OFF —\" and it looks like shouting.\n\nA grey \"Called off\" prefix would do the job and would be visible from the forum list without opening anything.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 4,
+          "message": "Prefixes are a screen in the admin panel, so this is about a minute of work rather than a feature. Adding it tonight, scoped to Events so it does not clutter the rest of the board."
+        },
+        {
+          "author": "marty",
+          "hoursAfter": 8,
+          "message": "Can it be a loud colour rather than grey? The whole point is that people see it at a glance from the phone in the car park."
+        },
+        {
+          "author": "dara",
+          "hoursAfter": 9,
+          "quotes": 2,
+          "message": "Fine. Loud it is. I withdraw grey."
+        },
+        {
+          "author": "gerry",
+          "hoursAfter": 26,
+          "message": "I will be the one using it most and I would like it in red, thank you."
+        }
+      ]
+    },
+    {
+      "forum": "feedback",
+      "author": "nova",
+      "title": "Sign-up threads should close themselves",
+      "daysAgo": 11,
+      "message": "Every week somebody signs up for the Sunday block on the Sunday evening, after the teams are drawn, and then wonders why they are not on one.\n\nIf a sign-up thread could lock itself at a time I set when I post it, that solves it without me having to remember to lock fourteen threads.",
+      "replies": [
+        {
+          "author": "tinker",
+          "hoursAfter": 3,
+          "message": "Same for the raid roster. I lock it manually on Monday nights and I have forgotten twice."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 8,
+          "message": "And the five-a-side. Three of us are describing one feature, which I think is the point of this forum."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 14,
+          "message": "It does not exist. What does: locking a thread is one click for a moderator, and all three of you are moderators of your own corner already. Not a solution, an admission."
+        },
+        {
+          "author": "nova",
+          "hoursAfter": 20,
+          "message": "An honest \"no, and here is the workaround\" is worth more than a maybe. Locking manually it is."
+        }
+      ]
+    },
+    {
+      "forum": "feedback",
+      "author": "olu",
+      "title": "Could Events be the first thing you see?",
+      "daysAgo": 7,
+      "message": "Announcements is at the top because it is important, but it changes twice a month. Events changes every day and it is what almost everybody is actually here for.\n\nNot a complaint about the order. A question about what a first-time visitor sees.",
+      "replies": [
+        {
+          "author": "admin",
+          "hoursAfter": 3,
+          "message": "The order is a number on each forum in the admin panel and I can change it in ten seconds. The question is whether Announcements stops getting read if it moves down."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 6,
+          "message": "It will stop getting read. That is not a guess — it is what happened on the old site when the notices went below the fold."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 11,
+          "message": "Compromise: leave the order alone and make the front page show the newest posts across everything. Then the busy forum is at the top by being busy."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 20,
+          "quotes": 3,
+          "message": "That already exists, it is just not the landing page. Making it the landing page for logged-in members and leaving the forum list for everybody else. Trying it for a fortnight."
+        },
+        {
+          "author": "olu",
+          "hoursAfter": 30,
+          "message": "Two days in and the Thursday sign-up has four more people than usual. Small thing, real difference."
+        }
+      ]
+    },
+    {
+      "forum": "moderation",
+      "author": "siobhan",
+      "title": "What the staff will and will not do",
+      "daysAgo": 300,
+      "sticky": true,
+      "message": "Written down because \"the moderators\" being a vague and slightly frightening idea does nobody any good.\n\n**We will:** take down anything about a child that a parent is not happy with, immediately and without argument. Remove spam. Lock a thread that has stopped being a conversation. Have a private word before we do anything public.\n\n**We will not:** delete a post because it disagrees with the committee. Take sides in an argument about a referee. Remove a complaint about how the club is run — those stay up, including the ones that are unfair, because a board where the criticism disappears is worth nothing.\n\n**Who we are:** two administrators, two super moderators, and four moderators who each look after a corner of the board. Names are on the staff page and every one of us is a volunteer with a day job.\n\nIf you think we got something wrong, say so. There is a report button on every post and it comes to all of us, not just the person you are annoyed with.",
+      "replies": [
+        {
+          "author": "frank",
+          "hoursAfter": 9,
+          "message": "The bit about complaints staying up is the one that matters and it is the one most clubs would quietly leave out."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 20,
+          "message": "It has been tested twice since this was posted and held both times, which is the only reason anybody believes it."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 44,
+          "message": "Worth adding: a report is not an accusation. Half of what I get is \"this is probably fine but you should see it\", and that is exactly the right use of it."
+        }
+      ]
+    },
+    {
+      "forum": "moderation",
+      "author": "mairead",
+      "title": "Photos of children: the rule, and why it is not up for discussion",
+      "daysAgo": 200,
+      "sticky": true,
+      "locked": true,
+      "message": "One rule, in three parts.\n\n1. **No photograph of a child goes on this board unless their parent has ticked the box on the membership form.** Not \"unless they objected\". Ticked.\n2. **Any parent can ask for any photo to come down, at any time, without giving a reason**, and it will be gone inside an hour.\n3. **No full names of under-18s** beside a photograph. First name only, and only if the parent is happy with that too.\n\nThis is not the committee being nervous. It is the safeguarding policy we are required to have and it is also, separately, just the right way to behave.\n\nLocked because it is a policy rather than a discussion. Questions to me or to the welfare officer, any time.",
+      "replies": []
+    },
+    {
+      "forum": "moderation",
+      "author": "dara",
+      "title": "Why every new account's first post is held",
+      "daysAgo": 92,
+      "message": "A new member posted on Saturday, saw \"waiting for approval\", and messaged me thinking they had done something wrong.\n\nThey had not. Every brand new account has its first post held until somebody looks at it, and it is almost always approved within the hour.\n\nIt exists because it is the single most effective thing we do against spam. The bots that get through registration still cannot get a link onto the board, because a person reads the first thing they write.",
+      "replies": [
+        {
+          "author": "moderator",
+          "hoursAfter": 3,
+          "message": "And the wording on the screen is now much friendlier than it was, because that member was the third person to think they were in trouble."
+        },
+        {
+          "author": "admin",
+          "hoursAfter": 26,
+          "message": "It costs the staff about four clicks a week. It has stopped, at a rough count, three hundred spam posts."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 50,
+          "message": "The queue is the least glamorous screen on the board and it is the one that keeps this place readable."
+        },
+        {
+          "author": "rook",
+          "hoursAfter": 800,
+          "message": "Mine was held and approved in about twenty minutes, and the message explained why. No complaints at all."
+        }
+      ]
+    },
+    {
+      "forum": "moderation",
+      "author": "admin",
+      "title": "The spam wave last month, and what actually stopped it",
+      "daysAgo": 57,
+      "message": "About nine hundred registration attempts over four days. Roughly thirty got as far as writing a post. Writing it down because two other clubs locally got the same wave the same week.\n\n**Did not work:** the hidden field that bots are supposed to fill in. Whatever was driving this filled the form like a browser, because it was one.\n\n**Worked:** the registration question. One line, specific to the club, that you cannot answer by reading the page — ours asks what colour the away jerseys were before the change. Attempts went from about two hundred a day to under five.\n\n**Worked quietly:** holding first posts. The thirty that got through never became visible, so the board never looked spammed, which matters more than the raw number.\n\nCost to real people: two members emailed to say the question was confusing. Both got in the same evening.",
+      "replies": [
+        {
+          "author": "siobhan",
+          "hoursAfter": 4,
+          "message": "The \"never looked spammed\" part is underrated. A board that looks unmoderated attracts more of it and puts off the members you want."
+        },
+        {
+          "author": "rosa",
+          "hoursAfter": 9,
+          "message": "The community centre board got the same wave. Question worked for us too — ours asks what is across the road from the hall."
+        },
+        {
+          "author": "vex",
+          "hoursAfter": 15,
+          "message": "Do not make the question too clever. Ours was too clever for a fortnight and three real people failed it."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 20,
+          "message": "What do we do about the one that got through last week into Buy, sell and swap? It is reported and still sitting there."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 26,
+          "quotes": 4,
+          "message": "It is in the queue and I have deliberately left it for whoever is on next, so they can see what one looks like before it disappears."
+        }
+      ]
+    },
+    {
+      "forum": "moderation",
+      "author": "moderator",
+      "title": "Match threads get heated. Where is the line?",
+      "daysAgo": 46,
+      "message": "Saturday's thread had four posts about the referee that I would not want the referee to read, and one about an opposition player by name that I took down.\n\nI am fairly sure I got the second one right and much less sure about the first four. Nobody swore. Nobody was personal about anybody in this club.\n\nWhere do people think the line is, before I have to decide it on my own at eleven at night?",
+      "replies": [
+        {
+          "author": "siobhan",
+          "hoursAfter": 2,
+          "message": "Named opposition player, especially an under-18, is over it every single time. You were right."
+        },
+        {
+          "author": "marty",
+          "hoursAfter": 5,
+          "message": "On referees: they are volunteers who get abused for a living and half of them are members of clubs like ours. \"The referee had a shocker\" is fine. Anything about the person is not."
+        },
+        {
+          "author": "paudie",
+          "hoursAfter": 9,
+          "message": "I wrote one of the four. Reading it back I would not have said it to his face, which is probably the whole test."
+        },
+        {
+          "author": "deco",
+          "hoursAfter": 14,
+          "quotes": 3,
+          "message": "That is the best rule anybody has put in this thread. Would you say it to their face at the club bar afterwards."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 20,
+          "message": "Taking that as the line and putting it in the pinned post. It is one sentence and everyone will remember it."
+        },
+        {
+          "author": "dara",
+          "hoursAfter": 44,
+          "message": "And I will keep writing the match reports so there is somewhere sensible for the frustration to go. Half of it is people with nowhere to put a bad Saturday."
+        }
+      ]
+    },
+    {
+      "forum": "moderation",
+      "author": "moderator",
+      "title": "How do you handle a member who is technically fine and exhausting?",
+      "daysAgo": 29,
+      "message": "Not a rule-breaker. Never rude. Replies to every thread within a minute, at length, usually restating what the post above said.\n\nThree people have quietly told me they have stopped posting because of it. I have no rule that covers this and I am not sure I want one.",
+      "replies": [
+        {
+          "author": "siobhan",
+          "hoursAfter": 2,
+          "message": "Talk to them. A private message that says \"you are one of the most active people here and I need to ask you to leave some room\" works more often than the internet expects. I have done it four times and it worked three."
+        },
+        {
+          "author": "vex",
+          "hoursAfter": 6,
+          "quotes": 1,
+          "message": "And the fourth?\n\nAsking seriously — the failure case is the one nobody writes down, and it is the one I would want to know about before trying it."
+        },
+        {
+          "author": "siobhan",
+          "hoursAfter": 8,
+          "message": "The fourth left in a temper and said a few things about me in the shop. The board was better for it and I would still do it again. It is not free."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 26,
+          "message": "Sent one this morning. Will report back."
+        },
+        {
+          "author": "moderator",
+          "hoursAfter": 74,
+          "message": "Reporting back: went well. They were mortified, which I felt bad about, and have visibly pulled back without going quiet. Recommended, with the warning attached."
+        },
+        {
+          "author": "kev",
+          "hoursAfter": 90,
+          "message": "The same conversation works for the six-threads-a-day thing. It is remarkable how often the answer is \"nobody has ever told them\"."
+        }
+      ]
+    }
+  ],
+  "members": [
+    {
+      "key": "admin",
+      "username": "admin",
+      "joinedDaysAgo": 640,
+      "location": "Carrigmore",
+      "website": "https://meith.dev",
+      "bio": "Helps keep the community running."
+    },
+    {
+      "key": "moderator",
+      "username": "moderator",
+      "joinedDaysAgo": 604,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Helps keep the community running."
+    },
+    {
+      "key": "member",
+      "username": "member",
+      "joinedDaysAgo": 96,
+      "location": null,
+      "website": null,
+      "bio": "Helps keep the community running."
+    },
+    {
+      "key": "siobhan",
+      "username": "siobhan.k",
+      "joinedDaysAgo": 638,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Chairperson. Twenty-two years on the committee, four of them willingly."
+    },
+    {
+      "key": "dara",
+      "username": "dara_pro",
+      "joinedDaysAgo": 631,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Club PRO. Match reports, fixture changes, and the photo album nobody else will keep."
+    },
+    {
+      "key": "vex",
+      "username": "vexation",
+      "joinedDaysAgo": 519,
+      "location": "UTC+1",
+      "website": null,
+      "bio": "Runs the gaming side. Started as five of us on a Tuesday night. It is not five any more."
+    },
+    {
+      "key": "mairead",
+      "username": "mairead.b",
+      "joinedDaysAgo": 596,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Juvenile section secretary. If it involves a child, a pitch and a Saturday, it comes through me."
+    },
+    {
+      "key": "kev",
+      "username": "kev_mc",
+      "joinedDaysAgo": 468,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Minds the noticeboard and the buy-and-sell. Mark it sold and I will leave you alone."
+    },
+    {
+      "key": "tinker",
+      "username": "tinkerdruid",
+      "joinedDaysAgo": 441,
+      "location": "UTC-5",
+      "website": null,
+      "bio": "Raid officer. Keeps the roster and the wipe count. One of those is longer."
+    },
+    {
+      "key": "gerry",
+      "username": "gerry.o",
+      "joinedDaysAgo": 639,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Groundsman. The pitch is fine. The pitch is not fine. Ask me on the day."
+    },
+    {
+      "key": "bernie",
+      "username": "bernie_c",
+      "joinedDaysAgo": 620,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Two in the U12s, one in the U16s, and a car that is never empty."
+    },
+    {
+      "key": "paudie",
+      "username": "paudie_w",
+      "joinedDaysAgo": 637,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Over-35s. Retired from the firsts in 2011 and from the seconds every October since."
+    },
+    {
+      "key": "hana",
+      "username": "hana.t",
+      "joinedDaysAgo": 574,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Captain, ladies firsts. Started the team with nine players and a borrowed set of bibs."
+    },
+    {
+      "key": "deco",
+      "username": "deco23",
+      "joinedDaysAgo": 551,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Keeper. Every goal is a defensive error and I have the footage."
+    },
+    {
+      "key": "oisin",
+      "username": "oisin_09",
+      "joinedDaysAgo": 508,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "noelle",
+      "username": "noelle_mc",
+      "joinedDaysAgo": 486,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Treasurer. I would love it if the subs went through the website instead of my kitchen table."
+    },
+    {
+      "key": "jt",
+      "username": "jt_physio",
+      "joinedDaysAgo": 455,
+      "location": "Ennis",
+      "website": null,
+      "bio": "Physio, two nights a week. Not your physio on a Sunday morning at 8am."
+    },
+    {
+      "key": "luca",
+      "username": "luca.rossi",
+      "joinedDaysAgo": 322,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Moved here for work, joined the seconds for something to do on a Saturday. Best decision of the year."
+    },
+    {
+      "key": "tomas",
+      "username": "tomasq",
+      "joinedDaysAgo": 471,
+      "location": "Carrigmore",
+      "website": "https://example.invalid/carrigmore-cycles",
+      "bio": "Sponsor liaison and kit. Also runs the cycling club, which has its own board and its own arguments."
+    },
+    {
+      "key": "donal",
+      "username": "big_donal",
+      "joinedDaysAgo": 203,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Under-16s manager. Volunteer, which is a word that means \"does three jobs\"."
+    },
+    {
+      "key": "marty",
+      "username": "marty.kane",
+      "joinedDaysAgo": 634,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Manages the seconds. Team sheet goes up Thursday and changes twice before Saturday."
+    },
+    {
+      "key": "shay",
+      "username": "shay_92",
+      "joinedDaysAgo": 480,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "una",
+      "username": "una_r",
+      "joinedDaysAgo": 401,
+      "location": "Ennis",
+      "website": null,
+      "bio": "Ladies firsts, centre half. Also the one who counts the bibs back in."
+    },
+    {
+      "key": "zoe",
+      "username": "zoe.mills",
+      "joinedDaysAgo": 372,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Coaches the U10s. Nineteen children, one ball each, no survivors."
+    },
+    {
+      "key": "frank",
+      "username": "frank_the_tank",
+      "joinedDaysAgo": 633,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Over-35s and the social committee, in that order of ability."
+    },
+    {
+      "key": "nia",
+      "username": "nia.p",
+      "joinedDaysAgo": 246,
+      "location": "Ballyquin",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "cormac",
+      "username": "cormacm",
+      "joinedDaysAgo": 180,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "U16s. Here for the clips."
+    },
+    {
+      "key": "ellie",
+      "username": "ellie.d",
+      "joinedDaysAgo": 262,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "pixel",
+      "username": "pixelpanic",
+      "joinedDaysAgo": 498,
+      "location": "UTC+0",
+      "website": null,
+      "bio": "Healer main. Will not tank. Have asked me before."
+    },
+    {
+      "key": "wraith",
+      "username": "wraithmode",
+      "joinedDaysAgo": 462,
+      "location": "UTC-8",
+      "website": null,
+      "bio": "Awake at odd hours. Sorry about the 4am pings."
+    },
+    {
+      "key": "nova",
+      "username": "nova_k",
+      "joinedDaysAgo": 430,
+      "location": "UTC+2",
+      "website": null,
+      "bio": "Runs the Sunday ranked block. Bring a mic or bring a good attitude, ideally both."
+    },
+    {
+      "key": "mango",
+      "username": "mangosalt",
+      "joinedDaysAgo": 388,
+      "location": "UTC+8",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "sunny",
+      "username": "sunnyside_up",
+      "joinedDaysAgo": 274,
+      "location": "UTC+1",
+      "website": null,
+      "bio": "Casual. Two nights a week, never Wednesdays."
+    },
+    {
+      "key": "bolt",
+      "username": "boltcaster",
+      "joinedDaysAgo": 154,
+      "location": "UTC+5:30",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "rook",
+      "username": "rook.exe",
+      "joinedDaysAgo": 71,
+      "location": "UTC+1",
+      "website": null,
+      "bio": "Joined for the tournament, stayed for the Tuesday nonsense."
+    },
+    {
+      "key": "glitch",
+      "username": "glitchwitch",
+      "joinedDaysAgo": 210,
+      "location": "UTC+2",
+      "website": null,
+      "bio": "Second-team roster, first-team mouth."
+    },
+    {
+      "key": "otter",
+      "username": "otterly",
+      "joinedDaysAgo": 160,
+      "location": "UTC+10",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "bram",
+      "username": "bramble_",
+      "joinedDaysAgo": 96,
+      "location": "UTC+0",
+      "website": "https://example.invalid/bramble",
+      "bio": "Streams the Tuesday runs. Badly."
+    },
+    {
+      "key": "rosa",
+      "username": "rosa_p",
+      "joinedDaysAgo": 587,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Community centre committee. Moved a decade of notices onto this board last spring and lived to tell it."
+    },
+    {
+      "key": "mira",
+      "username": "mira_t",
+      "joinedDaysAgo": 602,
+      "location": "Ballyquin",
+      "website": null,
+      "bio": "Tidy Towns, the flower rota, and whatever else nobody else volunteered for."
+    },
+    {
+      "key": "olu",
+      "username": "oluwaseun",
+      "joinedDaysAgo": 356,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Organises the Thursday five-a-side. Fourteen people, one pitch, no drama."
+    },
+    {
+      "key": "petra",
+      "username": "petra.k",
+      "joinedDaysAgo": 288,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "ken",
+      "username": "kenji",
+      "joinedDaysAgo": 601,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Board games night in the back room, second Friday of the month. Yes, that kind of board."
+    },
+    {
+      "key": "dev",
+      "username": "devinder",
+      "joinedDaysAgo": 197,
+      "location": "Carrigmore",
+      "website": "https://example.invalid/devinder-photos",
+      "bio": "Takes the match photos. Will not take the team photo in the rain again."
+    },
+    {
+      "key": "sam",
+      "username": "samthedog",
+      "joinedDaysAgo": 214,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "aoife",
+      "username": "aoife.byrne",
+      "joinedDaysAgo": 44,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "newcomer",
+      "username": "first_timer",
+      "joinedDaysAgo": 3,
+      "location": null,
+      "website": null,
+      "bio": null
+    },
+    {
+      "key": "ciara",
+      "username": "ciara.m",
+      "joinedDaysAgo": 1,
+      "location": "Carrigmore",
+      "website": null,
+      "bio": "Here for the matches and the occasional quiz night."
+    }
+  ],
+  "prefixes": [
+    {
+      "key": "notice",
+      "label": "Notice",
+      "token": "thread-pinned",
+      "scope": "announcements"
+    },
+    {
+      "key": "fixture",
+      "label": "Fixture",
+      "token": null,
+      "scope": "events"
+    },
+    {
+      "key": "signup",
+      "label": "Sign-up",
+      "token": "moderation-pending",
+      "scope": "events"
+    },
+    {
+      "key": "result",
+      "label": "Result",
+      "token": "moderation-approved",
+      "scope": "events"
+    },
+    {
+      "key": "forsale",
+      "label": "For sale",
+      "token": null,
+      "scope": "market"
+    },
+    {
+      "key": "wanted",
+      "label": "Wanted",
+      "token": "thread-moved",
+      "scope": "market"
+    },
+    {
+      "key": "sold",
+      "label": "Sold",
+      "token": "thread-locked",
+      "scope": "market"
+    },
+    {
+      "key": "solved",
+      "label": "Solved",
+      "token": "moderation-approved",
+      "scope": "support"
+    }
+  ]
+}

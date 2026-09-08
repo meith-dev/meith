@@ -19,10 +19,6 @@ keys. The board takes no cut and charges no per-member fee — the only fees
 are Stripe's own processing fees. Payment happens on Stripe's checkout
 page; no card number ever touches the board.
 
-You can try the whole thing without spending anything:
-[demo.meith.dev](https://demo.meith.dev) runs this plugin against a
-pretend Stripe, with a checkout a visitor can actually go through.
-
 ## What you need before you start
 
 | | |

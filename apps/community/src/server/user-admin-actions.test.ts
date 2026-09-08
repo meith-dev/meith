@@ -96,11 +96,6 @@ vi.mock('./container', () => ({
   }),
 }))
 
-vi.mock('./demo', () => ({
-  assertDemoAccountChangeable: async () => undefined,
-  assertDemoIdentityUnchanged: async () => undefined,
-}))
-
 const accounts: Array<{ userId: number; input: Record<string, unknown> }> = []
 const states: Array<{ userId: number; state: string }> = []
 const bans: Array<Record<string, unknown>> = []

@@ -17,7 +17,6 @@ import type { FormState } from './auth-form-state'
 import { AVATAR_FIELD, canUploadAvatar, requireAvatarService } from './avatars'
 import { configuredSessions, getContainer } from './container'
 import { getActor } from './context'
-import { assertDemoAccountChangeable } from './demo'
 import { revokeFeedToken } from './feed-token'
 import { formStateReporter } from './form-state-reporter'
 import { text } from './form-values'
@@ -150,8 +149,6 @@ export async function changePasswordAction(_prev: FormState, form: FormData): Pr
   try {
     const { service, userId } = await requireOwnSettings()
 
-    await assertDemoAccountChangeable(userId, 'password')
-
     const next = text(form, 'newPassword')
     if (next !== text(form, 'confirmPassword')) {
       return { error: await tr('notice.app.two-new-passwords-match') }
@@ -188,8 +185,6 @@ export async function requestEmailChangeAction(
   let pending: { token: string; email: string; previousEmail: string; userId: number }
   try {
     const { service, userId } = await requireOwnSettings()
-
-    await assertDemoAccountChangeable(userId, 'email')
 
     pending = {
       userId,

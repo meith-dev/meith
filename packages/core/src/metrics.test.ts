@@ -17,13 +17,13 @@ describe('counters', () => {
     const registry = new PrometheusRegistry()
     const runs = registry.counter('meith_task_runs_total', 'Task runs, by outcome.')
 
-    runs.inc(1, { task: 'demo-reset', status: 'ran' })
-    runs.inc(1, { task: 'demo-reset', status: 'failed' })
-    runs.inc(1, { task: 'demo-reset', status: 'ran' })
+    runs.inc(1, { task: 'search-reindex', status: 'ran' })
+    runs.inc(1, { task: 'search-reindex', status: 'failed' })
+    runs.inc(1, { task: 'search-reindex', status: 'ran' })
 
     const rendered = registry.render()
-    expect(rendered).toContain('meith_task_runs_total{status="ran",task="demo-reset"} 2')
-    expect(rendered).toContain('meith_task_runs_total{status="failed",task="demo-reset"} 1')
+    expect(rendered).toContain('meith_task_runs_total{status="ran",task="search-reindex"} 2')
+    expect(rendered).toContain('meith_task_runs_total{status="failed",task="search-reindex"} 1')
   })
 
   it('refuses to re-register a name under a different kind', () => {

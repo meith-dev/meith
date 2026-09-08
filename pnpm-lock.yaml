@@ -63,9 +63,6 @@ importers:
       '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@meith/demo':
-        specifier: workspace:*
-        version: link:../../packages/demo
       '@meith/drivers':
         specifier: workspace:*
         version: link:../../packages/drivers
@@ -133,9 +130,6 @@ importers:
       '@meith/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@meith/demo':
-        specifier: workspace:*
-        version: link:../../packages/demo
       '@meith/drafts':
         specifier: workspace:*
         version: link:../../packages/drafts
@@ -669,42 +663,6 @@ importers:
       drizzle-kit:
         specifier: ^0.31.6
         version: 0.31.10
-
-  packages/demo:
-    dependencies:
-      '@meith/accounts':
-        specifier: workspace:*
-        version: link:../accounts
-      '@meith/authorization':
-        specifier: workspace:*
-        version: link:../authorization
-      '@meith/core':
-        specifier: workspace:*
-        version: link:../core
-      '@meith/db':
-        specifier: workspace:*
-        version: link:../db
-      '@meith/markdown':
-        specifier: workspace:*
-        version: link:../markdown
-      '@meith/plugin-calendar':
-        specifier: workspace:*
-        version: link:../../plugins/calendar
-      '@meith/plugin-dues':
-        specifier: workspace:*
-        version: link:../../plugins/dues
-      '@meith/plugin-kit':
-        specifier: workspace:*
-        version: link:../plugin-kit
-      '@meith/tasks':
-        specifier: workspace:*
-        version: link:../tasks
-      '@meith/threads':
-        specifier: workspace:*
-        version: link:../threads
-      drizzle-orm:
-        specifier: ^0.45.2
-        version: 0.45.2(@electric-sql/pglite@0.5.5)(@opentelemetry/api@1.9.1)(mysql2@3.23.3(@types/node@26.2.0))(postgres@3.4.9)
 
   packages/drafts: {}
 

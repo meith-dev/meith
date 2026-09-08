@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { env, PUBLIC_CONTENT } from '@meith/core'
+import { PUBLIC_CONTENT } from '@meith/core'
 import { type FeedScope, getDb, PostgresFeedRepository } from '@meith/db'
 
 import type { SitemapUrl } from '@/view/feed'
@@ -41,8 +41,6 @@ export async function publicScope(): Promise<FeedScope> {
 }
 
 export async function isIndexable(): Promise<boolean> {
-  if (env.DEMO_MODE) return false
-
   try {
     return (await getSettings()).get('board.offline') !== true
   } catch {

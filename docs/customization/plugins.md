@@ -101,8 +101,8 @@ board, add its import and `INSTALLED_PLUGINS` entry to `meith.plugins.ts`
 directly, and keep it out of `board.plugins.json` so a later `plugin:add`
 does not regenerate the file and drop it. In **this repository**, where
 `meith.plugins.ts` is generated across two boards, a hand-written entry
-cannot live there directly; it goes in `meith.demo.plugins.ts` instead (this
-repository's own demo and test boards keep their plugins there already),
+cannot live there directly; it goes in `meith.test.plugins.ts` instead (this
+repository's test boards keep their plugins there already),
 spread into the generated list through `showcasePlugins()`, which the
 generator preserves as a fixed extension point. Either way, nothing about
 `meith.plugins.ts` being generated changes what runs — it changes how the
