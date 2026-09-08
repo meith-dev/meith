@@ -10,7 +10,7 @@ const VIEWER = {
   userId: 7,
   username: 'Wren',
   profileHref: '/member/7-wren',
-  avatarUrl: '/avatar/7.png',
+  avatarUrl: '/placeholder-user.jpg',
   canAccessAdminCp: false,
   canAccessModCp: true,
 }
@@ -64,7 +64,7 @@ const THREAD = {
 
 const POST_AUTHOR = {
   ...AUTHOR,
-  avatarUrl: '/avatar/12.png',
+  avatarUrl: '/placeholder-user.jpg',
   title: 'Registered',
   groups: [
     { title: 'Registered', nameClass: null },
@@ -105,8 +105,8 @@ const POST = {
       filename: 'plan.png',
       size: '1.4 MB',
       isImage: true,
-      href: '/attachment/55/plan.png',
-      thumbnailHref: '/attachment/55/thumb.png',
+      href: '/placeholder.jpg',
+      thumbnailHref: '/placeholder.jpg',
       width: 800,
       height: 600,
     },
@@ -136,7 +136,7 @@ export interface SlotFixture<K extends SlotName> {
   readonly requires: readonly string[]
 }
 
-export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
+export const SLOT_FIXTURES: { readonly [K in SlotName]: SlotFixture<K> } = {
   Shell: {
     model: { boardTitle: 'The Bike Shed', viewer: GUEST, children: region('body') },
     requires: [region('body')],
@@ -472,7 +472,7 @@ export const SLOT_FIXTURES: { readonly [K in SlotName]?: SlotFixture<K> } = {
   MemberProfile: {
     model: {
       user: AUTHOR,
-      avatarUrl: '/avatar/12.png',
+      avatarUrl: '/placeholder-user.jpg',
       title: 'Registered',
       groups: [
         { title: 'Registered', nameClass: null },

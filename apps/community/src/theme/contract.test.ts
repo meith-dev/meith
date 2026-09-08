@@ -17,6 +17,7 @@ import {
 } from '@meith/theme-kit'
 
 import { SLOT_FIXTURES } from './contract.fixture'
+import { fixtureModel, fixtureVariants } from './preview.fixture'
 
 const themes: readonly { key: string; definition: ThemeDefinition }[] = Object.values(
   forumConfig.themes,
@@ -91,6 +92,21 @@ describe.each(themes)('theme "$key"', ({ definition }) => {
     expect(html).not.toContain('undefined')
     expect(html).not.toContain('href=""')
     expect(html).not.toContain('src=""')
+  })
+
+  it.each(
+    SLOT_NAMES.flatMap((name) =>
+      fixtureVariants(name)
+        .slice(1)
+        .map((variant) => ({ name, variant })),
+    ),
+  )('renders $name / $variant without dropping values', async ({ name, variant }) => {
+    const html = await renderSlot(definition, name, fixtureModel(name, variant))
+    expect(html).not.toMatch(/\[object Object\]|undefined|(?:href|src)=""/)
+    if (name === 'PostBit' && variant === 'ignored') {
+      expect(html).not.toContain('The shed should be teak.')
+      expect(html).toContain('/fixtures?slot=PostBit')
+    }
   })
 
   it('emits no script from a server slot', async () => {

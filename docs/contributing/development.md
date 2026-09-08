@@ -97,7 +97,11 @@ unset, set `AUTH_SECRET` to a generated secret, then run `pnpm build && pnpm sta
 Fixture production runs use `QUEUE_DRIVER=memory` and need no tick secret, worker,
 migrations, database or reset task. PostgreSQL production boards still require a
 durable queue and a protected scheduler. Fixture mode does not persist posts or
-provide shared login accounts, search results, staff panels or plugin stores.
+provide shared login accounts, live search queries, staff access or plugin stores.
+For visual theme development, the **Theme fixtures** link opens `/fixtures`: every
+slot with populated, empty and permission-related presentation states, plus
+composers, search results, polls and panel frames. These sample models grant no
+permissions and save no changes. See [browser fixtures](../customization/themes.md#browser-fixtures).
 
 For Coolify, use `docker/compose.fixture.coolify.yml` from the repository root.
 It builds the stock board as one web service and sets `SHOWCASE_THEMES=1` so

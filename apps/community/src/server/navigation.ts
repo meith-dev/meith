@@ -79,12 +79,16 @@ export async function boardNavigation(
   const live = await Promise.all(items.map((item) => pluginRowIsLive(item.key)))
   const shown = items.filter((_, index) => live[index] === true)
 
-  return buildNavigation(shown, viewer, {
+  const t = await getTranslator()
+  const links = buildNavigation(shown, viewer, {
     searchEnabled: await searchEnabled(),
-    t: await getTranslator(),
+    t,
     names: pluginNavigationNames(),
     admits: (item) => authorizer.inAnyGroup(actor, item.visibleToGroups),
   })
+  return env.DATA_SOURCE === 'fixture'
+    ? [...links, { label: t.t('nav.themeFixtures'), href: '/fixtures' }]
+    : links
 }
 
 export async function syncPluginNavigation(): Promise<void> {

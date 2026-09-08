@@ -2,10 +2,89 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { SLOT_NAMES } from '@meith/theme-kit'
+
 import { FIXTURE_BASE_URL } from './support/config'
 
 const DIRECTORY = 'test-results/ui-polish'
 const shots: string[] = []
+
+test('theme developers can browse every fixture slot', async ({ page, context }) => {
+  mkdirSync(DIRECTORY, { recursive: true })
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']) {
+    await context.addCookies([{ name: 'meith_theme', value: theme, url: FIXTURE_BASE_URL }])
+    for (const slot of SLOT_NAMES) {
+      const response = await page.goto(`/fixtures?slot=${slot}`)
+      expect(response?.status(), `${theme} ${slot}`).toBe(200)
+      await expect(page.locator('[data-fixture-slot]')).toHaveAttribute('data-fixture-slot', slot)
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+    }
+    await page.goto('/fixtures?slot=ThreadView&variant=poll')
+    await expect(page.getByRole('heading', { name: 'When should we meet?' })).toBeVisible()
+    await snap(page, `${theme}-fixture-poll`)
+    await page.goto('/fixtures?slot=PanelShell&variant=admincp')
+    await snap(page, `${theme}-fixture-panel`)
+    expect(errors, theme).toEqual([])
+  }
+})
+
+test('fixture editors and native forms stay read-only', async ({ page, context, browser }) => {
+  mkdirSync(DIRECTORY, { recursive: true })
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await context.addCookies([{ name: 'meith_theme', value: 'default', url: FIXTURE_BASE_URL }])
+  await page.goto('/fixtures?slot=EditorToolbar')
+  const requests: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST') requests.push(request.url())
+  })
+  const field = page.getByRole('textbox', { name: 'Message', exact: true })
+  await field.fill('A sample')
+  await field.selectText()
+  await page.getByRole('button', { name: 'Bold', exact: true }).click()
+  await expect(field).toHaveValue('**A sample**')
+  await page.getByRole('button', { name: 'Preview submission' }).click()
+  await expect(page.getByRole('status')).toContainText('not saved')
+  expect(requests).toEqual([])
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/fixtures?slot=PostBit&variant=rich')
+  await expect(page.locator('[data-fixture-slot] img:visible').first()).toBeVisible()
+  for (const image of await page.locator('[data-fixture-slot] img:visible').all())
+    await image.scrollIntoViewIfNeeded()
+  expect(
+    await page
+      .locator('[data-fixture-slot] img:visible')
+      .evaluateAll((images) =>
+        images.every(
+          (image) =>
+            (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+        ),
+      ),
+  ).toBe(true)
+  await snap(page, 'default-fixture-rich-mobile')
+
+  const native = await browser.newContext({ baseURL: FIXTURE_BASE_URL, javaScriptEnabled: false })
+  const nativePage = await native.newPage()
+  await nativePage.goto('/fixtures?slot=SearchResults&variant=empty')
+  await expect(nativePage.locator('[data-fixture-slot]')).toHaveAttribute(
+    'data-fixture-variant',
+    'empty',
+  )
+  await nativePage.getByRole('combobox', { name: 'Slot', exact: true }).selectOption('PostForm')
+  await nativePage.getByRole('button', { name: 'Show slot' }).click()
+  await expect(nativePage.getByRole('textbox', { name: 'Message', exact: true })).toBeVisible()
+  const submitted = await nativePage.request.post('/fixtures', {
+    form: { message: 'Must not save' },
+  })
+  expect(submitted.status()).toBe(200)
+  expect(await submitted.text()).toContain('submissions are not saved')
+  expect(await submitted.text()).not.toContain('Must not save')
+  await native.close()
+  expect(errors).toEqual([])
+})
 
 async function snap(page: Page, name: string, fullPage = true) {
   if (name !== 'default-mobile-login') {
