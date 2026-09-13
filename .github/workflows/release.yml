@@ -166,6 +166,8 @@ jobs:
       # rather than trust whatever version the runner's Node happens to bundle.
       - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
+      - name: Deploy templates match the released scaffold
+        run: pnpm templates:gen:check
       - run: pnpm --filter create-meith build
       - run: node scripts/npm-publish.mjs
 

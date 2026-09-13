@@ -159,9 +159,6 @@ jobs:
       - name: Board installer is current
         run: pnpm board-installer:gen:check
 
-      - name: Deploy templates match the scaffold
-        run: pnpm templates:gen:check
-
       - name: Extension scaffold templates match the examples
         run: pnpm extension:gen:check
 

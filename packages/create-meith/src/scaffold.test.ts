@@ -808,7 +808,7 @@ describe('the published bin, run the way npx actually runs it', () => {
 })
 
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
-  'package.json': '0cfc3fa53d8d1976c1b9e252e15672ff9f71e4741109a7fd2e475cf40d9c7ab1',
+  'package.json': 'd3027aad14c2785d9760ddf6d13c8263b1807e30cee6c7574973b49a985ef363',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
   'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',

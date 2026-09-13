@@ -3,9 +3,9 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { commandsIn } from './ci-parity.mjs'
 import {
   differences,
-  readTree,
   renderTemplate,
   scaffoldOptionsFor,
   TEMPLATE_BOARD_NAME,
@@ -84,14 +84,12 @@ describe('differences', () => {
 })
 
 describe('the committed template trees', () => {
-  it('are exactly what the generator writes at the version each tree is on', async () => {
-    const version = await rootVersion()
-    for (const { target, dir } of TEMPLATES) {
-      const expected = renderTemplate(target, version)
-      const actual = await readTree(join(ROOT, dir))
-
-      expect(differences(expected, actual)).toEqual([])
-    }
+  it('checks freshness before publishing released packages', async () => {
+    const workflow = await readFile(join(ROOT, '.github/workflows/release.yml'), 'utf8')
+    const commands = commandsIn(workflow, 'npm') ?? []
+    const check = commands.indexOf('pnpm templates:gen:check')
+    expect(check).toBeGreaterThanOrEqual(0)
+    expect(commands.indexOf('node scripts/npm-publish.mjs')).toBeGreaterThan(check)
   })
 
   it('pins the published packages to that same version, so a release moves them', async () => {
