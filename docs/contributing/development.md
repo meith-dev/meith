@@ -342,6 +342,14 @@ to `@meith/web`'s pins, so upgrading Next in one place and not the others
 fails the check rather than shipping a scaffold that installs one version
 and builds with another.
 
+When updating Next.js, also align `packages/drivers/package.json`'s exact
+peer dependency and `create-meith`'s `NEXT_VERSION`, then run
+`pnpm board-installer:gen` and `pnpm install`. Leave the committed deploy
+templates unchanged until release; `pnpm release:bump` regenerates them.
+The template freshness check can therefore fail between releases.
+Conflicting Next.js installations can fail packed-board prerendering with
+`Expected workStore to be initialized` even when the repository build passes.
+
 **The Vercel target turns the mode on; nothing else does.** `scaffold()`'s
 `target: 'vercel'` tree carries the flag in `vercel.json`'s `buildCommand`
 (`meith migrate && forum-web build --at-root`) and in its own scripts, so a
@@ -372,6 +380,9 @@ generated-document and documentation checks (`theme:docs`, `plugin:docs`,
 `docs:links`, `site:docs`, `marketplace:gen`, `board-installer:gen`,
 `templates:gen`, `extension:gen`), lint, dependency-cruiser, all three
 typecheck projects, and the full test suite.
+
+Poll closing-time tests freeze the clock before their fixed closing date so
+the same input remains valid after that date passes on the developer's clock.
 
 **`pnpm verify` and CI's `static` job hold to each other.** `pnpm
 ci:parity:check` reads the `verify` script and the `static` job out of
@@ -475,6 +486,8 @@ instance, `noDangerouslySetInnerHtml` would fire on every rendered post
 body, and that safety argument is settled in `@meith/markdown`, the only
 place rendered HTML comes from; `noImgElement` would ask for `next/image`
 on a board that has to run without an image optimiser.
+
+When updating Biome, align the schema URL in `biome.json` with its package pin.
 
 A suppression is always a `biome-ignore` with a reason, never a blanket
 disable:

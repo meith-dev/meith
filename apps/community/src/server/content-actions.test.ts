@@ -501,7 +501,13 @@ const BOARD_WITH_POLLS = {
 
 describe('a poll attached to a new thread', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-01T00:00:00Z'))
     installContainer({}, BOARD_WITH_POLLS)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('reads a UTC closing time from the same wall-clock text the poll edit form uses', async () => {
