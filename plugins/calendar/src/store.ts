@@ -1,6 +1,13 @@
 import type { PluginData } from '@meith/plugin-kit'
 
-import { byStart, type CalendarEvent, type EventDraft, occurrences, type Repeat } from './events'
+import {
+  byStart,
+  type CalendarEvent,
+  type EventDraft,
+  isUpcoming,
+  occurrences,
+  type Repeat,
+} from './events'
 
 interface EventRow extends Record<string, unknown> {
   readonly repeat?: Repeat
@@ -95,6 +102,53 @@ export async function windowEvents(
     [from, to],
   )
   return rows.flatMap((row) => occurrences(toEvent(row), from, to)).sort(byStart)
+}
+
+export async function agendaEvents(
+  data: PluginData,
+  now: Date,
+  past = false,
+  limit = 50,
+  cursor?: Pick<CalendarEvent, 'startsAt' | 'id'>,
+  backwards = false,
+): Promise<readonly CalendarEvent[]> {
+  const rows = await data.query<EventRow>(
+    `select ${COLUMNS} from plugin_calendar_event
+     where repeat <> 'none' or coalesce(ends_at, starts_at) ${past ? '<' : '>='} $1`,
+    [now],
+  )
+  const span = limit * 62 * 86_400_000
+  const descending = past !== backwards
+  const compare = (
+    a: Pick<CalendarEvent, 'startsAt' | 'id'>,
+    b: Pick<CalendarEvent, 'startsAt' | 'id'>,
+  ) => a.startsAt.getTime() - b.startsAt.getTime() || a.id.localeCompare(b.id)
+  const events = rows
+    .flatMap((row) => {
+      const event = toEvent(row)
+      if (event.repeat === 'none') return isUpcoming(event, now) !== past ? [event] : []
+      const duration = event.endsAt === null ? 0 : event.endsAt.getTime() - event.startsAt.getTime()
+      const boundary = now.getTime() - duration
+      const until =
+        event.repeatUntil == null
+          ? Number.POSITIVE_INFINITY
+          : new Date(event.repeatUntil + 'T00:00:00Z').getTime() + 86_400_000
+      const lower = Math.max(past ? -Infinity : boundary, event.startsAt.getTime())
+      const upper = Math.min(past ? boundary : Infinity, until)
+      const start = Math.max(lower, cursor?.startsAt.getTime() ?? lower)
+      const end = Math.min(upper, cursor ? cursor.startsAt.getTime() + 1 : upper)
+      return occurrences(
+        event,
+        new Date(descending ? Math.max(lower, end - span) : start),
+        new Date(descending ? end : Math.min(upper, start + span)),
+      )
+    })
+    .filter(
+      (event) => !cursor || (descending ? compare(event, cursor) < 0 : compare(event, cursor) > 0),
+    )
+    .sort((a, b) => (descending ? compare(b, a) : compare(a, b)))
+    .slice(0, limit)
+  return backwards ? events.reverse() : events
 }
 
 export async function eventById(data: PluginData, id: string): Promise<CalendarEvent | null> {

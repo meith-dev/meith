@@ -24,3 +24,24 @@ test('RSVP changes and clears one occurrence without JavaScript', async ({ page 
   await expect(page.getByText('Your response: No response', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Responses', exact: true })).toHaveCount(0)
 })
+
+test('calendar pages advance and return without JavaScript', async ({ page }) => {
+  await page.goto('/plugins/calendar')
+  const occurrences = page.locator('a[href*="?event=1&occurrence="]')
+  const firstPage = await occurrences.evaluateAll((links) =>
+    links.map((link) => link.getAttribute('href')),
+  )
+  expect(firstPage).toHaveLength(50)
+  await page.getByRole('link', { name: 'Next page', exact: true }).click()
+  const secondPage = await occurrences.evaluateAll((links) =>
+    links.map((link) => link.getAttribute('href')),
+  )
+  expect(secondPage).toHaveLength(50)
+  expect(secondPage.some((href) => firstPage.includes(href))).toBe(false)
+  await page.getByRole('link', { name: 'Previous page', exact: true }).click()
+  await expect(occurrences).toHaveCount(50)
+  expect(
+    await occurrences.evaluateAll((links) => links.map((link) => link.getAttribute('href'))),
+  ).toEqual(firstPage)
+  await expect(page.getByRole('link', { name: 'Previous page', exact: true })).toHaveCount(0)
+})
