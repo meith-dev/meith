@@ -80,7 +80,51 @@ it('keeps existing events readable through the host data boundary after an upgra
     ).toEqual(['2026-09-07T19:00:00.000Z', '2026-08-31T19:00:00.000Z', '2026-08-31T19:00:00.000Z'])
     await h.client.exec("delete from plugin_calendar_event where title <> 'Monthly'")
     expect(await agendaEvents(data, now)).toHaveLength(50)
-    expect(await agendaEvents(data, now, true)).toHaveLength(30)
+    expect(await agendaEvents(data, now, true)).toHaveLength(47)
+    for (const past of [false, true]) {
+      const first = await agendaEvents(data, now, past, 10)
+      const second = await agendaEvents(data, now, past, 10, first.at(-1))
+      expect(second).toHaveLength(10)
+      expect(
+        second.some((event) =>
+          first.some((item) => item.startsAt.getTime() === event.startsAt.getTime()),
+        ),
+      ).toBe(false)
+      expect(await agendaEvents(data, now, past, 10, second[0], true)).toEqual(first)
+    }
+    await h.client.exec('delete from plugin_calendar_event')
+    await h.client.exec(`insert into plugin_calendar_event (title, starts_at)
+      select 'Future ' || n, '2030-01-01T19:00:00Z'::timestamptz from generate_series(1, 120) n;
+      insert into plugin_calendar_event (title, starts_at)
+      select 'Past ' || n, '2025-01-01T19:00:00Z'::timestamptz from generate_series(1, 120) n`)
+    for (const past of [false, true]) {
+      const first = await agendaEvents(data, now, past)
+      const second = await agendaEvents(data, now, past, 50, first.at(-1))
+      const third = await agendaEvents(data, now, past, 50, second.at(-1))
+      expect([first.length, second.length, third.length]).toEqual([50, 50, 20])
+      expect(new Set([...first, ...second, ...third].map((event) => event.id)).size).toBe(120)
+      expect(await agendaEvents(data, now, past, 50, second[0], true)).toEqual(first)
+      const after = `${first.at(-1)!.startsAt.getTime()}:${first.at(-1)!.id}`
+      const page = JSON.stringify(
+        await CalendarPage({ ...context, query: { show: past ? 'past' : '', after } }),
+      )
+      expect(page).toContain('Previous page')
+      expect(page).toContain('Next page')
+      expect(page).toContain(past ? '?show=past&before=' : '?before=')
+      const last = JSON.stringify(
+        await CalendarPage({
+          ...context,
+          query: {
+            show: past ? 'past' : '',
+            after: `${second.at(-1)!.startsAt.getTime()}:${second.at(-1)!.id}`,
+          },
+        }),
+      )
+      expect(last).not.toContain('Next page')
+    }
+    expect(
+      JSON.stringify(await CalendarPage({ ...context, query: { after: 'invalid' } })),
+    ).not.toContain('Previous page')
   } finally {
     vi.useRealTimers()
     await h.close()

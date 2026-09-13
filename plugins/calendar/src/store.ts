@@ -108,7 +108,9 @@ export async function agendaEvents(
   data: PluginData,
   now: Date,
   past = false,
-  limit = past ? 30 : 50,
+  limit = 50,
+  cursor?: Pick<CalendarEvent, 'startsAt' | 'id'>,
+  backwards = false,
 ): Promise<readonly CalendarEvent[]> {
   const rows = await data.query<EventRow>(
     `select ${COLUMNS} from plugin_calendar_event
@@ -116,7 +118,12 @@ export async function agendaEvents(
     [now],
   )
   const span = limit * 62 * 86_400_000
-  return rows
+  const descending = past !== backwards
+  const compare = (
+    a: Pick<CalendarEvent, 'startsAt' | 'id'>,
+    b: Pick<CalendarEvent, 'startsAt' | 'id'>,
+  ) => a.startsAt.getTime() - b.startsAt.getTime() || a.id.localeCompare(b.id)
+  const events = rows
     .flatMap((row) => {
       const event = toEvent(row)
       if (event.repeat === 'none') return isUpcoming(event, now) !== past ? [event] : []
@@ -126,16 +133,22 @@ export async function agendaEvents(
         event.repeatUntil == null
           ? Number.POSITIVE_INFINITY
           : new Date(event.repeatUntil + 'T00:00:00Z').getTime() + 86_400_000
-      const start = Math.max(boundary, event.startsAt.getTime())
-      const end = Math.min(boundary, until)
+      const lower = Math.max(past ? -Infinity : boundary, event.startsAt.getTime())
+      const upper = Math.min(past ? boundary : Infinity, until)
+      const start = Math.max(lower, cursor?.startsAt.getTime() ?? lower)
+      const end = Math.min(upper, cursor ? cursor.startsAt.getTime() + 1 : upper)
       return occurrences(
         event,
-        new Date(past ? end - span : start),
-        new Date(past ? end : start + span),
+        new Date(descending ? Math.max(lower, end - span) : start),
+        new Date(descending ? end : Math.min(upper, start + span)),
       )
     })
-    .sort((a, b) => (past ? byStart(b, a) : byStart(a, b)))
+    .filter(
+      (event) => !cursor || (descending ? compare(event, cursor) < 0 : compare(event, cursor) > 0),
+    )
+    .sort((a, b) => (descending ? compare(b, a) : compare(a, b)))
     .slice(0, limit)
+  return backwards ? events.reverse() : events
 }
 
 export async function eventById(data: PluginData, id: string): Promise<CalendarEvent | null> {

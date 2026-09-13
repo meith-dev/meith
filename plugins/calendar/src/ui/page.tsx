@@ -306,18 +306,36 @@ export async function CalendarPage(context: PluginPageContext) {
 
   const rawMonth = context.query.month ?? ''
   const filteringMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth)
+  const pageSize = 50
+  const rawCursor = context.query.after ?? context.query.before ?? ''
+  const match = /^(-?\d{1,16}):(\d+)$/.exec(rawCursor)
+  const cursor =
+    match && Number.isFinite(new Date(Number(match[1])).getTime())
+      ? { startsAt: new Date(Number(match[1])), id: match[2]! }
+      : undefined
+  const backwards = cursor !== undefined && context.query.after === undefined
+  const pageHref = (event: CalendarEvent, direction: 'after' | 'before') =>
+    `?${showingPast ? 'show=past&' : ''}${direction}=${event.startsAt.getTime()}:${event.id}`
   const month = filteringMonth ? rawMonth : now.toISOString().slice(0, 7)
   const from = new Date(month + '-01T00:00:00Z')
   const to = new Date(from)
   to.setUTCMonth(to.getUTCMonth() + 1)
   const previous = new Date(from)
   previous.setUTCMonth(previous.getUTCMonth() - 1)
-  const [events, organisers] = await Promise.all([
+  const [results, organisers] = await Promise.all([
     filteringMonth
       ? windowEvents(context.data, from, to)
-      : agendaEvents(context.data, now, showingPast),
+      : agendaEvents(context.data, now, showingPast, pageSize + 1, cursor, backwards),
     organiserIds(context.data).catch(() => [] as readonly number[]),
   ])
+  const hasMore = results.length > pageSize
+  const events = filteringMonth
+    ? results
+    : backwards
+      ? results.slice(-pageSize)
+      : results.slice(0, pageSize)
+  const first = events[0]
+  const last = events.at(-1)
   const selectedId = context.query.event ?? ''
   const series = /^\d+$/.test(selectedId) ? await eventById(context.data, selectedId) : null
   const selected =
@@ -442,6 +460,19 @@ export async function CalendarPage(context: PluginPageContext) {
           context={context}
           organisers={organisers}
         />
+      )}
+
+      {!filteringMonth && (cursor !== undefined || hasMore) && (
+        <nav className="flex gap-4" aria-label={translated(context, 'calendar.page.pagination')}>
+          {first && (backwards ? hasMore : cursor !== undefined) && (
+            <a href={pageHref(first, 'before')}>
+              {translated(context, 'calendar.page.previousPage')}
+            </a>
+          )}
+          {last && (backwards ? cursor !== undefined : hasMore) && (
+            <a href={pageHref(last, 'after')}>{translated(context, 'calendar.page.nextPage')}</a>
+          )}
+        </nav>
       )}
 
       {editing !== null ? (

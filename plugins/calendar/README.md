@@ -82,8 +82,9 @@ different date requires fresh responses.
 Weekly and fortnightly repeats advance the stored instant by 7 or 14 days.
 Monthly repeats keep the UTC day and time, skipping months without that
 day (January 31 next occurs March 31). The optional until date is inclusive.
-Upcoming lists the next 50 occurrences across months, including events still
-running; Past lists the most recent 30. Non-repeating events retain their
+Upcoming and Past paginate all occurrences across months, 50 per page,
+including ongoing events in Upcoming. Previous/Next page links work without
+JavaScript; no stored events are removed or hidden by a total-count limit. Non-repeating events retain their
 original dates after an upgrade. Previous/next month navigation explicitly
 filters the agenda to one UTC month.
 The thread card selects from recurring occurrences within a year on either
@@ -122,6 +123,9 @@ the host coalesces an unread duplicate, but this is not exactly-once delivery.
 
 Calendar load failures are reported by the host instead of being shown as
 an empty agenda. The agenda expands a bounded range per recurring series
-before sorting and taking the requested count. It allows 62 days per
+around the page cursor before sorting and taking the requested count.
+The cursor uses occurrence time and event ID, so simultaneous events can
+span pages without being skipped. Page links use the current clock when
+opened; events may move from Upcoming to Past as time passes. It allows 62 days per
 requested occurrence, covering monthly rules that skip a missing day and
 therefore have gaps of up to 61 days.
