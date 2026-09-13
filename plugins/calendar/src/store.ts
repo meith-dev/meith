@@ -1,6 +1,13 @@
 import type { PluginData } from '@meith/plugin-kit'
 
-import { byStart, type CalendarEvent, type EventDraft, occurrences, type Repeat } from './events'
+import {
+  byStart,
+  type CalendarEvent,
+  type EventDraft,
+  isUpcoming,
+  occurrences,
+  type Repeat,
+} from './events'
 
 interface EventRow extends Record<string, unknown> {
   readonly repeat?: Repeat
@@ -95,6 +102,40 @@ export async function windowEvents(
     [from, to],
   )
   return rows.flatMap((row) => occurrences(toEvent(row), from, to)).sort(byStart)
+}
+
+export async function agendaEvents(
+  data: PluginData,
+  now: Date,
+  past = false,
+  limit = past ? 30 : 50,
+): Promise<readonly CalendarEvent[]> {
+  const rows = await data.query<EventRow>(
+    `select ${COLUMNS} from plugin_calendar_event
+     where repeat <> 'none' or coalesce(ends_at, starts_at) ${past ? '<' : '>='} $1`,
+    [now],
+  )
+  const span = limit * 62 * 86_400_000
+  return rows
+    .flatMap((row) => {
+      const event = toEvent(row)
+      if (event.repeat === 'none') return isUpcoming(event, now) !== past ? [event] : []
+      const duration = event.endsAt === null ? 0 : event.endsAt.getTime() - event.startsAt.getTime()
+      const boundary = now.getTime() - duration
+      const until =
+        event.repeatUntil == null
+          ? Number.POSITIVE_INFINITY
+          : new Date(event.repeatUntil + 'T00:00:00Z').getTime() + 86_400_000
+      const start = Math.max(boundary, event.startsAt.getTime())
+      const end = Math.min(boundary, until)
+      return occurrences(
+        event,
+        new Date(past ? end - span : start),
+        new Date(past ? end : start + span),
+      )
+    })
+    .sort((a, b) => (past ? byStart(b, a) : byStart(a, b)))
+    .slice(0, limit)
 }
 
 export async function eventById(data: PluginData, id: string): Promise<CalendarEvent | null> {

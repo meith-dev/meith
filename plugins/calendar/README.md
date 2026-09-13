@@ -82,7 +82,10 @@ different date requires fresh responses.
 Weekly and fortnightly repeats advance the stored instant by 7 or 14 days.
 Monthly repeats keep the UTC day and time, skipping months without that
 day (January 31 next occurs March 31). The optional until date is inclusive.
-The agenda expands one UTC month at a time, with previous/next navigation.
+Upcoming lists the next 50 occurrences across months, including events still
+running; Past lists the most recent 30. Non-repeating events retain their
+original dates after an upgrade. Previous/next month navigation explicitly
+filters the agenda to one UTC month.
 The thread card selects from recurring occurrences within a year on either
 side of now. ICS downloads contain the series with a standard RRULE.
 
@@ -116,3 +119,9 @@ The existing scheduler prevents concurrent normal runs. Failed notification
 sends remain eligible for retry. Sending and recording delivery use separate
 host APIs, so a process crash between them can retry a delivered notification;
 the host coalesces an unread duplicate, but this is not exactly-once delivery.
+
+Calendar load failures are reported by the host instead of being shown as
+an empty agenda. The agenda expands a bounded range per recurring series
+before sorting and taking the requested count. It allows 62 days per
+requested occurrence, covering monthly rules that skip a missing day and
+therefore have gaps of up to 61 days.

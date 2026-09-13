@@ -22,6 +22,7 @@ import {
 } from '../events'
 import en from '../messages/en.json'
 import {
+  agendaEvents,
   eventById,
   organiserIds,
   RSVP_LABELS,
@@ -304,15 +305,17 @@ export async function CalendarPage(context: PluginPageContext) {
   const now = new Date()
 
   const rawMonth = context.query.month ?? ''
-  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : now.toISOString().slice(0, 7)
+  const filteringMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth)
+  const month = filteringMonth ? rawMonth : now.toISOString().slice(0, 7)
   const from = new Date(month + '-01T00:00:00Z')
-  if (showingPast && rawMonth === '') from.setUTCMonth(from.getUTCMonth() - 1)
   const to = new Date(from)
   to.setUTCMonth(to.getUTCMonth() + 1)
   const previous = new Date(from)
   previous.setUTCMonth(previous.getUTCMonth() - 1)
   const [events, organisers] = await Promise.all([
-    windowEvents(context.data, from, to).catch(() => [] as readonly CalendarEvent[]),
+    filteringMonth
+      ? windowEvents(context.data, from, to)
+      : agendaEvents(context.data, now, showingPast),
     organiserIds(context.data).catch(() => [] as readonly number[]),
   ])
   const selectedId = context.query.event ?? ''
@@ -409,8 +412,8 @@ export async function CalendarPage(context: PluginPageContext) {
           <li className="shrink-0">
             <a
               href="/plugins/calendar"
-              {...(showingPast ? {} : { 'aria-current': 'page' as const })}
-              className={pluginTabClass(!showingPast)}
+              {...(showingPast || filteringMonth ? {} : { 'aria-current': 'page' as const })}
+              className={pluginTabClass(!showingPast && !filteringMonth)}
             >
               {translated(context, 'calendar.page.upcoming')}
             </a>
@@ -418,8 +421,8 @@ export async function CalendarPage(context: PluginPageContext) {
           <li className="shrink-0">
             <a
               href="/plugins/calendar?show=past"
-              {...(showingPast ? { 'aria-current': 'page' as const } : {})}
-              className={pluginTabClass(showingPast)}
+              {...(showingPast && !filteringMonth ? { 'aria-current': 'page' as const } : {})}
+              className={pluginTabClass(showingPast && !filteringMonth)}
             >
               {translated(context, 'calendar.page.past')}
             </a>
