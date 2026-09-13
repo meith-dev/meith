@@ -325,6 +325,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   delete (globalThis as Record<symbol, unknown>)[CONTAINER_KEY]
 })
 
@@ -505,6 +506,8 @@ describe('a poll attached to a new thread', () => {
   })
 
   it('reads a UTC closing time from the same wall-clock text the poll edit form uses', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-01T12:00:00Z'))
     const to = await redirectOf(
       createThreadAction(
         EMPTY_STATE,
