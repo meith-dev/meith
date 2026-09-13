@@ -268,7 +268,10 @@ Recurrence supports weekly, fortnightly and monthly series with an optional
 inclusive UTC until date. Weekly intervals are fixed instants, so local
 times may shift with daylight saving. Monthly series skip nonexistent days.
 Calendar forms and labels explicitly use UTC, unlike the core viewer-zone
-TimeModel rendering. Month navigation expands only the requested month;
+TimeModel rendering. Upcoming and Past paginate all occurrences across months, 50 per page,
+including ongoing events in Upcoming. Previous/Next page links work without
+JavaScript; there is no total-count cutoff. Explicit month navigation
+expands only the requested month;
 thread cards search recurring occurrences within a year either side of now.
 ICS exports carry the unexpanded series and RRULE.
 
@@ -301,3 +304,12 @@ The existing scheduler prevents concurrent normal runs. Failed notification
 sends remain eligible for retry. Sending and recording delivery use separate
 host APIs, so a process crash between them can retry a delivered notification;
 the host coalesces an unread duplicate, but this is not exactly-once delivery.
+
+Calendar load failures are reported by the host instead of being shown as
+an empty agenda. The agenda expands a bounded range per recurring series
+around the page cursor before sorting and taking the requested count.
+The cursor uses occurrence time and event ID, so simultaneous events can
+span pages without being skipped. Page links use the current clock when
+opened; events may move from Upcoming to Past as time passes. It allows 62 days per
+requested occurrence, covering monthly rules that skip a missing day and
+therefore have gaps of up to 61 days.

@@ -382,9 +382,6 @@ generated-document and documentation checks (`theme:docs`, `plugin:docs`,
 `extension:gen`), lint, dependency-cruiser, all three
 typecheck projects, and the full test suite.
 
-Poll closing-time tests freeze the clock before their fixed closing date so
-the same input remains valid after that date passes on the developer's clock.
-
 **`pnpm verify` and CI's `static` job hold to each other.** `pnpm
 ci:parity:check` reads the `verify` script and the `static` job out of
 `.github/workflows/ci.yml` and fails, naming them, on any gate chained in
@@ -398,6 +395,10 @@ the Redis cache-driver contract, coverage thresholds — so run `pnpm
 test:coverage` yourself before a pull request that moves what is covered.
 CI's other jobs build the image, drive a browser, and run the migrations
 against real Postgres.
+
+Tests that validate future dates must fix the clock and restore it afterward,
+so fixtures do not expire as real time advances. The poll closing-time test
+fakes only `Date`, leaving asynchronous timers running normally.
 
 ## No inline comments
 
