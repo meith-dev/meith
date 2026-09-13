@@ -51,7 +51,7 @@ import { WhoIsOnline } from './slots/who-is-online'
 export const midnightTheme = defineTheme({
   key: 'midnight',
   title: 'Midnight',
-  version: '0.36.2',
+  version: '0.37.0',
   extends: defaultTheme,
   slots: {
     Shell,

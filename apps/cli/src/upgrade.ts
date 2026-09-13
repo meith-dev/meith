@@ -12,7 +12,7 @@ import { type PluginDefinition, pluginNavigationPlacements } from '@meith/plugin
 import { backupBeforeMigrating, runPluginLifecycle } from '@meith/runtime'
 import { type PluginUpgrade, planUpgrade, upgradeNotice } from '@meith/upgrade'
 
-export const CODE_VERSION = '0.36.2'
+export const CODE_VERSION = '0.37.0'
 
 export function pluginUpgrades(plugins: readonly PluginDefinition[]): readonly PluginUpgrade[] {
   return plugins.map((plugin) => ({
