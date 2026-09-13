@@ -346,7 +346,8 @@ When updating Next.js, also align `packages/drivers/package.json`'s exact
 peer dependency and `create-meith`'s `NEXT_VERSION`, then run
 `pnpm board-installer:gen` and `pnpm install`. Leave the committed deploy
 templates unchanged until release; `pnpm release:bump` regenerates them.
-The template freshness check can therefore fail between releases.
+The release workflow checks template freshness before publishing npm packages;
+normal CI tests the generator without requiring the released trees to change.
 Conflicting Next.js installations can fail packed-board prerendering with
 `Expected workStore to be initialized` even when the repository build passes.
 
@@ -354,7 +355,7 @@ Conflicting Next.js installations can fail packed-board prerendering with
 `target: 'vercel'` tree carries the flag in `vercel.json`'s `buildCommand`
 (`meith migrate && forum-web build --at-root`) and in its own scripts, so a
 board built locally and on the platform materialize to the same place. The
-self-host target is untouched. `pnpm templates:gen:check` ties the
+self-host target is untouched. At release, `pnpm templates:gen:check` ties the
 generated `templates/self-host/` and `templates/vercel/` trees back to
 `scaffold()`.
 
@@ -378,7 +379,7 @@ guards and their probes, the message-catalog check, the slot checks, the
 generated-document and documentation checks (`theme:docs`, `plugin:docs`,
 `board:gen`, `hooks:wired`, `regions:wired`, `api:docs`, `perf:docs`, `docs:index`,
 `docs:links`, `site:docs`, `marketplace:gen`, `board-installer:gen`,
-`templates:gen`, `extension:gen`), lint, dependency-cruiser, all three
+`extension:gen`), lint, dependency-cruiser, all three
 typecheck projects, and the full test suite.
 
 Poll closing-time tests freeze the clock before their fixed closing date so
@@ -812,7 +813,8 @@ repository that nothing else reads:
 | `regions:wired` | A UI region declared in the registry that no call site in `apps/community` renders — the asymmetry that let `admin.dashboard` sit in the reference while rendering nowhere. It also flags a call site that renders a region the registry does not declare. |
 | `theme:docs:check`, `plugin:docs:check`, `api:docs:check`, `perf:docs:check` | A generated reference that has drifted from the code it describes. |
 | `board:gen:check` | Either board's `meith.plugins.ts` out of step with its `board.plugins.json` — see [the board plugin manifests](#the-board-plugin-manifests). |
-| `marketplace:gen:check`, `board-installer:gen:check`, `templates:gen:check` | A published artifact generated from this repository that has drifted from its source: the marketplace feed meith.dev serves, the one-line board installer, and the `templates/` trees people actually deploy from. |
+| `marketplace:gen:check`, `board-installer:gen:check` | A published artifact generated from this repository that has drifted from its source: the marketplace feed meith.dev serves and the one-line board installer. |
+| `templates:gen:check` (release only) | A deploy template that differs from the scaffold being released. Templates stay at the last release between version bumps. |
 | `extension:gen:check` | `create-meith`'s plugin and theme scaffold templates out of step with `examples/hello-plugin` and `examples/iris-theme`, which they are generated from. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 | `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](#documentation-links). |
