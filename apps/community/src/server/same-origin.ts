@@ -53,6 +53,8 @@ export function isTopLevelNavigation(request: Request): boolean {
   const mode = request.headers.get('sec-fetch-mode')
   const dest = request.headers.get('sec-fetch-dest')
 
+  if (mode === 'navigate' && dest === 'empty') return true
+
   if (mode !== null || dest !== null) {
     return (mode === null || mode === 'navigate') && (dest === null || dest === 'document')
   }

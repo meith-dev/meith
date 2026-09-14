@@ -162,6 +162,12 @@ describe('isTopLevelNavigation', () => {
     ).toBe(true)
   })
 
+  it('recognises a navigation forwarded by the service worker', () => {
+    expect(
+      isTopLevelNavigation(get({ 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'empty' })),
+    ).toBe(true)
+  })
+
   it('refuses a subresource however it is fetched', () => {
     expect(
       isTopLevelNavigation(get({ 'sec-fetch-mode': 'no-cors', 'sec-fetch-dest': 'image' })),
@@ -169,6 +175,7 @@ describe('isTopLevelNavigation', () => {
     expect(isTopLevelNavigation(get({ 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty' }))).toBe(
       false,
     )
+    expect(isTopLevelNavigation(get({ 'sec-fetch-dest': 'empty' }))).toBe(false)
     expect(
       isTopLevelNavigation(get({ 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'iframe' })),
     ).toBe(false)

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { signUp } from './support/session'
+import { PASSWORD, signUp } from './support/session'
 
 test('the board is installable: a linked manifest, an icon, and a scope', async ({
   page,
@@ -94,6 +94,38 @@ test('the policy lets the board register its own worker and manifest', async ({ 
 
   expect(policy).toContain("worker-src 'self'")
   expect(policy).toContain("manifest-src 'self'")
+})
+
+test('a remembered visitor resumes through the service worker, but an iframe cannot', async ({
+  page,
+}) => {
+  const username = await signUp(page, 'swresume')
+  await page.goto('/login')
+  await page.getByLabel('Username or email').fill(username)
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await page.getByLabel('Keep me signed in').check()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL('/')
+  await page.evaluate(() => navigator.serviceWorker.ready)
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null)
+
+  await page.context().clearCookies({ name: /session/ })
+  const refused = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === '/auth/resume',
+  )
+  await page.evaluate(() => {
+    const frame = document.createElement('iframe')
+    frame.src = '/auth/resume?next=/usercp'
+    document.body.append(frame)
+  })
+  expect((await refused).status()).toBe(403)
+  expect((await page.context().cookies()).some((cookie) => /session/.test(cookie.name))).toBe(false)
+
+  const response = await page.goto('/usercp')
+  expect(response?.status()).toBe(200)
+  await expect(page).toHaveURL('/usercp')
+  await expect(page.getByRole('heading', { name: 'Your control panel' })).toBeVisible()
+  expect((await page.context().cookies()).some((cookie) => /session/.test(cookie.name))).toBe(true)
 })
 
 test('a board that is not offering push offers no subscribe button', async ({ page }) => {

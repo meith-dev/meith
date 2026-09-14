@@ -62,6 +62,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.mode !== 'navigate') return
+  if (event.request.destination !== 'document') return
 
   const retryRequest = event.request.clone()
 

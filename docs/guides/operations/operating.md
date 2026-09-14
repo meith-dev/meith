@@ -393,8 +393,9 @@ deep-links to the notification's own target and falls back to
 `/notifications`; off-origin links are refused.
 
 Its only other job is a navigation fallback for an installed board that
-opens with no connection. The `fetch` handler intercepts navigation
-requests alone (`request.mode === 'navigate'`) and always tries the
+opens with no connection. The `fetch` handler intercepts top-level navigation
+requests alone (`request.mode === 'navigate'` and `request.destination === 'document'`)
+and always tries the
 network first; it only steps in when that request fails outright,
 serving a precached, static `/offline` page instead of the browser's own
 error screen. Nothing else is cached or intercepted — the board's actual
