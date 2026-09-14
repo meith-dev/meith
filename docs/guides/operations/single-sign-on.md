@@ -239,6 +239,12 @@ issues a fresh one — single use, so a token that turns up twice is evidence
 that a copy of it exists somewhere it should not, and the whole family plus
 every session on the account is ended.
 
+Session resumption and SSO accept top-level navigations forwarded by the board's
+service worker: these retain `Sec-Fetch-Mode: navigate` but can arrive with
+`Sec-Fetch-Dest: empty`. Ordinary background fetches and iframe navigations remain
+refused. The worker only intercepts top-level documents, leaving iframe fetch
+metadata intact for the same check.
+
 Two requests carrying the same token are not always theft, though. A browser
 restoring several tabs, a double-clicked link and a prefetch racing its own
 navigation all present the identical cookie within the same moment, and
