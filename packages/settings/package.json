@@ -21,6 +21,6 @@
   "dependencies": {
     "@meith/core": "workspace:*",
     "@meith/i18n": "workspace:*",
-    "zod": "^4.5.4"
+    "zod": "^4.6.2"
   }
 }
