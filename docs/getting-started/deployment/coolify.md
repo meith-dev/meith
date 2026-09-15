@@ -152,6 +152,12 @@ writing the board settings or creating the administrator. A failed test
 leaves the form available for correction. The schema was already migrated
 during deployment.
 
+Select a provider under **How mail is sent** when entering mail settings. Leaving
+**Skip for now** selected with any mail fields filled in stops installation
+and asks you to choose a provider or clear those fields. Once the test and
+installation succeed, the mail settings are saved and available at
+`/admin/settings?group=mail`; you do not need to enter them again after login.
+
 ### If you skipped it
 
 At `/admin/settings?group=mail`, choose the transport, enter the settings,

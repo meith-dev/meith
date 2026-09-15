@@ -355,6 +355,38 @@ describe('the mail half of the form', () => {
     }
   })
 
+  it('requires a provider before accepting mail settings entered while skip is selected', () => {
+    const raw = {
+      ...valid,
+      mailPreset: MAIL_SKIP,
+      mailFrom: 'noreply@board.example',
+      mailHost: 'smtp.example',
+      mailPort: '465',
+      mailSecurity: 'tls',
+      mailUsername: 'board',
+      mailSecret: 'smtp-password',
+    }
+
+    expect(parseInstallInput(raw)).toEqual({
+      ok: false,
+      errors: { mailPreset: 'install.validation.mailSkippedWithSettings' },
+    })
+
+    const corrected = parseInstallInput({ ...raw, mailPreset: 'smtp' })
+    expect(corrected.ok).toBe(true)
+    if (corrected.ok) {
+      expect(mailConfigFromInstallInput(corrected.value)).toEqual({
+        transport: 'smtp',
+        from: raw.mailFrom,
+        host: raw.mailHost,
+        port: 465,
+        security: 'tls',
+        username: raw.mailUsername,
+        password: raw.mailSecret,
+      })
+    }
+  })
+
   it('reads a blank security select as "use the preset\u2019s", not as an error', () => {
     expect(parseInstallInput({ ...valid, mailPreset: MAIL_SKIP, mailSecurity: '' }).ok).toBe(true)
 
