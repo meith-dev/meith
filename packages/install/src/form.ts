@@ -52,7 +52,20 @@ const installInputObject = z.object({
 })
 
 export const installInputSchema = installInputObject.superRefine((value, ctx) => {
-  if (value.mailPreset === MAIL_SKIP) return
+  if (value.mailPreset === MAIL_SKIP) {
+    if (
+      Object.entries(value).some(
+        ([name, answer]) => name.startsWith('mail') && name !== 'mailPreset' && Boolean(answer),
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['mailPreset'],
+        message: 'install.validation.mailSkippedWithSettings',
+      })
+    }
+    return
+  }
 
   const preset = MAIL_PRESET_BY_ID.get(value.mailPreset)
   if (preset === undefined) {

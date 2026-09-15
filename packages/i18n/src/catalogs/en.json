@@ -2361,6 +2361,7 @@
   "install.validation.mailPort": "A port is a whole number between 1 and 65535.",
   "install.validation.mailPreset": "Choose one of the listed options.",
   "install.validation.mailSecretRequired": "This provider needs an API key.",
+  "install.validation.mailSkippedWithSettings": "You entered mail settings but selected “Skip for now”. Choose a mail provider to test and save them, or clear the mail fields to skip.",
   "install.validation.mailUsernameRequired": "A password was given with no username.",
   "install.validation.nameTooLong": "That name is too long.",
   "install.validation.passwordMin": "The administrator’s password must be at least 12 characters.",
