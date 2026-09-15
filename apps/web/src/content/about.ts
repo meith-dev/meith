@@ -1,7 +1,7 @@
 export const about = {
   href: '/about',
   meta: {
-    title: 'About Meith — Why we’re building open-source community software',
+    title: 'About Meith — Why we’re building open-source forum software',
     description:
       'Learn why Meith exists, the principles behind its open-source and self-hosted approach, ' +
       'and how the name was inspired by the Irish tradition of meitheal.',
@@ -125,7 +125,7 @@ export const about = {
     software: {
       heading: 'Built like software, because it is software.',
       paragraphs: [
-        'Many community platforms are configured almost entirely through dashboards. Meith ' +
+        'Many forum platforms are configured almost entirely through dashboards. Meith ' +
           'deliberately takes a different approach. A board lives in a repository. ' +
           'Configuration can be reviewed. Themes and plugins are version controlled. Changes ' +
           'move through normal development workflows, deployments are repeatable, and ' +

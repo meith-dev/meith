@@ -10,7 +10,7 @@ import { ogImage } from '../../src/og/card'
 
 const TITLE = 'Who is Meith for? — developers, open source, communities, clubs'
 const DESCRIPTION =
-  'Meith is open-source, self-hosted community software for people who want to own their ' +
+  'Meith is open-source, self-hosted forum software for people who want to own their ' +
   'community: developers, open-source projects, community organisers, and clubs and ' +
   'associations. Each gets a page of its own.'
 
