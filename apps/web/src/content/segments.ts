@@ -232,7 +232,7 @@ export const segments: readonly [Segment, ...Segment[]] = [
     name: 'Clubs & associations',
     lowerName: 'clubs & associations',
     card: {
-      heading: 'A community platform that survives the committee.',
+      heading: 'A forum that survives the committee.',
       line:
         'Keep discussions, announcements, records and institutional knowledge in a system ' +
         'that can be handed from one group of organisers to the next.',
@@ -241,13 +241,13 @@ export const segments: readonly [Segment, ...Segment[]] = [
     meta: {
       title: 'Meith for Clubs & Associations',
       description:
-        'Self-hosted community software for clubs, associations and member-led organisations ' +
+        'Self-hosted forum software for clubs, associations and member-led organisations ' +
         'that need continuity, ownership and searchable history.',
     },
     hero: {
       badge: 'For clubs, societies, associations and volunteer-run organisations',
       headline: {
-        before: 'A community platform',
+        before: 'A forum',
         emphasis: 'that survives the committee.',
       },
       lede:

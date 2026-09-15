@@ -8,7 +8,7 @@ export const dynamic = 'force-static'
 export function GET() {
   return new ImageResponse(
     <OgCard
-      eyebrow="Open-source community software you own"
+      eyebrow="Open-source forum software you own"
       title={hero.headline.before}
       emphasis={hero.headline.emphasis}
       description={site.description}

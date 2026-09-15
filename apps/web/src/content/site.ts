@@ -6,10 +6,10 @@ export const site = {
   url: 'https://www.meith.dev',
   demo: 'https://demo.meith.dev',
   repository: 'https://github.com/meith-dev/meith',
-  tagline: 'Open-source, self-hosted community software for conversations worth keeping.',
+  tagline: 'Open-source, self-hosted forum software for conversations worth keeping.',
   description:
     'Meith is open-source, self-hosted forum software for communities that want to own their conversations, data and infrastructure.',
-  seoTitle: 'Meith — Open-source community software you own',
+  seoTitle: 'Meith — Open-source forum software you own',
 } as const
 
 export const licence = {

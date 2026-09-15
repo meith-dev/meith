@@ -37,7 +37,7 @@ export const developers = {
     cta: 'Meith for Developers',
   },
   meta: {
-    title: 'Meith for Developers — Code-first community software',
+    title: 'Meith for Developers — Code-first forum software',
     description:
       'Build and operate your community like software with version-controlled configuration, ' +
       'TypeScript extensions, themes, plugins and self-hosted infrastructure.',
