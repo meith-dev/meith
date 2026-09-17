@@ -4,7 +4,7 @@ Open-source forum software for communities that want to run their own board.
 Meith includes discussions, search, moderation, themes, and plugins, with most
 reading and posting available without JavaScript.
 
-[Website](https://www.meith.dev) · [Live demo](https://demo.meith.dev) ·
+[Website](https://www.meith.dev) · [Community](https://forum.meith.dev) ·
 [Documentation](./docs/README.md) · [Issues](https://github.com/meith-dev/meith/issues)
 
 ## Try it locally

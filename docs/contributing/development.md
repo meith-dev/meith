@@ -108,7 +108,7 @@ permissions and save no changes. See [browser fixtures](../customization/themes.
 For Coolify, use `docker/compose.fixture.coolify.yml` from the repository root.
 It builds the stock board as one web service and sets `SHOWCASE_THEMES=1` so
 visitors can browse all five themes. Assign its domain and deploy; Coolify supplies
-the authentication secret. Use this same fixture configuration for the public demo.
+the authentication secret. This configuration hosts a read-only preview.
 
 Database smoke tests load the same content through `scripts/seed-smoke-board.mts`,
 which reuses the browser suite seed SQL after migrations. It only inserts into
@@ -741,6 +741,11 @@ particular audience. The copy is data, not markup: every heading, lede and
 link lives in `apps/web/src/content/`, and the pages under `apps/web/app/`
 only lay it out.
 
+The navigation links labelled “Community” and calls to action labelled
+“Join the community” link to [forum.meith.dev](https://forum.meith.dev), using
+the shared `site.forum` URL. The community runs a template-based board; fixture previews remain available
+for local development and theme screenshots.
+
 | Route | Content | What it argues |
 |---|---|---|
 | `/` | `site.ts` | The broad case: ownership, permanence, independence, open source, predictable cost. It introduces developers and the audience pages and links into them rather than carrying their detail. |
@@ -771,7 +776,7 @@ on the page.
 
 It photographs the populated fixture board as a guest on port 3003, using
 `e2e/screenshot-site.config.ts`. Theme previews and mobile thread captures use
-the same deterministic content as local development and the hosted demo.
+the same deterministic content as local development and hosted fixture previews.
 Search, Calendar and Dues need PostgreSQL and retain their existing screenshots;
 recapture those separately against the database-backed browser test board when
 those surfaces change.

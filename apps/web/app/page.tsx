@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { AudienceCards } from '../src/components/audience-cards'
 import { CommandLine } from '../src/components/command-line'
-import { DemoLink } from '../src/components/demo-link'
+import { ForumLink } from '../src/components/forum-link'
 import { SchemeScreenshot } from '../src/components/screenshot'
 import { ClosingBand, DocLinks } from '../src/components/site-bands'
 import { Terminal } from '../src/components/terminal'
@@ -62,7 +62,7 @@ export default async function LandingPage() {
                   →
                 </span>
               </Link>
-              <DemoLink className="btn btn-quiet">{hero.demo}</DemoLink>
+              <ForumLink className="btn btn-quiet">{hero.forum}</ForumLink>
               <a className="btn btn-quiet" href={site.repository}>
                 {hero.source}
               </a>

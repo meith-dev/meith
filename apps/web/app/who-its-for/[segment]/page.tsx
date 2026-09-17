@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { AudienceCards } from '../../../src/components/audience-cards'
-import { DemoLink } from '../../../src/components/demo-link'
+import { ForumLink } from '../../../src/components/forum-link'
 import { SchemeScreenshot } from '../../../src/components/screenshot'
 import { Breadcrumb, ClosingBand, DocLinks } from '../../../src/components/site-bands'
 import {
@@ -99,7 +99,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                   →
                 </span>
               </Link>
-              <DemoLink className="btn btn-quiet">Try the demo</DemoLink>
+              <ForumLink className="btn btn-quiet">Join the community</ForumLink>
               <a className="textlink text-micro" href={site.repository}>
                 View on GitHub
               </a>

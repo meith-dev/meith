@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { DemoLink } from '../../src/components/demo-link'
+import { ForumLink } from '../../src/components/forum-link'
 import { Breadcrumb } from '../../src/components/site-bands'
 import { about } from '../../src/content/about'
 import { audienceHref } from '../../src/content/segments'
@@ -235,7 +235,7 @@ export default function AboutPage() {
             <Link className="btn btn-quiet" href="/docs">
               Read the docs
             </Link>
-            <DemoLink className="textlink text-micro">Or look at a live board</DemoLink>
+            <ForumLink className="textlink text-micro">Join the community</ForumLink>
           </div>
         </div>
       </section>
