@@ -91,8 +91,8 @@ export function SiteFooter() {
                   </a>
                 </li>
                 <li>
-                  <a href={site.demo} className={item} rel="noreferrer">
-                    Live demo
+                  <a href={site.forum} className={item} rel="noreferrer">
+                    Community
                   </a>
                 </li>
                 <li>

@@ -4,7 +4,7 @@ export const site = {
   name: 'Meith',
   domain: 'meith.dev',
   url: 'https://www.meith.dev',
-  demo: 'https://demo.meith.dev',
+  forum: 'https://forum.meith.dev',
   repository: 'https://github.com/meith-dev/meith',
   tagline: 'Open-source, self-hosted forum software for conversations worth keeping.',
   description:
@@ -68,7 +68,7 @@ export const hero = {
     'your community a place of its own — on your domain, on your infrastructure, with your ' +
     'data under your control.',
   primary: 'Get started',
-  demo: 'Try the demo',
+  forum: 'Join the community',
   source: 'View on GitHub',
   facts: ['Open source', 'MIT licensed', 'Self-hosted', 'No per-member pricing'],
   caption: 'Screenshots from a working Meith board, on a desktop and on a phone.',
@@ -396,7 +396,7 @@ export const closing = {
     'Scaffold a board in a minute, run it on your machine before it ever touches a server, ' +
     'then hand the day-to-day to the people who run the community.',
   action: 'Get started',
-  demo: 'Try the demo',
+  forum: 'Join the community',
   source: 'View on GitHub',
   requirements: [
     { label: 'A repository', value: 'npx create-meith, pushed to your GitHub' },

@@ -468,7 +468,8 @@ repository* in its settings so the "Use this template" button appears.
 |---|---|---|
 | [Quickstart](../getting-started/deployment/coolify.md) (Coolify) | The `release` branch; the compose pin on the exact version, held per resource by `MEITH_IMAGE` | Every release moves the pin, so an upgrade is a **Redeploy** after the branch moves — or automatic, with the webhook on. Never from a push to `main`. Coolify's **Restart** re-runs the deployment from the branch head, so unpinned it upgrades too — the Quickstart has the operator pin `MEITH_IMAGE` so it cannot. |
 | A scaffolded, template or [by-hand](../getting-started/deployment/docker-compose.md) board ([Upgrading](../guides/operations/upgrading.md#upgrading-each-deployment-route)) | Its own `package.json`, pinned exact | Its `.github/workflows/update.yml` opens a pull request on its weekly run — or `npx create-meith@latest update` by hand, then `docker compose up -d --build` (or a Coolify Redeploy) to actually deploy it. Either moves the pins and the scaffold-owned deploy files together; the backup and `meith upgrade` stay the operator's. |
-| meith.dev and demo.meith.dev | `main` | The project's own resources, deliberately ahead of any release: the demo shows what is coming, and both redeploy on push. Nobody self-hosting should copy this arrangement. |
+| meith.dev | `main` | The project website redeploys on push, deliberately ahead of any release. |
+| [forum.meith.dev](https://forum.meith.dev) | Its own template repository, with exact package pins | The live community follows the template-board upgrade route above. |
 
 ### Deploys are deterministic, and that is load-bearing
 

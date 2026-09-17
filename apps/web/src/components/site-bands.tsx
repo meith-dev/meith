@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { closing, scaffoldCommand, site } from '../content/site'
 import { docHref } from '../docs/registry'
 import { CommandLine } from './command-line'
-import { DemoLink } from './demo-link'
+import { ForumLink } from './forum-link'
 
 export function ClosingBand({
   heading,
@@ -32,7 +32,7 @@ export function ClosingBand({
               </span>
             </Link>
             {docsHref === undefined ? (
-              <DemoLink className="btn btn-quiet">{closing.demo}</DemoLink>
+              <ForumLink className="btn btn-quiet">{closing.forum}</ForumLink>
             ) : (
               <Link className="btn btn-quiet" href={docsHref}>
                 Read the docs

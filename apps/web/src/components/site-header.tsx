@@ -4,8 +4,8 @@ import { about } from '../content/about'
 import { audienceHref, audienceIndexHref, audiences } from '../content/segments'
 import { site } from '../content/site'
 import { quickstartHref } from '../docs/registry'
-import { DemoLink } from './demo-link'
 import { DocsSearch } from './docs-search'
+import { ForumLink } from './forum-link'
 import { Logomark } from './logomark'
 import { MobileMenu } from './mobile-menu'
 import { ThemeToggle } from './theme-toggle'
@@ -55,7 +55,7 @@ export function SiteHeader() {
           <Link href="/docs" className={`hidden ${item} md:inline`}>
             Docs
           </Link>
-          <DemoLink className={`hidden ${item} md:inline`}>Demo</DemoLink>
+          <ForumLink className={`hidden ${item} md:inline`}>Community</ForumLink>
           <Link href={about.href} className={`hidden ${item} lg:inline`}>
             About
           </Link>
@@ -98,7 +98,7 @@ export function SiteHeader() {
                 </Link>
               </li>
               <li>
-                <DemoLink className="mobile-menu-link">Demo</DemoLink>
+                <ForumLink className="mobile-menu-link">Community</ForumLink>
               </li>
               <li>
                 <Link className="mobile-menu-link" href={about.href}>
