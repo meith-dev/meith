@@ -59,35 +59,24 @@ answers for the board is not.
    badge and colour are the product), then tick **may be granted by plugins**
    on its screen under Admin → Groups. Staff, system and power-carrying
    groups refuse the tick, on purpose.
-3. **Settings**, all under Admin → Plugins → Dues:
-   - **Currency** and **Grace period** — the board's default currency (a
-     plan can still be priced in any ISO 4217 code; this is what a new plan
-     defaults to, what the ledger shows, and the fallback when a Stripe
-     event carries no currency of its own) and the days a lapsed renewal
-     keeps access. `DUES_CURRENCY` and `DUES_GRACE_DAYS` override them from
-     the environment, on the same rule as the keys below. `DUES_CURRENCY` is
-     matched case-insensitively and trimmed — `EUR` and `eur` both select
-     the same option — but write it lower-case.
-   - **`DUES_STRIPE_SECRET_KEY`** and **`DUES_STRIPE_WEBHOOK_SECRET`** — set
-     in the environment, or filled in here. Environment wins, and the
-     screen says which source is in force.
-4. **Migrations**: run `meith upgrade`.
-5. **Make the plans** under Admin → Plugins → Dues → plans — see
+3. **Migrations**: run `meith upgrade`.
+4. **Connect Stripe and make a test purchase**: follow the
+   [step-by-step Dues setup guide](../../docs/guides/community/membership-guide.md#set-up-stripe-and-the-webhook).
+   It covers API keys, the exact webhook URL and event list, where to reveal
+   the `whsec_…` signing secret, environment overrides, receipts, portal
+   settings, sandbox testing, live setup and troubleshooting. Use separate
+   staging and production databases; Stripe IDs do not carry across modes.
+5. **Make the plans** under Admin → Plugins → Dues → Plans — see
    [Plans](#plans) below.
-6. **The webhook**: in Stripe, add an endpoint at
-   `https://your.board/api/plugins/dues/hook/stripe` subscribed to the events
-   the status page lists, and put its `whsec_…` in the settings.
-7. **Prove it**: the status page (Admin → Plugins → Dues → status) should read
-   green; buy a pass yourself in test mode before turning the live key on.
 
 ### What a marketplace install cannot reach
 
 `allowedRedirectHosts` — the hosts a route's redirect may point an absolute
 URL at — is declared on the plugin definition itself, and the host reads it
 before any setting resolves. There is no way for a setting to feed it, so
-the zero-argument `dues` export carries only Stripe's own two hosts
-(`checkout.stripe.com`, `billing.stripe.com`), which is everything the
-checkout and billing-portal flows need. A board that must add another host
+the zero-argument `dues` export carries only Stripe's own three hosts
+(`checkout.stripe.com`, `billing.stripe.com`, `pay.stripe.com`), which cover
+checkout, the billing portal and receipts. A board that must add another host
 registers `createDues({ extraRedirectHosts: [...] })` in code instead — the
 one piece of Dues configuration that stays code-only because the plugin API
 has no other way to express it.
