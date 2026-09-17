@@ -424,6 +424,7 @@ function GiftList({ orders, t }: { orders: readonly OrderRow[]; t: Translator })
 const MANAGE_NOTICE_KEYS = new Set([
   'dues.manage.cancel-failed',
   'dues.manage.no-customer',
+  'dues.manage.no-receipt',
   'dues.manage.sign-in',
   'dues.manage.stripe-error',
   'dues.manage.unconfigured',
@@ -441,6 +442,9 @@ export async function ManagePage({
 
   const memberships = await membershipsFor(context.data, viewerId)
   const orders = await ordersBoughtBy(context.data, viewerId)
+  const receipts = orders.filter(
+    (order) => order.status === 'paid' && order.stripePaymentIntentId !== null,
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -496,6 +500,33 @@ export async function ManagePage({
                     </button>
                   </form>
                 )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {receipts.length > 0 && (
+        <section className={CARD} aria-labelledby="dues-receipts">
+          <h2 id="dues-receipts" className="font-heading text-lg font-semibold">
+            {context.t.t('dues.manage.receiptsHeading')}
+          </h2>
+          <ul className="flex flex-col divide-y divide-border text-sm">
+            {receipts.map((order) => (
+              <li
+                key={order.id}
+                className="flex flex-wrap items-baseline justify-between gap-2 py-2"
+              >
+                <span>
+                  {order.planName} —{' '}
+                  {formatMinor(order.amountMinor, order.currency, context.locale)}
+                </span>
+                <span className="text-muted-foreground">
+                  {fmtDate(order.settledAt ?? order.createdAt, context.t)}
+                </span>
+                <a href={`/api/plugins/dues/receipt?order=${order.id}`} className={QUIET_BUTTON}>
+                  {context.t.t('dues.manage.viewReceipt')}
+                </a>
               </li>
             ))}
           </ul>

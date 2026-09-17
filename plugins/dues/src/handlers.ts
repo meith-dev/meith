@@ -14,6 +14,7 @@ import {
   markEventFailed,
   markEventProcessed,
   membershipById,
+  orderById,
   recordEvent,
   reserveCodeRedemption,
   saveCodeCoupon,
@@ -380,6 +381,40 @@ export async function handlePortal(
     return offsite(portal.url)
   } catch (error) {
     services.context.logger.error('dues: could not open the billing portal', {
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return backToManage({ error: 'stripe-error' })
+  }
+}
+
+export async function handleReceipt(
+  services: DuesServices,
+  request: PluginRequest,
+): Promise<PluginResponse> {
+  const userId = request.viewer.userId
+  if (userId === null) return backToManage({ error: 'sign-in' })
+
+  const orderId = Number(request.query.order ?? '')
+  const order =
+    Number.isSafeInteger(orderId) && orderId > 0
+      ? await orderById(services.context.data, orderId)
+      : null
+  if (
+    order === null ||
+    order.buyerUserId !== userId ||
+    order.status !== 'paid' ||
+    order.stripePaymentIntentId === null
+  ) {
+    return backToManage({ error: 'no-receipt' })
+  }
+  if (services.stripe === null) return backToManage({ error: 'unconfigured' })
+
+  try {
+    const url = await services.stripe.getPaymentReceipt(order.stripePaymentIntentId)
+    return url === null ? backToManage({ error: 'no-receipt' }) : offsite(url)
+  } catch (error) {
+    services.context.logger.error('dues: could not open the receipt', {
+      orderId,
       message: error instanceof Error ? error.message : String(error),
     })
     return backToManage({ error: 'stripe-error' })

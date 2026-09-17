@@ -22,6 +22,7 @@ import {
   handleCancel,
   handleCheckout,
   handlePortal,
+  handleReceipt,
   handleWebhook,
 } from './handlers'
 import {
@@ -181,6 +182,13 @@ export function createDues(input: DuesConfigInput = {}): PluginDefinition {
 
     routes: [
       {
+        path: 'receipt',
+        method: 'GET',
+        access: 'member',
+        rateLimit: { limit: 10, windowSeconds: 60 },
+        handler: route(handleReceipt),
+      },
+      {
         path: 'checkout',
         method: 'POST',
         access: 'member',
@@ -299,6 +307,7 @@ export function createDues(input: DuesConfigInput = {}): PluginDefinition {
             allowedHosts: [
               'checkout.stripe.com',
               'billing.stripe.com',
+              'pay.stripe.com',
               ...staticConfig.extraRedirectHosts,
             ],
           }),
@@ -354,6 +363,7 @@ export function createDues(input: DuesConfigInput = {}): PluginDefinition {
     allowedRedirectHosts: [
       'checkout.stripe.com',
       'billing.stripe.com',
+      'pay.stripe.com',
       ...staticConfig.extraRedirectHosts,
     ],
   })

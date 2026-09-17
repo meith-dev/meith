@@ -41,9 +41,24 @@ Anyone can look; buying needs a signed-in account, because the membership
 has to attach to one.
 
 Each member also gets a **Your membership** page, where they see what they
-hold, cancel a renewal, and open Stripe's billing portal to change their
-card or fetch receipts and invoices. Cards and receipts live on Stripe,
-not on the board.
+hold, cancel a renewal, and open Stripe's billing portal to manage saved
+cards and subscription invoices. **Recent receipts** lists paid purchases
+with a Stripe payment reference among their 20 most recent orders, showing
+the plan, amount, date and a **View receipt** link. This includes existing
+one-time purchases and gifts they bought; only the buyer can open a receipt.
+Free purchases and payments still awaiting confirmation have no receipt link.
+
+Stripe's portal lists invoices. Dues does not enable invoice creation for
+one-time Checkout payments, so those payments can have an emailed receipt
+without appearing in the portal's invoice history. The board retrieves
+the payment's latest Charge `receipt_url` from Stripe when the buyer clicks
+**View receipt**, then opens Stripe's hosted receipt through the existing
+redirect page (`pay.stripe.com` is allowed). Receipt URLs are not stored
+on the board. Stripe may ask for the original email address when a receipt
+link has expired. If Stripe is unavailable or has no receipt yet, the buyer
+returns to the membership page with a message. Subscription renewal
+invoices remain available through the billing portal. See
+[Stripe's receipt documentation](https://docs.stripe.com/receipts).
 
 A member who buys is shown as what they bought: the plan's group becomes
 their primary group, with its title, colour and badge, and their old group

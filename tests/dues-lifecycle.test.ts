@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ActorBuilder,
@@ -16,6 +16,7 @@ import {
   entitlementDeps,
   handleCancel,
   handleCheckout,
+  handleReceipt,
   handleWebhook,
 } from '../plugins/dues/src/handlers'
 import {
@@ -180,6 +181,10 @@ function fakeStripe(): FakeStripe {
 
     async createBillingPortalSession() {
       return { url: 'https://billing.stripe.com/session/test' }
+    },
+
+    async getPaymentReceipt(id) {
+      return `https://pay.stripe.com/receipts/payment/${id}`
     },
   }
 }
@@ -366,6 +371,49 @@ function paidSessionEvent(
 }
 
 describe('buying a pass for yourself', () => {
+  it('opens an existing gift receipt only for its buyer and handles missing receipts and Stripe errors', async () => {
+    const { orderId, sessionId } = await checkout(alice, 'pass-90', 'Bob')
+    const receiptRequest = (userId: number | null, order = String(orderId)) =>
+      request(userId, null, { method: 'GET', path: 'receipt', query: { order } })
+    const receipt = vi.spyOn(stripe, 'getPaymentReceipt')
+    const unavailable = { kind: 'redirect', to: '/plugins/dues/manage?error=no-receipt' }
+
+    expect(await handleReceipt(services(), receiptRequest(alice))).toEqual(unavailable)
+    await handleWebhook(services(), paidSessionEvent(sessionId))
+    expect(await handleReceipt(services(), receiptRequest(null))).toMatchObject({
+      to: '/plugins/dues/manage?error=sign-in',
+    })
+    expect(await handleReceipt(services(), receiptRequest(bob))).toEqual(unavailable)
+    for (const order of ['0', '-1', '1.5', 'bad', '999999999']) {
+      expect(await handleReceipt(services(), receiptRequest(alice, order))).toEqual(unavailable)
+    }
+    expect(receipt).not.toHaveBeenCalled()
+
+    expect(await handleReceipt(services(), receiptRequest(alice))).toEqual({
+      kind: 'redirect',
+      to: `/plugins/dues/go?to=${encodeURIComponent(`https://pay.stripe.com/receipts/payment/pi_for_${sessionId}`)}`,
+    })
+    expect(receipt).toHaveBeenCalledWith(`pi_for_${sessionId}`)
+    receipt.mockResolvedValueOnce(null)
+    expect(await handleReceipt(services(), receiptRequest(alice))).toEqual(unavailable)
+    receipt.mockRejectedValueOnce(new Error('Stripe unavailable'))
+    expect(await handleReceipt(services(), receiptRequest(alice))).toMatchObject({
+      to: '/plugins/dues/manage?error=stripe-error',
+    })
+    expect(
+      await handleReceipt({ ...services(), stripe: null }, receiptRequest(alice)),
+    ).toMatchObject({
+      to: '/plugins/dues/manage?error=unconfigured',
+    })
+    await context.data.query(
+      'update plugin_dues_order set stripe_payment_intent_id = null, amount_minor = 0 where id = $1',
+      [orderId],
+    )
+    receipt.mockClear()
+    expect(await handleReceipt(services(), receiptRequest(alice))).toEqual(unavailable)
+    expect(receipt).not.toHaveBeenCalled()
+  })
+
   it('checkout → signed webhook → group membership, ledger, receipt page state', async () => {
     const { orderId, sessionId } = await checkout(alice, 'pass-90')
 
