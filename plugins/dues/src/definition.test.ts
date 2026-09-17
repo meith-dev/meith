@@ -24,7 +24,11 @@ describe('the zero-argument export', () => {
   })
 
   it('ships only Stripe’s own redirect hosts — no board-configured host can reach it', () => {
-    expect(dues.allowedRedirectHosts).toEqual(['checkout.stripe.com', 'billing.stripe.com'])
+    expect(dues.allowedRedirectHosts).toEqual([
+      'checkout.stripe.com',
+      'billing.stripe.com',
+      'pay.stripe.com',
+    ])
   })
 
   it('is exactly createDues() called with no arguments', () => {
@@ -54,6 +58,7 @@ describe('the code-configured path', () => {
     expect(configured.allowedRedirectHosts).toEqual([
       'checkout.stripe.com',
       'billing.stripe.com',
+      'pay.stripe.com',
       '127.0.0.1',
     ])
   })

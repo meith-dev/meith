@@ -6,6 +6,7 @@ import { E2E_DUES_WEBHOOK_SECRET } from './support/config'
 import { enterAdminPanel, signInAsModerator, signUp } from './support/session'
 
 test.describe.configure({ mode: 'serial' })
+test.use({ javaScriptEnabled: false })
 
 function signedWebhook(body: string): { body: string; headers: Record<string, string> } {
   const timestamp = Math.floor(Date.now() / 1000)
@@ -120,6 +121,13 @@ test('a member buys a 90-day pass and belongs before the receipt page reloads', 
   await page.goto('/plugins/dues/manage')
   await expect(page.getByText('pass-90')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Open the billing portal' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recent receipts' })).toBeVisible()
+  await expect(page.locator('section', { has: page.locator('#dues-receipts') })).toContainText(
+    '£12.00',
+  )
+  await page.getByRole('link', { name: 'View receipt' }).click()
+  await expect(page).toHaveURL(new RegExp(`/receipts/${sessionId}$`))
+  await expect(page.getByRole('heading', { name: 'Payment receipt' })).toBeVisible()
 })
 
 test('the pass becomes the buyer’s group, on their profile and in the UserCP', async ({

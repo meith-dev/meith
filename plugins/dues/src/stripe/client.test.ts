@@ -56,6 +56,27 @@ function client(script: ReturnType<typeof fetchScript>) {
 }
 
 describe('the request shape', () => {
+  it('retrieves the successful payment’s expanded charge receipt', async () => {
+    const url = 'https://pay.stripe.com/receipts/payment/test'
+    const script = fetchScript([
+      { status: 200, body: { status: 'succeeded', latest_charge: { receipt_url: url } } },
+    ])
+    expect(await client(script).getPaymentReceipt('pi_1')).toBe(url)
+    expect(script.calls[0]!.url).toBe(
+      'https://api.stripe.com/v1/payment_intents/pi_1?expand%5B%5D=latest_charge',
+    )
+    expect(script.calls[0]!.init.method).toBe('GET')
+  })
+
+  it.each([
+    { status: 'succeeded', latest_charge: null },
+    { status: 'succeeded', latest_charge: { receipt_url: null } },
+    { status: 'succeeded', latest_charge: 'ch_unexpanded' },
+    { status: 'processing', latest_charge: { receipt_url: 'https://pay.stripe.com/test' } },
+  ])('has no receipt for an unavailable charge: %j', async (body) => {
+    expect(await client(fetchScript([{ status: 200, body }])).getPaymentReceipt('pi_1')).toBeNull()
+  })
+
   it('sends the bearer key, the pinned version, and an idempotency key on session creation', async () => {
     const script = fetchScript([{ status: 200, body: { id: 'cs_1', url: 'https://x' } }])
 

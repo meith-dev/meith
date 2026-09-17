@@ -117,6 +117,21 @@ function route(
       : json(sessionJson(session))
   }
 
+  const payment = url.pathname.match(/^\/v1\/payment_intents\/pi_([^/]+)$/)
+  if (method === 'GET' && payment !== null) {
+    const session = sessions.get(payment[1] as string)
+    return json({
+      status: session?.paid ? 'succeeded' : 'processing',
+      latest_charge: session?.paid
+        ? { receipt_url: `http://127.0.0.1:${E2E_FAKE_STRIPE_PORT}/receipts/${session.id}` }
+        : null,
+    })
+  }
+
+  if (method === 'GET' && url.pathname.startsWith('/receipts/')) {
+    return html('<!doctype html><html><body><h1>Payment receipt</h1></body></html>')
+  }
+
   if (method === 'GET' && url.pathname.match(/^\/v1\/subscriptions\/[^/]+$/)) {
     const id = url.pathname.split('/').at(-1) as string
     return json({

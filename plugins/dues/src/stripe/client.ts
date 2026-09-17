@@ -141,6 +141,7 @@ export interface StripeClient {
 
   createCheckoutSession(input: Record<string, unknown>): Promise<CheckoutSessionState>
   getCheckoutSession(id: string): Promise<CheckoutSessionState>
+  getPaymentReceipt(id: string): Promise<string | null>
 
   getSubscription(id: string): Promise<SubscriptionState>
   setCancelAtPeriodEnd(id: string, cancel: boolean): Promise<SubscriptionState>
@@ -277,6 +278,17 @@ export function createStripeClient(options: StripeClientOptions): StripeClient {
 
     async getCheckoutSession(id) {
       return sessionFromApi(await request('GET', `/v1/checkout/sessions/${encodeURIComponent(id)}`))
+    },
+
+    async getPaymentReceipt(id) {
+      const body = await request(
+        'GET',
+        `/v1/payment_intents/${encodeURIComponent(id)}?expand%5B%5D=latest_charge`,
+      )
+      const charge = body.latest_charge as { receipt_url?: unknown } | null | undefined
+      return body.status === 'succeeded' && typeof charge?.receipt_url === 'string'
+        ? charge.receipt_url
+        : null
     },
 
     async getSubscription(id) {
