@@ -1,6 +1,6 @@
 {
   "name": "@meith/example-plugin-hello",
-  "version": "0.37.2",
+  "version": "0.37.3",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

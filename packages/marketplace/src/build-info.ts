@@ -1,6 +1,6 @@
 import { parseApiVersion, THEME_API_VERSION } from '@meith/theme-kit'
 
-export const MEITH_VERSION = '0.37.2'
+export const MEITH_VERSION = '0.37.3'
 
 export const THEME_API_MAJOR = parseApiVersion(THEME_API_VERSION).major
 
