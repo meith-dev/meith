@@ -20,17 +20,6 @@ export function BoardIndex({
         <div className="flex flex-col gap-3">{regions.announcements}</div>
       )}
 
-      {markAllReadAction !== null && (
-        <form action={markAllReadAction} method="post" className="self-end">
-          <button
-            type="submit"
-            className={cn(BUTTON, 'bg-secondary text-secondary-foreground hover:bg-secondary/80')}
-          >
-            {c('markAllRead')}
-          </button>
-        </form>
-      )}
-
       <div
         className={
           rail
@@ -38,7 +27,22 @@ export function BoardIndex({
             : 'flex min-w-0 flex-col gap-4'
         }
       >
-        <div className="flex min-w-0 flex-col gap-4">{regions.categories}</div>
+        <div className="flex min-w-0 flex-col gap-4">
+          {regions.categories}
+          {markAllReadAction !== null && (
+            <form action={markAllReadAction} method="post" className="self-end">
+              <button
+                type="submit"
+                className={cn(
+                  BUTTON,
+                  'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+                )}
+              >
+                {c('markAllRead')}
+              </button>
+            </form>
+          )}
+        </div>
 
         {rail && (
           <aside aria-label={c('boardActivity')} className="flex min-w-0 flex-col gap-4">

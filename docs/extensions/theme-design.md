@@ -203,8 +203,10 @@ and keep its title and metadata usable in the compact layout.
 
 Bundled themes start the board index with its announcements and forum
 listing, without a generic Community heading or introductory tagline. The
-mark-all-read control remains available to signed-in members. The default
-shell shares a 1280px maximum width across its header, content, panels and
+mark-all-read control remains available to signed-in members. In every bundled
+theme it sits below the forum listing, aligned to its right edge, so it does
+not reserve a row above the forums and activity sidebar. The default shell
+shares a 1280px maximum width across its header, content, panels and
 footer. Its footer separates forum navigation from appearance preferences.
 Theme and scheme controls continue to submit native forms without scripting.
 
