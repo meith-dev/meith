@@ -20,7 +20,7 @@ export const plugin = definePlugin({
   key: 'awards',
   name: en['awards.title'],
   nameKey: 'awards.title',
-  version: '0.37.3',
+  version: '0.37.4',
   apiVersion: '0',
   description: en['awards.definition.description'],
   descriptionKey: 'awards.definition.description',
