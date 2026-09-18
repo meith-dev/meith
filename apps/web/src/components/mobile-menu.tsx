@@ -12,21 +12,48 @@ export function MobileMenu({ children }: { readonly children: ReactNode }) {
         details.current.querySelector('summary')?.focus()
       }
     }
+
+    function onPointer(event: PointerEvent) {
+      if (
+        details.current?.open &&
+        event.target instanceof Node &&
+        !details.current.contains(event.target)
+      ) {
+        details.current.open = false
+      }
+    }
+
+    const desktop = window.matchMedia('(min-width: 1100px)')
+    function onViewport() {
+      if (desktop.matches && details.current) details.current.open = false
+    }
+
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPointer)
+    desktop.addEventListener('change', onViewport)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointer)
+      desktop.removeEventListener('change', onViewport)
+    }
   }, [])
 
   return (
-    <details className="mobile-menu md:hidden" ref={details}>
-      <summary aria-label="Menu" className="mobile-menu-button">
-        <span aria-hidden className="mobile-menu-bars">
-          <span />
+    <details
+      className="site-mobile-menu"
+      ref={details}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false
+      }}
+    >
+      <summary aria-label="Navigation menu" className="site-menu-button">
+        <span aria-hidden className="site-menu-bars">
           <span />
           <span />
         </span>
       </summary>
       <div
-        className="mobile-menu-panel"
+        className="site-menu-panel"
         onClickCapture={(event) => {
           if (event.target instanceof Element && event.target.closest('a') && details.current) {
             details.current.open = false

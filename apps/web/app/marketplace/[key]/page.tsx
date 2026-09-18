@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { CommandLine } from '../../../src/components/command-line'
+import { Breadcrumb } from '../../../src/components/site-bands'
 import { site } from '../../../src/content/site'
 import {
   findListing,
@@ -80,69 +82,82 @@ export default async function MarketplaceListingPage({ params }: PageProps) {
   const docHref = listing.kind === 'plugin' ? '/docs/plugins' : '/docs/themes'
 
   return (
-    <div className="shell max-w-[52rem] py-14">
-      <Link href="/marketplace" className="eyebrow hover:text-fg">
-        Marketplace
-      </Link>
+    <div className="marketing-page">
+      <section className="shell marketing-hero">
+        <Breadcrumb
+          current={listing.name}
+          trail={[
+            { label: site.name, href: '/' },
+            { label: 'Marketplace', href: '/marketplace' },
+          ]}
+        />
+        <header className="marketing-hero-copy">
+          <div>
+            <span className="chip">{kindLabel(listing.kind)}</span>
+            <h1 className="marketing-title marketplace-detail-title">{listing.name}</h1>
+            <p className="marketplace-package">{listing.package}</p>
+          </div>
+          <div>
+            <p className="marketing-lead">{listing.description}</p>
+            <div className="marketing-actions">
+              <a className="btn btn-primary" href="#install">
+                Make it yours <span aria-hidden>↓</span>
+              </a>
+              <a className="textlink" href={listing.repository}>
+                View source <span aria-hidden>↗</span>
+              </a>
+            </div>
+          </div>
+        </header>
 
-      <header className="mt-2 border-b border-border pb-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="display text-huge leading-[1.06]">{listing.name}</h1>
-          <span className="chip">{kindLabel(listing.kind)}</span>
-        </div>
-        <p className="mt-4 max-w-[42rem] text-mid leading-relaxed text-fg-muted text-pretty">
-          {listing.description}
-        </p>
-        <p className="mt-4 font-mono text-micro text-fg-subtle">{listing.package}</p>
-      </header>
+        {listing.screenshots.length > 0 && (
+          <div className="marketplace-detail-screenshots">
+            {listing.screenshots.map((src) => (
+              <img
+                key={src}
+                src={src}
+                alt={`${listing.name} ${kindLabel(listing.kind).toLowerCase()} on a Meith board`}
+                width={1440}
+                height={900}
+                loading="lazy"
+                decoding="async"
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
-      {listing.screenshots.length > 0 && (
-        <div className="mt-10 flex flex-col gap-4">
-          {listing.screenshots.map((src) => (
-            <img
-              key={src}
-              src={src}
-              alt={`A screenshot of ${listing.name}.`}
-              loading="lazy"
-              className="w-full rounded-[var(--radius-card)] border border-border"
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-12">
-        <section className="min-w-0">
-          <h2 className="text-large font-semibold tracking-[-0.025em] text-fg">Install</h2>
-          <p className="mt-2 text-micro text-fg-muted text-pretty">
-            Meith loads themes and plugins at build time, so installing one is a change to the board
-            repository you own, followed by a redeploy. Nothing is installed from this page.
+      <div className="shell marketing-section marketplace-install" id="install">
+        <section>
+          <p className="eyebrow">Make it part of your board</p>
+          <h2>Up and running.</h2>
+          <p className="marketplace-install-lead">
+            Add the package to your board repository, then rebuild and redeploy.
           </p>
-
-          <ol className="mt-5 flex flex-col gap-3">
-            {installSteps(listing).map((step) => (
-              <li key={step.text} className="flex flex-col gap-1.5">
-                {step.code !== undefined && (
-                  <code className="w-fit max-w-full overflow-x-auto rounded-[var(--radius-control)] border border-border bg-surface px-2.5 py-1.5 font-mono text-micro text-fg">
-                    {step.code}
-                  </code>
-                )}
-                <span className="text-micro text-fg-muted text-pretty">{step.text}</span>
+          <ol className="marketplace-install-steps">
+            {installSteps(listing).map((step, index) => (
+              <li key={step.text}>
+                <span className="marketing-number">0{index + 1}</span>
+                <div>
+                  <p>{step.text}</p>
+                  {step.code !== undefined && <CommandLine command={step.code} />}
+                </div>
               </li>
             ))}
           </ol>
-
-          <p className="mt-6 text-micro text-fg-subtle">
+          <div className="marketing-actions">
             <Link href="/docs/marketplace" className="textlink">
-              How the marketplace works
+              Installation guide <span aria-hidden>→</span>
             </Link>
-            {' · '}
             <Link href={docHref} className="textlink">
-              {listing.kind === 'plugin' ? 'What plugins can do' : 'How themes work'}
+              {listing.kind === 'plugin' ? 'Plugin documentation' : 'Theme documentation'}{' '}
+              <span aria-hidden>→</span>
             </Link>
-          </p>
+          </div>
         </section>
 
-        <aside className="mt-10 lg:mt-0">
+        <aside className="marketplace-package-details" aria-label="Package details">
+          <h2>Package details</h2>
           <MetaRow label="Version">
             <span className="font-mono">{listing.version}</span>
           </MetaRow>
@@ -152,17 +167,15 @@ export default async function MarketplaceListingPage({ params }: PageProps) {
           <MetaRow label="Licence">{listing.licence}</MetaRow>
           <MetaRow label="Source">
             <a href={listing.repository} className="textlink">
-              Repository
+              Repository <span aria-hidden>↗</span>
             </a>
           </MetaRow>
+          <p>
+            Check for updates in your board’s admin panel under{' '}
+            {listing.kind === 'plugin' ? 'Plugins' : 'Themes'}.
+          </p>
         </aside>
       </div>
-
-      <p className="mt-14 text-micro text-fg-subtle">
-        Listed for {site.name} {listing.version}. Compatibility is declared by the package; a board
-        shows whether a newer version is available under Admin →{' '}
-        {listing.kind === 'plugin' ? 'Plugins' : 'Themes'}.
-      </p>
     </div>
   )
 }
