@@ -11,7 +11,7 @@
 # `npm install` below), so a build here is heavier than `Dockerfile.prebuilt`'s
 # thin delta — that image, pulled rather than built, is the trade the advanced
 # path takes for a low-spec build server or a faster deploy (see `README.md`
-# and, in the meith repository, docs/getting-started/deployment/docker-compose.md,
+# and, in the meith repository, docs/operations/docker-compose.md,
 # "Custom boards").
 #
 # Two stages, not three: unlike the official image, this does not prune down

@@ -127,7 +127,7 @@ export async function backupCommand(args: readonly string[]): Promise<number> {
           command: 'backup',
           path: destination,
           target: path.dirname(destination),
-          reference: 'docs/guides/operations/backups.md, "From the command line"',
+          reference: 'docs/operations/backups.md, "Take a manual backup"',
         }),
     })
   } catch (error) {
@@ -300,7 +300,7 @@ export async function backupFetchCommand(args: readonly string[]): Promise<numbe
       command: 'backup:fetch',
       path: destination,
       target: path.dirname(destination),
-      reference: 'docs/guides/operations/backups.md, "From the command line"',
+      reference: 'docs/operations/backups.md, "Take a manual backup"',
     }),
   )
   try {

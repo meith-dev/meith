@@ -8,7 +8,7 @@
 #
 # FROM the published framework base image — deps + framework layers only,
 # locked to this exact release (see the meith repository's
-# docs/getting-started/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
+# docs/operations/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
 # it is and is not). This board's own Dockerfile only ever installs its own
 # delta on top of it — a new plugin's own dependency, typically nothing more
 # — which is what keeps a rebuild after `npm install some-plugin` a matter

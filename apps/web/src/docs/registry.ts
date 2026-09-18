@@ -54,9 +54,11 @@ export function neighbours(slug: string): {
   previous: DocEntry | undefined
   next: DocEntry | undefined
 } {
-  const index = readingOrder.findIndex((doc) => doc.slug === slug)
+  const current = findDocument(slug)
+  const order = current ? documentsInSection(current.section) : []
+  const index = order.findIndex((doc) => doc.slug === slug)
   if (index === -1) return { previous: undefined, next: undefined }
-  return { previous: readingOrder[index - 1], next: readingOrder[index + 1] }
+  return { previous: order[index - 1], next: order[index + 1] }
 }
 
 export function findSection(id: string): DocSection | undefined {

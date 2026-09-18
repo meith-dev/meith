@@ -1,470 +1,935 @@
 {
   "$comment": [
-    "Documentation source: docs/. Sections control the site navigation, reading order and docs/README.md index.",
-    "Register every Markdown file here, then run pnpm site:docs to update docs/README.md.",
-    "Keep published slugs stable when moving documents between sections. Each section has one primary guide."
+    "Documentation source: docs/. Sections control navigation, reading order and the generated index.",
+    "Register every Markdown file, then run pnpm site:docs. Each reader section has exactly one primary guide."
   ],
   "sections": [
     {
-      "id": "setting-up",
-      "title": "Setting up",
-      "blurb": "Install a board, choose a host, or move an existing forum to Meith."
+      "id": "start",
+      "title": "Start here",
+      "blurb": "Understand Meith and try a local preview."
     },
     {
-      "id": "getting-started",
-      "title": "Getting started with Meith",
-      "blurb": "Learn the basics and prepare a new community for its first members."
+      "id": "members",
+      "title": "Use a community",
+      "blurb": "Read, post, follow discussions and manage your account."
     },
     {
-      "id": "operating",
-      "title": "Operating Meith",
-      "blurb": "Administer the community and maintain the services behind it."
+      "id": "administration",
+      "title": "Manage a community",
+      "blurb": "Set up forums, support members and moderate discussions."
     },
     {
-      "id": "using",
-      "title": "Using Meith",
-      "blurb": "Join a community, write posts, find discussions, and manage your account."
+      "id": "operations",
+      "title": "Install and operate",
+      "blurb": "Deploy, maintain, back up and recover a board."
     },
     {
-      "id": "developing",
-      "title": "Developing Meith",
-      "blurb": "Build themes and plugins, use the API, or contribute to Meith."
+      "id": "extensions",
+      "title": "Build extensions",
+      "blurb": "Create, test and publish themes and plugins."
+    },
+    {
+      "id": "integrations",
+      "title": "Use the API",
+      "blurb": "Connect applications and receive signed board events."
+    },
+    {
+      "id": "contributing",
+      "title": "Contribute to Meith",
+      "blurb": "Develop, test, document and release Meith."
     }
   ],
   "documents": [
     {
-      "slug": "quickstart",
-      "file": "getting-started/quickstart.md",
-      "section": "setting-up",
-      "title": "Try Meith locally",
-      "blurb": "Run a local preview without a database.",
-      "generated": false,
-      "primary": false
-    },
-    {
-      "slug": "deployment",
-      "file": "getting-started/deployment/index.md",
-      "section": "setting-up",
-      "title": "Choose a deployment",
-      "blurb": "Compare Coolify, Docker Compose, and Vercel.",
-      "generated": false,
-      "primary": true
-    },
-    {
-      "slug": "coolify",
-      "file": "getting-started/deployment/coolify.md",
-      "section": "setting-up",
-      "title": "Deploy with Coolify",
-      "blurb": "Set up a board on your server through the Coolify panel.",
-      "generated": false,
-      "primary": false,
-      "group": "Deployment guides"
-    },
-    {
-      "slug": "docker-compose",
-      "file": "getting-started/deployment/docker-compose.md",
-      "section": "setting-up",
-      "title": "Deploy with Docker Compose",
-      "blurb": "Configure the containers, environment, and reverse proxy yourself.",
-      "generated": false,
-      "primary": false,
-      "group": "Deployment guides"
-    },
-    {
-      "slug": "vercel",
-      "file": "getting-started/deployment/vercel.md",
-      "section": "setting-up",
-      "title": "Deploy on Vercel",
-      "blurb": "Set up managed services, migrations, and scheduled tasks.",
-      "generated": false,
-      "primary": false,
-      "group": "Deployment guides"
-    },
-    {
-      "slug": "migrating",
-      "file": "guides/migrating.md",
-      "section": "setting-up",
-      "title": "Migrate from MyBB or phpBB",
-      "blurb": "Rehearse an import, move the data, and check the result.",
-      "generated": false,
-      "primary": false,
-      "group": "Moving an existing forum"
-    },
-    {
-      "slug": "mybb-parity",
-      "file": "reference/mybb-parity.md",
-      "section": "setting-up",
-      "title": "MyBB differences",
-      "blurb": "Check feature and behaviour differences before migrating.",
-      "generated": false,
-      "primary": false,
-      "group": "Moving an existing forum"
-    },
-    {
-      "slug": "phpbb-parity",
-      "file": "reference/phpbb-parity.md",
-      "section": "setting-up",
-      "title": "phpBB differences",
-      "blurb": "Check permissions, content, and account differences before migrating.",
-      "generated": false,
-      "primary": false,
-      "group": "Moving an existing forum"
-    },
-    {
       "slug": "introduction",
-      "file": "getting-started/introduction.md",
-      "section": "getting-started",
-      "title": "What is Meith?",
-      "blurb": "Understand boards, forums, threads, and the roles that run them.",
+      "file": "start/introduction.md",
+      "section": "start",
+      "title": "Start here",
+      "blurb": "Meith is forum software for running your own community.",
       "generated": false,
       "primary": true
     },
     {
-      "slug": "first-steps",
-      "file": "getting-started/first-steps.md",
-      "section": "getting-started",
-      "title": "Set up your community",
-      "blurb": "Configure a new board and check it before inviting members.",
+      "slug": "quickstart",
+      "file": "start/quickstart.md",
+      "section": "start",
+      "title": "Try Meith locally",
+      "blurb": "Create a local board with sample content.",
       "generated": false,
       "primary": false
-    },
-    {
-      "slug": "organiser-guide",
-      "file": "guides/community/organiser-guide.md",
-      "section": "operating",
-      "title": "Community administration",
-      "blurb": "Manage forums, appearance, announcements, and members.",
-      "generated": false,
-      "primary": true,
-      "group": "Community administration"
-    },
-    {
-      "slug": "forums",
-      "file": "guides/community/forums.md",
-      "section": "operating",
-      "title": "Forums and permissions",
-      "blurb": "Arrange forums and control who can read and post.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "groups",
-      "file": "guides/community/groups.md",
-      "section": "operating",
-      "title": "Groups and promotions",
-      "blurb": "Set group permissions, allowances, badges, and promotion rules.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "moderation-guide",
-      "file": "guides/community/moderation-guide.md",
-      "section": "operating",
-      "title": "Moderation",
-      "blurb": "Approve posts, handle reports, and manage warnings and bans.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "antispam",
-      "file": "guides/community/antispam.md",
-      "section": "operating",
-      "title": "Spam controls and filters",
-      "blurb": "Configure registration challenges, rate limits, and content filters.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "search",
-      "file": "guides/community/search.md",
-      "section": "operating",
-      "title": "Search settings",
-      "blurb": "Configure search language, availability, and query limits.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "reputation",
-      "file": "guides/community/reputation.md",
-      "section": "operating",
-      "title": "Reputation settings",
-      "blurb": "Configure ratings, thanks, and who may give reputation.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "awards-guide",
-      "file": "guides/community/awards-guide.md",
-      "section": "operating",
-      "title": "Community awards",
-      "blurb": "Create awards, recognise members and manage achievements.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "membership-guide",
-      "file": "guides/community/membership-guide.md",
-      "section": "operating",
-      "title": "Paid memberships with Dues",
-      "blurb": "Configure plans and manage payments, gifts, and the ledger.",
-      "generated": false,
-      "primary": false,
-      "group": "Community administration"
-    },
-    {
-      "slug": "operating",
-      "file": "guides/operations/operating.md",
-      "section": "operating",
-      "title": "Server operations",
-      "blurb": "Check services and run routine maintenance commands.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "configuration",
-      "file": "guides/configuration.md",
-      "section": "operating",
-      "title": "Board configuration",
-      "blurb": "Understand the build files, runtime settings, and environment.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "installing",
-      "file": "customization/installing.md",
-      "section": "operating",
-      "title": "Install plugins and themes",
-      "blurb": "Add, update, or remove an extension and deploy the change.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "single-sign-on",
-      "file": "guides/operations/single-sign-on.md",
-      "section": "operating",
-      "title": "Authentication settings",
-      "blurb": "Configure two-factor authentication, sign-in providers, and passkeys.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "backups",
-      "file": "guides/operations/backups.md",
-      "section": "operating",
-      "title": "Backups",
-      "blurb": "Schedule backups, copy them off-site, and test a restore.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "upgrading",
-      "file": "guides/operations/upgrading.md",
-      "section": "operating",
-      "title": "Upgrade Meith",
-      "blurb": "Update the board and apply core and plugin migrations.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "disaster-recovery",
-      "file": "guides/operations/disaster-recovery.md",
-      "section": "operating",
-      "title": "Disaster recovery",
-      "blurb": "Restore the database, uploads, and secrets after losing a server.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "monitoring",
-      "file": "guides/operations/monitoring.md",
-      "section": "operating",
-      "title": "Monitoring",
-      "blurb": "Check readiness, scheduler activity, logs, and metrics.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
-    },
-    {
-      "slug": "scaling",
-      "file": "guides/operations/scaling.md",
-      "section": "operating",
-      "title": "Scaling",
-      "blurb": "Run multiple web instances with shared cache and storage.",
-      "generated": false,
-      "primary": false,
-      "group": "Server operations"
     },
     {
       "slug": "member-guide",
-      "file": "guides/community/member-guide.md",
-      "section": "using",
-      "title": "Member guide",
-      "blurb": "Register, take part in discussions, and manage your account.",
+      "file": "members/member-guide.md",
+      "section": "members",
+      "title": "Use your community",
+      "blurb": "Open your community's Meith board in a browser.",
       "generated": false,
       "primary": true
     },
     {
       "slug": "formatting",
-      "file": "guides/community/formatting.md",
-      "section": "using",
+      "file": "members/formatting.md",
+      "section": "members",
       "title": "Write and format posts",
-      "blurb": "Use Markdown, mentions, spoilers, code, and attachments.",
+      "blurb": "Use Markdown in posts, replies and private messages.",
       "generated": false,
       "primary": false
     },
     {
-      "slug": "first-plugin",
-      "file": "customization/first-plugin.md",
-      "section": "developing",
-      "title": "Write your first plugin",
-      "blurb": "Scaffold, test, and run a plugin in a board.",
+      "slug": "messages",
+      "file": "members/messages.md",
+      "section": "members",
+      "title": "Send messages and manage contacts",
+      "blurb": "Use private messages to contact other members when the community permits it.",
       "generated": false,
-      "primary": true,
-      "group": "Build extensions"
+      "primary": false
     },
     {
-      "slug": "themes",
-      "file": "customization/themes.md",
-      "section": "developing",
-      "title": "Theme development",
-      "blurb": "Implement theme slots, view models, tokens, and shared controls.",
+      "slug": "notifications",
+      "file": "members/notifications.md",
+      "section": "members",
+      "title": "Follow discussions and manage notifications",
+      "blurb": "Choose which discussions to follow and how to receive updates.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "account-security",
+      "file": "members/account-security.md",
+      "section": "members",
+      "title": "Manage your account security",
+      "blurb": "Manage your own sign-in methods and devices at /usercp/security.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "organiser-guide",
+      "file": "administration/organiser-guide.md",
+      "section": "administration",
+      "title": "Community administration",
+      "blurb": "Use the admin panel to manage the people, content and settings of an installed board.",
+      "generated": false,
+      "primary": true,
+      "group": "Get started"
+    },
+    {
+      "slug": "first-steps",
+      "file": "administration/first-steps.md",
+      "section": "administration",
+      "title": "Set up your community",
+      "blurb": "Complete this checklist after installation, using the administrator account you created.",
       "generated": false,
       "primary": false,
-      "group": "Build extensions"
+      "group": "Get started"
+    },
+    {
+      "slug": "forums",
+      "file": "administration/forums.md",
+      "section": "administration",
+      "title": "Create forums and control access",
+      "blurb": "Create and arrange forums at Admin \u2192 Forums (/admin/forums).",
+      "generated": false,
+      "primary": false,
+      "group": "Community setup"
+    },
+    {
+      "slug": "groups",
+      "file": "administration/groups.md",
+      "section": "administration",
+      "title": "Manage groups and promotions",
+      "blurb": "Groups grant permissions, set allowances and control member identity.",
+      "generated": false,
+      "primary": false,
+      "group": "Community setup"
+    },
+    {
+      "slug": "manage-members",
+      "file": "administration/manage-members.md",
+      "section": "administration",
+      "title": "Manage members and registration",
+      "blurb": "Configure registration, welcome new members and manage their group memberships.",
+      "generated": false,
+      "primary": false,
+      "group": "Community setup"
+    },
+    {
+      "slug": "appearance",
+      "file": "administration/appearance.md",
+      "section": "administration",
+      "title": "Change the board appearance",
+      "blurb": "Change the board name, logo, theme, colors and fonts through the admin panel.",
+      "generated": false,
+      "primary": false,
+      "group": "Community setup"
+    },
+    {
+      "slug": "community-communications",
+      "file": "administration/community-communications.md",
+      "section": "administration",
+      "title": "Announcements, navigation and community email",
+      "blurb": "Use the admin panel to publish announcements, arrange navigation and send community updates.",
+      "generated": false,
+      "primary": false,
+      "group": "Community setup"
+    },
+    {
+      "slug": "moderation-guide",
+      "file": "administration/moderation-guide.md",
+      "section": "administration",
+      "title": "Moderate discussions",
+      "blurb": "Moderators approve content, handle reports and manage conversations within their assigned forums.",
+      "generated": false,
+      "primary": false,
+      "group": "Moderation and settings"
+    },
+    {
+      "slug": "antispam",
+      "file": "administration/antispam.md",
+      "section": "administration",
+      "title": "Configure spam controls",
+      "blurb": "Start under Board settings \u2192 Antispam.",
+      "generated": false,
+      "primary": false,
+      "group": "Moderation and settings"
+    },
+    {
+      "slug": "search",
+      "file": "administration/search.md",
+      "section": "administration",
+      "title": "Configure search",
+      "blurb": "Open Board settings \u2192 Search at /admin/settings?group=search.",
+      "generated": false,
+      "primary": false,
+      "group": "Moderation and settings"
+    },
+    {
+      "slug": "reputation",
+      "file": "administration/reputation.md",
+      "section": "administration",
+      "title": "Configure reputation and thanks",
+      "blurb": "Configure reputation under Board settings \u2192 Reputation (/admin/settings?group=reputation).",
+      "generated": false,
+      "primary": false,
+      "group": "Moderation and settings"
+    },
+    {
+      "slug": "calendar",
+      "file": "administration/calendar.md",
+      "section": "administration",
+      "title": "Run community events",
+      "blurb": "The Calendar plugin adds events, recurring occurrences and member responses.",
+      "generated": false,
+      "primary": false,
+      "group": "Optional plugins"
+    },
+    {
+      "slug": "awards-guide",
+      "file": "administration/awards-guide.md",
+      "section": "administration",
+      "title": "Give awards and achievements",
+      "blurb": "Awards recognizes contributions without granting permissions.",
+      "generated": false,
+      "primary": false,
+      "group": "Optional plugins"
+    },
+    {
+      "slug": "membership-guide",
+      "file": "administration/membership-guide.md",
+      "section": "administration",
+      "title": "Manage paid memberships with Dues",
+      "blurb": "Dues sells membership of an approved community group through Stripe.",
+      "generated": false,
+      "primary": false,
+      "group": "Optional plugins"
+    },
+    {
+      "slug": "deployment",
+      "file": "operations/deployment.md",
+      "section": "operations",
+      "title": "Choose a deployment",
+      "blurb": "Choose where the board will run before creating production data.",
+      "generated": false,
+      "primary": true,
+      "group": "Deploy a board"
+    },
+    {
+      "slug": "local-board",
+      "file": "operations/local-board.md",
+      "section": "operations",
+      "title": "Create a writable local board",
+      "blurb": "Turn a scaffolded preview into a board where you can register, post and use the admin panel.",
+      "generated": false,
+      "primary": false,
+      "group": "Deploy a board"
+    },
+    {
+      "slug": "coolify",
+      "file": "operations/coolify.md",
+      "section": "operations",
+      "title": "Deploy with Coolify",
+      "blurb": "Deploy a generated board repository on your server through Coolify.",
+      "generated": false,
+      "primary": false,
+      "group": "Deploy a board"
+    },
+    {
+      "slug": "docker-compose",
+      "file": "operations/docker-compose.md",
+      "section": "operations",
+      "title": "Deploy with Docker Compose",
+      "blurb": "Run Meith on a server using Docker Compose and a reverse proxy you manage.",
+      "generated": false,
+      "primary": false,
+      "group": "Deploy a board"
+    },
+    {
+      "slug": "vercel",
+      "file": "operations/vercel.md",
+      "section": "operations",
+      "title": "Deploy on Vercel",
+      "blurb": "Deploy the board web application on Vercel with managed PostgreSQL, Redis, upload storage and mail.",
+      "generated": false,
+      "primary": false,
+      "group": "Deploy a board"
+    },
+    {
+      "slug": "configuration",
+      "file": "operations/configuration.md",
+      "section": "operations",
+      "title": "Board configuration",
+      "blurb": "Meith has three configuration layers.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "environment",
+      "file": "operations/environment.md",
+      "section": "operations",
+      "title": "Environment variables",
+      "blurb": "Use environment variables for infrastructure and secrets.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "database-operations",
+      "file": "operations/database-operations.md",
+      "section": "operations",
+      "title": "Database migrations and connections",
+      "blurb": "Configure database connections and apply core migrations before serving a new build.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "mail",
+      "file": "operations/mail.md",
+      "section": "operations",
+      "title": "Configure and troubleshoot email",
+      "blurb": "Set up outbound email and prove delivery before relying on registration, password reset or notifications.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "scheduled-tasks",
+      "file": "operations/scheduled-tasks.md",
+      "section": "operations",
+      "title": "Run scheduled tasks",
+      "blurb": "Scheduled work delivers queued notifications, maintains indexes, expires restrictions and performs other background jobs.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "single-sign-on",
+      "file": "operations/single-sign-on.md",
+      "section": "operations",
+      "title": "Authentication settings",
+      "blurb": "Configure sign-in methods for a board you operate.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "web-push",
+      "file": "operations/web-push.md",
+      "section": "operations",
+      "title": "Enable browser notifications",
+      "blurb": "Enable web push for members who choose browser notifications.",
+      "generated": false,
+      "primary": false,
+      "group": "Configure"
+    },
+    {
+      "slug": "operating",
+      "file": "operations/operating.md",
+      "section": "operations",
+      "title": "Server operations",
+      "blurb": "Use this checklist when you take responsibility for a running board.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "operator-cli",
+      "file": "operations/operator-cli.md",
+      "section": "operations",
+      "title": "Run operator commands",
+      "blurb": "Run maintenance commands from your board repository or a deployed container.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "monitoring",
+      "file": "operations/monitoring.md",
+      "section": "operations",
+      "title": "Monitor a running board",
+      "blurb": "Monitor the services and background work, not just whether the home page loads.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "troubleshooting",
+      "file": "operations/troubleshooting.md",
+      "section": "operations",
+      "title": "Troubleshoot a running board",
+      "blurb": "Start with the symptom you can observe.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "backups",
+      "file": "operations/backups.md",
+      "section": "operations",
+      "title": "Back up and restore a board",
+      "blurb": "Protect the database, uploaded files and deployment secrets.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "upgrading",
+      "file": "operations/upgrading.md",
+      "section": "operations",
+      "title": "Upgrade Meith",
+      "blurb": "Update one board to a new release while keeping its packages, schema and plugins in step.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "disaster-recovery",
+      "file": "operations/disaster-recovery.md",
+      "section": "operations",
+      "title": "Recover after losing a server",
+      "blurb": "Restore a board on a replacement server.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "scaling",
+      "file": "operations/scaling.md",
+      "section": "operations",
+      "title": "Run multiple web instances",
+      "blurb": "Multiple web instances must share PostgreSQL, a Redis-compatible cache and uploaded files.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintain and recover"
+    },
+    {
+      "slug": "installing",
+      "file": "operations/installing.md",
+      "section": "operations",
+      "title": "Install plugins and themes",
+      "blurb": "Add extensions in the board repository, then build and deploy.",
+      "generated": false,
+      "primary": false,
+      "group": "Extensions and hosting"
+    },
+    {
+      "slug": "stripe-setup",
+      "file": "operations/stripe-setup.md",
+      "section": "operations",
+      "title": "Connect Dues to Stripe",
+      "blurb": "Configure payment keys, webhooks, receipts and the billing portal, then verify a complete checkout.",
+      "generated": false,
+      "primary": false,
+      "group": "Extensions and hosting"
+    },
+    {
+      "slug": "custom-board",
+      "file": "operations/custom-board.md",
+      "section": "operations",
+      "title": "Move from the stock image to a custom board",
+      "blurb": "Create a board repository when you need to build extensions into your deployment.",
+      "generated": false,
+      "primary": false,
+      "group": "Extensions and hosting"
+    },
+    {
+      "slug": "leaving-vercel",
+      "file": "operations/leaving-vercel.md",
+      "section": "operations",
+      "title": "Move a board away from Vercel",
+      "blurb": "Move an existing Vercel board to a server while preserving the database and uploads.",
+      "generated": false,
+      "primary": false,
+      "group": "Extensions and hosting"
+    },
+    {
+      "slug": "migrating",
+      "file": "operations/migrating.md",
+      "section": "operations",
+      "title": "Import MyBB or phpBB",
+      "blurb": "Import one legacy forum into an installed Meith board.",
+      "generated": false,
+      "primary": false,
+      "group": "Import a forum"
+    },
+    {
+      "slug": "mybb-parity",
+      "file": "operations/mybb-parity.md",
+      "section": "operations",
+      "title": "MyBB migration differences",
+      "blurb": "Read these differences before importing a MyBB community.",
+      "generated": false,
+      "primary": false,
+      "group": "Import a forum"
+    },
+    {
+      "slug": "phpbb-parity",
+      "file": "operations/phpbb-parity.md",
+      "section": "operations",
+      "title": "phpBB migration differences",
+      "blurb": "Review these changes before importing phpBB.",
+      "generated": false,
+      "primary": false,
+      "group": "Import a forum"
+    },
+    {
+      "slug": "authentication-reference",
+      "file": "operations/authentication-reference.md",
+      "section": "operations",
+      "title": "Authentication behavior and recovery",
+      "blurb": "Look up the behavior of two-factor authentication, sessions, sign-in providers and passkeys.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "web-security",
+      "file": "operations/web-security.md",
+      "section": "operations",
+      "title": "Cookies and security headers",
+      "blurb": "Understand the cookies and browser security policy served by Meith.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "vercel-configuration",
+      "file": "operations/vercel-configuration.md",
+      "section": "operations",
+      "title": "Vercel configuration and limits",
+      "blurb": "Use this reference alongside Deploy on Vercel.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "upgrade-notes",
+      "file": "operations/upgrade-notes.md",
+      "section": "operations",
+      "title": "Upgrade compatibility notes",
+      "blurb": "Check these compatibility notes before upgrading an older board.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "mybb-permissions",
+      "file": "operations/mybb-permissions.md",
+      "section": "operations",
+      "title": "MyBB migration: permissions and moderation",
+      "blurb": "Compare MyBB permissions, moderation and staff access with Meith.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "mybb-content",
+      "file": "operations/mybb-content.md",
+      "section": "operations",
+      "title": "MyBB migration: posts and uploads",
+      "blurb": "Check which formatting, editing, poll and upload behavior changes when importing from MyBB.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "mybb-members",
+      "file": "operations/mybb-members.md",
+      "section": "operations",
+      "title": "MyBB migration: accounts and messages",
+      "blurb": "Review account, messaging, notification and reputation differences before inviting members to an imported board.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "mybb-discovery",
+      "file": "operations/mybb-discovery.md",
+      "section": "operations",
+      "title": "MyBB migration: search and discovery",
+      "blurb": "Review search, discovery, feed visibility and spam-control differences on a board imported from MyBB.",
+      "generated": false,
+      "primary": false,
+      "group": "Reference"
+    },
+    {
+      "slug": "extensions",
+      "file": "extensions/extensions.md",
+      "section": "extensions",
+      "title": "Build extensions",
+      "blurb": "Extend a board through a theme or plugin.",
+      "generated": false,
+      "primary": true,
+      "group": "Get started"
+    },
+    {
+      "slug": "first-plugin",
+      "file": "extensions/first-plugin.md",
+      "section": "extensions",
+      "title": "Write your first plugin",
+      "blurb": "Create a plugin, run its tests and load it into a development board.",
+      "generated": false,
+      "primary": false,
+      "group": "Get started"
+    },
+    {
+      "slug": "first-theme",
+      "file": "extensions/first-theme.md",
+      "section": "extensions",
+      "title": "Build your first theme",
+      "blurb": "Create a theme that inherits the default board, changes its palette and overrides the footer.",
+      "generated": false,
+      "primary": false,
+      "group": "Get started"
     },
     {
       "slug": "plugins",
-      "file": "customization/plugins.md",
-      "section": "developing",
+      "file": "extensions/plugins.md",
+      "section": "extensions",
       "title": "Plugin development",
-      "blurb": "Use hooks, UI regions, storage, routes, and scheduled tasks.",
+      "blurb": "A plugin registers behavior with definePlugin from @meith/plugin-kit.",
       "generated": false,
       "primary": false,
-      "group": "Build extensions"
+      "group": "Plugin guides"
+    },
+    {
+      "slug": "plugin-hooks-guide",
+      "file": "extensions/plugin-hooks-guide.md",
+      "section": "extensions",
+      "title": "Plugin hooks and lifecycle",
+      "blurb": "Choose the appropriate filter or event, understand execution order and failure isolation, and manage the lifecycle of an installed plugin.",
+      "generated": false,
+      "primary": false,
+      "group": "Plugin guides"
+    },
+    {
+      "slug": "plugin-presentation",
+      "file": "extensions/plugin-presentation.md",
+      "section": "extensions",
+      "title": "Plugin UI and content rendering",
+      "blurb": "Add interface content through the published regions and rendering APIs.",
+      "generated": false,
+      "primary": false,
+      "group": "Plugin guides"
+    },
+    {
+      "slug": "plugin-storage",
+      "file": "extensions/plugin-storage.md",
+      "section": "extensions",
+      "title": "Plugin storage, groups and migrations",
+      "blurb": "Store plugin data, apply forward-only migrations and work with explicitly grantable groups.",
+      "generated": false,
+      "primary": false,
+      "group": "Plugin guides"
+    },
+    {
+      "slug": "plugin-pages",
+      "file": "extensions/plugin-pages.md",
+      "section": "extensions",
+      "title": "Plugin routes and pages",
+      "blurb": "Expose plugin HTTP routes and member, administrator or moderator pages.",
+      "generated": false,
+      "primary": false,
+      "group": "Plugin guides"
+    },
+    {
+      "slug": "plugin-services",
+      "file": "extensions/plugin-services.md",
+      "section": "extensions",
+      "title": "Plugin settings, notifications and tasks",
+      "blurb": "Declare settings, notify members and schedule background work through the plugin host.",
+      "generated": false,
+      "primary": false,
+      "group": "Plugin guides"
+    },
+    {
+      "slug": "themes",
+      "file": "extensions/themes.md",
+      "section": "extensions",
+      "title": "Theme development",
+      "blurb": "A theme supplies presentation through @meith/theme-kit.",
+      "generated": false,
+      "primary": false,
+      "group": "Theme guides"
+    },
+    {
+      "slug": "theme-contract",
+      "file": "extensions/theme-contract.md",
+      "section": "extensions",
+      "title": "Theme contracts and compatibility",
+      "blurb": "Understand the theme boundary, slot compatibility, translation and versioning rules before changing a theme implementation.",
+      "generated": false,
+      "primary": false,
+      "group": "Theme guides"
+    },
+    {
+      "slug": "theme-design",
+      "file": "extensions/theme-design.md",
+      "section": "extensions",
+      "title": "Theme tokens and shared controls",
+      "blurb": "Customize visual tokens and reuse the shared controls.",
+      "generated": false,
+      "primary": false,
+      "group": "Theme guides"
+    },
+    {
+      "slug": "theme-testing",
+      "file": "extensions/theme-testing.md",
+      "section": "extensions",
+      "title": "Test a theme",
+      "blurb": "Check a theme against populated, empty and permission-dependent models, then verify it in a browser.",
+      "generated": false,
+      "primary": false,
+      "group": "Theme guides"
     },
     {
       "slug": "internationalisation",
-      "file": "guides/operations/internationalisation.md",
-      "section": "developing",
-      "title": "Translations",
-      "blurb": "Add languages and translate themes and plugins.",
+      "file": "extensions/internationalisation.md",
+      "section": "extensions",
+      "title": "Translate Meith and extensions",
+      "blurb": "Use language catalogs to translate the board, themes and plugins.",
       "generated": false,
       "primary": false,
-      "group": "Build extensions"
+      "group": "Share your work"
     },
     {
       "slug": "marketplace",
-      "file": "customization/marketplace.md",
-      "section": "developing",
-      "title": "Publish to the marketplace",
-      "blurb": "Prepare a listing and understand the review requirements.",
+      "file": "extensions/marketplace.md",
+      "section": "extensions",
+      "title": "Publish a theme or plugin",
+      "blurb": "Publish a tested extension package, then submit a listing for review.",
       "generated": false,
       "primary": false,
-      "group": "Build extensions"
-    },
-    {
-      "slug": "api",
-      "file": "reference/api.md",
-      "section": "developing",
-      "title": "REST API v1",
-      "blurb": "Endpoint, scope, and rate-limit reference.",
-      "generated": true,
-      "primary": false,
-      "group": "API and reference"
-    },
-    {
-      "slug": "webhooks",
-      "file": "guides/operations/webhooks.md",
-      "section": "developing",
-      "title": "Webhooks",
-      "blurb": "Subscribe to events and verify signed deliveries.",
-      "generated": false,
-      "primary": false,
-      "group": "API and reference"
-    },
-    {
-      "slug": "theme-slots",
-      "file": "reference/theme-slots.md",
-      "section": "developing",
-      "title": "Theme slots and view models",
-      "blurb": "Generated reference for the theme contract.",
-      "generated": true,
-      "primary": false,
-      "group": "API and reference"
+      "group": "Share your work"
     },
     {
       "slug": "plugin-hooks",
       "file": "reference/plugin-hooks.md",
-      "section": "developing",
+      "section": "extensions",
       "title": "Plugin hooks",
       "blurb": "Generated reference for hooks, payloads, and call sites.",
       "generated": true,
       "primary": false,
-      "group": "API and reference"
+      "group": "Reference"
     },
     {
-      "slug": "performance",
-      "file": "reference/performance.md",
-      "section": "developing",
-      "title": "Performance",
-      "blurb": "Recorded measurements and performance budgets.",
+      "slug": "theme-slots",
+      "file": "reference/theme-slots.md",
+      "section": "extensions",
+      "title": "Theme slots and view models",
+      "blurb": "Generated reference for the theme contract.",
       "generated": true,
       "primary": false,
-      "group": "API and reference"
+      "group": "Reference"
+    },
+    {
+      "slug": "api-quickstart",
+      "file": "integrations/api-quickstart.md",
+      "section": "integrations",
+      "title": "Make your first API request",
+      "blurb": "Read board data from another application using the REST API.",
+      "generated": false,
+      "primary": true
+    },
+    {
+      "slug": "webhooks",
+      "file": "integrations/webhooks.md",
+      "section": "integrations",
+      "title": "Receive and verify webhooks",
+      "blurb": "Send board events to an HTTPS endpoint you operate.",
+      "generated": false,
+      "primary": false
+    },
+    {
+      "slug": "api",
+      "file": "reference/api.md",
+      "section": "integrations",
+      "title": "REST API v1",
+      "blurb": "Endpoint, scope, and rate-limit reference.",
+      "generated": true,
+      "primary": false
     },
     {
       "slug": "development",
       "file": "contributing/development.md",
-      "section": "developing",
+      "section": "contributing",
       "title": "Contribute to Meith",
-      "blurb": "Run the repository, make a change, and validate a pull request.",
+      "blurb": "Use this guide to run the Meith source repository and prepare a change.",
       "generated": false,
-      "primary": false,
-      "group": "Contribute to Meith"
+      "primary": true,
+      "group": "Development workflow"
     },
     {
       "slug": "architecture",
-      "file": "reference/architecture.md",
-      "section": "developing",
+      "file": "contributing/architecture.md",
+      "section": "contributing",
       "title": "Architecture",
-      "blurb": "Understand the packages, processes, and request flow.",
+      "blurb": "Meith separates business rules, infrastructure and presentation.",
       "generated": false,
       "primary": false,
-      "group": "Contribute to Meith"
+      "group": "Development workflow"
     },
     {
       "slug": "nextjs-conventions",
       "file": "contributing/nextjs-conventions.md",
-      "section": "developing",
-      "title": "Next.js conventions",
-      "blurb": "Follow the repository’s routing, rendering, and action patterns.",
+      "section": "contributing",
+      "title": "Application conventions",
+      "blurb": "Use these conventions when changing apps/community.",
       "generated": false,
       "primary": false,
-      "group": "Contribute to Meith"
+      "group": "Development workflow"
+    },
+    {
+      "slug": "testing",
+      "file": "contributing/testing.md",
+      "section": "contributing",
+      "title": "Run and debug tests",
+      "blurb": "Choose the test layer for the behavior you are changing.",
+      "generated": false,
+      "primary": false,
+      "group": "Development workflow"
+    },
+    {
+      "slug": "ui-conventions",
+      "file": "contributing/ui-conventions.md",
+      "section": "contributing",
+      "title": "Develop accessible interface components",
+      "blurb": "Use the shared design system for forms, panels and destructive actions.",
+      "generated": false,
+      "primary": false,
+      "group": "Development workflow"
+    },
+    {
+      "slug": "documentation",
+      "file": "contributing/documentation.md",
+      "section": "contributing",
+      "title": "Maintain the documentation",
+      "blurb": "Documentation source lives in docs/.",
+      "generated": false,
+      "primary": false,
+      "group": "Development workflow"
+    },
+    {
+      "slug": "repository-checks",
+      "file": "contributing/repository-checks.md",
+      "section": "contributing",
+      "title": "Repository rules and checks",
+      "blurb": "Follow the repository contract and run the checks that enforce it.",
+      "generated": false,
+      "primary": false,
+      "group": "Development workflow"
+    },
+    {
+      "slug": "forms-and-actions",
+      "file": "contributing/forms-and-actions.md",
+      "section": "contributing",
+      "title": "Forms and Server Actions",
+      "blurb": "Build validated, permission-checked mutation flows that work with and without JavaScript.",
+      "generated": false,
+      "primary": false,
+      "group": "Implementation reference"
+    },
+    {
+      "slug": "rendering-and-data",
+      "file": "contributing/rendering-and-data.md",
+      "section": "contributing",
+      "title": "Rendering, caching and view models",
+      "blurb": "Keep data access, cache invalidation and theme view models consistent across pages and actions.",
+      "generated": false,
+      "primary": false,
+      "group": "Implementation reference"
+    },
+    {
+      "slug": "board-workspaces",
+      "file": "contributing/board-workspaces.md",
+      "section": "contributing",
+      "title": "Board workspaces and build materialization",
+      "blurb": "Understand the monorepo, external board workspaces and generated board registry.",
+      "generated": false,
+      "primary": false,
+      "group": "Implementation reference"
+    },
+    {
+      "slug": "marketplace-maintenance",
+      "file": "contributing/marketplace-maintenance.md",
+      "section": "contributing",
+      "title": "Maintain the marketplace feed",
+      "blurb": "Maintain listings and the feed consumed by boards.",
+      "generated": false,
+      "primary": false,
+      "group": "Implementation reference"
+    },
+    {
+      "slug": "performance",
+      "file": "reference/performance.md",
+      "section": "contributing",
+      "title": "Performance",
+      "blurb": "Recorded measurements and performance budgets.",
+      "generated": true,
+      "primary": false,
+      "group": "Implementation reference"
     },
     {
       "slug": "release",
       "file": "contributing/release.md",
-      "section": "developing",
-      "title": "Release procedure",
-      "blurb": "Cut and publish a Meith release.",
+      "section": "contributing",
+      "title": "Release Meith",
+      "blurb": "This procedure is for maintainers publishing Meith.",
       "generated": false,
       "primary": false,
-      "group": "Contribute to Meith"
+      "group": "Maintainers"
+    },
+    {
+      "slug": "release-infrastructure",
+      "file": "contributing/release-infrastructure.md",
+      "section": "contributing",
+      "title": "Release infrastructure and version policy",
+      "blurb": "Understand what a release publishes and how packages, images and templates stay in step.",
+      "generated": false,
+      "primary": false,
+      "group": "Maintainers"
     }
   ],
   "internal": [

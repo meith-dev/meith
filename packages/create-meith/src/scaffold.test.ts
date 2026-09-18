@@ -120,7 +120,8 @@ describe('what the scaffold writes', () => {
     const manifest = JSON.parse(files.get('package.json')!)
     const readme = files.get('README.md')!
     expect(readme).not.toContain('npm run forum')
-    expect((readme.match(/npm run meith --/g) ?? []).length).toBeGreaterThanOrEqual(4)
+    expect(readme).toContain('npm run meith -- plugin:add')
+    expect(readme).toContain('npm run meith -- --help')
     expect(manifest.scripts.meith).toBeDefined()
   })
 
@@ -160,7 +161,7 @@ describe('what the scaffold writes', () => {
       'README.md',
     )!
     expect(readme).toContain(
-      'https://example.test/board/blob/main/docs/getting-started/deployment/docker-compose.md',
+      'https://example.test/board/blob/main/docs/operations/docker-compose.md',
     )
   })
 
@@ -214,7 +215,7 @@ describe('what the scaffold writes', () => {
 
   it('gives the generated README the same first run the CLI prints', () => {
     const readme = scaffold(OPTIONS).get('README.md')!
-    const local = readme.slice(readme.indexOf('## Local'))
+    const local = readme.slice(readme.indexOf('## Run locally'))
     const block = local.slice(
       local.indexOf('```sh') + 5,
       local.indexOf('```', local.indexOf('```sh') + 5),
@@ -570,7 +571,7 @@ describe('the by-hand compose file — the third path, with no panel generating 
   })
 
   it('points the by-hand guide at itself, so a stale name would show up as a broken snippet', () => {
-    expect(byHand).toContain('docs/getting-started/deployment/docker-compose.md')
+    expect(byHand).toContain('docs/operations/docker-compose.md')
     expect(byHand).toContain('COMPOSE_FILE=docker-compose.byhand.yaml')
   })
 })
@@ -810,13 +811,13 @@ describe('the published bin, run the way npx actually runs it', () => {
 const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   'package.json': 'd3027aad14c2785d9760ddf6d13c8263b1807e30cee6c7574973b49a985ef363',
   '.npmrc': 'b147ab9c34152b7b2b4c8464680b4f3ed5e8dbfa35edfdfa7114fd8ac9e61121',
-  'meith.config.ts': 'df13fc2f73d0d69c05bf75cf8ddfca4640a616731979c7fc51a97f3a6c0d4dee',
+  'meith.config.ts': '1ab60a6d39f55cbd8a43191e7f30fd6d61009902221ab9a68662b0db1cb9b36e',
   'board.plugins.json': '5775237a361a9183f19cef427633bade5d3d96b4b219e5fc455a304e70319320',
-  'meith.plugins.ts': '84a5d007307ded9fead1b69155a313e90a239dfce037c574aafedc05f1e9ce23',
+  'meith.plugins.ts': '1695011e757a9c1adaf13d17afbe28287b5117b771bfe6ee814d020e5be31195',
   '.env.example': 'e160944cbb1fba18c67ef7e55d6f640cb847f77125d7fbf9e6f2426344aa8865',
   '.gitignore': '4df33d67d3f6cab040df85bda5505ff64431892d3207eb2ea07a571a8386a0dc',
-  Dockerfile: 'd012f8daa0f10ffb0f3887c8b7658fc4276133c978576b2b3a3216ba8c0ee292',
-  'Dockerfile.prebuilt': 'e5a9ecdd9bc2e9a9da4523ecc2c204be9c45b769e8d4bdb2a70928f8bade17a8',
+  Dockerfile: 'd8a4a1b5e3f33ef6e93710cea41ecafac38529b75efcc1c73e3e8a72a00ae4e5',
+  'Dockerfile.prebuilt': '5c2bd6be92eb03f71f482916142bf30a0ec9047e323fb4efca37f4fbbfefba19',
   'docker-entrypoint.sh': '7b8ce8a48ade0285f0954ed5dff3dd82a94586ec321e54fb1c65dec768258117',
   'docker-healthcheck.sh': '26c30e65b5401ec94d19c7eb4b22e46b51baf27e087699f91fc8d5fcc5280048',
   '.dockerignore': '620ca0bdf50f76e3817c135ee43afe56669b7b3caaad86b4926021cc52dd3c4b',
@@ -824,11 +825,11 @@ const SELF_HOST_TREE_DIGESTS: Readonly<Record<string, string>> = {
   '.github/workflows/build.yml': 'f9b3342a1e94b82660a83d233b1c3156e1ba71841c0920d998d4e83b43c8bc13',
   '.github/workflows/update.yml':
     '5c56ff79b04d29928645b49be82bc47fac65d88a84cfc066d64b932123c620f0',
-  'docker-compose.yaml': '6c9715262ce8e8f77c3cf661683bcb11be803544f5e902a7d1507ac45d2211b2',
+  'docker-compose.yaml': '356827b8b1ee3835152e67069ac3e76287226a3a9dfea72619545747c94b9d1a',
   'docker-compose.prebuilt.yaml':
-    '069997fca8288caaf2e24a98413d23ffa7903ea370e23b6bc4c01358cd7cd896',
-  'docker-compose.byhand.yaml': '8217237f19f31db09572ba117c3c0708153254e8d25e22333b21c77abbe5c495',
-  'README.md': 'b7172e689c8b25d28f5143d02aa62087f6041bb0375b3e237d69a0fe8acc4648',
+    '5b9b7478346c92a25470e19217b4e6fab42fc0a020674ca865109f9dd8b48c30',
+  'docker-compose.byhand.yaml': '3386db9c28d54706790b95a3b7f7f0b37b1e3033e7896ecbe2ea9a1cbb356bb4',
+  'README.md': '699c3e1b78f7c07996af3f898313b153308881d6644703aa50d9d37429e3689f',
 }
 
 const VERCEL_OPTIONS = { ...OPTIONS, target: 'vercel' } as const
@@ -857,7 +858,7 @@ function themeEntryFields(config: string): string[] {
   return fields.sort()
 }
 
-describe('the default target, against the tree it produced before a second target existed', () => {
+describe('the default target, against its reviewed output snapshot', () => {
   it('is byte-identical file by file — a name that fails here is the file that drifted', async () => {
     const { createHash } = await import('node:crypto')
 
@@ -1185,12 +1186,12 @@ describe('the Vercel target', () => {
     expect(readme).toMatch(/TICK_SECRET/)
   })
 
-  it('warns that maxDuration is checked at build time, so Hobby fails rather than clamps', () => {
+  it('points operators to current platform limits for the declared tick duration', () => {
     const readme = files.get('README.md')!
     expect(readme).toMatch(/maxDuration = 300/)
-    expect(readme).toMatch(/when the project builds, not when the\n {2}function runs/)
+    expect(readme).toContain('https://vercel.com/docs/functions/configuring-functions/duration')
     expect(readme).toMatch(/Fluid Compute/)
-    expect(readme).toMatch(/fails the\n {2}deployment/)
+    expect(readme).toMatch(/unsupported duration can fail deployment/)
   })
 
   it('tells no Coolify or GHCR story, which would contradict the one it does tell', () => {

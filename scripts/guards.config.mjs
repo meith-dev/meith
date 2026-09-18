@@ -349,7 +349,7 @@ export const GUARDS = [
       'may still import each other by relative path (meith.config.ts pulls in ' +
       'meith.plugins.ts, which pulls in meith.test.plugins.ts); that is the ' +
       "seam's own definition, not a caller reaching around it — see " +
-      'docs/reference/architecture.md, "The board-config seam", and see docs/customization/plugins.md for ' +
+      'docs/contributing/board-workspaces.md, "Board configuration and test plugins", for ' +
       'why meith.test.plugins.ts exists at all.',
     files: /\.(ts|tsx)$/,
     pattern:
