@@ -308,7 +308,7 @@ jobs:
       # The base image carries no floating tag: nothing pulls it by anything
       # but an exact version — a scaffolded board's Dockerfile always pins
       # the release it was scaffolded against, the same way it pins
-      # @meith/web itself. See docs/getting-started/deployment/docker-compose.md, "Custom boards".
+      # @meith/web itself. See docs/operations/docker-compose.md, "Custom boards".
       - name: Merge the base image's architectures
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -339,7 +339,7 @@ jobs:
           \`\`\`
 
           **Migrations:** _fill in before publishing — none / adds only / removes or renames._
-          Patch releases carry no migrations; docs/guides/operations/upgrading.md is the operator's side of that promise.
+          Patch releases carry no migrations; docs/operations/upgrading.md is the operator's side of that promise.
 
           ---
           EOF

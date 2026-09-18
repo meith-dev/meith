@@ -72,7 +72,7 @@ ENV NODE_ENV=production
 ENV DATA_SOURCE=fixture
 
 # MEI-76: built through `boards/stock` — the same create-meith-shaped
-# workspace shape a custom board has (docs/reference/architecture.md, "The board-config
+# workspace shape a custom board has (docs/contributing/architecture.md, "The board-config
 # seam") — via `forum-web build`, rather than `pnpm --filter @meith/web build`
 # against apps/community directly. Graduating from the official image to a
 # custom board is then a source swap, not a migration.
@@ -106,7 +106,7 @@ RUN pnpm --filter @meith/worker build
 # every build, never a merge target — carrying every tsconfig.base.json alias
 # except `@board/*`, which it points at boards/stock's own meith.config.ts
 # / meith.plugins.ts instead. `--tsconfig` then makes esbuild use exactly
-# that file instead of auto-discovering the wrong one. See docs/reference/architecture.md,
+# that file instead of auto-discovering the wrong one. See docs/contributing/architecture.md,
 # "The stock board".
 RUN pnpm board:cli-tsconfig
 RUN pnpm --filter @meith/cli build --tsconfig=/repo/boards/stock/.meith/tsconfig.cli.json
@@ -170,7 +170,7 @@ COPY --from=build --chown=nextjs:nodejs /repo/apps/worker/dist/ ./apps/worker/
 # takes arguments and exits.
 COPY --from=build --chown=nextjs:nodejs /repo/apps/cli/dist/ ./apps/cli/
 
-# docs/guides/operations/operating.md documents every operator command as `meith <cmd>` —
+# docs/operations/operating.md documents every operator command as `meith <cmd>` —
 # and until this line, nothing in this image put a `meith` binary on
 # PATH to make that real (this is a runtime-only stage with no `pnpm
 # install`, so no bin symlink is ever created here). CI's own working

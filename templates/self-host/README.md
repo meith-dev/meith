@@ -1,260 +1,87 @@
 # meith-board
 
-A forum, built on [Meith](https://github.com/meith-dev/meith).
+A community board built on [Meith](https://github.com/meith-dev/meith).
 
-## Deploy
+## Choose a deployment
 
-Three paths onto a server, all ending at the same `/install`. **Quick
-start** onto [Coolify](https://coolify.io) is the default and needs nothing
-but a push; **advanced/prebuilt** moves the build off the server, onto
-GitHub Actions, for a low-spec build server or a faster deploy; **without a
-panel** is the same four containers run by hand, with your own `.env` and
-reverse proxy, and no Coolify at all. Pick one — a board only ever runs one
-of them at a time.
+| Route | File | Where the image builds |
+|---|---|---|
+| Quick start with Coolify | `docker-compose.yaml` | Your server |
+| Advanced / prebuilt | `docker-compose.prebuilt.yaml` | GitHub Actions or another build machine |
+| Docker Compose without a panel | `docker-compose.byhand.yaml` | Your server |
 
-### Quick start (default)
+Use one route for a deployment. The [Coolify guide](https://github.com/meith-dev/meith/blob/main/docs/operations/coolify.md) and [Docker Compose guide](https://github.com/meith-dev/meith/blob/main/docs/operations/docker-compose.md) cover prerequisites, secrets, domains and recovery.
 
-Coolify builds the image itself, from this repository, every time it
-deploys — there is nothing to push anywhere first and no image tag to paste
-in. Two steps:
+### Quick start with Coolify
 
-1. **Push this repository to GitHub.**
+1. Push this repository to GitHub.
+2. Create a Git repository resource in Coolify with the Docker Compose build pack and `/docker-compose.yaml` as the Compose file.
+3. Assign the board's domain and deploy. Coolify supplies database and authentication secrets; save a protected recovery copy.
+4. Confirm `postgres` is healthy, `migrate` exits successfully, and `web` and `worker` run.
+5. Open `/install`, unlock with `AUTH_SECRET`, and create the board and its first administrator. The installer seals itself and returns 404 after completion.
 
-2. **Point Coolify at `docker-compose.yaml`** — a **Public Git repository**
-   resource with **Docker Compose** as its build pack, this repository as its
-   source. The name is Coolify's own default, so its **Compose file** field is
-   already right when the form opens, and the file already carries Coolify's
-   own "magic variables" for `AUTH_SECRET`, `TICK_SECRET` and the database
-   password, generated on the first deploy and never typed in. Nothing else to
-   set: `docker-compose.yaml` builds `web` and `migrate` from `Dockerfile`
-   itself, so there is no `MEITH_IMAGE` here at all.
+A push alone does not rebuild this route. Use Coolify's **Redeploy** after pushing. If the server cannot complete the build, use the prebuilt route.
 
-3. **Deploy, then `/install` on your own domain.** Coolify issues the
-   certificate; the installer from there is the one
-   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
-   walks through, screen for screen. It seals itself when it finishes, and
-   `/install` answers 404 from then on — run it **against the database you
-   are going to keep**. Every push to `main` after this is picked up the next
-   time Coolify's own **Redeploy** button runs — pushing alone does not
-   rebuild it.
+### Advanced / prebuilt
 
-The trade for that zero setup is a heavier build: `Dockerfile` installs this
-board's full dependency closure on the server itself, on every deploy, rather
-than starting from a warm base image. A 2 GB VPS can OOM on it. If that is
-your server, use the advanced path below instead.
+1. Let `.github/workflows/build.yml` finish in GitHub Actions. It builds and publishes your board's image.
+2. Make that image accessible to Coolify and select `/docker-compose.prebuilt.yaml`.
+3. Set `MEITH_IMAGE` to the exact image from the workflow summary. The commit tag uses `${{ github.sha }}`; `:latest` follows later builds and can change on redeploy.
+4. Deploy and complete `/install` as above.
 
-A quick-start board never needs `Dockerfile.prebuilt`,
-`docker-compose.prebuilt.yaml` or `.github/workflows/build.yml` — delete all
-three.
-
-### Advanced / prebuilt — for a low-spec server or a faster deploy
-
-Something else builds the image ahead of time; the server only ever pulls
-one. Three steps, nothing to configure by hand beyond one value only you know:
-
-1. **Push this repository to GitHub.** `.github/workflows/build.yml` builds
-   `Dockerfile.prebuilt` on every push to `main` and pushes the result to your
-   own GitHub Container Registry, `ghcr.io/<you>/meith-board` — using only the
-   `GITHUB_TOKEN` every GitHub Actions run already carries. No secret to
-   add, no registry account beyond the GitHub account you already have.
-
-   That build is the thing step 2 waits on: open the repository's
-   **Actions** tab and let the run finish, because its **Summary** is where
-   the exact image to paste into step 2 comes from. The Summary also links
-   the package itself, to check it is public — a build from a public
-   repository usually lands public already, and a private one fails
-   Coolify's pull with an authentication error no operator can act on.
-
-2. **Point Coolify at `docker-compose.prebuilt.yaml`** — a
-   **Public Git repository** resource with **Docker Compose** as its build
-   pack, this repository as its source, and its **Compose file** field
-   changed from Coolify's default of `docker-compose.yaml` to
-   `docker-compose.prebuilt.yaml`. That file carries Coolify's own "magic
-   variables" for `AUTH_SECRET`, `TICK_SECRET` and the database password,
-   generated on the first deploy and never typed in. The one thing Coolify
-   cannot generate is the image step 1 just pushed: set `MEITH_IMAGE` in the
-   resource's own environment to one of the two values that run's Summary
-   printed (`docker-compose.prebuilt.yaml` refuses to start without it, with
-   a message saying why). `ghcr.io/<you>/meith-board:${{ github.sha }}` names
-   that one build and nothing else, ever; `ghcr.io/<you>/meith-board:latest`
-   follows `main` instead, so installing a plugin later is a push and a
-   **Redeploy** — the trade this path takes, at the cost of an unrelated
-   redeploy pulling whatever `main` most recently built.
-
-3. **Deploy, then `/install` on your own domain.** Same installer, same
-   [docs/getting-started/deployment/coolify.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
-   walk-through, same one-time seal. Every push to `main` after this rebuilds
-   the image; Coolify's own **Redeploy** button is what actually pulls it —
-   pushing alone does not.
-
-No Docker Hub, no paid CI: GitHub Actions' free tier and GHCR are the whole
-build side of this, for a board of any size.
-
-**Building it yourself**: works on any machine with Docker, if you would
-rather not use GitHub Actions for the build — push the result wherever
-`docker-compose.prebuilt.yaml`'s `MEITH_IMAGE` can reach.
+For a local image build, the build argument comes from the board's pinned package:
 
 ```sh
 docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t meith-board .
 ```
 
-### Without a panel
+After changing the board, wait for its new image and update `MEITH_IMAGE` if pinned to a commit, then redeploy.
 
-`docker-compose.byhand.yaml`, beside the two Coolify files above, is the same
-four containers deployed with nothing generating secrets for you: a `.env`
-you write yourself, a port published for the reverse proxy you already run,
-and `docker compose up -d --build` in place of a panel's Deploy button.
-[docs/getting-started/deployment/docker-compose.md](https://github.com/meith-dev/meith/blob/main/docs/getting-started/deployment/docker-compose.md)
-is the full walkthrough this file is the last step of, including the
-`.env` this repository does not carry — nothing here belongs in git. Delete
-this file if you know you will only ever deploy through Coolify; keep it,
-and it needs nothing else changed, if you later want to move away from
-Coolify without changing how the board itself is built.
-
-Two things nothing configures for you, on any path:
-
-- **Mail.** Until `MAIL_DRIVER` and its three settings exist, every message is
-  written to the log and delivered to nobody, so password reset fails silently.
-- **The tick.** The compose file's `worker` service drives it here — a small
-  loop calling `/api/system/tick` once a minute, since `@meith/web`'s own
-  worker package is not something a board outside the meith monorepo can
-  depend on yet. Deploy some other way and something still has to call that
-  route (or run `meith task:run`) every minute, or nothing catches up
-  and nothing errors.
-
-## Local
+## Run locally
 
 ```sh
 npm install
 npm run dev
 ```
 
-No environment file, no database: with no `DATABASE_URL` the board serves
-deterministic in-memory sample data, which is enough to click through every
-reading surface.
+Open `http://localhost:3000`. Without `DATABASE_URL`, this is a read-only fixture preview. For persistent registration and posting, follow [Create a writable local board](https://github.com/meith-dev/meith/blob/main/docs/operations/local-board.md).
 
-Posting needs Postgres. Copy `.env.example` to `.env.local`, set
-`DATABASE_URL` and the two secrets in it, then:
+## Configure the community
+
+- `meith.config.ts` registers themes and board configuration.
+- `board.plugins.json` and `meith.plugins.ts` register installed plugins.
+- `/admin` manages forums, members, permissions and settings.
+- `npm run meith -- --help` lists operator commands.
+
+Before inviting members, [test email delivery](https://github.com/meith-dev/meith/blob/main/docs/operations/mail.md), verify [scheduled work](https://github.com/meith-dev/meith/blob/main/docs/operations/scheduled-tasks.md), and [configure backups](https://github.com/meith-dev/meith/blob/main/docs/operations/backups.md). The log mail driver delivers nothing. This deployment's worker calls the web application's tick endpoint. For a manual development run, use `npm run meith -- task:run`.
+
+## Install an extension
+
+Add a plugin from this checkout:
 
 ```sh
-npm run meith -- migrate
-echo "<password>" | npm run meith -- user:create --username <name> --email <address> --group administrators
+npm run meith -- plugin:add @meith/plugin-dues
 ```
 
-## Configuring
-
-- **`meith.config.ts`** — installed themes and plugins. Everything installable
-  is named here so the bundler can see it; nothing is found by scanning a
-  directory at runtime.
-- **`/admin`** — settings, forums, groups, members, themes, maintenance. An
-  administrator re-enters their password to get in, and again for anything
-  destructive.
-- **`npm run meith -- --help`** — the operator CLI. Everything the panel does
-  and a few things it cannot, without a browser.
-
-## Installing plugins and themes
-
-Nothing installs into a running container — a plugin or theme has to be
-built into the image. In this repository:
-
-1. **Add it.** A **plugin** is one command, which installs the package and
-   registers it:
-
-   ```sh
-   npm run meith -- plugin:add @meith/plugin-dues
-   ```
-
-   It writes `board.plugins.json` and regenerates `meith.plugins.ts` for you
-   (`npm run meith -- plugin:remove <key>` reverses it). A **theme** is
-   `npm install --save-exact @meith/theme-midnight`, then an entry in
-   `meith.config.ts`'s `themes` map following the shape of the `default` one
-   already there — set `defaultTheme` to its key to make it the board's
-   default.
-
-2. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
-   not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
-   waits for `.github/workflows/build.yml` to finish first, and Redeploy is
-   what actually pulls the result.
-
-3. **If it ships database changes, apply them once it is up** — from
-   **Admin → System** (**Version & migrations**) in the browser, or:
-
-   ```sh
-   docker compose run --rm web meith upgrade
-   ```
-
-See [Installing plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/customization/installing.md)
-for the full guide.
+Commit the package and registry changes, build and deploy, then apply plugin migrations with `meith upgrade` against the deployed board. Follow [Install plugins and themes](https://github.com/meith-dev/meith/blob/main/docs/operations/installing.md) for the full procedure and theme registration. Installing a package into a running container does not make it part of the next deployment.
 
 ## Upgrading
 
-`.github/workflows/update.yml` does this for you: once a week — and
-whenever you press **Run workflow** on the Actions tab — it checks for a new
-Meith release and opens a pull request that moves every `@meith/*` package
-and `next` together, and rewrites the deploy files this scaffold owns
-(`Dockerfile`, the compose files, the workflows) to the new release's
-shape. A file you have edited yourself is never rewritten; the run's log
-names any it left for you. One-time setup: under
-**Settings → Actions → General**, enable **Allow GitHub Actions to create
-and approve pull requests**, or the workflow cannot open one.
+`.github/workflows/update.yml` checks weekly and opens an update pull request. It also supports **Run workflow**. Enable **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General**.
 
-Merging that pull request is still an upgrade, not a formality: read the
-release notes it links, take a backup first, and press **Redeploy** in
-Coolify after the merge — pushing alone does not rebuild. Once the new
-version serves, run `npm run meith -- upgrade` against it for the plugin
-migrations.
+Review the release notes, take a backup, and inspect any scaffold files the updater left for manual reconciliation. Merge, rebuild and redeploy; then run `meith upgrade` for plugin migrations. Core migrations run through the deployment's migration service. Migrations are forward-only; recovery uses a backup.
 
-The same update, by hand and without waiting for the schedule:
+To prepare the update locally:
 
 ```sh
 npx create-meith@latest update
-git commit -am "Update Meith"
-git push
 ```
 
-Under the hood, the version move is these two commands, plus the deploy-file
-rewrite neither of them can do:
+The updater moves package pins and supported deployment files together. Its package update includes these commands; running them alone does not update deployment files:
 
 ```sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
 npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
 ```
 
-The second command is not optional. This board pins `next` itself, and
-the npm commands alone never bump it: upgrading only the `@meith/*` packages
-leaves the board's own pin on the old Next while `@meith/web` depends on the
-new one, which npm resolves by installing both — the build then runs on one
-version while everything reading `package.json` sees the other. Reading the
-version out of the freshly installed `@meith/web` is what keeps the two the
-same without anybody having to know the number.
-
-`next` and `@meith/web` move together or not at all, which is why one
-updater owns the whole move and no dependency bot bumps either on its own.
-What Dependabot *does* keep current is this repository's own GitHub Actions —
-`.github/dependabot.yml` opens a weekly pull request bumping the actions
-pinned under `.github/workflows`, a safe, independent update the updater
-leaves to it.
-
-On the quick-start path there is no version to keep in sync by hand:
-`Dockerfile` runs `npm install` straight from this `package.json` on every
-build, so a rebuild always picks up whatever is pinned there. On the
-advanced/prebuilt path, that `package.json` change is the whole pin:
-`Dockerfile.prebuilt`'s own `FROM` line takes the version as a build argument,
-and `.github/workflows/build.yml` reads it straight out of `package.json`'s
-own `@meith/web` dependency when it rebuilds — nothing in
-`Dockerfile.prebuilt` itself to keep in sync by hand. `--save-exact` matters
-either way: npm's default `save-prefix` is `^`, and a caret range is not a
-legal Docker image tag for the advanced path — without it, this exact command
-would write `"^0.18.0"` and the next `Dockerfile.prebuilt` build would fail
-with `invalid reference format` instead of building. This
-project's own `.npmrc` sets `save-exact=true` for the same reason, so an
-`npm install` of anything else here — a plugin, say — stays pinned too; the
-build workflow also refuses to build from anything but an exact version, as
-a second line of defense. Once the rebuilt image is deployed, run
-`npm run meith -- upgrade` against it for the plugin migrations — see
-[the operator CLI](https://github.com/meith-dev/meith/blob/main/docs/guides/operations/operating.md#the-operator-cli)
-for running it against this deployment.
-
-Migrations are forward-only. Recovery is by restore, so take a backup first —
-there is no down migration to undo a destructive one, and a button that pretended
-otherwise would be worse than its absence.
+Keep Next.js aligned with `@meith/web`. Use `--save-exact`: a caret range is not a legal Docker image tag. Read [Upgrade Meith](https://github.com/meith-dev/meith/blob/main/docs/operations/upgrading.md) before applying the change.

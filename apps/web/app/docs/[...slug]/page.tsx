@@ -64,12 +64,29 @@ export default async function DocumentPage({ params }: PageProps) {
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
-            <a className="textlink" href={sourceUrl}>
-              Edit this page
+            <a className="textlink" href={entry.generated ? '/docs/documentation' : sourceUrl}>
+              {entry.generated ? 'How to update this reference' : 'Edit this page'}
             </a>
             {entry.generated ? <span className="chip">generated from the code</span> : null}
           </div>
         </header>
+
+        {rendered.headings.length > 0 ? (
+          <details className="card mt-6 xl:hidden">
+            <summary className="cursor-pointer px-4 py-3">On this page</summary>
+            <ul className="flex flex-col gap-2 border-t border-border px-4 py-3">
+              {rendered.headings
+                .filter((heading) => heading.depth === 2)
+                .map((heading) => (
+                  <li key={heading.id}>
+                    <a className="textlink" href={`#${heading.id}`}>
+                      {heading.text}
+                    </a>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        ) : null}
 
         <div className="doc-body mt-10" dangerouslySetInnerHTML={{ __html: rendered.html }} />
         <CodeCopyButtons />

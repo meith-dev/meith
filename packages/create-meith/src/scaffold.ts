@@ -496,7 +496,7 @@ save-exact=true
  *
  * Adding a theme is: \`npm install\` it, add a line here, redeploy. Adding a
  * plugin is the same, through board.plugins.json and meith.plugins.ts —
- * see docs/customization/plugins.md.
+ * see docs/extensions/plugins.md.
  */
 import { defineForumConfig } from '@meith/web/config'
 import {
@@ -537,7 +537,7 @@ export default defineForumConfig({
 // them. A plugin that does not fit that convention can be added here by hand instead —
 // keep it out of board.plugins.json so a regenerate does not drop it.
 //
-// docs/customization/plugins.md explains both.
+// docs/extensions/plugins.md explains both.
 
 import type { InstalledPlugin } from '@meith/web/config'
 
@@ -677,7 +677,7 @@ jobs:
 # \`npm install\` below), so a build here is heavier than \`Dockerfile.prebuilt\`'s
 # thin delta — that image, pulled rather than built, is the trade the advanced
 # path takes for a low-spec build server or a faster deploy (see \`README.md\`
-# and, in the meith repository, docs/getting-started/deployment/docker-compose.md,
+# and, in the meith repository, docs/operations/docker-compose.md,
 # "Custom boards").
 #
 # Two stages, not three: unlike the official image, this does not prune down
@@ -776,7 +776,7 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 #
 # FROM the published framework base image — deps + framework layers only,
 # locked to this exact release (see the meith repository's
-# docs/getting-started/deployment/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
+# docs/operations/docker-compose.md, "Custom boards", and docker/Dockerfile.base for what
 # it is and is not). This board's own Dockerfile only ever installs its own
 # delta on top of it — a new plugin's own dependency, typically nothing more
 # — which is what keeps a rebuild after \`npm install some-plugin\` a matter
@@ -1120,7 +1120,7 @@ services:
       # service the variables the file names, so a Scheduled Task running
       # \`meith backup\` in this container would never see them without these
       # lines — see the meith repository's
-      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      # docs/operations/coolify.md, "Set up backups".
       - BACKUP_S3_BUCKET=\${BACKUP_S3_BUCKET:-}
       - BACKUP_S3_REGION=\${BACKUP_S3_REGION:-}
       - BACKUP_S3_ACCESS_KEY_ID=\${BACKUP_S3_ACCESS_KEY_ID:-}
@@ -1146,7 +1146,7 @@ services:
   # @meith/worker is not published (see the meith repository's
   # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
   # board can run — this drives the tick the alternative way the meith
-  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # repository documents in docs/operations/docker-compose.md, "Running the tick without
   # a second set of credentials": a small loop calling /api/system/tick.
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
@@ -1293,7 +1293,7 @@ services:
       # service the variables the file names, so a Scheduled Task running
       # \`meith backup\` in this container would never see them without these
       # lines — see the meith repository's
-      # docs/getting-started/deployment/coolify.md, "Set up backups".
+      # docs/operations/coolify.md, "Set up backups".
       - BACKUP_S3_BUCKET=\${BACKUP_S3_BUCKET:-}
       - BACKUP_S3_REGION=\${BACKUP_S3_REGION:-}
       - BACKUP_S3_ACCESS_KEY_ID=\${BACKUP_S3_ACCESS_KEY_ID:-}
@@ -1319,7 +1319,7 @@ services:
   # @meith/worker is not published (see the meith repository's
   # docs/contributing/release.md), so there is no compiled worker binary a scaffolded
   # board can run — this drives the tick the alternative way the meith
-  # repository documents in docs/getting-started/deployment/docker-compose.md, "Running the tick without
+  # repository documents in docs/operations/docker-compose.md, "Running the tick without
   # a second set of credentials": a small loop calling /api/system/tick.
   worker:
     image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
@@ -1358,7 +1358,7 @@ volumes:
 # secrets for you: every value Coolify would have filled in — the database
 # password, AUTH_SECRET, TICK_SECRET, the board's own address — comes from
 # a \`.env\` beside this file instead. See the meith repository's
-# docs/getting-started/deployment/docker-compose.md, which this file is
+# docs/operations/docker-compose.md, which this file is
 # the last step of.
 #
 # \`docker compose\` only auto-discovers a file literally named
@@ -1374,7 +1374,7 @@ volumes:
 # to GitHub and let \`.github/workflows/build.yml\` do it, or run
 # \`docker build -f Dockerfile.prebuilt ...\` by hand) and change the two
 # \`build: .\` lines below to \`image: <that image>:<version>\` — the
-# substitution docs/getting-started/deployment/docker-compose.md, "Building
+# substitution docs/operations/docker-compose.md, "Building
 # somewhere else", walks through.
 services:
   postgres:
@@ -1456,7 +1456,7 @@ services:
       APP_URL: \${APP_URL:-http://localhost:3000}
       # One reverse proxy (Caddy, in the guide's own walkthrough) sits in
       # front of \`web\` — see "Count your proxies" in
-      # docs/getting-started/deployment/docker-compose.md.
+      # docs/operations/docker-compose.md.
       TRUSTED_PROXY_HOPS: \${TRUSTED_PROXY_HOPS:-1}
       # Leaving this at \`log\` does not mean no mail: it means the board
       # decides, from the installer on first run or from
@@ -1519,7 +1519,7 @@ services:
     depends_on:
       - web
 
-  # Off by default — see docs/guides/operations/scaling.md before setting
+  # Off by default — see docs/operations/scaling.md before setting
   # CACHE_DRIVER=redis above. This is the server it needs.
   redis:
     profiles: ['redis']
@@ -1549,264 +1549,91 @@ volumes:
     'README.md',
     `# ${name}
 
-A forum, built on [Meith](${repositoryUrl}).
+A community board built on [Meith](${repositoryUrl}).
 
-## Deploy
+## Choose a deployment
 
-Three paths onto a server, all ending at the same \`/install\`. **Quick
-start** onto [Coolify](https://coolify.io) is the default and needs nothing
-but a push; **advanced/prebuilt** moves the build off the server, onto
-GitHub Actions, for a low-spec build server or a faster deploy; **without a
-panel** is the same four containers run by hand, with your own \`.env\` and
-reverse proxy, and no Coolify at all. Pick one — a board only ever runs one
-of them at a time.
+| Route | File | Where the image builds |
+|---|---|---|
+| Quick start with Coolify | \`docker-compose.yaml\` | Your server |
+| Advanced / prebuilt | \`docker-compose.prebuilt.yaml\` | GitHub Actions or another build machine |
+| Docker Compose without a panel | \`docker-compose.byhand.yaml\` | Your server |
 
-### Quick start (default)
+Use one route for a deployment. The [Coolify guide](${repositoryUrl}/blob/main/docs/operations/coolify.md) and [Docker Compose guide](${repositoryUrl}/blob/main/docs/operations/docker-compose.md) cover prerequisites, secrets, domains and recovery.
 
-Coolify builds the image itself, from this repository, every time it
-deploys — there is nothing to push anywhere first and no image tag to paste
-in. Two steps:
+### Quick start with Coolify
 
-1. **Push this repository to GitHub.**
+1. Push this repository to GitHub.
+2. Create a Git repository resource in Coolify with the Docker Compose build pack and \`/docker-compose.yaml\` as the Compose file.
+3. Assign the board's domain and deploy. Coolify supplies database and authentication secrets; save a protected recovery copy.
+4. Confirm \`postgres\` is healthy, \`migrate\` exits successfully, and \`web\` and \`worker\` run.
+5. Open \`/install\`, unlock with \`AUTH_SECRET\`, and create the board and its first administrator. The installer seals itself and returns 404 after completion.
 
-2. **Point Coolify at \`docker-compose.yaml\`** — a **Public Git repository**
-   resource with **Docker Compose** as its build pack, this repository as its
-   source. The name is Coolify's own default, so its **Compose file** field is
-   already right when the form opens, and the file already carries Coolify's
-   own "magic variables" for \`AUTH_SECRET\`, \`TICK_SECRET\` and the database
-   password, generated on the first deploy and never typed in. Nothing else to
-   set: \`docker-compose.yaml\` builds \`web\` and \`migrate\` from \`Dockerfile\`
-   itself, so there is no \`MEITH_IMAGE\` here at all.
+A push alone does not rebuild this route. Use Coolify's **Redeploy** after pushing. If the server cannot complete the build, use the prebuilt route.
 
-3. **Deploy, then \`/install\` on your own domain.** Coolify issues the
-   certificate; the installer from there is the one
-   [docs/getting-started/deployment/coolify.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
-   walks through, screen for screen. It seals itself when it finishes, and
-   \`/install\` answers 404 from then on — run it **against the database you
-   are going to keep**. Every push to \`main\` after this is picked up the next
-   time Coolify's own **Redeploy** button runs — pushing alone does not
-   rebuild it.
+### Advanced / prebuilt
 
-The trade for that zero setup is a heavier build: \`Dockerfile\` installs this
-board's full dependency closure on the server itself, on every deploy, rather
-than starting from a warm base image. A 2 GB VPS can OOM on it. If that is
-your server, use the advanced path below instead.
+1. Let \`.github/workflows/build.yml\` finish in GitHub Actions. It builds and publishes your board's image.
+2. Make that image accessible to Coolify and select \`/docker-compose.prebuilt.yaml\`.
+3. Set \`MEITH_IMAGE\` to the exact image from the workflow summary. The commit tag uses \`\${{ github.sha }}\`; \`:latest\` follows later builds and can change on redeploy.
+4. Deploy and complete \`/install\` as above.
 
-A quick-start board never needs \`Dockerfile.prebuilt\`,
-\`docker-compose.prebuilt.yaml\` or \`.github/workflows/build.yml\` — delete all
-three.
-
-### Advanced / prebuilt — for a low-spec server or a faster deploy
-
-Something else builds the image ahead of time; the server only ever pulls
-one. Three steps, nothing to configure by hand beyond one value only you know:
-
-1. **Push this repository to GitHub.** \`.github/workflows/build.yml\` builds
-   \`Dockerfile.prebuilt\` on every push to \`main\` and pushes the result to your
-   own GitHub Container Registry, \`ghcr.io/<you>/${name}\` — using only the
-   \`GITHUB_TOKEN\` every GitHub Actions run already carries. No secret to
-   add, no registry account beyond the GitHub account you already have.
-
-   That build is the thing step 2 waits on: open the repository's
-   **Actions** tab and let the run finish, because its **Summary** is where
-   the exact image to paste into step 2 comes from. The Summary also links
-   the package itself, to check it is public — a build from a public
-   repository usually lands public already, and a private one fails
-   Coolify's pull with an authentication error no operator can act on.
-
-2. **Point Coolify at \`docker-compose.prebuilt.yaml\`** — a
-   **Public Git repository** resource with **Docker Compose** as its build
-   pack, this repository as its source, and its **Compose file** field
-   changed from Coolify's default of \`docker-compose.yaml\` to
-   \`docker-compose.prebuilt.yaml\`. That file carries Coolify's own "magic
-   variables" for \`AUTH_SECRET\`, \`TICK_SECRET\` and the database password,
-   generated on the first deploy and never typed in. The one thing Coolify
-   cannot generate is the image step 1 just pushed: set \`MEITH_IMAGE\` in the
-   resource's own environment to one of the two values that run's Summary
-   printed (\`docker-compose.prebuilt.yaml\` refuses to start without it, with
-   a message saying why). \`ghcr.io/<you>/${name}:\${{ github.sha }}\` names
-   that one build and nothing else, ever; \`ghcr.io/<you>/${name}:latest\`
-   follows \`main\` instead, so installing a plugin later is a push and a
-   **Redeploy** — the trade this path takes, at the cost of an unrelated
-   redeploy pulling whatever \`main\` most recently built.
-
-3. **Deploy, then \`/install\` on your own domain.** Same installer, same
-   [docs/getting-started/deployment/coolify.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/coolify.md#4-run-the-installer)
-   walk-through, same one-time seal. Every push to \`main\` after this rebuilds
-   the image; Coolify's own **Redeploy** button is what actually pulls it —
-   pushing alone does not.
-
-No Docker Hub, no paid CI: GitHub Actions' free tier and GHCR are the whole
-build side of this, for a board of any size.
-
-**Building it yourself**: works on any machine with Docker, if you would
-rather not use GitHub Actions for the build — push the result wherever
-\`docker-compose.prebuilt.yaml\`'s \`MEITH_IMAGE\` can reach.
+For a local image build, the build argument comes from the board's pinned package:
 
 \`\`\`sh
 docker build -f Dockerfile.prebuilt --build-arg MEITH_VERSION=$(node -p "require('./package.json').dependencies['@meith/web']") -t ${name} .
 \`\`\`
 
-### Without a panel
+After changing the board, wait for its new image and update \`MEITH_IMAGE\` if pinned to a commit, then redeploy.
 
-\`docker-compose.byhand.yaml\`, beside the two Coolify files above, is the same
-four containers deployed with nothing generating secrets for you: a \`.env\`
-you write yourself, a port published for the reverse proxy you already run,
-and \`docker compose up -d --build\` in place of a panel's Deploy button.
-[docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md)
-is the full walkthrough this file is the last step of, including the
-\`.env\` this repository does not carry — nothing here belongs in git. Delete
-this file if you know you will only ever deploy through Coolify; keep it,
-and it needs nothing else changed, if you later want to move away from
-Coolify without changing how the board itself is built.
-
-Two things nothing configures for you, on any path:
-
-- **Mail.** Until \`MAIL_DRIVER\` and its three settings exist, every message is
-  written to the log and delivered to nobody, so password reset fails silently.
-- **The tick.** The compose file's \`worker\` service drives it here — a small
-  loop calling \`/api/system/tick\` once a minute, since \`@meith/web\`'s own
-  worker package is not something a board outside the meith monorepo can
-  depend on yet. Deploy some other way and something still has to call that
-  route (or run \`meith task:run\`) every minute, or nothing catches up
-  and nothing errors.
-
-## Local
+## Run locally
 
 \`\`\`sh
 npm install
 npm run dev
 \`\`\`
 
-No environment file, no database: with no \`DATABASE_URL\` the board serves
-deterministic in-memory sample data, which is enough to click through every
-reading surface.
+Open \`http://localhost:3000\`. Without \`DATABASE_URL\`, this is a read-only fixture preview. For persistent registration and posting, follow [Create a writable local board](${repositoryUrl}/blob/main/docs/operations/local-board.md).
 
-Posting needs Postgres. Copy \`.env.example\` to \`.env.local\`, set
-\`DATABASE_URL\` and the two secrets in it, then:
+## Configure the community
+
+- \`meith.config.ts\` registers themes and board configuration.
+- \`board.plugins.json\` and \`meith.plugins.ts\` register installed plugins.
+- \`/admin\` manages forums, members, permissions and settings.
+- \`npm run meith -- --help\` lists operator commands.
+
+Before inviting members, [test email delivery](${repositoryUrl}/blob/main/docs/operations/mail.md), verify [scheduled work](${repositoryUrl}/blob/main/docs/operations/scheduled-tasks.md), and [configure backups](${repositoryUrl}/blob/main/docs/operations/backups.md). The log mail driver delivers nothing. This deployment's worker calls the web application's tick endpoint. For a manual development run, use \`npm run meith -- task:run\`.
+
+## Install an extension
+
+Add a plugin from this checkout:
 
 \`\`\`sh
-npm run meith -- migrate
-echo "<password>" | npm run meith -- user:create --username <name> --email <address> --group administrators
+npm run meith -- plugin:add @meith/plugin-dues
 \`\`\`
 
-## Configuring
-
-- **\`meith.config.ts\`** — installed themes and plugins. Everything installable
-  is named here so the bundler can see it; nothing is found by scanning a
-  directory at runtime.
-- **\`/admin\`** — settings, forums, groups, members, themes, maintenance. An
-  administrator re-enters their password to get in, and again for anything
-  destructive.
-- **\`npm run meith -- --help\`** — the operator CLI. Everything the panel does
-  and a few things it cannot, without a browser.
-
-## Installing plugins and themes
-
-Nothing installs into a running container — a plugin or theme has to be
-built into the image. In this repository:
-
-1. **Add it.** A **plugin** is one command, which installs the package and
-   registers it:
-
-   \`\`\`sh
-   npm run meith -- plugin:add @meith/plugin-dues
-   \`\`\`
-
-   It writes \`board.plugins.json\` and regenerates \`meith.plugins.ts\` for you
-   (\`npm run meith -- plugin:remove <key>\` reverses it). A **theme** is
-   \`npm install --save-exact @meith/theme-midnight\`, then an entry in
-   \`meith.config.ts\`'s \`themes\` map following the shape of the \`default\` one
-   already there — set \`defaultTheme\` to its key to make it the board's
-   default.
-
-2. **Commit and push**, then **Redeploy** from Coolify — pushing alone does
-   not rebuild. Quick start builds the new image on that redeploy; advanced/prebuilt
-   waits for \`.github/workflows/build.yml\` to finish first, and Redeploy is
-   what actually pulls the result.
-
-3. **If it ships database changes, apply them once it is up** — from
-   **Admin → System** (**Version & migrations**) in the browser, or:
-
-   \`\`\`sh
-   docker compose run --rm web meith upgrade
-   \`\`\`
-
-See [Installing plugins and themes](${repositoryUrl}/blob/main/docs/customization/installing.md)
-for the full guide.
+Commit the package and registry changes, build and deploy, then apply plugin migrations with \`meith upgrade\` against the deployed board. Follow [Install plugins and themes](${repositoryUrl}/blob/main/docs/operations/installing.md) for the full procedure and theme registration. Installing a package into a running container does not make it part of the next deployment.
 
 ## Upgrading
 
-\`.github/workflows/update.yml\` does this for you: once a week — and
-whenever you press **Run workflow** on the Actions tab — it checks for a new
-Meith release and opens a pull request that moves every \`@meith/*\` package
-and \`next\` together, and rewrites the deploy files this scaffold owns
-(\`Dockerfile\`, the compose files, the workflows) to the new release's
-shape. A file you have edited yourself is never rewritten; the run's log
-names any it left for you. One-time setup: under
-**Settings → Actions → General**, enable **Allow GitHub Actions to create
-and approve pull requests**, or the workflow cannot open one.
+\`.github/workflows/update.yml\` checks weekly and opens an update pull request. It also supports **Run workflow**. Enable **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General**.
 
-Merging that pull request is still an upgrade, not a formality: read the
-release notes it links, take a backup first, and press **Redeploy** in
-Coolify after the merge — pushing alone does not rebuild. Once the new
-version serves, run \`npm run meith -- upgrade\` against it for the plugin
-migrations.
+Review the release notes, take a backup, and inspect any scaffold files the updater left for manual reconciliation. Merge, rebuild and redeploy; then run \`meith upgrade\` for plugin migrations. Core migrations run through the deployment's migration service. Migrations are forward-only; recovery uses a backup.
 
-The same update, by hand and without waiting for the schedule:
+To prepare the update locally:
 
 \`\`\`sh
 npx create-meith@latest update
-git commit -am "Update Meith"
-git push
 \`\`\`
 
-Under the hood, the version move is these two commands, plus the deploy-file
-rewrite neither of them can do:
+The updater moves package pins and supported deployment files together. Its package update includes these commands; running them alone does not update deployment files:
 
 \`\`\`sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
 npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
 \`\`\`
 
-The second command is not optional. This board pins \`next\` itself, and
-the npm commands alone never bump it: upgrading only the \`@meith/*\` packages
-leaves the board's own pin on the old Next while \`@meith/web\` depends on the
-new one, which npm resolves by installing both — the build then runs on one
-version while everything reading \`package.json\` sees the other. Reading the
-version out of the freshly installed \`@meith/web\` is what keeps the two the
-same without anybody having to know the number.
-
-\`next\` and \`@meith/web\` move together or not at all, which is why one
-updater owns the whole move and no dependency bot bumps either on its own.
-What Dependabot *does* keep current is this repository's own GitHub Actions —
-\`.github/dependabot.yml\` opens a weekly pull request bumping the actions
-pinned under \`.github/workflows\`, a safe, independent update the updater
-leaves to it.
-
-On the quick-start path there is no version to keep in sync by hand:
-\`Dockerfile\` runs \`npm install\` straight from this \`package.json\` on every
-build, so a rebuild always picks up whatever is pinned there. On the
-advanced/prebuilt path, that \`package.json\` change is the whole pin:
-\`Dockerfile.prebuilt\`'s own \`FROM\` line takes the version as a build argument,
-and \`.github/workflows/build.yml\` reads it straight out of \`package.json\`'s
-own \`@meith/web\` dependency when it rebuilds — nothing in
-\`Dockerfile.prebuilt\` itself to keep in sync by hand. \`--save-exact\` matters
-either way: npm's default \`save-prefix\` is \`^\`, and a caret range is not a
-legal Docker image tag for the advanced path — without it, this exact command
-would write \`"^0.18.0"\` and the next \`Dockerfile.prebuilt\` build would fail
-with \`invalid reference format\` instead of building. This
-project's own \`.npmrc\` sets \`save-exact=true\` for the same reason, so an
-\`npm install\` of anything else here — a plugin, say — stays pinned too; the
-build workflow also refuses to build from anything but an exact version, as
-a second line of defense. Once the rebuilt image is deployed, run
-\`npm run meith -- upgrade\` against it for the plugin migrations — see
-[the operator CLI](${repositoryUrl}/blob/main/docs/guides/operations/operating.md#the-operator-cli)
-for running it against this deployment.
-
-Migrations are forward-only. Recovery is by restore, so take a backup first —
-there is no down migration to undo a destructive one, and a button that pretended
-otherwise would be worse than its absence.
+Keep Next.js aligned with \`@meith/web\`. Use \`--save-exact\`: a caret range is not a legal Docker image tag. Read [Upgrade Meith](${repositoryUrl}/blob/main/docs/operations/upgrading.md) before applying the change.
 `,
   )
 
@@ -1860,277 +1687,95 @@ ${AT_ROOT_IGNORES}
 function vercelReadme({ name, repositoryUrl, templateRepositoryUrl }: VercelTreeOptions): string {
   return `# ${name}
 
-A forum, built on [Meith](${repositoryUrl}), running as Vercel functions.
+A community board built on [Meith](${repositoryUrl}), deployed as Vercel functions.
 
 [![Deploy with Vercel](https://vercel.com/button)](${deployButtonUrl(templateRepositoryUrl)})
 
-## What the button provisions
+## 1. Connect services and set secrets
 
-- **A copy of this repository** under your own GitHub account. Vercel builds
-  from it, and every later push to \`main\` redeploys.
-- **A Neon Postgres database**, attached to the project. Neon publishes the
-  pooled connection string as \`DATABASE_URL\` and the direct one as
-  \`DATABASE_URL_UNPOOLED\`.
-- **An Upstash Redis store**, attached the same way, for the shared cache. It
-  publishes \`KV_URL\`, which the board reads as \`REDIS_URL\` — \`KV_REST_API_URL\`
-  beside it is an HTTPS endpoint and is not used for this.
-- **A Vercel Blob store** for uploads, which publishes \`BLOB_STORE_ID\` into the
-  project by itself. That is the whole credential: the board hands the id to
-  Vercel's SDK, which authenticates with the deployment's own OIDC identity, so
-  there is no token to copy. This is what used to be four hand-typed \`S3_*\`
-  secrets.
-- **A Resend mail account**, attached the same way, which publishes
-  \`RESEND_API_KEY\` and \`RESEND_EMAIL_DOMAIN\`. The board reads both names
-  directly: its mail driver already speaks Resend's request shape, so there is
-  nothing to adapt, and the sending domain is what the sender is built from.
-- **A Vercel project** carrying \`vercel.json\` — the build command
-  \`${VERCEL_BUILD_COMMAND}\`,
-  which applies the schema before it builds, materializes the board's app at
-  the project root so the artefact lands where Vercel reads it, and the cron
-  entry that drives the tick.
+The deployment template requests Neon PostgreSQL, Upstash Redis, Vercel Blob and Resend. Keep access to these service accounts and review their current limits and pricing.
 
-**Mail needs no variables after the deploy.** Resend publishes both its key
-and its sending domain, and the board sends from \`${RESEND_SENDER_MAILBOX}@\`
-that domain — see *Mail* below to send from a different address, and for the
-one case that does need you: a domain Resend has not verified yet.
-
-## What to type into the deploy form
-
-**Two secrets**, generated rather than chosen. Thirty-two characters is a floor
-the board enforces at boot, not a suggestion:
+Generate two independent secrets:
 
 \`\`\`sh
-openssl rand -hex 32   # AUTH_SECRET
-openssl rand -hex 32   # CRON_SECRET
+openssl rand -hex 32
+openssl rand -hex 32
 \`\`\`
 
-\`CRON_SECRET\` is the name Vercel Cron sends, as \`Authorization: Bearer\`, and it
-cannot be told to send another — the caller is the platform, so this one has to
-be an environment variable both ends can read, and cannot be something the
-board makes up for itself. Note that this floor is stricter than the 16
-characters Vercel's own cron documentation suggests — a value generated by
-following those instructions is refused here, and the fix is a longer secret.
+Use them for \`AUTH_SECRET\` and \`CRON_SECRET\`. Each must be at least 32 characters. Keep a recovery copy of the original \`AUTH_SECRET\`; it seals stored secrets.
 
-\`AUTH_SECRET\` seals members' two-factor secrets and signs the unsubscribe links
-in outgoing mail. It stays in the environment deliberately: a copy of the
-database is then not enough to forge either.
-
-**That is the whole form.** Everything else the board works out from the stores
-this button just linked to the project:
+The platform derives the following defaults when you have not supplied explicit overrides:
 
 \`\`\`ini
 ${VERCEL_DERIVED_DRIVERS.join('\n')}
 \`\`\`
 
-\`DIRECT_DATABASE_URL\` comes from Neon's own \`DATABASE_URL_UNPOOLED\`, or
-\`POSTGRES_URL_NON_POOLING\` if that one is absent — migrations and the first-run
-installer each hold a session-level advisory lock, which the pooled
-\`DATABASE_URL\` cannot hold. \`REDIS_URL\` comes from Upstash's \`KV_URL\`, the one
-variable it publishes that speaks the Redis protocol.
+| Service value | Meith uses it for |
+|---|---|
+| \`DATABASE_URL\` | Runtime database connection |
+| \`DATABASE_URL_UNPOOLED\`, falling back to \`POSTGRES_URL_NON_POOLING\` | \`DIRECT_DATABASE_URL\` for migrations and installer locks |
+| \`KV_URL\` | \`REDIS_URL\`; the Redis protocol connection, not the HTTP REST endpoint |
+| \`BLOB_STORE_ID\` | Upload storage authenticated through the deployment identity |
+| \`RESEND_API_KEY\`, \`RESEND_EMAIL_DOMAIN\` | HTTP mail credentials and sender |
 
-Every one of those derivations is scoped to this platform, fires only where you
-have not set the variable yourself, and **refuses to boot rather than guess**.
-If a store is missing, or publishes a name this board does not know, the deploy
-stops with a message naming every variable it looked at — it will not fall back
-to caching inside each instance, or to uploads on a disk that is discarded with
-the instance. When the name is one we do not know, set \`REDIS_URL\` or
-\`DIRECT_DATABASE_URL\` in the project's environment settings and the derivation
-stands aside.
+If a required service configuration is missing, Meith refuses to boot rather than guess. Inspect the named variables in the deployment log. See [Vercel configuration](${repositoryUrl}/blob/main/docs/operations/vercel-configuration.md) for explicit overrides.
 
-If you would rather keep uploads somewhere you hold yourself — see *Leaving
-Vercel* below for why that matters — set \`FILESTORE_DRIVER=s3\` and add
-\`S3_BUCKET\`, \`S3_REGION\`, \`S3_ACCESS_KEY_ID\` and \`S3_SECRET_ACCESS_KEY\` in the
-project's environment settings, with \`S3_ENDPOINT\` for a bucket that is not AWS
-(\`S3_REGION=auto\` for R2). The same board runs either way.
+## 2. Deploy and install
+
+The build command is \`${VERCEL_BUILD_COMMAND}\`. It applies core migrations before building. Keep preview deployments on a separate database if they must not migrate production.
+
+When the deployment succeeds, open \`/install\`. Unlock with \`AUTH_SECRET\`, confirm the permanent public board address, and create the first administrator. Installation seals the route; \`/install\` then returns 404.
 
 ## Mail
 
-**There is nothing to set.** The Resend the deploy form added publishes two
-names into the project: \`RESEND_API_KEY\`, and \`RESEND_EMAIL_DOMAIN\` — the
-domain it sends from. The board reads both, sends from
-\`${RESEND_SENDER_MAILBOX}@\` that domain, and posts over Resend's HTTPS API.
+Mail needs no variables after the deploy when the Resend integration supplies both \`RESEND_API_KEY\` and \`RESEND_EMAIL_DOMAIN\`. The default sender is \`${RESEND_SENDER_MAILBOX}@\` followed by that domain. Verify the sending domain with Resend and send a test from **Admin → Settings → Mail**.
 
-**If Resend refuses the messages**, that domain is not verified yet. Resend
-will not send from a domain it has not verified, whoever set the address, so
-verify it from the Resend dashboard — the deploy cannot do that step for you,
-because it is Resend confirming you own the domain. This is the one thing here
-that can need attention, and it announces itself: the test button below says
-so rather than the board failing quietly.
+To send from a different address, set \`MAIL_FROM\` and redeploy. The address must be allowed by your provider. Missing sender configuration can leave mail on the log driver, which delivers nothing.
 
-**To send from a different address**, set \`MAIL_FROM\` in the project's
-environment settings and redeploy. It must be at a domain Resend has verified,
-for the same reason. An address you set always wins over the derived one.
+For another HTTP provider, set \`MAIL_DRIVER=http\`, \`MAIL_HTTP_ENDPOINT\`, \`MAIL_HTTP_TOKEN\` and \`MAIL_FROM\`; endpoint and token must be supplied together. See [Email configuration](${repositoryUrl}/blob/main/docs/operations/mail.md).
 
-A board with the key but no verified domain — which is what you get if you
-remove the integration's \`RESEND_EMAIL_DOMAIN\` without putting a
-\`MAIL_FROM\` in its place — does not guess a sender. It stays on the log
-driver and delivers nothing, which is the honest outcome: a guessed sender at
-an unverified domain would be refused by Resend anyway, one message at a
-time.
+## 3. Verify scheduled work and hosting limits
 
-The board is not tied to Resend. Its mail driver is a plain JSON-over-HTTPS
-sender that posts \`{from, to, subject, text, html, reply_to}\` with a bearer
-token — Resend's \`POST /emails\` happens to be exactly that shape, which is why
-it needs no adapter. Any provider with the same shape works: set
-\`MAIL_HTTP_ENDPOINT\`, \`MAIL_HTTP_TOKEN\` and \`MAIL_DRIVER=http\` in the
-project's environment settings, and set the first two **together** — either
-one on its own stands the Resend bridge down, so a key issued for Resend is
-never presented to an endpoint you chose. Setting \`MAIL_DRIVER\` to anything
-but \`http\` stands the bridge down too, for the same reason: a board that
-moved to SMTP must not send through its new provider from Resend's domain.
-Delete \`RESEND_API_KEY\` once you have moved off Resend.
+\`vercel.json\` calls \`${TICK_PATH}\` on \`${TICK_SCHEDULE}\`: once a day. That cadence can delay notifications, search indexing and queued work. Time-sensitive plugin work can miss its useful delivery window.
 
-Check it worked: sign in as the administrator and use the test button on
-**/admin → Settings → Mail**.
+Choose a cadence supported by your current plan, or use an external scheduler authenticated with an independently generated \`TICK_SECRET\`. The endpoint accepts \`CRON_SECRET\` or \`TICK_SECRET\`. A paid plan may provide more scheduling options; check [Vercel cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing).
 
-## First run: \`/install\`
+The tick declares \`maxDuration = 300\`. Check the project's Fluid Compute setting and [function duration limit](https://vercel.com/docs/functions/configuring-functions/duration) before deploying; an unsupported duration can fail deployment. Upload limits also come from the platform, regardless of the board's attachment settings.
 
-The build applies migrations, but an empty schema is not yet a board. Open
-\`https://<your-deployment>/install\` once the first deploy is green. It asks for
-the board's name and address and for the first administrator's username, email
-and password, creates the board and that account, and then **seals itself**:
-\`/install\` answers 404 from then on. Run it against the database you intend to
-keep — the screens are the ones
-[docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md#6-install-it)
-walks through.
-
-## The tick
-
-\`vercel.json\` asks Vercel to call \`${TICK_PATH}\` on \`${TICK_SCHEDULE}\`. That
-route is how bans expire, digests send, mail leaves the outbox and the queue
-drains; nothing here runs it on its own, because there is no worker process on
-a function platform. Two things about it are worth knowing **before** you
-deploy rather than after:
-
-- **This ships a daily schedule, because Hobby refuses anything faster.** A
-  Hobby plan rejects a cron expression that would run more than once a day —
-  the deployment fails outright rather than being slowed down — so
-  \`vercel.json\` carries \`${TICK_SCHEDULE}\` and deploys anywhere. On a
-  paid plan, edit it to \`* * * * *\` and the board ticks every minute.
-
-  A daily tick loses nothing permanently: tasks are written so a missed run
-  delays work rather than dropping it, and a password reset is sent as the
-  request is handled rather than waiting for a tick. What it does delay is
-  everything the tick drives — a new post is not findable in search, and a
-  notification is not sent, until the next run.
-
-  **To keep a fast tick without paying**, drive \`${TICK_PATH}\` from anything
-  that can call a URL on a schedule — a GitHub Actions workflow, a systemd
-  timer, an uptime pinger — presenting \`TICK_SECRET\` instead of
-  \`CRON_SECRET\`. The endpoint accepts either, so the Vercel cron and an
-  outside scheduler can both drive it.
-- **\`maxDuration = 300\` is validated when the project builds, not when the
-  function runs.** A plan that does not allow 300 seconds therefore **fails the
-  deployment** rather than clamping the request. With Fluid Compute — the
-  default for new projects — Hobby allows 300 and this builds as written. With
-  Fluid Compute switched off, Hobby caps a function at 60 seconds and the build
-  fails. Turn Fluid Compute back on.
-
-A tick that reaches the tasks and runs them answers \`200\` even when one of them
-threw, with \`ok: false\` and the failure named in \`ran\`. That is deliberate:
-schedulers retry non-2xx answers, and a task that fails every time would turn
-each retry into another attempt against whatever it is failing against.
+Inspect task results, not only HTTP status: a tick can return 200 with \`ok: false\` and failed tasks in \`ran\`. Follow [Scheduled tasks](${repositoryUrl}/blob/main/docs/operations/scheduled-tasks.md) and test real posting, uploads and email before inviting members.
 
 ## Upgrading
 
-\`.github/workflows/update.yml\` does this for you: once a week — and
-whenever you press **Run workflow** on the Actions tab — it checks for a new
-Meith release and opens a pull request that moves every \`@meith/*\` package
-and \`next\` together. A file you have edited yourself is never rewritten; the
-run's log names any it left for you. One-time setup: under
-**Settings → Actions → General**, enable **Allow GitHub Actions to create and
-approve pull requests**, or the workflow cannot open one. Read the release
-notes the pull request links and take a backup before merging; Vercel
-rebuilds on the merge, and the build command applies the new migrations
-before it builds.
+\`.github/workflows/update.yml\` opens a weekly update pull request and supports **Run workflow**. Enable **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General**.
 
-The same update, by hand and without waiting for the schedule:
+Read the release notes and take a backup before merging. Vercel redeploys the merged code and applies core migrations during the build. Apply plugin migrations with the operator CLI using the deployment's environment. Migrations are forward-only.
+
+To prepare the update locally:
 
 \`\`\`sh
 npx create-meith@latest update
-git commit -am "Update Meith"
-git push
 \`\`\`
 
-Under the hood, the version move is these two commands:
+The updater also reconciles supported deployment files. Its package update keeps Meith and Next.js aligned:
 
 \`\`\`sh
 npm install --save-exact @meith/web@latest @meith/cli@latest @meith/theme-default@latest
 npm install --save-exact next@$(node -p "require('./node_modules/@meith/web/package.json').dependencies.next")
 \`\`\`
 
-\`--save-exact\` matters and \`.npmrc\` already sets it for everything else
-installed here.
-
-The second command is not optional. This board pins \`next\` itself — Vercel
-reads that pin to pick its Next.js builder — and the npm commands alone never
-bump it. Upgrading only the \`@meith/*\` packages leaves two versions of Next
-installed, the board built with one and the platform configured for the
-other. Reading the version out of the freshly installed \`@meith/web\` keeps
-them the same without anybody having to know the number.
-
-Migrations are forward-only. Recovery is by restore, so take a backup first —
-there is no down migration to undo a destructive one.
+See [Upgrade Meith](${repositoryUrl}/blob/main/docs/operations/upgrading.md) for validation and recovery.
 
 ## Leaving Vercel
 
-A board must stay movable, and the Blob store is the one part of this shape that
-is not portable: Neon and Upstash hand out ordinary Postgres and Redis strings
-that any host accepts, but a Vercel Blob store is reachable only through Vercel's
-own API and there is no bucket to sync out of it. **The uploads are the thing you
-have to carry out deliberately, and \`meith backup\` is how.**
+Run backups from a checkout with the correct hosted database credentials and PostgreSQL tools. Set \`FILESTORE_DRIVER=blob\` and a store's \`BLOB_READ_WRITE_TOKEN\`; a local CLI cannot use the deployment's identity. Blob backups include uploads **by default**.
 
-Under \`FILESTORE_DRIVER=blob\`, \`meith backup\` includes the uploads **by
-default** — it walks the Blob store, pulls every object, and puts them in the
-bundle beside the database dump. This is the opposite of the \`s3\` default, which
-skips them, because a bucket has its own backup story you can drive yourself and
-a Blob store does not:
+With that environment selected and a writable output directory:
 
 \`\`\`sh
-DATABASE_URL=…            # Neon's pooled string
-DIRECT_DATABASE_URL=…     # Neon's DATABASE_URL_UNPOOLED
-FILESTORE_DRIVER=blob
-BLOB_READ_WRITE_TOKEN=…   # create one on the store; see below
-npm run meith -- backup
+npm run meith -- backup --out ./board-backup.tar.gz --uploads include
 \`\`\`
 
-Run that from a checkout of this repository, with those four values in the
-environment — the CLI talks to Neon and to the Blob store over the network, so
-it does not have to run on Vercel.
-
-That last one is the one value this route asks you to make by hand, and only
-here. On the deployment the board reaches the store with \`BLOB_STORE_ID\` and
-the deployment's OIDC identity, which a command on your own machine does not
-have. Open the store under **Storage**, create a read-write token, and use it
-for the backup; the board itself never needs it. The bundle it writes holds the dump *and*
-every object. Check the last line it prints: if it says *no uploads*, the
-uploads are not in the bundle and restoring it gives a board whose posts have
-broken images.
-
-Restoring puts them wherever the *restoring* board's \`FILESTORE_DRIVER\` points,
-so the same bundle moves the board either onward or away:
-
-\`\`\`sh
-# onto a self-hosted board with a bucket
-FILESTORE_DRIVER=s3 S3_BUCKET=… RESTORE_DATABASE_URL=… npm run meith -- restore bundle.tar.gz
-
-# onto a board that keeps uploads on its own disk
-RESTORE_DATABASE_URL=… npm run meith -- restore bundle.tar.gz --uploads-dir ./uploads
-\`\`\`
-
-Take one before you need it. A Blob store deleted with the Vercel project takes
-the attachments with it, and there is no second copy anywhere unless you made
-one.
-
-## Somewhere other than Vercel
-
-Everything above is one deployment shape.
-[docs/getting-started/deployment/docker-compose.md](${repositoryUrl}/blob/main/docs/getting-started/deployment/docker-compose.md) is the
-same board as containers you run yourself, and \`npx create-meith <name>\`
-scaffolds that shape instead — a Dockerfile, a compose file and a workflow that
-builds the image. [docs/guides/operations/scaling.md](${repositoryUrl}/blob/main/docs/guides/operations/scaling.md)
-explains why the drivers above are what they are, and why an S3-compatible
-bucket is the portable choice for uploads everywhere but here.
+Check the result and bundle manifest. Preserve the original \`AUTH_SECRET\` separately. Restore into an empty destination and verify attachments and sign-in before switching traffic or deleting the old services. Follow [Move away from Vercel](${repositoryUrl}/blob/main/docs/operations/leaving-vercel.md) for the complete procedure.
 `
 }
 

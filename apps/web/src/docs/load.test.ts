@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest'
 
 import { site } from '../content/site'
 import { linkResolver, loadAllDocuments } from './load'
-import { documents, internalDocuments, quickstartHref, readingOrder } from './registry'
+import {
+  documents,
+  internalDocuments,
+  neighbours,
+  quickstartHref,
+  readingOrder,
+  sections,
+} from './registry'
 
 describe('linkResolver', () => {
-  const fromDocs = linkResolver('guides/operations/operating.md')
+  const fromDocs = linkResolver('operations/operating.md')
   const fromNested = linkResolver('notes/example.md')
 
   it('keeps an anchor within the page', () => {
@@ -16,18 +23,18 @@ describe('linkResolver', () => {
   })
 
   it('sends a published document to its page, anchor and all', () => {
-    expect(fromDocs('../../customization/themes.md')).toEqual({
+    expect(fromDocs('../extensions/themes.md')).toEqual({
       href: '/docs/themes',
       external: false,
     })
-    expect(fromDocs('../../customization/plugins.md#failure')).toEqual({
+    expect(fromDocs('../extensions/plugins.md#failure')).toEqual({
       href: '/docs/plugins#failure',
       external: false,
     })
   })
 
   it('resolves relative to the document doing the linking', () => {
-    expect(fromNested('../guides/operations/operating.md')).toEqual({
+    expect(fromNested('../operations/operating.md')).toEqual({
       href: '/docs/operating',
       external: false,
     })
@@ -38,15 +45,15 @@ describe('linkResolver', () => {
   })
 
   it("sends the documentation index to this site's own index", () => {
-    expect(fromDocs('../../README.md')).toEqual({ href: '/docs', external: false })
+    expect(fromDocs('../README.md')).toEqual({ href: '/docs', external: false })
   })
 
   it('sends a link that climbs out of docs/ to the repository root', () => {
-    expect(fromDocs('../../../docker/compose.yml')).toEqual({
+    expect(fromDocs('../../docker/compose.yml')).toEqual({
       href: `${site.repository}/blob/main/docker/compose.yml`,
       external: true,
     })
-    expect(fromDocs('../../../.env.example')).toEqual({
+    expect(fromDocs('../../.env.example')).toEqual({
       href: `${site.repository}/blob/main/.env.example`,
       external: true,
     })
@@ -54,11 +61,11 @@ describe('linkResolver', () => {
 
   it('sends an unpublished document to the repository rather than to a 404', () => {
     expect(fromDocs('./internal-notes.md')).toEqual({
-      href: `${site.repository}/blob/main/docs/guides/operations/internal-notes.md`,
+      href: `${site.repository}/blob/main/docs/operations/internal-notes.md`,
       external: true,
     })
     expect(fromDocs('./notes')).toEqual({
-      href: `${site.repository}/tree/main/docs/guides/operations/notes`,
+      href: `${site.repository}/tree/main/docs/operations/notes`,
       external: true,
     })
   })
@@ -100,5 +107,16 @@ describe('the published set', () => {
     for (const document of documents) {
       expect(hiddenFiles.has(document.file)).toBe(false)
     }
+  })
+
+  it('keeps previous and next within the reader section', () => {
+    for (const section of sections) {
+      const entries = readingOrder.filter((entry) => entry.section === section.id)
+      const first = entries[0]
+      const last = entries.at(-1)
+      if (first) expect(neighbours(first.slug).previous).toBeUndefined()
+      if (last) expect(neighbours(last.slug).next).toBeUndefined()
+    }
+    expect(neighbours('missing-document')).toEqual({ previous: undefined, next: undefined })
   })
 })

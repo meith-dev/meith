@@ -20,16 +20,16 @@ npm run dev
 
 Open <http://localhost:3000>. This preview uses sample data and needs no
 database or Docker. Saving posts requires PostgreSQL; the
-[quickstart](./docs/getting-started/quickstart.md) explains the next step.
+[quickstart](./docs/start/quickstart.md) explains the next step.
 
 ## Run a community
 
-[Choose a deployment](./docs/getting-started/deployment/index.md): Coolify,
+[Choose a deployment](./docs/operations/deployment.md): Coolify,
 Docker Compose, or Vercel. After installation,
-[set up your community](./docs/getting-started/first-steps.md).
+[set up your community](./docs/administration/first-steps.md).
 
 Already running MyBB or phpBB? Start with the
-[migration guide](./docs/guides/migrating.md).
+[migration guide](./docs/operations/migrating.md).
 
 ## Contribute
 
@@ -48,8 +48,8 @@ database setup, tests, and contribution workflow. Follow [AGENTS.md](./AGENTS.md
 and run `pnpm verify` and `pnpm comments:check` before submitting a pull request.
 
 To build an extension for your own board, start with
-[Write your first plugin](./docs/customization/first-plugin.md) or
-[Theme development](./docs/customization/themes.md).
+[Write your first plugin](./docs/extensions/first-plugin.md) or
+[Theme development](./docs/extensions/themes.md).
 
 ## Licence
 

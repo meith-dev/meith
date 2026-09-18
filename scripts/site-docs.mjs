@@ -98,6 +98,7 @@ function renderIndex() {
     let previousGroup
     for (const doc of manifest.documents.filter((entry) => entry.section === section.id)) {
       if (doc.group !== undefined && doc.group !== previousGroup) {
+        if (previousGroup !== undefined) lines.push('')
         lines.push(`### ${doc.group}`, '')
       }
       lines.push(`- [${doc.title}](./${doc.file}) — ${doc.blurb}`)

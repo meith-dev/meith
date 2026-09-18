@@ -178,7 +178,7 @@ exercised once, each easy to delete.
     npm test
 
 \`src/plugin.tsx\` is the plugin. What a plugin may and may not do is
-documented in the meith repository under \`docs/customization/plugins.md\`;
+documented in the meith repository under \`docs/extensions/plugins.md\`;
 every hook and payload is listed in \`docs/reference/plugin-hooks.md\`.
 
 ## Run it inside a board
@@ -192,8 +192,7 @@ Scaffold a board next to this directory if you do not have one
 npm installs a local directory as a symlink, so edits here are picked up by
 the board's next build without reinstalling.
 
-Register the plugin in the board's \`meith.plugins.ts\` — the comment at
-the top of that file shows the shape:
+Register the plugin in the board's \`meith.plugins.ts\`, keeping its existing entries:
 
     import { messages as ${camel}Messages, plugin as ${camel}Plugin } from '${name}'
 
@@ -201,12 +200,12 @@ the top of that file shows the shape:
       { key: '${name}', enabled: true, plugin: ${camel}Plugin, messages: ${camel}Messages },
     ]
 
-and add the matching entry to \`board.plugins.json\`:
+and add the matching entry to \`board.plugins.json\`, keeping its existing plugins:
 
     { "plugins": [{ "key": "${name}", "package": "${name}", "enabled": true }] }
 
-Rebuild the board (\`npm run build\`) and, because this plugin ships a
-migration, run \`npx meith migrate\`. The plugin then appears under
+Run \`npm run meith -- upgrade\` against your development database to apply
+the plugin migration, then rebuild with \`npm run build\`. The plugin appears under
 **Admin → Plugins**.
 
 ## Publish and list it
@@ -216,7 +215,7 @@ migration, run \`npx meith migrate\`. The plugin then appears under
 finish \`listing.json\` (its \`repository\` field starts as a placeholder),
 add the screenshot it names, and open a pull request against the meith
 repository — the submission process and the review bar are documented there
-in \`docs/customization/marketplace.md\`.
+in \`docs/extensions/marketplace.md\`.
 `
 }
 
@@ -235,7 +234,7 @@ tokens) plus a single slot override, the footer.
 
 \`src/theme.ts\` declares the theme, \`src/tokens.ts\` carries the palette,
 and slots live in \`src/slots/\`. What a theme may and may not do is
-documented in the meith repository under \`docs/customization/themes.md\`;
+documented in the meith repository under \`docs/extensions/themes.md\`;
 every slot and view model is listed in \`docs/reference/theme-slots.md\`.
 
 ## Run it inside a board
@@ -276,7 +275,7 @@ on the appearance screen and to administrators under **Admin → Themes**.
 finish \`listing.json\` (its \`repository\` field starts as a placeholder),
 add the screenshot it names, and open a pull request against the meith
 repository — the submission process and the review bar are documented there
-in \`docs/customization/marketplace.md\`.
+in \`docs/extensions/marketplace.md\`.
 `
 }
 
