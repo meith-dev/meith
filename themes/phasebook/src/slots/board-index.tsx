@@ -28,6 +28,8 @@ export function BoardIndex({
             <div className="flex flex-col gap-4 empty:hidden">{regions.announcements}</div>
           )}
 
+          <div className="flex min-w-0 flex-col gap-4">{regions.categories}</div>
+
           {markAllReadAction !== null && (
             <form action={markAllReadAction} method="post" className="self-end">
               <button type="submit" className={PILL_QUIET}>
@@ -35,8 +37,6 @@ export function BoardIndex({
               </button>
             </form>
           )}
-
-          <div className="flex min-w-0 flex-col gap-4">{regions.categories}</div>
 
           {regions.plugins}
         </div>

@@ -65,6 +65,19 @@ describe.each(themes)('theme "$key"', ({ definition }) => {
     expect(assertThemeContract(resolveTheme(definition)).missing).toEqual([])
   })
 
+  it('places the native mark-all-read form after the forums and hides it for guests', async () => {
+    const model = SLOT_FIXTURES.BoardIndex.model
+    const html = await renderSlot(definition, 'BoardIndex', model)
+
+    expect(html).toMatch(/<form[^>]* action="\/mark-read" method="post"[^>]*><button type="submit"/)
+    expect(html.indexOf('action="/mark-read"')).toBeGreaterThan(
+      html.indexOf(String(model.regions.categories)),
+    )
+
+    const guest = await renderSlot(definition, 'BoardIndex', { ...model, markAllReadAction: null })
+    expect(guest).not.toContain('action="/mark-read"')
+  })
+
   const cases = Object.entries(SLOT_FIXTURES).map(([name, fixture]) => ({
     name: name as SlotName,
     fixture: fixture as { model: object; requires: readonly string[] },
