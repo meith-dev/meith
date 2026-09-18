@@ -1,7 +1,6 @@
-import { ImageResponse } from 'next/og'
-
 import { audiences, findAudience } from '../../../../src/content/segments'
-import { OG_SIZE, OgCard } from '../../../../src/og/card'
+import { OgCard } from '../../../../src/og/card'
+import { ogResponse } from '../../../../src/og/render'
 
 const INDEX_CARD = {
   eyebrow: "Who it's for",
@@ -20,16 +19,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ seg
   const audience = findAudience(slug)
 
   if (audience === undefined) {
-    return new ImageResponse(<OgCard {...INDEX_CARD} />, OG_SIZE)
+    return ogResponse(<OgCard {...INDEX_CARD} />)
   }
 
-  return new ImageResponse(
+  return ogResponse(
     <OgCard
       eyebrow={`Meith for ${audience.lowerName}`}
       title={audience.hero.headline.before}
       emphasis={audience.hero.headline.emphasis}
       description={audience.card.line}
     />,
-    OG_SIZE,
   )
 }

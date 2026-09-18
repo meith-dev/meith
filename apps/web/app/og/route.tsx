@@ -1,18 +1,15 @@
-import { ImageResponse } from 'next/og'
-
-import { hero, site } from '../../src/content/site'
-import { OG_SIZE, OgCard } from '../../src/og/card'
+import { OgCard } from '../../src/og/card'
+import { ogResponse } from '../../src/og/render'
 
 export const dynamic = 'force-static'
 
 export function GET() {
-  return new ImageResponse(
+  return ogResponse(
     <OgCard
-      eyebrow="Open-source forum software you own"
-      title={hero.headline.before}
-      emphasis={hero.headline.emphasis}
-      description={site.description}
+      eyebrow="Open-source forum software"
+      title="Long live"
+      emphasis="the forum."
+      description="A proper home for your community. On your domain. On your terms."
     />,
-    OG_SIZE,
   )
 }

@@ -50,9 +50,11 @@ Read [Architecture](architecture.md) and the repository's `AGENTS.md` before edi
 
 The site's Community links use `site.forum` and open [forum.meith.dev](https://forum.meith.dev), the live community running from its own template repository. Fixture boards are read-only development and screenshot previews.
 
-The marketing site runs at <http://localhost:3100>. The homepage uses a neutral canvas, restrained typography and brief copy, with links to the live forum and dedicated audience guides. Customisation links explain how to build themes and plugins, and the marketplace provides starting points; first-party themes are examples of what the theme system supports. Keep detailed setup and product explanations in the documentation.
+The marketing site runs at <http://localhost:3100>. The homepage uses a neutral canvas, restrained typography and brief copy, with links to the live forum and dedicated audience guides. Below the audience guides, a short comparison sets out what belongs in chat and what belongs in a forum. Customisation links explain how to build themes and plugins, and the marketplace provides starting points; first-party themes are examples of what the theme system supports. Keep detailed setup and product explanations in the documentation.
 
-The shared header links to Product, Who it’s for, Customise, Docs and Community. Its colour control cycles through System, Light and Dark; explicit choices persist in the browser. The mobile menu closes after navigation, Escape, outside interaction or a switch to the desktop layout.
+The shared header links to Who it’s for, Marketplace, Docs, About and Community — each a page of its own, rather than a jump to a homepage section. Its colour control cycles through System, Light and Dark; explicit choices persist in the browser. The mobile menu closes after navigation, Escape, outside interaction or a switch to the desktop layout.
+
+Social share cards are generated at `/og` and the matching routes under each section, sharing one editorial card built in `src/og/`. The homepage card carries the same wording as the hero; keep them in step when the hero copy changes.
 
 ## 4. Validate the change
 

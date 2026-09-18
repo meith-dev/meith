@@ -4,7 +4,9 @@ export const card = {
   fgMuted: '#a3a9b6',
   fgSubtle: '#6e7480',
   accent: '#34d399',
+  accentContrast: '#04160f',
   border: '#202430',
+  borderStrong: '#2f3442',
 } as const
 
 export const icon = {

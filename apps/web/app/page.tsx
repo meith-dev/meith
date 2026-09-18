@@ -86,6 +86,46 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="edition-keeps" aria-labelledby="keeps-heading">
+        <div className="shell edition-keeps-grid">
+          <div className="edition-section-title">
+            <p className="edition-label">WHY A FORUM</p>
+            <h2 id="keeps-heading">
+              Chat is for now.
+              <br />
+              Meith is <em>for keeps.</em>
+            </h2>
+            <p className="edition-keeps-lede">
+              Group chats are good at what is happening right now. They are less good at remembering
+              the answer someone gave two years ago. Meith is the durable layer beside them — a
+              thread keeps its URL and search reaches the whole archive.
+            </p>
+          </div>
+          <div className="edition-keeps-columns">
+            <div className="edition-keeps-column">
+              <h3>Keep in chat</h3>
+              <ul>
+                <li>The banter</li>
+                <li>Tonight’s plans</li>
+                <li>Quick questions</li>
+                <li>“Anyone around?”</li>
+              </ul>
+            </div>
+            <div className="edition-keeps-column edition-keeps-primary">
+              <h3>Keep in Meith</h3>
+              <ul>
+                <li>Answers</li>
+                <li>Announcements</li>
+                <li>Decisions</li>
+                <li>Guides</li>
+                <li>Events</li>
+                <li>Community knowledge</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="edition-customise" id="customise" aria-labelledby="customise-heading">
         <div className="shell edition-customise-grid">
           <div className="edition-section-title">

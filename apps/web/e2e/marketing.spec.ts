@@ -79,16 +79,25 @@ test('mobile navigation closes on Escape, outside interaction, and link selectio
   await expect(navigation).toBeHidden()
 })
 
-test('homepage navigation exposes customisation and keyboard-accessible audience guides', async ({
+test('site navigation points to real destinations and exposes customisation guides', async ({
   page,
 }) => {
   await page.goto('/')
-  await page
-    .getByRole('navigation', { name: 'Site', exact: true })
-    .getByRole('link', { name: 'Customise', exact: true })
-    .click()
+  const nav = page.getByRole('navigation', { name: 'Site', exact: true })
+  for (const [name, href] of [
+    ['Who it’s for', '/who-its-for'],
+    ['Marketplace', '/marketplace'],
+    ['Docs', '/docs'],
+    ['About', '/about'],
+  ] as const) {
+    await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
+  }
+  await expect(nav.getByRole('link', { name: /^Community/ })).toHaveAttribute(
+    'href',
+    /^https:\/\/forum\./,
+  )
+
   const customise = page.getByRole('navigation', { name: 'Customise Meith', exact: true })
-  await expect(customise).toBeInViewport()
   for (const [name, href] of [
     ['Build a theme', '/docs/themes'],
     ['Extend with plugins', '/docs/plugins'],

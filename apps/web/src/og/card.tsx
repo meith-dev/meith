@@ -14,7 +14,7 @@ export function OgMark({ size }: { size: number }) {
         <rect x="2" y="3" width="28" height="20" rx="6" />
         <path d="M10 19 L8.4 28.6 L16.6 22.2 Z" />
       </g>
-      <g fill={card.canvas}>
+      <g fill={card.accentContrast}>
         <rect x="8" y="9" width="16" height="2.8" rx="1.4" />
         <rect x="8" y="14.4" width="10" height="2.8" rx="1.4" />
       </g>
@@ -48,13 +48,37 @@ export function OgCard({
         flexDirection: 'column',
         justifyContent: 'space-between',
         backgroundColor: card.canvas,
-        padding: '64px 72px',
+        padding: '60px 72px',
         color: card.fg,
+        fontFamily: 'Inter',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <OgMark size={48} />
-        <div style={{ display: 'flex', fontSize: 36, letterSpacing: '-0.02em' }}>Meith</div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: `2px solid ${card.fg}`,
+          paddingBottom: 26,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <OgMark size={44} />
+          <div style={{ display: 'flex', fontSize: 34, letterSpacing: '-0.02em', fontWeight: 600 }}>
+            Meith
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            fontSize: 22,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            color: card.fgSubtle,
+          }}
+        >
+          meith.dev
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -72,24 +96,34 @@ export function OgCard({
         <div
           style={{
             display: 'flex',
-            flexWrap: 'wrap',
-            maxWidth: 1020,
-            fontSize: 66,
-            lineHeight: 1.1,
-            letterSpacing: '-0.025em',
+            flexDirection: 'column',
+            maxWidth: 1040,
+            fontSize: 78,
+            lineHeight: 1.05,
+            letterSpacing: '-0.03em',
           }}
         >
-          <span>{title}</span>
+          <div style={{ display: 'flex' }}>{title}</div>
           {emphasis === undefined ? null : (
-            <span style={{ color: card.accent, marginLeft: 16 }}>{emphasis}</span>
+            <div
+              style={{
+                display: 'flex',
+                color: card.accent,
+                fontFamily: 'Lora',
+                fontStyle: 'italic',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {emphasis}
+            </div>
           )}
         </div>
         <div
           style={{
             display: 'flex',
-            maxWidth: 960,
-            fontSize: 29,
-            lineHeight: 1.45,
+            maxWidth: 940,
+            fontSize: 30,
+            lineHeight: 1.4,
             color: card.fgMuted,
           }}
         >
@@ -102,14 +136,14 @@ export function OgCard({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderTop: `2px solid ${card.border}`,
-          paddingTop: 28,
-          fontSize: 24,
+          borderTop: `1px solid ${card.borderStrong}`,
+          paddingTop: 26,
+          fontSize: 23,
           color: card.fgSubtle,
         }}
       >
-        <div style={{ display: 'flex' }}>Open source · MIT · Self-hosted</div>
-        <div style={{ display: 'flex' }}>meith.dev</div>
+        <div style={{ display: 'flex' }}>Free & open source · Self-hosted · Yours to keep</div>
+        <div style={{ display: 'flex' }}>Built in the open</div>
       </div>
     </div>
   )

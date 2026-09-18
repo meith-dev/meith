@@ -1,18 +1,16 @@
-import { ImageResponse } from 'next/og'
-
 import { about } from '../../../src/content/about'
-import { OG_SIZE, OgCard } from '../../../src/og/card'
+import { OgCard } from '../../../src/og/card'
+import { ogResponse } from '../../../src/og/render'
 
 export const dynamic = 'force-static'
 
 export function GET() {
-  return new ImageResponse(
+  return ogResponse(
     <OgCard
       eyebrow="About Meith"
       title="Communities should own"
       emphasis="the places where their conversations live."
       description={about.hero.lead}
     />,
-    OG_SIZE,
   )
 }

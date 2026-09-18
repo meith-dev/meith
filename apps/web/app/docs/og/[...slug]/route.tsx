@@ -1,7 +1,6 @@
-import { ImageResponse } from 'next/og'
-
 import { documents, findDocument, findSection } from '../../../../src/docs/registry'
-import { OG_SIZE, OgCard } from '../../../../src/og/card'
+import { OgCard } from '../../../../src/og/card'
+import { ogResponse } from '../../../../src/og/render'
 
 const INDEX_CARD = {
   eyebrow: 'Documentation',
@@ -20,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   const entry = findDocument(slug.join('/'))
 
   if (entry === undefined) {
-    return new ImageResponse(<OgCard {...INDEX_CARD} />, OG_SIZE)
+    return ogResponse(<OgCard {...INDEX_CARD} />)
   }
 
   const section = findSection(entry.section)
@@ -29,8 +28,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
       ? `Documentation · ${section?.title ?? 'Meith'}`
       : `Documentation · ${entry.group}`
 
-  return new ImageResponse(
-    <OgCard eyebrow={eyebrow} title={entry.title} description={entry.blurb} />,
-    OG_SIZE,
-  )
+  return ogResponse(<OgCard eyebrow={eyebrow} title={entry.title} description={entry.blurb} />)
 }

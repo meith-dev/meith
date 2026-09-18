@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { about } from '../content/about'
 import { audienceIndexHref } from '../content/segments'
 import { quickstartHref } from '../docs/registry'
 import { DocsSearch } from './docs-search'
@@ -20,10 +21,10 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Site" className="site-navigation">
-          <Link href="/#product">Product</Link>
           <Link href={audienceIndexHref}>Who it’s for</Link>
-          <Link href="/#customise">Customise</Link>
+          <Link href="/marketplace">Marketplace</Link>
           <Link href="/docs">Docs</Link>
+          <Link href={about.href}>About</Link>
           <ForumLink>Community</ForumLink>
         </nav>
 
@@ -39,23 +40,23 @@ export function SiteHeader() {
             <nav aria-label="Mobile site">
               <ul className="site-mobile-links">
                 <li>
-                  <Link href="/#product">
-                    Product <span aria-hidden>↗</span>
-                  </Link>
-                </li>
-                <li>
                   <Link href={audienceIndexHref}>
                     Who it’s for <span aria-hidden>↗</span>
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#customise">
-                    Customise <span aria-hidden>↗</span>
+                  <Link href="/marketplace">
+                    Marketplace <span aria-hidden>↗</span>
                   </Link>
                 </li>
                 <li>
                   <Link href="/docs">
                     Docs <span aria-hidden>↗</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href={about.href}>
+                    About <span aria-hidden>↗</span>
                   </Link>
                 </li>
                 <li>
