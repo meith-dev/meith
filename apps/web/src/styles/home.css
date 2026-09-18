@@ -294,7 +294,7 @@
 .edition-customise {
   border-top: 1px solid var(--border);
   padding-block: 4.5rem;
-  background: var(--surface);
+  background: var(--canvas);
 }
 
 .edition-customise-grid,
@@ -336,16 +336,10 @@
 }
 
 .edition-start {
-  background: #08090c;
-  color: #f2f3f6;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
   padding-block: 4.5rem;
-}
-
-.edition-start .edition-label {
-  color: #a3a9b6;
-}
-.edition-start h2 em {
-  color: #34d399;
 }
 
 .edition-start-actions .command {
@@ -353,22 +347,13 @@
   justify-content: space-between;
   width: 100%;
   padding: 1rem;
-  border: 1px solid #2f3442;
+  border-color: var(--border-strong);
   border-radius: 0;
-  background: #12141a;
   box-shadow: none;
-  color: #f2f3f6;
   font-size: 0.8rem;
 }
 
-.edition-start-actions .command-prompt {
-  color: #34d399;
-}
-
 .edition-start-actions .command-copy {
-  background: #12141a;
-  color: #a3a9b6;
-  border-color: #2f3442;
   border-radius: 0;
 }
 
@@ -382,15 +367,8 @@
 
 .edition-start-actions > p {
   margin-top: 1.5rem;
-  color: #a3a9b6;
+  color: var(--fg-muted);
   font-size: 0.67rem;
-}
-
-.edition-start .edition-text-link:hover {
-  color: #34d399;
-}
-.edition-start :focus-visible {
-  outline-color: #34d399;
 }
 
 @media (min-width: 90rem) {
