@@ -39,7 +39,7 @@
     "@types/nodemailer": "^8.0.1",
     "@vercel/blob": "2.8.0",
     "drizzle-orm": "^0.45.2",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^10.0.9",
     "redis": "^6.2.1",
     "shiki": "^4.4.3"
   },

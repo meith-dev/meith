@@ -711,8 +711,8 @@ importers:
         specifier: 16.3.4
         version: 16.3.4(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@26.6.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       nodemailer:
-        specifier: ^9.0.5
-        version: 9.0.5
+        specifier: ^10.0.9
+        version: 10.0.9
       redis:
         specifier: ^6.2.1
         version: 6.2.1(@opentelemetry/api@1.9.1)
@@ -3875,9 +3875,9 @@ packages:
       sass:
         optional: true
 
-  nodemailer@9.0.5:
-    resolution: {integrity: sha512-wvjiKvjczmsN7U/8006JOdXubgBk2XFAbioDMbT+sM7cPs0QrhJTa6KBRX7P5REGGkDcLUz/EarWidb8G8C1jQ==}
-    engines: {node: '>=6.0.0'}
+  nodemailer@10.0.9:
+    resolution: {integrity: sha512-BF0qcyplCwp+jMk6HCjFykBz/YhhZSsxrARhOldLwFWH+8kGjQsd2WIMIZhqEuyXRoGFi0ONbDeWDMDoL8MhLw==}
+    engines: {node: '>=20.0.0'}
 
   npm-run-path@4.0.1:
     resolution: {integrity: sha512-S48WzZW777zhNIrn7gxOlISNAqi9ZC/uQFnRdbeIHhZhCA6UqpkOT8T1G7BvfdgP4Er8gF4sUbaS0i7QvIfCWw==}
@@ -6865,7 +6865,7 @@ snapshots:
       - '@types/node'
       - babel-plugin-macros
 
-  nodemailer@9.0.5: {}
+  nodemailer@10.0.9: {}
 
   npm-run-path@4.0.1:
     dependencies:
