@@ -17,16 +17,16 @@ const DESCRIPTION =
   'Themes and plugins for Meith boards — what each one does, what it needs, and how to install it.'
 
 export const metadata: Metadata = {
-  title: 'Marketplace',
+  title: 'Extensions',
   description: DESCRIPTION,
   alternates: { canonical: '/marketplace' },
   openGraph: {
     type: 'website',
     siteName: site.name,
-    title: `${site.name} marketplace`,
+    title: `${site.name} extensions`,
     description: DESCRIPTION,
     url: '/marketplace',
-    images: ogImage('/og', `${site.name} marketplace`),
+    images: ogImage('/og', `${site.name} extensions`),
   },
 }
 
@@ -93,7 +93,7 @@ export default async function MarketplaceIndexPage() {
   return (
     <div className="marketing-page">
       <section className="shell marketing-hero marketplace-hero">
-        <Breadcrumb current="Marketplace" trail={[{ label: site.name, href: '/' }]} />
+        <Breadcrumb current="Extensions" trail={[{ label: site.name, href: '/' }]} />
         <div className="marketing-hero-copy">
           <h1 className="marketing-title">
             Make it
@@ -104,7 +104,7 @@ export default async function MarketplaceIndexPage() {
             Explore first-party themes and plugins, or build your own with Meith’s extension tools.
           </p>
         </div>
-        <nav className="marketplace-jump" aria-label="Marketplace categories">
+        <nav className="marketplace-jump" aria-label="Extensions categories">
           {grouped.map(({ section, listings }) => (
             <a key={section.kind} href={`#${section.kind}`}>
               {section.kind === 'theme' ? 'Themes' : 'Plugins'}

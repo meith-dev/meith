@@ -323,10 +323,10 @@ export const customisation = {
       link: 'The API',
     },
     {
-      title: 'Marketplace',
+      title: 'Extensions',
       body: 'A reviewed feed of plugins and themes, installed from the repository like any dependency.',
       doc: 'marketplace',
-      link: 'The marketplace',
+      link: 'Browse extensions',
     },
   ],
 } as const

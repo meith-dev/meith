@@ -88,7 +88,7 @@ export default async function MarketplaceListingPage({ params }: PageProps) {
           current={listing.name}
           trail={[
             { label: site.name, href: '/' },
-            { label: 'Marketplace', href: '/marketplace' },
+            { label: 'Extensions', href: '/marketplace' },
           ]}
         />
         <header className="marketing-hero-copy">

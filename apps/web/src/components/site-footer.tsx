@@ -16,7 +16,7 @@ export function SiteFooter() {
           <nav aria-label="Footer" className="site-footer-navigation">
             <Link href={about.href}>About</Link>
             <Link href={audienceIndexHref}>Who it’s for</Link>
-            <Link href="/marketplace">Marketplace</Link>
+            <Link href="/marketplace">Extensions</Link>
             <Link href="/docs">Docs</Link>
             <a href={site.repository}>
               GitHub <span aria-hidden>↗</span>

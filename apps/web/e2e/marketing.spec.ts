@@ -85,10 +85,10 @@ test('site navigation points to real destinations and exposes customisation guid
   await page.goto('/')
   const nav = page.getByRole('navigation', { name: 'Site', exact: true })
   for (const [name, href] of [
-    ['Who it’s for', '/who-its-for'],
-    ['Marketplace', '/marketplace'],
-    ['Docs', '/docs'],
+    ['Home', '/'],
     ['About', '/about'],
+    ['Who it’s for', '/who-its-for'],
+    ['Docs', '/docs'],
   ] as const) {
     await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
@@ -101,7 +101,7 @@ test('site navigation points to real destinations and exposes customisation guid
   for (const [name, href] of [
     ['Build a theme', '/docs/themes'],
     ['Extend with plugins', '/docs/plugins'],
-    ['Explore the marketplace', '/marketplace'],
+    ['Browse extensions', '/marketplace'],
   ] as const) {
     await expect(customise.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }

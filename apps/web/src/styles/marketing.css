@@ -162,8 +162,7 @@
   padding-top: 1.5rem;
 }
 
-.marketing-detail,
-.about-origin {
+.marketing-detail {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 5rem;
@@ -198,16 +197,9 @@
 }
 
 .marketing-closing {
-  --accent: #34d399;
-  --accent-hover: #5ee7b7;
-  --accent-contrast: #04160f;
-  --fg: #f2f3f6;
-  --fg-muted: #a3a9b6;
-  --border: #454b56;
-  --raised: #0b0d12;
-  --surface: #191d24;
+  border-top: 1px solid var(--border);
   color: var(--fg);
-  background: #0b0d12;
+  background: var(--surface);
   padding-block: 6rem;
 }
 
@@ -236,53 +228,92 @@
   flex-direction: column;
 }
 
-.about-statement {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  align-items: center;
-  gap: 1.75rem 3rem;
-  padding: 5rem 4rem;
-  color: var(--fg);
+.about-hero-essay {
+  margin-top: 2rem;
+  max-width: 44rem;
+}
+
+.about-page .statement {
+  margin-top: 2.5rem;
+}
+
+.about-movement {
+  border-top: 1px solid var(--border);
+}
+
+.about-movement-band {
   background: var(--surface);
 }
 
-.about-mark .fill-accent {
-  fill: var(--accent);
+.about-movement-grid {
+  display: grid;
+  gap: 1.25rem 4rem;
+  padding-block: 4rem;
 }
 
-.about-mark .fill-accent-contrast {
-  fill: var(--accent-contrast);
-}
-
-.about-mark {
-  grid-row: span 2;
-  width: 11rem;
-  justify-self: center;
-}
-
-.about-statement > p {
-  font-size: clamp(2.25rem, 1.25rem + 3vw, 4rem);
-  font-weight: 450;
-  line-height: 1.16;
-  letter-spacing: -0.02em;
-}
-
-.about-statement > span {
-  color: inherit;
-  font-size: 0.875rem;
-}
-
-.about-origin {
-  grid-template-columns: 1fr 2fr;
-}
-
-.about-origin h2 {
-  margin-bottom: 1.5rem;
-}
-
-.about-origin em {
-  font-family: Georgia, serif;
+.about-movement-head h2 {
+  margin-top: 1.25rem;
+  max-width: 20ch;
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.6rem);
   font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.about-movement-head em {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-style: italic;
+  color: var(--accent);
+}
+
+.about-aside-lead {
+  color: var(--fg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.about-page .aside {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.about-page .owned li {
+  box-shadow: none;
+}
+
+.about-principles-head {
+  max-width: 46rem;
+  padding-top: 4rem;
+}
+
+.about-movement .principles {
+  margin-top: 2.5rem;
+  padding-bottom: 5rem;
+}
+
+.about-principle-number {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.075em;
+  color: var(--fg-subtle);
+}
+
+.about-principle-title {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+@media (min-width: 60rem) {
+  .about-movement-grid {
+    grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+    padding-block: 5rem;
+    align-items: start;
+  }
+  .about-movement-grid > .about-movement-head {
+    position: sticky;
+    top: 6rem;
+  }
 }
 
 .audience-grid {

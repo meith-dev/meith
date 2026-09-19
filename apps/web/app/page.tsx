@@ -156,7 +156,7 @@ export default function LandingPage() {
                 Extend with plugins <span aria-hidden="true">↗</span>
               </Link>
               <Link href="/marketplace">
-                Explore the marketplace <span aria-hidden="true">↗</span>
+                Browse extensions <span aria-hidden="true">↗</span>
               </Link>
             </nav>
           </div>

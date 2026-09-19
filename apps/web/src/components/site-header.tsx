@@ -21,11 +21,13 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Site" className="site-navigation">
-          <Link href={audienceIndexHref}>Who it’s for</Link>
-          <Link href="/marketplace">Marketplace</Link>
-          <Link href="/docs">Docs</Link>
+          <Link href="/">Home</Link>
           <Link href={about.href}>About</Link>
-          <ForumLink>Community</ForumLink>
+          <Link href={audienceIndexHref}>Who it’s for</Link>
+          <Link href="/docs">Docs</Link>
+          <ForumLink>
+            Community <span aria-hidden>↗</span>
+          </ForumLink>
         </nav>
 
         <div className="site-header-actions">
@@ -40,23 +42,23 @@ export function SiteHeader() {
             <nav aria-label="Mobile site">
               <ul className="site-mobile-links">
                 <li>
-                  <Link href={audienceIndexHref}>
-                    Who it’s for <span aria-hidden>↗</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/marketplace">
-                    Marketplace <span aria-hidden>↗</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs">
-                    Docs <span aria-hidden>↗</span>
+                  <Link href="/">
+                    Home <span aria-hidden>↗</span>
                   </Link>
                 </li>
                 <li>
                   <Link href={about.href}>
                     About <span aria-hidden>↗</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href={audienceIndexHref}>
+                    Who it’s for <span aria-hidden>↗</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs">
+                    Docs <span aria-hidden>↗</span>
                   </Link>
                 </li>
                 <li>

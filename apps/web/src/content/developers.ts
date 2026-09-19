@@ -154,7 +154,7 @@ export const developers = {
         link: 'The API reference',
       },
       {
-        title: 'Marketplace',
+        title: 'Extensions',
         body:
           'A reviewed feed of plugins and themes. Scaffold your own with create-meith, publish ' +
           'it, and install it into any board as a dependency.',
