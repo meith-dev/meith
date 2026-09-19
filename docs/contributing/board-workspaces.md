@@ -15,7 +15,7 @@ A pnpm workspace: applications in `apps/`, everything else in `packages/`,
 | `apps/cli` | `@meith/cli` | The operator CLI. `pnpm meith …`. |
 | `boards/stock` | `@meith/board-stock` | A second, create-meith-shaped board — the workspace `docker/Dockerfile` builds the official image from. See [Architecture](architecture.md). |
 | `packages/*` | `@meith/*` | The domain: accounts, forums, posts, authorization, search, drivers, and the rest. |
-| `themes/*` | `@meith/theme-*` | The default theme and four alternates: midnight, phasebook, raidframe, clubhouse. |
+| `themes/*` | `@meith/theme-*` | The default theme, four bundled alternates (midnight, phasebook, raidframe, clubhouse) and `meith`, the editorial theme for meith.dev's own forum, which publishes to npm and is registered only behind `SHOWCASE_THEMES`, not in the stock theme set. |
 | `plugins/*` | `@meith/plugin-*` | Dues (paid membership through Stripe), calendar (shared events linked to threads) and the reference plugin. Outbound webhooks are a core feature — see [Webhooks](../integrations/webhooks.md). |
 | `examples/*` | — | Reference code to copy, not installed: `hello-plugin` and `iris-theme`. See [`examples/README.md`](https://github.com/meith-dev/meith/tree/main/examples). |
 

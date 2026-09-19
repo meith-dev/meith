@@ -25,6 +25,7 @@
     "@meith/plugin-kit": "workspace:*",
     "@meith/theme-clubhouse": "workspace:*",
     "@meith/theme-default": "workspace:*",
+    "@meith/theme-meith": "workspace:*",
     "@meith/theme-midnight": "workspace:*",
     "@meith/theme-phasebook": "workspace:*",
     "@meith/theme-raidframe": "workspace:*",

@@ -58,7 +58,7 @@ test('password fields remain native without JavaScript and have no inert toggle'
 })
 
 for (const javaScriptEnabled of [true, false]) {
-  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']) {
+  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse', 'meith']) {
     test(`${theme} panel drawers expose nested destinations and dismiss correctly with JavaScript ${javaScriptEnabled ? 'on' : 'off'}`, async ({
       browser,
     }) => {

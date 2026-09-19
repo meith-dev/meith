@@ -11,7 +11,7 @@ pnpm exec playwright test --config e2e/screenshot-ui-polish.config.ts
 ```
 
 It starts the fixture board on port 3003. Screenshots and a browsable gallery
-are written under `test-results/ui-polish/`. It covers all five themes in both
+are written under `test-results/ui-polish/`. It covers all six registered themes in both
 schemes, forum and thread reading, profiles, and touch layouts. Database-backed
 workflows remain covered by the ordinary browser suite.
 
@@ -23,7 +23,7 @@ components and recipes are documented in [The theme API](../extensions/theme-des
 The UI regression suite also covers password visibility with and without
 JavaScript, Escape focus recovery in mobile navigation, hamburger drawers with
 right-side placement, top-bar triggers and expandable sub-sections across all
-five themes with JavaScript enabled and disabled,
+six themes with JavaScript enabled and disabled,
 and search-filter touch targets. Drawer alignment is checked against the document
 content edge, which excludes the stable scrollbar gutter on platforms with
 classic scrollbars. Header branding checks target the home link, because the

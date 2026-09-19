@@ -1,0 +1,33 @@
+{
+  "name": "@meith/theme-meith",
+  "version": "0.37.4",
+  "description": "The editorial theme for Meith, in the style of meith.dev — rules instead of cards, quiet light headlines, one green.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "themes/meith"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@meith/theme-default": "workspace:^",
+    "@meith/theme-kit": "workspace:^",
+    "@meith/ui": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18"
+  }
+}

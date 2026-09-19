@@ -6,6 +6,13 @@ import {
   clubhouseTheme,
 } from '@meith/theme-clubhouse'
 import {
+  BROWSER_THEME_COLOR as MEITH_BROWSER_THEME_COLOR,
+  DARK_TOKENS as MEITH_DARK_TOKENS,
+  LIGHT_TOKENS as MEITH_LIGHT_TOKENS,
+  meithMessages,
+  meithTheme,
+} from '@meith/theme-meith'
+import {
   BROWSER_THEME_COLOR as MIDNIGHT_BROWSER_THEME_COLOR,
   DARK_TOKENS as MIDNIGHT_DARK_TOKENS,
   LIGHT_TOKENS as MIDNIGHT_LIGHT_TOKENS,
@@ -59,6 +66,14 @@ export const SHOWCASE_THEMES = {
     browserThemeColor: CLUBHOUSE_BROWSER_THEME_COLOR,
     theme: clubhouseTheme,
     messages: clubhouseMessages,
+  },
+  meith: {
+    key: 'meith',
+    title: 'Meith',
+    tokens: { light: MEITH_LIGHT_TOKENS, dark: MEITH_DARK_TOKENS },
+    browserThemeColor: MEITH_BROWSER_THEME_COLOR,
+    theme: meithTheme,
+    messages: meithMessages,
   },
 } as const
 

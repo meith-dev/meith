@@ -140,7 +140,7 @@ in step, and `release:check`'s closing line counts them (52 at 0.23.0).
 | The board | `@meith/web`, `@meith/cli` — the Next.js app and the operator CLI. Each carries a bin (`forum-web`, `meith`) that materializes its sources into an external workspace and points the [board-config seam](architecture.md) at that workspace's own files — see [Consuming the board from a workspace](board-workspaces.md#consuming-the-board-from-a-workspace). Without these two on npm, `create-meith`'s scaffold would depend on a package that does not exist. |
 | The kits | `@meith/plugin-kit`, `@meith/theme-kit` — what a plugin or theme author writes against. |
 | The board's dependency closure | Every domain and infrastructure package under `packages/` that `@meith/web` or `@meith/cli` names in its own `dependencies`, transitively — `@meith/accounts` through `@meith/upgrade`. None is independently useful; each is here only because the board, or a theme in its closure, imports it. |
-| The themes | The five bundled themes: `default`, `midnight`, `phasebook`, `raidframe`, `clubhouse`. |
+| The themes | The five bundled themes: `default`, `midnight`, `phasebook`, `raidframe`, `clubhouse`; and `meith`, which publishes for meith.dev's own forum to install like any third-party theme. |
 | The plugins | The first-party plugins: `dues`, `reference`, `calendar`. |
 | The initializer | `create-meith` — `npx create-meith` scaffolds a board whose `package.json` depends on `@meith/web`, `@meith/cli` and `@meith/theme-default`. An npx-able initializer that is not itself on npm does not exist. |
 

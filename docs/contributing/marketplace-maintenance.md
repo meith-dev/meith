@@ -219,9 +219,9 @@ the feed itself.
 
 ## What is seeded today
 
-Seven first-party listings: **Dues**, **Calendar** and the five themes
+Nine first-party listings: **Dues**, **Calendar**, **Awards** and the six themes
 described in [Development](board-workspaces.md#the-workspace) — default,
-midnight, phasebook, raidframe and clubhouse. Their `version` and `licence` fields
+midnight, phasebook, raidframe, clubhouse and meith. Their `version` and `licence` fields
 are read from each package's own `package.json`, and `pnpm release:check`
 enforces the `version` field directly: for every listing whose `package`
 names a workspace package, the listing's `version` must equal that

@@ -226,6 +226,9 @@ importers:
       '@meith/theme-kit':
         specifier: workspace:*
         version: link:../../packages/theme-kit
+      '@meith/theme-meith':
+        specifier: workspace:*
+        version: link:../../themes/meith
       '@meith/theme-midnight':
         specifier: workspace:*
         version: link:../../themes/midnight
@@ -378,6 +381,9 @@ importers:
       '@meith/theme-default':
         specifier: workspace:*
         version: link:../../themes/default
+      '@meith/theme-meith':
+        specifier: workspace:*
+        version: link:../../themes/meith
       '@meith/theme-midnight':
         specifier: workspace:*
         version: link:../../themes/midnight
@@ -1167,6 +1173,25 @@ importers:
       react:
         specifier: ^19.2.0
         version: 19.2.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+
+  themes/meith:
+    dependencies:
+      '@meith/theme-default':
+        specifier: workspace:^
+        version: link:../default
+      '@meith/theme-kit':
+        specifier: workspace:^
+        version: link:../../packages/theme-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
     devDependencies:
       '@types/react':
         specifier: ^19.2.18
