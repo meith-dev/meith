@@ -50,7 +50,7 @@ import { WhoIsOnline } from './slots/who-is-online'
 export const meithTheme = defineTheme({
   key: 'meith',
   title: 'Meith',
-  version: '0.37.4',
+  version: '0.37.5',
   extends: defaultTheme,
   slots: {
     Shell,
