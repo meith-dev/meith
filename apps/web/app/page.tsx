@@ -60,8 +60,8 @@ const technologies = [
     name: 'PostgreSQL',
     body:
       'One database holds it all — posts, full-text search, sessions, queues and scheduled ' +
-      'work — behind Drizzle ORM, typed queries and versioned migrations. No Redis to run and ' +
-      'no search cluster to babysit.',
+      'work — behind Drizzle ORM and versioned migrations. Nothing else is required; Redis is ' +
+      'optional, for scaling out.',
   },
 ] as const satisfies readonly {
   readonly key: keyof StackFacts
