@@ -145,6 +145,9 @@ jobs:
       - name: Documentation links resolve
         run: pnpm docs:links:check
 
+      - name: Documentation redirects do not shadow a published page
+        run: pnpm docs:redirects:check
+
       # The site publishes docs/*.md and holds no copy of any of them, so the one
       # way that arrangement rots is silent: a document is added and nobody names
       # it in the manifest, so the site simply never mentions it. This fails on
