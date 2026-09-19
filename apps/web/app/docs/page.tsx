@@ -25,11 +25,13 @@ export default function DocsIndexPage() {
   return (
     <div className="docs-landing">
       <header className="docs-landing-hero">
-        <p className="eyebrow">Documentation</p>
-        <h1>Let’s get you started.</h1>
+        <p className="edition-label">DOCUMENTATION</p>
+        <h1>
+          Let’s get you <em>started.</em>
+        </h1>
         <p>From your first board to your next big idea.</p>
-        <Link className="btn btn-primary" href={docHref('quickstart')}>
-          Start the quickstart <span aria-hidden>→</span>
+        <Link className="edition-button edition-button-paper" href={docHref('quickstart')}>
+          Start the quickstart <span aria-hidden>↗</span>
         </Link>
       </header>
 

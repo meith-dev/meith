@@ -92,22 +92,22 @@ export default async function DocumentPage({ params }: PageProps) {
         <CodeCopyButtons />
         <MermaidDiagrams />
 
-        <nav aria-label="Nearby documents" className="card-grid mt-16 sm:grid-cols-2">
+        <nav aria-label="Nearby documents" className="doc-nav">
           {previous ? (
-            <Link href={docHref(previous.slug)}>
-              <span className="eyebrow">Previous</span>
-              <span className="font-medium text-fg">{previous.title}</span>
+            <Link href={docHref(previous.slug)} className="doc-nav-link doc-nav-prev">
+              <span className="edition-label">← Previous</span>
+              <span className="doc-nav-title">{previous.title}</span>
             </Link>
           ) : (
-            <span aria-hidden className="card-ghost hidden sm:block" />
+            <span aria-hidden className="doc-nav-ghost" />
           )}
           {next ? (
-            <Link href={docHref(next.slug)} className="sm:items-end sm:text-right">
-              <span className="eyebrow">Next</span>
-              <span className="font-medium text-fg">{next.title}</span>
+            <Link href={docHref(next.slug)} className="doc-nav-link doc-nav-next">
+              <span className="edition-label">Next →</span>
+              <span className="doc-nav-title">{next.title}</span>
             </Link>
           ) : (
-            <span aria-hidden className="card-ghost hidden sm:block" />
+            <span aria-hidden className="doc-nav-ghost" />
           )}
         </nav>
       </article>

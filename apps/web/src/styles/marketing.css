@@ -690,6 +690,14 @@
   letter-spacing: -0.025em;
 }
 
+.docs-landing-hero h1 em {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.025em;
+  color: var(--accent);
+}
+
 .docs-landing-hero > p:last-of-type {
   margin-block: 1.25rem 1.75rem;
   color: var(--fg-muted);
@@ -767,6 +775,63 @@
 .docs-landing-card details .eyebrow {
   margin-block: 1rem 0.5rem;
   font-size: 0.625rem;
+}
+
+.doc-nav {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.doc-nav-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--border-strong);
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.doc-nav-next {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.doc-nav-link:hover {
+  border-color: var(--accent);
+}
+
+.doc-nav-link .edition-label {
+  color: var(--fg-muted);
+}
+
+.doc-nav-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--fg);
+  transition: color 160ms ease;
+}
+
+.doc-nav-link:hover .doc-nav-title {
+  color: var(--accent);
+}
+
+.doc-nav-ghost {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .doc-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+  .doc-nav-ghost {
+    display: block;
+  }
 }
 
 @media (max-width: 64rem) {
