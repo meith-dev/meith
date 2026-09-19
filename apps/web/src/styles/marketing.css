@@ -272,6 +272,11 @@
   letter-spacing: -0.01em;
 }
 
+.about-list-label {
+  margin-top: 1.75rem;
+  margin-bottom: 0.25rem;
+}
+
 .about-page .aside {
   border-radius: 0;
   box-shadow: none;
