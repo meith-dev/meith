@@ -225,7 +225,7 @@
 .site-footer-wordmark {
   display: block;
   color: var(--accent);
-  font-size: clamp(5rem, 15vw, 10rem);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.025em;

@@ -86,43 +86,50 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="edition-keeps" aria-labelledby="keeps-heading">
-        <div className="shell edition-keeps-grid">
+      <section className="edition-own" aria-labelledby="own-heading">
+        <div className="shell edition-own-grid">
           <div className="edition-section-title">
-            <p className="edition-label">WHY A FORUM</p>
-            <h2 id="keeps-heading">
-              Chat is for now.
+            <p className="edition-label">OWNERSHIP</p>
+            <h2 id="own-heading">
+              A home you own.
               <br />
-              Meith is <em>for keeps.</em>
+              Not a platform you <em>rent.</em>
             </h2>
-            <p className="edition-keeps-lede">
-              Group chats are good at what is happening right now. They are less good at remembering
-              the answer someone gave two years ago. Meith is the durable layer beside them — a
-              thread keeps its URL and search reaches the whole archive.
+            <p className="edition-own-lede">
+              Your community shouldn’t disappear because a platform changes direction. A Meith board
+              runs on a server you rent, at a domain you own, from a database you can take with you.
             </p>
           </div>
-          <div className="edition-keeps-columns">
-            <div className="edition-keeps-column">
-              <h3>Keep in chat</h3>
-              <ul>
-                <li>The banter</li>
-                <li>Tonight’s plans</li>
-                <li>Quick questions</li>
-                <li>“Anyone around?”</li>
-              </ul>
-            </div>
-            <div className="edition-keeps-column edition-keeps-primary">
-              <h3>Keep in Meith</h3>
-              <ul>
-                <li>Answers</li>
-                <li>Announcements</li>
-                <li>Decisions</li>
-                <li>Guides</li>
-                <li>Events</li>
-                <li>Community knowledge</li>
-              </ul>
-            </div>
-          </div>
+          <ul className="edition-own-points">
+            <li>
+              <h3>Your domain, your server</h3>
+              <p>
+                No Meith-hosted control plane and no company in the middle — nothing that can be
+                switched off from outside your community.
+              </p>
+            </li>
+            <li>
+              <h3>Your database, yours to move</h3>
+              <p>
+                It’s a PostgreSQL database you can back up, move, or take apart with the operator
+                CLI. Nothing is locked in.
+              </p>
+            </li>
+            <li>
+              <h3>No per-member pricing</h3>
+              <p>
+                No licence fee and nothing priced per member. A community that doubles in size
+                doesn’t double its bill.
+              </p>
+            </li>
+            <li>
+              <h3>Handed over, not started over</h3>
+              <p>
+                Nothing lives in a personal account. When the people running it change, the roles
+                move on and the board stays the community’s.
+              </p>
+            </li>
+          </ul>
         </div>
       </section>
 
