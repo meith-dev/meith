@@ -54,9 +54,12 @@ export function MobileMenu({ children }: { readonly children: ReactNode }) {
       </summary>
       <div
         className="site-menu-panel"
-        onClickCapture={(event) => {
+        onClick={(event) => {
           if (event.target instanceof Element && event.target.closest('a') && details.current) {
-            details.current.open = false
+            const menu = details.current
+            requestAnimationFrame(() => {
+              menu.open = false
+            })
           }
         }}
       >

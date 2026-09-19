@@ -178,7 +178,7 @@ export default function AboutPage() {
           is handed over in the admin panel rather than locked to one person’s account.
         </p>
         <p className="essay-links">
-          <Link className="textlink" href={docHref('organiser-guide')}>
+          <Link className="textlink" href={docHref('operating', 'keep-a-recovery-handover')}>
             Handing a board over <span aria-hidden>→</span>
           </Link>
         </p>
