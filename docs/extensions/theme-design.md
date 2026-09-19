@@ -100,8 +100,9 @@ region rather than a lifted box. Its own slots draw with three rules — a 2px
 of `foreground` at 15% between forums, and a 1px `border` rule between
 threads — set headlines
 light with negative tracking, run labels in the mono face in small caps, and
-give the last word of a multi-word board name, category title or forum
-title the italic serif accent the site uses in its own headlines. The green
+give the last word of a multi-word board name the italic serif accent the
+site uses in its own headlines; category and forum titles stay in
+`foreground`, because the green is reserved for emphasis. The green
 is spent the way the rebuilt landing page spends it and nowhere else: the
 board name carries the site's logomark, the one filled control on a screen
 is a `primary` block with a `↗` arrow, every link that goes somewhere ends

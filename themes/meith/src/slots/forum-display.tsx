@@ -15,7 +15,6 @@ import {
   QUIET_LINK,
   RULE,
   TOUCH,
-  Wordmark,
 } from '../shared'
 
 export function ForumDisplay({
@@ -32,9 +31,7 @@ export function ForumDisplay({
       <header className="grid gap-x-12 gap-y-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-end">
         <div className="flex min-w-0 flex-col gap-4">
           <Label>{c('label')}</Label>
-          <h1 className={PAGE_TITLE}>
-            <Wordmark title={forum.title} />
-          </h1>
+          <h1 className={PAGE_TITLE}>{forum.title}</h1>
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 lg:items-end">
