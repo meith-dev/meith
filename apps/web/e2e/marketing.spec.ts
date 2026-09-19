@@ -125,3 +125,22 @@ test('site navigation points to real destinations and exposes customisation guid
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   }
 })
+
+test('the homepage says what Meith is built on, with a version for each part', async ({ page }) => {
+  await page.goto('/')
+  const section = page.getByRole('region', { name: /Built on the latest technology/ })
+  await expect(section).toBeVisible()
+
+  for (const name of ['Node.js', 'TypeScript', 'Next.js', 'React', 'PostgreSQL']) {
+    const item = section
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('heading', { level: 3, name, exact: true }) })
+    await expect(item, name).toHaveCount(1)
+    await expect(item.getByText(/^\d+$/), name).toBeVisible()
+  }
+
+  await expect(section.getByRole('link', { name: /^How it fits together/ })).toHaveAttribute(
+    'href',
+    '/docs/architecture',
+  )
+})
