@@ -214,12 +214,12 @@ export function PostBit({ post, select, regions, copy }: PostBitSlotModel & { co
 
       <StatusBanner visibility={post.visibility} copy={copy} />
 
-      <div
-        className={`${RULE} grid gap-x-10 gap-y-5 py-5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:py-6`}
-      >
-        <Byline author={post.author} badges={regions.pluginBadges} copy={copy} />
+      <div className={`${RULE} grid gap-y-5 py-5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:py-6`}>
+        <div className="max-sm:border-b max-sm:border-border max-sm:pb-5 sm:pe-6">
+          <Byline author={post.author} badges={regions.pluginBadges} copy={copy} />
+        </div>
 
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5 sm:border-l sm:border-border sm:ps-8">
           {post.ignored !== null ? (
             <p className={`${META} ${BODY_MEASURE}`}>
               {c('ignoringPrefix')}{' '}

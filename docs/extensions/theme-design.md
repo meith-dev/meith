@@ -106,8 +106,10 @@ site uses in its own headlines; category and forum titles stay in
 is spent the way the rebuilt landing page spends it and nowhere else: the
 board name carries the site's logomark, the one filled control on a screen
 is a `primary` block with a `↗` arrow, every link that goes somewhere ends
-in a `primary` arrow, the counts beside a listed item are `primary`, and a
-forum row's rule turns `primary` under the pointer. The header's sign-in is
+in a muted arrow that turns `primary` under the pointer, the counts beside a
+listed item are `primary`, and a forum row's rule turns `primary` under the
+pointer. In a post, a 1px `border` rule stands between the byline column
+and the body. The header's sign-in is
 the site's `foreground` block that fills `primary` on hover. Nothing glows,
 nothing is tinted and nothing is rounded. Semantic tokens keep the default
 theme's values. The theme fills the 22 slots that carry the look and inherits the

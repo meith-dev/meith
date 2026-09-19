@@ -57,7 +57,7 @@ export const PRIMARY_ACTION =
 export const TOUCH = 'pointer-coarse:min-h-11'
 
 export const ARROW =
-  'ms-1 inline-block text-primary transition-transform motion-safe:group-hover:-translate-y-px motion-safe:group-hover:translate-x-px'
+  'ms-1 inline-block text-muted-foreground transition-[color,transform] group-hover:text-primary motion-safe:group-hover:-translate-y-px motion-safe:group-hover:translate-x-px'
 
 export function Arrow({ className }: { className?: string }) {
   return (
