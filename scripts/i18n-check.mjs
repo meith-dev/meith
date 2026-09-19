@@ -162,6 +162,7 @@ const source = files.filter(
 const CALL = /(?:\.\s*(?:t|has)|\bmsg)\(\s*'([\w.-]+)'/g
 const CARRIED = /\b(?:title|blurb|label|description|message|publicMessage)Key:\s*'([\w.-]+)'/g
 const KEY_SHAPE = /^[a-z][\w-]*(?:\.[\w-]+)+$/
+const KEY_LIST = /\w+\(\s*t\s*,\s*\[([\s\S]*?)\]\s*\)/g
 
 for (const { abs, rel } of source) {
   const text = await readFile(abs, 'utf8')
@@ -181,6 +182,22 @@ for (const { abs, rel } of source) {
         `${rel} reads the message "${key}" and no English catalog carries it. ` +
           'A missing message renders as its own key, in every language including English.',
       )
+    }
+  }
+
+  for (const listMatch of text.matchAll(KEY_LIST)) {
+    for (const litMatch of listMatch[1].matchAll(new RegExp(STRING, 'g'))) {
+      const key = litMatch[0].slice(1, -1)
+      if (!KEY_SHAPE.test(key)) continue
+
+      used.add(key)
+      if (allMessages[key] === undefined) {
+        fail(
+          `${rel} reads the message "${key}" through a key list passed to a translator ` +
+            'helper, and no English catalog carries it. A missing message renders as its ' +
+            'own key, in every language including English.',
+        )
+      }
     }
   }
 }
