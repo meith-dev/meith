@@ -131,7 +131,7 @@ test('the homepage says what Meith is built on, with a version for each part', a
   const section = page.getByRole('region', { name: /Built on the latest technology/ })
   await expect(section).toBeVisible()
 
-  for (const name of ['Node.js', 'TypeScript', 'Next.js', 'React', 'PostgreSQL']) {
+  for (const name of ['Node.js', 'TypeScript', 'Next.js', 'PostgreSQL']) {
     const item = section
       .getByRole('listitem')
       .filter({ has: page.getByRole('heading', { level: 3, name, exact: true }) })

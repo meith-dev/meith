@@ -44,16 +44,9 @@ const technologies = [
     key: 'next',
     name: 'Next.js',
     body:
-      'Every page is rendered on the server, so the board opens fast on any device — no blank ' +
-      'page and no spinner waiting on a script.',
-  },
-  {
-    key: 'react',
-    name: 'React',
-    body:
-      'Server Components and Server Actions do the work on the server, so every page and every ' +
-      'form works with JavaScript switched off in the browser. Scripts only enhance what ' +
-      'already works.',
+      'Rendered on the server with React Server Components, so the board opens fast on any ' +
+      'device and every page and form works with JavaScript switched off in the browser. ' +
+      'Scripts only enhance what already works.',
   },
   {
     key: 'postgres',

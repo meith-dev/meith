@@ -9,7 +9,6 @@ export interface StackFacts {
   readonly node: string
   readonly typescript: string
   readonly next: string
-  readonly react: string
   readonly postgres: string
 }
 
@@ -52,7 +51,6 @@ export const readStack = cache(async (): Promise<StackFacts> => {
     ),
     typescript: pinned('apps/community/package.json', board, 'typescript'),
     next: pinned('apps/community/package.json', board, 'next'),
-    react: pinned('apps/community/package.json', board, 'react'),
     postgres: major(
       'docker/compose.yml',
       compose,
