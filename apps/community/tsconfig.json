@@ -79,6 +79,8 @@
       "@meith/ui/*": ["../../packages/ui/src/*"],
       "@meith/theme-default": ["../../themes/default/src/index.ts"],
       "@meith/theme-default/*": ["../../themes/default/src/*"],
+      "@meith/theme-meith": ["../../themes/meith/src/index.ts"],
+      "@meith/theme-meith/*": ["../../themes/meith/src/*"],
       "@meith/theme-midnight": ["../../themes/midnight/src/index.ts"],
       "@meith/theme-midnight/*": ["../../themes/midnight/src/*"],
       /*

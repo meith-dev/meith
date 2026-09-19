@@ -13,7 +13,7 @@ test('theme developers can browse every fixture slot', async ({ page, context })
   mkdirSync(DIRECTORY, { recursive: true })
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']) {
+  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse', 'meith']) {
     await context.addCookies([{ name: 'meith_theme', value: theme, url: FIXTURE_BASE_URL }])
     for (const slot of SLOT_NAMES) {
       const response = await page.goto(`/fixtures?slot=${slot}`)
@@ -128,7 +128,7 @@ test('the populated fixture across themes and reading layouts', async ({
 }) => {
   mkdirSync(DIRECTORY, { recursive: true })
   await page.setViewportSize({ width: 1440, height: 1000 })
-  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']) {
+  for (const theme of ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse', 'meith']) {
     for (const scheme of ['light', 'dark']) {
       await context.addCookies([
         { name: 'meith_theme', value: theme, url: FIXTURE_BASE_URL },

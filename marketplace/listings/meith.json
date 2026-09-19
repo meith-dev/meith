@@ -1,0 +1,13 @@
+{
+  "key": "meith",
+  "kind": "theme",
+  "package": "@meith/theme-meith",
+  "name": "Meith",
+  "description": "The editorial theme for Meith, in the style of meith.dev — rules instead of cards, quiet light headlines, one green.",
+  "screenshots": ["meith-light.png"],
+  "version": "0.37.4",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "MIT"
+}

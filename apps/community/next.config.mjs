@@ -96,6 +96,7 @@ const nextConfig = {
     '@meith/theme-clubhouse',
     '@meith/theme-default',
     '@meith/theme-kit',
+    '@meith/theme-meith',
     '@meith/theme-midnight',
     '@meith/theme-phasebook',
     '@meith/theme-raidframe',

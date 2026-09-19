@@ -88,6 +88,35 @@ shipped disagreement: a club's colours are the point of a club's site, so
 its text back as `primary-foreground`, the pair the contrast checks already
 measure.
 
+`themes/meith` is the other shipped example, and the opposite disagreement:
+the theme meith.dev runs on its own forum, published as `@meith/theme-meith`
+for a board to install like any third-party theme rather than bundled into the
+stock image. It follows the marketing site's editorial direction. The ground
+is the site's near-white and near-black at chroma zero, `primary` is the
+site's one green in each scheme, `radius` is `0rem`, `elevation` is `none`,
+and `card` equals `background`, so every inherited `Card` reads as a ruled
+region rather than a lifted box. Its own slots draw with three rules — a 2px
+`foreground` rule above a category, a post or a sidebar block, a 1px rule
+of `foreground` at 15% between forums, and a 1px `border` rule between
+threads — set headlines
+light with negative tracking, run labels in the mono face in small caps, and
+give the last word of a multi-word board name the italic serif accent the
+site uses in its own headlines; category and forum titles stay in
+`foreground`, because the green is reserved for emphasis. The green
+is spent the way the rebuilt landing page spends it and nowhere else: the
+board name carries the site's logomark, the one filled control on a screen
+is a `primary` block with a `↗` arrow, every link that goes somewhere ends
+in a muted arrow that turns `primary` under the pointer, the counts beside a
+listed item are `primary`, and a forum row's rule turns `primary` under the
+pointer. In a post, a 1px `border` rule stands between the byline column
+and the body. The header's sign-in is
+the site's `foreground` block that fills `primary` on hover. Nothing glows,
+nothing is tinted and nothing is rounded. Semantic tokens keep the default
+theme's values. The theme fills the 22 slots that carry the look and inherits the
+panels, forms, search and authentication screens, which take the tokens.
+In this repository it is registered only behind `SHOWCASE_THEMES`, so the
+contract tests, the fixture gallery and the browser suites cover it.
+
 ## Components: `@meith/ui`
 
 `@meith/ui` is shadcn/ui's component vocabulary implemented on Base UI
@@ -245,7 +274,7 @@ keeps its header visible, scrolls the navigation independently, dims the page
 and respects reduced motion. It uses the browser's top layer to avoid clipping
 inside a panel or sticky header.
 
-All five themes share `MobilePanelNav` from `@meith/theme-default` while keeping
+All six themes share `MobilePanelNav` from `@meith/theme-default` while keeping
 their desktop rails. The drawer starts the current group expanded, highlights
 the current page, and gives other groups native disclosure controls. Every
 sub-section has a full-width touch target and wrapping text. Each expandable
@@ -259,7 +288,7 @@ children only when `isOpen` is true.
 
 ### Mobile header navigation
 
-All five headers share `MobileHeaderNav` from `@meith/theme-default`, with
+All six headers share `MobileHeaderNav` from `@meith/theme-default`, with
 localized labels supplied by `mobileHeaderNavCopy`. Below `lg`, the hamburger
 sits at the end of the top bar and opens the same right-side `NavigationDrawer`
 as the panels. The desktop navigation keeps each theme's own layout.

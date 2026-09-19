@@ -7,6 +7,7 @@ export function MobileMenu({ children }: { readonly children: ReactNode }) {
   const details = useRef<HTMLDetailsElement>(null)
   const pathname = usePathname()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the menu closes on every route change, which pathname carries
   useEffect(() => {
     if (details.current) details.current.open = false
   }, [pathname])

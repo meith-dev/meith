@@ -10,7 +10,7 @@ Run `pnpm dev` without a database and open `/fixtures` (the **Theme fixtures**
 link in the board navigation). Select any of the 36 slots and its sample state.
 The gallery uses the active registered theme and the normal appearance controls,
 so theme and light/dark choices persist while moving between samples. For all
-five bundled themes, start with `SHOWCASE_THEMES=1 pnpm dev`.
+five bundled themes and the Meith theme, start with `SHOWCASE_THEMES=1 pnpm dev`.
 
 The gallery reuses the contract models below and composes their regions with
 real slots and UI controls. Forum and thread rows sit inside their theme's own

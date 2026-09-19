@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { E2E_BASE_URL } from './support/config'
 
-const THEMES = ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse']
+const THEMES = ['default', 'midnight', 'phasebook', 'raidframe', 'clubhouse', 'meith']
 
 test.use({ javaScriptEnabled: false })
 
