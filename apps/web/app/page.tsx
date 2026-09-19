@@ -49,6 +49,14 @@ const technologies = [
       'Scripts only enhance what already works.',
   },
   {
+    key: 'baseUi',
+    name: 'Base UI',
+    body:
+      'shadcn/ui’s component vocabulary on Base UI primitives, styled with Tailwind CSS — ' +
+      'accessible, server-rendered by default, and open to any theme. The default theme is ' +
+      'built from it.',
+  },
+  {
     key: 'postgres',
     name: 'PostgreSQL',
     body:

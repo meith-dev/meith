@@ -6,7 +6,7 @@ describe('what the homepage says Meith is built on', () => {
   it('reads a major version for every part of the stack from the repository', async () => {
     const stack = await readStack()
 
-    expect(Object.keys(stack)).toEqual(['node', 'typescript', 'next', 'postgres'])
+    expect(Object.keys(stack)).toEqual(['node', 'typescript', 'next', 'baseUi', 'postgres'])
     for (const version of Object.values(stack)) {
       expect(version).toMatch(/^\d+$/)
       expect(Number(version)).toBeGreaterThan(0)

@@ -9,6 +9,7 @@ export interface StackFacts {
   readonly node: string
   readonly typescript: string
   readonly next: string
+  readonly baseUi: string
   readonly postgres: string
 }
 
@@ -36,8 +37,9 @@ function pinned(file: string, source: string, dependency: string): string {
 }
 
 export const readStack = cache(async (): Promise<StackFacts> => {
-  const [board, dockerfile, compose] = await Promise.all([
+  const [board, ui, dockerfile, compose] = await Promise.all([
     read('apps/community/package.json'),
+    read('packages/ui/package.json'),
     read('docker/Dockerfile'),
     read('docker/compose.yml'),
   ])
@@ -51,6 +53,7 @@ export const readStack = cache(async (): Promise<StackFacts> => {
     ),
     typescript: pinned('apps/community/package.json', board, 'typescript'),
     next: pinned('apps/community/package.json', board, 'next'),
+    baseUi: pinned('packages/ui/package.json', ui, '@base-ui/react'),
     postgres: major(
       'docker/compose.yml',
       compose,
