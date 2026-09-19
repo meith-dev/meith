@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { CommandLine } from '../src/components/command-line'
 import { ForumLink } from '../src/components/forum-link'
 import { scaffoldCommand, site } from '../src/content/site'
+import { readStack, type StackFacts } from '../src/content/stack'
 import { docHref, quickstartHref } from '../src/docs/registry'
 
 const communities = [
@@ -24,7 +25,53 @@ const communities = [
   },
 ] as const
 
-export default function LandingPage() {
+const technologies = [
+  {
+    key: 'node',
+    name: 'Node.js',
+    body:
+      'One runtime runs the board, the background worker and the operator CLI, from a single ' +
+      'shared codebase.',
+  },
+  {
+    key: 'typescript',
+    name: 'TypeScript',
+    body:
+      'Typed end to end. Themes, plugins, the API and the board’s own configuration are ' +
+      'contracts the compiler checks before anything ships.',
+  },
+  {
+    key: 'next',
+    name: 'Next.js',
+    body:
+      'Rendered on the server with React Server Components, so the board opens fast on any ' +
+      'device and every page and form works with JavaScript switched off in the browser. ' +
+      'Scripts only enhance what already works.',
+  },
+  {
+    key: 'baseUi',
+    name: 'Base UI',
+    body:
+      'shadcn/ui’s component vocabulary on Base UI primitives, styled with Tailwind CSS — ' +
+      'accessible out of the box and open to any theme. The default theme is built from it.',
+  },
+  {
+    key: 'postgres',
+    name: 'PostgreSQL',
+    body:
+      'One database holds it all — posts, full-text search, sessions, queues and scheduled ' +
+      'work — behind Drizzle ORM and versioned migrations. Nothing else is required; Redis is ' +
+      'optional, for scaling out.',
+  },
+] as const satisfies readonly {
+  readonly key: keyof StackFacts
+  readonly name: string
+  readonly body: string
+}[]
+
+export default async function LandingPage() {
+  const stack = await readStack()
+
   return (
     <div className="editorial-home">
       <section className="edition-hero" id="product">
@@ -130,6 +177,45 @@ export default function LandingPage() {
               </p>
             </li>
           </ul>
+        </div>
+      </section>
+
+      <section className="edition-stack" aria-labelledby="stack-heading">
+        <div className="shell">
+          <div className="edition-stack-heading">
+            <div className="edition-section-title">
+              <p className="edition-label">UNDER THE HOOD</p>
+              <h2 id="stack-heading">
+                Built on the latest
+                <br />
+                <em>technology.</em>
+              </h2>
+            </div>
+            <div className="edition-stack-copy">
+              <p>
+                The same tools behind today’s fastest websites, pinned to exact versions and kept
+                current release by release. Nothing exotic to hire for or host, and nothing that
+                quietly goes out of date.
+              </p>
+              <Link className="edition-text-link" href={docHref('architecture')}>
+                How it fits together <span aria-hidden="true">↗</span>
+              </Link>
+            </div>
+          </div>
+          <ul className="edition-stack-grid">
+            {technologies.map((technology) => (
+              <li key={technology.key}>
+                <div>
+                  <h3>{technology.name}</h3>
+                  <span className="edition-stack-version">{stack[technology.key]}</span>
+                </div>
+                <p>{technology.body}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="edition-stack-note">
+            Versions read from the repository’s own pins when this page is built.
+          </p>
         </div>
       </section>
 

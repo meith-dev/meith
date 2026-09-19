@@ -268,6 +268,77 @@
   line-height: 1.8;
 }
 
+.edition-stack {
+  border-top: 1px solid var(--border);
+  background: var(--canvas);
+  padding-block: 4.5rem;
+}
+
+.edition-stack-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 4rem;
+  align-items: end;
+  margin-bottom: 2.75rem;
+}
+
+.edition-stack-copy > p {
+  max-width: 30rem;
+  color: var(--fg-muted);
+  font-size: 0.95rem;
+  line-height: 1.9;
+}
+
+.edition-stack-copy > .edition-text-link {
+  margin-top: 1.5rem;
+}
+
+.edition-stack-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2.25rem;
+}
+
+.edition-stack-grid > li {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border-strong);
+}
+
+.edition-stack-grid > li > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.edition-stack-grid h3 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.edition-stack-version {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.075em;
+}
+
+.edition-stack-grid p {
+  margin-top: 0.7rem;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+
+.edition-stack-note {
+  margin-top: 2.5rem;
+  color: var(--fg-muted);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.075em;
+}
+
 .edition-customise {
   border-top: 1px solid var(--border);
   padding-block: 4.5rem;
@@ -360,11 +431,16 @@
   .edition-start-grid {
     gap: 2rem;
   }
-  .edition-own-grid {
+  .edition-own-grid,
+  .edition-stack-heading {
     grid-template-columns: 1fr;
     gap: 2.5rem;
   }
-  .edition-audience-grid {
+  .edition-stack-heading {
+    gap: 1.5rem;
+  }
+  .edition-audience-grid,
+  .edition-stack-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -425,9 +501,19 @@
     font-size: 0.57rem;
   }
   .edition-own,
+  .edition-stack,
   .edition-customise,
   .edition-start {
     padding-block: 3rem;
+  }
+  .edition-stack-heading {
+    margin-bottom: 2rem;
+  }
+  .edition-stack-grid {
+    gap: 1.5rem;
+  }
+  .edition-stack-note {
+    font-size: 0.57rem;
   }
   .edition-own-points {
     grid-template-columns: 1fr;
@@ -445,7 +531,8 @@
 }
 
 @media (max-width: 25rem) {
-  .edition-audience-grid {
+  .edition-audience-grid,
+  .edition-stack-grid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
