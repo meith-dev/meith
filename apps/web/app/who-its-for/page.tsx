@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { AudienceCards } from '../../src/components/audience-cards'
-import { Breadcrumb } from '../../src/components/site-bands'
-import { audienceIndexHref, audiences, primaryAudiences } from '../../src/content/segments'
+import { Breadcrumb, ClosingBand } from '../../src/components/site-bands'
+import { audienceHref, audienceIndexHref, primaryAudiences } from '../../src/content/segments'
 import { site } from '../../src/content/site'
-import { quickstartHref } from '../../src/docs/registry'
+import { docHref, quickstartHref } from '../../src/docs/registry'
 import { ogImage } from '../../src/og/card'
 
 const TITLE = 'Who is Meith for? — developers, open source, communities, clubs'
@@ -29,54 +29,44 @@ export const metadata: Metadata = {
 }
 
 export default function AudienceIndexPage() {
-  const secondary = audiences.filter((audience) => audience.secondary === true)
-
   return (
-    <>
-      <section className="relative isolate overflow-hidden border-b border-border">
-        <div aria-hidden className="hero-grid" />
-        <div aria-hidden className="hero-glow" />
-
-        <div className="shell flex flex-col items-start gap-6 pt-14 pb-14 sm:pt-20 sm:pb-16">
-          <Breadcrumb current="Who it’s for" trail={[{ label: site.name, href: '/' }]} />
-
-          <h1 className="display-hero max-w-[18ch] text-huge leading-[1.04]">
-            Who is <span className="text-accent">Meith</span> for?
+    <div className="marketing-page">
+      <section className="shell marketing-hero">
+        <Breadcrumb current="Who it’s for" trail={[{ label: site.name, href: '/' }]} />
+        <div className="marketing-hero-copy">
+          <h1 className="marketing-title">
+            Different people.
+            <br />
+            <span>Common ground.</span>
           </h1>
-
-          <p className="lede max-w-[40rem]">
-            A flexible foundation for communities that care about ownership, permanence and control.
-            The same open-source, self-hosted software, argued from where you are standing.
+          <p className="marketing-lead">
+            A home for the people around your project, your passion, or your postcode.
           </p>
+        </div>
+        <AudienceCards audiences={primaryAudiences} columns="lg:grid-cols-2" />
+      </section>
+
+      <section className="shell marketing-section marketing-migration">
+        <div>
+          <p className="eyebrow">Already have a community?</p>
+          <h2>Bring your history with you.</h2>
+          <p>Import a MyBB or phpBB board, including members, threads and working passwords.</p>
+        </div>
+        <div className="marketing-actions">
+          <Link className="btn" href={audienceHref('legacy-forums')}>
+            Explore migration <span aria-hidden>→</span>
+          </Link>
+          <Link className="textlink" href={docHref('migrating')}>
+            Read the guide
+          </Link>
         </div>
       </section>
 
-      <section className="border-b border-border bg-surface">
-        <div className="shell py-14 sm:py-18">
-          <AudienceCards audiences={primaryAudiences} columns="lg:grid-cols-2" />
-
-          {secondary.length > 0 ? (
-            <div className="mt-12">
-              <p className="eyebrow">Already running a forum?</p>
-              <div className="mt-4">
-                <AudienceCards audiences={secondary} columns="lg:grid-cols-2" />
-              </div>
-            </div>
-          ) : null}
-
-          <p className="mt-10 max-w-[38rem] text-micro leading-[1.65] text-fg-subtle text-pretty">
-            None of them quite you? The{' '}
-            <Link className="textlink" href="/">
-              general case
-            </Link>{' '}
-            is the same software with the specifics taken out, and the{' '}
-            <Link className="textlink" href={quickstartHref()}>
-              quickstart
-            </Link>{' '}
-            does not care what kind of community you are.
-          </p>
-        </div>
-      </section>
-    </>
+      <ClosingBand
+        heading="Find your people. Make a place."
+        body="The same open-source foundation, made your own."
+        startHref={quickstartHref()}
+      />
+    </div>
   )
 }

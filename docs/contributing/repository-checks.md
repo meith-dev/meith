@@ -21,7 +21,7 @@ check and the verify/CI parity check, the root and release checks, the
 guards and their probes, the message-catalog check, the slot checks, the
 generated-document and documentation checks (`theme:docs`, `plugin:docs`,
 `board:gen`, `hooks:wired`, `regions:wired`, `api:docs`, `perf:docs`, `docs:index`,
-`docs:links`, `site:docs`, `marketplace:gen`, `board-installer:gen`,
+`docs:links`, `docs:redirects`, `site:docs`, `marketplace:gen`, `board-installer:gen`,
 `extension:gen`), lint, dependency-cruiser, all three
 typecheck projects, and the full test suite.
 
@@ -171,6 +171,7 @@ repository that nothing else reads:
 | `extension:gen:check` | `create-meith`'s plugin and theme scaffold templates out of step with `examples/hello-plugin` and `examples/iris-theme`, which they are generated from. |
 | `docs:index:check`, `site:docs:check` | A document in `docs/` that the index does not link, or that is neither published on the site nor explicitly repository-only. |
 | `docs:links:check` | An internal link or anchor under `docs/` that resolves to nothing — a renamed heading, a moved file, or a section that never existed. It also checks the `doc`/`anchor` pairs `apps/web` links back into `docs/`. See [documentation links](documentation.md). |
+| `docs:redirects:check` | A `/docs/…` redirect in `apps/web/next.config.mjs` whose source is also a published document. The redirect would shadow the real page, so a reader following a link to it lands on the redirect's target instead. |
 
 One check runs in CI but deliberately **not** in `pnpm verify`:
 `templates:sync:check` clones the two deploy-template repositories and

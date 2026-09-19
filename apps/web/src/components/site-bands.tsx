@@ -1,8 +1,6 @@
 import Link from 'next/link'
 
-import { closing, scaffoldCommand, site } from '../content/site'
 import { docHref } from '../docs/registry'
-import { CommandLine } from './command-line'
 import { ForumLink } from './forum-link'
 
 export function ClosingBand({
@@ -17,41 +15,27 @@ export function ClosingBand({
   docsHref?: string
 }) {
   return (
-    <section className="relative isolate overflow-hidden">
-      <div aria-hidden className="hero-glow" />
-      <div className="shell grid gap-x-14 gap-y-10 py-20 sm:py-24 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
-        <div className="flex flex-col items-start gap-6">
-          <h2 className="display max-w-[22ch] text-large leading-[1.12]">{heading}</h2>
-          <p className="max-w-[36rem] text-fg-muted text-pretty">{body}</p>
-          <CommandLine command={scaffoldCommand} />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            <Link className="btn btn-primary" href={startHref}>
-              {closing.action}
-              <span aria-hidden className="btn-arrow">
-                →
-              </span>
-            </Link>
-            {docsHref === undefined ? (
-              <ForumLink className="btn btn-quiet">{closing.forum}</ForumLink>
-            ) : (
-              <Link className="btn btn-quiet" href={docsHref}>
-                Read the docs
-              </Link>
-            )}
-            <a className="btn btn-quiet" href={site.repository}>
-              {closing.source}
-            </a>
-          </div>
+    <section className="marketing-closing">
+      <div className="shell">
+        <div>
+          <p className="eyebrow">A little space. A lot of possibility.</p>
+          <h2>{heading}</h2>
+          <p>{body}</p>
         </div>
-
-        <dl className="flex flex-col gap-3 border-t border-border pt-5 lg:mt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-          {closing.requirements.map((requirement) => (
-            <div key={requirement.label}>
-              <dt className="eyebrow">{requirement.label}</dt>
-              <dd className="mt-0.5 text-micro text-fg">{requirement.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <div className="marketing-actions">
+          <Link className="btn btn-primary" href={startHref}>
+            Get started <span aria-hidden>→</span>
+          </Link>
+          {docsHref === undefined ? (
+            <ForumLink className="btn btn-quiet">
+              Meet the community <span aria-hidden>↗</span>
+            </ForumLink>
+          ) : (
+            <Link className="btn btn-quiet" href={docsHref}>
+              Explore the docs <span aria-hidden>→</span>
+            </Link>
+          )}
+        </div>
       </div>
     </section>
   )
@@ -90,7 +74,7 @@ export function DocLinks({
   )[]
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <div className="marketing-doclinks flex flex-wrap items-center gap-x-6 gap-y-2">
       {links.map((link) =>
         'doc' in link ? (
           <Link className="textlink text-micro" href={docHref(link.doc)} key={link.label}>

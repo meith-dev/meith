@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
-import { ForumLink } from '../../src/components/forum-link'
-import { Breadcrumb } from '../../src/components/site-bands'
+import { Breadcrumb, ClosingBand } from '../../src/components/site-bands'
 import { about } from '../../src/content/about'
 import { audienceHref } from '../../src/content/segments'
 import { licenceHref, site } from '../../src/content/site'
@@ -28,23 +28,23 @@ export const metadata: Metadata = {
   },
 }
 
-function Section({
-  eyebrow,
+function Movement({
+  label,
   heading,
-  children,
   band = false,
+  children,
 }: {
-  readonly eyebrow: string
-  readonly heading: string
-  readonly children: React.ReactNode
+  readonly label: string
+  readonly heading: ReactNode
   readonly band?: boolean
+  readonly children: ReactNode
 }) {
   return (
-    <section className={band ? 'border-b border-border bg-surface' : 'border-b border-border'}>
-      <div className="shell grid gap-x-16 gap-y-6 py-16 sm:py-20 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
-        <header className="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
-          <p className="eyebrow">{eyebrow}</p>
-          <h2 className="display text-large leading-[1.15]">{heading}</h2>
+    <section className={band ? 'about-movement about-movement-band' : 'about-movement'}>
+      <div className="shell about-movement-grid">
+        <header className="about-movement-head">
+          <p className="edition-label">{label}</p>
+          <h2>{heading}</h2>
         </header>
         <div className="essay">{children}</div>
       </div>
@@ -57,57 +57,76 @@ export default function AboutPage() {
   const startHref = quickstartHref()
 
   return (
-    <>
-      <section className="relative isolate overflow-hidden border-b border-border">
-        <div aria-hidden className="hero-grid" />
-        <div aria-hidden className="hero-glow" />
-
-        <div className="shell flex flex-col items-start gap-6 pt-14 pb-16 sm:pt-20 sm:pb-20">
-          <Breadcrumb current="About" trail={[{ label: site.name, href: '/' }]} />
-
-          <h1 className="display-hero text-huge leading-[1.04]">{about.hero.heading}</h1>
-          <p className="lede max-w-[36rem] text-fg">{about.hero.lead}</p>
-
-          <div className="essay mt-2">
-            {about.hero.paragraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
-          </div>
-
-          <p className="statement mt-4">{about.hero.belief}</p>
+    <div className="marketing-page about-page">
+      <section className="shell marketing-hero marketing-hero-compact">
+        <Breadcrumb current="About" trail={[{ label: site.name, href: '/' }]} />
+        <div className="marketing-hero-copy">
+          <h1 className="marketing-title">
+            A place
+            <br />
+            <span>of our own.</span>
+          </h1>
+          <p className="marketing-lead">{about.hero.lead}</p>
         </div>
+        <p className="statement">{about.hero.belief}</p>
       </section>
 
-      <Section eyebrow="Why Meith exists" heading={sections.why.heading}>
-        {sections.why.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <ul className="essay-list">
+      <Movement
+        label="Why Meith exists"
+        heading={
+          <>
+            Communities deserve a home they can <em>own.</em>
+          </>
+        }
+      >
+        <p>
+          The platform is rarely the problem — depending on one you can’t control is. Years of
+          answers, guides and decisions can sit inside a product whose priorities are set somewhere
+          else, and may change.
+        </p>
+        <p className="about-list-label edition-label">What that can cost a community</p>
+        <ul className="essay-list essay-list-two">
           {sections.why.consequences.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
-        <p>{sections.why.close}</p>
-      </Section>
+      </Movement>
 
-      <Section band eyebrow="Alongside the chat" heading={sections.keeps.heading}>
-        {sections.keeps.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
+      <Movement
+        band
+        label="Alongside the chat"
+        heading={
+          <>
+            Chat is for now. Meith is <em>for keeps.</em>
+          </>
+        }
+      >
+        <p>
+          Meith doesn’t replace the chat. Chat is for right now; Meith is for what a community still
+          needs months later — the answers, decisions, guides and events worth returning to.
+        </p>
         <blockquote className="pull">{sections.keeps.pull}</blockquote>
         <p className="essay-links">
           <Link className="textlink" href={audienceHref('communities')}>
-            Meith for Communities →
+            Meith for Communities <span aria-hidden>→</span>
           </Link>
         </p>
-      </Section>
+      </Movement>
 
-      <Section eyebrow="Ownership" heading={sections.ownership.heading}>
-        {sections.ownership.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
+      <Movement
+        label="Ownership"
+        heading={
+          <>
+            Ownership is not an <em>enterprise feature.</em>
+          </>
+        }
+      >
+        <p>
+          Self-hosting, open source and data ownership aren’t a top-tier upsell — they’re the point.
+          Nothing sits between a community and its members.
+        </p>
         <div className="owned">
-          <p className="eyebrow">A community running Meith owns</p>
+          <p className="edition-label">A community running Meith owns</p>
           <ul>
             {sections.ownership.owned.map((item) => (
               <li key={item}>{item}</li>
@@ -115,130 +134,99 @@ export default function AboutPage() {
           </ul>
         </div>
         <div className="aside">
-          <p className="font-semibold tracking-[-0.01em] text-fg">
-            {sections.ownership.cost.heading}
+          <p className="about-aside-lead">{sections.ownership.cost.heading}</p>
+          <p>
+            No licence fee and nothing per member — growing your community never grows the bill.
           </p>
-          <p>{sections.ownership.cost.body}</p>
         </div>
-      </Section>
+      </Movement>
 
-      <Section band eyebrow="Open source" heading={sections.openSource.heading}>
-        {sections.openSource.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
+      <Movement
+        band
+        label="Open source"
+        heading={
+          <>
+            Open source <em>by design.</em>
+          </>
+        }
+      >
         <blockquote className="pull">{sections.openSource.pull}</blockquote>
+        <p>
+          MIT licensed, with no hosted edition holding features back. Read it, extend it, fork it —
+          and if the maintainers ever disappear, the community carries on.
+        </p>
         <p className="essay-links">
           <a className="textlink" href={site.repository}>
-            The source on GitHub
+            The source on GitHub <span aria-hidden>↗</span>
           </a>
           <a className="textlink" href={licenceHref}>
-            The MIT licence
+            The MIT licence <span aria-hidden>↗</span>
           </a>
-          <Link className="textlink" href={audienceHref('open-source')}>
-            Meith for Open Source →
-          </Link>
         </p>
-      </Section>
+      </Movement>
 
-      <Section eyebrow="Continuity" heading={sections.handover.heading}>
-        {sections.handover.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <div className="aside">
-          <p>{sections.handover.outcome}</p>
-        </div>
+      <Movement
+        label="Continuity"
+        heading={
+          <>
+            Handed over, not <em>started over.</em>
+          </>
+        }
+      >
+        <p>
+          Communities outlive the people running them. A board is a repository and a database, so it
+          is handed over in the admin panel rather than locked to one person’s account.
+        </p>
         <p className="essay-links">
           <Link className="textlink" href={docHref('organiser-guide')}>
-            Handing a board over
+            Handing a board over <span aria-hidden>→</span>
           </Link>
         </p>
-      </Section>
+      </Movement>
 
-      <Section band eyebrow="Code-first" heading={sections.software.heading}>
-        {sections.software.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <p className="essay-links">
-          <Link className="textlink" href={audienceHref('developers')}>
-            {sections.software.link} →
-          </Link>
-          <Link className="textlink" href={docHref('configuration')}>
-            Configuration in code
-          </Link>
+      <Movement
+        band
+        label="The name"
+        heading={
+          <>
+            Why <em>“Meith”?</em>
+          </>
+        }
+      >
+        <p>
+          Meith takes its name from <em>meitheal</em> — an Irish tradition of neighbours coming
+          together for shared work. No one owns the effort, and the result belongs to the community.
         </p>
-      </Section>
+      </Movement>
 
-      <Section eyebrow="The name" heading={sections.name.heading}>
-        {sections.name.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-      </Section>
-
-      <Section band eyebrow="The ethos" heading={sections.future.heading}>
-        <p>{sections.future.lede}</p>
-        <ul className="essay-list essay-list-two">
-          {sections.future.aims.map((aim) => (
-            <li key={aim}>{aim}</li>
-          ))}
-        </ul>
-      </Section>
-
-      <section className="border-b border-border">
-        <div className="shell py-16 sm:py-20">
-          <header className="max-w-[46rem]">
-            <p className="eyebrow">Principles</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">
-              {sections.principles.heading}
-            </h2>
+      <section className="about-movement">
+        <div className="shell">
+          <header className="about-movement-head about-principles-head">
+            <p className="edition-label">Principles</p>
+            <h2>{sections.principles.heading}</h2>
           </header>
-
-          <dl className="principles mt-10">
+          <dl className="principles">
             {sections.principles.list.map((principle, index) => (
               <div key={principle.title}>
                 <dt>
-                  <span
-                    aria-hidden
-                    className="font-mono text-micro tracking-[0.12em] text-fg-subtle"
-                  >
+                  <span aria-hidden className="about-principle-number">
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <span className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
-                    {principle.title}
-                  </span>
+                  <span className="about-principle-title">{principle.title}</span>
                 </dt>
-                <dd className="text-micro leading-[1.65] text-fg-muted text-pretty">
-                  {principle.body}
-                </dd>
+                <dd>{principle.body}</dd>
               </div>
             ))}
           </dl>
         </div>
       </section>
 
-      <section className="relative isolate overflow-hidden">
-        <div aria-hidden className="hero-glow" />
-        <div className="shell flex flex-col items-start gap-6 py-20 sm:py-24">
-          <h2 className="display max-w-[22ch] text-large leading-[1.12]">
-            {about.closing.heading}
-          </h2>
-          <p className="max-w-[36rem] text-fg-muted text-pretty">{about.closing.body}</p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            <Link className="btn btn-primary" href={startHref}>
-              Get started
-              <span aria-hidden className="btn-arrow">
-                →
-              </span>
-            </Link>
-            <a className="btn btn-quiet" href={site.repository}>
-              View on GitHub
-            </a>
-            <Link className="btn btn-quiet" href="/docs">
-              Read the docs
-            </Link>
-            <ForumLink className="textlink text-micro">Join the community</ForumLink>
-          </div>
-        </div>
-      </section>
-    </>
+      <ClosingBand
+        heading={about.closing.heading}
+        body={about.closing.body}
+        startHref={startHref}
+        docsHref={docHref('introduction')}
+      />
+    </div>
   )
 }

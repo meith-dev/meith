@@ -8,6 +8,9 @@ import { ogImage } from '../src/og/card'
 import { THEME_STORAGE_KEY } from '../src/theme-storage'
 
 import '../src/styles/globals.css'
+import '../src/styles/home.css'
+import '../src/styles/chrome.css'
+import '../src/styles/marketing.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),

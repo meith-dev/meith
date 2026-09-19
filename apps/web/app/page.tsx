@@ -1,289 +1,192 @@
 import Link from 'next/link'
 
-import { AudienceCards } from '../src/components/audience-cards'
 import { CommandLine } from '../src/components/command-line'
 import { ForumLink } from '../src/components/forum-link'
-import { SchemeScreenshot } from '../src/components/screenshot'
-import { ClosingBand, DocLinks } from '../src/components/site-bands'
-import { Terminal } from '../src/components/terminal'
-import { ThemeShowcase } from '../src/components/theme-showcase'
-import { readFacts } from '../src/content/facts'
-import { audienceHref, audienceIndexHref, primaryAudiences } from '../src/content/segments'
-import {
-  audiencesBand,
-  closing,
-  customisation,
-  developerTeaser,
-  devices,
-  devTerminal,
-  hero,
-  keeps,
-  licenceHref,
-  memberships,
-  openSource,
-  ownership,
-  performance,
-  scaffoldCommand,
-  shots,
-  site,
-  themes,
-} from '../src/content/site'
+import { scaffoldCommand, site } from '../src/content/site'
 import { docHref, quickstartHref } from '../src/docs/registry'
 
-export default async function LandingPage() {
-  const facts = await readFacts()
-  const startHref = quickstartHref()
-  const board = themes.list[0]!
+const communities = [
+  { name: 'Developers', slug: 'developers', body: 'A community that lives alongside your code.' },
+  {
+    name: 'Open-source projects',
+    slug: 'open-source',
+    body: 'A home for questions and ideas beyond the issue tracker.',
+  },
+  {
+    name: 'Communities',
+    slug: 'communities',
+    body: 'Keep the conversations that bring your people together.',
+  },
+  {
+    name: 'Clubs & associations',
+    slug: 'clubs-and-associations',
+    body: 'A shared space for members, plans and club life.',
+  },
+] as const
 
+export default function LandingPage() {
   return (
-    <>
-      <section className="relative isolate overflow-hidden border-b border-border">
-        <div aria-hidden className="hero-grid" />
-        <div aria-hidden className="hero-glow" />
-
-        <div className="shell grid gap-x-12 gap-y-10 pt-14 pb-16 sm:pt-20 sm:pb-20 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-center">
-          <div className="flex max-w-[42rem] flex-col items-start gap-6">
-            <p className="badge">
-              <span aria-hidden className="badge-dot" />
-              {hero.badge}
-            </p>
-
-            <h1 className="display-hero max-w-[22ch] text-huge leading-[1.04]">
-              <span className="block">{hero.headline.before}</span>
-              <span className="block text-accent">{hero.headline.emphasis}</span>
+    <div className="editorial-home">
+      <section className="edition-hero" id="product">
+        <div className="shell">
+          <div className="edition-running-head">
+            <p>OPEN-SOURCE FORUM SOFTWARE</p>
+            <a href={site.repository}>
+              BUILT IN THE OPEN <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <div className="edition-hero-grid">
+            <h1>
+              Long live
+              <br />
+              <em>the forum.</em>
             </h1>
-
-            <p className="lede max-w-[36rem]">{hero.lede}</p>
-
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <Link className="btn btn-primary" href={startHref}>
-                {hero.primary}
-                <span aria-hidden className="btn-arrow">
-                  →
-                </span>
-              </Link>
-              <ForumLink className="btn btn-quiet">{hero.forum}</ForumLink>
-              <a className="btn btn-quiet" href={site.repository}>
-                {hero.source}
-              </a>
-            </div>
-
-            <CommandLine command={scaffoldCommand} />
-
-            <ul aria-label="In short" className="facts">
-              {hero.facts.map((fact) => (
-                <li key={fact}>{fact}</li>
-              ))}
-            </ul>
-          </div>
-
-          <figure aria-label={devices.label} className="flex flex-col gap-3">
-            <div className="devices">
-              <SchemeScreenshot dark={board.dark} light={board.light} priority />
-              <SchemeScreenshot
-                className="devices-phone"
-                dark={shots.threadMobile.dark}
-                light={shots.threadMobile.light}
-              />
-            </div>
-            <figcaption className="text-micro leading-[1.5] text-fg-subtle text-pretty">
-              {hero.caption}
-            </figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <section className="border-b border-border bg-surface">
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
-          <div className="flex flex-col gap-5">
-            <p className="eyebrow">{keeps.eyebrow}</p>
-            <h2 className="display text-large leading-[1.15]">{keeps.heading}</h2>
-            <p className="text-fg-muted text-pretty">{keeps.lede}</p>
-            <p className="text-fg text-pretty">{keeps.body}</p>
-            <div className="flex flex-col gap-1.5 border-l-2 border-accent pl-4">
-              <p className="font-medium text-fg">{keeps.aside.heading}</p>
-              <p className="text-micro leading-[1.65] text-fg-muted text-pretty">
-                {keeps.aside.body}
+            <div className="edition-hero-copy">
+              <p>
+                A proper home for your community.
+                <br />
+                On your domain. On your terms.
               </p>
-            </div>
-          </div>
-
-          <div className="compare lg:pt-1">
-            {keeps.columns.map((column) => (
-              <div key={column.title}>
-                <p className="eyebrow">{column.title}</p>
-                <ul>
-                  {column.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+              <div className="edition-hero-actions">
+                <Link className="edition-button edition-button-paper" href={quickstartHref()}>
+                  Start your forum <span aria-hidden="true">↗</span>
+                </Link>
+                <ForumLink className="edition-hero-source">
+                  See Meith in use <span aria-hidden="true">↗</span>
+                </ForumLink>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-border">
-        <div className="shell py-16 sm:py-20">
-          <header className="max-w-[46rem]">
-            <p className="eyebrow">{ownership.eyebrow}</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">{ownership.heading}</h2>
-            <p className="mt-4 text-fg-muted text-pretty">{ownership.lede}</p>
-          </header>
-
-          <div className="card-grid pillars mt-10 sm:grid-cols-2">
-            {ownership.pillars.map((pillar, index) => (
-              <Link href={docHref(pillar.doc)} key={pillar.id}>
-                <p className="font-mono text-micro tracking-[0.12em] text-fg-subtle">
-                  {String(index + 1).padStart(2, '0')}
-                </p>
-                <h3 className="text-mid leading-[1.25] font-semibold tracking-[-0.02em] text-fg">
-                  {pillar.title}
-                </h3>
-                <p className="text-micro leading-[1.65] text-fg-muted text-pretty">{pillar.body}</p>
-                <p className="mt-auto pt-4 font-mono text-micro text-fg-subtle">
-                  <span className="card-arrow">{pillar.link} →</span>
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-border bg-surface">
-        <div className="shell py-16 sm:py-20">
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-[46rem]">
-              <p className="eyebrow">{audiencesBand.eyebrow}</p>
-              <h2 className="display mt-3 text-large leading-[1.15]">{audiencesBand.heading}</h2>
-              <p className="mt-4 text-fg-muted text-pretty">{audiencesBand.lede}</p>
+              <p className="edition-hero-note">Free & open source. Self-hosted. Yours to keep.</p>
             </div>
-            <Link className="textlink text-micro shrink-0" href={audienceIndexHref}>
-              {audiencesBand.link}
+          </div>
+        </div>
+      </section>
+
+      <section className="shell edition-audiences" aria-labelledby="audiences-heading">
+        <div className="edition-audiences-heading">
+          <div className="edition-section-title">
+            <p className="edition-label">WHO IT’S FOR</p>
+            <h2 id="audiences-heading">
+              Your kind of <em>community.</em>
+            </h2>
+          </div>
+          <Link className="edition-text-link" href="/who-its-for">
+            Find your fit <span aria-hidden="true">↗</span>
+          </Link>
+        </div>
+        <div className="edition-audience-grid">
+          {communities.map((community) => (
+            <Link key={community.slug} href={`/who-its-for/${community.slug}`}>
+              <div>
+                <h3>{community.name}</h3>
+                <span aria-hidden="true">↗</span>
+              </div>
+              <p>{community.body}</p>
             </Link>
-          </header>
+          ))}
+        </div>
+      </section>
 
-          <div className="mt-10">
-            <AudienceCards audiences={primaryAudiences} />
+      <section className="edition-own" aria-labelledby="own-heading">
+        <div className="shell edition-own-grid">
+          <div className="edition-section-title">
+            <p className="edition-label">OWNERSHIP</p>
+            <h2 id="own-heading">
+              A home you own.
+              <br />
+              Not a platform you <em>rent.</em>
+            </h2>
+            <p className="edition-own-lede">
+              Your community shouldn’t disappear because a platform changes direction. A Meith board
+              runs on a server you rent, at a domain you own, from a database you can take with you.
+            </p>
+          </div>
+          <ul className="edition-own-points">
+            <li>
+              <h3>Your domain, your server</h3>
+              <p>
+                No Meith-hosted control plane and no company in the middle — nothing that can be
+                switched off from outside your community.
+              </p>
+            </li>
+            <li>
+              <h3>Your database, yours to move</h3>
+              <p>
+                It’s a PostgreSQL database you can back up, move, or take apart with the operator
+                CLI. Nothing is locked in.
+              </p>
+            </li>
+            <li>
+              <h3>No per-member pricing</h3>
+              <p>
+                No licence fee and nothing priced per member. A community that doubles in size
+                doesn’t double its bill.
+              </p>
+            </li>
+            <li>
+              <h3>Handed over, not started over</h3>
+              <p>
+                Nothing lives in a personal account. When the people running it change, the roles
+                move on and the board stays the community’s.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="edition-customise" id="customise" aria-labelledby="customise-heading">
+        <div className="shell edition-customise-grid">
+          <div className="edition-section-title">
+            <p className="edition-label">MAKE IT YOURS</p>
+            <h2 id="customise-heading">
+              Your community.
+              <br />
+              <em>Your expression.</em>
+            </h2>
+          </div>
+          <div className="edition-customise-copy">
+            <p>
+              Build a theme that’s entirely your own. Add the features your people need. Meith gives
+              you the foundations; you decide what it becomes.
+            </p>
+            <nav aria-label="Customise Meith">
+              <Link href={docHref('themes')}>
+                Build a theme <span aria-hidden="true">↗</span>
+              </Link>
+              <Link href={docHref('plugins')}>
+                Extend with plugins <span aria-hidden="true">↗</span>
+              </Link>
+              <Link href="/marketplace">
+                Browse extensions <span aria-hidden="true">↗</span>
+              </Link>
+            </nav>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-border">
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
-          <div className="flex max-w-[40rem] flex-col gap-5">
-            <p className="eyebrow">{developerTeaser.eyebrow}</p>
-            <h2 className="display text-large leading-[1.15]">{developerTeaser.heading}</h2>
-            <p className="text-fg-muted text-pretty">{developerTeaser.body}</p>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Link className="btn" href={audienceHref('developers')}>
-                {developerTeaser.link}
-                <span aria-hidden className="btn-arrow">
-                  →
-                </span>
+      <section className="edition-start" aria-labelledby="start-heading">
+        <div className="shell edition-start-grid">
+          <div className="edition-section-title">
+            <p className="edition-label">OVER TO YOU</p>
+            <h2 id="start-heading">
+              Start something
+              <br />
+              <em>worth keeping.</em>
+            </h2>
+          </div>
+          <div className="edition-start-actions">
+            <CommandLine command={scaffoldCommand} />
+            <div>
+              <Link className="edition-button" href={quickstartHref()}>
+                Create your community <span aria-hidden="true">↗</span>
               </Link>
-              <Link className="textlink text-micro" href={docHref('configuration')}>
-                Configuration in code
+              <Link className="edition-text-link" href="/docs">
+                Read the docs <span aria-hidden="true">↗</span>
               </Link>
             </div>
-          </div>
-
-          <Terminal content={devTerminal} />
-        </div>
-      </section>
-
-      <section className="border-b border-border bg-surface">
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-center">
-          <div className="flex flex-col gap-5">
-            <p className="eyebrow">{performance.eyebrow}</p>
-            <h2 className="display text-large leading-[1.15]">{performance.heading}</h2>
-            <p className="text-fg-muted text-pretty">{performance.lede}</p>
-            <p className="border-l-2 border-accent pl-4 text-fg text-pretty">
-              {performance.evidence(facts)}
-            </p>
-            <p className="text-micro leading-[1.65] text-fg-subtle text-pretty">
-              {performance.method(facts)}
-            </p>
-            <p>
-              <Link className="textlink text-micro" href={docHref('performance')}>
-                {performance.link}
-              </Link>
-            </p>
-          </div>
-
-          <SchemeScreenshot dark={shots.search.dark} light={shots.search.light} />
-        </div>
-      </section>
-
-      <section className="border-b border-border">
-        <div className="shell py-16 sm:py-20">
-          <header className="max-w-[46rem]">
-            <p className="eyebrow">{themes.eyebrow}</p>
-            <h2 className="display mt-3 text-large leading-[1.15]">{themes.heading}</h2>
-            <p className="mt-4 text-fg-muted text-pretty">{themes.lede}</p>
-          </header>
-
-          <div className="mt-10">
-            <ThemeShowcase />
-          </div>
-
-          <dl className="mt-12 grid gap-x-8 gap-y-6 border-t border-border pt-8 sm:grid-cols-2 lg:grid-cols-4">
-            {customisation.points.map((point) => (
-              <div className="flex flex-col gap-1.5" key={point.title}>
-                <dt className="font-semibold tracking-[-0.01em] text-fg">{point.title}</dt>
-                <dd className="text-micro leading-[1.65] text-fg-muted text-pretty">
-                  {point.body}
-                </dd>
-                <dd className="mt-1">
-                  <Link className="textlink text-micro" href={docHref(point.doc)}>
-                    {point.link}
-                  </Link>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      <section className="border-b border-border bg-surface">
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
-          <div className="flex max-w-[40rem] flex-col gap-5">
-            <p className="eyebrow">{openSource.eyebrow}</p>
-            <h2 className="display text-large leading-[1.15]">{openSource.heading}</h2>
-            <p className="text-fg-muted text-pretty">{openSource.body}</p>
-            <ul className="facts">
-              {openSource.points.map((point) => (
-                <li key={point}>{point}</li>
-              ))}
-            </ul>
-            <DocLinks
-              links={[...openSource.links, { label: openSource.licenceLink, href: licenceHref }]}
-            />
-          </div>
-
-          <Terminal />
-        </div>
-      </section>
-
-      <section className="border-b border-border">
-        <div className="shell grid gap-x-14 gap-y-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-center">
-          <SchemeScreenshot dark={shots.dues.dark} light={shots.dues.light} />
-
-          <div className="flex flex-col gap-5">
-            <p className="eyebrow">{memberships.eyebrow}</p>
-            <h2 className="display text-large leading-[1.15]">{memberships.heading}</h2>
-            <p className="text-fg-muted text-pretty">{memberships.body}</p>
-            <p className="text-fg text-pretty">{memberships.emphasis}</p>
-            <p>
-              <Link className="textlink text-micro" href={docHref('membership-guide')}>
-                {memberships.link}
-              </Link>
-            </p>
+            <p>Free software. Your infrastructure. Your future.</p>
           </div>
         </div>
       </section>
-
-      <ClosingBand body={closing.body} heading={closing.heading} startHref={startHref} />
-    </>
+    </div>
   )
 }

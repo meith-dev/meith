@@ -10,6 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fontsource/inter": "^5",
+    "@fontsource/lora": "^5",
     "@swc/helpers": "0.5.23",
     "marked": "^18.0.11",
     "mermaid": "^12.0.0",
