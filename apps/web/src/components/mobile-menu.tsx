@@ -1,9 +1,15 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import { type ReactNode, useEffect, useRef } from 'react'
 
 export function MobileMenu({ children }: { readonly children: ReactNode }) {
   const details = useRef<HTMLDetailsElement>(null)
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (details.current) details.current.open = false
+  }, [pathname])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -39,13 +45,7 @@ export function MobileMenu({ children }: { readonly children: ReactNode }) {
   }, [])
 
   return (
-    <details
-      className="site-mobile-menu"
-      ref={details}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false
-      }}
-    >
+    <details className="site-mobile-menu" ref={details}>
       <summary aria-label="Navigation menu" className="site-menu-button">
         <span aria-hidden className="site-menu-bars">
           <span />
