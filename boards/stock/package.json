@@ -29,6 +29,7 @@
     "@meith/theme-midnight": "workspace:*",
     "@meith/theme-phasebook": "workspace:*",
     "@meith/theme-raidframe": "workspace:*",
+    "@meith/theme-vershell": "workspace:*",
     "@meith/web": "workspace:*",
     "@swc/helpers": "0.5.23",
     "@tailwindcss/postcss": "^4.3.3",

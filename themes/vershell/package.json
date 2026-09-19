@@ -1,0 +1,33 @@
+{
+  "name": "@meith/theme-vershell",
+  "version": "0.37.5",
+  "description": "A minimalist theme for Meith in the style of Vercel — an achromatic canvas, one blue accent, shadow-as-border surfaces and dense, tightly-tracked headlines.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meith-dev/meith.git",
+    "directory": "themes/vershell"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.type-test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@meith/theme-default": "workspace:^",
+    "@meith/theme-kit": "workspace:^",
+    "@meith/ui": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18"
+  }
+}

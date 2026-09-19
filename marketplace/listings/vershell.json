@@ -1,0 +1,13 @@
+{
+  "key": "vershell",
+  "kind": "theme",
+  "package": "@meith/theme-vershell",
+  "name": "Vershell",
+  "description": "A minimalist theme for Meith in the style of Vercel — an achromatic canvas, one blue accent, shadow-as-border surfaces and dense, tightly-tracked headlines.",
+  "screenshots": ["vershell-light.png"],
+  "version": "0.37.5",
+  "apiVersion": 0,
+  "meith": ">=0.16 <1",
+  "repository": "https://github.com/meith-dev/meith",
+  "licence": "MIT"
+}

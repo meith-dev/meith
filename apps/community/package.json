@@ -87,6 +87,7 @@
     "@meith/theme-midnight": "workspace:*",
     "@meith/theme-phasebook": "workspace:*",
     "@meith/theme-raidframe": "workspace:*",
+    "@meith/theme-vershell": "workspace:*",
     "@meith/threads": "workspace:*",
     "@meith/ui": "workspace:*",
     "@meith/upgrade": "workspace:*",

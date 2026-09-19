@@ -117,6 +117,22 @@ panels, forms, search and authentication screens, which take the tokens.
 In this repository it is registered only behind `SHOWCASE_THEMES`, so the
 contract tests, the fixture gallery and the browser suites cover it.
 
+`themes/vershell` is a third shipped example, and a different disagreement
+again: the engineered minimalism of Vercel's own interface. The ground is a
+near-white and a near-black at chroma zero, and the one accent is a single
+blue — spent on links, the current item in a list, counts and the focus ring,
+and nowhere else. `radius` is `0.375rem` (6px). Its slots draw a surface as a
+card with a *shadow-as-border*: a `0 0 0 1px` ring in `border` plus a faint
+`elevation` lift, never a hard rule between sections — surfaces are separated by
+space, and rows inside a card by a single hairline. Headlines are semibold with
+aggressive negative tracking; labels run in the mono face in small caps; and the
+one filled control is the `foreground` block (black in light, white in dark)
+rather than the accent, because Vercel reserves colour for meaning. The
+semantic marks keep the default theme's values and read as small status dots.
+Like meith it fills the 22 slots that carry the look and inherits the panels,
+forms, search and authentication screens, and is registered only behind
+`SHOWCASE_THEMES`.
+
 ## Components: `@meith/ui`
 
 `@meith/ui` is shadcn/ui's component vocabulary implemented on Base UI

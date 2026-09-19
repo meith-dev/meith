@@ -33,6 +33,13 @@ import {
   raidframeMessages,
   raidframeTheme,
 } from '@meith/theme-raidframe'
+import {
+  BROWSER_THEME_COLOR as VERSHELL_BROWSER_THEME_COLOR,
+  DARK_TOKENS as VERSHELL_DARK_TOKENS,
+  LIGHT_TOKENS as VERSHELL_LIGHT_TOKENS,
+  vershellMessages,
+  vershellTheme,
+} from '@meith/theme-vershell'
 
 export const SHOWCASE_THEMES = {
   midnight: {
@@ -74,6 +81,14 @@ export const SHOWCASE_THEMES = {
     browserThemeColor: MEITH_BROWSER_THEME_COLOR,
     theme: meithTheme,
     messages: meithMessages,
+  },
+  vershell: {
+    key: 'vershell',
+    title: 'Vershell',
+    tokens: { light: VERSHELL_LIGHT_TOKENS, dark: VERSHELL_DARK_TOKENS },
+    browserThemeColor: VERSHELL_BROWSER_THEME_COLOR,
+    theme: vershellTheme,
+    messages: vershellMessages,
   },
 } as const
 

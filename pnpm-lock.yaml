@@ -238,6 +238,9 @@ importers:
       '@meith/theme-raidframe':
         specifier: workspace:*
         version: link:../../themes/raidframe
+      '@meith/theme-vershell':
+        specifier: workspace:*
+        version: link:../../themes/vershell
       '@meith/threads':
         specifier: workspace:*
         version: link:../../packages/threads
@@ -393,6 +396,9 @@ importers:
       '@meith/theme-raidframe':
         specifier: workspace:*
         version: link:../../themes/raidframe
+      '@meith/theme-vershell':
+        specifier: workspace:*
+        version: link:../../themes/vershell
       '@meith/web':
         specifier: workspace:*
         version: link:../../apps/community
@@ -1236,6 +1242,25 @@ importers:
         version: 19.2.18
 
   themes/raidframe:
+    dependencies:
+      '@meith/theme-default':
+        specifier: workspace:^
+        version: link:../default
+      '@meith/theme-kit':
+        specifier: workspace:^
+        version: link:../../packages/theme-kit
+      '@meith/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+
+  themes/vershell:
     dependencies:
       '@meith/theme-default':
         specifier: workspace:^

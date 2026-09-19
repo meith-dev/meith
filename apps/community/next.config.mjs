@@ -100,6 +100,7 @@ const nextConfig = {
     '@meith/theme-midnight',
     '@meith/theme-phasebook',
     '@meith/theme-raidframe',
+    '@meith/theme-vershell',
     '@meith/threads',
     '@meith/ui',
     '@meith/upgrade',
