@@ -1,38 +1,40 @@
-# Receive and verify webhooks
+# Webhooks
 
-Send board events to an HTTPS endpoint you operate. Deliveries are queued, signed and retried. You need administrator access to create a subscription and a receiver that can verify raw request bytes.
+Requires administrator access and an HTTPS receiver. Plain JSON deliveries are signed and queued.
 
-## Create a subscription
+## Subscribe
 
-Open **Admin → Webhooks**, enter the endpoint and choose at least one topic. Select Plain JSON for your own integration or the Discord format for a channel webhook. Enable delivery when the receiver is ready.
+1. Open **Admin → Webhooks**.
+2. Enter the endpoint and select topics.
+3. Choose Plain JSON for a custom receiver or Discord for a channel webhook.
+4. Copy the signing secret when shown; it is displayed once. Store it in the receiver's secret configuration.
+5. Enable delivery, trigger a test event and inspect Recent deliveries.
 
-Copy the signing secret when shown; it is displayed once. Store it in the receiver's secret configuration. Inspect Recent deliveries after triggering a controlled event.
+## Topics
 
-## Choose topics and understand visibility
-
-| Topic | Event |
+| Topic | Trigger |
 |---|---|
-| `thread.created` | A thread is created visible |
-| `post.created` | A first post or reply is created visible |
-| `post.edited` | A visible post is edited and remains visible |
-| `post.deleted` | A previously visible post is removed |
-| `user.registered` | An interactive registration or administrator-created account |
-| `report.created` | Content is reported |
+| `thread.created` | Visible thread created |
+| `post.created` | Visible first post or reply created |
+| `post.edited` | Visible post edited and still visible |
+| `post.deleted` | Previously visible post removed |
+| `user.registered` | Interactive or administrator-created account |
+| `report.created` | Content reported |
 
-Held content does not emit a creation event. Later approval and restoration do not re-emit creation. An edit that returns content to approval is quiet. Bulk import and fixture loading do not emit one registration event per member.
+Held content emits no creation event. Approval and restoration do not re-emit creation. Edits returning content to approval are quiet. Imports and fixtures do not emit registration events per member.
 
-Payloads contain event identifiers, not complete database rows. Fetch authorized details through the [REST API](../reference/api.md). A report includes its target kind and ID; a guest reporter can have a null ID.
+Payloads carry identifiers, not database rows. Fetch permitted details through the [API](../reference/api.md). Report payloads include target kind/ID; the guest reporter ID can be null.
 
-## Verify the request
+## Verify deliveries
 
-| Header | Purpose |
+| Header | Value |
 |---|---|
 | `x-forum-event` | Topic |
-| `x-forum-delivery` | Stable delivery ID for deduplication across retries |
-| `x-forum-timestamp` | Unix seconds included in the signature |
-| `x-forum-signature` | `sha256=<hex>` HMAC of `<timestamp>.<raw body>` |
+| `x-forum-delivery` | Stable ID across retries |
+| `x-forum-timestamp` | Unix seconds |
+| `x-forum-signature` | `sha256=<hex>` HMAC over `<timestamp>.<raw body>` |
 
-Verify before parsing or processing the body. Reject stale timestamps and compare signatures in constant time. This Node.js example expects the raw body as a Buffer and string-valued headers:
+Verify raw bytes before parsing. Reject stale timestamps and use constant-time comparison. This Node.js example accepts a Buffer and string-valued headers:
 
 ```js
 import { createHmac, timingSafeEqual } from 'node:crypto'
@@ -54,12 +56,12 @@ export function verify(secret, headers, rawBody, now = Math.floor(Date.now() / 1
 }
 ```
 
-Deduplicate using the delivery ID before applying a side effect. Signature verification establishes authenticity; it does not itself make processing idempotent. The Discord format is handled by Discord rather than your own signature receiver.
+Deduplicate by delivery ID before applying side effects. A valid signature does not prevent duplicate processing. Discord handles its own receiver format.
 
-## Handle retries
+## Retries and failures
 
-The `webhooks.deliver` task retries timeouts, connection failures, 5xx, 408 and 429 responses, backing off from 30 seconds up to an hour, for up to six attempts. Other 4xx responses are treated as permanent failures. Inspect retrying and dead-lettered deliveries in the panel.
+The `webhooks.deliver` task accepts 2xx responses as delivered. HTTP 410 and blocked destinations fail permanently. Network failures and other non-2xx responses retry, up to six attempts. Delays double from 30 seconds with ±25% jitter. Inspect retries and dead letters in the panel.
 
-The endpoint must resolve to an allowed public address. Production private-network delivery requires the explicit `WEBHOOK_ALLOW_PRIVATE_HOSTS` configuration; use it only for an intended internal endpoint.
+Destinations must resolve to allowed public addresses. `WEBHOOK_ALLOW_PRIVATE_HOSTS` explicitly permits intended internal endpoints in production.
 
-If deliveries stop, check [Scheduled tasks](../operations/scheduled-tasks.md), endpoint responses and subscription state. Pausing a subscription retains history but stops new deliveries.
+If delivery stops, check the [scheduler](../operations/scheduled-tasks.md), receiver response and subscription state. Pausing retains history and stops new events being queued. Pending deliveries continue.

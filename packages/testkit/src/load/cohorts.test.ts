@@ -73,7 +73,7 @@ describe('the cohort ladder', () => {
 
   it('explains why every rung is on the ladder', () => {
     for (const cohort of COHORTS) {
-      expect(cohort.why.length).toBeGreaterThan(40)
+      expect(cohort.why.trim()).not.toBe('')
     }
   })
 
@@ -85,10 +85,10 @@ describe('the cohort ladder', () => {
     expect(last?.members).toBeGreaterThanOrEqual(first!.members * 10)
   })
 
-  it('makes every limit say it is a limit and point at the decision', () => {
+  it('identifies limits as unsuitable operating targets and requires measurement', () => {
     for (const cohort of COHORTS.filter((c) => c.kind === 'limit')) {
-      expect(cohort.why).toMatch(/limit, not a target/)
-      expect(cohort.why).toMatch(/open question/)
+      expect(cohort.why).toMatch(/not a recommended operating load/)
+      expect(cohort.why).toMatch(/Measure additional processes or pool capacity/)
     }
   })
 

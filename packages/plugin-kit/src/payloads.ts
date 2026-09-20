@@ -417,7 +417,7 @@ export interface HookSignatures {
       readonly publishedAt: string
       readonly summary: string
     }[]
-    /** Always a guest: a feed is cached under a shared URL. */
+    /** Scope only; entries may use guest or private member visibility. */
     context: { readonly feed: 'board' | 'forum' | 'thread' }
   }
   'sitemap.entries': {

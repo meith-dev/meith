@@ -100,8 +100,8 @@ async function pluginFacts(): Promise<PluginFacts> {
   const [, hooks = '', filters = '', events = '', regions = '', wired = ''] = capture(
     file,
     source,
-    /\*\*(\d+)\s+hooks\*\*\s*[—–-]\s*(\d+)\s+filters,\s*(\d+)\s+events\s*[—–-]\s*and\s+(\d+)\s+UI regions\.\s*\*\*(\d+)\s+are wired\*\*/,
-    'its hook count (“**93 hooks** — 48 filters, 45 events — and 6 UI regions. **23 are wired**”)',
+    /(\d+) hooks: (\d+) filters and (\d+) events\. (\d+) UI regions\.\s+(\d+) hooks have call sites/,
+    'its hook, filter, event, region and call-site counts',
   )
 
   return {

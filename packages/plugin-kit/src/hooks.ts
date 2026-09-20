@@ -62,23 +62,20 @@ export const HOOKS = {
   /* ---- Content rendering ---- */
   'markdown.parse.text': {
     kind: 'filter',
-    purpose: 'The raw Markdown source, before it is parsed. Last chance to rewrite input.',
+    purpose: 'Raw Markdown before parsing.',
   },
   'markdown.render.html': {
     kind: 'filter',
-    purpose:
-      'Rendered HTML, after the renderer has constructed it. Anything added here is ' +
-      'trusted output and nothing escapes it afterwards.',
+    purpose: 'Rendered HTML. Replacement markup is trusted and is not escaped afterwards.',
   },
   'markdown.directives': {
     kind: 'filter',
     purpose:
-      'The declarative directive list, so a plugin can add a `:::name` block or ' +
-      '`:name[…]` span without core changes. Board-wide: rendered bodies are stored and shared, so the set cannot depend on who is reading.',
+      'Board-wide directives for `:::name` blocks and `:name[…]` spans. The list must not depend on the reader because rendered bodies are shared.',
   },
   'post.body.html': {
     kind: 'filter',
-    purpose: 'One post’s rendered body, in the context of the thread it is being read in.',
+    purpose: 'Rendered post body with thread and viewer context.',
   },
   'signature.html': {
     kind: 'filter',
@@ -86,9 +83,7 @@ export const HOOKS = {
   },
   'smilies.list': {
     kind: 'filter',
-    purpose:
-      'The smilie set substituted at render. Board-wide, for the same reason ' +
-      'the directive list is.',
+    purpose: 'Board-wide smilie substitutions. The list must not depend on the reader.',
   },
   'word-filter.patterns': {
     kind: 'filter',
@@ -115,15 +110,11 @@ export const HOOKS = {
   'view.forum-jump': {
     kind: 'filter',
     purpose:
-      'The jump box model. A plugin adding a destination must give it a real ' +
-      'forum id — the route re-authorises whatever is submitted.',
+      'Forum jump options. Destinations require real forum IDs; the route rechecks permission on submission.',
   },
   'view.announcement': {
     kind: 'filter',
-    purpose:
-      'One announcement, on its way to the theme. Its body is already rendered ' +
-      'HTML from the board\u2019s own renderer, so a plugin replacing it is ' +
-      'replacing trusted markup — the one hook where that is true of a body.',
+    purpose: 'Announcement model with rendered HTML. Replacement body markup is trusted.',
   },
   'view.board-index': {
     kind: 'filter',
@@ -131,7 +122,7 @@ export const HOOKS = {
   },
   'view.forum-row': {
     kind: 'filter',
-    purpose: 'One forum row in a listing. Runs once per row — keep it cheap.',
+    purpose: 'Forum listing row. Runs once per row.',
   },
   'view.thread-row': {
     kind: 'filter',
@@ -139,9 +130,7 @@ export const HOOKS = {
   },
   'view.post-bit': {
     kind: 'filter',
-    purpose:
-      'One post as the theme will receive it. The busiest hook on the board: it ' +
-      'runs once per post on every thread page.',
+    purpose: 'Post model. Runs once per post on each thread page.',
   },
   'view.post-actions': {
     kind: 'filter',
@@ -161,13 +150,11 @@ export const HOOKS = {
   },
   'view.latest-threads': {
     kind: 'filter',
-    purpose:
-      'The index sidebar’s newest-threads panel. Runs again on every refresh ' +
-      'of the live region, not only on the page load — keep it cheap.',
+    purpose: 'Latest threads panel. Runs on initial render and each live refresh.',
   },
   'view.latest-posts': {
     kind: 'filter',
-    purpose: 'The index sidebar’s newest-posts panel. Same refresh cost as view.latest-threads.',
+    purpose: 'Latest posts panel. Runs on initial render and each live refresh.',
   },
   'view.pagination': {
     kind: 'filter',
@@ -180,48 +167,41 @@ export const HOOKS = {
   'view.search-results': {
     kind: 'filter',
     purpose:
-      'One page of search results. Already checked against the reader — a hit ' +
-      'a plugin adds here has not been, and will be shown to whoever asked.',
+      'Search results authorised for the viewer. Added rows require separate visibility checks.',
   },
   'view.discovery-view': {
     kind: 'filter',
     purpose:
-      'A discovery listing — new posts, today, unanswered — with its tabs. ' +
-      'Same warning as the search results: the rows arrive authorised.',
+      'Discovery listing and tabs. Existing rows are authorised; added rows require separate visibility checks.',
   },
   'view.auth-page': {
     kind: 'filter',
     purpose:
-      'The sign-in, register and password-reset page around its form. The form ' +
-      'itself is a region, not a value: nothing here can change what it posts to.',
+      'Sign-in, registration or password-reset page. The app supplies the form as a rendered region.',
   },
   'view.panel-shell': {
     kind: 'filter',
-    purpose:
-      'The frame around a control panel, including the links to the other ' +
-      'panels this viewer may reach. Adding a link grants nothing.',
+    purpose: 'Control panel frame and links. Adding links does not grant access.',
   },
   'view.panel-nav': {
     kind: 'filter',
-    purpose:
-      'A control panel’s section rail, with the current section already ' +
-      'resolved. Runs on every panel page.',
+    purpose: 'Control panel navigation with the current section. Runs on each panel page.',
   },
   'view.panel-page': {
     kind: 'filter',
-    purpose: 'One control-panel page’s heading block. Runs on every panel page.',
+    purpose: 'Control panel page heading. Runs on each panel page.',
   },
   'view.panel-section': {
     kind: 'filter',
-    purpose: 'One labelled section inside a panel page. Runs once per section.',
+    purpose: 'Panel section. Runs once per section.',
   },
   'view.error-notice': {
     kind: 'filter',
-    purpose: 'The error page model. Runs on the page that renders when things are broken.',
+    purpose: 'Error page model.',
   },
   'view.shell': {
     kind: 'filter',
-    purpose: 'The page frame’s model. Runs on every page including the error pages.',
+    purpose: 'Page frame. Runs on every page, including error pages.',
   },
   'view.notice': {
     kind: 'filter',
@@ -249,9 +229,7 @@ export const HOOKS = {
   },
   'view.quick-reply': {
     kind: 'filter',
-    purpose:
-      'The quick-reply island’s model, at the foot of a thread. The reply form itself is ' +
-      'app-rendered and arrives as `children`.',
+    purpose: 'Quick-reply model. The app supplies the reply form as `children`.',
   },
   'view.editor-toolbar': {
     kind: 'filter',
@@ -260,8 +238,7 @@ export const HOOKS = {
   'view.redirect-notice': {
     kind: 'filter',
     purpose:
-      'The interstitial shown after a mutation, before the meta refresh fires. The target is re-checked against the board after the filter runs, so this ' +
-      'cannot send a member off-site.',
+      'Post-mutation redirect notice. The target is checked again after filtering and must remain on the board.',
   },
 
   /* ---- Posting ---- */
@@ -299,7 +276,7 @@ export const HOOKS = {
   },
   'post.delete.before': {
     kind: 'event',
-    purpose: 'A post is about to be soft-deleted. Observation only: refusing is a permission.',
+    purpose: 'Post scheduled for soft deletion. Cannot veto deletion.',
   },
   'post.deleted': {
     kind: 'event',
@@ -332,12 +309,11 @@ export const HOOKS = {
   'attachment.upload.validate': {
     kind: 'filter',
     purpose:
-      'Validation messages for an upload, after the magic-byte check. A plugin may ' +
-      'refuse a file core would accept; it can never accept one core refused.',
+      'Upload validation after file-type checks. Can reject an accepted file; cannot accept a file rejected by core.',
   },
   'attachment.uploaded': {
     kind: 'event',
-    purpose: 'A file finished uploading and re-encoding.',
+    purpose: 'Upload stored. Image processing may still be pending.',
   },
   'attachment.deleted': {
     kind: 'event',
@@ -349,9 +325,7 @@ export const HOOKS = {
   },
   'poll.voted': {
     kind: 'event',
-    purpose:
-      'A vote was cast, once per option chosen. It fires again when a poll that allows ' +
-      're-voting takes a replacement.',
+    purpose: 'Vote recorded. Runs for each chosen option, including replacement votes.',
   },
   'rating.recorded': {
     kind: 'event',
@@ -361,7 +335,7 @@ export const HOOKS = {
   /* ---- Moderation ---- */
   'report.created': {
     kind: 'event',
-    purpose: 'Something was reported. The hook a notifier or a webhook wants.',
+    purpose: 'Report created.',
   },
   'report.resolved': {
     kind: 'event',
@@ -391,9 +365,7 @@ export const HOOKS = {
   /* ---- Identity ---- */
   'user.register.validate': {
     kind: 'filter',
-    purpose:
-      'Validation messages for a registration. Where a custom question or an ' +
-      'external blocklist belongs.',
+    purpose: 'Registration validation messages. Use for additional questions or blocklists.',
   },
   'user.registered': {
     kind: 'event',
@@ -405,9 +377,7 @@ export const HOOKS = {
   },
   'user.login.attempted': {
     kind: 'event',
-    purpose:
-      'A sign-in was attempted, with the outcome. Never carries the password or the ' +
-      'session token.',
+    purpose: 'Sign-in attempt and outcome. Excludes passwords and session tokens.',
   },
   'user.logged-in': {
     kind: 'event',
@@ -435,7 +405,7 @@ export const HOOKS = {
   },
   'user.merged': {
     kind: 'event',
-    purpose: 'Two accounts were merged. Carries the winner and the account that went.',
+    purpose: 'Account merge with retained and removed account IDs.',
   },
   'user.deleted': {
     kind: 'event',
@@ -453,9 +423,7 @@ export const HOOKS = {
   },
   'mail.send.before': {
     kind: 'filter',
-    purpose:
-      'A queued message, before it is handed to the mail driver. Subject, body and ' +
-      'recipient; returning `null` drops it.',
+    purpose: 'Queued email before driver submission. Return `null` to suppress it.',
   },
   'mail.sent': {
     kind: 'event',
@@ -486,12 +454,12 @@ export const HOOKS = {
   'search.results': {
     kind: 'filter',
     purpose:
-      'A page of results, already permission-filtered in SQL. A plugin may reorder or ' +
-      'drop; adding a row here would add one the viewer may not see.',
+      'Search results authorised in SQL. Reorder or remove rows; check visibility before adding any.',
   },
   'feed.items': {
     kind: 'filter',
-    purpose: 'The items of a feed, rendered as a guest. Anything added is public.',
+    purpose:
+      'Feed entries after visibility filtering. May contain private member content; do not share entries between requests. Added rows require separate visibility checks.',
   },
   'sitemap.entries': {
     kind: 'filter',
@@ -525,13 +493,11 @@ export const HOOKS = {
   },
   'plugin.enabled': {
     kind: 'event',
-    purpose: 'A plugin was enabled — including this one, which is how it learns it is on.',
+    purpose: 'Plugin enabled. Includes the enabled plugin itself.',
   },
   'plugin.disabled': {
     kind: 'event',
-    purpose:
-      'A plugin was disabled, by an operator or by the host after repeated failures. ' +
-      'Carries the reason.',
+    purpose: 'Plugin disabled by an operator or after repeated failures, with the reason.',
   },
 } as const satisfies Readonly<Record<string, HookSpec>>
 

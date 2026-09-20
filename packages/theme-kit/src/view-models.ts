@@ -1,38 +1,4 @@
-/**
- * The view models slots are handed, and the rule they all obey.
- *
- * These types are the **public API for themes**. Per docs/contributing/nextjs-conventions.md
- * adding a field is a minor change; renaming or removing one needs a deprecation
- * cycle. The theme-kit slot contract freezes them.
- *
- * ## The rule: view models are plain JSON-shaped data
- *
- * No `Date`, no `Map`/`Set`, no class instances, no functions. Not because
- * React's Flight protocol cannot carry them — React 19 can serialise a `Date`
- * perfectly well — but because a view model has three consumers and only the
- * JSON subset survives all three:
- *
- *  1. a **server slot**, which renders it;
- *  2. a **client slot**, across the RSC boundary;
- *  3. the **public REST API**, which returns view models as JSON.
- *
- * A `Date` also pushes formatting into every theme, and formatting a date is
- * timezone- and locale-dependent: the server does not know the viewer's zone,
- * so a theme calling `toLocaleString()` renders one string on the server and a
- * different one in the browser — a hydration mismatch that appears only for
- * users outside the server's timezone. So a timestamp crosses as `TimeModel`:
- * the machine value for `<time datetime>`, and the string the app already
- * formatted using the viewer's stored zone.
- *
- * The rule is not a convention. `_PlainDataCheck` below is a compile-time proof
- * over every model in this file, and `view-models.type-test.ts` proves the proof
- * still has teeth.
- *
- * **Field-level scope.** These models carry what Phases 2–3 render. They are
- * deliberately narrow: a field added later is additive, whereas a field invented
- * now to seem complete is a guess that themes will have written markup against
- * by the time it turns out to be wrong.
- */
+/** Public theme models contain JSON-shaped data. Use TimeModel for timestamps and prepared labels for locale-dependent values. `_PlainDataCheck` and the type tests enforce this contract. Additive fields follow the API version policy; removals and renames require deprecation. */
 
 import type { ReactNode } from 'react'
 
@@ -43,24 +9,7 @@ import type { SlotName } from './slots'
  * The plain-data constraint
  * ------------------------------------------------------------------ */
 
-/**
- * `T` with everything that is not JSON-shaped mapped to `never`.
- *
- * Used as a *predicate*, not a transform: if `T` is already plain data then
- * `Serialisable<T>` equals `T` and `T extends Serialisable<T>` holds. If any
- * field is a `Date`, a function, a `Map` or a `Promise`, that field becomes
- * `never` and the assignment fails, naming the offending model.
- *
- * **`Date`, `Map`, `Set`, `RegExp` and `Promise` are all rejected** — by the
- * function clause, not by a clause of their own. Every one of them exposes its
- * entire API as methods, so mapping it produces an object whose members are
- * `never` and the assignment fails. An explicit branch naming those five was
- * written first and then deleted: no mutation could make it matter, and a clause
- * no test can kill is a clause that will quietly stop being true.
- *
- * **Limit, stated plainly:** a class instance with only data fields is
- * structurally indistinguishable from a plain object, so this cannot catch one.
- */
+/** Maps non-JSON-shaped fields to `never` for compile-time validation. Methods reject Date, Map, Set, RegExp and Promise values. Data-only class instances are structurally indistinguishable from plain objects and cannot be detected. */
 export type Serialisable<T> = T extends string | number | boolean | null | undefined
   ? T
   : T extends readonly (infer E)[]
@@ -71,34 +20,7 @@ export type Serialisable<T> = T extends string | number | boolean | null | undef
         ? { readonly [K in keyof T]: Serialisable<T[K]> }
         : never
 
-/**
- * Two keys are exempt — `children` and `regions` — and nothing else.
- *
- * A `ReactNode` is not plain data, but passing rendered children through a
- * component is a first-class React capability rather than a loophole: the parent
- * renders the tree and the RSC boundary carries it.
- *
- * ## Why `regions` exists at all: slots are flat
- *
- * **A slot never renders another slot.** `ThreadView` does not call `PostBit`;
- * the page does, and hands `ThreadView` the rendered list. The reason is
- * mechanical: rendering a slot requires the *resolved theme*, and there is no way
- * to get one inside a slot — React Context is not available to Server
- * Components, and threading the theme through props would put a map of functions
- * into a contract whose whole point is that it holds none.
- *
- * It also keeps inheritance honest. If `ThreadView` imported `PostBit` directly,
- * a child theme overriding `PostBit` would be ignored inside the parent's
- * `ThreadView` — inheritance that works for some slots and silently not others.
- * With composition in the page, exactly one place resolves slots, so an override
- * applies everywhere.
- *
- * A container therefore declares its nested regions as `ReactNode` under
- * `regions`, and the page fills them. The cost, stated: a theme can restyle
- * within a region and re-order the regions it is given, but cannot invent a new
- * relationship between two slots — for that it overrides the container and the
- * page composition stays as it is. This is revisited if a real theme needs more.
- */
+/** `children` and `regions` may carry rendered React nodes. The app resolves and renders nested slots; a slot must not resolve another slot. This preserves child-theme overrides without passing theme functions through models. */
 type ModelData<T> = Omit<T, 'children' | 'regions'>
 
 type IsPlainData<T> = ModelData<T> extends Serialisable<ModelData<T>> ? true : false
@@ -127,34 +49,11 @@ export interface CountModel {
 export interface LinkModel {
   readonly label: string
   readonly href: string
-  /**
-   * Which run of links this one belongs to, for themes that separate them.
-   *
-   * Compare it for *change*, never for value: a theme draws a rule wherever
-   * consecutive links disagree, and the strings themselves stay the app's
-   * business. Absent everywhere is the normal case and renders as one run.
-   */
+  /** Link group. Insert a separator when consecutive values differ; do not depend on specific values. Absent values form one group. */
   readonly group?: string
-  /**
-   * Whether the link leaves the board, and should open in its own tab (0.16).
-   *
-   * Set by the app for a link an administrator marked as off-site — a chat
-   * server, a shop, a wiki. A theme that ignores it renders an ordinary link
-   * and is still correct, which is what keeps the field additive. A theme that
-   * honours it must pair `target="_blank"` with `rel="noopener noreferrer"`,
-   * because the opened page can otherwise reach back through `window.opener`.
-   */
+  /** Open in a new tab when true. Pair `target="_blank"` with `rel="noopener noreferrer"`. Optional since 0.16. */
   readonly newTab?: boolean
-  /**
-   * Links that belong under this one, for a menu that opens a level (0.16).
-   *
-   * One level only: the app never nests a submenu inside a submenu, so a theme
-   * that renders one level renders every menu there is. Absent is the normal
-   * case. A theme that ignores it drops those links from the page entirely
-   * rather than flattening them, so a theme meaning to support the board
-   * navigation should render them — under `:hover` and `:focus-within`, both,
-   * because a menu that only opens to a mouse is closed to a keyboard.
-   */
+  /** One level of child links. Render them with keyboard and pointer access. The app does not nest submenus. Optional since 0.16. */
   readonly submenu?: readonly LinkModel[]
 }
 
@@ -172,15 +71,7 @@ export interface ViewerModel {
    * on its own, and themes stay out of authorization entirely.
    */
   readonly canAccessAdminCp: boolean
-  /**
-   * Whether to render the moderation link. Same shape and same rule as
-   * `canAccessAdminCp`: a rendering hint the Authorizer has already decided.
-   *
-   * Group-level only, which is a real limitation rather than an oversight: a
-   * per-forum appointee's queue exists and is reachable, but answering "does
-   * this person moderate anything" for them costs the tree, and the shell
-   * renders on every page. The moderation control panel is where that link earns its query.
-   */
+  /** Rendering hint for moderator-panel access, already resolved by the Authorizer. The destination still checks access; this field does not grant it. */
   readonly canAccessModCp: boolean
 }
 
@@ -190,31 +81,11 @@ export interface UserRefModel {
   readonly userId: number | null
   readonly username: string
   readonly profileHref: string | null
-  /**
-   * A class carrying this member's group colour, or `null` for most members.
-   *
-   * **A theme should put this on whatever renders the name**, wherever a name
-   * appears. It is a class rather than a colour because the value has to differ
-   * between light and dark, and a `style` attribute cannot hold two answers — a
-   * reader on "system" has no `.dark` class at all, so the only place both can
-   * live is the stylesheet the app emits into `<head>`.
-   *
-   * A theme that ignores it renders the name in the ordinary text colour and is
-   * still correct, which is what makes the field additive. It will simply not
-   * show the board's own hierarchy, which most boards will notice.
-   */
+  /** CSS class for the member’s group colour in both schemes, or null. Apply it to the member name. */
   readonly nameClass?: string | null | undefined
 }
 
-/**
- * One of the groups shown with a member's name.
- *
- * `nameClass` works exactly like `UserRefModel.nameClass` and exists for the
- * same reason: the group's colour differs between light and dark, so it
- * arrives as a class the app's `<head>` stylesheet defines rather than as a
- * colour. Put it on whatever renders the title; a theme that ignores it shows
- * the title in its ordinary text colour and is still correct.
- */
+/** A displayed membership group. Apply `nameClass` to its name and use the supplied title and badge. */
 export interface GroupTagModel {
   readonly title: string
   readonly nameClass?: string | null | undefined
@@ -235,14 +106,7 @@ export interface PrefixModel {
   readonly token: string | null
 }
 
-/**
- * One choice in a `<select>` or a radio group, with the current one marked.
- *
- * `isSelected` rather than a separate `selected` field on the parent: a theme
- * renders options in a loop, and "which of these is current" answered per option
- * is one comparison the theme does not have to write — and cannot write wrongly
- * by comparing a string to a number.
- */
+/** Select or radio option with its current state in `isSelected`. Render the provided value and label. */
 export interface OptionModel {
   /** Submitted as the form value. Opaque to the theme. */
   readonly value: string
@@ -282,41 +146,16 @@ export interface ThreadRowModel {
   readonly isUnread: boolean
   /** Set when the thread is a move stub; the row renders as a redirect. */
   readonly isMoved: boolean
-  /**
-   * Whether this thread is hidden from ordinary members. `'visible'` on almost
-   * every row; a listing only ever carries `'unapproved'` or `'deleted'` for a
-   * viewer allowed to see held or removed threads, so a theme that marks them —
-   * a badge, a tint — is drawing something only staff will meet. Optional: a
-   * theme written before this field treats every row as visible, which is what
-   * the reader saw anyway.
-   */
+  /** Thread visibility. Unapproved/deleted rows are supplied only when the viewer is permitted to see them. Render the corresponding state. */
   readonly visibility?: 'visible' | 'unapproved' | 'deleted'
   readonly lastPost: LastPostModel | null
 }
 
-/**
- * Paging, fully resolved.
- *
- * The obvious API — a page count plus a function to build an href — is
- * impossible here, and that is the constraint doing its job: a function cannot
- * cross to a client slot or into an API response. The app resolves the window
- * and hands over links, which also means paging is plain anchors and therefore
- * works with JavaScript disabled.
- */
+/** Resolved pagination labels and hrefs. Render links as provided; do not construct URLs in the theme. */
 export interface PaginationModel {
   readonly page: number
   readonly pageCount: number
-  /**
-   * Whether `pageCount` is the real number of pages or only what has been
-   * proved so far.
-   *
-   * A keyset-paged list knows the page it is on and whether another one
-   * follows; it does not know how many there are, and counting rows to find
-   * out is the query the cursor exists to avoid. So `pageCount` is a floor
-   * when this is `false`, and a theme that prints "3 of 4" from it is telling
-   * the reader something nobody checked. Print the page on its own instead,
-   * and keep "of N" for the lists that do know.
-   */
+  /** True when `pageCount` is an exact total. Otherwise it is a lower bound: display the current page without “of N”. */
   readonly pageCountIsExact: boolean
   readonly pages: readonly {
     readonly page: number
@@ -334,34 +173,11 @@ export interface PaginationModel {
 /** The author block beside a post. */
 export interface PostAuthorModel extends UserRefModel {
   readonly avatarUrl: string | null
-  /**
-   * The display group's title, or a custom user title.
-   *
-   * Was `null` on every post the board has ever rendered — the field was in the
-   * contract from the start and nothing populated it, so every theme's postbit
-   * had a place for a member's standing and nothing to put in it. It comes from
-   * `users.display_group_id`, falling back to the primary group.
-   */
+  /** Display-group title or custom member title; null when absent. */
   readonly title: string | null
-  /**
-   * Every group shown with this member's name — the display group first, then
-   * the rest of the groups they hold in display order, cut off at the board's
-   * *Maximum displayed groups* setting.
-   *
-   * `title` is always the first entry's title, so a theme written before this
-   * field existed keeps showing the display group and is still correct; a
-   * theme that renders this list should render it *instead of* `title`, not as
-   * well. Empty where the board resolved no groups at all — fall back to
-   * `title` there, which is also what carries a custom user title.
-   */
+  /** Displayed groups, starting with the display group and limited by the board setting. Render this list instead of `title` when nonempty; otherwise use `title`, including custom titles. */
   readonly groups?: readonly GroupTagModel[] | undefined
-  /**
-   * The board's badge for this member's group, or `null`.
-   *
-   * Shaped exactly like `LogoModel` and for the same reason: the app has
-   * already chosen which of the two images this reader gets, so `darkSrc` is
-   * non-null only for a reader on "system", where the server cannot know.
-   */
+  /** Group badge, or null. Uses LogoModel; darkSrc is provided only for the system colour scheme. */
   readonly badge?: LogoModel | null | undefined
   /**
    * This member's reputation, or `null` when the board has it switched off.
@@ -373,68 +189,24 @@ export interface PostAuthorModel extends UserRefModel {
   readonly joinedAt: TimeModel | null
   /** Pre-rendered Markdown. Trusted output of the board's own renderer. */
   readonly signatureHtml: string | null
-  /**
-   * Whether this author has been active inside the online window.
-   *
-   * Already resolved against the reader, the same way the who's-online list
-   * is: an author browsing invisibly reads as offline for everyone without
-   * `modcp.access`, so a theme renders this flag as given and cannot light up
-   * a dot the board means to keep dark.
-   */
+  /** Online status visible to this reader. Invisible authors appear offline without modcp.access. Render as supplied. */
   readonly isOnline: boolean
-  /**
-   * Custom profile fields, for the ones an operator marked for the postbit and
-   * this viewer may see.
-   *
-   * The same `{label, value}` shape `MemberProfileModel.fields` uses, and
-   * **plain text** for the same reason: it is rendered as text by the theme,
-   * and a field that could carry markup is stored XSS on the board's heaviest
-   * page. Empty on a board with no custom fields, which is most of them.
-   */
+  /** Profile fields configured for post display and permitted for this viewer. Render labels and values as text. */
   readonly fields: readonly { readonly label: string; readonly value: string }[]
 }
 
 export interface PostActionsModel {
   readonly quoteHref: string | null
   readonly editHref: string | null
-  /**
-   * Where a soft-deleted post is put back.
-   *
-   * A separate field rather than a second meaning for `editHref`, because the
-   * two are never both offered: a deleted post cannot be edited, and a visible
-   * one has nothing to restore. A theme that renders both gets exactly one.
-   */
+  /** Restore action for a soft-deleted post. Mutually exclusive with editHref. */
   readonly restoreHref: string | null
   readonly historyHref?: string | null
   readonly reportHref: string | null
-  /**
-   * Warn this post's author, citing this post.
-   *
-   * Present for moderators only, and `null` for a post whose author is the
-   * viewer or a deleted account. Separate from `moderateHref` because a warning
-   * is aimed at the *person* and the post is only the evidence ��� which is also
-   * why the link carries the post id rather than living on the post's own
-   * moderation controls.
-   */
+  /** Link to warn the author about this post. Null for self, guests or insufficient permissions. */
   readonly warnHref: string | null
-  /**
-   * Reserved for per-post moderation controls that are not inline.
-   *
-   * Still `null` everywhere: per-post moderation is on checkboxes and a
-   * bar rather than a per-post link, so nothing fills this yet. It stays in the
-   * contract because the moderation control panel is where such a *page* would
-   * live, and removing a public field to add it back next feature is worse
-   * than a documented `null`.
-   */
+  /** Reserved for non-inline moderation controls; currently null. Inline selection uses its separate model. */
   readonly moderateHref: string | null
-  /**
-   * Rate this post's author, for this post.
-   *
-   * Null on your own post, on a board with reputation off, and for anybody
-   * without the permission. It carries the post so the rating is attached to
-   * *this* post rather than to the author generally — which is what makes one
-   * rating per post a meaningful rule.
-   */
+  /** Post-specific reputation action. Null for the current author, disabled reputation or insufficient permission. */
   readonly rateHref: string | null
 }
 
@@ -447,15 +219,7 @@ export interface PostBitModel {
   readonly author: PostAuthorModel
   /** Pre-rendered Markdown. */
   readonly bodyHtml: string
-  /**
-   * @deprecated Since theme API 1.4, removed in 2.0. Use `post.id`.
-   *
-   * It existed so the client could assemble a quote out of the page. Quoting
-   * asks the server for a post **by id** now, which re-checks who may see it
-   * and cannot hand back what a deleted post used to say — so this is a copy of
-   * every post's source in the HTML of every thread page, for nobody. Still
-   * populated, because a theme could have read it; see `DEPRECATIONS`.
-   */
+  /** @deprecated Since theme API 0.5; removal scheduled for 1.0. Use `post.id` to request a server-authorized quote. */
   readonly quoteSource: string
   readonly postedAt: TimeModel
   /** "Last edited by X on Y", already assembled, or `null`. */
@@ -463,39 +227,13 @@ export interface PostBitModel {
   readonly isFirstPost: boolean
   /** A moderator sees deleted and unapproved posts, marked as such. */
   readonly visibility: 'visible' | 'unapproved' | 'deleted'
-  /**
-   * Set when this viewer ignores the author and has not revealed this
-   * post; `null` otherwise, which is the case on almost every post.
-   *
-   * The body is **withheld server-side** when this is set — `bodyHtml` is
-   * empty, the signature and custom fields are gone — rather than hidden with
-   * CSS, because "ignored" that ships the text to the browser is a preference
-   * rather than a feature. The post keeps its place and its number: filtering
-   * it out would give every viewer a different page size and make "#12" mean
-   * different posts to different people.
-   *
-   * A theme renders the placeholder and the link. Both are required — a hidden
-   * post with no way to see it is a hole in a conversation.
-   */
+  /** Ignored-author placeholder, or null. When set, the app withholds body, signature and custom fields while preserving post position and numbering. Render the placeholder and reveal link. */
   readonly ignored: {
     readonly authorUsername: string
     /** Same page, this post revealed. A GET: revealing changes nothing. */
     readonly revealHref: string
   } | null
-  /**
-   * The files attached to this post.
-   *
-   * Empty on almost every post, and empty rather than absent so a theme has one
-   * shape to render. **Every entry is already downloadable**: a `pending`
-   * upload — one whose re-encode has not finished — and a failed one are not in
-   * this list, because a link to a file that is not there yet is worse than the
-   * file appearing a minute later.
-   *
-   * `thumbnailHref` is `null` for anything that is not an image, and for an
-   * image small enough that a thumbnail would be the same picture again. A
-   * theme showing an image inline uses `thumbnailHref ?? href` and gets the
-   * right answer in both cases.
-   */
+  /** Downloadable attachments only; pending and failed uploads are excluded. Use `thumbnailHref ?? href` for an inline image. Non-images and images without a smaller preview have a null thumbnail. */
   readonly attachments: readonly PostAttachmentModel[]
   readonly actions: PostActionsModel
 }
@@ -532,31 +270,11 @@ export interface ShellModel {
 }
 
 /** `children` is the user panel, so a theme decides where in the header it sits. */
-/**
- * A board's logo, already resolved for this reader's colour scheme.
- *
- * Optional, and absent on most boards: a board with no logo renders its name in
- * text, which is what every board did before this field existed.
- *
- * **The app resolves the scheme, not the theme.** A theme cannot do it, and the
- * obvious attempt is wrong in the commonest case: `dark:hidden` matches the
- * `.dark` class, and a reader who has chosen "system" has no class — their dark
- * mode comes from a media query. They would get the light logo on a black page,
- * which is the exact failure two images exist to prevent. The server knows the
- * answer, so it gives one.
- */
+/** Board logo sources prepared for the reader’s colour preference. If no logo is supplied, render the board name. Honour the optional dark source for system colour mode. */
 export interface LogoModel {
   /** The image to render. Already the right one for a forced colour scheme. */
   readonly src: string
-  /**
-   * A dark-scheme source, or `null`.
-   *
-   * Non-null means "wrap it in a `<picture>` and put this behind
-   * `(prefers-color-scheme: dark)`" — the reader is on "system" and has two
-   * images to choose between. Null covers three different situations a theme
-   * does not need to tell apart: one image, or a reader who has forced a
-   * scheme, in which case `src` is already the right one.
-   */
+  /** Optional dark source for a `<picture>` with `(prefers-color-scheme: dark)`. Use the primary source as its fallback. */
   readonly darkSrc: string | null
   /** Never empty — the board's name when the operator has set nothing. */
   readonly alt: string
@@ -567,14 +285,7 @@ export interface HeaderModel {
   readonly homeHref: string
   readonly viewer: ViewerModel
   readonly navigation: readonly LinkModel[]
-  /**
-   * The board's logo, when it has one.
-   *
-   * A theme that ignores this renders the board's name and is still correct —
-   * which is what makes the field additive rather than breaking. A theme that
-   * uses it should keep the name as the link's accessible content when there is
-   * no logo, because the header is the only link home on most pages.
-   */
+  /** Optional board logo. Use the supplied alternative text and dimensions; fall back to the board name when absent. */
   readonly logo?: LogoModel | undefined
   readonly children?: ReactNode
 }
@@ -586,43 +297,14 @@ export interface UserPanelModel {
   /** `value` is `0` when there is nothing to show. */
   readonly unreadNotifications: CountModel
   readonly unreadMessages: CountModel
-  /**
-   * Where the two counts above lead, so a theme can make them clickable.
-   *
-   * A count that cannot be acted on is a notification the reader has to go
-   * hunting for. Both are absent for a guest, who has neither. Themes read
-   * these rather than searching `links` for the one labelled "Notifications",
-   * which two of them were doing and which breaks the moment that label is
-   * reworded or translated.
-   */
+  /** Destinations for the unread notification and message counts. Use the resolved hrefs. */
   readonly notificationsHref?: string
   readonly messagesHref?: string
   readonly regions?: {
-    /**
-     * The notifications menu the app supplies — a single control that opens the
-     * reader's notifications, private messages and, for staff, the moderation
-     * queue in tabs, marks them seen and links each one through (0.16).
-     *
-     * It is app-rendered rather than modelled field by field because it is an
-     * interactive island carrying Server Actions — the same reason logging out
-     * arrives as `children` and the quick-reply island as a region. A theme
-     * places it where the two unread counts used to sit; the island renders its
-     * own no-JavaScript fallback, so a theme that renders this needs no separate
-     * badge markup. Absent for a guest and on a board with neither service, and
-     * a theme that ignores it falls back to `unreadNotifications` and
-     * `unreadMessages`, which is what makes the field additive.
-     */
+    /** App-rendered notification menu with messages and permitted moderation content, including a no-JavaScript fallback. Render instead of separate unread-count controls when present. Optional since 0.16. */
     readonly notifications?: ReactNode
   }
-  /**
-   * Account controls the app supplies — today, the log-out form.
-   *
-   * Log out cannot be a `LinkModel`: it is a POST to a Server Action, because a
-   * GET that ends a session is fired by every prefetcher and link scanner that
-   * touches the page. A Server Action reference is also not plain data and could
-   * never cross this contract, so the app renders the form and the theme decides
-   * where in the panel it sits.
-   */
+  /** App-rendered account controls, including the POST logout form. Place the supplied form; do not replace logout with a GET link. */
   readonly children?: ReactNode
 }
 
@@ -635,33 +317,9 @@ export interface FooterModel {
   readonly links: readonly LinkModel[]
   /** Which zone `TimeModel.label`s were formatted in, for the footer note. */
   readonly timezoneLabel: string
-  /**
-   * What the board runs on, and where to read about it (0.8).
-   *
-   * A `LinkModel` and not a hardcoded string in each theme, for the reason every
-   * other piece of footer text is one: the app owns the words and the URL, so
-   * they are written once and a theme that wants to place the attribution
-   * somewhere else in its layout can, without owning a copy of them.
-   *
-   * Optional, which is what makes it a minor rather than a major: a theme
-   * written against 0.7 compiles and runs unchanged, and simply does not render
-   * it. The two themes in this repository do.
-   */
+  /** Optional software attribution link supplied by the app. Added in 0.8. */
   readonly poweredBy?: LinkModel
-  /**
-   * App-rendered controls the footer hosts: the forum-jump form and the
-   * appearance switcher (0.20).
-   *
-   * Both used to be full-width bars of their own stacked above the footer,
-   * which left the foot of every page reading as three separate rules. They
-   * are a GET form and Server-Action forms the app owns, so they cross the
-   * contract the way the log-out form does — as a rendered node the theme
-   * places, not data it could rebuild. Optional the way `poweredBy` is: a
-   * theme written against 0.19 compiles and runs unchanged — but one that
-   * never renders it costs its readers the jump box and the appearance
-   * controls, so place it rather than drop it. The bundled themes render it
-   * as a right-aligned row above the footer's own line of text.
-   */
+  /** Optional app-rendered forum-jump and appearance controls. Place both in the footer. Added in 0.20. */
   readonly regions?: {
     readonly controls?: ReactNode
   }
@@ -673,16 +331,7 @@ export interface NoticeModel {
   readonly dismissHref: string | null
 }
 
-/**
- * One announcement.
- *
- * **Not a `NoticeModel`, and the two are worth telling apart.** A notice is a
- * flash — the result of what the viewer just did, gone on the next page. An
- * announcement is a dated, authored, board-wide statement that is there for
- * everybody until it expires. They look similar and behave nothing alike, so
- * styling them identically is a choice a theme should make on purpose rather
- * than one the contract makes for it.
- */
+/** Dated, authored announcement, visible until expiry. Flash feedback uses NoticeModel. */
 export interface AnnouncementModel {
   readonly title: string
   /**
@@ -704,38 +353,11 @@ export interface BoardIndexModel {
     readonly categories: ReactNode
     readonly stats: ReactNode
     readonly online: ReactNode
-    /**
-     * The self-refreshing pair: newest threads and newest posts, already
-     * rendered, or absent on a board that cannot answer either question.
-     *
-     * **One region rather than two, and that is the contract rather than a
-     * convenience.** The pair is refreshed by a single round trip while the page
-     * is open, so it arrives as one node; two regions would be two polls of the
-     * same board for the same reason, or one poll that could only update half of
-     * what a theme had placed. A theme places it — the default puts it at the
-     * top of a sidebar — but does not take it apart.
-     *
-     * Optional, so a theme written against an earlier minor compiles and simply
-     * does not show it. Same rule as every other region field here.
-     */
+    /** App-rendered newest-thread/post region, refreshed together in one request. Place it as a unit. Absent when unavailable. */
     readonly latest?: ReactNode
-    /**
-     * The `index.footer` region: whatever plugins contributed, already
-     * rendered and ordered by the host.
-     *
-     * Optional, which is what makes this a **minor** addition under the
-     * versioning policy — a theme written against 0.1 keeps compiling and simply
-     * does not render plugin output. Every region field below follows the same rule.
-     */
+    /** Optional, pre-rendered index.footer plugin contributions in host order. */
     readonly plugins?: ReactNode
-    /**
-     * Live announcements, already rendered — one `Announcement` per row,
-     * or absent when there are none.
-     *
-     * Optional for the same reason the plugin region is, and under the same
-     * policy: a theme written against an earlier minor compiles and simply does
-     * not show them.
-     */
+    /** Optional, pre-rendered live announcements. Absent when there are none. */
     readonly announcements?: ReactNode
   }
 }
@@ -751,24 +373,11 @@ export interface BoardStatsModel {
   readonly postCount: CountModel
   readonly memberCount: CountModel
   readonly newestMember: UserRefModel | null
-  /**
-   * When the totals were last rolled up, or null before the first run.
-   *
-   * Part of the contract rather than a detail the app hides, because a theme
-   * that shows the numbers should be able to say how old they are — and
-   * "computed ten minutes ago" is the difference between a number that is
-   * stale and one that is wrong.
-   */
+  /** Last counter-rollup time, or null before the first run. Display it to identify the age of the totals. */
   readonly computedAt: TimeModel | null
 }
 
-/**
- * One visitor in the online list.
- *
- * `location` is **already resolved against the reader**: a forum they may not
- * see arrives as the bare label, never as a title with a link. The theme
- * renders what it is given and cannot leak what it was not.
- */
+/** Online visitor. Location titles and links are filtered by reader permissions. */
 export interface OnlineMemberModel extends UserRefModel {
   /** Where they are, as this reader may be told. Never null — see `label`. */
   readonly location: { readonly label: string; readonly href: string | null }
@@ -790,13 +399,7 @@ export interface WhoIsOnlineModel {
   readonly fullListHref: string
 }
 
-/**
- * One thread in the index's "latest threads" panel.
- *
- * Every row carries its forum, because these two panels are the only lists on
- * the board that cross it: without the forum, two identically-titled threads in
- * two forums are the same row printed twice.
- */
+/** Latest thread with its forum identity. */
 export interface LatestThreadModel {
   readonly title: string
   readonly href: string
@@ -807,15 +410,7 @@ export interface LatestThreadModel {
   readonly startedAt: TimeModel
 }
 
-/**
- * The newest threads on the board.
- *
- * `capturedAt` is not decoration. This panel refreshes itself while somebody is
- * looking at it, and a list that changes with nothing saying when it was read is
- * a list nobody can tell apart from one that has frozen. It is the same
- * argument `BoardStatsModel.computedAt` makes about a rollup, applied to the
- * opposite problem: that one is old and says so, this one is new and says so.
- */
+/** Newest threads with `capturedAt` indicating the read time. The app refreshes this server-rendered model. */
 export interface LatestThreadsModel {
   readonly threads: readonly LatestThreadModel[]
   readonly capturedAt: TimeModel
@@ -829,15 +424,7 @@ export interface LatestPostModel {
   readonly href: string
   readonly forum: LinkModel
   readonly author: UserRefModel
-  /**
-   * The post as text: flattened out of its Markdown source and cut on a word
-   * boundary, the same way a feed entry's summary is.
-   *
-   * Flattened rather than rendered, because the board's HTML carries quotes,
-   * directives and attachment markup whose meaning is lost in two lines — and
-   * because a theme dropping raw post HTML into a sidebar is one plugin away
-   * from being an injection point.
-   */
+  /** Plain-text post excerpt, flattened from Markdown and cut at a word boundary. Render as text. */
   readonly excerpt: string
   readonly postedAt: TimeModel
 }
@@ -853,23 +440,7 @@ export interface ForumDisplayModel {
   readonly newThreadHref: string | null
   readonly markReadAction: string | null
   readonly regions: {
-    /**
-     * Controls scoped to this forum — the thread ordering, and the follow
-     * form for a member who may subscribe. Rendered by the route because both
-     * carry a Server Action or a URL contract the theme does not own.
-     *
-     * **A theme renders this under its heading, not above it.** That placement
-     * is the reason the field exists: these were app-rendered strips stacked
-     * *before* `ForumDisplay`, so the first thing on a forum page was a filter
-     * with nothing yet to say what it filtered. A control belongs after the
-     * thing it acts on has been named.
-     *
-     * Optional, which is what makes it a **minor** addition under the
-     * versioning policy — a theme written against 0.3 keeps compiling.
-     *
-     * Only what acts on the listing *below* it belongs here. Following the
-     * forum is in `afterContent`, for the reason given there.
-     */
+    /** App-rendered forum ordering controls. Place below the heading and above the listing. Subscription controls are in `afterContent`. */
     readonly tools?: ReactNode
     readonly subforums: ReactNode
     /** One `ThreadRow` per thread. Empty-state markup is the theme's. */
@@ -881,16 +452,7 @@ export interface ForumDisplayModel {
      * the page fewest people arrive on.
      */
     readonly announcements?: ReactNode
-    /**
-     * Controls for somebody who has finished with the page — today, the form
-     * that follows this forum.
-     *
-     * A theme renders it after the listing. "Do you want to hear about this
-     * forum?" is a question you can only answer once you have seen what is in
-     * it, and asked above the threads it is a panel between a reader and the
-     * thing they came for. The ordering tabs stay at the top in `tools`,
-     * because those act on the list underneath them.
-     */
+    /** App-rendered forum subscription controls. Place after the listing. */
     readonly afterContent?: ReactNode
   }
 }
@@ -899,17 +461,7 @@ export interface SubforumListModel {
   readonly forums: readonly ForumRowModel[]
 }
 
-/**
- * `ThreadViewModel.watch` — the header's one-tap subscribe/unsubscribe toggle.
- *
- * `action` is already resolved to whichever direction flips `subscribed`: a
- * theme never branches on `subscribed` to pick a URL, only to pick a label —
- * "Watch" over `action` when `false`, "Watching" over the same `action` when
- * `true`. Subscribing this way always uses the board's default cadence; a
- * member who wants a slower one still has the cadence picker in
- * `ThreadViewModel.regions.afterContent`, which this toggle sits beside
- * rather than replaces.
- */
+/** Thread watch toggle. Submit the supplied `action`; use `subscribed` for the label/state. It uses the board’s default cadence. The full cadence selector remains in `afterContent`. */
 export interface ThreadWatchModel {
   readonly subscribed: boolean
   /** A native POST target that flips `subscribed`. */
@@ -922,49 +474,15 @@ export interface ThreadViewModel {
   readonly replyHref: string | null
   /** A native POST target for the last visible post on this page. */
   readonly markReadAction: string | null
-  /**
-   * The header's watch toggle, or `null` for a guest — who cannot subscribe
-   * to anything — and on a board running without the subscription service.
-   *
-   * Optional under the versioning policy: a theme written against 0.23
-   * compiles and renders no toggle, the same as it already does for the
-   * cadence picker in `regions.afterContent`.
-   */
+  /** Optional watch toggle. Null for guests or without the subscription service. */
   readonly watch?: ThreadWatchModel | null
   readonly regions: {
-    /**
-     * Controls scoped to this thread — following it, rating it, its poll, and
-     * the moderator's thread tools. Rendered by the route, for the reason
-     * every app-rendered region exists: each one carries a Server Action.
-     *
-     * **A theme renders this under its heading, not above it**, and the same
-     * history is behind this field as behind `ForumDisplayModel`'s. Four of
-     * these strips used to stack before `ThreadView`, so a thread opened on a
-     * phone began with a follow control, a star rating and a poll, and the
-     * title of the thing being followed, rated and voted on was a screen
-     * further down.
-     *
-     * Only what belongs *before* the posts: the moderator's bar, and the
-     * poll, which is content rather than a control. Rating and following are
-     * in `afterContent`.
-     *
-     * Optional under the versioning policy: a theme written against 0.3 compiles
-     * and simply does not offer them.
-     */
+    /** App-rendered moderator tools and poll. Place below the title and above posts. Rating and subscription controls are in `afterContent`. */
     readonly tools?: ReactNode
     /** One `PostBit` per post on this page. */
     readonly posts: ReactNode
     readonly pagination: ReactNode
-    /**
-     * Controls for a reader who has reached the end — rating the thread, and
-     * following it.
-     *
-     * A theme renders it after the posts and **before** the quick reply, which
-     * is the order the two are wanted in: somebody who has just read fifty
-     * posts is deciding what they think and whether to keep hearing about it,
-     * and then whether to answer. Both used to be above the first post, where
-     * they were asking for a verdict on something the reader had not read yet.
-     */
+    /** App-rendered rating and subscription controls. Place after posts and before quick reply. */
     readonly afterContent?: ReactNode
     /**
      * The quick-reply island, or `null` when the viewer may not reply — in which
@@ -974,24 +492,8 @@ export interface ThreadViewModel {
   }
 }
 
-/**
- * The composer, for both new threads and replies.
- *
- * `action` is a URL string, not a Server Action reference: a slot receiving a
- * function could not cross to a client island, and a URL is what a native form
- * needs anyway. The app's `<form action={serverAction}>` wraps the slot.
- */
-/**
- * The composer page.
- *
- * The form *element* is a region rather than a set of value props, and that is
- * a deliberate reversal of this model's first shape. A composer submits to a
- * Server Action, and a Server Action reference is not plain data — which settled
- * that such references never cross the theme contract, which is why logging out
- * is also a form the app renders into a slot. So the theme owns the page around
- * the form (heading, error, preview, where "cancel" goes) and the app owns the
- * controls.
- */
+/** Composer for new threads and replies. action is a URL; the app supplies the enclosing form. */
+/** Composer page model. The app owns the submitted form; the theme places its heading, errors, preview, form and cancel link. */
 export interface PostFormModel {
   readonly mode: 'thread' | 'reply' | 'edit'
   /** e.g. "Post a new thread in General". */
@@ -1011,31 +513,12 @@ export interface PostFormModel {
   readonly regions: {
     /** The app-rendered `<form>` carrying the Server Action and its controls. */
     readonly form: ReactNode
-    /**
-     * Kept for a theme that wants a toolbar affordance of its own at the top of
-     * the composer. The built-in composer no longer fills it: a formatting
-     * toolbar belongs against the box it formats, not at the head of a card a
-     * subject field and a prefix picker can sit below, so the `EditorToolbar`
-     * island renders inside `form`, joined to the message textarea, and this is
-     * `null` there. A `null` must leave a working plain-textarea form: the
-     * island enhances, it never enables.
-     */
+    /** Optional toolbar region. The built-in composer supplies null because its toolbar is inside `form`, beside the textarea. A null toolbar must leave the form usable. */
     readonly toolbar: ReactNode
   }
 }
 
-/**
- * The inline reply island at the foot of a thread.
- *
- * `children` carries the app's own reply form — the Server Action, its
- * validation, quoting, drafts and attachments, unchanged by whichever theme
- * is active — so `QuickReply` is what draws the boundary between the
- * server-rendered `ThreadView` around it and the client form inside it. The
- * plain fields stay alongside it rather than folding into `children`: a
- * theme that wants a lighter affordance of its own — a one-line teaser that
- * expands, say — can build one from `placeholder`, `submitLabel` and
- * `fullReplyHref` without ever inspecting what `children` contains.
- */
+/** Quick-reply island. `children` carries the app’s form, including validation, quoting, drafts and attachments. Labels and `fullReplyHref` support alternate presentations without inspecting the form. */
 export interface QuickReplyModel {
   readonly threadId: number
   readonly placeholder: string
@@ -1045,20 +528,7 @@ export interface QuickReplyModel {
   readonly children?: ReactNode
 }
 
-/**
- * One control in an `EditorToolbar`.
- *
- * Exactly one of `tag` and `insertion` is set, never both and never neither.
- * `tag` names one of the board's own commands — `applyEditorTag(field, tag,
- * placeholder)` from `@meith/theme-kit` runs it, and a theme that reads `tag`
- * opaquely and hands it straight to `applyEditorTag` needs no change when a
- * new one is added. `insertion` is a plugin's own: a directive registered
- * through `markdown.directives` has no `EditorTag` to squat on, so a button
- * contributed through the `view.editor-toolbar` filter carries the edit
- * itself as data — `applyInsertion(field, insertion)` runs it the same way,
- * sharing the caret and selection mechanics `applyEditorTag` uses. Both are
- * plain JSON, so a plugin never hands the host a function to call.
- */
+/** Editor control. Exactly one of `tag` and `insertion` is set. Use `applyEditorTag` for a built-in tag or `applyInsertion` for a plugin insertion; both operate on serializable edit data. */
 export interface EditorToolbarButtonModel {
   /** One of the board's own commands, or `null` for a plugin's `insertion`. */
   readonly tag: EditorTag | null
@@ -1069,19 +539,9 @@ export interface EditorToolbarButtonModel {
   readonly title: string
   /** `aria-keyshortcuts`, e.g. `"Control+b"`, or `null` for a tag with no shortcut. */
   readonly keyShortcut: string | null
-  /**
-   * A themed icon's name, for a theme that draws one — see `PanelNavIcon` for
-   * the same idea. Always `null` today: nothing in the default palette names
-   * one yet, so every theme renders its own glyph from `tag` or `label`. The
-   * field stays in the contract for the theme that wants to key off it once
-   * one does.
-   */
+  /** Optional theme icon name. Unknown or null names render no icon; the text label remains accessible. */
   readonly icon: string | null
-  /**
-   * Fills a wrap or spoiler tag when nothing is selected; `null` for a tag
-   * that does not need one, and for every `insertion` button — its strings
-   * are already fixed, so there is nothing left for a placeholder to fill.
-   */
+  /** Placeholder for an empty wrap/spoiler selection. Null when unnecessary and for insertion buttons. */
   readonly placeholder: string | null
 }
 
@@ -1091,15 +551,7 @@ export interface EditorToolbarModel {
   /** Accessible name for the toolbar's `role="group"`. */
   readonly groupLabel: string
   readonly buttons: readonly EditorToolbarButtonModel[]
-  /**
-   * The attachment picker, or `null` where this composer takes none.
-   *
-   * `inputId` names an app-rendered `<input type="file" hidden>` elsewhere on
-   * the page — the upload itself is a Server Action the app owns, so a theme
-   * never handles the file. A button that calls `.click()` on the element
-   * that id names opens the picker; like every other button here, that is an
-   * enhancement over a plain-textarea form, not what makes the form work.
-   */
+  /** Attachment picker or null. `inputId` targets the app-owned hidden file input. An enhanced button may activate it; the app owns upload handling. */
   readonly attachment: { readonly inputId: string; readonly label: string } | null
   readonly previewAction: string | null
 }
@@ -1115,12 +567,7 @@ export interface MemberProfileModel {
    * where the group behind it has gone.
    */
   readonly title: string | null
-  /**
-   * Every group shown with this member's name, on the same terms as
-   * `PostAuthorModel.groups`: display group first, the rest in display order,
-   * capped by the board's *Maximum displayed groups* setting. Render it
-   * instead of `title` when it is non-empty; fall back to `title` otherwise.
-   */
+  /** Displayed groups, with display group first, then display order, capped by Maximum displayed groups. Use title only when groups is empty. */
   readonly groups?: readonly GroupTagModel[] | undefined
   readonly joinedAt: TimeModel
   readonly lastVisitAt: TimeModel | null
@@ -1135,22 +582,7 @@ export interface MemberProfileModel {
   }
 }
 
-/**
- * The search form, reshaped at the slot-contract freeze.
- *
- * It was originally declared as `{ action, query, forums: LinkModel[], errorMessage }`
- * and never rendered — the search page grew its own form instead, so the slot was
- * a contract nothing had ever tested. Wiring it up is what found the shape wrong:
- * a filter is a `<select>`, and an option is a value and a label, not an href.
- * A theme handed `LinkModel[]` would have had to invent the value, most likely by
- * parsing it out of the URL.
- *
- * **`fields` carries the query-parameter names.** Themes never build hrefs (see
- * `LinkModel`), and a `name="q"` typed into a theme is the same rule broken from
- * the other end: it hardcodes the app's URL contract into markup the app does not
- * own, and renaming the parameter silently breaks every installed theme's form
- * while the page keeps rendering.
- */
+/** Search form. Use the supplied `fields` for input names and supplied option values. Do not hardcode query-parameter names or derive them from URLs. */
 export interface SearchFormModel {
   /** Where the form submits. A GET form: a search is a URL. */
   readonly action: string
@@ -1169,23 +601,11 @@ export interface SearchFormModel {
   /** Guidance for an empty form: quoting, exclusion. `null` once submitted. */
   readonly hint: string | null
   readonly errorMessage: string | null
-  /**
-   * The rest of the form: who posted it, when, where to look, and what a result
-   * is. Optional, and a theme that ignores it still submits a working search —
-   * every control in here is a narrowing the app defaults for a form that
-   * leaves it out.
-   */
+  /** Optional author, date, forum and result-type controls. Omitted controls use the default search scope. */
   readonly advanced?: SearchAdvancedModel
 }
 
-/**
- * One `<select>` in a search form or a results filter: the name to submit it
- * under, a label, and the options with the current one marked.
- *
- * A theme renders these as it is handed them and in the order it is handed
- * them. Which axes a search has is the app's decision, not a theme's, and a
- * theme that enumerated them would lose one the day the app gained it.
- */
+/** Select control with its submitted name, label and options. Render controls in the supplied order. */
 export interface SearchChoiceModel {
   readonly field: string
   readonly label: string
@@ -1209,15 +629,7 @@ export interface SearchTextFieldModel {
   readonly hint: string
 }
 
-/**
- * The advanced half of the search form.
- *
- * `isOpen` is the app saying whether the reader has anything in here — a
- * returning search with an author or a date window set opens the panel so the
- * narrowing that produced the results is visible rather than hidden behind a
- * closed disclosure. A theme is free to render the panel open always; it must
- * not render it *closed* when `isOpen` is true.
- */
+/** Advanced search controls. Keep open when `isOpen` is true so applied filters are visible. Always-open rendering is also supported. */
 export interface SearchAdvancedModel {
   readonly label: string
   readonly isOpen: boolean
@@ -1232,38 +644,7 @@ export interface SearchChipModel {
   readonly removeHref: string
 }
 
-/**
- * Filtering and sorting for a results page, in the order of how often it is
- * used: the count, the order, what is already narrowing the page, and — folded
- * away until wanted — the filters themselves.
- *
- * ## Why the order is links and the filters are a form
- *
- * Changing the order is one decision and the commonest one, so `sorts` are
- * links: one click, nothing to submit, and each href carries the filters
- * already applied. Filtering is several decisions at once — a forum *and* a
- * date, say — so `choices` are a GET form with one submit, and the result is a
- * URL. `applied` is the reverse of both: one chip per filter that is on, each
- * with an href that removes only itself.
- *
- * A reader with JavaScript off gets all three, because all three are ordinary
- * HTML.
- *
- * ## The space this is allowed to take
- *
- * Keep the count, sort links and applied filters together above the results.
- * Labeled controls can use columns on wider screens and stack on phones so
- * long forum and author names remain readable. Preserve visible labels and
- * usable touch targets without making the page scroll horizontally.
- *
- * ## Counts, and what they count
- *
- * An option's label carries the number of results it would leave, counted
- * against the search *without* the forum and author filters applied — so the
- * counts stay put as a reader moves between forums instead of collapsing to
- * the one they are already in. `note` carries the caveat when the board is big
- * enough that the count is a floor rather than a total.
- */
+/** Results filters: count, sort links, applied-filter removal links and a GET form. Preserve existing filters in supplied hrefs and hidden inputs. Option counts exclude forum/author narrowing; `note` identifies lower-bound counts. Keep labels, touch targets and long values readable without horizontal page scrolling. */
 export interface SearchRefineModel {
   /** Where the filters submit: this same results page. */
   readonly action: string
@@ -1289,14 +670,7 @@ export interface HiddenFieldModel {
   readonly value: string
 }
 
-/**
- * One search result: where it goes, and enough of it to decide whether to go.
- *
- * `excerptHtml` is the only HTML in this model, and it is the app's own: the
- * search engine returns the matching fragment with the matched words wrapped in
- * `<b>`, and nothing else survives — the post's own markup is stripped before
- * the excerpt is cut, so a theme is styling emphasis, not rendering a post.
- */
+/** Search result with destination and excerpt. `excerptHtml` contains app-generated match emphasis; source markup is stripped. Render other fields as text. */
 export interface SearchHitModel {
   readonly postId: number
   readonly threadTitle: string
@@ -1307,47 +681,18 @@ export interface SearchHitModel {
   readonly postedAt: TimeModel
 }
 
-/**
- * The results of one search.
- *
- * ## Why the results are a slot of their own
- *
- * `SearchForm` is a filter panel and this is a listing; they share a page and
- * nothing else. Rendering the results *inside* `SearchForm` would mean a theme
- * that wants a different result row has to reimplement the form to get at it.
- *
- * ## `searchedAt`, and why results are not simply cached
- *
- * A search is stored and its results page is re-checked against the viewer's
- * access every time it is opened, so what a link to a result set shows depends
- * on who opens it. The timestamp is in the model because a theme should be able
- * to say when the search was run — a result page that looks live and is a week
- * old is the failure this field exists to prevent.
- */
+/** Search results with their original `searchedAt` timestamp. Visibility is checked again for the current viewer when opening a stored result set. */
 export interface SearchResultsModel {
   /** What was searched for, as the reader typed it. */
   readonly terms: string
   readonly searchedAt: TimeModel
   readonly hits: readonly SearchHitModel[]
-  /**
-   * The next page of this same search, or `null` at the end.
-   *
-   * Superseded by `regions.pagination`, which walks backwards as well and says
-   * which page this is. Both are populated: a theme written before the region
-   * existed keeps working, and one that renders the region should not also
-   * render this link or the page carries two pagers.
-   */
+  /** Legacy next-page link, or null at the end. Prefer `regions.pagination`; render only one pager. */
   readonly nextHref: string | null
   readonly nextLabel: string
   /** Back to an empty form. Always offered: a search that found nothing needs it most. */
   readonly newSearchHref: string
-  /**
-   * The narrow-this-search form. A GET form, like `SearchForm` and for the same
-   * reason — the narrowed search is a URL of its own, not a state this page
-   * holds. `hidden` carries the advanced options this search was run with, one
-   * input per entry, so that narrowing it keeps them; a theme that drops them
-   * narrows within the words alone.
-   */
+  /** GET filter form. Preserve each `hidden` input so narrowing retains the original advanced options. */
   readonly within: {
     readonly action: string
     readonly field: string
@@ -1381,22 +726,7 @@ export interface DiscoveryRowModel {
   readonly lastPostUsername: string | null
 }
 
-/**
- * A discovery listing: "new posts", "today", "unread", "unanswered", and the
- * two personal views.
- *
- * One slot rather than five. The views differ in which threads the query
- * returned and in the sentence under the heading; the reader is looking at the
- * same thing in every one of them, and a theme that had to fill five slots to
- * restyle one row would fill four of them by copy and paste.
- *
- * ## `tabs` are given, not built
- *
- * Which views exist depends on whether the viewer is signed in — "my posts" is
- * not offered to a guest — and that is a decision the app has already made.
- * A theme renders the tabs it is handed and marks the current one; it never
- * enumerates the views itself.
- */
+/** Discovery listing for new, today, unread, unanswered or personal content. Render the supplied tabs and current state; available tabs depend on the viewer. */
 export interface DiscoveryViewModel {
   readonly title: string
   /** One line saying what this view selected, e.g. "Threads nobody has replied to yet". */
@@ -1411,11 +741,7 @@ export interface DiscoveryViewModel {
    * ("you have reached the end") from at the start of one ("nothing here yet").
    */
   readonly emptyMessage: string
-  /**
-   * Set when the view refused rather than failed: a guest asking for their own
-   * threads. The listing is empty and this says why, with `signInHref` to fix
-   * it. Not an error — a themed page, not the error page.
-   */
+  /** Access notice for a refused discovery view. Results are empty; signInHref provides the sign-in action. */
   readonly refusal: {
     readonly message: string
     readonly signInHref: string
@@ -1433,14 +759,7 @@ export interface TabModel {
 /** Which control panel a shell or a page belongs to. */
 export type PanelKind = 'usercp' | 'modcp' | 'admincp'
 
-/**
- * The frame around a control panel.
- *
- * `panel` is in the model because the three panels are the same shape and not
- * the same place: a theme can give the admin panel its own accent without
- * needing three slots, and the default theme uses it to decide how far down the
- * rail starts — the admin panel carries a header of its own above this.
- */
+/** Control-panel frame. Use `panel` to distinguish member, moderator and administrator layouts. */
 export interface PanelShellModel {
   readonly panel: PanelKind
   /**
@@ -1456,34 +775,11 @@ export interface PanelShellModel {
   readonly children?: ReactNode
 }
 
-/**
- * Where the reader is, relative to one navigation item.
- *
- * `here` is the page being rendered; `under` is an item the reader is inside
- * but not on — a forum's permission screen under "Forums". The distinction is
- * `aria-current="page"` against `aria-current="true"`, and both are the answer
- * to "where am I", which is the only question a rail exists to answer.
- */
+/** Navigation position: `here` uses `aria-current="page"`; `under` uses `aria-current="true"` for an ancestor section. */
 export type PanelNavCurrent = 'here' | 'under'
 
-/**
- * One item in a panel's navigation.
- *
- * `current` is resolved by the app from the request path — the theme is told
- * where the reader is, it does not work it out. That is what lets this slot
- * render on the server: the alternative is `usePathname`, which makes the whole
- * rail a client component and ships a router hook to a board that needs none.
- */
-/**
- * What one rail item is about, named rather than drawn.
- *
- * The app knows a section is the member list; only the theme knows what a
- * member looks like in its own hand. Passing a name instead of an `<svg>` is
- * what keeps the icon set a theme's decision — a theme that wants none ignores
- * this, and one with its own drawing does not have to match anybody else's line
- * weight. A name a theme has no drawing for is drawn as nothing, never as a
- * broken box.
- */
+/** Panel navigation item. The app resolves `current` from the request path; no client router lookup is needed. */
+/** Semantic icon name. The theme chooses its graphic or omits it. Unknown names render nothing. */
 export type PanelNavIcon =
   | 'antispam'
   | 'avatar'
@@ -1518,12 +814,7 @@ export interface PanelNavItemModel {
   readonly count: number | null
   /** `null` when the reader is somewhere else entirely. */
   readonly current: PanelNavCurrent | null
-  /**
-   * A page reached from elsewhere rather than from the rail — warning a member,
-   * editing one forum. It is shown as where you are and it is not a link,
-   * because a link to the page you are on that also needs an argument you no
-   * longer have is a dead end. Only ever present while the reader is on it.
-   */
+  /** Current contextual page reached outside the rail, such as a forum editor. Render as a label rather than a link. */
   readonly isRecord: boolean
 }
 
@@ -1554,29 +845,13 @@ export interface PanelNavModel {
   readonly currentTitle: string | null
 }
 
-/**
- * One control-panel page: heading, the line under it, its controls, its body.
- *
- * ## Why the heading is data and everything around it is a region
- *
- * `title` is a string because a page title is a string — it is also the
- * document title, and a model that allowed markup here would let a theme's
- * `<h1>` and the browser tab disagree. The lede and the controls are regions
- * because the app fills them with forms carrying Server Actions and links it
- * has resolved, neither of which crosses this contract as data.
- */
+/** Panel page title and app-rendered supporting text, actions and body. The title remains plain text for the page heading and browser title. */
 export interface PanelPageModel {
   readonly panel: PanelKind | null
   readonly title: string
   /** Where this page was reached from, when it is a page under another. */
   readonly back: LinkModel | null
-  /**
-   * `panel` when a `PanelShell` is already around this page — it has centred
-   * the column and set the gutters, and the page fills what the rail leaves.
-   * `standalone` when nothing wraps the page and it has to find its own
-   * middle: who's online, the board statistics, the report form. Absent reads
-   * as `panel`, which is what a theme that ignores this renders today.
-   */
+  /** `panel` fills an existing PanelShell; `standalone` supplies its own centred frame for pages such as online, statistics and reports. Defaults to panel. */
   readonly frame?: 'panel' | 'standalone'
   /**
    * `reading` for prose and forms, `wide` for a table nobody can read at
@@ -1600,22 +875,10 @@ export interface PanelPageModel {
   readonly children?: ReactNode
 }
 
-/**
- * One labelled section within a control-panel page.
- *
- * A separate slot from `PanelPage` because it is rendered *by the page*, in
- * among the page's own content, rather than around it — a page is a heading and
- * a body, and the body may be three of these or none. A theme that restyled the
- * page frame and not the headings inside it would have one visual language
- * outside the content and the default theme's inside.
- */
+/** Labelled section within a panel page, rendered among the page’s content. */
 export interface PanelSectionModel {
   readonly title: string
-  /**
-   * The id the heading takes, so the section's landmark can point at it. Given
-   * by the page because the page is where the section is named twice — once as
-   * a heading and once as the region's accessible name.
-   */
+  /** Heading ID used by the section landmark. */
   readonly headingId: string
   readonly regions: {
     readonly description?: ReactNode
@@ -1624,35 +887,12 @@ export interface PanelSectionModel {
   readonly children?: ReactNode
 }
 
-/**
- * A link out of an authentication page, with the sentence that introduces it.
- *
- * "New here? **Create an account**" is one thought and two pieces of markup.
- * `lead` carries the first half so the copy stays the app's and the layout
- * stays the theme's — a theme that renders links as a plain list can drop it,
- * and one that renders them as sentences has the sentence.
- */
+/** Authentication-page link and its optional introductory copy. The theme may present the link alone or with its `lead`. */
 export interface AuthLinkModel extends LinkModel {
   readonly lead: string | null
 }
 
-/**
- * The sign-in, register, reset and confirm pages.
- *
- * ## Why one slot and not five
- *
- * They are the same page: a card, a heading, a form, and the ways out of it.
- * What differs is the form, and a form carrying a Server Action never crosses
- * this contract as data — so it arrives as a region and the four pages become
- * one slot with four things in the hole.
- *
- * ## `alert` is not `Notice`
- *
- * `Notice` is a flash message on a page that has a shell around it; this is the
- * page telling you the link that brought you here is no longer any good, and it
- * has to be readable above the form it concerns. It is a string rather than a
- * model because there is exactly one kind of it.
- */
+/** Sign-in, registration, reset and confirmation frame. Place the app-rendered form and links. Show `alert` above the form when supplied. */
 export interface AuthPageModel {
   readonly title: string
   /** `null` unless something about the way in went wrong. */
@@ -1668,29 +908,7 @@ export interface AuthPageModel {
   }
 }
 
-/**
- * The forum jump box — MyBB's `<select>` at the foot of every page.
- *
- * ## Why a form and a button rather than a `<select>` that navigates
- *
- * The obvious implementation is an `onChange` handler that sets
- * `location.href`. It is also inaccessible and does not work without
- * JavaScript, and it fails in the same way for both reasons: **choosing an
- * option is not the same act as committing to it.** A keyboard user moving
- * through a `<select>` with the arrow keys changes the value on every
- * keystroke, so an auto-navigating jump box teleports them to the first forum
- * in the list before they reach the one they wanted.
- *
- * So the model carries an `action` and a submit label, and the theme renders a
- * real `method="get"` form. A theme is free to *also* auto-submit for pointer
- * users; the button is what must always be there.
- *
- * ## `depth` rather than a pre-indented label
- *
- * The app gives the tree's shape and the theme decides how to show it. Baking
- * `— — Subforum` into the label would make the indentation impossible to
- * restyle and would put non-breaking spaces into what a screen reader announces.
- */
+/** Forum selector in a real GET form with a submit button. Do not navigate on keyboard selection changes. Use `depth` to indent options without modifying their labels. */
 export interface ForumJumpModel {
   /** Where the form submits. GET, because a jump is a navigation. */
   readonly action: string
@@ -1729,23 +947,7 @@ export interface ErrorNoticeModel {
   readonly requestId: string | null
 }
 
-/**
- * One inline-moderation checkbox, or `null` when this viewer has no
- * business selecting rows.
- *
- * Plain data, and it has to be: the *form* it belongs to carries a Server
- * Action reference, and such references never cross the theme
- * contract. So the app renders the form — below the listing, where a bar of
- * buttons belongs — and the theme renders a checkbox that says which form it
- * belongs to.
- *
- * `formId` is the whole trick, and it is why this works with scripting off.
- * HTML's `form` attribute associates a control with a form **by id, anywhere
- * in the document**, so the checkboxes can live inside table rows, list items
- * or article elements without the listing having to be wrapped in a `<form>` —
- * which it cannot be, because `ForumDisplay` already renders a mark-read form
- * and nested forms are not a thing browsers will parse.
- */
+/** Inline-moderation checkbox or null when unavailable. Associate it with the app-owned form using `formId` and HTML’s `form` attribute. Do not nest forms around listings. */
 export interface SelectionModel {
   /** The field name every checkbox shares. */
   readonly name: string
@@ -1780,16 +982,7 @@ export interface ThreadRowSlotModel {
   /** The inline-moderation checkbox, or `null`. */
   readonly select: SelectionModel | null
   readonly regions?: {
-    /**
-     * The `threadrow.badges` region, beside the thread's title (0.22).
-     *
-     * Filled from a single per-page call rather than one per row — a forum page
-     * lists twenty threads on a tight budget, so the region runs once with the
-     * whole page and hands each row its badges. Optional, which is what makes it
-     * additive: a theme written against 0.21 compiles and simply shows no plugin
-     * badges. Absent on a row no plugin marked; a theme places it wherever a
-     * thread's own flags (pinned, locked) sit.
-     */
+    /** Optional thread-row plugin badges, supplied by one batched call per page. Place beside the thread flags. Added in 0.22. */
     readonly pluginBadges?: ReactNode
   }
 }
@@ -1797,21 +990,7 @@ export interface ThreadRowSlotModel {
 export interface PostActionsSlotModel {
   readonly actions: PostActionsModel
   readonly postId: number
-  /**
-   * App-rendered controls that belong beside the post's own actions — today,
-   * the multi-quote island.
-   *
-   * It is `children` for the reason logging out is: the button is a client
-   * island holding browser state, and neither a component nor a handler can
-   * cross this contract as data. Before this field the page had nowhere to put
-   * it but `PostBitModel.regions.pluginFooter`, so every post on the board
-   * carried a second bordered row containing one control — the plugin region
-   * used as a parking space, and a visible band of furniture per post as the
-   * price.
-   *
-   * Additive under the versioning policy, and `children` is already exempt from the
-   * plain-data rule.
-   */
+  /** App-rendered post controls, including the multi-quote island. Place beside the post’s action links. */
   readonly children?: ReactNode
 }
 
@@ -1819,12 +998,7 @@ export interface PostActionsSlotModel {
  * The slot → model map
  * ------------------------------------------------------------------ */
 
-/**
- * What each slot is handed. Every key here must be a slot in `SLOTS`, and every
- * slot in `SLOTS` must have a key here — both directions are asserted below, so
- * adding a slot without a model (or the reverse) fails `pnpm typecheck` rather
- * than surfacing as an `any` in a theme.
- */
+/** Slot-to-model map. Type checks require one entry per registered slot and reject unregistered entries. */
 export interface SlotModels {
   Shell: ShellModel
   Header: HeaderModel

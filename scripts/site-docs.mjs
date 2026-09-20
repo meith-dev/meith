@@ -94,14 +94,14 @@ for (const section of manifest.sections) {
 function renderIndex() {
   const lines = [START, '']
   for (const section of manifest.sections) {
-    lines.push(`## ${section.title}`, '', section.blurb, '')
+    lines.push(`## ${section.title}`, '')
     let previousGroup
     for (const doc of manifest.documents.filter((entry) => entry.section === section.id)) {
       if (doc.group !== undefined && doc.group !== previousGroup) {
-        if (previousGroup !== undefined) lines.push('')
+        if (lines.at(-1) !== '') lines.push('')
         lines.push(`### ${doc.group}`, '')
       }
-      lines.push(`- [${doc.title}](./${doc.file}) — ${doc.blurb}`)
+      lines.push(`- [${doc.title}](./${doc.file})`)
       previousGroup = doc.group
     }
     lines.push('')

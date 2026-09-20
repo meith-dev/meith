@@ -1,47 +1,31 @@
-# Server operations
+# Operations
 
-Use this checklist when you take responsibility for a running board. Community settings and moderation are covered in [Community administration](../administration/organiser-guide.md); this page is about keeping the services and data working.
+## Deployment checks
 
-## Check a deployment
+Verify public HTTPS, sign-in, completed migrations, scheduled-task progress, delivered test mail, uploads surviving a restart and a successful off-site restore rehearsal.
 
-1. Open the public HTTPS address and sign in with a test account.
-2. Confirm the database is reachable and the core migration step completed successfully.
-3. Confirm scheduled work runs. Pages can load while queued work is stalled.
-4. Send a test email and check the receiving mailbox.
-5. Upload a test attachment and confirm it survives a restart.
-6. Verify an off-site backup and rehearse a restore.
-
-For a Compose deployment, run from the directory containing its Compose file:
+For Compose, run in the deployment directory:
 
 ```sh
 docker compose ps
 docker compose logs --since 1h web worker
 ```
 
-The PostgreSQL, web and worker services should be healthy; the one-shot migration service should have exited successfully. Service names and worker implementation depend on the deployment files you use.
+Database, web and worker should run; the migration service should have exited 0.
 
-## Find the maintenance task
+## Procedures
 
 | Task | Guide |
 |---|---|
-| Run a CLI command or recover administrator access | [Operator commands](operator-cli.md) |
-| Change a runtime setting or driver | [Board configuration](configuration.md) and [environment variables](environment.md) |
-| Apply migrations or configure pooled connections | [Database operations](database-operations.md) |
-| Configure outgoing email | [Email](mail.md) |
-| Run the worker or a scheduled tick | [Scheduled tasks](scheduled-tasks.md) |
-| Diagnose readiness, logs or alerts | [Monitoring](monitoring.md) |
-| Take, copy or test a backup | [Backups](backups.md) |
-| Install a release | [Upgrade Meith](upgrading.md) |
-| Replace a lost server | [Disaster recovery](disaster-recovery.md) |
-| Run more web instances | [Scaling](scaling.md) |
-| Add an extension | [Install plugins and themes](installing.md) |
-| Configure sign-in providers | [Authentication settings](single-sign-on.md) |
-| Enable browser notifications | [Web push](web-push.md) |
+| CLI and account recovery | [Operator commands](operator-cli.md) |
+| Settings and drivers | [Configuration](configuration.md), [Environment](environment.md) |
+| Migrations and pooling | [Database](database-operations.md) |
+| Delivery | [Mail](mail.md), [Scheduled tasks](scheduled-tasks.md) |
+| Health and failures | [Monitoring](monitoring.md), [Troubleshooting](troubleshooting.md) |
+| Data recovery | [Backups](backups.md), [Disaster recovery](disaster-recovery.md) |
+| Releases and packages | [Upgrades](upgrading.md), [Extensions](installing.md) |
+| Replicas | [Scaling](scaling.md) |
+| Sign-in and browser policy | [Authentication](single-sign-on.md), [Security](web-security.md) |
+| Browser notifications | [Web push](web-push.md) |
 
-If something is failing, start with [Troubleshooting](troubleshooting.md). The [cookies and headers reference](web-security.md) covers browser security behavior.
-
-## Keep a recovery handover
-
-Record the deployed version, board repository, hosting route, database, upload store, backup destination and scheduler. Store secrets securely outside the server, including the original `AUTH_SECRET`; backup bundles do not contain the environment.
-
-Record the date and result of the most recent restore rehearsal. A backup file's existence alone does not prove the board can be recovered.
+Record the deployed version, repository, service locations, scheduler, backup destination and last tested restore. Keep credentials, including the original `AUTH_SECRET`, securely outside the server. Backup bundles do not include them.

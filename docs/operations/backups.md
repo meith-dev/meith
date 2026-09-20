@@ -1,86 +1,65 @@
-# Back up and restore a board
+# Backups and restore
 
-Protect the database, uploaded files and deployment secrets. A backup bundle covers data; it does not contain the environment. Use [Disaster recovery](disaster-recovery.md) when replacing a lost server.
-
-## Know what a bundle contains
-
-A `meith-backup-….tar.gz` bundle contains `db.dump`, `manifest.json` and, when included, `uploads.tar.gz`. Read the manifest to check the originating version, file driver and any missing objects.
-
-| Upload driver | Automatic inclusion |
-|---|---|
-| `local` | Included |
-| `blob` | Included |
-| `s3` | Skipped; select Always include for a self-contained bundle |
-
-An S3 bucket still needs its own recovery plan when excluded. A database-only restore cannot recreate missing attachments.
-
-Keep the original `AUTH_SECRET` and other credentials separately. Losing `AUTH_SECRET` prevents decryption of sealed settings and enrolled authenticator secrets.
+Protect PostgreSQL, uploads and the deployment environment. Bundles contain `db.dump`, `manifest.json` and optionally `uploads.tar.gz`; they do not contain deployment environment variables. Database-stored secrets remain in the dump, including sealed settings. Keep the original `AUTH_SECRET` separately to decrypt sealed settings and authenticator secrets.
 
 ## Schedule backups
 
 1. Open **Admin → Settings → Backups**.
-2. Choose daily or weekly backups and a time in UTC.
-3. Set count and age retention. Zero age means no age limit; the newest bundle is retained.
-4. Choose whether uploads are included.
-5. Configure and test an off-site destination.
-6. Open **Admin → System → Backups**, request a backup and inspect its completed run.
+2. Select daily/weekly timing in UTC, count/age retention and upload inclusion.
+3. Configure and test an off-site destination.
+4. Request a backup under **Admin → System → Backups** and inspect completion.
 
-Backups need a running worker. The screen records pending, running, completed and failed work. A successful local file with a failed off-site upload is still a failed run to investigate. Retention pruning does not discard the last good backups after a failed run.
+A worker is required. Zero age disables age-based expiry; the newest bundle is retained. Failed off-site shipping is a failed run even if the local bundle exists. Failed runs do not prune the last good backups.
 
-Off-site storage can use supported S3-compatible or WebDAV destinations. Configure through the panel or the appropriate `BACKUP_S3_*`/`BACKUP_WEBDAV_*` environment values. Environment credentials take precedence where supported. Use the destination test and actually list or fetch a saved bundle.
+Local and Blob uploads are included automatically; S3 uploads are skipped by default. Select **Always include** for a self-contained S3 bundle.
 
-## Configure an off-site destination
+## Off-site configuration
 
-Choose one destination. These variables are separate from the upload-store credentials:
-
-| Destination | Required values | Optional values |
+| Destination | Required | Optional |
 |---|---|---|
-| S3-compatible | `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` | `BACKUP_S3_ENDPOINT`, `BACKUP_S3_PREFIX` |
-| WebDAV | `BACKUP_WEBDAV_URL` pointing to a collection | `BACKUP_WEBDAV_USERNAME` and `BACKUP_WEBDAV_PASSWORD`, supplied together |
+| S3 | `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` | `BACKUP_S3_ENDPOINT`, `BACKUP_S3_PREFIX` |
+| WebDAV | `BACKUP_WEBDAV_URL` collection URL | `BACKUP_WEBDAV_USERNAME` and `BACKUP_WEBDAV_PASSWORD` together |
 
-A configured environment destination takes precedence over the saved destination. Incomplete credentials or simultaneous S3 and WebDAV destinations are rejected. Use HTTPS for remote WebDAV storage. A prefix separates this board's bundles within a shared bucket.
+Use HTTPS for remote WebDAV. Environment destinations override saved settings. Incomplete or simultaneous S3/WebDAV configurations are rejected. Backup credentials are separate from upload credentials. Verify an actual remote bundle, not only a connection test.
 
-## Take a manual backup
+## Manual backup
 
-From a generated board checkout with its production environment deliberately selected:
+In a board checkout configured for the intended database:
 
 ```sh
 npm run meith -- backup --out /secure/backups/board.tar.gz --uploads include
 ```
 
-The parent directory must exist and be writable. The output path must not already exist. Use a new filename for each manual backup.
-
-For a Compose deployment, mount a host destination and use the host user's permissions:
+The parent must exist; the output must not. Use a new filename each time. For Compose:
 
 ```sh
 mkdir -p backups
-docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/backups":/backup web \
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" \
+  -v "$PWD/backups":/backup web \
   meith backup --out /backup/board.tar.gz --uploads include
 ```
 
-The dump uses `DIRECT_DATABASE_URL` when provided. `--dir` writes a timestamped ring; `--keep` overrides retention and `--uploads include|skip` overrides inclusion. See `meith backup --help` for the installed version.
+`DIRECT_DATABASE_URL` is preferred for the dump. `--dir` writes a timestamped ring, `--keep` overrides retention, and `--uploads include|skip` overrides inclusion.
 
-Exit 0 means complete. Exit 2 means a bundle was written but its manifest lists missing objects. Preserve that bundle, investigate the named objects, and take a complete backup after repair. Other failures need investigation; an empty or truncated claimed output file is not a usable backup.
+Exit 0 means complete. Exit 2 means a bundle exists but its manifest names missing objects: preserve it, repair the cause and take another backup. Other failures require investigation; do not use empty or truncated files.
 
 ## Restore into a separate destination
 
 > [!CAUTION]
-> Restore into an empty destination. Keep the live board and original backup intact until the restored board has passed verification.
+> Keep the source board and backup intact. CLI restore requires an empty database; do not run migrations or installation on that destination first.
 
-For a fresh deployment, unlock `/install` and choose its restore flow. Select a local or off-site bundle, confirm that you retained the original `AUTH_SECRET`, and follow the checks. The installer refuses a populated board and unsupported newer backups.
-
-For a CLI restore, set `RESTORE_DATABASE_URL` to the empty destination, then run the installed CLI with the correct destination file-store environment:
+Set `RESTORE_DATABASE_URL` to the empty destination and configure its file store. Then, from a board checkout:
 
 ```sh
 npm run meith -- restore /secure/backups/board.tar.gz --uploads-dir /restore/uploads
 ```
 
-The explicit restore database variable is required; `DATABASE_URL` alone is not an instruction to overwrite the live board. Verify whether the bundle carries uploads and whether the destination uses local or remote storage before choosing flags.
+Use an empty upload directory. Omit `--uploads-dir` to use the destination's configured store. `DATABASE_URL` alone cannot select a restore target.
 
-## Rehearse and verify
+Alternatively, unlock `/install` on a fresh deployment and select its restore flow. This route can replace an uninstalled schema but refuses a board with members. Both routes reject unsupported newer backups. Restore applies missing migrations; inspect any partial-failure message before retrying against the now-populated target.
 
-Start the restored board privately. Check member sign-in, a private forum, a long thread, attachments, avatars and sealed settings. Confirm the expected version and counts. Record the elapsed recovery time and the result.
+## Verify
 
-Serverless deployments run backups and restores from an external machine with the required database tools and storage access. The admin backup process is unavailable inside those functions.
+Start privately and check accounts, private forums, old/recent posts, attachments, avatars and sealed settings. Record recovery time and results. Excluded uploads need a separate recovery copy.
 
-Before an upgrade, take a fresh backup. **Back up before migrating** can require one before pending core migrations, but this does not replace a tested recovery procedure.
+Run serverless backups/restores externally with PostgreSQL tools and storage access. **Back up before migrating** can require a pre-migration backup but does not replace restore testing. See [Disaster recovery](disaster-recovery.md).

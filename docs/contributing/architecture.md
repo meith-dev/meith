@@ -1,60 +1,36 @@
 # Architecture
 
-Meith separates business rules, infrastructure and presentation. Use this map to choose where a contribution belongs; [Development](development.md) covers setup and validation.
+## Request flow
 
-## Applications and processes
+1. The app parses and validates input.
+2. It resolves the actor and checks authorisation.
+3. A domain service applies the operation through repository interfaces.
+4. Infrastructure persists the result and transactional events.
+5. The app builds a public model, invalidates affected caches and returns or redirects.
 
-| Application | Responsibility |
-|---|---|
-| `apps/community` | Forum pages, Server Actions, route handlers and request composition |
-| `apps/worker` | Scheduled and queued work |
-| `apps/cli` | Operator migrations, backups, imports and maintenance |
-| `apps/web` | Marketing and documentation site |
+Domain packages do not import Next.js, React, database drivers or app modules. `packages/runtime` composes services and concrete adapters. `packages/core` holds shared contracts; the theme and plugin kits expose extension contracts.
 
-Applications compose domain operations with concrete repositories and drivers. Packages do not import application internals.
-
-## Package boundaries
+## Application boundaries
 
 | Layer | Responsibility |
 |---|---|
-| `packages/core` | Shared values, errors, permissions, environment validation and infrastructure ports |
-| Domain packages | Business behavior expressed through explicit inputs and interfaces |
-| `packages/db` | PostgreSQL schemas, queries and repository implementations |
-| `packages/drivers` | Queue, cache, file, mail and image implementations |
-| `packages/runtime` | Composition shared by web, worker and CLI |
-| `packages/ui` | Reusable presentation components |
-| Theme/plugin kits | Published extension contracts |
+| Routes and server actions | Request parsing, authentication, response handling |
+| Domain services | Business rules and permission-aware operations |
+| Repositories/drivers | Persistence and external services |
+| View models | Explicit serialisable fields for rendering |
+| Themes | Presentation of prepared models and regions |
+| Plugins | Declared hooks, routes, pages and services |
 
-Domain packages do not import Next.js, React, database clients, drivers or application internals. Dependency Cruiser and repository guards enforce these boundaries.
+Never expose database rows to components or API responses. Never cache actor-dependent results as global data.
 
-## Follow a request
+## Board configuration
 
-1. A page, action or route receives framework input.
-2. Application code validates it and resolves the member and permission context.
-3. A domain operation receives explicit values and repository interfaces.
-4. An infrastructure adapter performs the durable work.
-5. The application refreshes the relevant cached state and returns a safe result.
+The board consumes its configuration through `@board/*` aliases. `apps/community` is the development board; `boards/stock` supplies the official image. External boards provide the same configuration files beside installed packages. See [Board workspaces](board-workspaces.md).
 
-Read paths resolve authorized data before constructing a theme view model. Themes render those models; they do not fetch data or decide permissions. API routes use the same authorization concepts as pages.
+Fixture mode supplies read-only sample data. PostgreSQL mode supplies durable storage, queue claims and scheduled tasks. Web, worker and CLI must use matching configuration and stores.
 
-## Understand data and background work
+## Background work
 
-Fixture mode uses deterministic in-memory sample data for browsing and tests. PostgreSQL provides durable board state. Fixture mode does not simulate successful writes and cannot run the durable worker.
+Write content changes and outbox events in the same transaction. Delivery is at least once; handlers must be idempotent. Queue claims and task leases coordinate workers. Every denormalized counter needs a bounded, resumable recount.
 
-The worker and HTTP tick use the shared runtime task bundle. Database claims coordinate concurrent work. Tasks process bounded batches and resume from persisted state where needed; a healthy web process alone does not prove the scheduler is progressing.
-
-For operations, use [Scheduled tasks](../operations/scheduled-tasks.md), [Database operations](../operations/database-operations.md) and [Scaling](../operations/scaling.md).
-
-## Boards and extensions
-
-A board owns its static theme/plugin configuration and exact package pins. The stock image is built from `boards/stock`, using the external-board workspace shape. `apps/community` remains the in-repository development target.
-
-The `@board/config` and `@board/plugins` aliases let the web app and CLI read the selected board without hard-coded imports into another application's directory. Read [Board workspaces](board-workspaces.md) before changing packaging, materialization or these aliases.
-
-Plugins use the host APIs and their own database namespace. Themes implement slots and inherit presentation. [Build extensions](../extensions/extensions.md) links to their contracts.
-
-## Validate a boundary change
-
-Extend an explicit port and implement it in infrastructure when business behavior needs a new capability. Keep framework wiring in application/runtime composition and document the invariant beside its contributor guide.
-
-Run `pnpm depcruise`, relevant tests and the full `pnpm verify` gate before a PR. Regenerate API, theme and plugin references when changing their public source contracts.
+See [Rendering and data](rendering-and-data.md) for caching, models and event-handler rules, and [Forms and actions](forms-and-actions.md) for mutation handling.

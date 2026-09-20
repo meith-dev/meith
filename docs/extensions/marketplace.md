@@ -1,41 +1,27 @@
-# Publish a theme or plugin
+# Publish an extension
 
-Publish a tested extension package, then submit a listing for review. A marketplace listing describes compatibility; it does not prove that an extension is safe or compatible with every board.
+The marketplace lists reviewed npm packages. Operators install packages in their own board repositories; a listing does not install or update code automatically.
 
 ## Prepare the package
 
-Run its tests and typecheck, then install it into a disposable board and verify the documented features. Declare the package version and supported Meith/API range honestly. Check permissions, migrations, secret handling, translations and accessibility.
+1. Test the extension against the declared Meith and API versions.
+2. Publish the package with its licence and source repository.
+3. Capture screenshots of the extension in a board.
+4. Add a listing under `marketplace/listings/` and PNG screenshots under `marketplace/screenshots/` in the Meith repository.
 
-The scaffold includes `listing.json`. Replace placeholders such as the repository URL and provide a real screenshot. Publishing the npm package is a deliberate release action; follow your package's release process when ready.
+Include the package's kind (`plugin` or `theme`), stable key, package name, version, API version, supported `meith` range and screenshot filenames. Follow an existing listing for the complete schema.
 
-## Complete the listing
+Compatibility declarations must match tested behaviour. A range accepted by the parser does not prove the package works on every matching release.
 
-| Field | Meaning |
-|---|---|
-| `kind` | `plugin` or `theme` |
-| `key` | Stable extension key using the accepted key format |
-| `package` | Published package name |
-| `version` | The listed package's version |
-| `apiVersion` | Theme-kit or plugin-kit major used |
-| `meith` | Tested board-version range |
-| `screenshots` | Filenames included in the repository's marketplace screenshots directory |
+## Submit the listing
 
-Third-party packages have their own version sequence. First-party listings track the repository release. The generator checks that ranges parse; you must establish actual compatibility through testing.
+From the Meith source checkout:
 
-## Submit a pull request
+```sh
+pnpm marketplace:gen
+pnpm marketplace:gen:check
+```
 
-1. Add the listing under `marketplace/listings/`.
-2. Add the referenced images under `marketplace/screenshots/`.
-3. Run `pnpm marketplace:gen` and inspect the resulting feed and assets.
-4. Run `pnpm marketplace:gen:check` and the repository's required checks.
-5. Explain the extension's behavior, permissions, compatibility and test results in the PR.
+Commit the listing, screenshots and generated feed, then open a pull request. Review covers functionality, compatibility, licence, declared network access and screenshot accuracy.
 
-The feed serves reviewed local screenshots rather than arbitrary third-party image URLs. Unused screenshots and stale generated output fail the gate.
-
-## Understand review and updates
-
-A review considers the published source, requested capabilities, data access, migration behavior and whether the listing matches what the package does. A listing is not a sandbox or a guarantee against malicious future package releases.
-
-For an update, publish and test the new package, then update the listing and compatibility evidence. Boards can report an available compatible update, but operators still choose to install and deploy it.
-
-Operators should use [Install extensions](../operations/installing.md). Contributors maintaining the feed should use [Marketplace maintenance](../contributing/marketplace-maintenance.md).
+Update the listing when publishing a new package version. Do not edit the generated public feed directly. See [Marketplace maintenance](../contributing/marketplace-maintenance.md) for validation and delisting.

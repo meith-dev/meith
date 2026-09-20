@@ -1,8 +1,8 @@
-# Contribute to Meith
+# Development setup
 
-Use this guide to run the Meith source repository and prepare a change. You need Node.js 22 or newer and pnpm 10. A generated board uses a different workflow; use [local board setup](../operations/local-board.md) if you are configuring your own community.
+Requires Node.js 22+ and pnpm 10. Run commands from the Meith repository root unless stated otherwise.
 
-## 1. Run the repository
+## Start with fixtures
 
 ```sh
 git clone https://github.com/meith-dev/meith.git
@@ -11,66 +11,53 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:3000>. Without a database, this runs the sample board in fixture mode. It is suitable for browsing and presentation work, but does not save writes.
+Open `http://localhost:3000`. Fixtures require no database and do not save changes.
 
-## 2. Enable writes when needed
-
-For posting, installation or moderation work, start the development database:
+## Use PostgreSQL
 
 ```sh
 docker compose -f docker/compose.dev.yml up -d
 cp .env.example .env
 ```
 
-In `.env`, set `DATA_SOURCE=postgres`, `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test`, and an independently generated `AUTH_SECRET` of at least 32 characters. `openssl rand -hex 32` generates a suitable secret. Keep the file out of git.
+Set these values in `.env`, including a random `AUTH_SECRET` of at least 32 characters:
 
-```sh
-pnpm meith migrate
-pnpm dev
+```dotenv
+DATA_SOURCE=postgres
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/community_test
+AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
 ```
 
-Open `/install`, unlock it with `AUTH_SECRET`, and complete installation. Stop the development database before running the browser suite: both use port 55432.
+Run `pnpm meith migrate`, then `pnpm dev`. Open `/install`, unlock with `AUTH_SECRET` and create the board administrator. Use [Scheduled tasks](../operations/scheduled-tasks.md) for background work.
 
-> [!CAUTION]
-> `docker compose -f docker/compose.dev.yml down -v` deletes the development volume and its data. Use ordinary `down` to stop it without deleting data.
+Stop this database before running the self-contained browser suite if it uses the same port. `docker compose -f docker/compose.dev.yml down -v` deletes its data.
 
-## 3. Find the code to change
+## Work on the website
 
-| Work | Location or guide |
+```sh
+pnpm site:dev
+```
+
+Open `http://localhost:3100`. The site's forum links point to the configured live forum. Docs are loaded directly from `docs/`; see [Documentation](documentation.md).
+
+## Repository layout
+
+| Path | Purpose |
 |---|---|
-| Business behavior | Domain packages under `packages/` |
-| Pages, forms and request handling | `apps/community`; [Next.js conventions](nextjs-conventions.md) |
-| Database and infrastructure | `packages/db`, `packages/drivers`, `packages/runtime` |
-| Shared interface components | `packages/ui`; [UI conventions](ui-conventions.md) |
-| Themes and plugins | [Build extensions](../extensions/extensions.md) |
-| Marketing and docs website | `apps/web`; start it with `pnpm site:dev` |
-| Packaging and generated boards | [Board workspaces](board-workspaces.md) |
+| `apps/community` | Board application (`@meith/web`) |
+| `apps/web` | meith.dev (`@meith/site`) |
+| `apps/cli`, `apps/worker` | Operator commands and background worker |
+| `packages` | Domain, runtime, infrastructure and extension contracts |
+| `boards/stock` | Official image's board configuration |
+| `themes`, `plugins`, `examples` | Extensions and example source |
+| `docker` | Deployment files |
 
-Read [Architecture](architecture.md) and the repository's `AGENTS.md` before editing. Domain packages do not import application or infrastructure internals.
+See [Architecture](architecture.md) and [Board workspaces](board-workspaces.md).
 
-The site's Community links use `site.forum` and open [forum.meith.dev](https://forum.meith.dev), the live community running from its own template repository. Fixture boards are read-only development and screenshot previews.
+## Validate changes
 
-The marketing site runs at <http://localhost:3100>. The homepage uses a neutral canvas, restrained typography and brief copy, with links to the live forum and dedicated audience guides. Below the audience guides, an ownership section sets out what a community keeps control of — its domain, server, database and roles. A technology section then names what a board is built on — Node.js, TypeScript, Next.js, Base UI and PostgreSQL — with the major version of each read when the site is built (`src/content/stack.ts`) from the pins in `apps/community/package.json`, `packages/ui/package.json`, `docker/Dockerfile` and `docker/compose.yml`, so an upgrade changes the page without anyone editing copy; the build fails, naming the file, if one of those stops stating a version. Customisation links explain how to build themes and plugins, and the extensions listing (served from the marketplace feed) provides starting points; first-party themes are examples of what the theme system supports. Keep detailed setup and product explanations in the documentation.
+Run focused tests while editing, then `pnpm verify` and `pnpm comments:check`. Use [Testing](testing.md) for browser and PostgreSQL tests. Format only touched files with `pnpm exec biome check --write <files>`.
 
-The shared header links to Home, About, Who it’s for, Docs and Community, in that order. Community is the one external link — it opens the live forum and carries an arrow to say so. Its colour control cycles through System, Light and Dark; explicit choices persist in the browser. The mobile menu closes after navigation, Escape, outside interaction or a switch to the desktop layout.
+No explanatory inline comments are allowed. Put explanations in `docs/`. Exceptions are `biome-ignore`, `@ts-expect-error`, compiler-read type annotations, and the six source files used for generated theme/plugin references. See [Repository checks](repository-checks.md).
 
-Social share cards are generated at `/og` and the matching routes under each section, sharing one editorial card built in `src/og/`. The homepage card carries the same wording as the hero; keep them in step when the hero copy changes.
-
-## 4. Validate the change
-
-Run the relevant checks from [Testing](testing.md). Format only files you touched.
-
-For marketing site changes, run `pnpm exec playwright test --config apps/web/e2e/playwright.config.ts`. This starts the site on port 3100 and checks audience navigation, colour preference persistence, mobile navigation and page layouts. The board's `pnpm test:e2e` and `pnpm site:shots` use their own servers and configurations.
-
-Before opening a pull request:
-
-```sh
-pnpm verify
-pnpm comments:check
-```
-
-Keep documentation in step with behavior. Explanations belong in docs, not inline code comments. [Repository rules](repository-checks.md) explains the enforced checks; [Documentation maintenance](documentation.md) explains the publishing workflow.
-
-## 5. Submit a focused pull request
-
-Use a Conventional Commit title such as `fix(posts): preserve attachments when editing`. Describe the behavior change, relevant tests and limitations. Leave package versions unchanged; maintainers use the [release procedure](release.md).
+Use Conventional Commits (`type(scope): summary`). Update docs with behaviour changes. Feature changes do not change versions.

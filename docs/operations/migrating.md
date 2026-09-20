@@ -1,82 +1,61 @@
 # Import MyBB or phpBB
 
-Import one legacy forum into an installed Meith board. Rehearse against a copy first. The importer reads the source and records progress in the destination; it is not a continuous synchronization service.
+Import into an installed Meith board using read-only MySQL/MariaDB source access. Rehearse in an isolated destination first. The importer is resumable, not continuous synchronisation.
 
-## Prepare the source and destination
+## Prepare
 
-You need an installed Meith board with its groups/settings, read-only access to a MySQL or MariaDB source, and the source uploads on the machine running the command. A phpBB database on another engine is outside this import path.
+Keep source database and file backups. For MyBB, provide `uploads/`; for phpBB, provide the installation root containing `files/` and `images/avatars/`.
 
-For MyBB, provide the old `uploads/` directory. For phpBB, provide the installation root so `files/` and `images/avatars/` are available. Keep untouched backups of the source database and files.
+Use one source board per destination. Progress keys contain entity kind and old ID, not source identity; unrelated boards collide.
 
-Use one legacy board per destination. The resume map is keyed by entity kind and old ID, not by source-board identity; importing several unrelated boards into one destination creates collisions.
+## Run
 
-Read [MyBB differences](mybb-parity.md) or [phpBB differences](phpbb-parity.md), then review the coverage below.
-
-## Run a rehearsal
-
-From a generated board checkout configured for the disposable Meith destination, provide `IMPORT_SOURCE_PASSWORD` through a protected environment or secret store. Run one of these, replacing host, database and file paths:
+In a generated board checkout configured for the destination, supply `IMPORT_SOURCE_PASSWORD` through protected environment configuration:
 
 ```sh
 npm run meith -- import --source mybb --host db.old --user reader --database mybb --uploads-dir /path/to/old/uploads
 ```
 
+For phpBB:
+
 ```sh
 npm run meith -- import --source phpbb --host db.old --user reader --database phpbb --prefix phpbb_ --uploads-dir /path/to/old-board
 ```
 
-Use `npm run meith -- import --help` for optional port, TLS, charset, budget and page-size settings. In a container, explicitly pass the source credential into the container and mount the source files; a path or variable on the host is not automatically available inside it.
+Use `import --help` for port, TLS, charset, budget and page size. Containers need the credential explicitly passed and source files mounted.
 
-The default row budget is 2,000 per invocation. Run the same command again to resume until the report says it is complete. An interrupted run resumes from recorded progress.
+The default budget is 2,000 rows per invocation. Repeat the same command until the report says complete. Without uploads, attachment files fail and avatars are skipped; rerun with the correct directory and inspect results.
 
-Without `--uploads-dir`, attachment metadata can be imported while files remain failed and avatars are skipped. Repeat with the correct directory to copy the files; inspect the resulting report.
+## Coverage
 
-## Verify and prepare cutover
+| Data | MyBB | phpBB |
+|---|---|---|
+| Accounts/passwords | Legacy passwords supported | bcrypt, phpass and phpBB2 MD5 supported |
+| Forums, threads, posts | Imported | Imported; BBCode UID and stored smiley/link markup cleaned |
+| Private messages | Participant copies; no drafts | Shared message plus recipient copies |
+| Attachments | Supported files | Post attachments only; no PM attachments |
+| Avatars | Uploaded/gallery; no remote URLs | Uploaded/gallery; no remote URLs |
+| Subscriptions | Thread and forum | Thread and forum |
+| Polls | Options/votes; multiple becomes unlimited, public flag retained | Options/votes, choice cap and vote-change flag |
+| Reputation | Imported and totals recomputed | No source equivalent |
+| Warnings | Expiry/revocation; points recomputed | Limited source details |
+| Bans | Member bans; expiry through scheduled task | User bans; no email/IP exclusions |
+| Contacts | Buddies/ignore | Friends/foes |
+| Legacy URLs | MyBB original and rewritten routes | Topic, forum and member routes |
 
-Check representative accounts, private forums, old/recent posts, polls, private messages, attachments and avatars. Review skipped rows and conversion losses.
+Group ACLs, custom profile values, custom markup definitions, thread ratings, moderator logs and IP history do not transfer. Rebuild permissions and fields; review [MyBB](mybb-parity.md) or [phpBB](phpbb-parity.md) differences. Recreate MyBB announcements. phpBB announcements become sticky threads.
 
-Every imported account starts in the ordinary registered group, including former staff. Restore administrator access deliberately with `meith user:promote`, then rebuild groups, forum permissions and moderator appointments. Do this before opening the destination to members.
+## Cut over
 
-The resume cursor picks up later IDs; it does not reread already imported rows that were subsequently edited. For final cutover, stop writes on the source before the final import. Use an isolated rehearsal destination and a clean, controlled final import so earlier rehearsal data does not hide changed source rows.
-
-## Finish the destination
-
-Run with the destination board environment:
+1. Review skipped rows, converted text, messages, polls and files.
+2. Restore staff access deliberately with `meith user:promote`. Imported accounts start without source staff privileges; rebuild groups, permissions and appointments.
+3. Stop source writes before the final import. Resume only reads later IDs, not edits to already-imported rows; use a clean final destination rather than the rehearsal database.
+4. Reconcile and index:
 
 ```sh
 npm run meith -- task:run counters.reconcile
 npm run meith -- search:reindex
 ```
 
-Confirm scheduled work completes. Enable **Redirect old forum URLs** in Board settings only after a successful import. Check several old links and verify the destination permissions as guests and ordinary members.
-
-Take a new backup, then switch DNS/proxy routing and invite members. Keep the source read-only and recoverable until the new board is verified.
-
-## What comes across, and what does not
-
-| Entity | MyBB | phpBB |
-|---|---|---|
-| Members, with working legacy passwords | yes | yes (bcrypt, phpass and phpBB2 MD5 hashes) |
-| Forum tree | yes | yes |
-| Threads and posts | yes | yes (bbcode uid markers and stored smiley/link markup cleaned) |
-| Private messages | yes (each member's copy; drafts are not) | yes (one message with every recipient copy) |
-| Attachments | yes | yes (post attachments; PM attachments are not) |
-| Avatars | uploaded and gallery; remote URLs are not | uploaded and gallery; remote URLs are not |
-| Thread and forum subscriptions | yes | yes |
-| Polls, options and votes | yes, every vote in a multiple-choice poll included; `multiple` arrives as an unlimited choice count and `public` as a public voter list | yes, including `poll_max_options` as the choice count and `poll_vote_change` as re-voting |
-| Reputation, with recomputed totals | yes | phpBB has none |
-| Warnings, with recomputed points | yes, including expiry and revocation | minimal — phpBB stores no points, titles or expiry |
-| Bans | yes (member moved to the banned group; expired bans lift on the next `bans.expire` run) | user bans; e-mail and IP bans are not |
-| Buddy and ignore lists | yes | friends and foes |
-| Legacy URL redirects | `showthread.php`, `forumdisplay.php`, `member.php` and rewritten routes | `viewtopic.php`, `viewforum.php`, `memberlist.php` |
-
-**Not imported from either source, and what to do instead:**
-
-| Left behind | Do this after the import |
-|---|---|
-| Group permission matrices | Rebuild your usergroups and forum permissions in `/admin` — a deliberate gap, not an oversight: MyBB's and phpBB's permission columns do not line up cleanly with Meith's (see [Permissions and groups](mybb-permissions.md#permissions-and-groups) if you are coming from MyBB), so a mechanical translation would produce permissions nobody chose. |
-| Custom profile-field values | Recreate the fields with `meith profile-field:add` (they start editable by every group; narrow that in `/admin` if you want the old restrictions). The values members typed are not imported — the field has to exist on this board before anybody can be asked to fill it in again. |
-| Announcements | Re-post them — Meith's announcements are not threads (see [Announcements are not sticky threads](mybb-content.md#announcements-are-not-sticky-threads) for why), so there is no source row to map them from. |
-| Smilies and custom BBCode/MyCode | Nothing to restore — Meith renders Markdown, not BBCode, and there is no admin-defined replacement-pattern equivalent. See [The markup language is Markdown, not BBCode](mybb-content.md#the-markup-language-is-markdown-not-bbcode) for exactly what survives the conversion and what does not. |
-| Thread ratings | Not carried over; there is no equivalent to recreate them from. |
-| Moderator logs | Historical only — Meith's own moderator log (`admin_log`) starts recording from the moment moderation happens on this board. |
-| Per-member IP history | Neither `regip` nor `lastip` is imported; a migrated member's address history starts at their first sign-in here. |
+5. Test guest/member/private-forum access. Enable **Redirect old forum URLs** and test old links.
+6. Take a new backup, switch routing and retain the read-only source until verified.

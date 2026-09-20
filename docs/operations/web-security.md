@@ -1,59 +1,27 @@
-# Cookies and security headers
+# Cookies and browser security
 
-Understand the cookies and browser security policy served by Meith. Use this reference when diagnosing proxy or integration behavior; retain the protections when customizing a deployment.
+## Authentication cookies
 
-## Cookies and security headers
+All cookies below are first-party and `HttpOnly`, with `Secure` on HTTPS. Root-path cookies use `__Host-` names on HTTPS and unprefixed names in HTTP development. Admin cookies keep their unprefixed names because they are scoped to `/admin`.
 
-What the board puts in a visitor's browser, and what it tells the
-browser to refuse — the section to read when somebody asks what you
-store about them, when a cookie banner is being drafted, or when
-something on the board is being blocked and you need to know by what.
-None of it is configurable from the admin panel; the one thing that
-changes it is an environment variable, named below.
+| Base name | Purpose | SameSite | Lifetime |
+|---|---|---|---|
+| `fs_session` | Board session | Lax | Session expiry/sign-out |
+| `fs_remember` | Persistent sign-in | Lax | Remember period |
+| `fs_guest` | Anonymous presence | Lax | 1 day |
+| `fs_admin` | Panel session; `/admin` path | Strict | Panel session |
+| `fs_admin_2fa` | Pending panel proof; `/admin` path | Strict | 10 minutes |
+| `fs_2fa` | Pending board proof | Strict | 10 minutes |
+| `fs_sso` | Provider handshake | Lax | 10 minutes |
+| `fs_passkey` | Passkey handshake | Strict | 10 minutes |
 
-### The cookies
+`fs_guest` contains an opaque presence identifier, not an authenticated identity. These are authentication/presence cookies, not an exhaustive list of appearance, timezone or dismissal preferences. The stock board does not add advertising or analytics cookies.
 
-**The board sets no third-party cookies, runs no analytics, and stores
-nothing for advertising.** Every cookie below is first-party, set by the
-board itself, and there to make a specific thing work.
+## Content Security Policy
 
-| Cookie | What it is for | Lifetime |
-| --- | --- | --- |
-| `fs_session` | The signed-in session | Until it expires or you sign out |
-| `fs_remember` | *Remember me* on the sign-in form | The remember period |
-| `fs_guest` | Counts one reader once, for "who's online" | 1 day |
-| `fs_admin` | Admin-panel re-authentication | The admin session |
-| `fs_admin_2fa` | An admin sign-in that has given a password and owes a second factor | Short |
-| `fs_2fa` | A sign-in that has given a password and owes a second factor | Short |
-| `fs_sso` | The single sign-on handshake | 10 minutes |
-| `fs_passkey` | The passkey exchange | Short |
+Production pages use a fresh request nonce:
 
-Every one is **`HttpOnly`** — script cannot read any of them — and every
-one is **`Secure`** wherever the board is served over HTTPS, where they
-also carry the **`__Host-` prefix** (`__Host-fs_session` and so on),
-binding each cookie to the exact origin that set it. `SameSite` differs
-by purpose: **`Lax`** for the session, remember, guest and SSO cookies —
-the SSO one has to be, because an identity provider returns the member
-with a top-level navigation from another site, which a `Strict` cookie
-is not sent on — and **`Strict`** for the admin, second-factor and
-passkey cookies, whose exchanges never start on another site. The admin
-cookie is also scoped to `/admin`, so it is not sent with ordinary board
-requests at all.
-
-`fs_guest` is the only cookie a visitor gets without signing in, and it
-exists for one figure: "37 guests reading". It is **an opaque random
-value and nothing else** — no code path turns it into an identity, and
-the session lookup refuses a row with no user behind it. Whether it
-needs consent where you operate is a question for you, but "strictly
-necessary" is an argument you can actually make about it, which is not
-true of an analytics cookie.
-
-### The Content Security Policy
-
-Every page is served under a **nonce-based policy**, generated fresh per
-request:
-
-```
+```text
 default-src 'self';
 img-src 'self' data:;
 style-src 'self' 'unsafe-inline';
@@ -63,36 +31,20 @@ frame-ancestors 'self'; object-src 'none';
 base-uri 'self'; form-action 'self'
 ```
 
-In practice: an injected `<script>` does not run — it has no nonce, and
-`'strict-dynamic'` trusts only what the board's own nonced scripts load;
-nothing loads from another origin — no CDN, no font host, no embedded
-widget, and a theme or plugin that reaches for one is blocked, with the
-browser console saying so; a form on your board cannot be made to post
-somewhere else; and the board cannot be framed by another site.
+`REMOTE_IMAGES=1` adds `https:` to image sources. Remote hosts then receive readers' image requests and IP addresses. External scripts, widgets and off-origin form redirect chains remain restricted.
 
-**One environment variable changes it.** `REMOTE_IMAGES=1` adds `https:`
-to `img-src`, which is what lets members hotlink images from elsewhere.
-It is off by default: allowing remote images means every post can make a
-reader's browser fetch from a third party, which leaks the reader's IP
-address to whoever hosts it.
+## Other headers
 
-The e2e suite asserts that every page carries the policy **and that
-nothing on the page is refused under it**, so a change that would have
-needed `unsafe-inline` fails before it ships.
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Strict-Transport-Security` | `max-age=63072000` |
+| `X-Frame-Options` | `SAMEORIGIN` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
 
-### The other headers
+Preserve these through the reverse proxy. See [Compose deployment](docker-compose.md).
 
-Sent on every response:
+## Trusted proxies
 
-| Header | Value | What it stops |
-| --- | --- | --- |
-| `X-Content-Type-Options` | `nosniff` | A browser guessing a type and running an upload as script |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | A full path leaking to another site |
-| `Strict-Transport-Security` | `max-age=63072000` | A downgrade to HTTP for two years |
-| `X-Frame-Options` | `SAMEORIGIN` | Framing, for browsers older than `frame-ancestors` |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Anything asking for hardware the board never uses |
-
-If you terminate TLS at a reverse proxy, it has to pass these through
-rather than replace them — see
-[Docker Compose](docker-compose.md) for
-the CSP note on proxying.
+`TRUSTED_PROXY_HOPS` defaults to 0. Set the actual trusted proxy count when the deployment supplies forwarded addresses. Meith counts from the right of `X-Forwarded-For`; incorrect trust changes rate-limit, allowlist and audit identities. Do not expose a direct route around the trusted proxy.

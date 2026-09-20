@@ -1289,7 +1289,7 @@ a:hover > span[aria-hidden] {
 
 .doc-heading {
   color: var(--fg);
-  font-weight: 640;
+  font-weight: 500;
   letter-spacing: -0.022em;
   line-height: 1.25;
   text-wrap: balance;
@@ -1298,14 +1298,14 @@ a:hover > span[aria-hidden] {
 
 .doc-body h2.doc-heading {
   font-size: var(--step-2);
-  margin-top: 2.6em;
+  margin-top: 2rem;
   padding-top: 1.1rem;
   border-top: 1px solid var(--border);
 }
 
 .doc-body h3.doc-heading {
   font-size: var(--step-1);
-  margin-top: 2em;
+  margin-top: 1.5rem;
 }
 
 .doc-body h4.doc-heading,
@@ -1366,7 +1366,7 @@ a:hover > span[aria-hidden] {
   content: "↗";
   font-size: 0.8em;
   margin-left: 0.15em;
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   vertical-align: 0.15em;
 }
 
@@ -1403,7 +1403,7 @@ a:hover > span[aria-hidden] {
 }
 
 .doc-body ol > li::marker {
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   font-family: var(--mono);
   font-size: 0.9em;
 }
@@ -1447,7 +1447,7 @@ a:hover > span[aria-hidden] {
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   pointer-events: none;
 }
 
@@ -1541,7 +1541,7 @@ a:hover > span[aria-hidden] {
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   background: var(--canvas);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -1596,7 +1596,7 @@ a:hover > span[aria-hidden] {
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent-rule, var(--fg-subtle));
+  color: var(--accent-rule, var(--fg-muted));
   margin: 0 0 0.4rem;
 }
 
@@ -1655,7 +1655,7 @@ a:hover > span[aria-hidden] {
   font-size: 0.8em;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   font-weight: 400;
   background: var(--surface);
   white-space: nowrap;
@@ -1672,7 +1672,7 @@ a:hover > span[aria-hidden] {
 .doc-body blockquote {
   border-left: 2px solid var(--border-strong);
   padding-left: 1.1rem;
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   max-width: 42rem;
 }
 

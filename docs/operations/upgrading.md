@@ -1,59 +1,42 @@
-# Upgrade Meith
+# Upgrade a board
 
-Update one board to a new release while keeping its packages, schema and plugins in step. You need the board repository or deployment controls, the release notes and a verified backup.
+## Prepare
 
-## 1. Check compatibility and back up
-
-Read the release notes and [upgrade compatibility notes](upgrade-notes.md). Check installed plugin and theme compatibility. Take a fresh backup including uploads, and retain the original deployment environment.
+Read release notes and [compatibility notes](upgrade-notes.md), check extension compatibility and take a verified backup including uploads and secrets.
 
 > [!CAUTION]
-> Migrations are forward-only. Downgrading code against a migrated schema is not rollback. Recovery requires restoring a known-good backup into a suitable destination.
+> Migrations are forward-only. Downgrading code does not roll back the schema. Recovery requires restoring a known-good backup.
 
-The upgrade planner permits a jump of at most two major versions and refuses downgrades. If further behind, upgrade through supported intermediate releases, backing up and checking each stage. Use real published release versions; do not invent intermediate tags.
+The planner rejects downgrades and jumps over more than two major versions. Use published intermediate releases where required.
 
-## 2. Update the board's source
+## Update source
 
-In a generated board repository:
+In the generated board directory:
 
 ```sh
 npx create-meith@latest update
 npm install
 ```
 
-The updater moves the Meith package pins and matching Next.js version together and refreshes scaffold-owned deployment files. Read its output for files it leaves unchanged because you customized them. Review the diff and lockfile before committing.
+The updater changes Meith pins and the matching Next.js version together and refreshes scaffold-owned files. Review customized files it skips and commit the source and lockfile. Do not independently bump only `@meith/web` or `next`.
 
-Do not independently bump only `@meith/web` or `next`. The board and framework versions must match. The generated update workflow can propose the same change in a PR; review it before merging.
+## Deploy and migrate
 
-## 3. Build and deploy
+Push and redeploy through the chosen host. For prebuilt images, wait for the build and select its intended tag. Core migrations must finish before web serves; previews must not accidentally migrate production.
 
-| Deployment | Action |
-|---|---|
-| Coolify, source build | Push the reviewed changes and redeploy the resource |
-| Coolify, prebuilt image | Wait for the image build, select the intended image and redeploy |
-| Docker Compose | Build or pull the selected image, then recreate services using the board's deployment files |
-| Vercel | Deploy the reviewed board source with its intended database environment |
-
-Core migrations run before the new web service is made available: the Compose migration service or the configured build/deploy command performs them. A preview must not accidentally migrate production.
-
-Use a direct database connection for migrations when the runtime connection uses a transaction-mode pooler. The core migration lock does not serialize the later plugin migration phase; run one upgrade at a time.
-
-## 4. Apply plugin migrations and record the version
-
-Run the installed version of the CLI against the upgraded board:
+Use a direct migration connection. Run one upgrade at a time because the core lock does not cover plugin migrations. Through the [deployed CLI](operator-cli.md):
 
 ```sh
 meith upgrade --dry-run
 meith upgrade
 ```
 
-Use [Operator commands](operator-cli.md) for the container or board-checkout invocation. The upgrade applies missing core migrations, then enabled plugin migrations, then records plugin and core versions. `meith migrate` alone does not apply plugin migrations.
+This applies missing core and enabled-plugin migrations, then records versions. `meith migrate` alone is core-only. The admin system page can apply plugin migrations after core migration completes. Applied migrations are transactional and resumable; fix forward instead of editing an applied migration.
 
-**Admin → System → Version & migrations** can apply plugin migrations after the deployment has applied core migrations. It will not replace the core deployment step.
+## PostgreSQL major versions
 
-Applied plugin migrations are recorded transactionally and can be resumed after interruption. Do not edit a migration that has already run; fix forward with a new one.
+Do not point a new PostgreSQL major at an old data volume. Restore a dump into a separate database using the new major and matching client tools, verify it, then switch the board connection. Keep the old volume and backup until verified.
 
-## 5. Verify and reopen
+## Verify
 
-Check the displayed version, pending migrations, public pages, sign-in, writing, private-forum access, attachments, email and scheduled work. Review logs before reopening a board held for maintenance.
-
-If verification fails, preserve logs and the backup. Use the recorded recovery plan rather than switching the application to an older version over the changed database.
+Check version, pending migrations, sign-in, posting, private forums, attachments, mail, scheduled work and logs before reopening. If checks fail, use the restore plan rather than older code against the changed schema.

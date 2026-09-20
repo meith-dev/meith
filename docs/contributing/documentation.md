@@ -1,59 +1,43 @@
-# Maintain the documentation
+# Maintain documentation
 
-Documentation source lives in `docs/`. The website publishes these Markdown files and uses `apps/web/content/docs.manifest.json` for navigation, titles, summaries and reading order.
+Source lives in `docs/`. The website renders the same files; `apps/web/content/docs.manifest.json` defines navigation and metadata.
 
-## Choose the reader and task
+## Writing rules
 
-Put a page in one reader path: Start here, Use a community, Manage a community, Install and operate, Build extensions, Use the API, or Contribute to Meith. Use the directory for that audience. Generated contract files remain under `reference/` and appear in the appropriate reader section.
+Write neutral instructions. Start with the task and prerequisites, then the steps and a way to check the result. Remove introductions, opinions, promotional language and repeated explanations. Keep setup guides complete from prerequisites through verification. Documentation checks must not impose minimum prose lengths.
 
-A tutorial teaches one working path. A task guide explains a concrete operation. A reference defines fields, commands or rules. An explanation describes why a system behaves as it does. Keep these purposes separate when their audiences or prerequisites differ.
+Use actual UI labels and commands verified against the code. State where commands run. Default to pnpm in the Meith workspace. Use npm for generated boards, whose tooling requires it, and for npm-specific publishing operations.
 
-Before adding a page, look for the existing home of the topic. Add a link to that home rather than repeating its full explanation elsewhere.
+Use short headings, numbered procedures and tables for fields or limits. Link to existing explanations instead of repeating them. Keep security boundaries, access requirements, data-loss warnings and recovery steps beside the relevant action.
 
-## Write a usable page
+Markdown, fenced code and tables are supported. Raw HTML is escaped. H2/H3 headings appear in contents and search; code fences are excluded from search text, so mention important commands and keys in prose too.
 
-Start with the outcome, required access and prerequisites. Use numbered steps for procedures and include a way to check success. State where a command runs: source checkout, board repository, container or hosting panel.
+## Add or move a page
 
-Use the actual UI labels, concrete examples and descriptive headings. Explain unfamiliar terms on first use. Keep implementation reasoning in contributor explanations and reference pages; keep member instructions focused on what the member can do.
+1. Put the file in its audience directory.
+2. Register its unique slug, title, short blurb, section and optional group in the manifest. Each section has one primary page.
+3. Use relative Markdown links between documents.
+4. Run `pnpm site:docs` to update `docs/README.md`.
+5. Update links and anchors in callers, including website content.
 
-Preserve security, permission and recovery constraints. Put destructive-operation warnings immediately before the action. Confirm commands and limits against implementation and tests; recheck provider-specific facts against official documentation.
+The docs home lists the guides. Previous/Next stays within the section. Long pages have desktop and mobile contents navigation. Historical heading anchors are not redirected.
 
-Use ordinary Markdown, fenced code, tables and supported callouts. Raw HTML is escaped by the site. H2 and H3 headings appear in the contents and search index. Include important command names and setting keys in prose or tables because fenced code is omitted from search text.
-
-## Register and link the page
-
-1. Add the Markdown file under its reader directory.
-2. Add its manifest entry with a unique slug, title, blurb, section and optional group. Each section has one primary page.
-3. Link to related pages with relative Markdown paths so links work on GitHub and the website.
-4. Run `pnpm site:docs` to regenerate the index in `docs/README.md`.
-5. Update links and site calls to action when moving or renaming a topic.
-
-The docs home gives each reader a starting point and an expandable complete index. Previous/Next stays inside the current reader path. Long pages have a desktop contents rail and a mobile contents control. No historical anchor redirects are maintained: update callers when restructuring a page.
-
-## Update generated references at source
+## Generated references
 
 | Reference | Source | Command |
 |---|---|---|
-| Theme slots and models | `packages/theme-kit/src/{slots,api,view-models}.ts` | `pnpm theme:docs` |
-| Plugin hooks | `packages/plugin-kit/src/{hooks,payloads,regions}.ts` and call sites | `pnpm plugin:docs` |
-| REST API and OpenAPI | `packages/api/src/` registry, schema and reference renderer | `pnpm api:docs` |
-| Performance | Recorded results and `packages/testkit/src/load/` budgets | `pnpm perf:docs` |
-| Documentation index | Documentation manifest | `pnpm site:docs` |
+| Theme slots/models | `packages/theme-kit/src/{slots,api,view-models}.ts` | `pnpm theme:docs` |
+| Plugin hooks/regions | `packages/plugin-kit/src/{hooks,payloads,regions}.ts` and call sites | `pnpm plugin:docs` |
+| REST/OpenAPI | `packages/api/src` registry, schema and renderer | `pnpm api:docs` |
+| Performance | Recorded results and load-test budgets | `pnpm perf:docs` |
+| Index | Documentation manifest | `pnpm site:docs` |
 
-Never hand-edit generated output. The six theme/plugin source files above are the explicit exception to the no-inline-comments rule because their prose becomes published reference material.
+Edit sources, then regenerate. The six theme/plugin files are exceptions to the no-inline-comments rule because their prose is published documentation.
 
-Deploy template READMEs are generated from `packages/create-meith/src/scaffold.ts` with `pnpm templates:gen`. Extension README text is in `scaffold-extension.ts`; example source templates are regenerated with `pnpm extension:gen`.
+Deploy README templates come from `packages/create-meith/src/scaffold.ts` through `pnpm templates:gen` at release time. Extension README templates live in `scaffold-extension.ts`; `pnpm extension:gen` updates the example source templates.
 
-## Verify the result
+## Validate
 
-```sh
-pnpm docs:index:check
-pnpm docs:links:check
-pnpm site:docs:check
-pnpm site:build
-pnpm comments:check
-```
+Run `pnpm docs:index:check`, `pnpm docs:links:check`, `pnpm site:docs:check`, `pnpm site:build` and `pnpm comments:check`. Run `pnpm verify` before a PR.
 
-Run `pnpm verify` before a PR. Preview with `pnpm site:dev`; inspect the affected pages on desktop and phone widths, follow the steps as the intended reader, and try the words they would search for. A passing link check does not prove a procedure is understandable or correct.
-
-Keep GitHub entry READMEs short and point them at the canonical docs. Do not add separate long-form manuals inside packages.
+Preview with `pnpm site:dev`. Check desktop and phone layouts, links, contents and search. Follow the procedure as its intended reader. Keep package/root READMEs short and link to canonical docs.

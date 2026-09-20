@@ -84,7 +84,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                 } ${
                   active
                     ? 'border-accent text-accent'
-                    : 'border-transparent text-fg-subtle hover:border-border-strong hover:text-fg'
+                    : 'border-transparent text-fg-muted hover:border-border-strong hover:text-fg'
                 }`}
               >
                 {heading.text}

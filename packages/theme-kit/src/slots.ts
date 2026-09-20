@@ -8,9 +8,7 @@ export interface SlotSpec {
 export const SLOTS = {
   Shell: {
     kind: 'server',
-    purpose:
-      'The outermost frame: skip link, header, main landmark, footer. Wraps ' +
-      'every page including the error pages.',
+    purpose: 'Page frame with skip link, header, main landmark and footer, including error pages.',
   },
   Header: {
     kind: 'server',
@@ -19,8 +17,7 @@ export const SLOTS = {
   UserPanel: {
     kind: 'server',
     purpose:
-      'Greeting and account links, or the sign-in prompt for a guest. Varies ' +
-      'by actor, which is why no page wrapping it may be cached globally.',
+      'Actor-specific greeting and account links, or guest sign-in prompt. Do not cache globally.',
   },
   Navigation: {
     kind: 'server',
@@ -32,17 +29,12 @@ export const SLOTS = {
   },
   Notice: {
     kind: 'server',
-    purpose:
-      'A board-wide announcement or a flash message. Server-rendered so a ' +
-      'notice is present in the first response, not after hydration.',
+    purpose: 'Server-rendered flash message or board notice.',
   },
 
   Announcement: {
     kind: 'server',
-    purpose:
-      'One announcement: a dated, authored notice shown above the forums. ' +
-      'Distinct from Notice, which is a flash message about what the viewer ' +
-      'just did — these are for everybody and last until they expire.',
+    purpose: 'Dated, authored announcement shown above forums until expiry.',
   },
 
   BoardIndex: {
@@ -69,16 +61,11 @@ export const SLOTS = {
   LatestThreads: {
     kind: 'server',
     purpose:
-      'The newest threads on the board, for the index sidebar. Server, not ' +
-      'client, even though the panel refreshes itself: the app polls a Server ' +
-      'Action that renders this slot again, so the live half is one island ' +
-      'around the region rather than a client component per panel.',
+      'Newest threads, rendered on the server and refreshed through the app’s shared live region.',
   },
   LatestPosts: {
     kind: 'server',
-    purpose:
-      'The newest posts on the board, with an excerpt of each. Same server ' +
-      'rendering and same refresh path as LatestThreads.',
+    purpose: 'Newest posts and excerpts, refreshed with LatestThreads.',
   },
 
   ForumDisplay: {
@@ -95,9 +82,7 @@ export const SLOTS = {
   },
   Pagination: {
     kind: 'server',
-    purpose:
-      'Page links. Server-rendered and href-based: paging must work with ' +
-      'JavaScript disabled, so this can never become an island.',
+    purpose: 'Resolved page links that work without JavaScript.',
   },
 
   ThreadView: {
@@ -106,9 +91,7 @@ export const SLOTS = {
   },
   PostBit: {
     kind: 'server',
-    purpose:
-      'One post: author block, body, footer. **The** load-bearing server ' +
-      'slot — see this file’s header for what marking it `client` costs.',
+    purpose: 'Post author, body and footer, rendered on the server.',
   },
   PostActions: {
     kind: 'server',
@@ -143,85 +126,53 @@ export const SLOTS = {
 
   SearchForm: {
     kind: 'server',
-    purpose:
-      'The search form. A GET form with named inputs, so a search is a URL ' +
-      'that can be linked and cached.',
+    purpose: 'GET search form with supplied input names.',
   },
   SearchResults: {
     kind: 'server',
-    purpose:
-      'The results page for one search: what matched, an excerpt of each hit, ' +
-      'and the form that narrows the set. Separate from SearchForm because a ' +
-      'result list is a listing and shares nothing with a filter panel but the ' +
-      'word "search".',
+    purpose: 'Search hits, excerpts and filtering controls.',
   },
 
   DiscoveryView: {
     kind: 'server',
-    purpose:
-      'The body of a discovery listing — new posts, today, unanswered, and a ' +
-      'member’s own threads and replies. One slot for all of them: they differ ' +
-      'in what the query selected, never in what a reader is looking at.',
+    purpose: 'Discovery listing with the viewer’s available tabs.',
   },
 
   PanelShell: {
     kind: 'server',
-    purpose:
-      'The frame around a control panel: the navigation rail, the links to the ' +
-      'other panels a viewer may reach, and the page beside them. Rendered for ' +
-      'the member, moderator and admin panels alike — `panel` says which.',
+    purpose: 'Member, moderator or admin panel frame with navigation and content.',
   },
   PanelNav: {
     kind: 'server',
-    purpose:
-      'A control panel’s section navigation. Server, not client: which section ' +
-      'is open is resolved from the request path before rendering, so the rail ' +
-      'arrives correct rather than after hydration, and a panel needs no ' +
-      'JavaScript to know where it is.',
+    purpose: 'Panel navigation with current state resolved by the app before rendering.',
   },
   PanelPage: {
     kind: 'server',
-    purpose:
-      'One control-panel page: its heading, the line under it, the controls ' +
-      'beside it, and the body. Also the frame for the account, moderation and ' +
-      'messaging pages that are panel-shaped without being in a panel.',
+    purpose: 'Panel page heading, supporting text, actions and body.',
   },
   PanelSection: {
     kind: 'server',
-    purpose:
-      'A labelled section inside a panel page. Rendered by the page among its ' +
-      'content rather than around it, which is why it is not part of PanelPage.',
+    purpose: 'Labelled content section inside a panel page.',
   },
 
   AuthPage: {
     kind: 'server',
-    purpose:
-      'Signing in, registering, resetting a password, asking for a new ' +
-      'confirmation link. One slot for all of them: the same card with a ' +
-      'different form in it, and the form itself is an app-rendered region ' +
-      'because every one of them posts to a Server Action.',
+    purpose: 'Authentication-page frame with an app-rendered form.',
   },
 
   ForumJump: {
     kind: 'server',
     purpose:
-      'The jump box at the foot of every page. A GET form with a submit ' +
-      'control, never a select that navigates on change — choosing an option ' +
-      'is not committing to it, and arrow-keying through one would teleport a ' +
-      'keyboard user to the first forum in the list.',
+      'GET forum selector with a submit button; keyboard selection must not navigate automatically.',
   },
 
   RedirectNotice: {
     kind: 'server',
-    purpose:
-      'The MyBB-style interstitial: "your post was made, continuing in a ' +
-      'moment", with a real link for anyone the meta refresh does not carry.',
+    purpose: 'Post-action notice with a meta-refresh destination and fallback link.',
   },
   ErrorNotice: {
     kind: 'server',
-    purpose:
-      'The themed body of an error or not-found page. Must not depend on the ' +
-      'database: it is what renders when the database is the thing that failed.',
+    purpose: 'Error or not-found content. Must render without database access.',
   },
 } as const satisfies Readonly<Record<string, SlotSpec>>
 

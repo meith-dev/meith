@@ -25,7 +25,7 @@ export function DocsNav({ sections }: DocsNavProps) {
       <Link
         href="/docs"
         className={`mb-6 block font-mono text-[0.75rem] tracking-[0.12em] uppercase transition-colors ${
-          pathname === '/docs' ? 'text-accent' : 'text-fg-subtle hover:text-fg'
+          pathname === '/docs' ? 'text-accent' : 'text-fg-muted hover:text-fg'
         }`}
       >
         Documentation home
@@ -47,7 +47,7 @@ export function DocsNav({ sections }: DocsNavProps) {
                   return (
                     <li key={doc.slug}>
                       {groupStarts ? (
-                        <p className="mt-2 mb-1 pl-3 font-mono text-[0.65rem] tracking-[0.1em] text-fg-subtle uppercase">
+                        <p className="mt-2 mb-1 pl-3 font-mono text-[0.65rem] tracking-[0.1em] text-fg-muted uppercase">
                           {doc.group}
                         </p>
                       ) : null}

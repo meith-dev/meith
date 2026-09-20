@@ -17,9 +17,7 @@ export const PLUGIN_REGIONS = {
     context: 'The viewer, with the reader’s locale and a translator.',
   },
   'postbit.badges': {
-    purpose:
-      'Beside a post author’s name. Runs once per post on every thread page — the ' +
-      'most expensive region on the board, and the one to keep trivial.',
+    purpose: 'Author badges. Runs once per post; avoid per-post queries.',
     context:
       'The viewer, the post id and the author id, with the reader’s locale and a translator.',
   },
@@ -30,19 +28,13 @@ export const PLUGIN_REGIONS = {
   },
   'threadrow.badges': {
     purpose:
-      'Beside a thread’s title in a listing, to mark threads across a forum page. A ' +
-      'batch region: unlike every other region it runs once per page, not once per ' +
-      'row — a listing of twenty threads is one call, returning a badge per thread ' +
-      'id — because a forum page is on a tight budget and a per-row region there is ' +
-      'twenty calls before the page has drawn a thing.',
+      'Thread-list badges. Runs once per page with visible thread references; returns badges keyed by thread ID.',
     context:
       'The viewer and the page’s visible threads, each as a thread id and its author ' +
       'id, with the reader’s locale and a translator.',
   },
   'thread.header': {
-    purpose:
-      'Above the first post of a thread, below its title. Runs once per thread page, ' +
-      'so unlike postbit.* it can afford to read from the plugin’s own tables.',
+    purpose: 'Below the thread title and above the first post. Runs once per thread page.',
     context:
       'The viewer, the thread id and the thread author’s id, with the reader’s locale and ' +
       'a translator.',

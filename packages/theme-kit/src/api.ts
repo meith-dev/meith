@@ -70,12 +70,7 @@ export const DEPRECATIONS: readonly Deprecation[] = [
     since: '0.5',
     removeIn: '1.0',
     replacement: 'PostBitModel.post.id',
-    reason:
-      'It carried a post’s Markdown source to the client so the multiquote ' +
-      'button could assemble a quote in the browser. Quoting resolves a post ' +
-      'by id on the server now — which re-checks who may see it and cannot go ' +
-      'stale — so this ships every post’s full source to every reader for ' +
-      'nobody. No theme has ever rendered it; the field says so itself.',
+    reason: 'Quote by post ID on the server to recheck visibility and retrieve current content.',
   },
 ]
 
