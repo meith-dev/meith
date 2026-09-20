@@ -286,6 +286,24 @@ importers:
       '@fontsource/lora':
         specifier: ^5
         version: 5.3.0
+      '@meith/theme-clubhouse':
+        specifier: workspace:^
+        version: link:../../themes/clubhouse
+      '@meith/theme-default':
+        specifier: workspace:^
+        version: link:../../themes/default
+      '@meith/theme-kit':
+        specifier: workspace:^
+        version: link:../../packages/theme-kit
+      '@meith/theme-midnight':
+        specifier: workspace:^
+        version: link:../../themes/midnight
+      '@meith/theme-phasebook':
+        specifier: workspace:^
+        version: link:../../themes/phasebook
+      '@meith/theme-raidframe':
+        specifier: workspace:^
+        version: link:../../themes/raidframe
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

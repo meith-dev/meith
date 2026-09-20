@@ -9,7 +9,6 @@ import { ForumLink } from './forum-link'
 import { Logomark } from './logomark'
 import { MobileMenu } from './mobile-menu'
 import { NavLink } from './nav-link'
-import { ThemeToggle } from './theme-toggle'
 
 export function SiteHeader() {
   const startHref = quickstartHref()
@@ -26,6 +25,7 @@ export function SiteHeader() {
           <NavLink href="/">Home</NavLink>
           <NavLink href={about.href}>About</NavLink>
           <NavLink href={audienceIndexHref}>Who it’s for</NavLink>
+          <NavLink href="/extensions">Extensions</NavLink>
           <NavLink href="/docs">Docs</NavLink>
           <ForumLink href={site.demo}>
             Demo <span aria-hidden>↗</span>
@@ -39,7 +39,6 @@ export function SiteHeader() {
           <div className="site-header-search">
             <DocsSearch />
           </div>
-          <ThemeToggle />
           <Link href={startHref} className="site-start-link">
             Get started <span aria-hidden>↗</span>
           </Link>
@@ -59,6 +58,11 @@ export function SiteHeader() {
                 <li>
                   <Link href={audienceIndexHref}>
                     Who it’s for <span aria-hidden>↗</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/extensions">
+                    Extensions <span aria-hidden>↗</span>
                   </Link>
                 </li>
                 <li>

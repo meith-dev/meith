@@ -5,6 +5,7 @@ import { audienceIndexHref } from '../content/segments'
 import { licence, licenceHref, site } from '../content/site'
 import { version } from '../content/version'
 import { ForumLink } from './forum-link'
+import { ThemeToggle } from './theme-toggle'
 
 export function SiteFooter() {
   return (
@@ -17,7 +18,7 @@ export function SiteFooter() {
           <nav aria-label="Footer" className="site-footer-navigation">
             <Link href={about.href}>About</Link>
             <Link href={audienceIndexHref}>Who it’s for</Link>
-            <Link href="/marketplace">Extensions</Link>
+            <Link href="/extensions">Extensions</Link>
             <Link href="/docs">Docs</Link>
             <ForumLink href={site.demo}>
               Demo <span aria-hidden>↗</span>
@@ -31,6 +32,10 @@ export function SiteFooter() {
           </nav>
         </div>
         <div className="site-footer-bottom">
+          <div>
+            <span>Appearance</span>
+            <ThemeToggle />
+          </div>
           <div>
             <a href={`${site.repository}/releases`}>v{version}</a>
             <span aria-hidden>·</span>

@@ -32,12 +32,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description: listing.description,
-    alternates: { canonical: `/marketplace/${listing.key}` },
+    alternates: { canonical: `/extensions/${listing.key}` },
     openGraph: {
       type: 'article',
       title,
       description: listing.description,
-      url: `/marketplace/${listing.key}`,
+      url: `/extensions/${listing.key}`,
       images: ogImage('/og', title),
     },
   }
@@ -74,7 +74,7 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
-export default async function MarketplaceListingPage({ params }: PageProps) {
+export default async function ExtensionListingPage({ params }: PageProps) {
   const { key } = await params
   const listing = await findListing(key)
   if (!listing) notFound()
@@ -88,7 +88,7 @@ export default async function MarketplaceListingPage({ params }: PageProps) {
           current={listing.name}
           trail={[
             { label: site.name, href: '/' },
-            { label: 'Extensions', href: '/marketplace' },
+            { label: 'Extensions', href: '/extensions' },
           ]}
         />
         <header className="marketing-hero-copy">

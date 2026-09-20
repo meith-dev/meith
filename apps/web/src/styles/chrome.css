@@ -303,8 +303,9 @@
 
 .site-footer-bottom {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 1rem;
   padding-block: 1.2rem;
   border-top: 1px solid var(--border);

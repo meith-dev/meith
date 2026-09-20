@@ -46,7 +46,7 @@ export async function listingsOfKind(kind: ListingKind): Promise<readonly Listin
 }
 
 export function listingHref(key: string): string {
-  return `/marketplace/${key}`
+  return `/extensions/${key}`
 }
 
 const KIND_LABEL: Readonly<Record<ListingKind, string>> = {

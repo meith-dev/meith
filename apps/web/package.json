@@ -12,6 +12,12 @@
   "dependencies": {
     "@fontsource/inter": "^5",
     "@fontsource/lora": "^5",
+    "@meith/theme-clubhouse": "workspace:^",
+    "@meith/theme-default": "workspace:^",
+    "@meith/theme-kit": "workspace:^",
+    "@meith/theme-midnight": "workspace:^",
+    "@meith/theme-phasebook": "workspace:^",
+    "@meith/theme-raidframe": "workspace:^",
     "@swc/helpers": "0.5.23",
     "marked": "^18.0.11",
     "mermaid": "^12.0.0",

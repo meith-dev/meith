@@ -67,6 +67,18 @@ Use actual product captures with fixture data, descriptive alt text and paired l
 
 Exclude browser chrome, device mockups, stock/generated imagery, mascots and decorative icons. Use a flat screenshot with a border. Diagrams use the brand tokens.
 
+## Homepage and live preview
+
+The homepage introduces Meith as open-source, self-hosted forum software, then explains conversations, moderation, ownership, extensions and deployment. The hero is a simple editorial composition: one large mixed sans/serif headline, a fine dividing rule, a clear introduction on the left and the setup/demo actions on the right. Whitespace and typography establish the hierarchy. The actions stack below the introduction on phones. Keep the opening editorial; the compact, two-forum live preview sits below the left-hand “Make it yours” heading, with extension guides in the right column. The columns stack on phones. The technology section explains the role of each part of the stack alongside major versions read from the repository. Versions use slightly larger, medium-weight accent mono numerals beside the technology name. Keep hosting costs distinct from Meith’s lack of licence and per-member fees. The local scaffold uses sample data. The closing setup note explicitly distinguishes that local preview from arranging a domain, hosting and PostgreSQL for a live board, and links to deployment and ongoing operation instructions.
+
+`apps/web/src/components/theme-showcase.tsx` renders the real `CategoryBlock` and `ForumRow` slots from the Default, Clubhouse, Phasebook, Raidframe and Midnight theme packages with static, fictional view models and each theme’s English copy and colour tokens. It does not load screenshots, board services or member data. Preview links lead to the configured demo; the footer identifies the sample as read-only.
+
+The primary and mobile menus include Extensions at `/extensions`. The catalogue’s three closing actions are all underlined secondary links with ↗ arrows; none is a filled primary action. The page colour controls sit in the footer beside an Appearance label.
+
+Default is the initial preview theme. Native radio groups select the preview theme and its light/dark scheme. `preview-scheme.tsx` reads the site’s selected scheme (or system preference) once when the preview mounts. After that, the two colour controls are independent; preview changes are not saved to the site preference. Without JavaScript, the preview starts light and the radios still work. CSS scopes theme tokens to the preview panels, so these controls work without JavaScript and do not change the marketing page’s scheme. Selection has a weight and underline change; keyboard focus retains the accent outline. The short panel transition respects reduced motion. The site scans the shared theme and UI sources for their Tailwind utilities. Container rules keep the table themes in their compact layouts inside the half-width preview, while Clubhouse’s count labels stay inline beside their numbers.
+
+Check all five themes in both schemes at desktop and phone widths, including arrow-key selection, focus visibility and overflow. Run `pnpm exec vitest run apps/web/src/components/theme-showcase.test.ts` to check server-rendered layouts, control targets, unique IDs and read-only sample links.
+
 ## Source files
 
 | Concern | Source under `apps/web` |

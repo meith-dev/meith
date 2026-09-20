@@ -1,5 +1,33 @@
 @import "tailwindcss";
 
+@source "../../../../themes/default/src";
+@source "../../../../themes/clubhouse/src";
+@source "../../../../themes/phasebook/src";
+@source "../../../../themes/raidframe/src";
+@source "../../../../themes/midnight/src";
+@source "../../../../packages/ui/src";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-forum-read: var(--forum-read);
+  --color-forum-unread: var(--forum-unread);
+  --font-heading: var(--font-heading-stack);
+  --shadow-elevation: var(--elevation);
+}
+
 /*
  * ── The palette ───────────────────────────────────────────────────────────
  *
