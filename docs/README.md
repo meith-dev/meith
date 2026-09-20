@@ -174,6 +174,7 @@ Develop, test, document and release Meith.
 - [Run and debug tests](./contributing/testing.md) — Choose the test layer for the behavior you are changing.
 - [Develop accessible interface components](./contributing/ui-conventions.md) — Use the shared design system for forms, panels and destructive actions.
 - [Maintain the documentation](./contributing/documentation.md) — Documentation source lives in docs/.
+- [Brand guidelines](./contributing/brand.md) — How Meith looks, sounds and spends its one colour.
 - [Repository rules and checks](./contributing/repository-checks.md) — Follow the repository contract and run the checks that enforce it.
 
 ### Implementation reference

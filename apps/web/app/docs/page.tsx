@@ -30,7 +30,7 @@ export default function DocsIndexPage() {
           Let’s get you <em>started.</em>
         </h1>
         <p>From your first board to your next big idea.</p>
-        <Link className="edition-button edition-button-paper" href={docHref('quickstart')}>
+        <Link className="edition-button" href={docHref('quickstart')}>
           Start the quickstart <span aria-hidden>↗</span>
         </Link>
       </header>

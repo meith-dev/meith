@@ -229,17 +229,17 @@ export const segments: readonly [Segment, ...Segment[]] = [
     slug: 'clubs-and-associations',
     theme: 'clubhouse',
     boardCaption: "A club's board, in the Clubhouse theme.",
-    name: 'Clubs & associations',
-    lowerName: 'clubs & associations',
+    name: 'Clubs and associations',
+    lowerName: 'clubs and associations',
     card: {
       heading: 'A forum that survives the committee.',
       line:
         'Keep discussions, announcements, records and institutional knowledge in a system ' +
         'that can be handed from one group of organisers to the next.',
-      cta: 'Meith for Clubs & Associations',
+      cta: 'Meith for clubs and associations',
     },
     meta: {
-      title: 'Meith for Clubs & Associations',
+      title: 'Meith for clubs and associations',
       description:
         'Self-hosted forum software for clubs, associations and member-led organisations ' +
         'that need continuity, ownership and searchable history.',
@@ -307,7 +307,7 @@ export const segments: readonly [Segment, ...Segment[]] = [
     slug: 'legacy-forums',
     theme: 'default',
     boardCaption: 'A freshly imported board, in the default theme.',
-    name: 'MyBB & phpBB boards',
+    name: 'MyBB and phpBB boards',
     lowerName: 'MyBB and phpBB boards',
     secondary: true,
     card: {

@@ -14,11 +14,11 @@ export function SubforumList({ forums, copy }: SubforumListModel & { copy: SlotC
         {c('heading')}
       </Label>
 
-      <ul className="grid sm:grid-cols-2 sm:gap-x-8">
+      <ul className="@container/card">
         {forums.map((forum) => (
           <li
             key={forum.id}
-            className={`flex min-w-0 items-baseline justify-between gap-4 py-3 ${ITEM_RULE} ${ROW_HOVER}`}
+            className={`grid min-w-0 gap-x-6 gap-y-1 py-3 ${ITEM_RULE} ${ROW_HOVER} @3xl/card:grid-cols-[minmax(0,1fr)_9rem_15rem] @3xl/card:items-baseline`}
           >
             <a
               href={forum.href}
@@ -28,7 +28,7 @@ export function SubforumList({ forums, copy }: SubforumListModel & { copy: SlotC
             </a>
             {forum.type !== 'link' && (
               <Counts
-                className="shrink-0 gap-x-3 text-xs"
+                className="text-xs @3xl/card:flex-col @3xl/card:gap-y-0"
                 items={[
                   {
                     label: c('threadsLabel'),

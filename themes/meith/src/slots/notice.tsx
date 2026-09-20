@@ -4,10 +4,10 @@ import { fromSlotCopy } from '@meith/theme-kit'
 import { LABEL, QUIET_LINK, TOUCH } from '../shared'
 
 const TONE: Record<NoticeModel['kind'], string> = {
-  info: 'border-l-foreground',
-  success: 'border-l-moderation-approved',
-  warning: 'border-l-moderation-pending bg-primary/9',
-  error: 'border-l-destructive',
+  info: 'border-l-muted-foreground',
+  success: 'border-l-foreground',
+  warning: 'border-l-foreground',
+  error: 'border-l-4 border-l-foreground',
 }
 
 export function Notice({ kind, message, dismissHref, copy }: NoticeModel & { copy: SlotCopy }) {

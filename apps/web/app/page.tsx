@@ -19,7 +19,7 @@ const communities = [
     body: 'Keep the conversations that bring your people together.',
   },
   {
-    name: 'Clubs & associations',
+    name: 'Clubs and associations',
     slug: 'clubs-and-associations',
     body: 'A shared space for members, plans and club life.',
   },
@@ -95,14 +95,19 @@ export default async function LandingPage() {
                 On your domain. On your terms.
               </p>
               <div className="edition-hero-actions">
-                <Link className="edition-button edition-button-paper" href={quickstartHref()}>
+                <Link className="edition-button" href={quickstartHref()}>
                   Start your forum <span aria-hidden="true">↗</span>
                 </Link>
+                <ForumLink className="edition-hero-source" href={site.demo}>
+                  Try the demo <span aria-hidden="true">↗</span>
+                </ForumLink>
                 <ForumLink className="edition-hero-source">
-                  See Meith in use <span aria-hidden="true">↗</span>
+                  Join the community <span aria-hidden="true">↗</span>
                 </ForumLink>
               </div>
-              <p className="edition-hero-note">Free & open source. Self-hosted. Yours to keep.</p>
+              <p className="edition-hero-note">
+                Free and open source. Self-hosted. Yours to keep. The demo runs on sample data.
+              </p>
             </div>
           </div>
         </div>
@@ -265,6 +270,9 @@ export default async function LandingPage() {
               <Link className="edition-button" href={quickstartHref()}>
                 Create your community <span aria-hidden="true">↗</span>
               </Link>
+              <ForumLink className="edition-text-link" href={site.demo}>
+                Try the demo <span aria-hidden="true">↗</span>
+              </ForumLink>
               <Link className="edition-text-link" href="/docs">
                 Read the docs <span aria-hidden="true">↗</span>
               </Link>

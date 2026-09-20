@@ -29,15 +29,14 @@ describe('the meith theme', () => {
     expect(resolveTheme(meithTheme).chain).toEqual(['meith', 'default'])
   })
 
-  it('fills the surfaces that carry the look and inherits the rest', () => {
+  it('fills every slot the registry names, so no screen falls back to the default look', () => {
     const own = Object.keys(meithTheme.slots)
-    expect(own).toHaveLength(22)
-    expect(own).toContain('PostBit')
-    expect(own).not.toContain('PanelShell')
+    expect(own.sort()).toEqual([...SLOT_NAMES].sort())
 
     const resolved = resolveTheme(meithTheme)
-    expect(resolved.slots.PanelShell).toBe(defaultTheme.slots.PanelShell)
-    expect(resolved.slots.PostBit).not.toBe(defaultTheme.slots.PostBit)
+    for (const name of SLOT_NAMES) {
+      expect(resolved.slots[name], name).not.toBe(defaultTheme.slots[name])
+    }
   })
 
   it.each([
@@ -94,15 +93,26 @@ describe('the meith palette', () => {
     }
   })
 
-  it('keeps the semantic marks the default theme ships', () => {
-    for (const name of [
-      'thread-pinned',
-      'thread-locked',
-      'moderation-approved',
-      'group-admin',
-    ] as const satisfies readonly TokenName[]) {
-      expect(LIGHT_TOKENS[name], name).toBe(DEFAULT_LIGHT[name])
-      expect(DARK_TOKENS[name], name).toBe(DEFAULT_DARK[name])
+  it('keeps the semantic marks on the greyscale ramp, so a label carries the meaning', () => {
+    for (const tokens of [LIGHT_TOKENS, DARK_TOKENS]) {
+      for (const name of [
+        'accent',
+        'forum-locked',
+        'thread-pinned',
+        'thread-locked',
+        'thread-unapproved',
+        'thread-deleted',
+        'post-highlight',
+        'post-unapproved',
+        'moderation-pending',
+        'moderation-approved',
+        'moderation-rejected',
+        'group-admin',
+        'group-supermod',
+        'group-mod',
+      ] as const satisfies readonly TokenName[]) {
+        expect(parseColour(tokens[name] ?? '')!.c, name).toBeLessThan(0.03)
+      }
     }
   })
 

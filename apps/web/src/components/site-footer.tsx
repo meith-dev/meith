@@ -4,6 +4,7 @@ import { about } from '../content/about'
 import { audienceIndexHref } from '../content/segments'
 import { licence, licenceHref, site } from '../content/site'
 import { version } from '../content/version'
+import { ForumLink } from './forum-link'
 
 export function SiteFooter() {
   return (
@@ -18,6 +19,12 @@ export function SiteFooter() {
             <Link href={audienceIndexHref}>Who it’s for</Link>
             <Link href="/marketplace">Extensions</Link>
             <Link href="/docs">Docs</Link>
+            <ForumLink href={site.demo}>
+              Demo <span aria-hidden>↗</span>
+            </ForumLink>
+            <ForumLink>
+              Community <span aria-hidden>↗</span>
+            </ForumLink>
             <a href={site.repository}>
               GitHub <span aria-hidden>↗</span>
             </a>

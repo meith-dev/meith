@@ -4,7 +4,7 @@ import { fromSlotCopy, linkTarget } from '@meith/theme-kit'
 
 import { Logomark, SHELL, TOUCH, Wordmark } from '../shared'
 
-const DESKTOP_LINK = `inline-flex h-10 items-center px-1 text-[0.8125rem] font-medium tracking-[0.01em] whitespace-nowrap text-muted-foreground transition-colors hover:text-primary ${TOUCH}`
+const DESKTOP_LINK = `inline-flex h-10 items-center px-1 font-mono text-[0.6875rem] font-medium tracking-[0.075em] uppercase whitespace-nowrap text-muted-foreground transition-colors duration-[160ms] hover:text-primary ${TOUCH}`
 
 function BoardMark({ boardTitle, logo }: Pick<HeaderModel, 'boardTitle' | 'logo'>) {
   if (logo === undefined) {
@@ -42,13 +42,13 @@ function Submenu({ items }: { items: HeaderModel['navigation'][number]['submenu'
   if (items === undefined || items.length === 0) return null
 
   return (
-    <ul className="invisible absolute top-full left-0 z-30 min-w-52 border border-border bg-background py-1 opacity-0 transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+    <ul className="invisible absolute top-full left-0 z-30 min-w-52 border border-border bg-background py-1 opacity-0 transition-opacity duration-[160ms] group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
       {items.map((child) => (
         <li key={child.href}>
           <a
             href={child.href}
             {...linkTarget(child)}
-            className={`flex items-center px-3 py-2 text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ${TOUCH}`}
+            className={`flex items-center px-3 py-2 text-[0.8125rem] text-muted-foreground transition-colors duration-[160ms] hover:bg-accent hover:text-foreground ${TOUCH}`}
           >
             {child.label}
           </a>
@@ -76,12 +76,12 @@ export function Header({
   return (
     <header
       data-header-peek
-      className="sticky top-0 z-40 border-b border-border bg-background motion-safe:transition-transform motion-safe:duration-200 data-peek:-translate-y-full"
+      className="sticky top-0 z-40 border-b border-border bg-background motion-safe:transition-transform motion-safe:duration-[180ms] data-peek:-translate-y-full"
     >
       <div className={`${SHELL} flex min-h-[4.75rem] items-center gap-x-4 sm:gap-x-8`}>
         <a
           href={homeHref}
-          className="flex min-w-0 items-center gap-2.5 transition-colors hover:text-primary"
+          className="flex min-w-0 items-center gap-2.5 transition-colors duration-[160ms] hover:text-primary"
         >
           <BoardMark boardTitle={boardTitle} logo={logo} />
         </a>

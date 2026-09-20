@@ -852,6 +852,16 @@
       "group": "Development workflow"
     },
     {
+      "slug": "brand",
+      "file": "contributing/brand.md",
+      "section": "contributing",
+      "title": "Brand guidelines",
+      "blurb": "How Meith looks, sounds and spends its one colour.",
+      "generated": false,
+      "primary": false,
+      "group": "Development workflow"
+    },
+    {
       "slug": "repository-checks",
       "file": "contributing/repository-checks.md",
       "section": "contributing",

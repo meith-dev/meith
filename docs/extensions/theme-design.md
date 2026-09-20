@@ -109,11 +109,16 @@ is a `primary` block with a `↗` arrow, every link that goes somewhere ends
 in a muted arrow that turns `primary` under the pointer, the counts beside a
 listed item are `primary`, and a forum row's rule turns `primary` under the
 pointer. In a post, a 1px `border` rule stands between the byline column
-and the body. The header's sign-in is
-the site's `foreground` block that fills `primary` on hover. Nothing glows,
-nothing is tinted and nothing is rounded. Semantic tokens keep the default
-theme's values. The theme fills the 22 slots that carry the look and inherits the
-panels, forms, search and authentication screens, which take the tokens.
+and the body. The header's sign-in is the same `primary` block, and the header and footer
+navigation run in the mono face as uppercase labels, as meith.dev's own do. Nothing glows,
+nothing is tinted and nothing is rounded. The semantic marks — pinned, locked,
+moderation and group tokens — sit on the greyscale ramp, so the label carries
+the meaning and the green stays reserved; the `accent` wash is `surface`.
+Transitions run 160–180ms. [Brand guidelines](../contributing/brand.md) holds
+the rules the theme follows. The theme fills every slot in the registry, so
+the sign-in, search, discovery, posting and panel screens draw with the same
+rules, labels and one filled action as the board index; only the form
+controls come from `@meith/ui`, and they take the tokens.
 In this repository it is registered only behind `SHOWCASE_THEMES`, so the
 contract tests, the fixture gallery and the browser suites cover it.
 

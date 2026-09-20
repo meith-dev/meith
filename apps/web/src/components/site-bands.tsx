@@ -24,7 +24,7 @@ export function ClosingBand({
         </div>
         <div className="marketing-actions">
           <Link className="btn btn-primary" href={startHref}>
-            Get started <span aria-hidden>→</span>
+            Get started <span aria-hidden>↗</span>
           </Link>
           {docsHref === undefined ? (
             <ForumLink className="btn btn-quiet">
@@ -32,7 +32,7 @@ export function ClosingBand({
             </ForumLink>
           ) : (
             <Link className="btn btn-quiet" href={docsHref}>
-              Explore the docs <span aria-hidden>→</span>
+              Explore the docs <span aria-hidden>↗</span>
             </Link>
           )}
         </div>
