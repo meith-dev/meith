@@ -13,6 +13,8 @@ The generator reads `marketplace/listings` and `marketplace/screenshots`, then w
 
 It validates kind, key, version, compatibility range, unique keys/packages and referenced screenshots. Images must have a PNG signature and be smaller than 5,000,000 bytes. The check rejects orphan source or output files; generation deletes them. Output is sorted by key and has no timestamp.
 
+The public catalogue is at `/extensions`, with detail pages at `/extensions/:key`. The former `/marketplace` and listing URLs redirect permanently to these pages. Feed and screenshot URLs stay under `/marketplace/` so installed boards and published listings keep working.
+
 Keep `/marketplace/v1.json` compatible. Publish a changed schema at a new versioned path.
 
 ## Board update checks

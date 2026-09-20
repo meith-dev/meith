@@ -24,6 +24,8 @@ const nextConfig = {
 
   async redirects() {
     return [
+      { source: '/marketplace', destination: '/extensions', permanent: true },
+      { source: '/marketplace/:key([a-z0-9-]+)', destination: '/extensions/:key', permanent: true },
       { source: '/docs/committee-guide', destination: '/docs/organiser-guide', permanent: true },
       { source: '/docs/self-hosting', destination: '/docs/docker-compose', permanent: true },
       { source: '/docs/theme-api', destination: '/docs/themes', permanent: true },

@@ -18,9 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     })),
     { url: `${site.url}${about.href}`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${site.url}/marketplace`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${site.url}/extensions`, changeFrequency: 'weekly', priority: 0.8 },
     ...listings.map((listing) => ({
-      url: `${site.url}/marketplace/${listing.key}`,
+      url: `${site.url}/extensions/${listing.key}`,
       changeFrequency: 'weekly' as const,
       priority: 0.5,
     })),

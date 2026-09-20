@@ -19,13 +19,13 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: 'Extensions',
   description: DESCRIPTION,
-  alternates: { canonical: '/marketplace' },
+  alternates: { canonical: '/extensions' },
   openGraph: {
     type: 'website',
     siteName: site.name,
     title: `${site.name} extensions`,
     description: DESCRIPTION,
-    url: '/marketplace',
+    url: '/extensions',
     images: ogImage('/og', `${site.name} extensions`),
   },
 }
@@ -85,7 +85,7 @@ function ListingCard({ listing }: { listing: Listing }) {
   )
 }
 
-export default async function MarketplaceIndexPage() {
+export default async function ExtensionsIndexPage() {
   const grouped = await Promise.all(
     sections.map(async (section) => ({ section, listings: await listingsOfKind(section.kind) })),
   )
@@ -147,14 +147,14 @@ export default async function MarketplaceIndexPage() {
           <p>Create a theme or plugin with typed, documented extension points.</p>
         </div>
         <div className="marketing-actions">
-          <Link className="btn" href={docHref('themes')}>
-            Build a theme <span aria-hidden>→</span>
+          <Link className="edition-text-link" href={docHref('themes')}>
+            Build a theme <span aria-hidden>↗</span>
           </Link>
-          <Link className="textlink" href={docHref('first-plugin')}>
-            Write a plugin
+          <Link className="edition-text-link" href={docHref('first-plugin')}>
+            Write a plugin <span aria-hidden>↗</span>
           </Link>
-          <Link className="textlink" href={docHref('marketplace')}>
-            How to install
+          <Link className="edition-text-link" href={docHref('marketplace')}>
+            How to install <span aria-hidden>↗</span>
           </Link>
         </div>
       </section>
