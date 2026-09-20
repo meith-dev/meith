@@ -10,17 +10,9 @@
   Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.
 -->
 
-The p95 budgets for the pages a board’s traffic actually goes to, what the
-last recorded run measured against a full-scale board one read at a time,
-and what a board full of members reading at once measured on the same data.
+Recorded database-read timings, budgets and concurrent-load results. These are single-process measurements with an in-process cache and no Redis. Measure your own deployment; shared-cache results can differ.
 
-Every number here is measured on a **single-instance** board — one web
-process with the per-process cache, no Redis. That is the stock topology
-and the honest baseline. A board [scaled out](../operations/scaling.md) answers from a
-shared cache instead of an in-process map, so its numbers differ; measure
-your own rather than reading these across.
-
-## The board these numbers came from
+## Test environment
 
 | | |
 |---|---|
@@ -33,9 +25,7 @@ your own rather than reading these across.
 | Runtime | Node v22.22.2 on linux-x64 |
 | Measured | 2026-08-18 |
 
-The absolute numbers belong to that machine. What travels between machines
-is the **shape**: which scenarios sit near their budget, and whether a deep
-page costs more than a first page. Compare ratios, not milliseconds.
+Results apply to the recorded machine and workload; they are not a capacity guarantee.
 
 ## Budgets and measurements
 
@@ -54,17 +44,9 @@ page costs more than a first page. Compare ratios, not milliseconds.
 
 ## Under concurrent load
 
-Every measurement above is one read at a time. This is the same board with
-members on it: each one asks for a page every 10 seconds, drawn from the
-mix below, through the single connection pool one process has —
-**3 connections**, which is the shipped default and not a tuned number.
+Fixed-schedule traffic: one page per member every 10 seconds, using 3 database connections.
 
-Arrival times are on a fixed schedule rather than a request-then-sleep loop.
-That distinction is the whole measurement: a loop that sleeps *after* each
-response slows its own arrivals down exactly when the board gets slow, so it
-reports a queue as if it were an idle system. **Lateness** is what that loop
-cannot see — how long a request sat before it even started, because every
-connection was busy. It moves first, and it moves before the p95 does.
+Late p95 measures the delay before a scheduled request starts. Fixed arrivals expose queueing that a response-then-sleep loop would hide.
 
 | Active members | Offered | Served | Budget | | p50 | p95 | p99 | Late p95 |
 |---:|---:|---:|---:|---|---:|---:|---:|---:|
@@ -77,12 +59,11 @@ connection was busy. It moves first, and it moves before the p95 does.
 
 Each rung discards its first 10 seconds, then measures until it has both 400 requests and a steady window to put them in.
 
-## The same pages, under that load
+## Per-page load results
 
-From 50 members to 2,500 the p95 of the mix barely moves — 32.3 ms to 33.5 ms, across 50× the traffic. That flatness is not the board being idle; it is what a mixed p95 measures. A p95 is set by the slowest one request in twenty, and search and discovery are about that share of the traffic, so until the pool runs out the mixed p95 mostly reports which pages are in the mix rather than how many members are on the board.
+Mixed p95: 32.3 ms at 50 members to 33.5 ms at 2,500 members (50× traffic). The traffic mix affects this aggregate; inspect per-page timings too.
 
-The per-page breakdown is where load shows earlier, and says which pages it
-shows in first.
+Per-page p95 by active-member count:
 
 | Page | Share | 50 | 250 | 1,000 | 2,500 | 4,250 | 5,000 |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -96,30 +77,15 @@ shows in first.
 | Search, rare term | 2% | 42.1 ms | 40.2 ms | 47.6 ms | 64.4 ms | 355.9 ms | 2072.3 ms |
 | Member profile | 5% | 2.6 ms | 1.9 ms | 5.2 ms | 10.6 ms | 107.3 ms | 691.1 ms |
 
-Every row is a p95 in milliseconds, and the column heading is how many members
-were on the board. A row that climbs left to right is a page that costs more
-when the board is busy; a row that does not is a page whose cost is its own.
-
-The scoped reads —
-*Latest threads*, *Search, near-universal term*, *Search, rare term* —
-pay the permission filter first, in the same request, exactly as a page does.
-Their numbers here are therefore the filter plus the read, and are not
-comparable with the single-read measurement of the same id above.
+Scoped reads (Latest threads, Search, near-universal term, Search, rare term) include permission filtering. They are not directly comparable to single-read timings.
 
 ### 5,000 active members
 
-Over the shoulder, and here to say where the shoulder is. This is a limit, not a target: five hundred requests a second is past what one process at the default pool of three absorbs, the requests still start on time — lateness stays near zero — and then they queue inside the pool, which is why the p95 goes to seconds while every rung below it is in milliseconds. It is recorded so the shoulder cannot move down quietly. Where it should be is an open question for whoever sizes a deployment: more processes, a larger pool, or accepting that a board this busy has outgrown one of them.
+At 500 requests per second, the recorded run queues inside the three-connection pool. This ceiling detects regressions; it is not a recommended operating load. Measure additional processes or pool capacity before deploying at this rate.
 
 ## Partial visible indexes
 
-`EXPLAIN` evidence that the partial `visibility` indexes are actually used.
-This is that evidence, and it is also a **check**: `pnpm perf explain`
-fails when the planner stops choosing one.
-
-That failure is the one worth guarding. A partial index only matches a query
-whose predicate the planner can prove implies it, so a read path that starts
-passing a variable visibility scope where it passed a literal falls silently
-onto a sequential scan of the largest table on the board. Nothing errors.
+`pnpm perf explain` checks that the planner uses the expected indexes.
 
 | Page | Index | Used | Warm |
 |---|---|---|---:|
@@ -129,70 +95,66 @@ onto a sequential scan of the largest table on the board. Nothing errors.
 | Thread page, as a moderator | `posts_thread_all_idx` | yes | 0.0 ms |
 | Moderation queue | `posts_forum_visibility_idx` | yes | 1.4 ms |
 
-Each partial index has an unfiltered twin, and the twins are checked too. A
-moderator seeing unapproved and deleted content *cannot* use the partial
-index — their predicate does not imply it — so without the twin their forum
-view is a sequential scan. That failure is invisible to every test written
-from a member’s point of view, which is most of them.
+Both visible-content partial indexes and their unfiltered counterparts are checked. Moderator queries need the unfiltered indexes when their scope includes hidden content.
 
-## What each scenario is and why it is measured
+## Scenarios
 
 ### Thread, page 1
 
 `thread-page-first` — listThread(limit 20) on a long thread.
 
-The single most requested page on any forum. Everything else is rounding.
+Baseline first-page thread read.
 
 ### Thread, deep page
 
 `thread-page-deep` — listThread(afterId) far into a long thread.
 
-The keyset claim. Under OFFSET this degrades with depth; it must not.
+Checks cursor pagination deep into a thread.
 
 ### Forum, page 1
 
 `forum-page-first` — listForum(limit 20) on the busiest forum.
 
-Sticky-first ordering over the largest thread set on the board.
+Checks pinned-first ordering in the largest forum.
 
 ### Forum, deep page
 
 `forum-page-deep` — listForum(after cursor) deep into the busiest forum.
 
-Same keyset claim on the other axis, and the one an archive crawler hits.
+Checks cursor pagination deep into a forum.
 
 ### Board index
 
 `board-index` — listListing() — every forum with its counters and last post.
 
-One query for the whole tree, and the page every visitor lands on.
+Checks the forum tree with stored counts and latest-post data.
 
 ### Permission filter
 
 `visible-forums` — forumIdsWhere(actor, thread.view).
 
-Every list page pays this before it reads anything, so its cost multiplies.
+Measures the authorisation scope used before content reads.
 
 ### Latest threads
 
 `discovery-latest` — Discovery page 1, scoped to visible forums.
 
-Ordered across the whole board rather than within one forum — the widest scan, and the most run-to-run variance of anything here. It was budgeted at 80ms against a typical p95 near 50, which is 1.6× and breaks the 2–3× rule stated at the top of this file; it duly went red on a noisy run at 110ms with a 621ms outlier. Raised to 150ms — not to make it pass, but because the original number was set tighter than the methodology the rest of the table follows.
+Checks cross-forum ordering with headroom for run-to-run variance.
 
 ### Search, near-universal term
 
 `search-common` — Relevance search for a term matching 96% of the board.
 
-The worst query a member can trigger, and the one budget the first load run failed. Relevance ordering is not indexable: `ts_rank_cd` has to score every matching row before it can name the top twenty, so a term matching 2.26M of 2.34M posts cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to bound the ranked set to the most recent 20,000 matches, which measured 98ms — and changes nothing for any term selective enough that the window holds the whole match set, which is every real query. Recorded in mybb-parity.md.
+Measures relevance ranking for a broad match set. Ranking is bounded to the most recent 20,000 matches.
 
 ### Search, rare term
 
 `search-rare` — Full-text search for a term with ~1,000 matches.
 
-Separated because a fast rare-term search hides a slow common-term one, and here it did: before the window bound these two differed by a factor of 130, and only the pair made it visible that the cost was the match count rather than the code. They still differ, by about 5×, which is the residual and expected shape.
+Measures selective full-text search separately from common-term ranking.
 
 ### Member profile
 
 `member-profile` — Profile with counters for a prolific member.
 
-A post count computed live is an aggregate over the member's whole history.
+Checks profile reads using stored counters.

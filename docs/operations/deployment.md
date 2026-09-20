@@ -1,25 +1,15 @@
-# Choose a deployment
+# Deployment
 
-Choose where the board will run before creating production data. Every route needs PostgreSQL, persistent uploads, working email and a way to run scheduled work.
+A production board needs PostgreSQL, persistent uploads, email and scheduled tasks.
 
-## Compare the supported routes
+| Route | Requirements |
+|---|---|
+| [Coolify](coolify.md) | Server, domain and Git repository; deployment through a panel |
+| [Docker Compose](docker-compose.md) | Server, Docker, HTTPS proxy and deployment access |
+| [Vercel](vercel.md) | Managed database, cache, uploads, mail and HTTP scheduler |
 
-| Route | Choose it when | You manage |
-|---|---|---|
-| [Coolify](coolify.md) | You have a server and want a deployment panel | The server, backups and deployment settings |
-| [Docker Compose](docker-compose.md) | You want direct control of containers and the reverse proxy | Containers, HTTPS, secrets, storage and updates |
-| [Vercel](vercel.md) | You want functions backed by managed services | Connected services, scheduler cadence and platform limits |
+For development, use a [preview](../start/quickstart.md) or [writable local board](local-board.md).
 
-For a private experiment, use a [local preview](../start/quickstart.md) or a [writable local board](local-board.md). A preview is not a production installation.
+Prepare a public domain, credentials and off-site backups. To move an existing forum, rehearse the [import](migrating.md) before creating production content.
 
-## Prepare before installing
-
-Have a public domain, database and upload-storage plan, mail provider, and somewhere off-site to keep backups and secrets. Use the chosen guide's exact environment and command context: the Meith monorepo, a generated board checkout and a deployed container are different environments.
-
-If you already run MyBB or phpBB, read [Import an existing forum](migrating.md) before inviting members or creating production content. Rehearse the import into an isolated destination.
-
-## Finish the installation
-
-The deployment guide takes you to `/install`. Complete the installer, then work through [Set up your community](../administration/first-steps.md).
-
-Before opening registration, verify email delivery, ordinary-member permissions, scheduled tasks and a restorable backup. The [operations checklist](operating.md) covers the handover.
+After deployment, complete `/install` and the [community setup checklist](../administration/first-steps.md). Verify mail, member permissions, scheduled tasks and a restore before opening registration.

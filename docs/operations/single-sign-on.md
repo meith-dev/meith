@@ -1,27 +1,15 @@
-# Authentication settings
+# Configure authentication
 
-Configure sign-in methods for a board you operate. Members managing their own password, two-factor authentication or devices should use [Account security](../members/account-security.md).
+Verify HTTPS, the public board URL, mail delivery and an operator recovery route before changing sign-in settings.
 
-## Before changing sign-in
-
-Confirm that HTTPS, the public board URL and outgoing email work. Keep a tested administrator recovery route available before enabling additional restrictions. Do not treat a provider's email address as proof of account ownership without the supported linking flow.
-
-## Choose a feature
-
-| Feature | Configuration and behavior |
+| Feature | Setup/reference |
 |---|---|
-| Authenticator codes and recovery codes | [Two-factor authentication](authentication-reference.md#a-second-factor) |
-| Persistent sign-in and device sessions | [Sessions](authentication-reference.md#where-a-member-is-signed-in) |
-| Account security history | [Security activity](authentication-reference.md#what-has-happened-to-an-account) |
-| External identity providers | [Federated sign-in](authentication-reference.md#federated-sign-in) |
-| Device passkeys | [Passkeys](authentication-reference.md#passkeys) |
+| Authenticator and recovery codes | [Two-factor authentication](authentication-reference.md#two-factor-authentication) |
+| Sessions and persistent sign-in | [Sessions](authentication-reference.md#sessions) |
+| Security history | [Activity](authentication-reference.md#security-history) |
+| GitHub, Google or OIDC | [Federated sign-in](authentication-reference.md#federated-sign-in) |
+| Device credentials | [Passkeys](authentication-reference.md#passkeys) |
 
-Use the supported settings in the admin panel and the environment required by your provider. Check callback URLs against the board's public origin, then test with a separate member account before changing administrator access.
+Set provider callbacks against the permanent public origin. Test sign-in, sign-out, linking and recovery with a separate member before changing staff requirements.
 
-## Verify recovery
-
-Check password-reset delivery, a normal sign-in, sign-out and a fresh sign-in using the configured method. For two-factor authentication, verify that recovery codes are saved separately from the authenticator device.
-
-If a member loses both the authenticator and recovery codes, an operator can use the [account recovery command](operator-cli.md#account-recovery) after establishing the member's identity. Clearing a second factor revokes the member's sessions; it is not a routine replacement for using recovery codes.
-
-The [authentication reference](authentication-reference.md) explains linking, protocol boundaries and common failures.
+Members use [Account security](../members/account-security.md). If an authenticator and all recovery codes are lost, verify identity before [operator recovery](operator-cli.md#account-recovery); clearing the factor revokes sessions.

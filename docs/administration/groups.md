@@ -1,49 +1,35 @@
-# Manage groups and promotions
+# Groups and promotions
 
-Groups grant permissions, set allowances and control member identity. Manage them at **Admin → Groups**. Use forum-specific overrides in [Forums and permissions](forums.md).
+Open **Admin → Groups**. Members have one primary group and can hold additional groups. Both contribute permissions.
 
-## Create or edit a group
+## Set permissions and allowances
 
-Open a group to set its title, permissions and limits. A member has a primary group and may hold additional groups. Review the combined permissions before adding a powerful group to an account.
+Any group can grant a permission. Numeric allowances use the highest value, with zero meaning unlimited. Approval is required only when every group requires it. [Forum overrides](forums.md) apply before groups combine.
 
-| Setting kind | How multiple groups combine |
+| Setting | Limit |
 |---|---|
-| Permission switch | Any group can grant it |
-| Numeric allowance | Most generous value wins; 0 means unlimited |
-| Approval requirement | A group that does not require approval can exempt the member |
+| `maxPostsPerDay` | Thread starts and replies per UTC day |
+| `maxPrivateMessagesPerDay` | Sends per UTC day; recipient count does not multiply it |
+| `privateMessageQuota` | Stored messages |
 
-Panel access and administrator authority are distinct permissions. Give only the role the member needs, then verify it with the member's account.
+Daily allowances are separate from flood intervals and hourly limits. Flood bypass does not remove daily allowances. Panel access and administrator authority are separate permissions.
 
-## Set posting and message allowances
+## Set display identity
 
-`maxPostsPerDay` limits thread starts and replies together. `maxPrivateMessagesPerDay` limits sends; one send counts once regardless of the number of recipients. Both use UTC days, and zero means unlimited.
+Set title, order, badge and light/dark name colours. The staff flag includes non-empty groups on `/staff`.
 
-These daily allowances are separate from flood intervals and hourly spam controls. Bypassing flood checks does not remove a group's daily allowance.
+Members can select an ordinary display group under **Account → Profile**. **Maximum displayed groups** controls the number of titles shown; the leading group supplies colour and badge. Staff authority remains visibly identified.
 
-`privateMessageQuota` controls stored messages, not the daily send rate. Increasing a send allowance does not free a full inbox.
+## Allow plugin grants
 
-## Configure group identity
-
-Choose a title, display order, badge and optional name colors. Check light and dark variants; a color that works on one background may not work on the other. The staff-group flag determines which groups appear on `/staff`.
-
-Members with a choice of ordinary groups can select a display group under **Account → Profile**. The board's **Maximum displayed groups** setting controls how many group titles appear. The leading group supplies the main name color and badge.
-
-Staff and groups carrying administrative or moderation authority remain visibly identified as staff. A purchased or selected display group must not hide that responsibility.
-
-## Let a plugin grant a group
-
-Enable **may be granted by plugins** only on groups intended for plugin-managed membership. Staff and power-carrying groups cannot be made grantable this way.
-
-A paid membership can grant access, a badge or other ordinary group benefits. Configure the group's permissions first, then select it in the plugin. Read [Dues](membership-guide.md) for paid memberships.
+Enable **may be granted by plugins** on ordinary groups a plugin may assign. Staff and other powerful groups cannot be grantable. Configure permissions before selecting the group in [Dues](membership-guide.md).
 
 ## Configure promotions
 
-Use the Promotions page to create rules that move eligible members into a group based on the supported activity, tenure and reputation criteria. Check whether the rule changes primary membership or adds membership, then test it on a representative account.
+Create activity, tenure or reputation rules under **Promotions**. Check whether the rule changes the primary group or adds membership. Review the eligible-member preview before applying it.
 
-Promotions depend on scheduled work. If a qualifying account does not change, inspect the rule, member values and scheduler status rather than repeatedly adding the group manually.
+The preview stops at 50,000 members and reports truncation. Enabled rules run hourly in batches of 10,000, retaining their position between runs. Manual application does not change the schedule.
 
-## Move members or remove a group
+## Remove a group
 
-Review memberships and affected permissions before moving accounts. Ensure members retain a valid primary group and that no paid plan or plugin grant still relies on a group you intend to remove. Follow the panel's validation and confirmation messages.
-
-After any structural change, check private forums and staff access using ordinary accounts.
+Check memberships, paid plans and plugin grants first. Keep a valid primary group for each account. After changing roles or deleting a group, test staff and private-forum access.

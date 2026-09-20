@@ -1,32 +1,24 @@
-# Write and format posts
+# Format posts
 
-Use Markdown in posts, replies and private messages. The toolbar inserts syntax, but you can type it directly without JavaScript. Signatures allow a restricted subset of formatting.
+Posts, replies and private messages accept Markdown. The toolbar inserts the same syntax. Signatures support a restricted subset.
 
-## Basic formatting
+## Syntax
 
-| Write | Result |
+| Input | Result |
 |---|---|
-| `**bold**` | Bold text |
-| `*italic*` | Italic text |
+| `**bold**` | Bold |
+| `*italic*` | Italic |
 | `~~removed~~` | Strikethrough |
-| `[label](https://example.com)` | A named link |
+| `[label](https://example.com)` | Link |
 | `` `code` `` | Inline code |
-| `> quoted text` | A blockquote |
-| `- item` | A bulleted list |
-| `1. item` | A numbered list |
-| `## Heading` | A heading |
+| `> quoted text` | Quote |
+| `- item` | Bullet list |
+| `1. item` | Numbered list |
+| `## Heading` | Heading |
 
-Leave blank lines around paragraphs, lists and larger blocks. Use the composer's **Formatting help** for a reminder while writing.
+Separate paragraphs and blocks with blank lines. Use **Quote** on a post or type `@username` to mention a member. Mentions do not grant access to private content.
 
-## Quote or mention someone
-
-Use **Quote** on a post to bring its text into the reply composer, then keep the relevant part. Type `@username` to mention a member. With JavaScript enabled, suggestions help complete names; typed mentions still work without it.
-
-Suggestions respect the profiles you can see and your ignore list. A mention is not a way to grant someone access to a private thread.
-
-## Show code
-
-Put three backticks on separate lines around code and optionally name its language:
+## Code
 
 ````text
 ```ts
@@ -34,55 +26,45 @@ const answer = 42
 ```
 ````
 
-Recognized languages are highlighted when the post is rendered. An omitted or unrecognized language displays plain code.
+Supported languages receive syntax highlighting; other code displays as plain text.
 
-## Add tables and checklists
+## Tables and checklists
 
 ```text
 | Item | Status |
 | --- | --- |
 | Venue | Booked |
-```
 
-```text
 - [ ] Invite speakers
 - [x] Book the room
 ```
 
-Saved task-list boxes show a record of completion; readers cannot toggle them as interactive tasks.
+Saved checkboxes are read-only.
 
-## Hide a spoiler
+## Spoilers
 
 ```text
 :::spoiler
-The answer is inside this disclosure.
+Hidden text
 :::
 ```
 
-Spoilers use a disclosure that can be opened with a mouse or keyboard and works without JavaScript.
+Readers open the disclosure with a mouse or keyboard. JavaScript is not required.
 
-## Add images and attachments
-
-For an externally hosted image:
+## Images and attachments
 
 ```text
-![Describe the image](https://example.com/photo.png)
+![Image description](https://example.com/photo.png)
 ```
 
-Remote images only load when the board permits them. Provide a useful description for readers who cannot see the image.
+Remote images require board permission. Use descriptive alternative text.
 
-For a local file, use the attachment controls offered by the forum. Files normally appear beneath the post. **Insert attachment** uploads an image and inserts its `[attachment=id]` marker into the text; that toolbar enhancement requires JavaScript. With JavaScript disabled, use the ordinary attachment form and submit with the post.
+Use the attachment form to upload files. With JavaScript, **Insert attachment** uploads an image and inserts `[attachment=id]`. Without JavaScript, submit files through the ordinary attachment form. Only permitted attachments render.
 
-Only permitted attachments resolve. Removing an inline marker is not the same operation as deleting the attachment. When editing a post, use its attachment management controls to remove or retain files, then verify the saved result.
+Removing a marker does not delete its file. Use the post's attachment controls to delete files.
 
-## Use link previews
-
-On boards allowing remote images, a supported video URL on its own line can show a static preview card. A link inside a paragraph stays a link. Previews are not embedded video players.
+A supported video URL on its own line can show a static preview when remote images are allowed. It does not embed a player.
 
 ## Polls and drafts
 
-If the forum allows polls, use the new-thread poll controls and check the choices, multiple-selection limit and voter visibility before submitting. Later edits may be restricted once voting begins.
-
-Use saved drafts at `/usercp/drafts` to resume unfinished writing. Browser composer recovery is an enhancement, not a replacement for saving important text. Posting, editing and deletion remain subject to permissions and any time limit.
-
-See [Member guide](member-guide.md) for the posting workflow and [Notifications](notifications.md) for following replies.
+Check poll choices, selection limits and voter visibility before submitting. Editing may be restricted after voting starts. Resume saved drafts at `/usercp/drafts`; browser recovery does not replace saving a draft.

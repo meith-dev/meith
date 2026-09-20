@@ -334,11 +334,9 @@ function render({ slots, freeze, models, slotModels }) {
     `**theme-kit v${freeze.version}.** ${slots.length} slots: ${counts.stable} stable, ` +
       `${counts.provisional} provisional, ${counts.deprecated} deprecated.`,
     '',
-    'What the marks mean, and how something is removed, is in',
-    '[`themes.md`](../extensions/themes.md). In short: a **stable** slot and the fields of its',
-    'model do not change before the next major; a **provisional** slot is named but not yet rendered',
-    'by any page, so its model may change in a minor release; a **deprecated** slot still',
-    'works and has a removal scheduled below.',
+    'Stable contracts retain existing fields until a major release. Provisional models may change in a minor. Deprecated contracts remain available until their scheduled removal.',
+    '',
+    'See [Theme contract](../extensions/theme-contract.md) for implementation and versioning rules.',
     '',
     '## Every slot',
     '',
@@ -395,11 +393,7 @@ function render({ slots, freeze, models, slotModels }) {
   for (const name of slotModelNames) shared.delete(name)
 
   push('## Shared models', '')
-  push(
-    'Referenced by the models above. Same promise: a field of a shared model reached',
-    'from a stable slot is stable.',
-    '',
-  )
+  push('Fields reached from a stable slot share its stability guarantee.', '')
   for (const name of [...shared].sort()) {
     push(`### ${name}`, '')
     const doc = models.get(name)?.doc ?? ''
@@ -409,11 +403,7 @@ function render({ slots, freeze, models, slotModels }) {
 
   push('## Scheduled removals', '')
   if (freeze.deprecations.length === 0) {
-    push(
-      `Nothing is deprecated in v${freeze.version}. Nothing can be: this is the first`,
-      'frozen contract, so there is no earlier promise to withdraw.',
-      '',
-    )
+    push(`No deprecations in v${freeze.version}.`, '')
   } else {
     push('| What | Deprecated in | Removed in | Replacement | Reason |', '|---|---|---|---|---|')
     for (const entry of freeze.deprecations) {

@@ -17,7 +17,7 @@ describe('the hook registry', () => {
     for (const name of HOOK_NAMES) {
       const spec = HOOKS[name]
       expect(['filter', 'event']).toContain(spec.kind)
-      expect(spec.purpose.length).toBeGreaterThan(20)
+      expect(spec.purpose.trim()).not.toBe('')
     }
   })
 

@@ -1,51 +1,40 @@
-# Configure and troubleshoot email
+# Email
 
-Configure outbound email before opening registration or relying on password resets. Use **Admin → Settings → Mail** or the deployment environment. Web and worker must use the same provider configuration.
+Configure **Admin → Settings → Mail** and test delivery before requiring email activation. Keep web and worker configuration consistent.
 
-## Choose a delivery method
-
-| Driver | Required configuration | Result |
-|---|---|---|
-| `log` | None | Writes messages to logs; delivers nothing |
-| `http` | Sender, HTTPS endpoint and bearer token | Posts JSON to a compatible mail API |
-| `smtp` | Sender and SMTP host | Sends through an SMTP relay |
-
-The HTTP request uses `from`, `to`, `subject`, `text`, `html` and `reply_to`. A provider with a different API needs an adapter; an arbitrary HTTPS mail endpoint is not sufficient.
-
-For Resend provisioned by the Vercel deployment, see [Vercel configuration](vercel-configuration.md). Check domain verification before testing delivery.
-
-## Configure environment overrides
-
-These values override the corresponding saved settings. Prefer the admin panel when the deployment does not need to own the value.
-
-| Variable | Use |
+| Driver | Requirements |
 |---|---|
-| `MAIL_DRIVER` | `log`, `http` or `smtp` |
-| `MAIL_FROM` | Sender email address |
-| `MAIL_HTTP_ENDPOINT` | HTTPS API endpoint |
-| `MAIL_HTTP_TOKEN` | API bearer token |
-| `MAIL_SMTP_HOST` | SMTP server hostname |
-| `MAIL_SMTP_PORT` | Provider's port |
-| `MAIL_SMTP_SECURITY` | `tls`, `starttls` or `none`; match the provider's configuration |
-| `MAIL_SMTP_USERNAME`, `MAIL_SMTP_PASSWORD` | Supply both when the relay requires authentication |
-| `MAIL_ALLOW_PRIVATE_HOSTS` | Allow an intentionally private relay in production |
+| `log` | None; logs messages without delivery |
+| `http` | Sender, HTTPS endpoint and bearer token |
+| `smtp` | Sender and SMTP host; provider transport/authentication settings |
 
-Set the HTTP endpoint and token together. Do not send a token issued by one provider to another provider's endpoint. Keep credentials out of the repository.
+HTTP delivery posts `from`, `to`, `subject`, `text`, `html` and `reply_to`. Other API shapes need an adapter.
 
-## Test delivery
+## Environment overrides
 
-1. Save the panel settings, or recreate web and worker after changing environment variables.
-2. Run `meith env:check` using the [command for your deployment](operator-cli.md).
-3. Send a test from the Mail settings screen.
-4. Check the recipient's mailbox, spam folder and provider delivery log.
-5. Trigger a queued board notification and verify that the [scheduler](scheduled-tasks.md) delivers it too.
+| Variable | Value |
+|---|---|
+| `MAIL_DRIVER` | `http` or `smtp` pins the deployment driver; `log`/unset allows saved settings |
+| `MAIL_FROM` | Sender address |
+| `MAIL_HTTP_ENDPOINT`, `MAIL_HTTP_TOKEN` | Matching provider endpoint and token |
+| `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT` | Relay address and port |
+| `MAIL_SMTP_SECURITY` | `tls`, `starttls` or `none` |
+| `MAIL_SMTP_USERNAME`, `MAIL_SMTP_PASSWORD` | Both when authentication is required |
+| `MAIL_ALLOW_PRIVATE_HOSTS` | Allow a deliberately private production relay |
 
-A successful connection is not proof of delivery. If a test succeeds but notifications wait, inspect worker or tick results and the queue. If the driver is `log`, no delivery is attempted.
+Verify the provider's sender/domain requirements. Keep secrets out of git and use the intended provider's token only with its endpoint.
+
+## Test
+
+1. Save settings, or restart affected services after environment changes.
+2. Run `meith env:check` using your [CLI invocation](operator-cli.md).
+3. Select **Send a test message** and check the inbox, spam folder and provider log.
+4. Trigger a queued notification and verify [scheduler](scheduled-tasks.md) delivery.
+
+If direct tests work but notifications wait, inspect task results and the queue.
 
 ## Private relays and outbound requests
 
-Production mail connections reject private, loopback, link-local and reserved addresses by default. DNS results are checked and pinned for the connection. HTTP endpoints must use HTTPS without embedded credentials. Requests have a total deadline and a bounded response body; upstream error bodies are not exposed through the admin test result.
+Production rejects private, loopback, link-local and reserved destinations unless explicitly allowed. DNS is checked and pinned; requests have deadlines and response limits. HTTP requires HTTPS without embedded credentials. Upstream error bodies are not shown by the admin test.
 
-Use `MAIL_ALLOW_PRIVATE_HOSTS=true` only when the relay deliberately lives on a private network. Development relaxes this guard. SMTP authentication, transport security and the provider's sender policy still apply.
-
-Webhooks, web push and OpenID Connect have separate outbound controls: `WEBHOOK_ALLOW_PRIVATE_HOSTS`, `PUSH_ALLOW_PRIVATE_HOSTS` and `OIDC_ALLOW_PRIVATE_HOSTS`. Changing the mail flag does not change those services. See [Webhooks](../integrations/webhooks.md), [Browser notifications](web-push.md) and [Authentication](single-sign-on.md).
+Use `MAIL_ALLOW_PRIVATE_HOSTS=true` only for an intended private relay. Separate overrides control [webhooks](../integrations/webhooks.md), [push](web-push.md) and [OIDC](authentication-reference.md): `WEBHOOK_ALLOW_PRIVATE_HOSTS`, `PUSH_ALLOW_PRIVATE_HOSTS`, `OIDC_ALLOW_PRIVATE_HOSTS`.

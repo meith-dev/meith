@@ -1,8 +1,10 @@
-# Build your first theme
+# Create a theme
 
-Create a theme that inherits the default board, changes its palette and overrides the footer. You need Node.js 22 or newer, npm and a scaffolded board beside the theme directory.
+Requires Node.js 22+, npm and a scaffolded board.
 
-## 1. Create and test the theme
+## 1. Create the package
+
+Run beside your board directory:
 
 ```sh
 npx create-meith --theme first-light
@@ -12,13 +14,11 @@ npm test
 npm run typecheck
 ```
 
-The scaffold comes from the tested Iris example. `src/theme.ts` declares the theme, `src/tokens.ts` holds light and dark palettes, and `src/slots/` holds the footer override.
+The theme inherits the default theme. `src/theme.ts` defines it, `src/tokens.ts` defines its palettes, and `src/slots/` contains a footer override.
 
-## 2. Customize the presentation
+## 2. Change the theme
 
-Change a token in `src/tokens.ts` and edit the footer slot. Keep both color schemes readable. Use the [token and shared-control guide](theme-design.md) for the supported values.
-
-Run the tests and typecheck again. Prefer inheriting a slot over copying it unchanged; the parent theme continues to supply the rest of the board.
+Edit the footer and light/dark tokens. Inherit unchanged slots. Rerun tests and typecheck. See [Tokens and controls](theme-design.md) for supported values.
 
 ## 3. Register the theme
 
@@ -29,13 +29,13 @@ cd ../my-board
 npm install ../first-light
 ```
 
-Add these imports to `meith.config.ts`:
+Add to `meith.config.ts`:
 
 ```ts
 import { BROWSER_THEME_COLOR, DARK_TOKENS, LIGHT_TOKENS, firstLightTheme } from 'first-light'
 ```
 
-The default scaffold already imports `defaultMessages` from `@meith/theme-default`. Add this entry to the existing `themes` map:
+Add this entry to the existing `themes` map. The board scaffold already imports `defaultMessages` from `@meith/theme-default`.
 
 ```ts
 'first-light': {
@@ -48,15 +48,13 @@ The default scaffold already imports `defaultMessages` from `@meith/theme-defaul
 },
 ```
 
-Set `defaultTheme` to `first-light` if it should be the default. Preserve other configured themes and plugins.
+Set `defaultTheme` to `first-light` to make it the default. Preserve existing themes and plugins.
 
-## 4. Build and inspect
+## 4. Check the result
 
 ```sh
 npm run build
 npm run start
 ```
 
-Select the theme from the board's appearance control, or open **Admin → Themes** on an installed board. Check the footer, a thread, a form and a panel in light and dark mode and at phone width.
-
-A fixture board is sufficient for presentation checks. Use a PostgreSQL-backed board for interactions that save data. Follow [Test a theme](theme-testing.md) for empty and permission-related states, and [Theme contracts](theme-contract.md) before replacing more slots.
+Select the theme in the appearance control or **Admin → Themes**. Check a thread, form, panel and footer in both schemes and at phone width. Fixtures cover presentation; saving data requires PostgreSQL. See [Theme testing](theme-testing.md).

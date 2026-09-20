@@ -52,23 +52,13 @@ export default async function DocumentPage({ params }: PageProps) {
   return (
     <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_13rem] xl:gap-12">
       <article className="min-w-0">
-        <header className="border-b border-border pb-8">
+        <header className="border-b border-border pb-5">
           {section ? (
             <Link href={`/docs#${entry.section}`} className="eyebrow hover:text-fg">
               {section.title}
             </Link>
           ) : null}
-          <h1 className="display mt-2 text-huge leading-[1.06]">{rendered.title ?? entry.title}</h1>
-          <p className="mt-4 max-w-[42rem] text-mid leading-relaxed text-fg-muted text-pretty">
-            {entry.blurb}
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro text-fg-subtle">
-            <a className="textlink" href={entry.generated ? '/docs/documentation' : sourceUrl}>
-              {entry.generated ? 'How to update this reference' : 'Edit this page'}
-            </a>
-            {entry.generated ? <span className="chip">generated from the code</span> : null}
-          </div>
+          <h1 className="doc-title mt-2">{rendered.title ?? entry.title}</h1>
         </header>
 
         {rendered.headings.length > 0 ? (
@@ -88,9 +78,15 @@ export default async function DocumentPage({ params }: PageProps) {
           </details>
         ) : null}
 
-        <div className="doc-body mt-10" dangerouslySetInnerHTML={{ __html: rendered.html }} />
+        <div className="doc-body mt-6" dangerouslySetInnerHTML={{ __html: rendered.html }} />
         <CodeCopyButtons />
         <MermaidDiagrams />
+
+        <p className="mt-8 text-sm text-fg-muted">
+          <a className="textlink" href={entry.generated ? '/docs/documentation' : sourceUrl}>
+            {entry.generated ? 'Update this reference' : 'Edit this page'}
+          </a>
+        </p>
 
         <nav aria-label="Nearby documents" className="doc-nav">
           {previous ? (

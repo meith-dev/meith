@@ -1,43 +1,37 @@
-# Make your first API request
+# REST API quickstart
 
-Read board data from another application using the REST API. You need the board's public HTTPS URL. Private data requires a token with both the appropriate scope and an owner who can access that data.
+Use your board's HTTPS origin. Public reads use guest permissions; authenticated reads require both a token scope and an owner with access.
 
-## 1. Try a public read
-
-Replace `https://board.example` with your board's origin:
+## Read public forums
 
 ```sh
 curl --fail-with-body https://board.example/api/v1/forums
 ```
 
-A public board returns the forums visible to guests. Private forums remain hidden. If the board is offline or does not allow guest access, the response reflects that policy.
+Only guest-visible forums are returned. Board access and maintenance policies still apply.
 
-## 2. Create a scoped token
+## Create a token
 
-An administrator opens **Admin → API tokens** at `/admin/api-tokens`, re-enters their password when requested, and issues a token with the scopes required by the integration. For the forum-list request, select `forums:read`.
+In **Admin → API tokens** (`/admin/api-tokens`), issue a token with `forums:read`. Reauthenticate when requested. Copy the token when shown, set an appropriate expiry and store it in a secret store.
 
-Copy the token when it is shown and store it securely. Set an expiry appropriate to the integration, and revoke unused or exposed tokens. A token narrows its owner's permissions; it never grants access the owner lacks.
-
-## 3. Make an authenticated request
-
-Set `MEITH_TOKEN` in your terminal environment from your secret store, then run:
+Set `MEITH_TOKEN` in your environment, then run:
 
 ```sh
-curl --fail-with-body   -H "Authorization: Bearer $MEITH_TOKEN"   https://board.example/api/v1/forums
+curl --fail-with-body \
+  -H "Authorization: Bearer $MEITH_TOKEN" \
+  https://board.example/api/v1/forums
 ```
 
-Do not place a token in a URL, source code or browser-side application. An authenticated request needs the endpoint's scope even if the endpoint also permits anonymous reads.
+Tokens narrow their owner's permissions. Authenticated calls require the endpoint's scope even when anonymous reads are allowed. Keep tokens out of URLs, source code and browser-side applications; revoke unused or exposed tokens.
 
-## 4. Handle responses
+## Handle responses
 
-| Response | Check |
+| Response | Action |
 |---|---|
-| `401` | The token is valid, unexpired and not revoked |
-| Missing scope | The token includes the endpoint's required scope |
-| `403` or hidden content | Owner permissions, board policy and endpoint rules |
-| `429` | Rate-limit response headers; wait before retrying |
-| `503` | Board availability and maintenance state |
+| `401` | Check token validity, expiry and revocation |
+| Missing scope | Issue a token with the required scope |
+| `403` or hidden content | Check owner permissions and board policy |
+| `429` | Follow rate-limit headers before retrying |
+| `503` | Check maintenance and availability |
 
-Use the [REST reference](../reference/api.md) for exact endpoint parameters, response schemas, pagination and error shapes. The board publishes its OpenAPI schema at `/api/v1/openapi.json`.
-
-To receive events instead of polling, follow [Webhooks](webhooks.md).
+See the [API reference](../reference/api.md) for schemas and pagination. The board serves OpenAPI at `/api/v1/openapi.json`. Use [webhooks](webhooks.md) to receive events.

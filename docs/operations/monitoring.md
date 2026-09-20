@@ -1,52 +1,33 @@
-# Monitor a running board
+# Monitoring
 
-Monitor the services and background work, not just whether the home page loads. Start with **Admin → System**, then add external readiness checks and metrics where needed.
+Check **Admin → System** for migrations, task failures, queue state and search progress.
 
-## Inspect system status
+## Health
 
-Check migration state, scheduled-task progress, failures, search-index progress and queue health. Investigate the named task before retrying it repeatedly. The panel's maintenance controls include recounting, reindexing, cleanup and pending plugin migrations.
-
-## Check liveness and readiness
-
-| Endpoint | What it tells you |
+| Endpoint | Check |
 |---|---|
-| `/api/health` | The web process can answer a request |
-| `/api/ready` | The database and scheduler meet the board's readiness requirements |
+| `/api/health` | Web process responds |
+| `/api/ready` | Database and scheduler readiness |
+| `/api/system/tick` | Task execution; HTTP 200 can still contain `ok: false` |
 
-A liveness success does not prove that mail, backups or queued jobs are progressing. An individual failed task can need attention even when the board remains ready. Inspect the response and system page as well as the HTTP status.
+Read response bodies and task results. A working home page does not prove background delivery or backups work.
 
-For HTTP scheduling, follow [Scheduled tasks](scheduled-tasks.md). The tick can return HTTP 200 with `ok: false` when a task failed; monitoring only the status code misses that condition.
+## Metrics
 
-## Enable metrics
+Set `METRICS_ENABLED=1` and a separate `METRICS_TOKEN`, then restart. Production requires the token. Scrape `/api/metrics` with `Authorization: Bearer <token>` or `X-Metrics-Token`; disabled or unauthorised requests return 404.
 
-Set `METRICS_ENABLED=1` and a separately generated `METRICS_TOKEN`, then restart the affected services. Production refuses enabled metrics without the token.
-
-Scrape `/api/metrics` using `Authorization: Bearer <token>` or `X-Metrics-Token`. A disabled endpoint or invalid credential returns 404. Keep the token in the scraper's secret configuration.
-
-| Metric | Use |
+| Metric | Meaning |
 |---|---|
-| `meith_task_runs_total` | Task successes and failures |
+| `meith_task_runs_total` | Task success/failure counts |
 | `meith_task_run_duration_seconds` | Task duration |
-| `meith_http_request_duration_seconds` | REST API request duration by route |
-| `meith_queue_jobs` | Queued and dead-letter jobs |
-| `meith_db_connections_active` | Database connection pressure |
+| `meith_http_request_duration_seconds` | REST latency by route |
+| `meith_queue_jobs` | Queue and dead-letter depth |
+| `meith_db_connections_active` | Database connection use |
 
-Counters and histograms are per process. Scrape each relevant instance and aggregate rather than treating one replica as the whole board.
+Counters and histograms are per process. Scrape and aggregate relevant instances. Alert on stalled queues, repeated failures, missing backups, disk/database capacity and certificate expiry.
 
-## Choose actionable alerts
+## Traces and logs
 
-Alert on repeated readiness failures, a growing queue with no progress, repeated task errors, missing backups and significant duration changes. Check disk space, database capacity and certificate expiry through the infrastructure tools you use.
+Set `OTEL_ENABLED=1` and `OTEL_EXPORTER_OTLP_ENDPOINT` for OTLP/HTTP task and REST traces.
 
-Document who receives alerts and what they should inspect. A queue of permanent failures needs investigation; automatic repeated retries can make an upstream failure worse.
-
-## Add tracing when diagnosing latency
-
-Set `OTEL_ENABLED=1` and `OTEL_EXPORTER_OTLP_ENDPOINT` for your collector, then restart. The web server and worker export task and REST API request spans through OTLP/HTTP. Protect and retain telemetry according to your deployment's needs.
-
-Tracing explains production requests; the [performance reference](../reference/performance.md) describes repeatable benchmark measurements.
-
-## Inspect logs
-
-In Compose, run `docker compose logs --since 1h web worker` from the deployment directory. The generated board's worker is an HTTP caller, so task execution logs are in web. Use the task name and request context to connect a symptom to its failure.
-
-Start with [Troubleshooting](troubleshooting.md) when the board is unhealthy.
+For Compose, run `docker compose logs --since 1h web worker`. Generated workers call HTTP; execution logs are in web. Use [Troubleshooting](troubleshooting.md) to diagnose failures and [Performance](../reference/performance.md) for benchmarks.

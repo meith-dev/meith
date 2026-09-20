@@ -1,33 +1,29 @@
-# Give awards and achievements
+# Awards
 
-Awards recognizes contributions without granting permissions. An operator must install `@meith/plugin-awards` and apply its migrations. Administrators then work under **Admin → Plugins → Awards**.
+Install `@meith/plugin-awards`, apply its migrations and open **Admin → Plugins → Awards**. Awards do not grant permissions.
 
-## Create an award
+## Create and grant
 
-Enter a name, description and icon. Supported icons include emoji, built-in names and image URLs; there is no icon upload. Remote images also need the board's remote-image setting.
+1. Create an award with name, description and icon (emoji, built-in name or image URL).
+2. Set its order and whether repeat grants are allowed.
+3. Open **Grant awards**, select it and enter comma-separated usernames and an optional reason.
 
-Choose display order and whether a member may hold the award more than once. Changing to single-only is refused while duplicates exist.
+There is no icon upload. Remote icons require remote-image permission. Unknown usernames stop the request; existing single-only grants are skipped. Switching to single-only is refused while duplicates exist.
 
-**Listed in the catalogue** controls discovery, not privacy: an unlisted award can still appear on a holder's profile. **Archive** hides it publicly and stops new grants while retaining history. Delete is available only when there are no grants.
+Unlisted awards still appear on profiles. **Archive** hides an award publicly and stops grants, preserving history. Delete requires no grants.
 
-## Grant or revoke an award
+Find and revoke grants in the recent-grants table. Notification failure does not undo a saved grant.
 
-Open **Grant awards**, choose the award, enter comma-separated usernames and an optional reason, then submit. Unknown names stop the request before assignment. Existing single-only awards are skipped.
+## Automatic achievements
 
-Use the recent grants table and username filter to find a grant and revoke it. Members can be notified according to the plugin setting and their delivery preferences. A notification failure does not undo an already saved grant.
+Create a rule using post, thread, reputation or days-registered thresholds. All configured thresholds must pass. Set at least one criterion. Blank criteria are ignored; zero is a valid threshold. Tenure uses elapsed 24-hour periods.
 
-## Create an automatic achievement
+Rules grant once per member while the grant exists. Changing or disabling a rule does not revoke awards. Revoked awards can be re-earned while the rule remains active.
 
-Under **Rules**, choose an award and enter one or more supported thresholds: posts, threads, reputation or days registered. Every configured threshold must be satisfied. Blank criteria are ignored; an explicit zero allows every member for that criterion. Tenure uses elapsed 24-hour periods.
+**Run now** processes one bounded batch. **Re-check everyone** resets the scan cursor. Check the cursor and completed-pass status on large boards.
 
-A rule grants once per member while its grant exists. Raising a threshold or disabling/deleting a rule does not revoke previous awards. If you revoke a rule-earned award while the rule remains enabled, it can be granted again when the member is evaluated.
+## Display
 
-**Run now** evaluates a bounded batch. **Re-check everyone** resets the full-scan cursor. Large boards need multiple scheduled runs; inspect the cursor and last completed pass rather than assuming one click evaluated every member.
+Verify `/plugins/awards`, profiles and posts. **Maximum awards beside each post** defaults to 5; zero hides them. Additional distinct awards use a +N link.
 
-## Check the member display
-
-Open `/plugins/awards`, a holder's profile and one of their posts. **Maximum awards beside each post** defaults to 5; zero hides them. Additional distinct awards appear through a +N link.
-
-**Show manual grant reasons publicly** is on by default. Turn it off when reasons should remain in administration. Award dates use UTC. Other application instances can show cached award information for up to a minute after changes.
-
-Account deletion removes grants; account merging moves them and collapses relevant duplicates. Awards do not provide repeating tiers, categories or automatic revocation when eligibility later falls.
+**Show manual grant reasons publicly** defaults on. Dates use UTC; other instances can cache changes for up to one minute. Account deletion removes grants; merging transfers them and collapses duplicates. Automatic revocation, repeating tiers and categories are unsupported.

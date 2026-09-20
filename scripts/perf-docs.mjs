@@ -192,17 +192,13 @@ function renderLoad({ budgets, cohorts, mix, load }) {
 
   const think = (load.thinkMs / 1_000).toFixed(0)
 
-  out.push(`Every measurement above is one read at a time. This is the same board with`)
-  out.push(`members on it: each one asks for a page every ${think} seconds, drawn from the`)
-  out.push('mix below, through the single connection pool one process has —')
-  out.push(`**${load.poolMax} connections**, which is the shipped default and not a tuned number.`)
+  out.push(
+    `Fixed-schedule traffic: one page per member every ${think} seconds, using ${load.poolMax} database connections.`,
+  )
   out.push('')
-  out.push('Arrival times are on a fixed schedule rather than a request-then-sleep loop.')
-  out.push('That distinction is the whole measurement: a loop that sleeps *after* each')
-  out.push('response slows its own arrivals down exactly when the board gets slow, so it')
-  out.push('reports a queue as if it were an idle system. **Lateness** is what that loop')
-  out.push('cannot see — how long a request sat before it even started, because every')
-  out.push('connection was busy. It moves first, and it moves before the p95 does.')
+  out.push(
+    'Late p95 measures the delay before a scheduled request starts. Fixed arrivals expose queueing that a response-then-sleep loop would hide.',
+  )
   out.push('')
 
   out.push('| Active members | Offered | Served | Budget | | p50 | p95 | p99 | Late p95 |')
@@ -226,26 +222,19 @@ function renderLoad({ budgets, cohorts, mix, load }) {
       `until it has both ${load.minRequests} requests and a steady window to put them in.`,
   )
   out.push('')
-  out.push('## The same pages, under that load')
+  out.push('## Per-page load results')
   out.push('')
 
   const flat = flatRange(cohorts, seen)
   if (flat !== null) {
     const rise = (flat.to.members / flat.from.members).toFixed(0)
     out.push(
-      `From ${flat.from.members.toLocaleString()} members to ` +
-        `${flat.to.members.toLocaleString()} the p95 of the mix barely moves — ` +
-        `${ms(flat.fromP95)} to ${ms(flat.toP95)}, across ${rise}× the traffic. That flatness ` +
-        'is not the board being idle; it is what a mixed p95 measures. A p95 is set by the ' +
-        'slowest one request in twenty, and search and discovery are about that share of ' +
-        'the traffic, so until the pool runs out the mixed p95 mostly reports which pages ' +
-        'are in the mix rather than how many members are on the board.',
+      `Mixed p95: ${ms(flat.fromP95)} at ${flat.from.members.toLocaleString()} members to ${ms(flat.toP95)} at ${flat.to.members.toLocaleString()} members (${rise}× traffic). The traffic mix affects this aggregate; inspect per-page timings too.`,
     )
     out.push('')
   }
 
-  out.push('The per-page breakdown is where load shows earlier, and says which pages it')
-  out.push('shows in first.')
+  out.push('Per-page p95 by active-member count:')
   out.push('')
 
   out.push(`| Page | Share | ${cohorts.map((c) => c.members.toLocaleString()).join(' | ')} |`)
@@ -260,18 +249,11 @@ function renderLoad({ budgets, cohorts, mix, load }) {
   }
 
   out.push('')
-  out.push('Every row is a p95 in milliseconds, and the column heading is how many members')
-  out.push('were on the board. A row that climbs left to right is a page that costs more')
-  out.push('when the board is busy; a row that does not is a page whose cost is its own.')
-  out.push('')
-
   const filtered = mix.filter((entry) => entry.filtered)
   if (filtered.length > 0) {
-    out.push('The scoped reads —')
-    out.push(`${filtered.map((entry) => `*${page.get(entry.id) ?? entry.id}*`).join(', ')} —`)
-    out.push('pay the permission filter first, in the same request, exactly as a page does.')
-    out.push('Their numbers here are therefore the filter plus the read, and are not')
-    out.push('comparable with the single-read measurement of the same id above.')
+    out.push(
+      `Scoped reads (${filtered.map((entry) => page.get(entry.id) ?? entry.id).join(', ')}) include permission filtering. They are not directly comparable to single-read timings.`,
+    )
     out.push('')
   }
 
@@ -302,15 +284,9 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
   out.push('  Regenerate with `pnpm perf:docs`; `pnpm verify` fails when this is stale.')
   out.push('-->')
   out.push('')
-  out.push('The p95 budgets for the pages a board’s traffic actually goes to, what the')
-  out.push('last recorded run measured against a full-scale board one read at a time,')
-  out.push('and what a board full of members reading at once measured on the same data.')
-  out.push('')
-  out.push('Every number here is measured on a **single-instance** board — one web')
-  out.push('process with the per-process cache, no Redis. That is the stock topology')
-  out.push('and the honest baseline. A board [scaled out](../operations/scaling.md) answers from a')
-  out.push('shared cache instead of an in-process map, so its numbers differ; measure')
-  out.push('your own rather than reading these across.')
+  out.push(
+    'Recorded database-read timings, budgets and concurrent-load results. These are single-process measurements with an in-process cache and no Redis. Measure your own deployment; shared-cache results can differ.',
+  )
   out.push('')
 
   if (results === null) {
@@ -321,7 +297,7 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
     out.push('')
   } else {
     const env = results.environment ?? {}
-    out.push('## The board these numbers came from')
+    out.push('## Test environment')
     out.push('')
     out.push('| | |')
     out.push('|---|---|')
@@ -340,9 +316,9 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
     out.push(`| Runtime | Node ${env.node} on ${env.platform} |`)
     out.push(`| Measured | ${String(results.measuredAt).slice(0, 10)} |`)
     out.push('')
-    out.push('The absolute numbers belong to that machine. What travels between machines')
-    out.push('is the **shape**: which scenarios sit near their budget, and whether a deep')
-    out.push('page costs more than a first page. Compare ratios, not milliseconds.')
+    out.push(
+      'Results apply to the recorded machine and workload; they are not a capacity guarantee.',
+    )
     out.push('')
   }
 
@@ -364,11 +340,8 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
 
   const limits = budgets.filter((b) => b.kind === 'limit')
   if (limits.length > 0) {
-    out.push('A **target** is a number the page is expected to meet, set with headroom over')
-    out.push('what was measured. A **limit** is a number that was measured, is not considered')
-    out.push('good, and is recorded anyway so it cannot get worse quietly — a debt with a')
     out.push(
-      `number on it, not a pass mark. ${limits.length === 1 ? 'One entry is a limit' : `${limits.length} entries are limits`}:`,
+      'A target is the expected ceiling. A limit records an existing slow path to detect regressions; meeting it does not resolve that performance issue.',
     )
     out.push('')
     for (const limit of limits) out.push(`- **${limit.page}** — ${limit.work}.`)
@@ -379,14 +352,7 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
 
   out.push('## Partial visible indexes')
   out.push('')
-  out.push('`EXPLAIN` evidence that the partial `visibility` indexes are actually used.')
-  out.push('This is that evidence, and it is also a **check**: `pnpm perf explain`')
-  out.push('fails when the planner stops choosing one.')
-  out.push('')
-  out.push('That failure is the one worth guarding. A partial index only matches a query')
-  out.push('whose predicate the planner can prove implies it, so a read path that starts')
-  out.push('passing a variable visibility scope where it passed a literal falls silently')
-  out.push('onto a sequential scan of the largest table on the board. Nothing errors.')
+  out.push('`pnpm perf explain` checks that the planner uses the expected indexes.')
   out.push('')
 
   const seen = new Map((indexes?.results ?? []).map((r) => [r.id, r]))
@@ -400,14 +366,12 @@ function render({ budgets, cohorts, mix, load, results, indexes, plans }) {
     )
   }
   out.push('')
-  out.push('Each partial index has an unfiltered twin, and the twins are checked too. A')
-  out.push('moderator seeing unapproved and deleted content *cannot* use the partial')
-  out.push('index — their predicate does not imply it — so without the twin their forum')
-  out.push('view is a sequential scan. That failure is invisible to every test written')
-  out.push('from a member’s point of view, which is most of them.')
+  out.push(
+    'Both visible-content partial indexes and their unfiltered counterparts are checked. Moderator queries need the unfiltered indexes when their scope includes hidden content.',
+  )
   out.push('')
 
-  out.push('## What each scenario is and why it is measured')
+  out.push('## Scenarios')
   out.push('')
 
   for (const budget of budgets) {

@@ -1,37 +1,14 @@
-# Set up your community
+# Set up a community
 
-Complete this checklist after installation, using the administrator account you created. If the board is not running yet, start with [Choose a deployment](../operations/deployment.md).
+Complete [installation](../operations/deployment.md), then sign in as the administrator.
 
-## 1. Open the admin panel
+1. Open `/admin` and re-enter your password.
+2. Under **Board settings → Board**, set the name, description and public URL. Under **Themes**, choose the default theme and logo.
+3. Under **Board settings → Legal**, publish Rules & FAQ, terms and privacy text. Non-empty pages appear in the footer.
+4. At `/admin/settings?group=mail`, configure delivery and select **Send a test message to me**. Confirm receipt before requiring email activation.
+5. At `/admin/settings?group=registration`, choose whether registration is open and requires email confirmation, administrator approval or both.
+6. Create [forums](forums.md), set [group permissions](groups.md) and appoint moderators.
+7. Test registration, password reset, posting, attachments and private-forum visibility as an ordinary member and a guest.
+8. Confirm [scheduled work](../operations/scheduled-tasks.md), an off-site [backup](../operations/backups.md) and a successful restore rehearsal.
 
-Sign in and open `/admin`. Re-enter your password to start the panel's separate session. On a phone, open the panel menu to reach its sections.
-
-## 2. Set the identity and rules
-
-Under **Board settings → Board**, check the name, description and public address. Under **Themes**, select the default appearance and upload the logo. Use **Board settings → Legal** for the Rules & FAQ, terms and privacy pages.
-
-Open the board while signed out to check the header, footer and published rules. [Board appearance](appearance.md) covers colors, fonts and images.
-
-## 3. Prove email works
-
-Open `/admin/settings?group=mail`, save the sending configuration and select **Send a test message to me**. Confirm receipt in the mailbox.
-
-Only then choose the registration policy under `/admin/settings?group=registration`: open or closed, and whether accounts require email confirmation, administrator approval or both. Use [Email](../operations/mail.md) if the test fails.
-
-## 4. Create the initial forums
-
-Rename the first forum and add a small set of categories and forums at **Admin → Forums**. Give each a clear purpose. Follow [Forums and permissions](forums.md) for a private staff area.
-
-Appoint moderators to the relevant forums and give them the [moderation guide](moderation-guide.md). Check which actions each appointment permits.
-
-## 5. Test as an ordinary member
-
-Create a test member account and sign out to test as a guest too. Verify that each sees the intended forums, that posting works where allowed, and that private forums stay private. Administrator bypasses can hide mistakes in permission setup.
-
-Test registration, password reset, attachments, navigation and the rules links. Post a welcome thread describing where new members should begin. Share the [Member guide](../members/member-guide.md).
-
-## 6. Confirm the operational handover
-
-Ask the operator to demonstrate that scheduled work runs, an off-site backup exists and a restore has been tested. Record who handles hosting, account recovery and incidents.
-
-Continue with [Community administration](organiser-guide.md) for day-to-day work and [Server operations](../operations/operating.md) for the hosting checklist.
+Record who handles hosting and account recovery. Use [Administration](organiser-guide.md) for routine tasks.

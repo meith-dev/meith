@@ -1,37 +1,29 @@
-# Install plugins and themes
+# Install extensions
 
-Add extensions in the board repository, then build and deploy. You need repository and deployment access. The admin panel manages installed extensions but cannot install new package code into a running container.
+Run package changes in the board repository, then commit, build and deploy. The admin panel cannot install package code.
 
-## Install a published plugin
-
-Check the package's compatibility and permissions. From the generated board directory:
+## Plugin
 
 ```sh
 npm run meith -- plugin:add @meith/plugin-awards
 ```
 
-The command installs the package, updates `board.plugins.json` and regenerates `meith.plugins.ts`. Commit the package, lockfile and registry changes. Rebuild and deploy through the board's normal route.
+Review compatibility first. The command installs the dependency, updates `board.plugins.json` and regenerates `meith.plugins.ts`. Commit these and the lockfile, then deploy.
 
-Apply plugin migrations with the deployed CLI's `meith upgrade`, or **Admin → System → Version & migrations** after core migrations have completed. `meith migrate` alone only handles core migrations.
+Run `meith upgrade` with the [deployed CLI](operator-cli.md), or apply plugin migrations under **Admin → System → Version & migrations** after core migrations finish. `meith migrate` handles core migrations only.
 
-Open **Admin → Plugins** to confirm the plugin is present and configure its settings. Verify a representative member flow.
+Check **Admin → Plugins**, configure settings and test the member flow.
 
-## Install a theme
+## Theme
 
-Install its exact package version, then add it to `meith.config.ts` using its exported theme, tokens, browser color and messages. Keep the existing theme entries you still need. The [first-theme tutorial](../extensions/first-theme.md#3-register-the-theme) shows the registry shape.
+Use `npm install --save-exact <package>@<version>`. Register its theme, tokens, browser colour and messages in `meith.config.ts`; see the [registration example](../extensions/first-theme.md#3-register-the-theme). Set `defaultTheme` if needed, then commit and deploy. Check mobile, light and dark modes under **Admin → Themes**.
 
-Set `defaultTheme` if appropriate, commit, rebuild and deploy. Check the theme under **Admin → Themes**, including mobile and light/dark appearance.
+## Update or remove
 
-## Update an extension
+Back up before schema changes. Update the package, review the lockfile, deploy and apply migrations. Panel update notices do not install code.
 
-Read its release notes, verify Meith compatibility and take a backup before schema changes. Update the package in the board checkout, review the lockfile, rebuild and deploy, then apply pending plugin migrations.
+Disabling a plugin retains its data. `npm run meith -- plugin:remove <key>` removes registration; commit and deploy afterward.
 
-An update indication in the panel is information; it is not a background package installation.
+To delete owned data permanently, back up and run the purge workflow while the plugin code is still installed. Removing code first prevents its uninstall hook from running.
 
-## Disable or remove a plugin
-
-Disabling a plugin stops its behavior but does not mean its data has been deleted. To remove its registration, use `meith plugin:remove <key>` in the board checkout, then commit and deploy.
-
-If you intend to permanently delete its data, back up first and follow the plugin purge workflow while its code is still installed. Purge needs the plugin definition to run its uninstall lifecycle. Removing code first can prevent that cleanup.
-
-For a stock image that cannot include your package, first [create a custom board](custom-board.md). To write an extension, start with [Build extensions](../extensions/extensions.md).
+Stock-image users must first [create a custom board](custom-board.md).

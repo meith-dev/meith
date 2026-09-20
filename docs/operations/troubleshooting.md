@@ -1,40 +1,23 @@
-# Troubleshoot a running board
+# Troubleshooting
 
-Start with the symptom you can observe. Run diagnostics in the affected deployment and verify the result after changing its configuration.
+## Migration does not complete
 
-## Troubleshooting
+Run `docker compose logs migrate`. Check database health, connection values, secrets and release version. Web waits for successful migration.
 
-### Migration does not complete
+Overlapping core migrations wait on an advisory lock. If no other migration is running, verify `DIRECT_DATABASE_URL` points directly to PostgreSQL, not a transaction pooler. See [Database operations](database-operations.md).
 
-```sh
-docker compose logs migrate
-```
+## Pages load but mail or tasks do not run
 
-Check database health, connection values, required secrets, and the selected release. Web and worker correctly wait when migration fails.
+Run `docker compose ps worker` and `docker compose logs --since 1h web worker`. Check tick credentials and response bodies, then the failing task and mail configuration. The generated worker calls web; it does not execute tasks itself.
 
-A run that produces no output and does not exit is waiting for the advisory lock, which means another migration holds it — an overlapping deploy, usually. Let it finish; the waiting run then applies nothing and exits 0. A run that hangs with no other migration in flight is a connection problem rather than a lock one: on a managed database, confirm `DIRECT_DATABASE_URL` names the direct connection string and not the pooler. See [Migrations](database-operations.md#migrations).
+## Uploads disappear after recreation
 
-### Pages load but mail or tasks do not run
+Check persistent storage mounts at `/app/.uploads` for services using local files. Files in disposable container layers are lost on recreation.
 
-```sh
-docker compose ps worker
-docker compose logs --since 1h worker
-```
+## Redirects use the wrong origin
 
-Validate the worker environment and its access to PostgreSQL and the configured mail endpoint.
+Set `APP_URL` to the public HTTPS origin, check proxy forwarding and recreate affected services.
 
-### Uploads disappear after recreation
+## A documented command is unavailable
 
-Confirm web and worker both mount the persistent upload volume at `/app/.uploads`. Container layers are replaceable and must not hold the only copy.
-
-### Redirects use the wrong origin
-
-Set `APP_URL` to the public HTTPS origin, not an internal container address. Check reverse-proxy forwarding and recreate affected services.
-
-### A documented command is unavailable
-
-```sh
-docker compose run --rm web meith --help
-```
-
-Use documentation and CLI output from the version you operate.
+Run `docker compose run --rm web meith --help`. Match the documentation and command to the installed release; follow [Upgrades](upgrading.md) if needed.

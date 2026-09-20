@@ -1,42 +1,13 @@
 # Deploy on Vercel
 
-Deploy the board web application on Vercel with managed PostgreSQL, Redis, upload storage and mail. Read [Vercel configuration and limits](vercel-configuration.md) before choosing this route, especially its upload and scheduling constraints.
+The [Vercel template](https://github.com/meith-dev/vercel-template) uses Neon PostgreSQL, Upstash Redis, Vercel Blob and Resend. Read [Configuration and limits](vercel-configuration.md) first.
 
-## 1. Create the deployment
+1. Use the template's Deploy button to create a repository and connect services.
+2. Generate two independent values with `openssl rand -hex 32`; set `AUTH_SECRET` and `CRON_SECRET`. Save a protected recovery copy.
+3. Check production and preview database URLs. The build runs migrations; previews must use separate databases if they must not change production.
+4. Deploy, open `/install`, unlock with `AUTH_SECRET` and create the administrator. Confirm the permanent public URL and test mail.
+5. Configure [scheduled tasks](scheduled-tasks.md). The template's daily cron delays work; use a plan-supported cadence or an external authenticated caller for more frequent ticks.
+6. Test registration, reset mail, posting, realistic uploads and private-forum access.
+7. Run [backups](backups.md) from an external machine; ordinary functions cannot run the local backup process.
 
-Open the Deploy button in the [Meith Vercel template](https://github.com/meith-dev/vercel-template). Create the board repository in your account and connect the services requested by the template.
-
-The standard template uses Neon PostgreSQL, Upstash Redis, Vercel Blob and Resend. Keep access to each service account and understand which one stores the community's data.
-
-## 2. Set independent secrets
-
-Generate two different values:
-
-```sh
-openssl rand -hex 32
-openssl rand -hex 32
-```
-
-Use them for `AUTH_SECRET` and `CRON_SECRET`. Meith requires at least 32 characters for these secrets. Store a protected recovery copy outside the deployment.
-
-Confirm that production and preview environments point to the databases you intend. The template build runs core migrations before building; a preview connected to production can therefore migrate the production schema.
-
-## 3. Deploy and install
-
-Deploy, then open `https://your-deployment/install`. Unlock the installer with `AUTH_SECRET`, review the public URL and mail configuration, and create the administrator account.
-
-The linked services provide environment values from which Meith resolves drivers and credentials. Use the [configuration reference](vercel-configuration.md) if a required value is missing. Do not copy a temporary preview origin into the permanent board URL.
-
-## 4. Arrange scheduled work
-
-The generated template contains a daily cron schedule. A daily tick can leave notifications and queued work delayed; an active community usually needs more frequent execution.
-
-Choose a scheduler cadence supported by your hosting plan, or use an external scheduler to call the authenticated tick endpoint. Follow [Scheduled tasks](scheduled-tasks.md) and verify actual task progress under **Admin → System**. Merely having a cron entry is not proof that tasks are running.
-
-## 5. Verify before inviting members
-
-Check registration and password-reset delivery, posting, attachment upload/download and ordinary-member visibility. Test with realistic attachment sizes; a board setting cannot override the hosting platform's request limits.
-
-Arrange backups from a suitable external machine; serverless functions do not run the board's local backup process. Follow [Backups](backups.md) and retain both database and upload recovery material.
-
-Complete [Set up your community](../administration/first-steps.md). For maintenance commands, run the CLI from a board checkout with the correct hosted-service environment. For moving to a server later, use [Move away from Vercel](leaving-vercel.md).
+Complete [Community setup](../administration/first-steps.md). Run maintenance commands from a board checkout with the hosted-service environment. See [Move away from Vercel](leaving-vercel.md) for export and restore.

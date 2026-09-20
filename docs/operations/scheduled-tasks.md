@@ -1,53 +1,39 @@
-# Run scheduled tasks
+# Scheduled tasks
 
-Scheduled work delivers queued notifications, maintains indexes, expires restrictions and performs other background jobs. A PostgreSQL-backed board needs a worker or an authenticated HTTP scheduler.
-
-## Choose one scheduling route
+A PostgreSQL board needs continuing scheduling for notifications, indexes, expiry and backups.
 
 | Deployment | Scheduler |
 |---|---|
-| Generated Compose/Coolify board | Its worker container calls the web tick endpoint |
-| Meith monorepo worker process | `apps/worker` runs scheduler loops directly |
-| Function hosting | An external or hosting-provided cron calls `/api/system/tick` |
+| Generated Compose/Coolify | Worker calls the web tick |
+| Meith monorepo | `apps/worker` runs scheduler loops |
+| Function hosting | Cron calls `/api/system/tick` |
 
-Use the worker shipped with your deployment where possible. A fixture board has no durable scheduler and returns 503 from the tick endpoint.
+## HTTP tick
 
-## Call the HTTP tick
-
-Configure `TICK_SECRET` or `CRON_SECRET` in the board environment and a matching credential in the scheduler. Generate at least 32 characters and keep the secret out of the URL.
+Set `TICK_SECRET` or `CRON_SECRET` to an independent secret of at least 32 characters. Give the scheduler the same credential through its secret store.
 
 ```sh
-curl --fail-with-body   -H "Authorization: Bearer $TICK_SECRET"   https://board.example/api/system/tick
+curl --fail-with-body \
+  -H "Authorization: Bearer $TICK_SECRET" \
+  https://board.example/api/system/tick
 ```
 
-Replace the origin and provide the secret from the scheduler's secret store. The endpoint also supports `X-Tick-Secret`; query-string secrets are not accepted.
+`X-Tick-Secret` is also accepted. Query-string secrets are rejected. Run every minute for responsive processing; each task checks its own due time. A sparse schedule delays delivery and may miss time-sensitive reminders. The Vercel template starts with a daily schedule.
 
-A minute cadence keeps the shortest-interval work responsive. Each task decides whether it is due. A less frequent tick delays processing; some time-sensitive features, such as reminders for an event that already started, cannot be made timely by catching up afterward.
-
-The Vercel template's daily schedule is a deployment starting point, not a promise of instant notifications. Choose a supported more frequent schedule when required.
-
-## Read the result
-
-| Result | Meaning |
+| Response | Meaning |
 |---|---|
-| `200`, `ok: true` | Tick completed without reported task failures |
-| `200`, `ok: false` | One or more tasks failed; inspect `ran` and the named task |
-| `404` | Missing or incorrect scheduler credential |
-| `503` | No durable scheduler, such as fixture mode |
+| `200`, `ok: true` | No reported task failures |
+| `200`, `ok: false` | Inspect failed entries in `ran` and logs |
+| `404` | Missing/incorrect credential |
+| `503` | No durable scheduler, including fixture mode |
 
-Do not retry a permanently failing task in a tight loop. Inspect **Admin → System** and logs, repair the cause, and allow the scheduler or a deliberate maintenance run to retry.
+## CLI and verification
 
-## Run maintenance from the CLI
-
-Use the invocation for your board from [Operator commands](operator-cli.md):
+From the board directory:
 
 ```sh
-meith task:list
-meith task:run
+npm run meith -- task:list
+npm run meith -- task:run
 ```
 
-Use the installed command's help before selecting a specific task. A manual run is a diagnostic tool, not a replacement for a continuing production scheduler.
-
-## Verify progress
-
-Check task timestamps, queue depth, search-index progress and a controlled notification. An HTTP worker can be healthy and quiet; verify completed work in the web logs and system page. [Monitoring](monitoring.md) covers readiness and alerts.
+A manual run does not replace production scheduling. Check **Admin → System**, task timestamps, queue depth and a test notification. Generated HTTP-worker task logs are in web. See [Monitoring](monitoring.md).

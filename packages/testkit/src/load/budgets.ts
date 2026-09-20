@@ -16,7 +16,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listThread(limit 20) on a long thread',
     p95Ms: 50,
     kind: 'target',
-    why: 'The single most requested page on any forum. Everything else is rounding.',
+    why: 'Baseline first-page thread read.',
   },
   {
     id: 'thread-page-deep',
@@ -24,7 +24,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listThread(afterId) far into a long thread',
     p95Ms: 60,
     kind: 'target',
-    why: 'The keyset claim. Under OFFSET this degrades with depth; it must not.',
+    why: 'Checks cursor pagination deep into a thread.',
   },
   {
     id: 'forum-page-first',
@@ -32,7 +32,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listForum(limit 20) on the busiest forum',
     p95Ms: 50,
     kind: 'target',
-    why: 'Sticky-first ordering over the largest thread set on the board.',
+    why: 'Checks pinned-first ordering in the largest forum.',
   },
   {
     id: 'forum-page-deep',
@@ -40,7 +40,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listForum(after cursor) deep into the busiest forum',
     p95Ms: 60,
     kind: 'target',
-    why: 'Same keyset claim on the other axis, and the one an archive crawler hits.',
+    why: 'Checks cursor pagination deep into a forum.',
   },
   {
     id: 'board-index',
@@ -48,7 +48,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'listListing() — every forum with its counters and last post',
     p95Ms: 80,
     kind: 'target',
-    why: 'One query for the whole tree, and the page every visitor lands on.',
+    why: 'Checks the forum tree with stored counts and latest-post data.',
   },
   {
     id: 'visible-forums',
@@ -56,7 +56,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'forumIdsWhere(actor, thread.view)',
     p95Ms: 40,
     kind: 'target',
-    why: 'Every list page pays this before it reads anything, so its cost multiplies.',
+    why: 'Measures the authorisation scope used before content reads.',
   },
   {
     id: 'discovery-latest',
@@ -64,13 +64,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'Discovery page 1, scoped to visible forums',
     p95Ms: 150,
     kind: 'target',
-    why:
-      'Ordered across the whole board rather than within one forum — the widest scan, ' +
-      'and the most run-to-run variance of anything here. It was budgeted at 80ms ' +
-      'against a typical p95 near 50, which is 1.6× and breaks the 2–3× rule stated ' +
-      'at the top of this file; it duly went red on a noisy run at 110ms with a 621ms ' +
-      'outlier. Raised to 150ms — not to make it pass, but because the original number ' +
-      'was set tighter than the methodology the rest of the table follows.',
+    why: 'Checks cross-forum ordering with headroom for run-to-run variance.',
   },
   {
     id: 'search-common',
@@ -78,14 +72,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'Relevance search for a term matching 96% of the board',
     p95Ms: 300,
     kind: 'target',
-    why:
-      'The worst query a member can trigger, and the one budget the first load run failed. ' +
-      'Relevance ordering is not indexable: `ts_rank_cd` has to score every matching ' +
-      'row before it can name the top twenty, so a term matching 2.26M of 2.34M posts ' +
-      'cost a p95 of 5.5 seconds with the GIN index present and used. The fix was to ' +
-      'bound the ranked set to the most recent 20,000 matches, which measured 98ms — ' +
-      'and changes nothing for any term selective enough that the window holds the ' +
-      'whole match set, which is every real query. Recorded in mybb-parity.md.',
+    why: 'Measures relevance ranking for a broad match set. Ranking is bounded to the most recent 20,000 matches.',
   },
   {
     id: 'search-rare',
@@ -93,11 +80,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'Full-text search for a term with ~1,000 matches',
     p95Ms: 200,
     kind: 'target',
-    why:
-      'Separated because a fast rare-term search hides a slow common-term one, and here ' +
-      'it did: before the window bound these two differed by a factor of 130, and only ' +
-      'the pair made it visible that the cost was the match count rather than the code. ' +
-      'They still differ, by about 5×, which is the residual and expected shape.',
+    why: 'Measures selective full-text search separately from common-term ranking.',
   },
   {
     id: 'member-profile',
@@ -105,7 +88,7 @@ export const BUDGETS: readonly Budget[] = [
     work: 'Profile with counters for a prolific member',
     p95Ms: 60,
     kind: 'target',
-    why: "A post count computed live is an aggregate over the member's whole history.",
+    why: 'Checks profile reads using stored counters.',
   },
 ]
 

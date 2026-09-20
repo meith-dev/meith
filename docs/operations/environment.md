@@ -1,46 +1,40 @@
 # Environment variables
 
-Use environment variables for infrastructure and secrets. Start from the `.env.example` emitted with your board and validate the resolved configuration with `meith env:check` using the [invocation for your deployment](operator-cli.md).
-
-This page groups the main controls. The complete validation schema is `packages/core/src/env.ts`; generated examples include the settings relevant to their hosting route.
+Start from the board's `.env.example`. Run `npm run meith -- env:check` in the board directory; use [container invocations](operator-cli.md) for deployed checks. The complete schema is `packages/core/src/env.ts`.
 
 ## Database and identity
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Runtime PostgreSQL connection; without it a development board normally selects fixture mode |
-| `DIRECT_DATABASE_URL` | Direct connection for migrations and backups when the runtime URL uses a transaction-mode pooler |
-| `DATA_SOURCE` | Explicit `postgres` or `fixture` override |
-| `DATABASE_POOL_MAX` | Per-process database pool limit; default 3, maximum 20 |
-| `AUTH_SECRET` | Signing/sealing secret; retain the original value with your recovery material |
-| `APP_URL` | Public origin used for absolute links; overrides the stored board URL |
-| `TICK_SECRET`, `CRON_SECRET` | Accepted secrets for the scheduled HTTP tick; generate independently from `AUTH_SECRET` |
+| `DATABASE_URL` | Runtime PostgreSQL URL; absent in a fixture preview |
+| `DIRECT_DATABASE_URL` | Direct migration and backup connection |
+| `DATA_SOURCE` | Explicit `postgres` or `fixture` |
+| `DATABASE_POOL_MAX` | Connections per process; default 3, maximum 20 |
+| `AUTH_SECRET` | Signing/sealing secret; retain the original for recovery |
+| `APP_URL` | Public origin; overrides saved board address |
+| `TICK_SECRET`, `CRON_SECRET` | HTTP scheduler credentials, separate from `AUTH_SECRET` |
 
-Generate secrets with `openssl rand -hex 32`. Production PostgreSQL deployments require a protected scheduler and a durable queue. Read [Database operations](database-operations.md) before choosing pooled and direct connection strings.
+Generate secrets with `openssl rand -hex 32`. Production PostgreSQL requires a protected scheduler and durable queue. See [Database operations](database-operations.md).
 
-## Drivers and uploads
+## Drivers
 
-| Variable | Choices or purpose |
+| Variable | Values or purpose |
 |---|---|
-| `QUEUE_DRIVER` | `postgres` for durable work; `memory` for non-durable fixture/development use |
-| `CACHE_DRIVER` | `memory`, `next` or `redis`; multiple instances need a shared cache |
-| `REDIS_URL` | Redis-compatible connection URL |
-| `FILESTORE_DRIVER` | `local`, `s3` or `blob` |
-| `UPLOADS_DIR` | Persistent upload directory for local storage |
-| `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | S3-compatible upload-store configuration |
-| `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL` | Optional endpoint and public base URL for the selected store |
-| `BLOB_STORE_ID`, `BLOB_READ_WRITE_TOKEN` | Blob-store identity or credential, depending on deployment |
+| `QUEUE_DRIVER` | `postgres` for durable work; `memory` for fixtures/development |
+| `CACHE_DRIVER` | `memory`, `next`, `redis` |
+| `REDIS_URL` | Shared cache URL |
+| `FILESTORE_DRIVER` | `local`, `s3`, `blob` |
+| `UPLOADS_DIR` | Persistent local upload directory |
+| `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Upload bucket credentials |
+| `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL` | Optional upload-store endpoints |
+| `BLOB_STORE_ID`, `BLOB_READ_WRITE_TOKEN` | Blob identity or token |
 
-Check [Scaling](scaling.md) before changing storage or cache on a running board. A local directory inside a disposable container is not persistent storage.
+Multiple instances need [shared cache and uploads](scaling.md). Changing a driver does not move files.
 
 ## Mail and backups
 
-`MAIL_DRIVER` chooses `log`, `http` or `smtp`. `log` writes messages to logs and does not deliver them. Configure sender/provider details through the installer or mail settings, or use the explicit mail environment overrides described in [Email](mail.md).
+`MAIL_DRIVER` accepts `log`, `http` or `smtp`; `log` does not deliver. See [Mail](mail.md) for provider fields and override rules.
 
-`BACKUP_DIR` selects local bundle storage. `BACKUP_S3_*` or `BACKUP_WEBDAV_*` configure an off-site destination. These credentials are distinct from the upload-store credentials. See [Backups](backups.md) for the required fields, precedence, retention and upload inclusion.
+`BACKUP_DIR` selects local bundle storage. `BACKUP_S3_*` and `BACKUP_WEBDAV_*` configure separate off-site credentials; see [Backups](backups.md).
 
-## Apply changes safely
-
-Check which values are environment overrides and which are editable board settings. Recreate affected services after changing environment values, then run `env:check` and verify the actual feature. Keep web, worker and CLI environments consistent.
-
-Never commit secrets or copy a production environment into an untrusted preview. Backups do not contain the environment, so store a protected recovery copy separately.
+Restart affected services after environment changes and verify the feature. Keep secrets outside git and separate from data backups, which do not include the environment.

@@ -9,29 +9,13 @@
   disagree.
 -->
 
-**104 hooks** — 59 filters, 45 events — and 8 UI regions. **104 are wired**: something in the board fires
-them today, and the rest are declared but not yet reached by a call site.
+104 hooks: 59 filters and 45 events. 8 UI regions.
 
-The wired column is derived from the tree by `scripts/hook-callsites.mjs`, not
-maintained by hand — a registry entry with no call site is a promise about code
-that never runs, and it fails in the quietest possible way: the plugin installs,
-the handler registers, nothing happens. `plugins/reference` is required by its own
-test to handle every wired hook, so a hook cannot join that column without
-something proving it fires.
+104 hooks have call sites in this build. The Wired column is generated from the source tree.
 
-A **filter** is handed a value and returns a replacement; its result is used, so a
-filter that throws or returns nothing leaves the value as it was and the chain
-carries on with the next plugin. An **event** is told what happened and its return
-value is discarded — which is why anything that only wants to observe should be one:
-it cannot corrupt the thing it is watching even when it is wrong.
+Filters return replacement values; throwing or returning undefined retains the previous value. Event return values are ignored.
 
-Handlers run in **(priority, plugin key)** order. Both halves are declared, so two
-plugins compose the same way on every request and on every instance.
-
-Every handler is called inside the host’s try/catch and is timed. Failures are
-counted in the database, so a plugin that fails repeatedly is switched off across
-the whole board and stays off until an operator clears the record. See
-[`plugins.md`](../extensions/plugins.md) for the policy, the lifecycle and the limits.
+Handlers run by priority, then plugin key. See [Hooks and lifecycle](../extensions/plugin-hooks-guide.md) for failures, runtime access and lifecycle rules.
 
 ## Content rendering
 
@@ -45,12 +29,12 @@ the whole board and stays off until an operator clears the record. See
 | `smilies.list` | filter | yes | `readonly { readonly code: string; readonly src: string; readonly alt?: string }[]` | `Record<string, never>` |
 | `word-filter.patterns` | filter | yes | `readonly { readonly pattern: string; readonly replacement: string; readonly wholeWord: boolean }[]` | `Record<string, never>` |
 
-- **`markdown.parse.text`** — The raw Markdown source, before it is parsed. Last chance to rewrite input.
-- **`markdown.render.html`** — Rendered HTML, after the renderer has constructed it. Anything added here is trusted output and nothing escapes it afterwards.
-- **`markdown.directives`** — The declarative directive list, so a plugin can add a `:::name` block or `:name[…]` span without core changes. Board-wide: rendered bodies are stored and shared, so the set cannot depend on who is reading.
-- **`post.body.html`** — One post’s rendered body, in the context of the thread it is being read in.
+- **`markdown.parse.text`** — Raw Markdown before parsing.
+- **`markdown.render.html`** — Rendered HTML. Replacement markup is trusted and is not escaped afterwards.
+- **`markdown.directives`** — Board-wide directives for `:::name` blocks and `:name[…]` spans. The list must not depend on the reader because rendered bodies are shared.
+- **`post.body.html`** — Rendered post body with thread and viewer context.
 - **`signature.html`** — A member’s rendered signature, wherever it appears.
-- **`smilies.list`** — The smilie set substituted at render. Board-wide, for the same reason the directive list is.
+- **`smilies.list`** — Board-wide smilie substitutions. The list must not depend on the reader.
 - **`word-filter.patterns`** — The render-time word filter’s pattern list.
 
 ## View models
@@ -98,38 +82,38 @@ the whole board and stays off until an operator clears the record. See
 - **`view.user-panel`** — The user panel model: greeting, counts, account links.
 - **`view.navigation`** — The breadcrumb trail.
 - **`view.footer`** — The footer model, including its link list.
-- **`view.forum-jump`** — The jump box model. A plugin adding a destination must give it a real forum id — the route re-authorises whatever is submitted.
-- **`view.announcement`** — One announcement, on its way to the theme. Its body is already rendered HTML from the boardu2019s own renderer, so a plugin replacing it is replacing trusted markup — the one hook where that is true of a body.
+- **`view.forum-jump`** — Forum jump options. Destinations require real forum IDs; the route rechecks permission on submission.
+- **`view.announcement`** — Announcement model with rendered HTML. Replacement body markup is trusted.
 - **`view.board-index`** — The index page model.
-- **`view.forum-row`** — One forum row in a listing. Runs once per row — keep it cheap.
+- **`view.forum-row`** — Forum listing row. Runs once per row.
 - **`view.thread-row`** — One thread row in a listing. Runs once per row.
-- **`view.post-bit`** — One post as the theme will receive it. The busiest hook on the board: it runs once per post on every thread page.
+- **`view.post-bit`** — Post model. Runs once per post on each thread page.
 - **`view.post-actions`** — The per-post control links. Adding one here does not create permission to use it.
 - **`view.member-profile`** — A member’s profile model, including its custom fields and action links.
 - **`view.board-stats`** — The board totals block.
 - **`view.who-is-online`** — The online list, already resolved against the reader.
-- **`view.latest-threads`** — The index sidebar’s newest-threads panel. Runs again on every refresh of the live region, not only on the page load — keep it cheap.
-- **`view.latest-posts`** — The index sidebar’s newest-posts panel. Same refresh cost as view.latest-threads.
+- **`view.latest-threads`** — Latest threads panel. Runs on initial render and each live refresh.
+- **`view.latest-posts`** — Latest posts panel. Runs on initial render and each live refresh.
 - **`view.pagination`** — A resolved page-link window.
 - **`view.search-form`** — The search form model, including its filter options.
-- **`view.search-results`** — One page of search results. Already checked against the reader — a hit a plugin adds here has not been, and will be shown to whoever asked.
-- **`view.discovery-view`** — A discovery listing — new posts, today, unanswered — with its tabs. Same warning as the search results: the rows arrive authorised.
-- **`view.auth-page`** — The sign-in, register and password-reset page around its form. The form itself is a region, not a value: nothing here can change what it posts to.
-- **`view.panel-shell`** — The frame around a control panel, including the links to the other panels this viewer may reach. Adding a link grants nothing.
-- **`view.panel-nav`** — A control panel’s section rail, with the current section already resolved. Runs on every panel page.
-- **`view.panel-page`** — One control-panel page’s heading block. Runs on every panel page.
-- **`view.panel-section`** — One labelled section inside a panel page. Runs once per section.
-- **`view.error-notice`** — The error page model. Runs on the page that renders when things are broken.
-- **`view.shell`** — The page frame’s model. Runs on every page including the error pages.
+- **`view.search-results`** — Search results authorised for the viewer. Added rows require separate visibility checks.
+- **`view.discovery-view`** — Discovery listing and tabs. Existing rows are authorised; added rows require separate visibility checks.
+- **`view.auth-page`** — Sign-in, registration or password-reset page. The app supplies the form as a rendered region.
+- **`view.panel-shell`** — Control panel frame and links. Adding links does not grant access.
+- **`view.panel-nav`** — Control panel navigation with the current section. Runs on each panel page.
+- **`view.panel-page`** — Control panel page heading. Runs on each panel page.
+- **`view.panel-section`** — Panel section. Runs once per section.
+- **`view.error-notice`** — Error page model.
+- **`view.shell`** — Page frame. Runs on every page, including error pages.
 - **`view.notice`** — A board notice or flash message, before the theme renders it.
 - **`view.category-block`** — One category on the index, with its rendered forum rows.
 - **`view.subforum-list`** — The compact child-forum list above a thread listing.
 - **`view.forum-display`** — A forum page’s model, including its rendered regions.
 - **`view.thread-view`** — A thread page’s model, including its rendered post list.
 - **`view.post-form`** — The composer page’s model. The form itself is app-rendered and arrives as a region.
-- **`view.quick-reply`** — The quick-reply island’s model, at the foot of a thread. The reply form itself is app-rendered and arrives as `children`.
+- **`view.quick-reply`** — Quick-reply model. The app supplies the reply form as `children`.
 - **`view.editor-toolbar`** — The composer’s formatting-toolbar model — its buttons and the attachment picker.
-- **`view.redirect-notice`** — The interstitial shown after a mutation, before the meta refresh fires. The target is re-checked against the board after the filter runs, so this cannot send a member off-site.
+- **`view.redirect-notice`** — Post-mutation redirect notice. The target is checked again after filtering and must remain on the board.
 
 ## Posting
 
@@ -166,7 +150,7 @@ the whole board and stays off until an operator clears the record. See
 - **`post.created`** — A reply was created and committed.
 - **`post.edit.before`** — An edit’s new body and reason, before the revision is written.
 - **`post.edited`** — A post was edited and a revision recorded.
-- **`post.delete.before`** — A post is about to be soft-deleted. Observation only: refusing is a permission.
+- **`post.delete.before`** — Post scheduled for soft deletion. Cannot veto deletion.
 - **`post.deleted`** — A post was soft-deleted.
 - **`post.restored`** — A soft-deleted post was restored.
 - **`thread.moved`** — A thread changed forum. Carries both forum ids.
@@ -174,11 +158,11 @@ the whole board and stays off until an operator clears the record. See
 - **`thread.split`** — Posts were split out into a new thread.
 - **`thread.locked`** — A thread was opened or closed.
 - **`thread.stickied`** — A thread was pinned or unpinned.
-- **`attachment.upload.validate`** — Validation messages for an upload, after the magic-byte check. A plugin may refuse a file core would accept; it can never accept one core refused.
-- **`attachment.uploaded`** — A file finished uploading and re-encoding.
+- **`attachment.upload.validate`** — Upload validation after file-type checks. Can reject an accepted file; cannot accept a file rejected by core.
+- **`attachment.uploaded`** — Upload stored. Image processing may still be pending.
 - **`attachment.deleted`** — An attachment was removed, by a member or by the orphan sweep.
 - **`poll.created`** — A poll was attached to a thread.
-- **`poll.voted`** — A vote was cast, once per option chosen. It fires again when a poll that allows re-voting takes a replacement.
+- **`poll.voted`** — Vote recorded. Runs for each chosen option, including replacement votes.
 - **`rating.recorded`** — A thread rating was recorded or changed.
 
 ## Moderation
@@ -193,7 +177,7 @@ the whole board and stays off until an operator clears the record. See
 | `warning.revoked` | event | yes | `{ readonly warningId: number; readonly userId: number }` | `ModerationRef` |
 | `moderation.logged` | event | yes | `{ readonly action: string; readonly targetId: number \| null }` | `ModerationRef` |
 
-- **`report.created`** — Something was reported. The hook a notifier or a webhook wants.
+- **`report.created`** — Report created.
 - **`report.resolved`** — A report was closed, with the resolution.
 - **`approval.queued`** — Content entered the approval queue.
 - **`approval.decided`** — Queued content was approved or rejected.
@@ -218,17 +202,17 @@ the whole board and stays off until an operator clears the record. See
 | `user.merged` | event | yes | `{ readonly keptUserId: number; readonly mergedUserId: number }` | `RequestRef` |
 | `user.deleted` | event | yes | `UserRef & { reason: 'pruned' \| 'deleted' }` | `RequestRef` |
 
-- **`user.register.validate`** — Validation messages for a registration. Where a custom question or an external blocklist belongs.
+- **`user.register.validate`** — Registration validation messages. Use for additional questions or blocklists.
 - **`user.registered`** — An account was created, before or after activation depending on the mode.
 - **`user.activated`** — An account finished activation.
-- **`user.login.attempted`** — A sign-in was attempted, with the outcome. Never carries the password or the session token.
+- **`user.login.attempted`** — Sign-in attempt and outcome. Excludes passwords and session tokens.
 - **`user.logged-in`** — A session was established.
 - **`user.logged-out`** — A session was ended, by the member or by revocation.
 - **`user.banned`** — A member was banned, with the expiry when there is one.
 - **`user.unbanned`** — A ban was lifted or expired and the prior group restored.
 - **`user.groups.changed`** — Primary or secondary group membership changed.
 - **`user.profile.updated`** — A member saved profile or option changes.
-- **`user.merged`** — Two accounts were merged. Carries the winner and the account that went.
+- **`user.merged`** — Account merge with retained and removed account IDs.
 - **`user.deleted`** — An account was pruned or deleted.
 
 ## Mail, notifications, messages
@@ -246,7 +230,7 @@ the whole board and stays off until an operator clears the record. See
 
 - **`notification.create.before`** — A notification about to be created. Returning `null` suppresses it.
 - **`notification.created`** — A notification was stored.
-- **`mail.send.before`** — A queued message, before it is handed to the mail driver. Subject, body and recipient; returning `null` drops it.
+- **`mail.send.before`** — Queued email before driver submission. Return `null` to suppress it.
 - **`mail.sent`** — A message was accepted by the driver. Not proof of delivery.
 - **`pm.send.before`** — A private message, before it is stored.
 - **`pm.sent`** — A private message was delivered to its recipients’ folders.
@@ -264,8 +248,8 @@ the whole board and stays off until an operator clears the record. See
 | `metadata.page` | filter | yes | `{ readonly title: string; readonly description: string \| null; readonly canonical: string; readonly imageUrl: string \| null }` | `{ readonly route: string }` |
 
 - **`search.query.before`** — The parsed search terms, before the query runs. The scope is not filterable.
-- **`search.results`** — A page of results, already permission-filtered in SQL. A plugin may reorder or drop; adding a row here would add one the viewer may not see.
-- **`feed.items`** — The items of a feed, rendered as a guest. Anything added is public.
+- **`search.results`** — Search results authorised in SQL. Reorder or remove rows; check visibility before adding any.
+- **`feed.items`** — Feed entries after visibility filtering. May contain private member content; do not share entries between requests. Added rows require separate visibility checks.
 - **`sitemap.entries`** — One chunk of the sitemap.
 - **`metadata.page`** — Title, description and social card for a page.
 
@@ -286,16 +270,12 @@ the whole board and stays off until an operator clears the record. See
 - **`task.run.before`** — A scheduled task is about to run.
 - **`task.run.after`** — A scheduled task finished, with its outcome and duration.
 - **`cache.invalidated`** — A cache tag was invalidated.
-- **`plugin.enabled`** — A plugin was enabled — including this one, which is how it learns it is on.
-- **`plugin.disabled`** — A plugin was disabled, by an operator or by the host after repeated failures. Carries the reason.
+- **`plugin.enabled`** — Plugin enabled. Includes the enabled plugin itself.
+- **`plugin.disabled`** — Plugin disabled by an operator or after repeated failures, with the reason.
 
 ## UI regions
 
-Regions are **not** theme slots. A theme owns its slots; a region is an explicit
-"plugins may add something here" point that a theme chooses to render, so the theme
-keeps control of where plugin output appears and the plugin keeps control of what it
-is. Several plugins contributing to one region compose by concatenation, in the same
-deterministic order as hooks.
+Themes place these regions. Enabled plugin contributions are concatenated in hook order.
 
 | Region | What it is handed |
 |---|---|
@@ -310,9 +290,9 @@ deterministic order as hooks.
 
 - **`header.notice`** — Directly below the board header, above the page body. Board-wide notices.
 - **`index.footer`** — The bottom of the board index, below the statistics block.
-- **`postbit.badges`** — Beside a post author’s name. Runs once per post on every thread page — the most expensive region on the board, and the one to keep trivial.
+- **`postbit.badges`** — Author badges. Runs once per post; avoid per-post queries.
 - **`postbit.footer`** — Below a post body, above its actions.
-- **`threadrow.badges`** — Beside a thread’s title in a listing, to mark threads across a forum page. A batch region: unlike every other region it runs once per page, not once per row — a listing of twenty threads is one call, returning a badge per thread id — because a forum page is on a tight budget and a per-row region there is twenty calls before the page has drawn a thing.
-- **`thread.header`** — Above the first post of a thread, below its title. Runs once per thread page, so unlike postbit.* it can afford to read from the plugin’s own tables.
+- **`threadrow.badges`** — Thread-list badges. Runs once per page with visible thread references; returns badges keyed by thread ID.
+- **`thread.header`** — Below the thread title and above the first post. Runs once per thread page.
 - **`profile.panel`** — A panel on a member’s profile, below the standard fields.
 - **`admin.dashboard`** — A card on the admin dashboard. Only rendered for administrators.

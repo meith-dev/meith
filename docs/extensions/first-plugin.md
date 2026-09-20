@@ -1,10 +1,10 @@
-# Write your first plugin
+# Create a plugin
 
-Create a plugin, run its tests and load it into a development board. You need Node.js 22 or newer, npm and a [writable local board](../operations/local-board.md).
+Requires Node.js 22+, npm and a [local board with PostgreSQL](../operations/local-board.md).
 
-## 1. Scaffold the plugin
+## 1. Create the package
 
-From the directory that contains your board project:
+Run beside your board directory:
 
 ```sh
 npx create-meith --plugin first-light
@@ -14,48 +14,46 @@ npm test
 npm run typecheck
 ```
 
-The scaffold includes `src/plugin.tsx`, a test, an entry point and a marketplace listing. Its example declares hooks, a region, a setting, a migration, a scheduled task and an admin page. The entry point exports the `plugin` and `messages` names expected by the board.
+The package exports `plugin` and `messages`. Its example includes a hook, region, setting, migration, task and admin page.
 
-## 2. Change a hook
+## 2. Edit a hook
 
-Open `src/plugin.tsx` and find the `view.footer` filter. Change the label of its added link, then update the matching expectation in `src/plugin.test.ts`.
+In `src/plugin.tsx`, change the link label returned by `view.footer`. Update its expectation in `src/plugin.test.ts`, then rerun the tests and typecheck.
 
-A filter returns a new value; it must not mutate the model passed to it. An event such as `post.created` reacts to an action and its return value is ignored. The [hook reference](../reference/plugin-hooks.md) lists the supported names and payloads.
+Filters return a new value without mutating their input. Event return values are ignored. See the [hook reference](../reference/plugin-hooks.md).
 
-Run `npm test` and `npm run typecheck` again. A successful module import also checks the plugin definition: invalid keys, namespace violations and invalid settings are rejected.
+## 3. Register the plugin
 
-## 3. Register it in a board
-
-Install the local plugin from the board directory:
+Run from the board directory:
 
 ```sh
 cd ../my-board
 npm install ../first-light
 ```
 
-For this local tutorial, add the imports and entry to the board's `meith.plugins.ts`, preserving any existing plugins and the `installedPluginDefinitions` function:
+In `meith.plugins.ts`, add the import:
 
 ```ts
 import { messages as firstLightMessages, plugin as firstLightPlugin } from 'first-light'
 ```
 
-Add this object inside `INSTALLED_PLUGINS`:
+Add this entry to `INSTALLED_PLUGINS`, preserving existing entries and `installedPluginDefinitions`:
 
 ```ts
 { key: 'first-light', enabled: true, plugin: firstLightPlugin, messages: firstLightMessages }
 ```
 
-Also add the package to the `plugins` array in `board.plugins.json` so future registry generation retains it:
+Add the corresponding entry to the `plugins` array in `board.plugins.json`:
 
 ```json
 { "key": "first-light", "package": "first-light", "enabled": true }
 ```
 
-This is a local package installation. For published packages, use the [operator installation command](../operations/installing.md), which updates the manifest and registry together.
+For published packages, [use `plugin:add`](../operations/installing.md) to update both files automatically.
 
-## 4. Apply migrations and run
+## 4. Build and check
 
-With the board's development database configured, run from its directory:
+From the board directory, with its development database configured:
 
 ```sh
 npm run meith -- upgrade
@@ -63,12 +61,6 @@ npm run build
 npm run start
 ```
 
-`upgrade` applies core and registered plugin migrations. `migrate` alone applies core migrations and is not sufficient for the scaffold's plugin table.
+`upgrade` applies core and plugin migrations; `migrate` alone does not apply plugin migrations. Check the footer and **Admin → Plugins**, including the example settings and page. Tasks require the [scheduler](../operations/scheduled-tasks.md).
 
-Open the board and check the footer link. Sign in as administrator and find the plugin under **Admin → Plugins**. Verify its settings and admin page. Background tasks need a [running scheduler](../operations/scheduled-tasks.md).
-
-## 5. Continue developing
-
-npm links a local directory installation, so edit the plugin and rebuild the board to see the change. Keep plugin tables in their namespace and leave applied migrations unchanged.
-
-Continue with [Plugin development](plugins.md) for routes, storage, settings and UI. Use [Publish to the marketplace](marketplace.md) when the plugin is tested and ready to share.
+npm links the local package directory. Edit the plugin and rebuild the board to test changes. Do not modify applied migrations.
