@@ -105,7 +105,7 @@ export function DocsSearch() {
         className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-border px-2.5 py-1.5 text-micro text-fg-subtle transition-colors hover:border-border-strong hover:text-fg"
       >
         <span aria-hidden>⌕</span>
-        <span>Search</span>
+        <span>Search the docs</span>
         <kbd className="kbd hidden sm:inline">⌘K</kbd>
       </button>
 

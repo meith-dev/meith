@@ -402,10 +402,10 @@ body {
   background: var(--raised);
   box-shadow: var(--lift);
   transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .btn:hover {
@@ -422,7 +422,7 @@ body {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 560;
+  font-weight: 500;
   box-shadow:
     0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent),
     0 12px 28px -14px color-mix(in srgb, var(--accent) 75%, transparent);
@@ -443,13 +443,25 @@ body {
   background: var(--surface);
 }
 
-/* The arrow moves, the button does not. Motion at the size of the affordance. */
-.btn .btn-arrow {
-  transition: transform 0.15s ease;
+a > span[aria-hidden] {
+  display: inline-block;
+  color: var(--arrow, var(--fg-subtle));
+  font-family: var(--sans);
+  line-height: 1;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
 }
 
-.btn:hover .btn-arrow {
-  transform: translateX(0.2rem);
+a:hover > span[aria-hidden] {
+  color: var(--arrow, var(--accent));
+  transform: translate(2px, -2px);
+}
+
+.btn-primary,
+.edition-button,
+.site-start-link {
+  --arrow: currentColor;
 }
 
 /*

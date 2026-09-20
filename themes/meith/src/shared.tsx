@@ -22,22 +22,22 @@ const SECTION_TITLE_SIZE = 'text-[clamp(1.5rem,1.2rem+1vw,2.1rem)]'
 export const SECTION_TITLE = `font-heading ${SECTION_TITLE_SIZE} font-normal leading-[1.25] tracking-[-0.025em] text-foreground`
 
 export const ITEM_TITLE =
-  'text-[0.95rem] font-medium leading-normal text-foreground sm:text-[1.02rem]'
+  'text-[0.95rem] font-medium leading-[1.55] text-foreground sm:text-[1.02rem]'
 
 export const META = 'text-[0.8125rem] leading-relaxed text-muted-foreground'
 
 export const SMALL_PRINT = 'text-xs leading-relaxed text-muted-foreground'
 
-export const LEDE = 'max-w-[32rem] text-[0.95rem] leading-[1.75] text-muted-foreground text-pretty'
+export const LEDE = 'max-w-[34rem] text-[0.95rem] leading-[1.8] text-muted-foreground text-pretty'
 
-export const BODY_MEASURE = 'max-w-[42rem]'
+export const BODY_MEASURE = 'max-w-[60rem]'
 
 export const NUMERIC = 'font-mono tabular-nums'
 
 export const TEXT_LINK =
-  'underline decoration-primary/55 decoration-1 underline-offset-[0.3em] transition-colors hover:text-primary hover:decoration-primary'
+  'underline decoration-primary/60 decoration-1 underline-offset-[0.3em] transition-colors duration-[160ms] hover:text-primary hover:decoration-primary'
 
-export const QUIET_LINK = 'transition-colors hover:text-primary'
+export const QUIET_LINK = 'transition-colors duration-[160ms] hover:text-primary'
 
 const SERIF_FACE = 'font-[Iowan_Old_Style,Palatino_Linotype,Book_Antiqua,Georgia,serif]'
 
@@ -49,15 +49,21 @@ export const ITEM_RULE = 'border-t border-foreground/15'
 
 export const RULE = 'border-t border-border'
 
-export const ROW_HOVER = 'transition-colors hover:border-primary hover:bg-accent'
+export const ROW_HOVER = 'transition-colors duration-[160ms] hover:border-primary'
 
 export const PRIMARY_ACTION =
-  'group inline-flex min-h-[3.2rem] items-center justify-between gap-8 bg-primary px-5 text-[0.85rem] font-medium whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary-hover'
+  'group inline-flex min-h-[3.2rem] items-center justify-between gap-8 bg-primary px-5 text-[0.85rem] font-medium whitespace-nowrap text-primary-foreground transition-colors duration-[160ms] hover:bg-primary-hover'
+
+export const SECONDARY_ACTION =
+  'inline-flex min-h-[2.75rem] items-center gap-3 border border-foreground px-4 text-[0.8125rem] font-medium text-foreground transition-colors duration-[160ms] hover:border-primary hover:text-primary'
+
+export const PANEL_TITLE =
+  'text-[1.15rem] font-normal leading-[1.3] tracking-[-0.025em] text-foreground'
 
 export const TOUCH = 'pointer-coarse:min-h-11'
 
 export const ARROW =
-  'ms-1 inline-block text-muted-foreground transition-[color,transform] group-hover:text-primary motion-safe:group-hover:-translate-y-px motion-safe:group-hover:translate-x-px'
+  'ms-1 inline-block text-muted-foreground transition-[color,transform] duration-[160ms] group-hover:text-primary motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:translate-x-0.5'
 
 export function Arrow({ className }: { className?: string }) {
   return (
@@ -79,7 +85,12 @@ export function Action({
   return (
     <a href={href} className={cn(PRIMARY_ACTION, className)}>
       {children}
-      <Arrow className="ms-0 text-[1.2em] leading-none text-current" />
+      <span
+        aria-hidden="true"
+        className="inline-block text-[1.2em] leading-none transition-transform duration-[160ms] motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:translate-x-0.5"
+      >
+        ↗
+      </span>
     </a>
   )
 }

@@ -40,19 +40,22 @@ test('colour scheme persists across navigation and resets to the system preferen
   page,
 }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Colour scheme: system. Switch to light' }).click()
+  const scheme = page.getByRole('group', { name: 'Colour scheme' })
+  await scheme.getByRole('button', { name: 'Light' }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
-  await page.getByRole('button', { name: 'Colour scheme: light. Switch to dark' }).click()
+  await scheme.getByRole('button', { name: 'Dark' }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 
   await page.goto('/about')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await page.getByRole('button', { name: 'Colour scheme: dark. Switch to system' }).click()
+  await expect(scheme.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true')
+  await scheme.getByRole('button', { name: 'System' }).click()
   await expect(page.locator('html')).not.toHaveAttribute('data-theme')
   await page.reload()
-  await expect(
-    page.getByRole('button', { name: 'Colour scheme: system. Switch to light' }),
-  ).toBeVisible()
+  await expect(scheme.getByRole('button', { name: 'System' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
 })
 
 test('mobile navigation closes on Escape, outside interaction, and link selection', async ({
@@ -70,7 +73,10 @@ test('mobile navigation closes on Escape, outside interaction, and link selectio
   await expect(menu).toBeFocused()
 
   await menu.click()
-  await page.getByRole('button', { name: /^Colour scheme:/ }).click()
+  await page
+    .getByRole('group', { name: 'Colour scheme' })
+    .getByRole('button', { name: 'System' })
+    .click()
   await expect(navigation).toBeHidden()
 
   await menu.click()
@@ -92,6 +98,10 @@ test('site navigation points to real destinations and exposes customisation guid
   ] as const) {
     await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
+  await expect(nav.getByRole('link', { name: /^Demo/ })).toHaveAttribute(
+    'href',
+    /^https:\/\/demo\./,
+  )
   await expect(nav.getByRole('link', { name: /^Community/ })).toHaveAttribute(
     'href',
     /^https:\/\/forum\./,
@@ -110,7 +120,7 @@ test('site navigation points to real destinations and exposes customisation guid
     { name: /^Developers/, slug: 'developers' },
     { name: /^Open-source projects/, slug: 'open-source' },
     { name: /^Communities/, slug: 'communities' },
-    { name: /^Clubs & associations/, slug: 'clubs-and-associations' },
+    { name: /^Clubs and associations/, slug: 'clubs-and-associations' },
   ]
 
   for (const audience of audiences) {

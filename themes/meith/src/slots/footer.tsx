@@ -3,7 +3,7 @@ import { fromSlotCopy } from '@meith/theme-kit'
 
 import { Arrow, LABEL, QUIET_LINK, SHELL, TOUCH } from '../shared'
 
-const FOOTER_LINK = `group inline-flex items-center py-2 text-[0.8125rem] font-medium tracking-[0.01em] text-muted-foreground ${QUIET_LINK} ${TOUCH}`
+const FOOTER_LINK = `group inline-flex items-center py-2 font-mono text-[0.6875rem] font-medium tracking-[0.075em] text-muted-foreground uppercase ${QUIET_LINK} ${TOUCH}`
 
 export function Footer({
   boardTitle,

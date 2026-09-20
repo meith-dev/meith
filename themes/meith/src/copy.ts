@@ -1,4 +1,4 @@
-import { mobileHeaderNavCopy } from '@meith/theme-default'
+import { mobileHeaderNavCopy, mobilePanelNavCopy } from '@meith/theme-default'
 import type { SlotCopy, Translator } from '@meith/theme-kit'
 
 function copyFor(t: Translator, keys: readonly string[]): SlotCopy {
@@ -258,5 +258,78 @@ export function whoIsOnlineCopy(t: Translator): SlotCopy {
     'meith.whoIsOnline.record',
     'meith.whoIsOnline.on',
     'meith.whoIsOnline.invisible',
+  ])
+}
+
+export function discoveryViewCopy(t: Translator): SlotCopy {
+  return copyFor(t, [
+    'meith.discoveryView.by',
+    'meith.discoveryView.in',
+    'meith.discoveryView.lastPost',
+    'meith.discoveryView.reply.one',
+    'meith.discoveryView.reply.other',
+    'meith.discoveryView.startedBy',
+  ])
+}
+
+export function errorNoticeCopy(t: Translator): SlotCopy {
+  return copyFor(t, [
+    'meith.errorNotice.error',
+    'meith.errorNotice.forumHome',
+    'meith.errorNotice.quoteThis',
+  ])
+}
+
+export function panelNavCopy(t: Translator): SlotCopy {
+  return {
+    ...mobilePanelNavCopy(t),
+    ...copyFor(t, ['meith.panelNav.countCap', 'meith.panelNav.waiting']),
+  }
+}
+
+export function panelPageCopy(t: Translator): SlotCopy {
+  return copyFor(t, ['meith.panelPage.back'])
+}
+
+export function postFormCopy(t: Translator): SlotCopy {
+  return copyFor(t, ['meith.postForm.cannotPost'])
+}
+
+export function redirectNoticeCopy(t: Translator): SlotCopy {
+  return copyFor(t, [
+    'meith.redirectNotice.continueNow',
+    'meith.redirectNotice.continuingOnItsOwnIn',
+    'meith.redirectNotice.pleaseWait',
+    'meith.redirectNotice.redirecting',
+    'meith.redirectNotice.second.one',
+    'meith.redirectNotice.second.other',
+  ])
+}
+
+export function searchFormCopy(t: Translator): SlotCopy {
+  return copyFor(t, [
+    'meith.searchForm.in',
+    'meith.searchForm.noResults',
+    'meith.searchForm.placeholder',
+    'meith.searchForm.search',
+    'meith.searchForm.searchFor',
+    'meith.searchForm.sortBy',
+  ])
+}
+
+export function searchResultsCopy(t: Translator): SlotCopy {
+  return copyFor(t, [
+    'meith.searchResults.clearFilters',
+    'meith.searchResults.closeQuote',
+    'meith.searchResults.dot',
+    'meith.searchResults.nothingMatched',
+    'meith.searchResults.openQuote',
+    'meith.searchResults.removeFilter',
+    'meith.searchResults.removeFilterX',
+    'meith.searchResults.resultsFor',
+    'meith.searchResults.searched',
+    'meith.searchResults.searchedNote',
+    'meith.searchResults.startNewSearch',
+    'meith.searchResults.tryFewerWords',
   ])
 }

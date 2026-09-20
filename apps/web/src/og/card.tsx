@@ -142,7 +142,7 @@ export function OgCard({
           color: card.fgSubtle,
         }}
       >
-        <div style={{ display: 'flex' }}>Free & open source · Self-hosted · Yours to keep</div>
+        <div style={{ display: 'flex' }}>Free and open source · Self-hosted · Yours to keep</div>
         <div style={{ display: 'flex' }}>Built in the open</div>
       </div>
     </div>

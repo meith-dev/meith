@@ -5,6 +5,7 @@ export const site = {
   domain: 'meith.dev',
   url: 'https://www.meith.dev',
   forum: 'https://forum.meith.dev',
+  demo: 'https://demo.meith.dev',
   repository: 'https://github.com/meith-dev/meith',
   tagline: 'Open-source, self-hosted forum software for conversations worth keeping.',
   description:

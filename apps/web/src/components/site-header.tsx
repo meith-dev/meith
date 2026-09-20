@@ -2,11 +2,13 @@ import Link from 'next/link'
 
 import { about } from '../content/about'
 import { audienceIndexHref } from '../content/segments'
+import { site } from '../content/site'
 import { quickstartHref } from '../docs/registry'
 import { DocsSearch } from './docs-search'
 import { ForumLink } from './forum-link'
 import { Logomark } from './logomark'
 import { MobileMenu } from './mobile-menu'
+import { NavLink } from './nav-link'
 import { ThemeToggle } from './theme-toggle'
 
 export function SiteHeader() {
@@ -21,10 +23,13 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Site" className="site-navigation">
-          <Link href="/">Home</Link>
-          <Link href={about.href}>About</Link>
-          <Link href={audienceIndexHref}>Who it’s for</Link>
-          <Link href="/docs">Docs</Link>
+          <NavLink href="/">Home</NavLink>
+          <NavLink href={about.href}>About</NavLink>
+          <NavLink href={audienceIndexHref}>Who it’s for</NavLink>
+          <NavLink href="/docs">Docs</NavLink>
+          <ForumLink href={site.demo}>
+            Demo <span aria-hidden>↗</span>
+          </ForumLink>
           <ForumLink>
             Community <span aria-hidden>↗</span>
           </ForumLink>
@@ -60,6 +65,11 @@ export function SiteHeader() {
                   <Link href="/docs">
                     Docs <span aria-hidden>↗</span>
                   </Link>
+                </li>
+                <li>
+                  <ForumLink href={site.demo}>
+                    Demo <span aria-hidden>↗</span>
+                  </ForumLink>
                 </li>
                 <li>
                   <ForumLink>

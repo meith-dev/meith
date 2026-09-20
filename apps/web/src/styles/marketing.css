@@ -561,7 +561,7 @@
   height: 100%;
   object-fit: cover;
   object-position: top;
-  transition: transform 250ms ease;
+  transition: transform 180ms ease;
 }
 
 .marketplace-preview-action {

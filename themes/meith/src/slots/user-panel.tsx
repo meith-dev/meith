@@ -5,9 +5,9 @@ import { Menu } from '@meith/ui/menu'
 
 import { Arrow, LABEL, NUMERIC, QUIET_LINK, TOUCH } from '../shared'
 
-const GUEST_LINK = `inline-flex h-10 items-center px-1 text-[0.8125rem] font-medium tracking-[0.01em] text-muted-foreground ${QUIET_LINK} ${TOUCH}`
+const GUEST_LINK = `inline-flex h-10 items-center px-1 font-mono text-[0.6875rem] font-medium tracking-[0.075em] text-muted-foreground uppercase ${QUIET_LINK} ${TOUCH}`
 
-const GUEST_ACTION = `group inline-flex min-h-10 items-center gap-4 rounded-[2px] border border-foreground bg-foreground px-[1.2rem] text-xs font-medium whitespace-nowrap text-background transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground ${TOUCH}`
+const GUEST_ACTION = `group inline-flex min-h-10 items-center gap-4 border border-primary bg-primary px-[1.2rem] text-[0.8125rem] font-medium whitespace-nowrap text-primary-foreground transition-colors duration-[160ms] hover:border-primary-hover hover:bg-primary-hover ${TOUCH}`
 
 const COUNT_LINK = `${LABEL} inline-flex items-center gap-1 ${QUIET_LINK} ${TOUCH}`
 
@@ -31,7 +31,7 @@ export function UserPanel({
           index === 0 ? (
             <a key={link.href} href={link.href} className={GUEST_ACTION}>
               {link.label}
-              <Arrow className="ms-0 text-[1.1rem] leading-none text-current" />
+              <Arrow className="ms-0 text-[1.1rem] leading-none text-current group-hover:text-current" />
             </a>
           ) : (
             <a key={link.href} href={link.href} className={cn(GUEST_LINK, 'hidden sm:inline-flex')}>
