@@ -16,6 +16,13 @@ The mark uses the current accent; its threads use accent-contrast. Static icons 
 | Minimum | 16px mark alone; 20px mark in a lockup |
 | Social-card exception | `Meith`, weight 600 |
 
+The GitHub README uses `apps/web/public/wordmark-light.svg` and
+`apps/web/public/wordmark-dark.svg`. These transparent lockups reuse the mark,
+proportions and scheme colours above, with half a mark’s height of clear space.
+Keep them in step with the site logo. Use a native `picture` element with
+`prefers-color-scheme` sources and a light fallback so the wordmark remains
+legible in both GitHub schemes.
+
 ## Colour
 
 | Token | Light | Dark | Theme token |
@@ -66,6 +73,12 @@ Use actual product captures with fixture data, descriptive alt text and paired l
 | Phone | 780 × 1560 |
 
 Exclude browser chrome, device mockups, stock/generated imagery, mascots and decorative icons. Use a flat screenshot with a border. Diagrams use the brand tokens.
+
+The GitHub README reuses the Default desktop and mobile thread pairs from
+`apps/web/public/shots`, with `picture` elements selecting the scheme and
+descriptive alt text on each fallback image. Keep the desktop overview visible;
+put the phone capture in a native disclosure to keep the setup instructions
+easy to reach. Refresh these captures with `pnpm site:shots`.
 
 ## Homepage and live preview
 
