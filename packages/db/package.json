@@ -56,11 +56,11 @@
     "@meith/subscriptions": "workspace:*",
     "@meith/tasks": "workspace:*",
     "@meith/threads": "workspace:*",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.7"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.6",
+    "drizzle-kit": "^0.31.11",
     "@electric-sql/pglite": "^0.5.8"
   }
 }
