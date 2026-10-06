@@ -74,14 +74,14 @@
     "comments:check": "node scripts/comment-check.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.15",
     "@electric-sql/pglite": "^0.5.8",
     "@electric-sql/pglite-socket": "^0.2.11",
     "@playwright/test": "1.63.0",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "^4.1.10",
-    "dependency-cruiser": "^18.2.0",
-    "tsx": "^4.23.13",
+    "dependency-cruiser": "^18.5.0",
+    "tsx": "^4.23.15",
     "typescript": "7.0.2",
     "vitest": "^4.1.10"
   },
