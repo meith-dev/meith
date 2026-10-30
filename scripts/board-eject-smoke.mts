@@ -20,6 +20,8 @@ const AUTH_SECRET = 'smoke-test-auth-secret-32-bytes-min'
 const TICK_SECRET = 'smoke-test-tick-secret-32-bytes-min'
 const BOARD_IMAGE_TAG = 'meith-board-eject-smoke:ci'
 const CONTAINER_NAME = 'meith-board-eject-smoke'
+const BASE_IMAGE_VERSION = '0.0.0-board-eject-smoke'
+const BASE_IMAGE = `ghcr.io/meith-dev/meith-base:${BASE_IMAGE_VERSION}`
 
 const ROOTS = ['@meith/web', '@meith/cli', '@meith/theme-default'] as const
 
@@ -77,7 +79,6 @@ async function buildStandInBaseImage(
   boardDir: string,
   vendorDir: string,
   tarballs: ReadonlyMap<string, string>,
-  version: string,
 ) {
   const dependencies: Record<string, string> = {}
   const overrides: Record<string, string> = {}
@@ -105,11 +106,7 @@ RUN npm install
   const dockerfilePath = join(vendorDir, '..', 'Dockerfile.base-stub')
   await writeFile(dockerfilePath, dockerfile)
   console.log('== building the stand-in base image (packed tarballs, not the real registry) ==')
-  run(
-    'docker',
-    ['build', '-f', dockerfilePath, '-t', `ghcr.io/meith-dev/meith-base:${version}`, boardDir],
-    boardDir,
-  )
+  run('docker', ['build', '-f', dockerfilePath, '-t', BASE_IMAGE, boardDir], boardDir)
 }
 
 async function waitForResponse(url: string, attempts: number): Promise<Response> {
@@ -132,10 +129,8 @@ function stopAndRemove(name: string) {
 async function main() {
   const scaffoldParent = await mkdtemp(join(tmpdir(), 'board-eject-smoke-board-'))
   const ejectedDir = join(scaffoldParent, 'ejected-board')
-  let version: string | undefined
-
   try {
-    version = await codeVersion()
+    const version = await codeVersion()
 
     console.log('== migrating the database (meith migrate, against this checkout) ==')
     run('pnpm', ['meith', 'migrate'], ROOT, {
@@ -178,7 +173,7 @@ async function main() {
     const tarballs = await packClosure(vendorDir, [...ROOTS])
     console.log(`packed ${tarballs.size} packages`)
 
-    await buildStandInBaseImage(ejectedDir, vendorDir, tarballs, version)
+    await buildStandInBaseImage(ejectedDir, vendorDir, tarballs)
     await pointAtVendoredTarballs(ejectedDir, tarballs)
 
     console.log(
@@ -191,7 +186,7 @@ async function main() {
         '-f',
         join(ejectedDir, 'Dockerfile.prebuilt'),
         '--build-arg',
-        `MEITH_VERSION=${version}`,
+        `MEITH_VERSION=${BASE_IMAGE_VERSION}`,
         '-t',
         BOARD_IMAGE_TAG,
         ejectedDir,
@@ -274,9 +269,7 @@ async function main() {
     }
   } finally {
     spawnSync('docker', ['rmi', '-f', BOARD_IMAGE_TAG])
-    if (version !== undefined) {
-      spawnSync('docker', ['rmi', '-f', `ghcr.io/meith-dev/meith-base:${version}`])
-    }
+    spawnSync('docker', ['rmi', '-f', BASE_IMAGE])
     await rm(scaffoldParent, { recursive: true, force: true })
   }
 }
