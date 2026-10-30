@@ -20,4 +20,9 @@ If web push is enabled, opt in through the board and grant browser permission. B
 
 Review both subscriptions and notification preferences. Email unsubscribe links change the relevant preference; keep those links private.
 
+Subscription delivery rechecks access and advances past replies that are no longer
+visible to you, without sending their content. Restoring access does not replay
+those skipped replies. A board digest with no visible activity sends no message
+but still counts as that cadence's check, so other members' digests can proceed.
+
 Delayed community-wide email can indicate a scheduler or mail-service problem. Ask an administrator to check it. Password-reset mail uses a separate request path.

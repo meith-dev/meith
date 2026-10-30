@@ -67,7 +67,10 @@ export class BoardDigestNotifier {
           member.lastActiveAt,
           MAX_THREADS_CONSIDERED,
         )
-        if (threads.length === 0) continue
+        if (threads.length === 0) {
+          await this.repository.recordDigestRun({ userId: member.userId, at })
+          continue
+        }
 
         await this.notifications.raise({
           userId: member.userId,

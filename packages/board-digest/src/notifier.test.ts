@@ -45,7 +45,9 @@ class MemoryRepository implements BoardDigestRepository {
     limit: number
   }) {
     this.dueArgs = input
-    return this.due.slice(0, input.limit)
+    return this.due
+      .filter((member) => !this.recorded.some((run) => run.userId === member.userId))
+      .slice(0, input.limit)
   }
 
   async recordDigestRun(input: { userId: number }) {
@@ -144,14 +146,22 @@ describe('sending', () => {
     expect(raised[0]?.data.unsubscribe).toBeNull()
   })
 
-  it('sends nothing, and stamps no clock, when there was no activity to report', async () => {
+  it('sends nothing and records consideration when there was no activity to report', async () => {
     contentByUser.set(7, [])
 
     const { notified } = await notifier().run('weekly', 7)
 
     expect(notified).toBe(0)
     expect(raised).toEqual([])
-    expect(repository.recorded).toEqual([])
+    expect(repository.recorded).toEqual([{ userId: 7 }])
+  })
+
+  it('reaches later members when an earlier bounded batch has no visible activity', async () => {
+    repository.due = [LAPSED_MEMBER, { ...LAPSED_MEMBER, userId: 8 }]
+    contentByUser.set(8, [thread()])
+    expect(await notifier().run('weekly', 7, 1)).toEqual({ notified: 0, considered: 1 })
+    expect(await notifier().run('weekly', 7, 1)).toEqual({ notified: 1, considered: 1 })
+    expect(raised.map((item) => item.userId)).toEqual([8])
   })
 
   it('stamps the member’s clock only after a successful send', async () => {
