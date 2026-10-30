@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import type { ForumOverride } from '@meith/authorization'
 import { FORUM_PERMISSION_FIELDS, ValidationError } from '@meith/core'
+import { safeForumLinkUrl } from '@meith/forums'
 import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
@@ -179,6 +180,9 @@ export class PostgresForumAdminRepository {
   }
 
   async updateOptions(forumId: number, input: ForumOptionsInput): Promise<void> {
+    if (input.linkUrl !== null && safeForumLinkUrl(input.linkUrl) === null) {
+      throw new ValidationError('A forum link must use HTTP or HTTPS.')
+    }
     await this.db.execute(sql`
       update forums
          set title = ${input.title},

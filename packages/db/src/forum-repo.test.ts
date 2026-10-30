@@ -223,6 +223,18 @@ describe('planMove over live rows', () => {
 })
 
 describe('create', () => {
+  it.each([
+    'javascript:alert(1)',
+    'JaVaScRiPt:alert(1)',
+    'java\tscript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+  ])('rejects an executable link URL %s', async (linkUrl) => {
+    await expect(
+      repo.create({ type: 'link', title: 'Link', slug: 'unsafe', parentId: null, linkUrl }),
+    ).rejects.toThrow('HTTP or HTTPS')
+  })
+
   it('derives the path from the id the database assigns', async () => {
     const created = await repo.create({
       type: 'forum',

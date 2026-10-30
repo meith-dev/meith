@@ -1,4 +1,10 @@
-import { buildTree, type ForumListingRow, type ForumNode, keepVisibleSubtrees } from '@meith/forums'
+import {
+  buildTree,
+  type ForumListingRow,
+  type ForumNode,
+  keepVisibleSubtrees,
+  safeForumLinkUrl,
+} from '@meith/forums'
 import type { Translator } from '@meith/i18n'
 import type { CompiledWordFilter } from '@meith/markdown'
 import type {
@@ -33,7 +39,8 @@ export function forumHref(row: { id: number; slug: string }): string {
 }
 
 function hrefFor(row: ForumListingRow): string {
-  if (row.type === 'link' && row.linkUrl !== null) return row.linkUrl
+  if (row.type === 'link' && row.linkUrl !== null)
+    return safeForumLinkUrl(row.linkUrl) ?? forumHref(row)
   return forumHref(row)
 }
 
