@@ -1,3 +1,4 @@
+import { env } from '@meith/core/env'
 import { guardedFetch } from '@meith/core/outbound'
 
 export interface FetchFeedResult {
@@ -59,7 +60,7 @@ export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<F
     options.fetchImpl ??
     ((input, init) =>
       guardedFetch(input, init, {
-        allowPrivateHosts: false,
+        allowPrivateHosts: env.MARKETPLACE_ALLOW_PRIVATE_HOSTS,
         maxResponseBytes: MAX_BODY_BYTES,
         timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       }))

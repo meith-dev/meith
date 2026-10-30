@@ -18,6 +18,14 @@ const onVercel = {
 } satisfies NodeJS.ProcessEnv
 
 describe('derived defaults', () => {
+  it('keeps private catalogs blocked unless explicitly enabled', () => {
+    expect(parseEnv(base).MARKETPLACE_ALLOW_PRIVATE_HOSTS).toBe(false)
+    expect(
+      parseEnv({ ...base, MARKETPLACE_ALLOW_PRIVATE_HOSTS: 'true' })
+        .MARKETPLACE_ALLOW_PRIVATE_HOSTS,
+    ).toBe(true)
+  })
+
   it('falls back to the fixture data source when no database is configured', () => {
     const env = parseEnv({ NODE_ENV: 'development' })
     expect(env.DATA_SOURCE).toBe('fixture')

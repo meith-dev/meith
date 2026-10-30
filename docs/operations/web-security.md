@@ -53,8 +53,12 @@ connection. Redirects are never followed. OIDC responses are capped at 64 KiB;
 marketplace feeds retain their 2 MB cap, and both have a total request deadline.
 Internal transport diagnostics identify blocked redirects as
 `OUTBOUND_REDIRECT_BLOCKED` and oversized bodies as `OUTBOUND_RESPONSE_TOO_LARGE`.
-Marketplace feeds require HTTPS and public destinations. The explicit
-`OIDC_ALLOW_PRIVATE_HOSTS` override remains available for an intended private IdP.
+The explicit `OIDC_ALLOW_PRIVATE_HOSTS` override remains available for an intended private IdP.
+
+Marketplace feeds require public HTTPS destinations by default. Set
+`MARKETPLACE_ALLOW_PRIVATE_HOSTS=true` only for a deliberately private catalog or
+local integration fixture; it also permits HTTP. DNS remains pinned and redirects,
+response limits and deadlines remain enforced.
 
 Production SMTP resolves and checks the host once per message, then connects to
 that address while verifying TLS against the configured hostname. It does not
