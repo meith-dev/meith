@@ -272,7 +272,7 @@ export async function saveAvatarAction(_prev: FormState, form: FormData): Promis
     await drivers().queue.enqueue(
       'avatars.process',
       { userId: actor.userId },
-      { dedupeKey: `avatar:${actor.userId}:${Date.now()}` },
+      { dedupeKey: `avatar:${actor.userId}:${crypto.randomUUID()}` },
     )
   } catch (err) {
     return toFormState(err)
