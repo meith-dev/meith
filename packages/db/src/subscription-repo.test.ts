@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { ThreadAudience } from '@meith/core'
+import { SubscriptionNotifier } from '@meith/subscriptions'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -511,6 +512,28 @@ describe('watermarks', () => {
 })
 
 describe('who is due', () => {
+  it('drains inaccessible subscriptions without notifying them or starving later users', async () => {
+    for (const userId of [IVAN, MOD]) {
+      await repo.subscribe({ userId, target: 'thread', targetId: THREAD, mode: 'instant', at: AT })
+    }
+    await addPost({ id: 100 })
+    await db.execute(sql`update posts set author_user_id = null where id = 100`)
+    const raised: number[] = []
+    const notifier = new SubscriptionNotifier({
+      subscriptions: repo,
+      forums: { audienceFor: async (userId) => toAudience(userId === IVAN ? [] : ALL_FORUMS) },
+      notifications: {
+        raise: async (input) => {
+          raised.push(input.userId)
+        },
+      },
+    })
+    expect(await notifier.runInstant(1)).toEqual({ notified: 0, considered: 1 })
+    expect(await watermark('thread')).toBe(100)
+    expect(await notifier.runInstant(1)).toEqual({ notified: 1, considered: 1 })
+    expect(raised).toEqual([MOD])
+  })
+
   it('lists members with something outstanding on that cadence', async () => {
     await repo.subscribe({
       userId: IVAN,

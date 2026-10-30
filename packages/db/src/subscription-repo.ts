@@ -35,12 +35,12 @@ function pendingPosts(
   audience: ThreadAudience,
 ): ReturnType<typeof sql> {
   const byMode = mode === null ? sql`` : sql`and s.mode = ${mode}`
-  const visible = sql`and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, audience)}`
+  const permitted = inAudience(sql`t.forum_id`, sql`t.author_user_id`, audience)
 
   return sql`
     select p.id as post_id, p.thread_id, t.title as thread_title, t.slug as thread_slug,
            t.forum_id, u.username as author_username, p.created_at,
-           'thread'::text as target, s.thread_id as target_id
+           'thread'::text as target, s.thread_id as target_id, ${permitted} as permitted
       from thread_subscriptions s
       join threads t on t.id = s.thread_id
       join posts p on p.thread_id = s.thread_id and p.id > s.last_notified_post_id
@@ -49,13 +49,12 @@ function pendingPosts(
        and p.author_user_id is distinct from ${userId}
        and ${visibleIn(sql`p.visibility`, PUBLIC_CONTENT)}
        and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
-       ${visible}
 
     union all
 
     select p.id as post_id, p.thread_id, t.title as thread_title, t.slug as thread_slug,
            t.forum_id, u.username as author_username, p.created_at,
-           'forum'::text as target, s.forum_id as target_id
+           'forum'::text as target, s.forum_id as target_id, ${permitted} as permitted
       from forum_subscriptions s
       join threads t on t.forum_id = s.forum_id
       join posts p on p.thread_id = t.id and p.id > s.last_notified_post_id
@@ -64,11 +63,11 @@ function pendingPosts(
        and p.author_user_id is distinct from ${userId}
        and ${visibleIn(sql`p.visibility`, PUBLIC_CONTENT)}
        and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
-       ${visible}
   `
 }
 
 interface RawPending {
+  permitted: boolean
   post_id: number
   thread_id: number
   thread_title: string
@@ -164,6 +163,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
         with pending as (
           select target, target_id, count(*)::int as pending
             from (${pendingPosts(userId, null, options.audience)}) p
+           where p.permitted
            group by target, target_id
         )
         select 'thread'::text as target, s.thread_id as target_id, t.title,
@@ -300,6 +300,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
     const seen = new Set<number>()
     const posts = []
     for (const row of rows) {
+      if (!row.permitted) continue
       const postId = Number(row.post_id)
       if (seen.has(postId)) continue
       seen.add(postId)

@@ -188,7 +188,7 @@ describe('instant', () => {
     ])
   })
 
-  it('advances the watermark even when everything was filtered out', async () => {
+  it('does not advance when the repository reports no outstanding posts', async () => {
     subscriptions.pending.set(7, [])
 
     await notifier().runInstant()
