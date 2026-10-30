@@ -275,7 +275,12 @@ describe('the rate limit', () => {
     const spend = vi.fn(async () => 10)
     const peek = vi.fn(async () => 0)
     await consumeRateLimit({ spend, peek }, 1, 10, NOW)
-    expect(spend).toHaveBeenCalledWith(1, rateLimitWindowStart(NOW, DEFAULT_WINDOW), 10)
+    expect(spend).toHaveBeenCalledWith(
+      1,
+      rateLimitWindowStart(NOW, DEFAULT_WINDOW),
+      10,
+      DEFAULT_WINDOW.budget,
+    )
   })
 
   it('reports the budget on every response', async () => {
@@ -334,6 +339,7 @@ describe('reading without a token', () => {
       '203.0.113.0',
       rateLimitWindowStart(NOW, ANONYMOUS_WINDOW),
       10,
+      ANONYMOUS_WINDOW.budget,
     )
   })
 

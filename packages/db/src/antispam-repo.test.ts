@@ -62,6 +62,7 @@ describe('the counter', () => {
     )
 
     expect(outcomes.filter((outcome) => outcome.allowed)).toHaveLength(3)
+    expect(await store.peek({ scope: 'post', subject: 'u:1' }, WINDOW)).toBe(3)
   })
 
   it('keeps scopes, subjects and windows apart', async () => {

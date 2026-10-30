@@ -24,7 +24,7 @@ function memoryRateLimitBucketStore(): RateLimitBucketStore<string> {
   const bucketKey = (key: string, windowStart: Date) => `${key}|${windowStart.getTime()}`
 
   return {
-    async spend(key, windowStart, cost) {
+    async spend(key, windowStart, cost, ceiling) {
       calls += 1
       if (calls % SWEEP_EVERY === 0) {
         const cutoff = windowStart.getTime() - RETENTION_MS
@@ -35,7 +35,7 @@ function memoryRateLimitBucketStore(): RateLimitBucketStore<string> {
 
       const id = bucketKey(key, windowStart)
       const next = (buckets.get(id)?.used ?? 0) + cost
-      buckets.set(id, { start: windowStart.getTime(), used: next })
+      if (next <= ceiling) buckets.set(id, { start: windowStart.getTime(), used: next })
       return next
     },
 

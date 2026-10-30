@@ -4,7 +4,7 @@ export interface RateLimitWindow {
 }
 
 export interface RateLimitBucketStore<TKey = string> {
-  spend(key: TKey, windowStart: Date, cost: number): Promise<number>
+  spend(key: TKey, windowStart: Date, cost: number, ceiling: number): Promise<number>
   peek(key: TKey, windowStart: Date): Promise<number>
 }
 
@@ -34,10 +34,13 @@ export async function spendRateLimit<TKey>(
   const elapsedMs = now.getTime() - currentStart.getTime()
   const previousWeight = Math.max(0, 1 - elapsedMs / sizeMs)
 
-  const [current, previous] = await Promise.all([
-    store.spend(key, currentStart, cost),
-    store.peek(key, previousStart),
-  ])
+  const previous = await store.peek(key, previousStart)
+  const current = await store.spend(
+    key,
+    currentStart,
+    cost,
+    Math.floor(budget - previous * previousWeight),
+  )
 
   const used = Math.ceil(current + previous * previousWeight)
   const resetSeconds = Math.max(1, seconds - Math.floor(elapsedMs / 1000))

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { PostgresWebhookRepository } from './api-repo'
+import { PostgresRateLimitStore, PostgresWebhookRepository } from './api-repo'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
@@ -172,5 +172,27 @@ describe('PostgresWebhookRepository deliveries', () => {
       await db.execute(sql`select count(*)::int as n from webhook_deliveries`),
     )
     expect(Number(rows[0]!.n)).toBe(0)
+  })
+})
+
+describe('API quota reservations', () => {
+  it('caps concurrent reservations and leaves rejected requests uncharged', async () => {
+    await db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower)
+      values (9001, 'quota', 'quota', 'quota@example.test', 'quota@example.test')
+    `)
+    const [token] = resultRows<{ id: number }>(
+      await db.execute(sql`
+      insert into api_tokens (user_id, name, lookup, secret_hash)
+      values (9001, 'quota', 'quota', 'hash') returning id
+    `),
+    )
+    const store = new PostgresRateLimitStore(db)
+    const start = new Date('2026-08-04T12:00:00Z')
+    const attempts = await Promise.all(
+      Array.from({ length: 20 }, () => store.spend(token!.id, start, 1, 3)),
+    )
+    expect(attempts.filter((used) => used <= 3)).toHaveLength(3)
+    expect(await store.peek(token!.id, start)).toBe(3)
   })
 })
