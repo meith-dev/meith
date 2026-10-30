@@ -29,7 +29,7 @@ import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { getTranslator, tr } from '@/server/i18n'
 import { filterView, viewerRef } from '@/server/plugin-view'
-import { searchEnabled } from '@/server/search'
+import { searchEnabled, searchScopeFor } from '@/server/search'
 import { MAX_AUTHOR_NAMES, type RunSearchOutcome, runSearch } from '@/server/search-page'
 import { currentSessionKey } from '@/server/session-key'
 import { currentTheme } from '@/server/theme'
@@ -276,9 +276,9 @@ async function visibleForums(): Promise<
   readonly { id: number; title: string; path: string; depth: number }[]
 > {
   const actor = await getActor()
-  const { authorizer, forums } = getContainer()
+  const { forums } = getContainer()
 
-  const allowed = new Set(await authorizer.forumIdsWhere(actor, 'thread.view'))
+  const allowed = new Set((await searchScopeFor(actor)).forumIds)
   return (await forums.listAll())
     .filter((forum) => allowed.has(forum.id) && forum.type === 'forum')
     .map((forum) => ({

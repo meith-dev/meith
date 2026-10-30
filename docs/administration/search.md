@@ -12,6 +12,8 @@ A language change queues reindexing. Monitor the pending count under **Admin →
 
 Disabling search removes its navigation link and disables the page and API endpoint. The index remains maintained; re-enabling does not require a rebuild.
 
+Web results, facets, forum choices and API results require both thread viewing and `forum.search` (`canSearch`) permission in each forum. Members restricted to their own threads keep that restriction in search. Revoking search permission also applies when reopening a saved search.
+
 Set the minimum word length and flood interval. At least one query word must meet the minimum. The hourly cap is under [Antispam](antispam.md).
 
 ## Verify

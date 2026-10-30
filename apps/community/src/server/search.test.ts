@@ -1,24 +1,62 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ACTORS } from '@meith/authorization/fixture'
 import { EN_CATALOG } from '@meith/i18n'
 import { MIN_TERM_LENGTH } from '@meith/search'
 import { SettingsSnapshot } from '@meith/settings'
 
 const overrides = { current: new Map<string, string>() }
+const permissions = vi.hoisted(() => ({ searchable: [1, 3] as number[] }))
 
 vi.mock('./settings', () => ({
   getSettings: async () => SettingsSnapshot.fromOverrides(overrides.current),
 }))
-vi.mock('./container', () => ({ getContainer: () => ({ dataSource: 'fixture' }) }))
+vi.mock('./container', () => ({
+  getContainer: () => ({
+    dataSource: 'fixture',
+    authorizer: {
+      threadAudience: async () => ({
+        forumIds: [1, 2, 3],
+        ownThreadsOnlyForumIds: [2, 3],
+        viewerUserId: 7,
+      }),
+      forumIdsWhere: async (_actor: unknown, action: string) => {
+        expect(action).toBe('forum.search')
+        return permissions.searchable
+      },
+    },
+  }),
+}))
 vi.mock('@meith/db', () => ({
   getDb: () => ({}),
   PostgresSearchRepository: class {},
 }))
 
-const { requireSearchEnabled, searchEnabled, searchMinWordLength } = await import('./search')
+const { requireSearchEnabled, searchEnabled, searchMinWordLength, searchScopeFor } = await import(
+  './search'
+)
 
 beforeEach(() => {
   overrides.current = new Map()
+  permissions.searchable = [1, 3]
+})
+
+describe('searchScopeFor', () => {
+  it('requires search permission as well as thread visibility and preserves own-thread limits', async () => {
+    expect(await searchScopeFor(ACTORS.registered)).toMatchObject({
+      forumIds: [1, 3],
+      ownThreadsOnlyForumIds: [3],
+      viewerUserId: 7,
+    })
+  })
+
+  it('returns no searchable content when the group cannot search anywhere', async () => {
+    permissions.searchable = []
+    expect(await searchScopeFor(ACTORS.registered)).toMatchObject({
+      forumIds: [],
+      ownThreadsOnlyForumIds: [],
+    })
+  })
 })
 
 describe('searchEnabled', () => {
