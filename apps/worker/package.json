@@ -12,7 +12,9 @@
     "@meith/core": "workspace:*",
     "@meith/db": "workspace:*",
     "@meith/drivers": "workspace:*",
+    "@meith/i18n": "workspace:*",
     "@meith/runtime": "workspace:*",
+    "@meith/settings": "workspace:*",
     "@meith/tasks": "workspace:*"
   },
   "devDependencies": {

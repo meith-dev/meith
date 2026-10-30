@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Translator } from '@meith/i18n'
+
 const mocks = vi.hoisted(() => ({
   env: { DATA_SOURCE: 'postgres' },
   error: vi.fn(),
@@ -10,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   taskHealth: vi.fn(async () => []),
   assessScheduler: vi.fn(() => ({ schedulerStopped: false, stale: [], failing: [] })),
   tick: vi.fn(),
+  build: vi.fn((_input: unknown) => undefined),
   tasks: [{ id: 'one' }] as { id: string; lane?: 'long' }[],
 }))
 
@@ -21,15 +24,51 @@ vi.mock('@meith/core', () => ({
 vi.mock('@meith/core/env-files', () => ({ loadEnvFiles: mocks.loadEnvFiles }))
 vi.mock('@meith/db', () => ({
   getDb: () => ({}),
+  PostgresSettingsRepository: class {
+    async loadAll() {
+      return new Map([['display.default_locale', 'fr']])
+    }
+  },
   PostgresSystemHealthRepository: class {
     taskHealth = mocks.taskHealth
   },
 }))
 vi.mock('@meith/drivers', () => ({ drivers: () => ({ queue: {}, mail: {}, files: {} }) }))
 vi.mock('@meith/drivers/images', () => ({ imageProcessor: {} }))
+vi.mock('@board/config', () => ({
+  default: {
+    defaultTheme: 'custom',
+    themes: {
+      custom: {
+        key: 'custom',
+        title: 'Custom',
+        tokens: { light: { accent: 'red' }, dark: { accent: 'blue' } },
+        theme: { version: '1.2.3' },
+        messages: { fr: { 'worker.theme': 'theme' } },
+      },
+    },
+    plugins: [
+      {
+        key: 'enabled',
+        plugin: { key: 'enabled' },
+        messages: { fr: { 'worker.plugin': 'plugin' } },
+      },
+      {
+        key: 'disabled',
+        enabled: false,
+        plugin: { key: 'disabled' },
+        messages: { fr: { 'worker.disabled': 'disabled' } },
+      },
+    ],
+    messages: { fr: { 'worker.board': 'board' } },
+  },
+}))
 vi.mock('@meith/runtime', () => ({
   BACKUP_LEASE_SECONDS: 600,
-  buildSchedulerBundle: () => ({ tasks: mocks.tasks, repository: {}, onTaskFailure: vi.fn() }),
+  buildSchedulerBundle: (input: unknown) => {
+    mocks.build(input)
+    return { tasks: mocks.tasks, repository: {}, onTaskFailure: vi.fn() }
+  },
 }))
 vi.mock('@meith/tasks', () => ({ assessScheduler: mocks.assessScheduler, tick: mocks.tick }))
 
@@ -44,6 +83,7 @@ import {
 } from './lifecycle'
 
 beforeEach(() => {
+  mocks.build.mockClear()
   mocks.env.DATA_SOURCE = 'postgres'
   mocks.tasks = [{ id: 'one' }]
   mocks.tick.mockReset()
@@ -58,6 +98,31 @@ afterEach(() => {
 })
 
 describe('main', () => {
+  it('loads installed plugins, theme identity and catalogs into the standalone scheduler', async () => {
+    mocks.tick.mockImplementationOnce(async () => {
+      process.emit('SIGTERM')
+      return []
+    })
+    await expect(main()).resolves.toBe(0)
+    expect(mocks.build).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plugins: [{ key: 'enabled' }],
+        themeKey: 'custom',
+        themeVersions: [{ key: 'custom', version: '1.2.3' }],
+        themeTokens: { custom: { light: { accent: 'red' }, dark: { accent: 'blue' } } },
+      }),
+    )
+    const options = mocks.build.mock.calls[0]![0] as {
+      translatorForLocale: (locale: string) => Promise<Translator>
+    }
+    const translator = await options.translatorForLocale('auto')
+    expect(translator.locale).toBe('fr')
+    expect(translator.t('worker.theme')).toBe('theme')
+    expect(translator.t('worker.plugin')).toBe('plugin')
+    expect(translator.t('worker.board')).toBe('board')
+    expect(translator.has('worker.disabled')).toBe(false)
+  })
+
   it('refuses fixture mode', async () => {
     mocks.env.DATA_SOURCE = 'fixture'
     await expect(main()).resolves.toBe(1)

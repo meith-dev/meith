@@ -1,9 +1,16 @@
 import { assertEnv, initTracing, logger } from '@meith/core'
 import { loadEnvFiles } from '@meith/core/env-files'
-import { getDb, PostgresSystemHealthRepository } from '@meith/db'
+import { getDb, PostgresSettingsRepository, PostgresSystemHealthRepository } from '@meith/db'
 import { drivers } from '@meith/drivers'
 import { imageProcessor } from '@meith/drivers/images'
+import {
+  BOARD_CATALOG,
+  createCatalogRegistry,
+  createTranslator,
+  negotiateLocale,
+} from '@meith/i18n'
 import { BACKUP_LEASE_SECONDS, buildSchedulerBundle, type SchedulerBundle } from '@meith/runtime'
+import { SettingsSnapshot } from '@meith/settings'
 import { assessScheduler, type TaskDefinition, tick } from '@meith/tasks'
 
 const log = () => logger({ module: 'worker' })
@@ -104,11 +111,47 @@ export async function main(): Promise<number> {
 
   await initTracing('meith-worker')
 
+  const { default: forumConfig } = await import('@board/config')
+  const catalogs = createCatalogRegistry([
+    BOARD_CATALOG,
+    ...Object.values(forumConfig.themes).flatMap((theme) =>
+      theme.messages === undefined ? [] : [{ id: `theme:${theme.key}`, messages: theme.messages }],
+    ),
+    ...(forumConfig.plugins ?? []).flatMap((entry) =>
+      entry.enabled === false || entry.messages === undefined
+        ? []
+        : [{ id: `plugin:${entry.key}`, messages: entry.messages }],
+    ),
+    ...(forumConfig.messages === undefined
+      ? []
+      : [{ id: 'board', messages: forumConfig.messages }]),
+  ])
   const bundle = buildSchedulerBundle({
     queue: drivers().queue,
     mail: drivers().mail,
     files: drivers().files,
     images: imageProcessor,
+    plugins: (forumConfig.plugins ?? []).flatMap((entry) =>
+      entry.enabled !== false && entry.plugin !== undefined ? [entry.plugin] : [],
+    ),
+    themeKey: forumConfig.defaultTheme,
+    themeTokens: Object.fromEntries(
+      Object.values(forumConfig.themes).map((theme) => [theme.key, theme.tokens]),
+    ),
+    themeVersions: Object.values(forumConfig.themes).map((theme) => ({
+      key: theme.key,
+      version: theme.theme?.version ?? null,
+    })),
+    translatorForLocale: async (locale) => {
+      const overrides = await new PostgresSettingsRepository(getDb()).loadAll()
+      const settings = SettingsSnapshot.fromOverrides(new Map(overrides))
+      const resolved = negotiateLocale({
+        requested: [locale],
+        supported: catalogs.locales,
+        fallback: settings.get('display.default_locale'),
+      })
+      return createTranslator({ locale: resolved, catalog: catalogs.catalogFor(resolved) })
+    },
   })
   const lanes = splitLanes(bundle.tasks)
   log().info(

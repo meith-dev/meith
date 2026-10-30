@@ -8,6 +8,8 @@ A PostgreSQL board needs continuing scheduling for notifications, indexes, expir
 | Meith monorepo | `apps/worker` runs scheduler loops |
 | Function hosting | Cron calls `/api/system/tick` |
 
+The monorepo worker loads the same board configuration as web through `@board/config`, after environment files are loaded. Enabled plugin tasks and Markdown hooks, theme tokens and versions, and board/theme/plugin translation catalogs are passed to its scheduler. Rebuild and deploy web and worker together when installed extensions change.
+
 ## HTTP tick
 
 Set `TICK_SECRET` or `CRON_SECRET` to an independent secret of at least 32 characters. Give the scheduler the same credential through its secret store.
