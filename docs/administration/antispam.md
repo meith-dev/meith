@@ -12,6 +12,8 @@ Open **Board settings → Antispam**. Test changes with an ordinary account.
 | Community flag threshold | Hold posts reported by enough distinct members |
 | Word and ban filters | Filter content or registration identities |
 
+The minimum form time uses a server-signed issuance timestamp, valid for 30 minutes. Missing, edited, expired or future timestamps are rejected while the timing check is enabled. A form left open longer must be refreshed. Setting the minimum to zero disables the timing check.
+
 ## Registration questions
 
 Select **Ask a question** and add questions with accepted answers at `/admin/antispam`. Matching trims, ignores case and collapses repeated spaces. An empty question set does not protect registration.

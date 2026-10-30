@@ -18,7 +18,7 @@ export interface ChallengeInput {
   readonly prompt: string | null
   readonly token: string
   readonly honeypot: boolean
-  readonly issuedAt: number
+  readonly issuedAt: string
 }
 
 export interface RegistrationLimits {

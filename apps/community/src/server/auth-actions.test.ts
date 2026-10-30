@@ -4,6 +4,7 @@ import { resetEnvForTests } from '@meith/core'
 
 import type * as AntispamModule from './antispam'
 import type * as AuthConfigModule from './auth-config'
+import { issueFormTiming } from './form-timing'
 
 const { jar, RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
@@ -134,6 +135,7 @@ const CONTAINER_KEY = Symbol.for('@meith/forum.container')
 
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()
+  f.set('_issued', issueFormTiming(Date.now() - 5000))
   for (const [k, v] of Object.entries(entries)) f.set(k, v)
   return f
 }

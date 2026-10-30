@@ -113,16 +113,18 @@ describe('the fill-time floor', () => {
     ).toMatchObject({ ok: false })
   })
 
-  it('passes when there is no stamp at all', () => {
-    expect(checkHoneypot({ honeypot: '', issuedAt: null, now: NOW, minimumSeconds: 3 })).toEqual({
-      ok: true,
+  it('rejects a missing stamp when timing is enabled', () => {
+    expect(
+      checkHoneypot({ honeypot: '', issuedAt: null, now: NOW, minimumSeconds: 3 }),
+    ).toMatchObject({
+      ok: false,
     })
   })
 
-  it('passes a stamp from the future rather than treating it as evidence', () => {
+  it('rejects a stamp from the future', () => {
     expect(
       checkHoneypot({ honeypot: '', issuedAt: filled(-30), now: NOW, minimumSeconds: 3 }),
-    ).toEqual({ ok: true })
+    ).toMatchObject({ ok: false })
   })
 
   it('is off at zero', () => {
