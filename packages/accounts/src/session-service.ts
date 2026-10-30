@@ -8,7 +8,7 @@ export interface SessionServiceDeps {
   readonly store: AccountStore
   readonly rememberDays: number
   readonly sessionLifetimeDays: number
-  readonly assertSignInAllowed?: (account: AccountRecord) => Promise<void>
+  readonly assertSignInAllowed?: (account: AccountRecord, context: RequestContext) => Promise<void>
   readonly clock?: Clock
 }
 
@@ -31,7 +31,10 @@ export class SessionService {
   private readonly store: AccountStore
   private readonly rememberDays: number
   private readonly sessionLifetimeDays: number
-  private readonly assertSignInAllowed: (account: AccountRecord) => Promise<void>
+  private readonly assertSignInAllowed: (
+    account: AccountRecord,
+    context: RequestContext,
+  ) => Promise<void>
   private readonly now: Clock
 
   constructor(deps: SessionServiceDeps) {
@@ -74,7 +77,7 @@ export class SessionService {
     if (account === null) return { status: 'invalid' }
 
     try {
-      await this.assertSignInAllowed(account)
+      await this.assertSignInAllowed(account, context)
     } catch (error) {
       if (error instanceof ForbiddenError) return { status: 'invalid' }
       throw error

@@ -780,6 +780,18 @@ describe('ban filters block every route into an account', () => {
     })
   }
 
+  it('enforces IP filters at shared session creation and federated sign-in boundaries', async () => {
+    const filters = new MemoryBanFilters()
+    const service = serviceWith(filters)
+    const { account } = await service.register(CREDS)
+    filters.add('ip', '192.0.2.*')
+    const context = { ip: '192.0.2.44', ipPrefix: '192.0.2.0/24' }
+    await expect(service.assertSignInAllowed(account, context)).rejects.toThrow(ForbiddenError)
+    await expect(service.startSessionFor(account, context)).rejects.toThrow(ForbiddenError)
+    await expect(service.beginSessionFor(account, context)).rejects.toThrow(ForbiddenError)
+    await expect(service.startSessionFor(account, { ip: '198.51.100.1' })).resolves.toBeDefined()
+  })
+
   it('blocks a filtered email at registration', async () => {
     const filters = new MemoryBanFilters()
     filters.add('email', '*@spam.example')

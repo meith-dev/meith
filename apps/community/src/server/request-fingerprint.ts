@@ -2,6 +2,7 @@ import 'server-only'
 
 import { headers } from 'next/headers'
 
+import type { RequestContext } from '@meith/accounts'
 import { env, logger, resolveClientAddress, truncateIp } from '@meith/core'
 
 export interface RequestFingerprint {
@@ -48,4 +49,8 @@ export async function requestFingerprint(): Promise<RequestFingerprint> {
     ipPrefix: await retainedIpPrefix(),
     userAgent: agent.trim() === '' ? null : agent.slice(0, 300),
   }
+}
+
+export async function requestContext(): Promise<RequestContext> {
+  return { ...(await requestFingerprint()), ip: (await remoteAddress()) ?? undefined }
 }

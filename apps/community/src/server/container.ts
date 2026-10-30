@@ -381,6 +381,6 @@ export async function configuredSessions(): Promise<SessionService> {
   return new SessionService({
     store: getContainer().accountStore,
     ...(await boardSessionConfig()),
-    assertSignInAllowed: (account) => identity.assertSignInAllowed(account),
+    assertSignInAllowed: (account, context) => identity.assertSignInAllowed(account, context),
   })
 }

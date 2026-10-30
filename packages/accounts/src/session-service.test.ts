@@ -5,6 +5,7 @@ import { ForbiddenError } from '@meith/core'
 import { hashToken } from './crypto/tokens'
 import { createMemoryStore } from './memory-repos'
 import { type AccountStore, REMEMBER_ROTATION_GRACE_SECONDS } from './ports'
+import type { RequestContext } from './service'
 import { SessionService } from './session-service'
 
 async function addAccount(store: AccountStore, id: number) {
@@ -161,6 +162,28 @@ describe('SessionService remember-me', () => {
 
     expect((await svc.resume(first.rememberToken)).status).toBe('invalid')
     expect(allowed).toHaveBeenCalledOnce()
+    expect(await store.remember.findByTokenHash(await hashToken(first.rememberToken))).toEqual(
+      before,
+    )
+  })
+
+  it('passes the current request address into standing checks before rotating a remember token', async () => {
+    await addAccount(store, 42)
+    const issuing = makeService(store)
+    const first = await issuing.issueRemember(42)
+    const before = await store.remember.findByTokenHash(await hashToken(first.rememberToken))
+    const allowed = vi.fn(async (_account: unknown, context: RequestContext) => {
+      if (context.ip === '192.0.2.44') throw new ForbiddenError('filtered')
+    })
+    const svc = new SessionService({
+      store,
+      rememberDays: 30,
+      sessionLifetimeDays: 7,
+      assertSignInAllowed: allowed,
+    })
+    expect((await svc.resume(first.rememberToken, { ip: '192.0.2.44' })).status).toBe('invalid')
+    expect(allowed).toHaveBeenCalledWith(expect.objectContaining({ id: 42 }), { ip: '192.0.2.44' })
+    expect(await store.sessions.listActiveForUser(42, new Date())).toEqual([])
     expect(await store.remember.findByTokenHash(await hashToken(first.rememberToken))).toEqual(
       before,
     )
