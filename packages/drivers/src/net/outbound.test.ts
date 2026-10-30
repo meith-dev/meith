@@ -5,10 +5,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   assertSafeMailEndpoint,
-  assertSafeSmtpHost,
   BlockedOutboundError,
   guardedMailTransport,
   type MailRequest,
+  resolveSafeSmtpHost,
 } from './outbound'
 
 describe('assertSafeMailEndpoint', () => {
@@ -27,21 +27,21 @@ describe('assertSafeMailEndpoint', () => {
   })
 })
 
-describe('assertSafeSmtpHost', () => {
+describe('resolveSafeSmtpHost', () => {
   it('does nothing when private hosts are allowed', async () => {
-    await expect(assertSafeSmtpHost('127.0.0.1', true)).resolves.toBeUndefined()
+    await expect(resolveSafeSmtpHost('127.0.0.1', true)).resolves.toBe('127.0.0.1')
   })
 
   it('rejects a private host literal', async () => {
-    await expect(assertSafeSmtpHost('10.0.0.1', false)).rejects.toThrow(BlockedOutboundError)
+    await expect(resolveSafeSmtpHost('10.0.0.1', false)).rejects.toThrow(BlockedOutboundError)
   })
 
   it('accepts a public host literal', async () => {
-    await expect(assertSafeSmtpHost('8.8.8.8', false)).resolves.toBeUndefined()
+    await expect(resolveSafeSmtpHost('8.8.8.8', false)).resolves.toBe('8.8.8.8')
   })
 
   it('rejects a name that resolves to a loopback address', async () => {
-    await expect(assertSafeSmtpHost('localhost', false)).rejects.toThrow(BlockedOutboundError)
+    await expect(resolveSafeSmtpHost('localhost', false)).rejects.toThrow(BlockedOutboundError)
   })
 })
 

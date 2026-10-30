@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { BlockedOutboundError } from '@meith/core/outbound'
+
 import { encodeBase64Url } from '../crypto/base64url'
 import { rejectionMessage } from '../test-support.fixture'
 import { oidcProvider } from './oidc'
@@ -314,6 +316,17 @@ describe('what the exchange refuses', () => {
 })
 
 describe('outbound SSRF protection', () => {
+  it('blocks a hostname resolving privately through the default fetcher', async () => {
+    await expect(
+      privateIssuerProvider('https://localhost:1').exchange({
+        code: 'the-code',
+        redirectUri: 'https://forum.example/auth/sso/oidc/callback',
+        nonce: 'the-nonce',
+        codeVerifier: 'the-verifier',
+      }),
+    ).rejects.toMatchObject({ cause: expect.any(BlockedOutboundError) })
+  })
+
   function privateIssuerProvider(issuer: string) {
     return oidcProvider({
       id: 'oidc',

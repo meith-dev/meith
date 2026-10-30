@@ -45,6 +45,23 @@ base-uri 'self'; form-action 'self'
 
 Preserve these through the reverse proxy. See [Compose deployment](docker-compose.md).
 
+## Outbound destinations
+
+OIDC discovery, token, key and profile requests and marketplace feeds use DNS
+validation on the socket's lookup, pinning the selected public address for that
+connection. Redirects are never followed. OIDC responses are capped at 64 KiB;
+marketplace feeds retain their 2 MB cap, and both have a total request deadline.
+Internal transport diagnostics identify blocked redirects as
+`OUTBOUND_REDIRECT_BLOCKED` and oversized bodies as `OUTBOUND_RESPONSE_TOO_LARGE`.
+Marketplace feeds require HTTPS and public destinations. The explicit
+`OIDC_ALLOW_PRIVATE_HOSTS` override remains available for an intended private IdP.
+
+Production SMTP resolves and checks the host once per message, then connects to
+that address while verifying TLS against the configured hostname. It does not
+perform a second hostname lookup after the check. The existing
+`MAIL_ALLOW_PRIVATE_HOSTS` override and development private-relay policy remain
+available for deliberately private relays.
+
 ## Trusted proxies
 
 `TRUSTED_PROXY_HOPS` defaults to 0. Set the actual trusted proxy count when the deployment supplies forwarded addresses. Meith counts from the right of `X-Forwarded-For`; incorrect trust changes rate-limit, allowlist and audit identities. Do not expose a direct route around the trusted proxy.

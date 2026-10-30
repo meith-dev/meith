@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ConfigurationError } from '@meith/core'
+import { ConfigurationError, resetEnvForTests } from '@meith/core'
 import type { SmtpMailConfig } from '@meith/settings'
 
 const sendMail = vi.hoisted(() => vi.fn())
+const lookup = vi.hoisted(() => vi.fn())
+vi.mock('node:dns/promises', () => ({ lookup }))
 const createTransport = vi.hoisted(() =>
   vi.fn((_options: Record<string, unknown>) => ({ sendMail, close: vi.fn() })),
 )
@@ -27,50 +29,56 @@ const CONFIG: SmtpMailConfig = {
 
 const MESSAGE = { to: 'ivan@example.test', subject: 'Hello', text: 'Hello.' }
 
-function transportOptions(config: SmtpMailConfig) {
-  new SmtpMailDriver(config)
+async function transportOptions(config: SmtpMailConfig) {
+  await new SmtpMailDriver(config).send(MESSAGE)
   const options = createTransport.mock.calls.at(-1)?.[0]
   if (options === undefined) throw new Error('the driver built no transport')
   return options
 }
 
 beforeEach(() => {
+  lookup.mockReset()
   sendMail.mockReset()
   sendMail.mockResolvedValue({})
   createTransport.mockClear()
 })
 
+afterEach(() => {
+  vi.unstubAllEnvs()
+  resetEnvForTests()
+})
+
 describe('the transport options', () => {
-  it('turns STARTTLS into requireTLS rather than into secure', () => {
-    expect(transportOptions(CONFIG)).toMatchObject({
+  it('turns STARTTLS into requireTLS rather than into secure', async () => {
+    expect(await transportOptions(CONFIG)).toMatchObject({
       port: 587,
       secure: false,
       requireTLS: true,
     })
   })
 
-  it('turns implicit TLS into secure, and does not also require an upgrade', () => {
-    expect(transportOptions({ ...CONFIG, security: 'tls', port: 465 })).toMatchObject({
+  it('turns implicit TLS into secure, and does not also require an upgrade', async () => {
+    expect(await transportOptions({ ...CONFIG, security: 'tls', port: 465 })).toMatchObject({
       port: 465,
       secure: true,
       requireTLS: false,
     })
   })
 
-  it('encrypts nothing only when asked to encrypt nothing', () => {
-    expect(transportOptions({ ...CONFIG, security: 'none', port: 25 })).toMatchObject({
+  it('encrypts nothing only when asked to encrypt nothing', async () => {
+    expect(await transportOptions({ ...CONFIG, security: 'none', port: 25 })).toMatchObject({
       secure: false,
       requireTLS: false,
     })
   })
 
-  it('omits auth entirely for an unauthenticated relay', () => {
-    const options = transportOptions({ ...CONFIG, username: '', password: '' })
+  it('omits auth entirely for an unauthenticated relay', async () => {
+    const options = await transportOptions({ ...CONFIG, username: '', password: '' })
     expect(options.auth).toBeUndefined()
   })
 
-  it('bounds every stage of the conversation', () => {
-    const options = transportOptions(CONFIG)
+  it('bounds every stage of the conversation', async () => {
+    const options = await transportOptions(CONFIG)
     expect(options.connectionTimeout).toBeGreaterThan(0)
     expect(options.greetingTimeout).toBeGreaterThan(0)
     expect(options.socketTimeout).toBeGreaterThan(0)
@@ -78,6 +86,34 @@ describe('the transport options', () => {
 })
 
 describe('sending', () => {
+  it('pins the checked DNS answer while retaining the original TLS hostname', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('AUTH_SECRET', 'test-auth-secret-at-least-thirty-two-characters')
+    vi.stubEnv('MAIL_ALLOW_PRIVATE_HOSTS', 'false')
+    resetEnvForTests()
+    lookup
+      .mockResolvedValueOnce([{ address: '8.8.8.8', family: 4 }])
+      .mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+    await new SmtpMailDriver(CONFIG).send(MESSAGE)
+    expect(lookup).toHaveBeenCalledTimes(1)
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: '8.8.8.8',
+        tls: { servername: CONFIG.host },
+      }),
+    )
+  })
+
+  it('never constructs a transport for a private DNS result in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('AUTH_SECRET', 'test-auth-secret-at-least-thirty-two-characters')
+    vi.stubEnv('MAIL_ALLOW_PRIVATE_HOSTS', 'false')
+    resetEnvForTests()
+    lookup.mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+    await expect(new SmtpMailDriver(CONFIG).send(MESSAGE)).rejects.toThrow(ConfigurationError)
+    expect(createTransport).not.toHaveBeenCalled()
+  })
+
   it('composes the From header through the shared sanitiser', async () => {
     await new SmtpMailDriver(CONFIG).send({ ...MESSAGE, fromName: 'Board Admin, Ltd.' })
 
@@ -170,14 +206,14 @@ describe('which failures are worth retrying', () => {
   })
 })
 
-describe('the transport is reused', () => {
-  it('builds one transport per driver, not one per message', async () => {
+describe('the transport uses the current checked address', () => {
+  it('builds a transport for each message', async () => {
     createTransport.mockClear()
     const driver = new SmtpMailDriver(CONFIG)
     await driver.send(MESSAGE)
     await driver.send(MESSAGE)
 
-    expect(createTransport).toHaveBeenCalledTimes(1)
+    expect(createTransport).toHaveBeenCalledTimes(2)
     expect(sendMail).toHaveBeenCalledTimes(2)
   })
 })

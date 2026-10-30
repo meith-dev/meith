@@ -19,20 +19,27 @@ export function assertSafeMailEndpoint(rawUrl: string, allowPrivateHosts: boolea
   return assertAllowedUrl(rawUrl, { allowPrivateHosts })
 }
 
-export async function assertSafeSmtpHost(host: string, allowPrivateHosts: boolean): Promise<void> {
-  if (allowPrivateHosts) return
+export async function resolveSafeSmtpHost(
+  host: string,
+  allowPrivateHosts: boolean,
+): Promise<string> {
+  if (allowPrivateHosts) return host
 
   if (isIP(host) !== 0) {
     if (isBlockedAddress(host)) {
       throw new BlockedOutboundError('The SMTP host is a private or internal address.')
     }
-    return
+    return host
   }
 
   const addresses = await dnsLookupAsync(host, { all: true })
-  if (addresses.some((candidate) => isBlockedAddress(candidate.address))) {
+  if (
+    addresses.length === 0 ||
+    addresses.some((candidate) => isBlockedAddress(candidate.address))
+  ) {
     throw new BlockedOutboundError('The SMTP host resolves to a private or internal address.')
   }
+  return addresses[0]!.address
 }
 
 export interface MailRequest {
