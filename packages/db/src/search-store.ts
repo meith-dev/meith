@@ -34,8 +34,16 @@ export class PostgresSearchStore {
           ? sql`session_key = ${input.sessionKey}`
           : sql`false`
 
-    const rows = resultRows(
-      await this.db.execute(sql`
+    return this.db.transaction(async (tx) => {
+      if (input.floodSeconds > 0 && (input.userId !== null || input.sessionKey !== null)) {
+        const ownerKey =
+          input.userId === null
+            ? `search:session:${input.sessionKey}`
+            : `search:user:${input.userId}`
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${ownerKey}, 0))`)
+      }
+      const rows = resultRows(
+        await tx.execute(sql`
         insert into searches (token, user_id, session_key, terms, filters)
         select ${input.token}, ${input.userId}, ${input.sessionKey}, ${input.terms},
                ${JSON.stringify(input.filters)}::jsonb
@@ -46,10 +54,11 @@ export class PostgresSearchStore {
             )
         returning id, token, user_id, session_key, terms, filters, hit_count, created_at
       `),
-    ) as Array<Record<string, unknown>>
+      ) as Array<Record<string, unknown>>
 
-    const row = rows[0]
-    return row === undefined ? null : toStored(row)
+      const row = rows[0]
+      return row === undefined ? null : toStored(row)
+    })
   }
 
   async recordHitCount(id: number, hitCount: number): Promise<void> {

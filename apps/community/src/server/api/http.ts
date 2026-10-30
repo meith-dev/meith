@@ -17,6 +17,7 @@ export interface ApiRequest {
 export interface ApiResult {
   readonly status: number
   readonly body: unknown
+  readonly headers?: Readonly<Record<string, string>>
 }
 
 export type ApiHandler = (request: ApiRequest) => Promise<ApiResult>

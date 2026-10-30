@@ -81,6 +81,14 @@ vi.mock('./search', () => ({
   }),
 }))
 
+vi.mock('./search-page', () => ({
+  runSearch: async (input: { terms: string }) => ({
+    kind: 'ok',
+    token: 'search',
+    terms: input.terms,
+  }),
+}))
+
 const { feedFor } = await import('./feed-builder')
 const { SEARCH_HANDLERS } = await import('./api/search')
 const { SUBSCRIPTION_HANDLERS } = await import('./api/subscriptions')
