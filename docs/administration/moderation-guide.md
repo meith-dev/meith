@@ -25,6 +25,11 @@ Before moving or merging, check the destination audience and required permission
 
 Warnings add points and may expire or be revoked. Warning levels can restrict posting, require approval or impose a ban. Check the effect before applying a warning.
 
+Warnings cannot target staff of equal or greater authority. Administrators and
+members with AdminCP access outrank super-moderators, who outrank other staff and
+appointed forum moderators. Active secondary memberships count toward this
+protection. Administrators cannot warn other administrators.
+
 Points are not percentages. Revoking them does not necessarily undo an imposed ban. Ban expiry needs scheduled work.
 
 After an action, check content visibility, member restrictions and the log. Ask an administrator to adjust [appointments](forums.md) when required actions are unavailable.

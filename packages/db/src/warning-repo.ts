@@ -13,6 +13,7 @@ import { parseWarningAction } from '@meith/moderation'
 import type { Database } from './client'
 import { decodeCursor, encodeCursor } from './cursor'
 import { resultRows } from './result-rows'
+import { isStaffGroupSql } from './staff-groups'
 
 interface Tx {
   execute(query: ReturnType<typeof sql>): Promise<unknown>
@@ -126,14 +127,36 @@ export class PostgresWarningRepository implements WarningRepository {
     }
   }
 
-  async findWarnable(userId: number): Promise<{ id: number; username: string } | null> {
+  async findWarnable(
+    userId: number,
+  ): Promise<{ id: number; username: string; staffRank: number } | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select id, username from users where id = ${userId} and state <> 'deleted'
+        select u.id, u.username,
+               greatest(coalesce((
+                 select max(case
+                   when g.is_administrator or g.can_access_admin_cp then 3
+                   when g.is_super_moderator then 2
+                   when (${isStaffGroupSql('g')}) or exists (
+                     select 1 from forum_moderators f where f.group_id = g.id
+                   ) then 1
+                   else 0 end)
+                   from usergroups g
+                  where g.id = u.primary_group_id or exists (
+                    select 1 from user_group_memberships m
+                     where m.user_id = u.id and m.group_id = g.id
+                       and (m.expires_at is null or m.expires_at > now())
+                  )
+               ), 0), case when exists (
+                 select 1 from forum_moderators f where f.user_id = u.id
+               ) then 1 else 0 end) as staff_rank
+          from users u where u.id = ${userId} and u.state <> 'deleted' and u.deleted_at is null
       `),
-    ) as Array<{ id: number; username: string }>
+    ) as Array<{ id: number; username: string; staff_rank: number }>
     const row = rows[0]
-    return row === undefined ? null : { id: Number(row.id), username: row.username }
+    return row === undefined
+      ? null
+      : { id: Number(row.id), username: row.username, staffRank: Number(row.staff_rank) }
   }
 
   async findPostAuthor(postId: number): Promise<number | null> {

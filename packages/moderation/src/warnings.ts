@@ -77,7 +77,7 @@ export interface WarningRepository {
 
   findType(typeId: number): Promise<WarningType | null>
 
-  findWarnable(userId: number): Promise<{ id: number; username: string } | null>
+  findWarnable(userId: number): Promise<{ id: number; username: string; staffRank: number } | null>
 
   findPostAuthor(postId: number): Promise<number | null>
 
@@ -186,6 +186,12 @@ export class WarningService {
 
     const target = await this.warnings.findWarnable(input.userId)
     if (target === null) throw new ValidationError(msg('error.moderation.member-exist'))
+    if (target.staffRank > 0) {
+      const issuer = await this.warnings.findWarnable(input.actorUserId)
+      if (target.staffRank >= (issuer?.staffRank ?? 0)) {
+        throw new ValidationError(msg('error.moderation.warn-members'))
+      }
+    }
 
     const reason = input.reason.trim()
     if (reason.length === 0) throw new ValidationError(msg('error.moderation.say-what-warning-for'))
