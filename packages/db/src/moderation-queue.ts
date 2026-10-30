@@ -138,7 +138,6 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
            where p.forum_id in ${idList(forumIds)}
              and p.visibility = ${PENDING_APPROVAL}
              and t.visibility = ${VISIBLE}
-             and p.is_first_post = false
         )
         select * from q
          where true ${after}
@@ -166,8 +165,7 @@ export class PostgresModerationQueueRepository implements ModerationQueueReposit
              join threads t on t.id = p.thread_id
             where p.forum_id in ${idList(forumIds)}
               and p.visibility = ${PENDING_APPROVAL}
-              and t.visibility = ${VISIBLE}
-              and p.is_first_post = false)
+              and t.visibility = ${VISIBLE})
           as pending
       `),
     ) as Array<{ pending: number }>
