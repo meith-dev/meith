@@ -44,6 +44,7 @@ export type DomainEvent<N extends DomainEventName = DomainEventName> = {
 }[N]
 
 export interface OutboxRecord {
+  claimToken: string | null
   id: number
   name: DomainEventName
   payload: unknown

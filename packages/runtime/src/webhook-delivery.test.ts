@@ -18,6 +18,7 @@ const NOW = new Date('2026-03-01T12:00:00.000Z')
 function claimed(overrides: Partial<ClaimedDelivery> = {}): ClaimedDelivery {
   return {
     id: 1,
+    claimToken: 'test-lease',
     webhookId: 7,
     deliveryId: 'dlv_abc',
     topic: 'post.created',

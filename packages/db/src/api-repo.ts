@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import { sql } from 'drizzle-orm'
 
 import type { ApiTokenRecord, RateLimitStore, Scope, WebhookFormat, WebhookTopic } from '@meith/api'
@@ -194,6 +196,7 @@ export interface WebhookDeliveryRow {
   readonly attempts: number
   readonly url: string
   readonly secret: string
+  readonly claimToken: string
 }
 
 export interface WebhookActiveSubscription {
@@ -392,6 +395,7 @@ export class PostgresWebhookRepository {
       attempts: number
       url: string
       secret: string
+      claim_token: string
     }>(
       await this.db.execute(sql`
       with due as (
@@ -403,10 +407,12 @@ export class PostgresWebhookRepository {
         for update skip locked
       )
       update webhook_deliveries d
-      set attempts = d.attempts + 1
+      set attempts = d.attempts + 1,
+          next_attempt_at = ${new Date(now.getTime() + Math.max(300_000, limit * 15_000))},
+          claim_token = ${randomUUID()}
       from due, webhooks w
       where d.id = due.id and w.id = d.webhook_id
-      returning d.id, d.webhook_id, d.delivery_id, d.topic, d.payload, d.attempts, w.url, w.secret
+      returning d.id, d.webhook_id, d.delivery_id, d.topic, d.payload, d.attempts, w.url, w.secret, d.claim_token
     `),
     )
 
@@ -419,30 +425,43 @@ export class PostgresWebhookRepository {
       attempts: row.attempts,
       url: row.url,
       secret: row.secret,
+      claimToken: row.claim_token,
     }))
   }
 
-  async markDelivered(id: number, status: number, at: Date): Promise<void> {
+  async markDelivered(id: number, status: number, at: Date, claimToken: string): Promise<void> {
     await this.db.execute(sql`
       update webhook_deliveries
-      set status = 'delivered', last_status_code = ${status}, completed_at = ${at}, last_error = null
-      where id = ${id}
+      set status = 'delivered', last_status_code = ${status}, completed_at = ${at}, last_error = null, claim_token = null
+      where id = ${id} and claim_token = ${claimToken} and status = 'pending'
     `)
   }
 
-  async scheduleRetry(id: number, at: Date, status: number | null, error: string): Promise<void> {
+  async scheduleRetry(
+    id: number,
+    at: Date,
+    status: number | null,
+    error: string,
+    claimToken: string,
+  ): Promise<void> {
     await this.db.execute(sql`
       update webhook_deliveries
-      set next_attempt_at = ${at}, last_status_code = ${status}, last_error = ${error}
-      where id = ${id}
+      set next_attempt_at = ${at}, last_status_code = ${status}, last_error = ${error}, claim_token = null
+      where id = ${id} and claim_token = ${claimToken} and status = 'pending'
     `)
   }
 
-  async markDead(id: number, status: number | null, error: string, at: Date): Promise<void> {
+  async markDead(
+    id: number,
+    status: number | null,
+    error: string,
+    at: Date,
+    claimToken: string,
+  ): Promise<void> {
     await this.db.execute(sql`
       update webhook_deliveries
-      set status = 'dead', last_status_code = ${status}, last_error = ${error}, completed_at = ${at}
-      where id = ${id}
+      set status = 'dead', last_status_code = ${status}, last_error = ${error}, completed_at = ${at}, claim_token = null
+      where id = ${id} and claim_token = ${claimToken} and status = 'pending'
     `)
   }
 
@@ -450,7 +469,7 @@ export class PostgresWebhookRepository {
     const rows = resultRows(
       await this.db.execute(sql`
       update webhook_deliveries
-      set status = 'pending', attempts = 0, next_attempt_at = ${at}, last_error = null
+      set status = 'pending', attempts = 0, next_attempt_at = ${at}, last_error = null, claim_token = null
       where id = ${id} and status = 'dead'
       returning id
     `),

@@ -3,6 +3,7 @@ import { env, isProduction, logger } from '@meith/core'
 import { assertAllowedUrl, BlockedOutboundError, guardedRequest } from '@meith/core/outbound'
 
 export interface ClaimedDelivery {
+  readonly claimToken: string
   readonly id: number
   readonly webhookId: number
   readonly deliveryId: string
@@ -15,9 +16,21 @@ export interface ClaimedDelivery {
 
 export interface WebhookDeliveryStore {
   claimDue(now: Date, limit: number): Promise<readonly ClaimedDelivery[]>
-  markDelivered(id: number, status: number, at: Date): Promise<void>
-  scheduleRetry(id: number, at: Date, status: number | null, error: string): Promise<void>
-  markDead(id: number, status: number | null, error: string, at: Date): Promise<void>
+  markDelivered(id: number, status: number, at: Date, claimToken: string): Promise<void>
+  scheduleRetry(
+    id: number,
+    at: Date,
+    status: number | null,
+    error: string,
+    claimToken: string,
+  ): Promise<void>
+  markDead(
+    id: number,
+    status: number | null,
+    error: string,
+    at: Date,
+    claimToken: string,
+  ): Promise<void>
 }
 
 export const REQUEST_TIMEOUT_MS = 10_000
@@ -112,13 +125,13 @@ export async function deliverWebhooks(
         : verdictFor(status, row.attempts)
 
     if (verdict === 'delivered') {
-      await store.markDelivered(row.id, status!, now)
+      await store.markDelivered(row.id, status!, now, row.claimToken)
       delivered++
       continue
     }
 
     if (verdict === 'dead') {
-      await store.markDead(row.id, status, failure || `HTTP ${status}`, now)
+      await store.markDead(row.id, status, failure || `HTTP ${status}`, now, row.claimToken)
       dead++
       log().warn(
         { webhookId: row.webhookId, deliveryId: row.deliveryId, status, attempts: row.attempts },
@@ -133,6 +146,7 @@ export async function deliverWebhooks(
       new Date(now.getTime() + delay * 1000),
       status,
       failure || `HTTP ${status}`,
+      row.claimToken,
     )
     retried++
   }

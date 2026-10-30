@@ -28,8 +28,8 @@ class FakeOutbox implements OutboxReader {
     return batch
   }
 
-  async markRelayed(ids: number[]): Promise<void> {
-    this.marked.push(...ids)
+  async markRelayed(records: readonly OutboxRecord[]): Promise<void> {
+    this.marked.push(...records.map((row) => row.id))
   }
 }
 
@@ -39,6 +39,7 @@ function postCreated(id: number, postId: number): OutboxRecord {
     name: 'post.created',
     payload: { postId, threadId: 20, forumId: 10, authorId: 1 },
     dedupeKey: null,
+    claimToken: 'test-lease',
     createdAt: new Date(),
     relayedAt: null,
   }

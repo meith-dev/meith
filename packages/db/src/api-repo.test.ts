@@ -26,6 +26,36 @@ beforeEach(async () => {
 })
 
 describe('PostgresWebhookRepository subscriptions', () => {
+  it('holds a delivery lease and fences stale acknowledgements after expiry and manual retry', async () => {
+    const webhookId = await repo.create({
+      url: 'https://lease.test/hook',
+      secret: 'secret',
+      topics: ['post.created'],
+      active: true,
+      format: 'json',
+      createdBy: null,
+    })
+    await repo.enqueue(webhookId, 'post.created', 'lease-delivery', { postId: 1 })
+    const now = new Date()
+    const [stale] = await repo.claimDue(now, 1)
+    expect(await new PostgresWebhookRepository(db).claimDue(now, 1)).toEqual([])
+    const later = new Date(now.getTime() + 301_000)
+    const [fresh] = await repo.claimDue(later, 1)
+    expect(fresh!.claimToken).not.toBe(stale!.claimToken)
+    await repo.markDelivered(stale!.id, 200, later, stale!.claimToken)
+    await repo.scheduleRetry(stale!.id, now, 500, 'stale', stale!.claimToken)
+    await repo.markDead(stale!.id, 500, 'stale', later, stale!.claimToken)
+    expect(await repo.claimDue(later, 1)).toEqual([])
+    expect((await repo.listAll())[0]).toMatchObject({ pending: 1, delivered: 0, dead: 0 })
+    await repo.markDead(fresh!.id, 500, 'retry manually', later, fresh!.claimToken)
+    await repo.retryDead(fresh!.id, later)
+    const [retried] = await repo.claimDue(later, 1)
+    await repo.markDelivered(stale!.id, 200, later, stale!.claimToken)
+    expect((await repo.listAll())[0]?.pending).toBe(1)
+    await repo.markDelivered(retried!.id, 200, later, retried!.claimToken)
+    expect((await repo.listAll())[0]?.delivered).toBe(1)
+  })
+
   it('creates a subscription and lists it with its format and zero counts', async () => {
     const id = await repo.create({
       url: 'https://a.test/hook',
@@ -141,7 +171,7 @@ describe('PostgresWebhookRepository deliveries', () => {
       attempts: 1,
     })
 
-    await repo.markDelivered(claimed[0]!.id, 200, new Date())
+    await repo.markDelivered(claimed[0]!.id, 200, new Date(), claimed[0]!.claimToken)
 
     const [summary] = await repo.listAll()
     expect(summary).toMatchObject({ delivered: 1, pending: 0, dead: 0 })
