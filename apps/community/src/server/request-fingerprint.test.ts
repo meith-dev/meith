@@ -9,8 +9,14 @@ vi.mock('next/headers', () => ({
   }),
 }))
 
-const { countingAddress, countingPrefix, remoteAddress, requestFingerprint, retainedIpPrefix } =
-  await import('./request-fingerprint')
+const {
+  countingAddress,
+  countingPrefix,
+  remoteAddress,
+  requestFingerprint,
+  requestContext,
+  retainedIpPrefix,
+} = await import('./request-fingerprint')
 
 beforeEach(() => {
   headerRef.current = { 'x-forwarded-for': '203.0.113.7', 'user-agent': 'Firefox' }
@@ -24,6 +30,21 @@ afterEach(() => {
 })
 
 describe('an ordinary board', () => {
+  it('passes the full trusted address to authentication without adding it to retained fingerprints', async () => {
+    expect(await requestContext()).toEqual({
+      ip: '203.0.113.7',
+      ipPrefix: '203.0.113.0/24',
+      userAgent: 'Firefox',
+    })
+    expect(await requestFingerprint()).not.toHaveProperty('ip')
+  })
+
+  it('does not turn an untrusted forwarded address into authentication context', async () => {
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '0')
+    resetEnvForTests()
+    expect((await requestContext()).ip).toBeUndefined()
+  })
+
   it('keeps the truncated prefix and counts on it', async () => {
     expect(await remoteAddress()).toBe('203.0.113.7')
     expect(await retainedIpPrefix()).toBe('203.0.113.0/24')

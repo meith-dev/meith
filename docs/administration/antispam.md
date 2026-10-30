@@ -44,4 +44,9 @@ Word-filter replacements are literal text: HTML characters display as text, and
 search excerpts preserves tags, attributes and HTML entities. Titles, summaries
 and other plain-text fields are filtered without adding HTML encoding.
 
+IP filters are checked at registration, password and provider sign-in, passkey
+sign-in, second-factor completion and remember-me resumption. The full address
+resolved through the trusted-proxy policy is used only for these checks; retained
+session and security-history data still uses the truncated address prefix.
+
 For blocked registration, check registration policy, activation, question answers, filters and the displayed limit. For shared or incorrect client addresses, check [trusted proxies](../operations/web-security.md). For undelivered activation links, check [mail](../operations/mail.md).

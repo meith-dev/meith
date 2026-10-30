@@ -23,7 +23,7 @@ import {
   type PasskeyPurpose,
   unpackChallenge,
 } from '@/server/passkey-challenge'
-import { retainedIpPrefix } from '@/server/request-fingerprint'
+import { requestContext } from '@/server/request-fingerprint'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { crossOriginRefusal, isSameOrigin } from '@/server/same-origin'
 import {
@@ -230,9 +230,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
       await identity.clearSecondFactorFailures(pending.userId)
 
-      const login = await identity.redeemSecondFactor(held, {
-        ipPrefix: await retainedIpPrefix(),
-      })
+      const login = await identity.redeemSecondFactor(held, await requestContext())
 
       await clearSecondFactorCookie()
       await setSessionCookie(login.sessionToken, login.expiresAt)
@@ -256,7 +254,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       expectedChallenge: challengeState.challenge,
       relyingParty: party,
       response: { clientDataJSON, authenticatorData, signature },
-      context: { ipPrefix: await retainedIpPrefix() },
+      context: await requestContext(),
     })
 
     await setSessionCookie(outcome.login.sessionToken, outcome.login.expiresAt)

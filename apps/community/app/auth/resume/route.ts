@@ -5,7 +5,7 @@ import { logger } from '@meith/core'
 
 import { configuredSessions } from '@/server/container'
 import { tr } from '@/server/i18n'
-import { requestFingerprint } from '@/server/request-fingerprint'
+import { requestContext } from '@/server/request-fingerprint'
 import { isSafeLocalPath } from '@/server/safe-path'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const sessions = await configuredSessions()
-  const outcome = await sessions.resume(token, await requestFingerprint())
+  const outcome = await sessions.resume(token, await requestContext())
 
   if (outcome.status === 'ok') {
     await setSessionCookie(outcome.login.sessionToken, outcome.login.sessionExpiresAt)

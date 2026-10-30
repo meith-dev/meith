@@ -31,8 +31,8 @@ import { profileFieldService, registrationFieldContext, submittedFields } from '
 import {
   countingAddress,
   countingPrefix,
+  requestContext,
   requestFingerprint,
-  retainedIpPrefix,
 } from './request-fingerprint'
 import { isSafeLocalPath } from './safe-path'
 import {
@@ -53,17 +53,6 @@ function field(form: FormData, name: string): string {
 }
 
 const toFormState = formStateReporter('auth-actions', 'unexpected error in auth action')
-
-async function addressContext(): Promise<{ readonly ipPrefix: string | null }> {
-  return { ipPrefix: await retainedIpPrefix() }
-}
-
-async function deviceContext(): Promise<{
-  readonly ipPrefix: string | null
-  readonly userAgent: string | null
-}> {
-  return requestFingerprint()
-}
 
 async function loginBuckets(
   identifier: string,
@@ -137,7 +126,7 @@ export async function registerAction(_prev: FormState, form: FormData): Promise<
     })
     if (objections.length > 0) return { error: objections[0]!, values }
 
-    const result = await identity.register({ username, email, password }, await addressContext())
+    const result = await identity.register({ username, email, password }, await requestContext())
 
     await emitEvent(
       'user.registered',
@@ -234,7 +223,7 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
       identifier,
       password,
       await loginBuckets(identifier, config),
-      await deviceContext(),
+      await requestContext(),
       { remember },
     )
 
@@ -360,7 +349,7 @@ export async function verifySecondFactorAction(
 
     await identity.clearSecondFactorFailures(pending.userId)
 
-    const login = await identity.redeemSecondFactor(token, await deviceContext())
+    const login = await identity.redeemSecondFactor(token, await requestContext())
     await clearSecondFactorCookie()
     await completeSignIn(login, pending.remember)
 

@@ -438,7 +438,7 @@ export class IdentityService {
     const account = await this.store.accounts.findById(redeemed.userId)
     if (account === null) throw new ForbiddenError(msg('error.accounts.account-longer-exists'))
 
-    await this.assertSignInAllowed(account)
+    await this.assertSignInAllowed(account, context)
     return this.startSession(account, at, context)
   }
 
@@ -479,18 +479,22 @@ export class IdentityService {
     return null
   }
 
-  async assertSignInAllowed(account: AccountRecord): Promise<void> {
+  async assertSignInAllowed(account: AccountRecord, context: RequestContext = {}): Promise<void> {
     const refusal = await this.signInRefusal(account)
     if (refusal !== null) throw new ForbiddenError(refusal)
 
-    await this.assertNotFiltered({ username: account.username, email: account.email })
+    await this.assertNotFiltered({
+      username: account.username,
+      email: account.email,
+      ip: context.ip,
+    })
   }
 
   async startSessionFor(
     account: AccountRecord,
     context: RequestContext = {},
   ): Promise<LoginResult> {
-    await this.assertSignInAllowed(account)
+    await this.assertSignInAllowed(account, context)
 
     const prefix = prefixOf(context)
     if (prefix !== null) {
@@ -505,7 +509,7 @@ export class IdentityService {
     context: RequestContext = {},
     options: { readonly remember?: boolean } = {},
   ): Promise<LoginOutcome> {
-    await this.assertSignInAllowed(account)
+    await this.assertSignInAllowed(account, context)
 
     const at = this.now()
     const prefix = prefixOf(context)

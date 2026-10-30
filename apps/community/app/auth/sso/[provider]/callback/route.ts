@@ -18,7 +18,7 @@ import {
   memberManagedSignIns,
 } from '@/server/federation'
 import { getTranslator, tr } from '@/server/i18n'
-import { retainedIpPrefix } from '@/server/request-fingerprint'
+import { requestContext } from '@/server/request-fingerprint'
 import { isTopLevelNavigation } from '@/server/same-origin'
 import {
   clearHandshakeCookie,
@@ -144,7 +144,7 @@ export async function GET(
     const outcome = await federation.completeSignIn({
       provider,
       profile,
-      context: { ipPrefix: await retainedIpPrefix() },
+      context: await requestContext(),
       beforeProvision: async () => {
         const limited = await spendRegisterLimit()
         if (refused(limited)) throw new RateLimitedError(limited.retryAfterSeconds)
