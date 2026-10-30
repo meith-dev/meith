@@ -1,12 +1,28 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { BanService } from '@meith/accounts'
+import { Authorizer } from '@meith/authorization'
 
+import { ActorBuilder } from './actor-builder'
+import { PostgresAuthorizationSource } from './authorization-source'
 import { PostgresBanFilterRepository, PostgresBanRepository } from './ban-repos'
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { banFilters, bans, cacheVersions, sessions, users } from './schema'
+import { resultRows } from './result-rows'
+import {
+  adminSessions,
+  banFilters,
+  bans,
+  cacheVersions,
+  credentialTokens,
+  feedTokens,
+  pushSubscriptions,
+  rememberTokens,
+  sessions,
+  userGroupMemberships,
+  users,
+} from './schema'
 
 const MODERATORS = 5
 const REGISTERED = 2
@@ -57,6 +73,66 @@ function service(now: () => Date) {
 }
 
 describe('banning', () => {
+  it('enforces an existing ban without changing the saved activation state', async () => {
+    await db.update(users).set({ state: 'awaiting_activation', primaryGroupId: BANNED })
+    await db.insert(bans).values({ userId: USER, previousPrimaryGroupId: MODERATORS })
+    const builder = new ActorBuilder(db, { guestGroupId: 1 })
+    expect((await builder.buildForUser(USER))?.state).toBe('banned')
+    await service(() => new Date()).lift(USER)
+    expect((await builder.buildForUser(USER))?.state).toBe('awaiting_activation')
+  })
+
+  it('denies secondary-group permissions and revokes every outstanding credential', async () => {
+    const expiresAt = new Date('2099-01-01T00:00:00Z')
+    await db.insert(userGroupMemberships).values({ userId: USER, groupId: MODERATORS })
+    await db.insert(adminSessions).values({ userId: USER, tokenHash: 'admin', expiresAt })
+    await db.insert(rememberTokens).values({
+      userId: USER,
+      tokenHash: 'remember',
+      familyId: 'family',
+      expiresAt,
+    })
+    await db.insert(feedTokens).values({ userId: USER, lookup: 'feed', secretHash: 'secret' })
+    await db.insert(credentialTokens).values({
+      userId: USER,
+      tokenHash: 'reset',
+      purpose: 'password_reset',
+      expiresAt,
+    })
+    await db.insert(pushSubscriptions).values({
+      userId: USER,
+      endpoint: 'https://push.example.test',
+      p256dh: 'key',
+      auth: 'auth',
+    })
+    await db.execute(sql`
+      insert into api_tokens (user_id, name, lookup, secret_hash, scopes)
+      values (${USER}, 'test', 'api', 'secret', '[]')
+    `)
+
+    const now = new Date('2026-07-30T12:00:00Z')
+    await service(() => now).ban({ userId: USER })
+
+    const actor = await new ActorBuilder(db, { guestGroupId: 1 }).buildForUser(USER)
+    expect(actor?.state).toBe('banned')
+    expect(actor?.groupIds).toEqual([BANNED])
+    expect(
+      new Authorizer(new PostgresAuthorizationSource(db)).can(actor!, 'thread.view', {
+        forumId: 1,
+      }),
+    ).toBe(false)
+    expect((await db.select().from(adminSessions))[0]?.revokedAt).toEqual(now)
+    expect((await db.select().from(rememberTokens))[0]?.revokedAt).toEqual(now)
+    expect((await db.select().from(credentialTokens))[0]?.consumedAt).toEqual(now)
+    expect(await db.select().from(feedTokens)).toEqual([])
+    expect(await db.select().from(pushSubscriptions)).toEqual([])
+    const tokens = resultRows<{ revoked_at: string }>(
+      await db.execute(sql`select revoked_at from api_tokens`),
+    )
+    expect(new Date(tokens[0]!.revoked_at)).toEqual(now)
+    expect((await db.select().from(cacheVersions))[0]?.version).toBe(1)
+  })
+
   it('records the ban, moves the group and revokes sessions together', async () => {
     await db.insert(sessions).values({
       userId: USER,
@@ -133,7 +209,7 @@ describe('expiry', () => {
       .select({ v: cacheVersions.version })
       .from(cacheVersions)
       .where(eq(cacheVersions.key, 'permissions'))
-    expect(row?.v).toBe(1)
+    expect(row?.v).toBe(2)
   })
 
   it('does not bump the version when nothing expired', async () => {
@@ -192,6 +268,10 @@ describe('lifting early', () => {
 
     expect(await groupOf(USER)).toBe(MODERATORS)
     expect(await repo.findActive(USER)).toBeNull()
+    expect((await new ActorBuilder(db, { guestGroupId: 1 }).buildForUser(USER))?.state).toBe(
+      'active',
+    )
+    expect((await db.select().from(cacheVersions))[0]?.version).toBe(2)
   })
 })
 
