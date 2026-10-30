@@ -139,35 +139,48 @@ export class PostgresApiTokenRepository {
 export class PostgresRateLimitStore implements RateLimitStore {
   constructor(private readonly db: Database) {}
 
-  async spend(tokenId: number, windowStart: Date, cost: number): Promise<number> {
-    const rows = (await this.db.execute(sql`
+  async spend(
+    tokenId: number,
+    windowStart: Date,
+    cost: number,
+    ceiling = 2_147_483_647,
+  ): Promise<number> {
+    if (cost > ceiling) return (await this.peek(tokenId, windowStart)) + cost
+    const rows = resultRows(
+      await this.db.execute(sql`
       insert into api_rate_limits (token_id, window_start, used)
       values (${tokenId}, ${windowStart}, ${cost})
       on conflict (token_id, window_start)
         do update set used = api_rate_limits.used + ${cost}
+        where api_rate_limits.used <= ${ceiling - cost}
       returning used
-    `)) as unknown as { used: number }[]
+    `),
+    ) as { used: number }[]
 
-    return rows[0]?.used ?? cost
+    return rows[0] === undefined ? (await this.peek(tokenId, windowStart)) + cost : rows[0].used
   }
 
   async peek(tokenId: number, windowStart: Date): Promise<number> {
-    const rows = (await this.db.execute(sql`
+    const rows = resultRows(
+      await this.db.execute(sql`
       select used from api_rate_limits
        where token_id = ${tokenId} and window_start = ${windowStart}
-    `)) as unknown as { used: number }[]
+    `),
+    ) as { used: number }[]
 
     return rows[0]?.used ?? 0
   }
 
   async prune(before: Date, limit = 5000): Promise<number> {
-    const rows = (await this.db.execute(sql`
+    const rows = resultRows(
+      await this.db.execute(sql`
       delete from api_rate_limits
       where ctid in (
         select ctid from api_rate_limits where window_start < ${before} limit ${limit}
       )
       returning token_id
-    `)) as unknown as unknown[]
+    `),
+    )
     return rows.length
   }
 }

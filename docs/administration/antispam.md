@@ -33,7 +33,7 @@ Failures count per account/address, per account across addresses and per address
 
 ## Posting and filters
 
-Flood intervals, hourly caps and [group daily allowances](groups.md) are independent. Upload limits cover avatars and attachments. PostgreSQL retains counters across instances.
+Flood intervals, hourly caps and [group daily allowances](groups.md) are independent. Upload limits cover avatars and attachments. PostgreSQL retains counters across instances. Hourly and API sliding limits charge only accepted requests; rejected requests do not increase the stored count or prolong its decay. Concurrent requests reserve their allowance atomically.
 
 Review community-flagged posts in moderation. Check word-filter previews before saving. Ban patterns are globs, not regular expressions; registration filters do not retroactively ban accounts.
 

@@ -8,10 +8,10 @@ function memoryStore(): RateLimitBucketStore<string> {
   const bucketKey = (key: string, windowStart: Date) => `${key}|${windowStart.toISOString()}`
 
   return {
-    async spend(key, windowStart, cost) {
+    async spend(key, windowStart, cost, ceiling) {
       const id = bucketKey(key, windowStart)
       const next = (buckets.get(id) ?? 0) + cost
-      buckets.set(id, next)
+      if (next <= ceiling) buckets.set(id, next)
       return next
     },
     async peek(key, windowStart) {
@@ -50,13 +50,14 @@ describe('spendRateLimit: cost accounting', () => {
     expect((await spendRateLimit(store, 'k', 4, WINDOW, now)).used).toBe(8)
   })
 
-  it('spends against the window even when it refuses', async () => {
+  it('reports the refused cost without charging the bucket', async () => {
     const store = memoryStore()
     const now = new Date('2026-08-04T12:00:10Z')
 
     const outcome = await spendRateLimit(store, 'k', 11, WINDOW, now)
     expect(outcome.allowed).toBe(false)
     expect(outcome.used).toBe(11)
+    expect(await store.peek('k', rateLimitWindowStart(now, WINDOW))).toBe(0)
   })
 
   it('honours a cost above one across several calls', async () => {
@@ -92,6 +93,23 @@ describe('spendRateLimit: cost accounting', () => {
 })
 
 describe('spendRateLimit: boundary burst', () => {
+  it('lets usage decay despite repeated denied requests across a window boundary', async () => {
+    const store = memoryStore()
+    const full = new Date('2026-08-04T12:00:30Z')
+    await spendRateLimit(store, 'k', WINDOW.budget, WINDOW, full)
+    for (let i = 0; i < 100; i++) {
+      expect((await spendRateLimit(store, 'k', 1, WINDOW, full)).allowed).toBe(false)
+    }
+    const boundary = new Date('2026-08-04T12:01:00Z')
+    for (let i = 0; i < 100; i++) {
+      expect((await spendRateLimit(store, 'k', 1, WINDOW, boundary)).allowed).toBe(false)
+    }
+    expect(await store.peek('k', boundary)).toBe(0)
+    expect(
+      (await spendRateLimit(store, 'k', 1, WINDOW, new Date('2026-08-04T12:01:30Z'))).allowed,
+    ).toBe(true)
+  })
+
   it('does not allow a full second budget just after a window rolls over', async () => {
     const store = memoryStore()
     const boundary = rateLimitWindowStart(new Date('2026-08-04T12:01:00Z'), WINDOW)

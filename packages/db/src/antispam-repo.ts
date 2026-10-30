@@ -10,18 +10,27 @@ import { resultRows } from './result-rows'
 export class PostgresRateLimitBucketStore implements RateLimitStore {
   constructor(private readonly db: Database) {}
 
-  async spend(subject: RateLimitSubject, windowStart: Date, cost: number): Promise<number> {
+  async spend(
+    subject: RateLimitSubject,
+    windowStart: Date,
+    cost: number,
+    ceiling = 2_147_483_647,
+  ): Promise<number> {
+    if (cost > ceiling) return (await this.peek(subject, windowStart)) + cost
     const rows = resultRows(
       await this.db.execute(sql`
         insert into rate_limits (scope, subject, window_start, used)
         values (${subject.scope}, ${subject.subject}, ${windowStart}, ${cost})
         on conflict (scope, subject, window_start)
           do update set used = rate_limits.used + ${cost}
+          where rate_limits.used <= ${ceiling - cost}
         returning used
       `),
     ) as Array<{ used: number }>
 
-    return Number(rows[0]?.used ?? cost)
+    return rows[0] === undefined
+      ? (await this.peek(subject, windowStart)) + cost
+      : Number(rows[0].used)
   }
 
   async peek(subject: RateLimitSubject, windowStart: Date): Promise<number> {

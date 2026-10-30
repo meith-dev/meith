@@ -15,11 +15,11 @@ function countingStore(): RateLimitStore & { calls: number } {
 
   const store: RateLimitStore & { calls: number } = {
     calls: 0,
-    async spend(input, windowStart, cost) {
+    async spend(input, windowStart, cost, ceiling) {
       store.calls += 1
       const id = key(input.scope, input.subject, windowStart)
       const next = (counts.get(id) ?? 0) + cost
-      counts.set(id, next)
+      if (next <= ceiling) counts.set(id, next)
       return next
     },
     async peek(input, windowStart) {
@@ -96,7 +96,7 @@ describe('consuming', () => {
     expect(outcome.allowed === false && outcome.retryAfterSeconds).toBe(30)
   })
 
-  it('spends against the window even when it refuses', async () => {
+  it('does not charge rejected requests', async () => {
     const store = countingStore()
     const limiter = new RateLimiter(store, () => AT)
 
@@ -106,7 +106,7 @@ describe('consuming', () => {
 
     expect(store.calls).toBe(6)
     const outcome = await limiter.consume({ scope: 'post', subject: 'u:1', rule: RULE })
-    expect(outcome.used).toBe(7)
+    expect(outcome.used).toBe(4)
   })
 
   it('never reports a retry of zero seconds', async () => {
