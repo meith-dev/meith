@@ -13,6 +13,12 @@ Most database suites create isolated PGlite databases and run real migration SQL
 
 Coverage uses V8 and configured floors. Do not lower a floor to accommodate an untested change.
 
+The graduation check (`pnpm board:eject:smoke`) uses a reserved
+`0.0.0-board-eject-smoke` base-image tag for its locally packed dependencies.
+It still checks the ejected board's package versions against the checkout. A
+published release tag must not identify the stand-in image: Docker may resolve
+the registry image instead, which does not carry the test's vendored tarballs.
+
 ## Browser tests
 
 ```sh
