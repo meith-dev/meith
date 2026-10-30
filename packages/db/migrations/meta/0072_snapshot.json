@@ -1,6 +1,6 @@
 {
-  "id": "7bb6928a-8d02-47aa-aaee-5c0b987ca96f",
-  "prevId": "de518f8a-f0a6-41e5-a088-83124aaacec9",
+  "id": "db1f8366-07bd-4983-a26c-5e5d47fb3e56",
+  "prevId": "7599d257-e4a6-4419-8fe4-0b315c1a2c23",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -8139,6 +8139,18 @@
         "dispatched_at": {
           "name": "dispatched_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "locked_until": {
+          "name": "locked_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claim_token": {
+          "name": "claim_token",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
