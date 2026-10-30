@@ -93,7 +93,7 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
   async findForDownload(id: number): Promise<AttachmentForDownload | null> {
     const rows = resultRows(
       await this.db.execute(sql`
-        select a.id, a.post_id, a.forum_id, a.uploader_user_id, a.filename,
+        select a.id, a.post_id, t.forum_id, a.uploader_user_id, a.filename,
                a.content_type, a.size_bytes, a.storage_key, a.source_key,
                a.thumbnail_key, a.width, a.height, a.status, a.failure_reason,
                a.download_count, a.created_at,

@@ -21,6 +21,11 @@ Use **Moderator tools** or list selection controls to edit, lock, pin, move, spl
 
 Before moving or merging, check the destination audience and required permissions. A merge retains the selected target thread and deletes the source thread’s poll, votes, ratings, subscriptions and read markers. Back up before a merge if those must be recoverable. A split creates a new thread from selected posts.
 
+Attachments follow posts into the destination forum during moves and merges,
+including its download permissions. Deleting the former forum does not delete
+those attachments. Migration `0070_attachment_forums` repairs attachment forum IDs
+left behind by earlier moves; downloads always check the thread's current forum.
+
 ## Warnings and bans
 
 Warnings add points and may expire or be revoked. Warning levels can restrict posting, require approval or impose a ban. Check the effect before applying a warning.

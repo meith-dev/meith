@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PUBLIC_CONTENT } from '@meith/core'
 
+import { PostgresAttachmentRepository } from './attachment-repo'
 import type { Database } from './client'
 import { rollUpAncestorCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -346,6 +347,28 @@ describe('moving a thread', () => {
       at: AT,
     })
   }
+
+  it('moves attachment authorization and survives deletion of the old forum', async () => {
+    const { threadId, postIds } = await seedThread()
+    const attachments = new PostgresAttachmentRepository(db)
+    const attachment = await attachments.create({
+      postId: postIds[0]!,
+      forumId: LEFT,
+      uploaderUserId: ADA,
+      filename: 'private.txt',
+      contentType: 'text/plain',
+      sizeBytes: 7,
+      storageKey: 'private/file',
+      sourceKey: null,
+      status: 'ready',
+    })
+
+    await move(threadId, RIGHT)
+    expect((await attachments.findById(attachment.id))?.forumId).toBe(RIGHT)
+    expect((await attachments.findForDownload(attachment.id))?.record.forumId).toBe(RIGHT)
+    await db.execute(sql`delete from forums where id = ${LEFT}`)
+    expect(await attachments.findById(attachment.id)).not.toBeNull()
+  })
 
   it('takes the counts out of one forum and puts them in the other', async () => {
     const { threadId } = await seedThread()

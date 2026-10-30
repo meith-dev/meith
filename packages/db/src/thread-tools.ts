@@ -179,6 +179,10 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
       await tx.execute(sql`
         update posts set forum_id = ${input.toForumId} where thread_id = ${input.threadId}
       `)
+      await tx.execute(sql`
+        update attachments set forum_id = ${input.toForumId}
+         where post_id in (select id from posts where thread_id = ${input.threadId})
+      `)
 
       await applyForumChain(tx, input.fromForumId, -1, tally)
       await applyForumChain(tx, input.toForumId, 1, tally)

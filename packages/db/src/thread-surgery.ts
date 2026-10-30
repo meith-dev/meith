@@ -224,6 +224,11 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       `)
 
       await tx.execute(sql`
+        update attachments set forum_id = ${targetForum}
+         where post_id in (select id from posts where thread_id = ${plan.targetThreadId})
+      `)
+
+      await tx.execute(sql`
         update threads
            set reply_count = reply_count + ${moved}, updated_at = ${plan.at}
          where id = ${plan.targetThreadId}
