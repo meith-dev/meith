@@ -74,7 +74,11 @@ describe('readsAsAsset', () => {
   it('recognises the paths that render nothing', () => {
     expect(readsAsAsset('/robots.txt')).toBe(true)
     expect(readsAsAsset('/feed.xml')).toBe(true)
-    expect(readsAsAsset('/favicon.ico')).toBe(true)
+    expect(readsAsAsset('/brand/favicon')).toBe(true)
+    expect(readsAsAsset('/thread/12-v1.0/feed.xml')).toBe(true)
+    expect(readsAsAsset('/2-board/feed.xml')).toBe(true)
+    expect(readsAsAsset('/brand/icon-192.png')).toBe(true)
+    expect(readsAsAsset('/sw.js')).toBe(true)
   })
 
   it('leaves board pages alone, dotted directory or not', () => {
@@ -82,5 +86,10 @@ describe('readsAsAsset', () => {
     expect(readsAsAsset('/thread/12-hello')).toBe(false)
     expect(readsAsAsset('/attachment/9')).toBe(false)
     expect(readsAsAsset('/v1.2/thread')).toBe(false)
+    expect(readsAsAsset('/member/by-name/first.last')).toBe(false)
+    expect(readsAsAsset('/thread/12-v1.0.release')).toBe(false)
+    expect(readsAsAsset('/member/by-name/portrait.png')).toBe(false)
+    expect(readsAsAsset('/admin/feed.xml')).toBe(false)
+    expect(readsAsAsset('/admin/users/export.csv')).toBe(false)
   })
 })

@@ -6,8 +6,13 @@ import { NextRequest, type NextResponse } from 'next/server'
 import { describe, expect, it } from 'vitest'
 
 import { PROTECTED_PREFIXES, proxy } from './proxy'
-import { GUEST_COOKIE } from './src/server/cookies'
-import { FRESH_GUEST_HEADER, PATH_HEADER, QUERY_HEADER } from './src/server/location-header'
+import { GUEST_COOKIE, REMEMBER_COOKIE } from './src/server/cookies'
+import {
+  FRESH_GUEST_HEADER,
+  NONCE_HEADER,
+  PATH_HEADER,
+  QUERY_HEADER,
+} from './src/server/location-header'
 import { THEME_COOKIE } from './src/view/theme-preference'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -109,6 +114,58 @@ describe('the guest cookie', () => {
     })
 
     expect(requestHeader(proxy(req), QUERY_HEADER)).toBeNull()
+  })
+
+  it.each(['/member/by-name/first.last', '/thread/1-v1.0.release', '/unknown.jpg'])(
+    'replaces internal headers and supplies a matching nonce on %s',
+    (pathname) => {
+      const res = proxy(
+        new NextRequest(`https://board.example${pathname}?page=2`, {
+          headers: {
+            [NONCE_HEADER]: 'spoofed',
+            [PATH_HEADER]: '/admin',
+            [QUERY_HEADER]: '?spoofed=1',
+          },
+        }),
+      )
+      const nonce = requestHeader(res, NONCE_HEADER)
+      expect(nonce).toBeTruthy()
+      expect(nonce).not.toBe('spoofed')
+      expect(res.headers.get('content-security-policy')).toContain(`'nonce-${nonce}'`)
+      expect(requestHeader(res, 'content-security-policy')).toBe(
+        res.headers.get('content-security-policy'),
+      )
+      expect(requestHeader(res, PATH_HEADER)).toBe(pathname)
+      expect(requestHeader(res, QUERY_HEADER)).toBe('?page=2')
+    },
+  )
+
+  it('resumes a remembered session on dotted pages', () => {
+    const res = proxy(
+      new NextRequest('https://board.example/member/by-name/first.last', {
+        headers: { cookie: `${REMEMBER_COOKIE}=remembered` },
+      }),
+    )
+    expect(res.headers.get('location')).toBe(
+      'https://board.example/auth/resume?next=%2Fmember%2Fby-name%2Ffirst.last',
+    )
+  })
+
+  it('requires sign-in for dotted paths under protected panels', () => {
+    const res = proxy(new NextRequest('https://board.example/admin/users/export.csv'))
+    expect(res.headers.get('location')).toBe(
+      'https://board.example/login?next=%2Fadmin%2Fusers%2Fexport.csv',
+    )
+  })
+
+  it('serves known assets without a remember-me redirect', () => {
+    const res = proxy(
+      new NextRequest('https://board.example/sw.js', {
+        headers: { cookie: `${REMEMBER_COOKIE}=remembered` },
+      }),
+    )
+    expect(res.headers.get('location')).toBeNull()
+    expect(res.cookies.get(GUEST_COOKIE)).toBeUndefined()
   })
 })
 
