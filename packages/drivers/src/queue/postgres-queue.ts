@@ -46,7 +46,8 @@ export class PostgresQueue implements QueueDriver {
           .limit(1)
 
         const prior = existing[0]
-        if (prior === undefined) throw new Error(msg('error.drivers.queue-conflict-disappeared'))
+        if (prior === undefined)
+          throw new Error(msg('error.drivers.queue-conflict-disappeared').text)
         return { id: String(prior.id), deduplicated: true }
       }
       return { id: String(first.id), deduplicated: false }
