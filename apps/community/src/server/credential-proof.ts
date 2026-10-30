@@ -2,7 +2,12 @@ import 'server-only'
 
 import { redirect } from 'next/navigation'
 
-import { hasFreshCredentialProof, hashToken, type SessionRecord } from '@meith/accounts'
+import {
+  hasFreshCredentialProof,
+  hashToken,
+  holdsSecondFactor,
+  type SessionRecord,
+} from '@meith/accounts'
 
 import { getContainer } from './container'
 import { readSessionToken } from './session-cookies'
@@ -32,8 +37,14 @@ export async function requireFreshCredentialProof(
 
 export async function markCurrentSessionCredentialProved(
   userId: number,
+  method: 'password' | 'provider' | 'code' | 'passkey',
   at = new Date(),
 ): Promise<boolean> {
+  if (
+    (method === 'password' || method === 'provider') &&
+    (await holdsSecondFactor(getContainer().accountStore.twoFactor, userId))
+  )
+    return false
   const session = await currentSessionRecord()
   if (session === null || session.userId !== userId) return false
   return getContainer().accountStore.sessions.markCredentialProved(session.id, userId, at)

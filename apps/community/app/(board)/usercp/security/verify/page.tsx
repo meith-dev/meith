@@ -51,7 +51,7 @@ export default async function VerifySecurityPage({
           useRecovery: tr.t('otp.useRecovery'),
           useApp: tr.t('otp.useApp'),
         }}
-        hasPassword={account?.passwordHash !== null && account !== null}
+        hasPassword={!factor.enrolled && account?.passwordHash !== null && account !== null}
         hasSecondFactor={factor.enrolled}
         next={next}
       />
@@ -65,7 +65,7 @@ export default async function VerifySecurityPage({
         />
       ) : null}
 
-      {identities.length > 0 ? (
+      {identities.length > 0 && !factor.enrolled ? (
         <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
           <h2 className="text-lg font-semibold tracking-tight">
             {tr.t('credentialProof.linkedTitle')}

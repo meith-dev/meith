@@ -197,7 +197,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         relyingParty: party,
         response: { clientDataJSON, authenticatorData, signature },
       })
-      if (!proved || !(await markCurrentSessionCredentialProved(actor.userId))) {
+      if (!proved || !(await markCurrentSessionCredentialProved(actor.userId, 'passkey'))) {
         return problem(await tr('authRoute.passkey.notForAccount'), 403)
       }
       return json({ ok: true, next: '/usercp/security?verified=1' })
