@@ -10,7 +10,7 @@ import { msg } from '@meith/i18n'
 import { prepareSignature } from '@meith/signatures'
 
 import { adminService } from './admin'
-import { limitMessage, spendLimit } from './antispam'
+import { limitMessage, refused, spendCredentialProofLimit, spendLimit } from './antispam'
 import { boardAuthConfig } from './auth-config'
 import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
@@ -148,6 +148,8 @@ export async function saveBoardDigestCadenceAction(
 export async function changePasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
   try {
     const { service, userId } = await requireOwnSettings()
+    const limited = await spendCredentialProofLimit(userId)
+    if (refused(limited)) return { error: limitMessage(limited) }
 
     const next = text(form, 'newPassword')
     if (next !== text(form, 'confirmPassword')) {
@@ -185,6 +187,8 @@ export async function requestEmailChangeAction(
   let pending: { token: string; email: string; previousEmail: string; userId: number }
   try {
     const { service, userId } = await requireOwnSettings()
+    const limited = await spendCredentialProofLimit(userId)
+    if (refused(limited)) return { error: limitMessage(limited) }
 
     pending = {
       userId,

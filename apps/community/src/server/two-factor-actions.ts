@@ -8,6 +8,7 @@ import { msg } from '@meith/i18n'
 
 import { RECOVERY_CODES_FIELD } from '@/view/two-factor'
 
+import { limitMessage, refused, spendCredentialProofLimit } from './antispam'
 import { recordAuthEvent } from './auth-events'
 import type { FormState } from './auth-form-state'
 import { getContainer } from './container'
@@ -95,6 +96,8 @@ export async function confirmTwoFactorAction(_prev: FormState, form: FormData): 
   if (actor.userId !== null) await requireFreshCredentialProof(actor.userId)
   try {
     const { userId } = await requireOwnAccount()
+    const limited = await spendCredentialProofLimit(userId)
+    if (refused(limited)) return { error: limitMessage(limited) }
 
     const service = twoFactorService()
     if (service === null) throw new ForbiddenError(msg('error.app.board-seal-secret'))
@@ -154,6 +157,8 @@ async function assertStillThem(input: {
   readonly form: FormData
   readonly service: NonNullable<ReturnType<typeof twoFactorService>>
 }): Promise<void> {
+  const limited = await spendCredentialProofLimit(input.userId)
+  if (refused(limited)) throw new ForbiddenError(limitMessage(limited))
   if (input.hasPassword) {
     const account = await getContainer().accountStore.accounts.findById(input.userId)
     const password = text(input.form, 'password')
