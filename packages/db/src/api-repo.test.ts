@@ -178,8 +178,8 @@ describe('PostgresWebhookRepository deliveries', () => {
 describe('API quota reservations', () => {
   it('caps concurrent reservations and leaves rejected requests uncharged', async () => {
     await db.execute(sql`
-      insert into users (id, username, username_lower, email, email_lower)
-      values (9001, 'quota', 'quota', 'quota@example.test', 'quota@example.test')
+      insert into users (id, username, username_lower, email, email_lower, primary_group_id)
+      values (9001, 'quota', 'quota', 'quota@example.test', 'quota@example.test', 2)
     `)
     const [token] = resultRows<{ id: number }>(
       await db.execute(sql`
