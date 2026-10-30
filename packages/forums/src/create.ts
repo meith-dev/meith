@@ -35,7 +35,7 @@ export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePl
     throw new ValidationError(msg('error.forums.link-forum-needs-linkurl'))
   }
   if (input.linkUrl !== undefined && safeForumLinkUrl(input.linkUrl) === null) {
-    throw new ValidationError('A forum link must use HTTP or HTTPS.')
+    throw new ValidationError(msg('error.forums.link-url-http'))
   }
 
   const parent = input.parentId === null ? null : rows.find((r) => r.id === input.parentId)

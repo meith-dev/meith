@@ -181,7 +181,7 @@ export class PostgresForumAdminRepository {
 
   async updateOptions(forumId: number, input: ForumOptionsInput): Promise<void> {
     if (input.linkUrl !== null && safeForumLinkUrl(input.linkUrl) === null) {
-      throw new ValidationError('A forum link must use HTTP or HTTPS.')
+      throw new ValidationError(msg('error.forums.link-url-http'))
     }
     await this.db.execute(sql`
       update forums
