@@ -1888,6 +1888,8 @@
   "error.accounts.username-taken": "That username is taken.",
   "error.accounts.website-address-must-start-with": "A website address must start with http:// or https://.",
   "error.accounts.website-length": "A website address may be at most {max} characters.",
+  "error.antispam.challenge-expired": "That challenge expired or was already used. Refresh the registration page and try again.",
+  "error.antispam.challenge-unavailable": "Registration checks are unavailable. Refresh the page and try again later.",
   "error.app.account-longer-exists": "That account no longer exists.",
   "error.app.account-longer-post": "Your account can no longer post.",
   "error.app.attach-files-forum": "You may not attach files in this forum.",
