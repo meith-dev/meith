@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm'
 
-import type { ThreadAudience } from '@meith/core'
+import { PUBLIC_CONTENT, type ThreadAudience } from '@meith/core'
 import type { Draft, DraftRepository, DraftSummary } from '@meith/drafts'
 import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { inAudience } from './thread-audience'
+import { visibleIn } from './visibility'
 
 export class PostgresDraftRepository implements DraftRepository {
   constructor(private readonly db: Database) {}
@@ -71,7 +72,7 @@ export class PostgresDraftRepository implements DraftRepository {
          where d.user_id = ${userId}
            and (
              (d.thread_id is null and ${inAudience(sql`d.forum_id`, sql`d.user_id`, audience)})
-             or (t.visibility = 'visible' and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, audience)})
+             or (${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)} and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, audience)})
            )
          order by d.updated_at desc
       `),
