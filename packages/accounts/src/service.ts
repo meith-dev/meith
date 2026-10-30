@@ -3,7 +3,7 @@ import { msg } from '@meith/i18n'
 
 import { type BanFilterSubject, matchBanFilter } from './ban-filter'
 import { foldIdentifier } from './case-fold'
-import { hashPassword, needsRehash, verifyPassword } from './crypto/password'
+import { assertPasswordSize, hashPassword, needsRehash, verifyPassword } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
 import type {
   AccountRecord,
@@ -574,6 +574,7 @@ export class IdentityService {
     token: string,
     newPassword: string,
   ): Promise<{ readonly userId: number }> {
+    assertPasswordSize(newPassword)
     if (newPassword.length < this.config.minPasswordLength) {
       throw new ValidationError(
         `Password must be at least ${this.config.minPasswordLength} characters.`,

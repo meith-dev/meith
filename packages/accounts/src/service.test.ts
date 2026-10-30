@@ -506,6 +506,15 @@ describe('password reset', () => {
     )
   })
 
+  it('does not consume a reset token for an oversized new password', async () => {
+    const { service } = makeService(store)
+    const { token } = await service.requestPasswordReset('alice@example.com')
+    await expect(service.redeemPasswordReset(token!, '🔐'.repeat(257))).rejects.toMatchObject({
+      code: 'VALIDATION',
+    })
+    await expect(service.redeemPasswordReset(token!, 'a brand new password')).resolves.toBeTruthy()
+  })
+
   it('rejects an expired token', async () => {
     const clock = fixedClock()
     const { service } = makeService(store, { resetTokenTtlMinutes: 30 }, clock)

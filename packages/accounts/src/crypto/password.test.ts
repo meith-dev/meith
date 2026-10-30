@@ -38,6 +38,15 @@ describe('hashPassword / verifyPassword', () => {
     await expect(hashPassword('')).rejects.toThrow(/empty password/i)
   })
 
+  it('accepts the UTF-8 byte boundary and rejects longer passwords before hashing', async () => {
+    const password = '🔐'.repeat(256)
+    const hash = await hashPassword(password)
+    expect(await verifyPassword(password, hash)).toBe(true)
+    await expect(hashPassword(`${password}a`)).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(await verifyPassword(`${password}a`, hash)).toBe(false)
+    await expect(hashPassword('a'.repeat(1025))).rejects.toMatchObject({ code: 'VALIDATION' })
+  })
+
   it('returns false (never throws) for null/garbage stored hashes', async () => {
     expect(await verifyPassword('x', null)).toBe(false)
     expect(await verifyPassword('x', undefined)).toBe(false)
