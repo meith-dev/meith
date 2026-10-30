@@ -30,6 +30,12 @@ function fakeFetch(response: FakeResponse): typeof fetch {
 }
 
 describe('fetchMarketplaceFeed', () => {
+  it('rejects a private destination with the default production fetcher', async () => {
+    const result = await fetchMarketplaceFeed({ url: 'https://127.0.0.1/feed.json' })
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('private or internal')
+  })
+
   it('parses a successful JSON response', async () => {
     const result = await fetchMarketplaceFeed({
       url: 'https://example.com/v1.json',

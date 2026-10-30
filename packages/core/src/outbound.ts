@@ -125,6 +125,62 @@ function pinnedLookup(allowPrivateHosts: boolean): LookupFunction {
 
 export const OUTBOUND_MAX_RESPONSE_BYTES = 65_536
 
+export async function guardedFetch(
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  policy: OutboundUrlPolicy & { readonly maxResponseBytes?: number; readonly timeoutMs?: number },
+): Promise<Response> {
+  const request = new Request(input, init)
+  const url = assertAllowedUrl(request.url, policy)
+  const body = Buffer.from(await request.arrayBuffer())
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(policy.timeoutMs ?? 10_000)])
+  const send = url.protocol === 'https:' ? httpsRequest : httpRequest
+
+  return new Promise((resolve, reject) => {
+    const client = send(
+      url,
+      {
+        method: request.method,
+        headers: { ...Object.fromEntries(request.headers), 'accept-encoding': 'identity' },
+        lookup: pinnedLookup(policy.allowPrivateHosts),
+        signal,
+      },
+      async (response) => {
+        try {
+          const status = response.statusCode ?? 500
+          if (status >= 300 && status < 400 && request.redirect !== 'manual') {
+            throw new BlockedOutboundError('OUTBOUND_REDIRECT_BLOCKED')
+          }
+          const chunks: Buffer[] = []
+          let received = 0
+          for await (const chunk of response) {
+            received += chunk.length
+            if (received > (policy.maxResponseBytes ?? OUTBOUND_MAX_RESPONSE_BYTES)) {
+              throw new BlockedOutboundError('OUTBOUND_RESPONSE_TOO_LARGE')
+            }
+            chunks.push(chunk)
+          }
+          const headers = new Headers()
+          for (let index = 0; index < response.rawHeaders.length; index += 2) {
+            headers.append(response.rawHeaders[index]!, response.rawHeaders[index + 1]!)
+          }
+          resolve(
+            new Response(
+              [204, 205, 304].includes(status) ? null : new Uint8Array(Buffer.concat(chunks)),
+              { status, headers },
+            ),
+          )
+        } catch (error) {
+          response.destroy()
+          reject(error)
+        }
+      },
+    )
+    client.on('error', reject)
+    client.end(body)
+  })
+}
+
 const DIAGNOSTIC_MAX = 200
 
 const REQUEST_TIMED_OUT = 'The outbound request timed out.'

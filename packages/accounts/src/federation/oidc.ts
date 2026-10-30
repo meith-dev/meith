@@ -1,5 +1,5 @@
 import { ConfigurationError, ValidationError } from '@meith/core'
-import { assertAllowedUrl } from '@meith/core/outbound'
+import { guardedFetch } from '@meith/core/outbound'
 import { msg } from '@meith/i18n'
 
 import { fetchJson, readBoolean, readString } from './http'
@@ -27,11 +27,7 @@ export interface OidcProviderConfig {
 }
 
 function guardedFetcher(allowPrivateHosts: boolean): Fetcher {
-  return async (input, init) => {
-    const target = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    assertAllowedUrl(target, { allowPrivateHosts })
-    return fetch(input, { ...init, redirect: 'error' })
-  }
+  return (input, init) => guardedFetch(input, { ...init, redirect: 'error' }, { allowPrivateHosts })
 }
 
 interface Discovery {

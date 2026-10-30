@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   assertAllowedUrl,
   BlockedOutboundError,
+  guardedFetch,
   guardedRequest,
   isBlockedAddress,
   type OutboundRequest,
@@ -110,6 +111,88 @@ describe('guardedRequest', () => {
       ...overrides,
     }
   }
+
+  it('fetches a complete JSON body through the guarded connection', async () => {
+    const body = { text: 'x'.repeat(500) }
+    const port = await listen((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json', 'x-test': 'guarded' })
+      res.end(JSON.stringify(body))
+    })
+    const response = await guardedFetch(`http://127.0.0.1:${port}`, undefined, {
+      allowPrivateHosts: true,
+    })
+    expect(response.headers.get('x-test')).toBe('guarded')
+    expect(await response.json()).toEqual(body)
+  })
+
+  it('sends form bodies for guarded token exchanges', async () => {
+    let received = ''
+    const port = await listen((req, res) => {
+      req.on('data', (chunk) => {
+        received += chunk.toString()
+      })
+      req.on('end', () => {
+        res.end('{}')
+      })
+    })
+    const response = await guardedFetch(
+      `http://127.0.0.1:${port}`,
+      {
+        method: 'POST',
+        body: new URLSearchParams({ code: 'a+b' }),
+      },
+      { allowPrivateHosts: true },
+    )
+    expect(await response.json()).toEqual({})
+    expect(new URLSearchParams(received).get('code')).toBe('a+b')
+  })
+
+  it('rejects DNS names resolving to private addresses without using global fetch', async () => {
+    await expect(
+      guardedFetch('https://localhost:1/', undefined, { allowPrivateHosts: false }),
+    ).rejects.toThrow(BlockedOutboundError)
+  })
+
+  it('caps fetched bodies before returning them', async () => {
+    const port = await listen((_req, res) => res.end('x'.repeat(1000)))
+    await expect(
+      guardedFetch(`http://127.0.0.1:${port}`, undefined, {
+        allowPrivateHosts: true,
+        maxResponseBytes: 100,
+      }),
+    ).rejects.toThrow('OUTBOUND_RESPONSE_TOO_LARGE')
+  })
+
+  it('never follows a fetched redirect, including to private destinations', async () => {
+    let requests = 0
+    const port = await listen((_req, res) => {
+      requests++
+      res.writeHead(302, { location: 'http://169.254.169.254/latest' })
+      res.end()
+    })
+    const url = `http://127.0.0.1:${port}`
+    const response = await guardedFetch(url, { redirect: 'manual' }, { allowPrivateHosts: true })
+    expect(response.status).toBe(302)
+    expect(requests).toBe(1)
+    await expect(
+      guardedFetch(url, { redirect: 'error' }, { allowPrivateHosts: true }),
+    ).rejects.toThrow('OUTBOUND_REDIRECT_BLOCKED')
+    expect(requests).toBe(2)
+  })
+
+  it('aborts a fetched body at the deadline', async () => {
+    const port = await listen((_req, res) => {
+      res.writeHead(200)
+      const timer = setInterval(() => res.write('.'), 10)
+      res.on('close', () => clearInterval(timer))
+    })
+    await expect(
+      guardedFetch(`http://127.0.0.1:${port}`, undefined, {
+        allowPrivateHosts: true,
+        timeoutMs: 50,
+      }),
+    ).rejects.toThrow()
+  })
 
   it('refuses a private destination literal when private hosts are not allowed', async () => {
     await expect(

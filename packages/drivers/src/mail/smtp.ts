@@ -1,9 +1,11 @@
-import nodemailer, { type Transporter } from 'nodemailer'
+import { isIP } from 'node:net'
+
+import nodemailer from 'nodemailer'
 
 import { ConfigurationError, logger, type MailDriver, type OutgoingMail } from '@meith/core'
 import type { SmtpMailConfig } from '@meith/settings'
 
-import { assertSafeSmtpHost, BlockedOutboundError, mailAllowsPrivateHosts } from '../net/outbound'
+import { BlockedOutboundError, mailAllowsPrivateHosts, resolveSafeSmtpHost } from '../net/outbound'
 import { formatSender } from './sender'
 
 const CONNECTION_TIMEOUT_MS = 10_000
@@ -37,24 +39,12 @@ function describe(error: unknown): string {
 }
 
 export class SmtpMailDriver implements MailDriver {
-  private readonly transport: Transporter
-
-  constructor(private readonly config: SmtpMailConfig) {
-    this.transport = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.security === 'tls',
-      requireTLS: config.security === 'starttls',
-      ...(config.username === '' ? {} : { auth: { user: config.username, pass: config.password } }),
-      connectionTimeout: CONNECTION_TIMEOUT_MS,
-      greetingTimeout: GREETING_TIMEOUT_MS,
-      socketTimeout: SOCKET_TIMEOUT_MS,
-    })
-  }
+  constructor(private readonly config: SmtpMailConfig) {}
 
   async send(mail: OutgoingMail): Promise<void> {
+    let host: string
     try {
-      await assertSafeSmtpHost(this.config.host, mailAllowsPrivateHosts())
+      host = await resolveSafeSmtpHost(this.config.host, mailAllowsPrivateHosts())
     } catch (error) {
       if (error instanceof BlockedOutboundError) {
         throw new ConfigurationError(error.message, { cause: error })
@@ -62,8 +52,21 @@ export class SmtpMailDriver implements MailDriver {
       throw error
     }
 
+    const config = this.config
+    const transport = nodemailer.createTransport({
+      host,
+      port: config.port,
+      secure: config.security === 'tls',
+      requireTLS: config.security === 'starttls',
+      ...(isIP(config.host) === 0 ? { tls: { servername: config.host } } : {}),
+      ...(config.username === '' ? {} : { auth: { user: config.username, pass: config.password } }),
+      connectionTimeout: CONNECTION_TIMEOUT_MS,
+      greetingTimeout: GREETING_TIMEOUT_MS,
+      socketTimeout: SOCKET_TIMEOUT_MS,
+    })
+
     try {
-      await this.transport.sendMail({
+      await transport.sendMail({
         from: formatSender(this.config.from, mail.fromName),
         to: mail.to,
         subject: mail.subject,

@@ -1,3 +1,6 @@
+import { env } from '@meith/core/env'
+import { guardedFetch } from '@meith/core/outbound'
+
 export interface FetchFeedResult {
   readonly ok: boolean
   readonly body: unknown
@@ -53,7 +56,14 @@ export async function readCappedBody(
 }
 
 export async function fetchMarketplaceFeed(options: FetchFeedOptions): Promise<FetchFeedResult> {
-  const fetchImpl = options.fetchImpl ?? fetch
+  const fetchImpl =
+    options.fetchImpl ??
+    ((input, init) =>
+      guardedFetch(input, init, {
+        allowPrivateHosts: env.MARKETPLACE_ALLOW_PRIVATE_HOSTS,
+        maxResponseBytes: MAX_BODY_BYTES,
+        timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      }))
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
 

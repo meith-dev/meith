@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { guardedFetch } from '@meith/core/outbound'
 import { MemoryQueue } from '@meith/drivers'
 import type { OutboxReader, OutboxRecord } from '@meith/events'
 import type { PromotionCandidate, PromotionRule } from '@meith/groups'
@@ -9,6 +10,11 @@ import type { MarketplaceFeed } from '@meith/marketplace'
 import { buildEventRegistry } from './event-handlers'
 import { SEED_GROUP } from './groups'
 import { defaultPromotionGuards, taskWorkers } from './task-workers'
+
+vi.mock('@meith/core/outbound', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@meith/core/outbound')>()),
+  guardedFetch: vi.fn(),
+}))
 
 const NOT_ABORTED = new AbortController().signal
 
@@ -344,7 +350,7 @@ describe('the marketplace catalog refresh', () => {
         },
       }),
     }) as unknown as typeof fetch
-    vi.stubGlobal('fetch', fetchImpl)
+    vi.mocked(guardedFetch).mockImplementation(fetchImpl)
 
     const workers = taskWorkers({
       ...base,
@@ -359,8 +365,6 @@ describe('the marketplace catalog refresh', () => {
 
     const result = await workers.refreshMarketplaceCatalog!()
     expect(result).toMatchObject({ ok: true, listingCount: 1 })
-
-    vi.unstubAllGlobals()
   })
 
   it('notifies exactly once for a plugin update, through the wired notifier', async () => {
@@ -376,7 +380,7 @@ describe('the marketplace catalog refresh', () => {
         },
       }),
     })) as unknown as typeof fetch
-    vi.stubGlobal('fetch', fetchImpl)
+    vi.mocked(guardedFetch).mockImplementation(fetchImpl)
 
     const notifyUpdate = vi.fn().mockResolvedValue(undefined)
     const workers = taskWorkers({
@@ -397,8 +401,6 @@ describe('the marketplace catalog refresh', () => {
     expect(notifyUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'dues', version: '0.17.0' }),
     )
-
-    vi.unstubAllGlobals()
   })
 
   it('notifies for an installed theme whose feed version is newer, using its tracked version', async () => {
@@ -422,7 +424,7 @@ describe('the marketplace catalog refresh', () => {
         },
       }),
     })) as unknown as typeof fetch
-    vi.stubGlobal('fetch', fetchImpl)
+    vi.mocked(guardedFetch).mockImplementation(fetchImpl)
 
     const notifyUpdate = vi.fn().mockResolvedValue(undefined)
     const workers = taskWorkers({
@@ -442,8 +444,6 @@ describe('the marketplace catalog refresh', () => {
     expect(notifyUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'midnight', version: '0.17.0' }),
     )
-
-    vi.unstubAllGlobals()
   })
 
   it('is absent, not a stub, when there is no catalog to refresh', () => {
