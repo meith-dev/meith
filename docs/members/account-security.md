@@ -14,6 +14,8 @@ Use the reset link on the sign-in page, enter your email and follow the emailed 
 
 Resetting or changing your password revokes both board and admin panel sessions. Detection of a reused remember-me token also signs the account out of both. A previously issued admin cookie cannot keep panel access after these account-wide revocations.
 
+Account activation and email-change links open a confirmation page. Select the confirmation button to apply the change; previews and email scanners opening the link do not consume it. No JavaScript is required.
+
 ## Enable two-factor authentication
 
 1. Start authenticator setup on the security page.

@@ -2758,6 +2758,7 @@
   "page.confirm-account": "Confirm your account",
   "page.confirm-e-mail-address": "Confirm your e-mail address",
   "page.confirm-it": "Confirm it is you",
+  "page.confirm-token-prompt": "Confirm below to finish. Opening this link alone does not change your account.",
   "page.content": "Content",
   "page.control-panel": "Control panel",
   "page.control-panel-2": "Your control panel",

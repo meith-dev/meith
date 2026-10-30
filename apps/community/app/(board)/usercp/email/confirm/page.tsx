@@ -1,13 +1,12 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
-import { MemberSettingsService } from '@meith/accounts'
-
-import { recordAuthEvent } from '@/server/auth-events'
+import { AuthPage } from '@/components/auth/auth-page'
+import { SubmitButton } from '@/components/auth/form-controls'
+import { confirmEmailChangeAction } from '@/server/confirmation-actions'
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
-import { getTranslator, tr } from '@/server/i18n'
-import { sendEmailChangeNotice } from '@/server/usercp-mail'
+import { tr } from '@/server/i18n'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await tr('page.confirm-e-mail-address') }
@@ -20,33 +19,23 @@ export default async function ConfirmEmailPage({
 }) {
   const token = (await searchParams).token ?? ''
   const actor = await getActor()
-  const { memberSettings, accountStore } = getContainer()
-
-  if (memberSettings === null) notFound()
+  if (getContainer().memberSettings === null) notFound()
   if (actor.userId === null) {
-    redirect(`/login?next=${encodeURIComponent(`/usercp/email/confirm?token=${token}`)}`)
+    redirect(
+      `/login?next=${encodeURIComponent(`/usercp/email/confirm?token=${encodeURIComponent(token)}`)}`,
+    )
   }
+  if (token === '') redirect('/usercp/security?failed=1')
 
-  const outcome =
-    token === ''
-      ? null
-      : await new MemberSettingsService({
-          settings: memberSettings,
-          accounts: accountStore.accounts,
-          sessions: accountStore.sessions,
-          remember: accountStore.remember,
-          tokens: accountStore.tokens,
-        }).confirmEmailChange(token, actor.userId)
-
-  if (outcome !== null) {
-    await sendEmailChangeNotice({
-      stage: 'adopted',
-      previousEmail: outcome.previousEmail,
-      email: outcome.email,
-      t: await getTranslator(),
-    })
-    await recordAuthEvent({ userId: outcome.userId, kind: 'email_changed' })
-  }
-
-  redirect(outcome === null ? '/usercp/security?failed=1' : '/usercp/security?confirmed=1')
+  return (
+    <AuthPage
+      title={await tr('page.confirm-e-mail-address')}
+      lede={await tr('page.confirm-token-prompt')}
+    >
+      <form action={confirmEmailChangeAction}>
+        <input type="hidden" name="token" value={token} />
+        <SubmitButton>{await tr('page.confirm-e-mail-address')}</SubmitButton>
+      </form>
+    </AuthPage>
+  )
 }
