@@ -1856,6 +1856,7 @@
   "error.accounts.identity-provider-signed-its-token": "The identity provider signed its token with an algorithm this board does not accept.",
   "error.accounts.incorrect-username-password": "Incorrect username or password.",
   "error.accounts.language-board-recognises": "That is not a language this board recognises.",
+  "error.accounts.local-email-unverified-for-link": "The matching board account has not confirmed its e-mail address. Sign in with your password, or reset it by e-mail, then link the provider from account security.",
   "error.accounts.location-length": "Location may be at most {max} characters.",
   "error.accounts.look-like-e-mail-address": "That does not look like an e-mail address.",
   "error.accounts.look-like-web-address": "That does not look like a web address.",

@@ -83,7 +83,7 @@ async function enrol(userId: number): Promise<void> {
   await twoFactor().confirmEnrolment({ userId, code: await totpCode(secret, stepAt(NOW)) })
 }
 
-async function existingMember(email: string, username = 'ada'): Promise<number> {
+async function existingMember(email: string, username = 'ada', verified = true): Promise<number> {
   const account = await store.accounts.create({
     username,
     usernameLower: username.toLowerCase(),
@@ -94,6 +94,7 @@ async function existingMember(email: string, username = 'ada'): Promise<number> 
     state: 'active',
     primaryGroupId: 2,
   })
+  if (verified) await store.accounts.markEmailVerified(account.id, NOW, false)
   return account.id
 }
 
@@ -251,6 +252,26 @@ describe('the approval posture a first sign-in meets', () => {
 })
 
 describe('meeting an account that already exists', () => {
+  it.each(['none', 'email'] as const)(
+    'does not link an unverified local account under %s activation',
+    async (activationMethod) => {
+      const userId = await existingMember('ada@example.com', 'ada', false)
+      if (activationMethod === 'email') await store.accounts.setState(userId, 'awaiting_activation')
+      for (let attempt = 0; attempt < 2; attempt++) {
+        expect(
+          await rejectionMessage(
+            build({ activationMethod }).completeSignIn({
+              provider: PROVIDER,
+              profile: profile(),
+            }),
+          ),
+        ).toContain('board account has not confirmed')
+        expect(await store.identities.findBySubject('github', 'gh-1')).toBeNull()
+        expect(await store.sessions.listActiveForUser(userId, NOW)).toHaveLength(0)
+      }
+    },
+  )
+
   it('links it when the provider has confirmed the same address', async () => {
     const userId = await existingMember('ada@example.com')
 

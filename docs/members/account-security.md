@@ -16,7 +16,7 @@ Use an unused recovery code if you lose the authenticator. If both are lost, con
 
 ## Add a passkey or provider
 
-Use the security page's registration or linking controls and follow the browser prompts. Keep a working sign-in method while testing a new one. A provider-verified email can link automatically to a matching board account; unverified email cannot.
+Use the security page's registration or linking controls and follow the browser prompts. Keep a working sign-in method while testing a new one. Automatic linking requires the matching email to be verified both by the provider and on the existing board account. If the board account has not confirmed its email, sign in with its password or reset the password by email, then link the provider from account security.
 
 ## Review sessions
 

@@ -90,6 +90,10 @@ export class FederationService {
         )
       }
 
+      if (existing.emailVerifiedAt === null) {
+        throw new ForbiddenError(msg('error.accounts.local-email-unverified-for-link'))
+      }
+
       await this.link({
         userId: existing.id,
         provider: input.provider,

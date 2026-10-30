@@ -58,10 +58,10 @@ OIDC discovery reads `{issuer}/.well-known/openid-configuration`. Scopes default
 Resolution order:
 
 1. Use an already-linked provider identity.
-2. Link a provider-verified email to a matching board account.
+2. Link a provider-verified email to a matching board account whose email is also verified.
 3. Otherwise provision a new account if registration permits it.
 
-An unverified email cannot claim an existing account; the member must sign in and link manually. GitHub identities use numeric user IDs; a public fallback email is unverified.
+An unverified email on either side cannot claim an existing account; the member must sign in and link manually. Refusing an unverified address creates no identity link or sign-in session. GitHub identities use numeric user IDs; a public fallback email is unverified.
 
 Provisioning honours registration closure, address limits, ban filters, activation policy and the default member group. Provider verification can satisfy email confirmation; administrator approval still applies. New accounts have normalised unique usernames and no password until one is set.
 
