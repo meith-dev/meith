@@ -66,7 +66,7 @@ export function evaluatePromotions(
     groupId === null ? undefined : guards.rank?.get(groupId)
 
   const active = [...rules]
-    .filter((r) => r.enabled)
+    .filter((r) => r.enabled && !protectedIds.has(r.toPrimaryGroupId))
     .sort((a, b) => a.displayOrder - b.displayOrder || a.id - b.id)
 
   const outcomes: PromotionOutcome[] = []
