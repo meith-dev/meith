@@ -57,19 +57,19 @@ export interface RunSearchInput {
   readonly actor: Actor
   readonly sessionKey: string | null
   readonly terms: string
-  readonly filters: Omit<SearchFilterSet, 'authorUserIds' | 'authorNames'>
+  readonly filters: SearchFilterSet
   readonly authors: string
 }
 
 export type RunSearchOutcome =
-  | { readonly kind: 'ok'; readonly token: string }
+  | { readonly kind: 'ok'; readonly token: string; readonly terms: string }
   | {
       readonly kind: 'refused'
       readonly reason: 'empty' | 'too-short' | 'too-long'
       readonly minWordLength: number
     }
   | { readonly kind: 'flooded'; readonly seconds: number }
-  | { readonly kind: 'limited'; readonly message: string }
+  | { readonly kind: 'limited'; readonly message: string; readonly retryAfterSeconds: number }
   | { readonly kind: 'unknown-author'; readonly name: string }
 
 export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome> {
@@ -97,7 +97,11 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
 
   const limited = await spendLimit({ scope: 'search', actor: input.actor, settings })
   if (limited !== null && !limited.allowed) {
-    return { kind: 'limited', message: limitMessage(limited) }
+    return {
+      kind: 'limited',
+      message: limitMessage(limited),
+      retryAfterSeconds: limited.retryAfterSeconds,
+    }
   }
 
   const filters: SearchFilterSet = {
@@ -118,7 +122,7 @@ export async function runSearch(input: RunSearchInput): Promise<RunSearchOutcome
 
   if (stored === null) return { kind: 'flooded', seconds: floodSeconds }
 
-  return { kind: 'ok', token: stored.token }
+  return { kind: 'ok', token: stored.token, terms }
 }
 
 export interface SearchPageView {

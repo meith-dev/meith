@@ -188,7 +188,7 @@ async function respondTo(
       body,
     })
 
-    return json(result.body, result.status, headers)
+    return json(result.body, result.status, { ...headers, ...result.headers })
   } catch (err) {
     if (isAppError(err)) {
       const { error } = toPublicError(err, await getMessageResolver())

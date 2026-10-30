@@ -13,6 +13,8 @@ import {
 
 import { filterHtmlWords, filterWords } from '../../view/word-filter'
 import { activeWordFilter } from '../content-admin'
+import { getTranslator } from '../i18n'
+import { countingPrefix } from '../request-fingerprint'
 import {
   requireSearch,
   requireSearchEnabled,
@@ -20,6 +22,7 @@ import {
   searchMinWordLength,
   searchScopeFor,
 } from '../search'
+import { runSearch } from '../search-page'
 import {
   type ApiResult,
   type ApiRoutes,
@@ -60,24 +63,48 @@ export const SEARCH_HANDLERS: ApiRoutes = [
 
       const forumIds = ids('forum')
       const authorUserIds = ids('by')
+      const filters = {
+        sort: readSort(url.searchParams.get('sort')),
+        match: readMatch(url.searchParams.get('in')),
+        grouping: readGrouping(url.searchParams.get('show')),
+        period: readPeriod(url.searchParams.get('when')),
+        ...(forumIds === undefined ? {} : { forumIds }),
+        ...(authorUserIds === undefined ? {} : { authorUserIds }),
+      }
+      const admission = await runSearch({
+        actor,
+        sessionKey: actor.userId === null ? `api:${(await countingPrefix()) ?? 'unknown'}` : null,
+        terms: parsed.terms,
+        authors: '',
+        filters,
+      })
+      if (admission.kind === 'limited' || admission.kind === 'flooded') {
+        const seconds =
+          admission.kind === 'limited' ? admission.retryAfterSeconds : admission.seconds
+        return {
+          status: 429,
+          headers: { 'retry-after': String(Math.max(1, seconds)) },
+          body: {
+            error: {
+              code: 'rate_limited',
+              message:
+                admission.kind === 'limited'
+                  ? admission.message
+                  : (await getTranslator()).t('board.search.flooded', { seconds }),
+            },
+          },
+        }
+      }
+      if (admission.kind !== 'ok') {
+        return badRequest((await getTranslator()).t('board.search.empty'))
+      }
 
       const results = await requireSearch(await searchLanguage()).search(
-        searchQueryFrom(
-          parsed.terms,
-          {
-            sort: readSort(url.searchParams.get('sort')),
-            match: readMatch(url.searchParams.get('in')),
-            grouping: readGrouping(url.searchParams.get('show')),
-            period: readPeriod(url.searchParams.get('when')),
-            ...(forumIds === undefined ? {} : { forumIds }),
-            ...(authorUserIds === undefined ? {} : { authorUserIds }),
-          },
-          {
-            limit: pageLimit(url),
-            after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
-            now: new Date(),
-          },
-        ),
+        searchQueryFrom(admission.terms, filters, {
+          limit: pageLimit(url),
+          after: decodeCursor<SearchCursor>(url.searchParams.get('after')),
+          now: new Date(),
+        }),
         await searchScopeFor(actor),
       )
 

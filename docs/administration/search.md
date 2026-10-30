@@ -16,6 +16,8 @@ Web results, facets, forum choices and API results require both thread viewing a
 
 Set the minimum word length and flood interval. At least one query word must meet the minimum. The hourly cap is under [Antispam](antispam.md).
 
+The web and API search paths use the same hourly limits and flood checks. A member's API searches share their web search allowance; anonymous API searches share an address-range allowance. Rejected API searches return `429` with `Retry-After` before querying the index. Accepted API searches are retained under the same temporary search retention policy as web searches.
+
 ## Verify
 
 Search for known public and private content as a guest and representative members. Results must match their forum permissions. See [Search behaviour](../operations/mybb-discovery.md#search) for ranking and result limits, or [Operator commands](../operations/operator-cli.md) for rebuilding.
