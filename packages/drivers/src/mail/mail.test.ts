@@ -144,7 +144,7 @@ describe('ConfiguredMailDriver', () => {
     expect((transport.mock.calls[1]![0] as MailRequest).url.href).toBe('https://api.moved/emails')
   })
 
-  it('does not rebuild the transport when nothing changed', async () => {
+  it('pins a freshly checked address for each SMTP message', async () => {
     createTransport.mockClear()
 
     const smtp: MailConfig = {
@@ -161,7 +161,7 @@ describe('ConfiguredMailDriver', () => {
     await driver.send(MESSAGE)
     await driver.send(MESSAGE)
 
-    expect(createTransport).toHaveBeenCalledTimes(1)
+    expect(createTransport).toHaveBeenCalledTimes(2)
   })
 
   it('rebuilds when a credential changes, with nothing to invalidate', async () => {
