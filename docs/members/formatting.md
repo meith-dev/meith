@@ -61,9 +61,9 @@ Remote images require board permission. Use descriptive alternative text.
 
 Use the attachment form to upload files. With JavaScript, **Insert attachment** uploads an image and inserts `[attachment=id]`. Without JavaScript, submit files through the ordinary attachment form. Only permitted attachments render.
 
-Submitting an edit or publishing a reloaded draft claims your staged uploads from their attachment markers, even when the editor has lost its temporary upload list. Ownership, forum and per-post limits still apply. Markers shown as code or escaped text do not claim files.
-
 Removing a marker does not delete its file. Use the post's attachment controls to delete files.
+
+Submitting an edit or publishing a reloaded draft claims your staged uploads from their attachment markers, even when the editor has lost its temporary upload list. Ownership, forum and per-post limits still apply. Markers shown as code or escaped text do not claim files.
 
 A supported video URL on its own line can show a static preview when remote images are allowed. It does not embed a player.
 
