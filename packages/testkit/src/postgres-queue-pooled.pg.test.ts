@@ -103,6 +103,14 @@ describeIfPg('PostgresQueue across separate connections, against real Postgres',
     expect(second.deduplicated).toBe(true)
     expect(second.id).toBe(first.id)
 
+    await new PostgresQueue(a.db).drain(1, async () => {
+      expect(
+        await new PostgresQueue(b.db).enqueue('pooled.dedupe', {}, { dedupeKey: 'k-1' }),
+      ).toEqual({ id: first.id, deduplicated: true })
+    })
+    expect(
+      await new PostgresQueue(b.db).enqueue('pooled.dedupe', {}, { dedupeKey: 'k-1' }),
+    ).toEqual({ id: first.id, deduplicated: true })
     const rows = await a.db.select({ id: jobs.id }).from(jobs)
     expect(rows).toHaveLength(1)
   })

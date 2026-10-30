@@ -26,7 +26,7 @@ export class PostgresQueue implements QueueDriver {
       payload: payload as never,
       runAt: options.runAt ?? new Date(),
       maxAttempts: options.maxAttempts ?? 5,
-      idempotencyKey: options.dedupeKey ?? null,
+      idempotencyKey: options.dedupeKey || null,
     }
 
     if (options.dedupeKey) {
@@ -41,10 +41,13 @@ export class PostgresQueue implements QueueDriver {
         const existing = await this.db
           .select({ id: jobs.id })
           .from(jobs)
-          .where(and(eq(jobs.idempotencyKey, options.dedupeKey), eq(jobs.status, 'pending')))
+          .where(eq(jobs.idempotencyKey, options.dedupeKey))
           .limit(1)
 
-        return { id: String(existing[0]?.id ?? ''), deduplicated: true }
+        const prior = existing[0]
+        if (prior === undefined)
+          throw new Error('Conflicting queue job disappeared before it could be read.')
+        return { id: String(prior.id), deduplicated: true }
       }
       return { id: String(first.id), deduplicated: false }
     }

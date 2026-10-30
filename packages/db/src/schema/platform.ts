@@ -114,7 +114,7 @@ export const jobs = pgTable(
 
     uniqueIndex('jobs_idempotency_key')
       .on(t.idempotencyKey)
-      .where(sql`${t.idempotencyKey} is not null and ${t.status} = 'pending'`),
+      .where(sql`${t.idempotencyKey} is not null`),
 
     index('jobs_status_idx').on(t.status),
   ],
