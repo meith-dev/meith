@@ -32,7 +32,12 @@ class FakeWarnings implements WarningRepository {
   levels = LEVELS
   points = 0
   pointsBefore = 0
-  warnable: { id: number; username: string } | null = { id: 5, username: 'ivan' }
+  warnable: { id: number; username: string; staffRank: number } | null = {
+    id: 5,
+    username: 'ivan',
+    staffRank: 0,
+  }
+  issuerRank = 1
   postAuthor: number | null = 5
   revokeResult: { userId: number; points: number } | null = { userId: 5, points: 0 }
   due: { expired: number; userIds: readonly number[] } = { expired: 0, userIds: [] }
@@ -49,8 +54,10 @@ class FakeWarnings implements WarningRepository {
   async findType(typeId: number): Promise<WarningType | null> {
     return this.types.find((t) => t.id === typeId) ?? null
   }
-  async findWarnable(): Promise<{ id: number; username: string } | null> {
-    return this.warnable
+  async findWarnable(
+    userId: number,
+  ): Promise<{ id: number; username: string; staffRank: number } | null> {
+    return userId === 9 ? { id: 9, username: 'issuer', staffRank: this.issuerRank } : this.warnable
   }
   async findPostAuthor(): Promise<number | null> {
     return this.postAuthor
@@ -102,6 +109,34 @@ const ISSUE = {
 }
 
 describe('issuing', () => {
+  it.each([
+    [1, 1],
+    [1, 2],
+    [1, 3],
+    [2, 2],
+    [2, 3],
+    [3, 3],
+  ])('refuses staff rank %i warning rank %i before writing or banning', async (issuer, target) => {
+    const warnings = new FakeWarnings()
+    warnings.issuerRank = issuer
+    warnings.warnable = { id: 5, username: 'staff', staffRank: target }
+    warnings.points = 100
+    const bans = new FakeBans()
+    await expect(
+      serviceFor(warnings, bans).issue({ ...ISSUE, typeId: null, title: 'custom', points: 100 }),
+    ).rejects.toThrow(ValidationError)
+    expect(warnings.issued).toEqual([])
+    expect(bans.banned).toEqual([])
+  })
+
+  it('allows an administrator to warn a lower-ranking moderator', async () => {
+    const warnings = new FakeWarnings()
+    warnings.issuerRank = 3
+    warnings.warnable = { id: 5, username: 'moderator', staffRank: 1 }
+    await serviceFor(warnings).issue(ISSUE)
+    expect(warnings.issued).toHaveLength(1)
+  })
+
   it('takes the points and expiry from the type, never from the form', async () => {
     const warnings = new FakeWarnings()
     warnings.points = 2

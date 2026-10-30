@@ -30,6 +30,11 @@ left behind by earlier moves; downloads always check the thread's current forum.
 
 Warnings add points and may expire or be revoked. Warning levels can restrict posting, require approval or impose a ban. Check the effect before applying a warning.
 
+Warnings cannot target staff of equal or greater authority. Administrators and
+members with AdminCP access outrank super-moderators, who outrank other staff and
+appointed forum moderators. Active secondary memberships count toward this
+protection. Administrators cannot warn other administrators.
+
 Points are not percentages. Revoking them does not necessarily undo an imposed ban. Ban expiry needs scheduled work.
 
 An unlifted ban determines the actor's banned state, including bans created before

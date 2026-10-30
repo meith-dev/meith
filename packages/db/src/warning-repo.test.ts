@@ -314,7 +314,34 @@ describe('the evidence a warning cites', () => {
 
 describe('who can be warned', () => {
   it('resolves a live member', async () => {
-    expect(await repo.findWarnable(IVAN)).toEqual({ id: IVAN, username: 'ivan' })
+    expect(await repo.findWarnable(IVAN)).toEqual({ id: IVAN, username: 'ivan', staffRank: 0 })
+  })
+
+  it.each([
+    [3, 3],
+    [4, 2],
+    [5, 1],
+  ])('recognizes staff group %i in a secondary membership', async (groupId, rank) => {
+    await db.execute(
+      sql`insert into user_group_memberships (user_id, group_id) values (${IVAN}, ${groupId})`,
+    )
+    expect((await repo.findWarnable(IVAN))?.staffRank).toBe(rank)
+    await db.execute(
+      sql`update user_group_memberships set expires_at = now() - interval '1 day' where user_id = ${IVAN}`,
+    )
+    expect((await repo.findWarnable(IVAN))?.staffRank).toBe(0)
+  })
+
+  it('recognizes primary administrators and individual forum appointments', async () => {
+    await db.execute(sql`update users set primary_group_id = 3 where id = ${IVAN}`)
+    expect((await repo.findWarnable(IVAN))?.staffRank).toBe(3)
+    await db.execute(sql`update users set primary_group_id = 2 where id = ${IVAN}`)
+    await db.execute(
+      sql`insert into forums (id, title, slug, path) values (99, 'Staff', 'staff', '99')`,
+    )
+    await db.execute(sql`insert into forum_moderators (user_id, forum_id) values (${IVAN}, 99)`)
+    expect((await repo.findWarnable(IVAN))?.staffRank).toBe(1)
+    await db.execute(sql`delete from forums where id = 99`)
   })
 
   it('refuses a deleted account, which has nobody to receive the warning', async () => {
