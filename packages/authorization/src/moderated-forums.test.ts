@@ -71,6 +71,13 @@ async function moderated(moderators: readonly MemoryAppointment[], who: Actor): 
 }
 
 describe('moderatedForumIds', () => {
+  it.each([GROUP.registered, GROUP.staff, GROUP.admin])(
+    'denies banned group %i and appointments',
+    async (group) => {
+      expect(await moderated([APPOINTMENT], { ...actor([group]), state: 'banned' })).toEqual([])
+    },
+  )
+
   it('is empty for an ordinary member', async () => {
     expect(await moderated([], actor([GROUP.registered]))).toEqual([])
   })

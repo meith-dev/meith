@@ -85,6 +85,28 @@ async function allowed(
 }
 
 describe('moderatorRightsIn', () => {
+  it.each([GROUP.registered, GROUP.superMod, GROUP.admin])(
+    'denies banned group %i and appointments',
+    async (group) => {
+      const appointment: MemoryAppointment = {
+        ...NONE,
+        userId: 10,
+        forumId: FORUM.general,
+        cascadeToSubforums: true,
+        canApproveContent: true,
+      }
+      expect(
+        await authorizerFor([appointment]).moderatorRightsIn(
+          {
+            ...actor([group]),
+            state: 'banned',
+          },
+          FORUM.general,
+        ),
+      ).toEqual(NO_MODERATOR_RIGHTS)
+    },
+  )
+
   it('is nothing for an ordinary member', async () => {
     expect(
       await authorizerFor([]).moderatorRightsIn(actor([GROUP.registered]), FORUM.general),

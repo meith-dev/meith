@@ -27,4 +27,12 @@ Warnings add points and may expire or be revoked. Warning levels can restrict po
 
 Points are not percentages. Revoking them does not necessarily undo an imposed ban. Ban expiry needs scheduled work.
 
+An unlifted ban determines the actor's banned state, including bans created before
+this enforcement was added. Secondary groups grant no permissions while banned;
+their memberships and the account's activation state are preserved for lifting.
+Creating a ban revokes forum, remember-me and administrator sessions, API and feed
+tokens, outstanding credential links and push subscriptions in the same transaction.
+Creating, lifting or expiring bans invalidates cached permissions. Lifting a ban
+does not restore revoked credentials or registered push devices.
+
 After an action, check content visibility, member restrictions and the log. Ask an administrator to adjust [appointments](forums.md) when required actions are unavailable.

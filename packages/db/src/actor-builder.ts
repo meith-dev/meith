@@ -6,7 +6,7 @@ import { emptyPermissionSet } from '@meith/core'
 
 import type { Database } from './client'
 import { groupRowToPermissionSet } from './permissions-map'
-import { cacheVersions, userGroupMemberships, usergroups, users } from './schema'
+import { bans, cacheVersions, userGroupMemberships, usergroups, users } from './schema'
 
 function mapState(dbState: string): ActorState | 'deleted' {
   switch (dbState) {
@@ -51,16 +51,19 @@ export class ActorBuilder implements ActorSource {
         id: users.id,
         state: users.state,
         primaryGroupId: users.primaryGroupId,
+        banId: bans.id,
       })
       .from(users)
+      .leftJoin(bans, and(eq(bans.userId, users.id), isNull(bans.liftedAt)))
       .where(and(eq(users.id, userId), isNull(users.deletedAt)))
       .limit(1)
 
     const user = userRows[0]
     if (!user) return null
 
-    const state = mapState(user.state)
-    if (state === 'deleted') return null
+    const accountState = mapState(user.state)
+    if (accountState === 'deleted') return null
+    const state = user.banId === null ? accountState : 'banned'
 
     const now = new Date()
     const membershipRows = await this.db
@@ -85,8 +88,11 @@ export class ActorBuilder implements ActorSource {
         r.expiresAt.getTime() <= now.getTime(),
     )
 
-    const primaryGroupId = lapsed?.previousPrimaryGroupId ?? held
-    const groupIds = dedupe([primaryGroupId, ...live.map((r) => r.groupId)])
+    const primaryGroupId = state === 'banned' ? held : (lapsed?.previousPrimaryGroupId ?? held)
+    const groupIds =
+      state === 'banned'
+        ? [primaryGroupId]
+        : dedupe([primaryGroupId, ...live.map((r) => r.groupId)])
 
     const global = await this.combineGroups(groupIds)
 

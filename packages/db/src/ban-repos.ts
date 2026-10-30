@@ -15,7 +15,18 @@ import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
-import { banFilters, bans, rememberTokens, sessions, users } from './schema'
+import { bumpPermissionVersion } from './permission-version'
+import {
+  adminSessions,
+  banFilters,
+  bans,
+  credentialTokens,
+  feedTokens,
+  pushSubscriptions,
+  rememberTokens,
+  sessions,
+  users,
+} from './schema'
 
 const BAN_COLUMNS = {
   id: bans.id,
@@ -96,6 +107,22 @@ export class PostgresBanRepository implements BanRepository {
         .set({ revokedAt: input.now, revokedReason: 'account_banned' })
         .where(and(eq(rememberTokens.userId, input.userId), isNull(rememberTokens.revokedAt)))
 
+      await tx
+        .update(adminSessions)
+        .set({ revokedAt: input.now })
+        .where(and(eq(adminSessions.userId, input.userId), isNull(adminSessions.revokedAt)))
+      await tx.execute(sql`
+        update api_tokens set revoked_at = ${input.now}
+        where user_id = ${input.userId} and revoked_at is null
+      `)
+      await tx
+        .update(credentialTokens)
+        .set({ consumedAt: input.now })
+        .where(and(eq(credentialTokens.userId, input.userId), isNull(credentialTokens.consumedAt)))
+      await tx.delete(feedTokens).where(eq(feedTokens.userId, input.userId))
+      await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, input.userId))
+      await bumpPermissionVersion(tx)
+
       return row as BanRecord
     })
   }
@@ -110,6 +137,7 @@ export class PostgresBanRepository implements BanRepository {
 
       if (!ban) return
       await liftWithin(tx, ban, now)
+      await bumpPermissionVersion(tx)
     })
   }
 
@@ -126,11 +154,7 @@ export class PostgresBanRepository implements BanRepository {
       for (const ban of due) await liftWithin(tx, ban, now)
 
       if (due.length > 0) {
-        await tx.execute(sql`
-          insert into cache_versions (key, version)
-          values ('permissions', 1)
-          on conflict (key) do update set version = cache_versions.version + 1, bumped_at = now()
-        `)
+        await bumpPermissionVersion(tx)
       }
 
       return due.length

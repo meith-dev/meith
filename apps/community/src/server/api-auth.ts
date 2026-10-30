@@ -40,7 +40,8 @@ export async function apiToken(presented: string): Promise<AuthenticatedToken | 
 }
 
 export async function apiActor(userId: number): Promise<Actor | null> {
-  return getContainer().actorSource.buildForUser(userId)
+  const actor = await getContainer().actorSource.buildForUser(userId)
+  return actor?.state === 'banned' ? null : actor
 }
 
 export async function apiGuest(): Promise<Actor> {
