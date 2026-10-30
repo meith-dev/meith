@@ -11,7 +11,7 @@ import {
   searchQueryFrom,
 } from '@meith/search'
 
-import { filterWords } from '../../view/word-filter'
+import { filterHtmlWords, filterWords } from '../../view/word-filter'
 import { activeWordFilter } from '../content-admin'
 import {
   requireSearch,
@@ -94,7 +94,7 @@ export const SEARCH_HANDLERS: ApiRoutes = [
             authorUserId: hit.authorUserId,
             authorUsername: hit.authorUsername,
             postedAt: hit.postedAt.toISOString(),
-            excerpt: filterWords(hit.excerpt, wordFilter),
+            excerpt: filterHtmlWords(hit.excerpt, wordFilter),
           })),
           nextCursor: results.nextCursor === null ? null : encodeCursor(results.nextCursor),
         },

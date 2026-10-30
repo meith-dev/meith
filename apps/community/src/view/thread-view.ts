@@ -20,7 +20,7 @@ import type { MemberIdentity } from './member-identity'
 import { memberHref } from './member-profile'
 import { postAnchor } from './post-link'
 import { formatDate, formatTime, untranslated } from './time'
-import { filterWords } from './word-filter'
+import { filterHtmlWords } from './word-filter'
 
 export interface PostCapabilities {
   readonly viewerUserId: number | null
@@ -143,7 +143,7 @@ function post(post: PostListingRow, thread: ThreadListingRow, context: PostConte
     },
     bodyHtml: hidden
       ? ''
-      : filterWords(
+      : filterHtmlWords(
           postBodyHtml(post, context.vocabulary, {
             quoteAttribution:
               t === undefined
