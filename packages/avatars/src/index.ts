@@ -59,11 +59,12 @@ export interface AvatarRepository {
   }): Promise<{ readonly replaced: readonly string[] }>
   markReady(input: {
     readonly userId: number
+    readonly sourceKey: string
     readonly key: string
     readonly width: number
     readonly height: number
-  }): Promise<void>
-  markFailed(userId: number, reason: string): Promise<void>
+  }): Promise<boolean>
+  markFailed(userId: number, reason: string, sourceKey: string | null): Promise<boolean>
   clear(userId: number): Promise<{ readonly replaced: readonly string[] }>
   lock(input: {
     readonly userId: number
@@ -125,7 +126,6 @@ export class AvatarService {
       sourceKey: key,
       at: this.now(),
     })
-    await this.deps.avatars.forgetKeys([key])
     await this.sweepKeys(replaced)
   }
 
@@ -186,15 +186,16 @@ export class AvatarService {
       visibility: 'private',
     })
 
-    await this.deps.avatars.markReady({
+    const adopted = await this.deps.avatars.markReady({
       userId,
+      sourceKey: current.sourceKey,
       key,
       width: processed.width,
       height: processed.height,
     })
-    await this.deps.avatars.forgetKeys([key])
+    if (!adopted) await this.discard(key)
     await this.discard(current.sourceKey)
-    return 'done'
+    return adopted ? 'done' : 'skipped'
   }
 
   async remove(userId: number): Promise<void> {
@@ -226,19 +227,25 @@ export class AvatarService {
     const cutoff = new Date(this.now().getTime() - AVATAR_PROCESSING_GRACE_MINUTES * 60_000)
     const stalled = await this.deps.avatars.stalled(cutoff, limit)
 
+    let failed = 0
     for (const userId of stalled) {
       const current = await this.deps.avatars.find(userId)
-      await this.deps.avatars.markFailed(
+      if (current?.status !== 'pending' || current.updatedAt === null || current.updatedAt > cutoff)
+        continue
+      const marked = await this.deps.avatars.markFailed(
         userId,
         'Processing did not finish. Please upload it again.',
+        current.sourceKey,
       )
-      if (current?.sourceKey != null) await this.discard(current.sourceKey)
+      if (!marked) continue
+      failed++
+      if (current.sourceKey !== null) await this.discard(current.sourceKey)
     }
-    return stalled.length
+    return failed
   }
 
   private async fail(userId: number, reason: string, sourceKey: string): Promise<void> {
-    await this.deps.avatars.markFailed(userId, reason)
+    await this.deps.avatars.markFailed(userId, reason, sourceKey)
     await this.discard(sourceKey)
   }
 

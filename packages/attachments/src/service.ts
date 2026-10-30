@@ -118,6 +118,7 @@ export interface CreateAttachmentInput {
 }
 
 export interface ReadyInput {
+  readonly sourceKey: string
   readonly storageKey: string
   readonly thumbnailKey: string | null
   readonly width: number | null
@@ -138,7 +139,7 @@ export interface AttachmentRepository {
   findForDownload(id: number): Promise<AttachmentForDownload | null>
   listForPosts(postIds: readonly number[]): Promise<readonly AttachmentRecord[]>
   countForPost(postId: number): Promise<number>
-  markReady(id: number, input: ReadyInput): Promise<void>
+  markReady(id: number, input: ReadyInput): Promise<boolean>
   markFailed(id: number, reason: string): Promise<void>
   recordDownload(id: number): Promise<void>
   stalled(before: Date, limit: number): Promise<readonly AttachmentRecord[]>
@@ -210,7 +211,6 @@ export class AttachmentService {
         storageKey: item.opaque ? item.key : null,
         status: item.opaque ? 'ready' : 'pending',
       })
-      await this.deps.attachments.forgetKeys([item.key])
       created.push(record)
     }
 
@@ -241,7 +241,6 @@ export class AttachmentService {
       storageKey: opaque ? key : null,
       status: opaque ? 'ready' : 'pending',
     })
-    await this.deps.attachments.forgetKeys([key])
 
     return record
   }
@@ -312,17 +311,20 @@ export class AttachmentService {
       })
     }
 
-    await this.deps.attachments.markReady(record.id, {
+    const adopted = await this.deps.attachments.markReady(record.id, {
+      sourceKey: record.sourceKey,
       storageKey: fileKey,
       thumbnailKey: thumbKey,
       width: processed.width,
       height: processed.height,
       sizeBytes: processed.bytes.length,
     })
-    await this.deps.attachments.forgetKeys(thumbKey === null ? [fileKey] : [fileKey, thumbKey])
-
+    if (!adopted) {
+      await this.discard(fileKey)
+      if (thumbKey !== null) await this.discard(thumbKey)
+    }
     await this.discard(record.sourceKey)
-    return 'done'
+    return adopted ? 'done' : 'skipped'
   }
 
   async sweep(limit = 200): Promise<{ deleted: number; failed: number }> {

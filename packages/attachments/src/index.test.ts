@@ -311,6 +311,7 @@ class FakeRepo implements AttachmentRepository {
       createdAt: this.now,
     }
     this.rows.push(row)
+    for (const key of [input.sourceKey, input.storageKey]) if (key !== null) this.keys.delete(key)
     return row
   }
 
@@ -355,10 +356,19 @@ class FakeRepo implements AttachmentRepository {
     return stale
   }
   async markReady(id: number, input: ReadyInput) {
+    const row = this.rows.find((candidate) => candidate.id === id)
+    if (row?.status !== 'pending' || row.sourceKey !== input.sourceKey) return false
     this.update(id, { ...input, status: 'ready', sourceKey: null })
+    this.keys.set(input.sourceKey, this.now)
+    this.keys.delete(input.storageKey)
+    if (input.thumbnailKey !== null) this.keys.delete(input.thumbnailKey)
+    return true
   }
   async markFailed(id: number, reason: string) {
-    this.update(id, { status: 'failed', failureReason: reason })
+    const row = await this.findById(id)
+    if (row?.status !== 'pending') return
+    if (row.sourceKey !== null) this.keys.set(row.sourceKey, this.now)
+    this.update(id, { status: 'failed', failureReason: reason, sourceKey: null })
   }
   async recordDownload(id: number) {
     const row = this.rows.find((r) => r.id === id)
@@ -409,12 +419,14 @@ class FakeFiles {
 }
 
 class FakeImages implements ImageProcessor {
+  during?: () => Promise<void>
   fail = false
   calls = 0
   withThumbnail = true
 
   async process(input: { bytes: Uint8Array; codec: 'png' | 'jpeg' }) {
     this.calls += 1
+    await this.during?.()
     if (this.fail) throw new Error('nope')
     return {
       bytes: new TextEncoder().encode(`reencoded:${input.codec}`),
@@ -620,6 +632,36 @@ describe('processing', () => {
     const [row] = await service.attach(staged, POST)
     return row!
   }
+
+  it('cleans generated files when the attachment was deleted during encoding', async () => {
+    const row = await pendingImage()
+    images.during = async () => {
+      await repo.deleteForPost(row.id, POST.postId)
+    }
+    expect(await service.process(row.id)).toBe('skipped')
+    expect(files.objects.size).toBe(0)
+    expect(repo.keys.size).toBe(0)
+  })
+
+  it('keeps only the winning output when two workers encode the same source', async () => {
+    const row = await pendingImage()
+    let entered = 0
+    let release: () => void = () => undefined
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    images.during = async () => {
+      if (++entered === 2) release()
+      await barrier
+    }
+    const outcomes = await Promise.all([service.process(row.id), service.process(row.id)])
+    expect(outcomes.sort()).toEqual(['done', 'skipped'])
+    const current = (await repo.findById(row.id))!
+    expect([...files.objects.keys()].sort()).toEqual(
+      [current.storageKey, current.thumbnailKey].sort(),
+    )
+    expect(repo.keys.size).toBe(0)
+  })
 
   it('replaces the stored bytes with re-encoded ones and drops the original', async () => {
     const row = await pendingImage()

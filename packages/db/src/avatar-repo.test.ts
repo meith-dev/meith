@@ -74,7 +74,13 @@ describe('beginUpload', () => {
 
   it('reports the object it replaced, in the statement that replaced it', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/first/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/first/file', width: 200, height: 200 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/first/file',
+      width: 200,
+      height: 200,
+    })
 
     const { replaced } = await repo.beginUpload({
       userId: ADA,
@@ -111,7 +117,7 @@ describe('beginUpload', () => {
 
   it('clears a previous failure, so a retry is not shown the old reason', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markFailed(ADA, 'That image could not be read.')
+    await repo.markFailed(ADA, 'That image could not be read.', (await repo.find(ADA))!.sourceKey)
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/b/source', at: AT })
 
     expect((await repo.find(ADA))?.failureReason).toBeNull()
@@ -119,9 +125,40 @@ describe('beginUpload', () => {
 })
 
 describe('markReady', () => {
-  it('swaps both keys in one statement', async () => {
+  it('does not let a superseded worker publish or fail the replacement source', async () => {
+    await repo.beginUpload({ userId: ADA, sourceKey: 'old-source', at: AT })
+    await repo.rememberKey('old-output')
+    await repo.beginUpload({ userId: ADA, sourceKey: 'new-source', at: AT })
+    expect(
+      await repo.markReady({
+        userId: ADA,
+        sourceKey: 'old-source',
+        key: 'old-output',
+        width: 1,
+        height: 1,
+      }),
+    ).toBe(false)
+    expect(await repo.markFailed(ADA, 'late failure', 'old-source')).toBe(false)
+    expect(await repo.find(ADA)).toMatchObject({
+      status: 'pending',
+      sourceKey: 'new-source',
+      key: null,
+    })
+    const orphaned = await db.execute(
+      sql`select storage_key from attachment_orphans where storage_key = 'old-output'`,
+    )
+    expect(resultRows(orphaned)).toHaveLength(1)
+  })
+
+  it('adopts the output and retires its source atomically', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 200, height: 150 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 200,
+      height: 150,
+    })
 
     expect(await repo.find(ADA)).toMatchObject({
       status: 'ready',
@@ -134,19 +171,43 @@ describe('markReady', () => {
 
   it('does nothing to a row that is no longer pending', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
-    await repo.markReady({ userId: ADA, key: 'attachments/second/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 1,
+      height: 1,
+    })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/second/file',
+      width: 1,
+      height: 1,
+    })
 
     expect((await repo.find(ADA))?.key).toBe('attachments/a/file')
   })
 
   it('refuses two members claiming one object', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/shared/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/shared/file',
+      width: 1,
+      height: 1,
+    })
     await repo.beginUpload({ userId: BOB, sourceKey: 'attachments/b/source', at: AT })
 
     await expect(
-      repo.markReady({ userId: BOB, key: 'attachments/shared/file', width: 1, height: 1 }),
+      repo.markReady({
+        sourceKey: (await repo.find(BOB))?.sourceKey ?? 'missing',
+        userId: BOB,
+        key: 'attachments/shared/file',
+        width: 1,
+        height: 1,
+      }),
     ).rejects.toThrow()
   })
 
@@ -159,7 +220,13 @@ describe('markReady', () => {
 describe('clear', () => {
   it('resets the row and reports what to collect', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 1,
+      height: 1,
+    })
 
     const { replaced } = await repo.clear(ADA)
 
@@ -169,7 +236,13 @@ describe('clear', () => {
 
   it('is refused by the lock and collects nothing', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 1,
+      height: 1,
+    })
     await repo.lock({ userId: ADA, locked: true, reason: 'no' })
 
     expect(await repo.clear(ADA)).toEqual({ replaced: [] })
@@ -180,7 +253,13 @@ describe('clear', () => {
 describe('the lock', () => {
   it('keeps the object, so an appeal has something to look at', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 1,
+      height: 1,
+    })
     await repo.lock({ userId: ADA, locked: true, reason: 'not suitable' })
 
     expect(await repo.find(ADA)).toMatchObject({
@@ -202,7 +281,13 @@ describe('the lock', () => {
 describe('readMany', () => {
   it('answers a page of postbits in one query', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 1,
+      height: 1,
+    })
 
     const found = await repo.readMany([ADA, BOB])
     expect(found.get(ADA)?.key).toBe('attachments/a/file')
@@ -224,7 +309,13 @@ describe('stalled', () => {
 
   it('ignores a member whose upload finished', async () => {
     await repo.beginUpload({ userId: ADA, sourceKey: 'attachments/a/source', at: AT })
-    await repo.markReady({ userId: ADA, key: 'attachments/a/file', width: 1, height: 1 })
+    await repo.markReady({
+      sourceKey: (await repo.find(ADA))?.sourceKey ?? 'missing',
+      userId: ADA,
+      key: 'attachments/a/file',
+      width: 1,
+      height: 1,
+    })
 
     expect(await repo.stalled(new Date(), 10)).toEqual([])
   })

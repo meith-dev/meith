@@ -156,9 +156,33 @@ describe('create', () => {
 })
 
 describe('markReady', () => {
-  it('swaps the two keys in one statement', async () => {
+  it('keeps an unadopted output tracked when its attachment was deleted', async () => {
+    const row = await pending()
+    await repo.rememberKey('losing-output')
+    await repo.deleteForPost(row.id, row.postId!)
+    expect(
+      await repo.markReady(row.id, {
+        sourceKey: row.sourceKey!,
+        storageKey: 'losing-output',
+        thumbnailKey: null,
+        width: 1,
+        height: 1,
+        sizeBytes: 1,
+      }),
+    ).toBe(false)
+    expect(
+      resultRows(
+        await db.execute(
+          sql`select storage_key from attachment_orphans where storage_key = 'losing-output'`,
+        ),
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('adopts the output and retires its source atomically', async () => {
     const row = await pending()
     await repo.markReady(row.id, {
+      sourceKey: row.sourceKey!,
       storageKey: 'attachments/a/file',
       thumbnailKey: 'attachments/a/thumb',
       width: 800,
@@ -180,6 +204,7 @@ describe('markReady', () => {
   it('does nothing to a row that is no longer pending', async () => {
     const row = await pending()
     const ready = {
+      sourceKey: row.sourceKey!,
       storageKey: 'attachments/a/file',
       thumbnailKey: null,
       width: 1,
@@ -209,6 +234,7 @@ describe('markFailed', () => {
   it('cannot un-ready a row that already succeeded', async () => {
     const row = await pending()
     await repo.markReady(row.id, {
+      sourceKey: row.sourceKey!,
       storageKey: 'attachments/a/file',
       thumbnailKey: null,
       width: 1,
@@ -275,6 +301,7 @@ describe('stalled', () => {
   it('ignores rows that finished', async () => {
     const row = await pending()
     await repo.markReady(row.id, {
+      sourceKey: row.sourceKey!,
       storageKey: 'attachments/a/file',
       thumbnailKey: null,
       width: 1,
@@ -322,6 +349,7 @@ describe('deleteForPost', () => {
   it('removes the row and queues its keys for the orphan sweep', async () => {
     const row = await pending()
     await repo.markReady(row.id, {
+      sourceKey: row.sourceKey!,
       storageKey: 'attachments/edit/file',
       thumbnailKey: 'attachments/edit/thumb',
       width: 10,
@@ -336,6 +364,7 @@ describe('deleteForPost', () => {
       await db.execute(sql`select storage_key from attachment_orphans order by storage_key`),
     ) as Array<{ storage_key: string }>
     expect(orphans.map((o) => o.storage_key)).toEqual([
+      'attachments/a/source',
       'attachments/edit/file',
       'attachments/edit/thumb',
     ])
