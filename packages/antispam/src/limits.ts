@@ -6,6 +6,7 @@ export type ConfiguredRateLimitScope = (typeof RATE_LIMIT_SCOPES)[number]
 export const FIXED_RATE_LIMIT_SCOPES = [
   'verify_resend',
   'api_anon',
+  'api_user',
   'passkey',
   'credential_proof',
 ] as const

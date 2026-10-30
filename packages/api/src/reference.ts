@@ -90,7 +90,7 @@ export function renderReference(document: OpenApiDocument): string {
     '',
     '## Rate limits',
     '',
-    `Authenticated budget: **${window.window.budget} units per ${window.window.seconds} seconds** per token.`,
+    `Authenticated budget: **${window.window.budget} units per ${window.window.seconds} seconds** per owner, shared by all their tokens.`,
     '',
     `Guest budget: **${window.anonymousWindow.budget} units per ${window.anonymousWindow.seconds} seconds** per address prefix.`,
     '',

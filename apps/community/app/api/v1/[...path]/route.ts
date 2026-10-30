@@ -63,7 +63,7 @@ async function resolveCaller(
 
     const limit = await consumeRateLimit(
       authenticated.limits,
-      authenticated.token.id,
+      authenticated.token.userId,
       route.cost,
       new Date(),
     )
