@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PUBLIC_CONTENT } from '@meith/core'
+import { CORE_RENDERING } from '@meith/markdown'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -425,3 +426,38 @@ async function vectorOf(postId: number): Promise<string> {
   const [row] = await db.select().from(posts).where(eq(posts.id, postId))
   return String(row?.searchVector ?? '')
 }
+
+describe('reply authorization scope', () => {
+  it('rejects a reply when the thread moves during rendering without saving any side effects', async () => {
+    const thread = await repo.create(RECORD)
+    const racing = new PostgresThreadWriteRepository(db, {
+      ...CORE_RENDERING,
+      text: async (text) => {
+        await db.execute(
+          sql`update threads set forum_id = ${CATEGORY} where id = ${thread.threadId}`,
+        )
+        await db.execute(
+          sql`update posts set forum_id = ${CATEGORY} where thread_id = ${thread.threadId}`,
+        )
+        return text
+      },
+    })
+    await expect(
+      racing.createReply({
+        threadId: thread.threadId,
+        forumId: FORUM,
+        threadTitle: RECORD.title,
+        message: 'private reply',
+        authorUserId: 1,
+        authorUsername: 'ada',
+        visibility: 'visible',
+        subscribe: true,
+        createdAt: AT,
+      }),
+    ).rejects.toThrow()
+    expect(await db.select().from(posts)).toHaveLength(1)
+    expect(await db.select().from(threadSubscriptions)).toEqual([])
+    expect(await db.select().from(outbox)).toHaveLength(2)
+    expect((await db.select().from(forums).where(eq(forums.id, FORUM)))[0]?.postCount).toBe(1)
+  })
+})

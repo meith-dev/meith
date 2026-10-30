@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm'
 
+import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   authorRef,
   BodyFormat,
@@ -129,6 +131,9 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
     const searchConfig = await readSearchConfig(this.db)
 
     await this.db.transaction(async (tx) => {
+      if (!(await lockPostScope(tx, record))) {
+        throw new ValidationError(msg('error.posts.thread-available'))
+      }
       await tx.execute(sql`
         insert into post_revisions
           (post_id, revision, message, subject, edited_by_user_id, edit_reason, created_at)
@@ -213,6 +218,7 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
 
   async applyVisibility(record: PostVisibilityRecord): Promise<boolean> {
     return this.db.transaction(async (tx) => {
+      if (!(await lockPostScope(tx, record))) return false
       const moved = await tx.execute(sql`
         update posts set visibility = ${record.to}
          where id = ${record.postId} and visibility = ${record.from}
@@ -259,4 +265,24 @@ export class PostgresPostWriteRepository implements PostWriteRepository {
       return true
     })
   }
+}
+
+async function lockPostScope(
+  tx: Pick<Database, 'execute'>,
+  record: { readonly postId: number; readonly threadId: number; readonly forumId: number },
+): Promise<boolean> {
+  const thread = resultRows(
+    await tx.execute(sql`
+    select id from threads
+    where id = ${record.threadId} and forum_id = ${record.forumId} for update
+  `),
+  )
+  if (thread.length === 0) return false
+  const post = resultRows(
+    await tx.execute(sql`
+    select id from posts where id = ${record.postId}
+    and thread_id = ${record.threadId} and forum_id = ${record.forumId} for update
+  `),
+  )
+  return post.length !== 0
 }

@@ -126,6 +126,12 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     readonly at: Date
   }): Promise<boolean> {
     return this.db.transaction(async (tx) => {
+      const target = resultRows(
+        await tx.execute(sql`
+        select id from threads where id = ${input.threadId} for update
+      `),
+      )
+      if (target.length === 0) return false
       const tally = await tallyThread(tx, input.threadId)
 
       const moved = resultRows(
@@ -165,6 +171,13 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
     readonly at: Date
   }): Promise<boolean> {
     return this.db.transaction(async (tx) => {
+      const target = resultRows(
+        await tx.execute(sql`
+        select id from threads where id = ${input.threadId}
+        and forum_id = ${input.fromForumId} for update
+      `),
+      )
+      if (target.length === 0) return false
       const tally = await tallyThread(tx, input.threadId)
 
       const moved = resultRows(

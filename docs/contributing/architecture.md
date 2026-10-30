@@ -39,6 +39,8 @@ repositories must supply it. View builders check it against
 `listingVisibility().lastPostForumIds`, which excludes private, unreadable and
 own-thread-only sources before any rolled-up metadata reaches a theme or plugin.
 
+Replies, edits and post visibility changes lock the canonical thread before writing posts and recheck that it still belongs to the forum where the request was authorized. An edit also checks that the post still belongs to that thread. A concurrent move or merge causes a stale request to fail without saving content, revisions, counters or events; the author must reload and pass the destination permissions. Moves, splits and merges acquire thread locks before touching posts so the stored post forum and counter updates remain in the same serialized scope.
+
 See [Rendering and data](rendering-and-data.md) for caching, models and event-handler rules, and [Forms and actions](forms-and-actions.md) for mutation handling.
 
 Image workers publish outputs only if the pending source still matches their input. Adopting keys and retiring the previous source share a database transaction with orphan-key bookkeeping; deletions and replacements leave durable cleanup work before removing references. A worker losing that comparison discards its generated output, and stale avatar sweeps recheck the current upload time and source.

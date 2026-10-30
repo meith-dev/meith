@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm'
 
+import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
 import {
   authorRef,
   BodyFormat,
@@ -234,6 +236,15 @@ export class PostgresThreadWriteRepository implements ThreadWriteRepository, Rep
     const searchConfig = await readSearchConfig(this.db)
 
     return this.db.transaction(async (tx) => {
+      const target = resultRows(
+        await tx.execute(sql`
+        select id from threads
+        where id = ${record.threadId} and forum_id = ${record.forumId}
+        for update
+      `),
+      )
+      if (target.length === 0) throw new ValidationError(msg('error.threads.thread-available'))
+
       const postRows = resultRows(
         await tx.execute(sql`
           insert into posts

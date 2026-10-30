@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { PUBLIC_CONTENT } from '@meith/core'
-import { RENDER_VERSION } from '@meith/markdown'
+import { CORE_RENDERING, RENDER_VERSION } from '@meith/markdown'
 
 import type { Database } from './client'
 import { rollUpAncestorCounters } from './content-counters'
@@ -215,6 +215,29 @@ describe('applyEdit', () => {
     fromVisibility: 'visible' as const,
     toVisibility: 'visible' as const,
     ...overrides,
+  })
+
+  it('rejects an edit after its thread moves during rendering', async () => {
+    const { threadId, postIds } = await seedThread()
+    const racing = new PostgresPostWriteRepository(db, {
+      ...CORE_RENDERING,
+      text: async (text) => {
+        await db.execute(sql`update threads set forum_id = ${CHILD} where id = ${threadId}`)
+        await db.execute(sql`update posts set forum_id = ${CHILD} where thread_id = ${threadId}`)
+        return text
+      },
+    })
+    await expect(racing.applyEdit(edit(postIds[1]!, threadId))).rejects.toThrow()
+    expect(await postRow(postIds[1]!)).toMatchObject({ message: 'reply 0', revision_count: 0 })
+    expect(resultRows(await db.execute(sql`select id from post_revisions`))).toEqual([])
+  })
+
+  it('rejects an edit after the post moves into another thread', async () => {
+    const { threadId, postIds } = await seedThread()
+    const other = await seedThread()
+    await db.execute(sql`update posts set thread_id = ${other.threadId} where id = ${postIds[1]!}`)
+    await expect(repo.applyEdit(edit(postIds[1]!, threadId))).rejects.toThrow()
+    expect(await postRow(postIds[1]!)).toMatchObject({ message: 'reply 0', revision_count: 0 })
   })
 
   it('stores the previous body as a revision and the new one on the post', async () => {
@@ -433,6 +456,26 @@ describe('applyEdit', () => {
 })
 
 describe('applyVisibility', () => {
+  it('does not change a post authorized in a forum the thread has left', async () => {
+    const { threadId, postIds } = await seedThread()
+    await db.execute(sql`update threads set forum_id = ${CHILD} where id = ${threadId}`)
+    await db.execute(sql`update posts set forum_id = ${CHILD} where thread_id = ${threadId}`)
+    expect(
+      await repo.applyVisibility({
+        postId: postIds[1]!,
+        threadId,
+        forumId: FORUM,
+        authorUserId: AUTHOR,
+        isFirstPost: false,
+        from: 'visible',
+        to: 'deleted',
+        actedByUserId: MOD,
+        at: AT,
+      }),
+    ).toBe(false)
+    expect(await postRow(postIds[1]!)).toMatchObject({ visibility: 'visible' })
+  })
+
   const move = (
     postId: number,
     threadId: number,

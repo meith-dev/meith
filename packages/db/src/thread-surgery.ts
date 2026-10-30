@@ -115,7 +115,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
     return this.db.transaction(async (tx) => {
       const source = resultRows(
         await tx.execute(sql`
-          select forum_id, slug from threads where id = ${plan.sourceThreadId}
+          select forum_id, slug from threads where id = ${plan.sourceThreadId} for update
         `),
       ) as Array<{ forum_id: number; slug: string }>
       const forumId = Number(source[0]!.forum_id)
@@ -194,6 +194,10 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
 
   async merge(plan: MergePlan & { actorUserId: number; at: Date }): Promise<SurgeryOutcome> {
     return this.db.transaction(async (tx) => {
+      await tx.execute(sql`
+        select id from threads where id in (${plan.sourceThreadId}, ${plan.targetThreadId})
+        order by id for update
+      `)
       const rows = resultRows(
         await tx.execute(sql`
           select id, forum_id, slug, author_user_id,
