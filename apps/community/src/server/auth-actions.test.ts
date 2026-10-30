@@ -123,15 +123,24 @@ vi.mock('./auth-config', async (importOriginal) => {
 const {
   confirmResetAction,
   loginAction,
+  logoutAction,
   registerAction,
   requestResetAction,
   resendVerificationAction,
 } = await import('./auth-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
-const { SESSION_COOKIE } = await import('./cookies')
+const { ADMIN_COOKIE, ADMIN_SECOND_FACTOR_COOKIE, SESSION_COOKIE } = await import('./cookies')
 const { getContainer } = await import('./container')
 
 const CONTAINER_KEY = Symbol.for('@meith/forum.container')
+
+it('clears panel cookies when signing out of the board even without a board session', async () => {
+  jar.set(ADMIN_COOKIE, 'panel')
+  jar.set(ADMIN_SECOND_FACTOR_COOKIE, 'pending-panel')
+  expect(await redirectOf(logoutAction())).toBe('/login')
+  expect(jar.get(ADMIN_COOKIE)).toBe('')
+  expect(jar.get(ADMIN_SECOND_FACTOR_COOKIE)).toBe('')
+})
 
 function form(entries: Record<string, string>): FormData {
   const f = new FormData()

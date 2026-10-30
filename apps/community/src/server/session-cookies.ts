@@ -78,6 +78,8 @@ export async function clearSessionCookies(): Promise<void> {
   const isSecure = secure()
   jar.set(sessionCookieName(isSecure), '', clearedCookie(isSecure))
   jar.set(rememberCookieName(isSecure), '', clearedCookie(isSecure))
+  jar.set(ADMIN_COOKIE, '', clearedAdminCookie(isSecure))
+  jar.set(ADMIN_SECOND_FACTOR_COOKIE, '', clearedAdminSecondFactorCookie(isSecure))
 }
 
 export async function readRememberToken(): Promise<string | undefined> {

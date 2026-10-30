@@ -34,4 +34,6 @@ Revoke devices you no longer use and inspect unexpected security events. Changin
 
 Signing out an individual device also clears remembered sign-ins across the account. Existing sessions on other devices remain active, but they must sign in again after those sessions expire. Remembered sign-ins are not linked to individual session rows, so clearing them account-wide prevents a revoked device from silently returning.
 
+Signing out of the board revokes the account's admin panel sessions and clears panel cookies, including pending panel authentication. Signing back into the board requires a fresh panel sign-in before administrative access returns.
+
 Operator setup: [Authentication](../operations/single-sign-on.md).

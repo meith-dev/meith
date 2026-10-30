@@ -227,6 +227,30 @@ describe('Postgres account repositories', () => {
       expect(rows.find((row) => row.tokenHash === 'panel-revoked')?.revokedAt).toEqual(previous)
     })
 
+    it('ends panel access and pending proofs on logout without letting a revoked token end a new panel session', async () => {
+      const expiresAt = new Date(Date.now() + 60_000)
+      const session = await store.sessions.create({ tokenHash: 'logout', userId, expiresAt })
+      await h.db.insert(adminSessions).values({ userId, tokenHash: 'panel', expiresAt })
+      await store.tokens.issue({
+        tokenHash: 'pending-panel',
+        userId,
+        purpose: 'admin_second_factor',
+        expiresAt,
+      })
+      await store.sessions.revoke(session.id)
+      expect((await h.db.select().from(adminSessions))[0]?.revokedAt).not.toBeNull()
+      expect(
+        await store.tokens.consume('pending-panel', 'admin_second_factor', new Date()),
+      ).toBeNull()
+      await h.db.insert(adminSessions).values({ userId, tokenHash: 'new-panel', expiresAt })
+      await store.sessions.revoke(session.id)
+      const [fresh] = await h.db
+        .select()
+        .from(adminSessions)
+        .where(eq(adminSessions.tokenHash, 'new-panel'))
+      expect(fresh?.revokedAt).toBeNull()
+    })
+
     it('creates hashed, finds by hash, and returns null for an unknown hash', async () => {
       await store.sessions.create({
         tokenHash: 'sess-hash',
