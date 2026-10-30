@@ -56,7 +56,10 @@ function decodeEntities(value: string): string {
     if (entity.startsWith('#')) {
       const isHex = entity[1] === 'x' || entity[1] === 'X'
       const code = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10)
-      return Number.isFinite(code) ? String.fromCodePoint(code) : match
+      if (!Number.isFinite(code) || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) {
+        throw new ValidationError(msg('error.app.svg-invalid-character-reference'))
+      }
+      return String.fromCodePoint(code)
     }
     const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
     return named[entity.toLowerCase()] ?? match
