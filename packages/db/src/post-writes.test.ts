@@ -6,6 +6,7 @@ import { RENDER_VERSION } from '@meith/markdown'
 
 import type { Database } from './client'
 import { rollUpAncestorCounters } from './content-counters'
+import { PostgresModerationQueueRepository } from './moderation-queue'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresPostWriteRepository } from './post-writes'
 import { resultRows } from './result-rows'
@@ -267,6 +268,37 @@ describe('applyEdit', () => {
     expect(await threadRow(threadId)).toMatchObject({ reply_count: 0 })
     expect(await userPostCount()).toBe(beforeAuthor - 1)
     expect((await postRow(postIds[1]!)).visibility).toBe('unapproved')
+  })
+
+  it('lists an edited opening post for approval and restores its counters on approval', async () => {
+    const { threadId, postIds } = await seedThread()
+    const openerId = postIds[0]!
+    const before = await forumRow(FORUM)
+    const queue = new PostgresModerationQueueRepository(db)
+    await repo.applyEdit(
+      edit(openerId, threadId, {
+        isFirstPost: true,
+        previousMessage: 'the opening post',
+        toVisibility: 'unapproved',
+      }),
+    )
+    expect(await queue.countPending([FORUM])).toBe(1)
+    expect((await queue.list([FORUM], { limit: 10 })).items).toMatchObject([
+      { kind: 'post', id: openerId, threadId },
+    ])
+    expect(await queue.resolve([{ kind: 'post', id: openerId }])).toEqual([
+      { kind: 'post', id: openerId, forumId: FORUM },
+    ])
+    await queue.apply({
+      decision: 'approve',
+      threadIds: [],
+      postIds: [openerId],
+      actorUserId: MOD,
+      at: AT,
+    })
+    expect((await postRow(openerId)).visibility).toBe('visible')
+    expect(await queue.countPending([FORUM])).toBe(0)
+    expect(await forumRow(FORUM)).toEqual(before)
   })
 
   it('announces a visible edit but not one that sends the post back for approval', async () => {

@@ -13,6 +13,10 @@ Open `/modcp`. Check `/modcp/forums` for your assigned forums and allowed action
 
 Read queued items, select them and choose **Approve selected** or **Reject selected**. New-member controls, forum rules and warnings can hold content. A moderate-posting warning also applies to staff.
 
+An opening post held after an edit appears as a post in the approval queue while
+the thread remains published. It can be approved or rejected like a held reply.
+An entirely held thread appears once as a thread, including its opening post.
+
 Open a report, review the item, record the outcome and close it. Private-message reports expose the reported item, not general inbox access. Review community-flagged content before restoring or removing it.
 
 ## Manage threads
