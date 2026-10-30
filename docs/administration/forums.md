@@ -12,6 +12,10 @@ Select **Add forum**, choose a type, enter its title and slug, then save.
 | Forum | Threads and optional subforums |
 | Link | Redirect URL; no children |
 
+Link destinations must resolve to HTTP or HTTPS; relative links are allowed.
+Executable schemes such as `javascript:` and `data:` are rejected on creation
+and editing. Previously saved unsafe destinations render as local forum links.
+
 Arrange rows with drag handles or the up/down/in/out buttons. Moving a forum moves its descendants and changes inherited permissions. Re-parenting requires password confirmation. A forum cannot be its own descendant, sit inside a link or share a sibling's slug.
 
 **Open for posting**, **Allow new threads** and **Allow replies** are separate switches. Group grants cannot override a closed forum. Set prefixes, polls, attachments and approval requirements on the forum page.

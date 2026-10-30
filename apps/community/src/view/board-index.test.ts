@@ -34,6 +34,29 @@ function view(rows: readonly ForumListingRow[], visible: readonly number[]) {
 }
 
 describe('buildBoardIndexView', () => {
+  it.each([
+    'javascript:alert(1)',
+    'java\tscript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+  ])('never renders a legacy executable link %s', (linkUrl) => {
+    const result = view(
+      [forum({ id: 1, type: 'category' }), forum({ id: 2, parentId: 1, type: 'link', linkUrl })],
+      [1, 2],
+    )
+    expect(result.blocks[0]!.forums[0]!.href).toBe('/2-forum-2')
+  })
+
+  it.each(['https://example.test/docs', 'http://example.test/docs', '/docs'])(
+    'preserves a web link %s',
+    (linkUrl) => {
+      const result = view(
+        [forum({ id: 1, type: 'category' }), forum({ id: 2, parentId: 1, type: 'link', linkUrl })],
+        [1, 2],
+      )
+      expect(result.blocks[0]!.forums[0]!.href).toBe(linkUrl)
+    },
+  )
+
   it('groups forums under their top-level block', () => {
     const result = view(
       [

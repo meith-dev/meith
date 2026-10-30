@@ -58,6 +58,14 @@ async function storedRowCount(): Promise<number> {
 }
 
 describe('updateOptions', () => {
+  it('rejects executable links before updating a forum', async () => {
+    const existing = await repo.readOptions(CHILD)
+    expect(existing).not.toBeNull()
+    await expect(
+      repo.updateOptions(CHILD, { ...existing!, linkUrl: 'javascript:alert(1)' }),
+    ).rejects.toThrow('HTTP or HTTPS')
+  })
+
   it('writes every editable option and leaves the tree columns alone', async () => {
     await repo.updateOptions(CHILD, {
       title: 'Renamed',

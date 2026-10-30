@@ -2100,6 +2100,7 @@
   "error.forums.forum-its-own-parent": "A forum cannot be its own parent.",
   "error.forums.forum-needs-title": "A forum needs a title.",
   "error.forums.link-forum-needs-linkurl": "A link forum needs a linkUrl.",
+  "error.forums.link-url-http": "A forum link must use HTTP or HTTPS.",
   "error.internal": "Something went wrong on our end.",
   "error.messages.body-length": "A message may be at most {max} characters.",
   "error.messages.message-needs-something": "A message needs something in it.",

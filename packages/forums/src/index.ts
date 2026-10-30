@@ -18,7 +18,7 @@ export {
   withoutSubtree,
 } from './arrange'
 export { CachedForumRepository } from './cached-repo'
-export { type CreatePlan, planCreate } from './create'
+export { type CreatePlan, planCreate, safeForumLinkUrl } from './create'
 export { planMove } from './move'
 export {
   ancestorIds,

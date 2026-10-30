@@ -5,6 +5,15 @@ import type { ForumRow, NewForum } from './types'
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+export function safeForumLinkUrl(value: string): string | null {
+  try {
+    const url = new URL(value, 'https://forum.invalid')
+    return url.protocol === 'http:' || url.protocol === 'https:' ? value : null
+  } catch {
+    return null
+  }
+}
+
 export interface CreatePlan {
   readonly parentId: number | null
   readonly parentPath: string | null
@@ -24,6 +33,9 @@ export function planCreate(rows: readonly ForumRow[], input: NewForum): CreatePl
 
   if (input.type === 'link' && !input.linkUrl) {
     throw new ValidationError(msg('error.forums.link-forum-needs-linkurl'))
+  }
+  if (input.linkUrl !== undefined && safeForumLinkUrl(input.linkUrl) === null) {
+    throw new ValidationError(msg('error.forums.link-url-http'))
   }
 
   const parent = input.parentId === null ? null : rows.find((r) => r.id === input.parentId)
