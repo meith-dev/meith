@@ -36,6 +36,10 @@ describe('matchBanFilter', () => {
     expect(matchBanFilter([filter('ip', '192.0.2.*')], { ip: '１９２.0.2.1' })).toBeNull()
   })
 
+  it('ignores legacy patterns that normalize to a wildcard-only account lockout', () => {
+    expect(matchBanFilter([filter('username', '＊＊')], { username: 'anyone' })).toBeNull()
+  })
+
   it('expands * to any run and ? to one character', () => {
     expect(
       matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spam.example' }),

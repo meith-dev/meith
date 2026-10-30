@@ -119,7 +119,7 @@ export function matchBanFilter(
     if (value === undefined || value === '') continue
 
     const pattern = preparedPattern(filter.type, filter.pattern)
-    if (tooLong(pattern) || tooWild(pattern)) continue
+    if (/^\*+$/.test(pattern) || tooLong(pattern) || tooWild(pattern)) continue
     if (globMatches(pattern, value)) return filter
   }
   return null
