@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 
 import { type EnqueueOptions, type Job, logger, type QueueDriver } from '@meith/core'
 import { type Database, getDb, jobs, resultRows } from '@meith/db'
+import { msg } from '@meith/i18n'
 
 const LEASE_SECONDS = 300
 
@@ -45,8 +46,7 @@ export class PostgresQueue implements QueueDriver {
           .limit(1)
 
         const prior = existing[0]
-        if (prior === undefined)
-          throw new Error('Conflicting queue job disappeared before it could be read.')
+        if (prior === undefined) throw new Error(msg('error.drivers.queue-conflict-disappeared'))
         return { id: String(prior.id), deduplicated: true }
       }
       return { id: String(first.id), deduplicated: false }
