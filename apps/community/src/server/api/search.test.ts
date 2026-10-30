@@ -22,6 +22,7 @@ vi.mock('../search', () => ({
   requireSearch: () => ({ search: state.search }),
 }))
 vi.mock('../request-fingerprint', () => ({ countingPrefix: async () => '198.51.100' }))
+vi.mock('../i18n', () => ({ getTranslator: async () => ({ t: (key: string) => key }) }))
 vi.mock('../content-admin', () => ({
   activeWordFilter: async () => ({ enabled: false, rules: [] }),
 }))

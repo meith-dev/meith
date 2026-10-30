@@ -13,6 +13,7 @@ import {
 
 import { filterWords } from '../../view/word-filter'
 import { activeWordFilter } from '../content-admin'
+import { getTranslator } from '../i18n'
 import { countingPrefix } from '../request-fingerprint'
 import {
   requireSearch,
@@ -89,12 +90,14 @@ export const SEARCH_HANDLERS: ApiRoutes = [
               message:
                 admission.kind === 'limited'
                   ? admission.message
-                  : 'Too many requests. Slow down and try again.',
+                  : (await getTranslator()).t('board.search.flooded', { seconds }),
             },
           },
         }
       }
-      if (admission.kind !== 'ok') return badRequest('Provide a search term in ?q=.')
+      if (admission.kind !== 'ok') {
+        return badRequest((await getTranslator()).t('board.search.empty'))
+      }
 
       const results = await requireSearch(await searchLanguage()).search(
         searchQueryFrom(admission.terms, filters, {
