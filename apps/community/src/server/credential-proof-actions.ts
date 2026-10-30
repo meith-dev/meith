@@ -37,7 +37,12 @@ export async function proveCredentialAction(_prev: FormState, form: FormData): P
   }
 
   if (!proved) return { error: await tr('credentialProof.incorrect') }
-  if (!(await markCurrentSessionCredentialProved(actor.userId))) {
+  if (
+    !(await markCurrentSessionCredentialProved(
+      actor.userId,
+      method === 'code' ? 'code' : 'password',
+    ))
+  ) {
     return { error: await tr('credentialProof.expired') }
   }
 

@@ -116,7 +116,7 @@ export async function GET(
       if (identity === undefined || sessionId !== handshake.sessionId) {
         return to(withReason(home, 'mismatch'))
       }
-      if (!(await markCurrentSessionCredentialProved(actor.userId))) {
+      if (!(await markCurrentSessionCredentialProved(actor.userId, 'provider'))) {
         return to(withReason(home, 'expired'))
       }
       return to('/usercp/security?verified=1')

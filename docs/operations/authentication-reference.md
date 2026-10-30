@@ -69,6 +69,11 @@ Provisioning honours registration closure, address limits, ban filters, activati
 
 Adding a passkey or identity requires proof of an existing credential, bound to the current session for ten minutes and rechecked before persistence. Password, enrolled passkey, authenticator/recovery code or an already-linked identity can provide proof. Recovery proof consumes its code.
 
+When an authenticator is enrolled, fresh proof requires its code, an unused
+recovery code or a passkey with user verification. A password or provider sign-in
+alone cannot grant fresh proof. These choices are hidden from the verification
+page and rejected at the shared proof boundary, including direct requests.
+
 One provider identity can belong to only one account. Removing the last currently usable credential is refused; disabled providers/passkeys do not count as usable. **Let members link and unlink their own sign-ins** can disable self-management without invalidating existing enabled links.
 
 ## Passkeys
