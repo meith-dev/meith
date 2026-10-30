@@ -386,6 +386,31 @@ describe('claimAttachments', () => {
     expect(claimed.map((r) => r.id)).toEqual([5])
   })
 
+  it('recovers attachment markers from a reloaded draft without hidden upload fields', async () => {
+    const body = form([])
+    body.set('message', 'A saved draft with [attachment=5] and [attachment=5].')
+    const claimed = await claimAttachments(
+      body,
+      { postId: 9, forumId: PUBLIC_FORUM, userId: ADA },
+      await scope(actorRef.current!),
+      0,
+    )
+    expect(claimed.map((row) => row.id)).toEqual([5])
+  })
+
+  it('does not claim a marker shown only as code', async () => {
+    const body = form([])
+    body.set('message', '`[attachment=5]`')
+    expect(
+      await claimAttachments(
+        body,
+        { postId: 9, forumId: PUBLIC_FORUM, userId: ADA },
+        await scope(actorRef.current!),
+        0,
+      ),
+    ).toEqual([])
+  })
+
   it('claims nothing once the per-post limit is already spent by classic uploads', async () => {
     const actor = actorRef.current!
     const claimed = await claimAttachments(

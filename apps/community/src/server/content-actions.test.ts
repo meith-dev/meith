@@ -190,8 +190,14 @@ class FakeAttachments {
       createdAt: new Date(),
     }
   }
-  async findById() {
-    return null
+  async findById(id: number) {
+    return this.rows.find((row) => row.id === id) ?? null
+  }
+  async attachTo(id: number, postId: number) {
+    const row = this.rows.find((candidate) => candidate.id === id && candidate.postId === null)
+    if (row === undefined) return null
+    row.postId = postId
+    return row
   }
   async findForDownload() {
     return null
@@ -971,6 +977,15 @@ describe('post actions', () => {
         attachments = new FakeAttachments()
         attachments.rows = [existingAttachment()]
         installContainer({ postWrites, attachments })
+      })
+
+      it('claims an inline upload when an existing post is edited without an upload list', async () => {
+        const orphan = existingAttachment({ id: 6, postId: null })
+        attachments.rows.push(orphan)
+        await redirectOf(
+          editPostAction(EMPTY_STATE, form({ ...EDIT, message: 'Edited [attachment=6]' })),
+        )
+        expect(orphan.postId).toBe(50)
       })
 
       it('removes one and adds another in the same submission', async () => {

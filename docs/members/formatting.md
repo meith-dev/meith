@@ -65,6 +65,8 @@ Before a post is saved, a processed upload and its thumbnail can be previewed on
 
 Removing a marker does not delete its file. Use the post's attachment controls to delete files.
 
+Submitting an edit or publishing a reloaded draft claims your staged uploads from their attachment markers, even when the editor has lost its temporary upload list. Ownership, forum and per-post limits still apply. Markers shown as code or escaped text do not claim files.
+
 A supported video URL on its own line can show a static preview when remote images are allowed. It does not embed a player.
 
 ## Polls and drafts

@@ -461,10 +461,16 @@ export async function editPostAction(_prev: FormState, form: FormData): Promise<
       scope.target,
     )
 
-    await attachStaged(staged, { postId, forumId, userId: actor.userId })
+    const attached = await attachStaged(staged, { postId, forumId, userId: actor.userId })
     await removeAttachmentsFromPost(
       toRemove.map((record) => record.id),
       { postId, userId: actor.userId },
+    )
+    await claimAttachments(
+      form,
+      { postId, forumId, userId: actor.userId },
+      attachmentScope,
+      current.length - toRemove.length + attached.length,
     )
   } catch (err) {
     return toFormState(err, values)

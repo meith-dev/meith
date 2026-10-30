@@ -1,3 +1,4 @@
+export { extractAttachmentIds } from './attachment-ids'
 export {
   type AttributedAuthor,
   memberByNameHref,

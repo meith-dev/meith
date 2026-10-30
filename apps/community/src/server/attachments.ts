@@ -19,6 +19,7 @@ import type { ForumPermissions } from '@meith/core'
 import { ForbiddenError, ValidationError } from '@meith/core'
 import { drivers } from '@meith/drivers'
 import { imageProcessor } from '@meith/drivers/images'
+import { extractAttachmentIds } from '@meith/markdown'
 
 import { limitMessage, spendLimit } from './antispam'
 import { getContainer } from './container'
@@ -206,10 +207,14 @@ export async function claimAttachments(
   const cap = Math.max(0, maxPerPostFor(attachmentLimits(scope)) - existing)
   if (cap === 0) return []
 
-  const ids = form
+  const submitted = form
     .getAll('claimedAttachmentIds')
     .map((value) => (typeof value === 'string' ? positiveIntIn(value) : null))
     .filter((id): id is number => id !== null)
+  const message = form.get('message')
+  const referenced = typeof message === 'string' ? extractAttachmentIds(message) : []
+  const ids = [...new Set([...submitted, ...referenced])]
+    .filter((id) => id <= 2_147_483_647)
     .slice(0, cap)
 
   if (ids.length === 0) return []
