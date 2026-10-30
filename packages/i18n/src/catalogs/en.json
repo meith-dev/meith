@@ -1871,6 +1871,7 @@
   "error.accounts.passkey-replayed-counter-board-already": "That passkey replayed a counter the board has already seen, so it was refused.",
   "error.accounts.passkey-used-against-different-address": "That passkey was used against a different address.",
   "error.accounts.password-already-using": "That is the password you are already using.",
+  "error.accounts.password-max-bytes": "Password must be at most {max} UTF-8 bytes.",
   "error.accounts.password-min": "A password must be at least {min} characters.",
   "error.accounts.please-enter-valid-email-address": "Please enter a valid email address.",
   "error.accounts.reset-link-invalid-expired": "This reset link is invalid or has expired.",

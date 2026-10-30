@@ -1,5 +1,8 @@
 import { argon2id, argon2Verify } from 'hash-wasm'
 
+import { ValidationError } from '@meith/core'
+import { msg } from '@meith/i18n'
+
 import { isLegacyHash, verifyLegacyPassword } from './legacy'
 
 export interface PasswordPolicy {
@@ -16,11 +19,26 @@ export const CURRENT_PASSWORD_POLICY: PasswordPolicy = {
 
 const SALT_BYTES = 16
 const HASH_BYTES = 32
+const MAX_PASSWORD_BYTES = 1024
+
+function fitsPasswordLimit(password: string): boolean {
+  return (
+    password.length <= MAX_PASSWORD_BYTES &&
+    new TextEncoder().encode(password).byteLength <= MAX_PASSWORD_BYTES
+  )
+}
+
+export function assertPasswordSize(password: string): void {
+  if (!fitsPasswordLimit(password)) {
+    throw new ValidationError(msg('error.accounts.password-max-bytes', { max: MAX_PASSWORD_BYTES }))
+  }
+}
 
 export async function hashPassword(
   password: string,
   policy: PasswordPolicy = CURRENT_PASSWORD_POLICY,
 ): Promise<string> {
+  assertPasswordSize(password)
   if (password.length === 0) {
     throw new Error('Refusing to hash an empty password.')
   }
@@ -40,7 +58,7 @@ export async function verifyPassword(
   password: string,
   encodedHash: string | null | undefined,
 ): Promise<boolean> {
-  if (!encodedHash) return false
+  if (!encodedHash || !fitsPasswordLimit(password)) return false
 
   if (isLegacyHash(encodedHash)) return verifyLegacyPassword(password, encodedHash)
 

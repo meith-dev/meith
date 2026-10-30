@@ -6,6 +6,8 @@ Password and email changes, authenticator confirmation, recovery-code replacemen
 and two-factor disabling share the credential-proof limit of 10 attempts per hour
 per account. Refused attempts do not check credentials, change settings or send mail.
 
+Passwords are limited to 1,024 UTF-8 bytes before hashing or verification, including imported passwords. A member with an older password above this limit must use a password reset to choose a shorter one.
+
 ## Reset a password
 
 Use the reset link on the sign-in page, enter your email and follow the emailed link. Check spam folders. The response does not disclose whether the account exists. Contact an administrator if mail does not arrive.
