@@ -9,6 +9,7 @@ import { createPostgresAccountStore } from './account-repos'
 import { PostgresModCpRepository } from './modcp-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import {
+  adminSessions,
   credentialTokens,
   loginAttempts,
   rememberTokens,
@@ -46,6 +47,7 @@ describe('Postgres account repositories', () => {
   })
 
   beforeEach(async () => {
+    await h.db.delete(adminSessions)
     await h.db.delete(credentialTokens)
     await h.db.delete(rememberTokens)
     await h.db.delete(sessions)
@@ -209,6 +211,22 @@ describe('Postgres account repositories', () => {
   })
 
   describe('SessionRepository', () => {
+    it('revokes panel sessions with an account-wide board revocation and preserves prior stamps', async () => {
+      const previous = new Date('2026-01-01T00:00:00Z')
+      const expiresAt = new Date(Date.now() + 60_000)
+      await h.db.insert(adminSessions).values([
+        { userId, tokenHash: 'panel-live', expiresAt },
+        { userId, tokenHash: 'panel-revoked', expiresAt, revokedAt: previous },
+      ])
+      await store.sessions.create({ userId, tokenHash: 'board-live', expiresAt })
+      await store.sessions.revokeAllForUser(userId)
+      const rows = await h.db.select().from(adminSessions)
+      expect(rows.find((row) => row.tokenHash === 'panel-live')?.revokedAt).toEqual(
+        (await store.sessions.findByTokenHash('board-live'))?.revokedAt,
+      )
+      expect(rows.find((row) => row.tokenHash === 'panel-revoked')?.revokedAt).toEqual(previous)
+    })
+
     it('creates hashed, finds by hash, and returns null for an unknown hash', async () => {
       await store.sessions.create({
         tokenHash: 'sess-hash',

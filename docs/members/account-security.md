@@ -10,6 +10,8 @@ per account. Refused attempts do not check credentials, change settings or send 
 
 Use the reset link on the sign-in page, enter your email and follow the emailed link. Check spam folders. The response does not disclose whether the account exists. Contact an administrator if mail does not arrive.
 
+Resetting or changing your password revokes both board and admin panel sessions. Detection of a reused remember-me token also signs the account out of both. A previously issued admin cookie cannot keep panel access after these account-wide revocations.
+
 ## Enable two-factor authentication
 
 1. Start authenticator setup on the security page.

@@ -21,7 +21,14 @@ import { withinRotationGrace } from '@meith/accounts'
 import type { Database } from './client'
 import { PostgresPasskeyRepository, PostgresUserIdentityRepository } from './identity-link-repo'
 import { resultRows } from './result-rows'
-import { credentialTokens, loginAttempts, rememberTokens, sessions, users } from './schema'
+import {
+  adminSessions,
+  credentialTokens,
+  loginAttempts,
+  rememberTokens,
+  sessions,
+  users,
+} from './schema'
 import {
   PostgresAuthEventRepository,
   PostgresRecoveryCodeRepository,
@@ -297,10 +304,17 @@ export class PostgresSessionRepository implements SessionRepository {
   }
 
   async revokeAllForUser(userId: number): Promise<void> {
-    await this.db
-      .update(sessions)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+    const at = new Date()
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(sessions)
+        .set({ revokedAt: at })
+        .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+      await tx
+        .update(adminSessions)
+        .set({ revokedAt: at })
+        .where(and(eq(adminSessions.userId, userId), isNull(adminSessions.revokedAt)))
+    })
   }
 
   async supersede(oldSessionId: number, newSessionId: number, now: Date): Promise<void> {
