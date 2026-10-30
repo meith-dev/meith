@@ -41,6 +41,7 @@ class FakeWarnings implements WarningRepository {
   postAuthor: number | null = 5
   revokeResult: { userId: number; points: number } | null = { userId: 5, points: 0 }
   due: { expired: number; userIds: readonly number[] } = { expired: 0, userIds: [] }
+  restriction: PostingRestriction = { suspendedUntil: null, moderatedUntil: null }
 
   readonly issued: unknown[] = []
   readonly restrictions: Array<{ userId: number; restriction: PostingRestriction }> = []
@@ -73,13 +74,14 @@ class FakeWarnings implements WarningRepository {
     return this.pointsBefore
   }
   async readRestriction(): Promise<PostingRestriction> {
-    return { suspendedUntil: null, moderatedUntil: null }
+    return this.restriction
   }
   async applyRestriction(input: {
     userId: number
     restriction: PostingRestriction
   }): Promise<void> {
     this.restrictions.push({ userId: input.userId, restriction: input.restriction })
+    this.restriction = input.restriction
   }
   async history(): Promise<WarningPage> {
     return { rows: [] }
@@ -319,6 +321,23 @@ describe('levels', () => {
 })
 
 describe('revoking', () => {
+  it.each([-DAY, DAY])(
+    'keeps the original deadline after revoking a warning (%i ms)',
+    async (offset) => {
+      const warnings = new FakeWarnings()
+      const deadline = new Date(NOW.getTime() + offset)
+      warnings.restriction = { suspendedUntil: deadline, moderatedUntil: null }
+      warnings.revokeResult = { userId: 5, points: 8 }
+      await serviceFor(warnings).revoke({
+        warningId: 100,
+        actorUserId: 9,
+        reason: '',
+        mayWarn: true,
+      })
+      expect(warnings.restriction.suspendedUntil).toEqual(deadline)
+    },
+  )
+
   it('lifts the restriction when the revocation drops the member below the level', async () => {
     const warnings = new FakeWarnings()
     warnings.revokeResult = { userId: 5, points: 2 }
@@ -340,6 +359,7 @@ describe('revoking', () => {
   it('leaves a restriction in place when the member is still above a threshold', async () => {
     const warnings = new FakeWarnings()
     warnings.revokeResult = { userId: 5, points: 5 }
+    warnings.restriction = { suspendedUntil: null, moderatedUntil: new Date(NOW.getTime() + DAY) }
 
     await serviceFor(warnings).revoke({
       warningId: 100,
@@ -380,6 +400,29 @@ describe('revoking', () => {
 })
 
 describe('expiry', () => {
+  it.each([-DAY, DAY])(
+    'does not restart a suspension when an unrelated warning expires (%i ms)',
+    async (offset) => {
+      const warnings = new FakeWarnings()
+      const deadline = new Date(NOW.getTime() + offset)
+      warnings.restriction = { suspendedUntil: deadline, moderatedUntil: null }
+      warnings.due = { expired: 1, userIds: [5] }
+      warnings.pointsBefore = 8
+      await serviceFor(warnings).expireDue()
+      expect(warnings.restriction.suspendedUntil).toEqual(deadline)
+    },
+  )
+
+  it('reduces the restriction without starting a fresh deadline after a level drops', async () => {
+    const warnings = new FakeWarnings()
+    const deadline = new Date(NOW.getTime() + DAY)
+    warnings.restriction = { suspendedUntil: deadline, moderatedUntil: null }
+    warnings.due = { expired: 1, userIds: [5] }
+    warnings.pointsBefore = 5
+    await serviceFor(warnings).expireDue()
+    expect(warnings.restriction).toEqual({ suspendedUntil: null, moderatedUntil: deadline })
+  })
+
   it('re-evaluates every member whose warnings lapsed', async () => {
     const warnings = new FakeWarnings()
     warnings.due = { expired: 3, userIds: [5, 6] }
@@ -397,6 +440,7 @@ describe('expiry', () => {
     const warnings = new FakeWarnings()
     warnings.due = { expired: 1, userIds: [5] }
     warnings.pointsBefore = 8
+    warnings.restriction = { suspendedUntil: new Date(NOW.getTime() + DAY), moderatedUntil: null }
 
     await serviceFor(warnings).expireDue()
 

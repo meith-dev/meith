@@ -49,4 +49,9 @@ tokens, outstanding credential links and push subscriptions in the same transact
 Creating, lifting or expiring bans invalidates cached permissions. Lifting a ban
 does not restore revoked credentials or registered push devices.
 
+Posting restriction deadlines start when a warning crosses a new threshold.
+Further warnings below the next threshold, revocations and warning expiry do not
+restart or extend that deadline. Falling to a lower threshold reduces the action
+while retaining the imposed deadline; falling below all thresholds clears it.
+
 After an action, check content visibility, member restrictions and the log. Ask an administrator to adjust [appointments](forums.md) when required actions are unavailable.

@@ -330,14 +330,20 @@ export class WarningService {
     triggered: WarningLevel | null,
   ): Promise<void> {
     const level = standing.level
+    const previous =
+      triggered === null ? await this.warnings.readRestriction(userId) : NO_RESTRICTION
+    const deadline =
+      level === null
+        ? null
+        : triggered === null
+          ? (previous.suspendedUntil ?? previous.moderatedUntil)
+          : until(at, level.durationDays)
     const restriction: PostingRestriction =
       level === null || level.action === 'ban'
         ? NO_RESTRICTION
         : {
-            suspendedUntil:
-              level.action === 'suspend_posting' ? until(at, level.durationDays) : null,
-            moderatedUntil:
-              level.action === 'moderate_posting' ? until(at, level.durationDays) : null,
+            suspendedUntil: level.action === 'suspend_posting' ? deadline : null,
+            moderatedUntil: level.action === 'moderate_posting' ? deadline : null,
           }
 
     await this.warnings.applyRestriction({ userId, restriction, at })
