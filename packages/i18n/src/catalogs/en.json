@@ -128,7 +128,7 @@
   "accountForm.rate.whyHint": "Plain text, shown on their profile beside your name.",
   "accountForm.rate.whyOptional": "Why (optional)",
   "accountForm.rate.withdraw": "Withdraw",
-  "accountForm.sessions.blurb": "Every device holding a live sign-in to your account. Signing one out takes effect at once, and whoever holds it has to sign in again.",
+  "accountForm.sessions.blurb": "Every device holding a live sign-in to your account. Signing one out also clears remembered sign-ins on all devices; existing sessions on other devices stay active.",
   "accountForm.sessions.detail": "{address} · started {started} · last seen {seen}",
   "accountForm.sessions.signOut": "Sign out",
   "accountForm.sessions.signOutElsewhere": "Sign out everywhere else",
