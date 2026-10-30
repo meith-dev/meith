@@ -6,6 +6,8 @@ Set **Board name**, description and **Logo alt text** at `/admin/settings?group=
 
 Upload light and dark logos at **Admin → Themes** (`/admin/themes`). PNG, JPEG, WebP and SVG are accepted up to 512 KiB. If only a light logo exists, both modes use it. Without a logo, the header displays the name.
 
+SVG uploads reject scripts, event handlers, external file references and numeric character references outside the Unicode scalar range. Invalid character references return an upload validation message.
+
 Set **Favicon** under Board settings or on the themes page. It accepts the same formats and limit.
 
 | Asset | Fallback |

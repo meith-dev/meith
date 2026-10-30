@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { ValidationError } from '@meith/core'
+
 import { contentTypeFor, imageHeaders, sniff } from './image-upload'
 
 const bytes = (...values: number[]) => new Uint8Array(values)
@@ -53,6 +55,17 @@ describe('sniff', () => {
   it('refuses an entity-encoded javascript: scheme', () => {
     const payload = '<svg><a xlink:href="&#106;avascript:alert(1)">x</a></svg>'
     expect(() => sniff(text(payload))).toThrow(/script or an event handler/)
+  })
+
+  it.each(['&#1114112;', '&#x110000;', '&#999999999999999999999999999999999;', '&#xD800;'])(
+    'rejects an invalid numeric entity as an upload validation error: %s',
+    (entity) => {
+      expect(() => sniff(text(`<svg><text>${entity}</text></svg>`))).toThrow(ValidationError)
+    },
+  )
+
+  it('accepts valid astral and maximum Unicode numeric references', () => {
+    expect(sniff(text('<svg><text>&#x1F600;&#1114111;</text></svg>'))?.extension).toBe('svg')
   })
 
   it('refuses <use> or <image> pointing outside the file, but allows a local fragment', () => {

@@ -2031,6 +2031,7 @@
   "error.app.such-theme": "No such theme.",
   "error.app.svg-contains-external-reference": "That SVG references an external file, so it will not be stored. Inline the referenced content, or upload a PNG.",
   "error.app.svg-contains-script-event-handler": "That SVG contains script or an event handler, so it will not be stored. Export it again without interactivity, or upload a PNG.",
+  "error.app.svg-invalid-character-reference": "That SVG contains an invalid character reference. Export it again, or upload a PNG.",
   "error.app.system-group-granted-by-plugins": "A system group cannot be granted by plugins. The board resolves it by key.",
   "error.app.theme-board-built-with-so": "This is the theme the board is built with, so it always stays available. Change `defaultTheme` in meith.config.ts and redeploy to swap it.",
   "error.app.thread-exist": "That thread does not exist.",
