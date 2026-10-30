@@ -16,7 +16,7 @@ The minimum form time uses a server-signed issuance timestamp, valid for 30 minu
 
 ## Registration questions
 
-Select **Ask a question** and add questions with accepted answers at `/admin/antispam`. Matching trims, ignores case and collapses repeated spaces. An empty question set does not protect registration.
+Select **Ask a question** and add questions with accepted answers at `/admin/antispam`. Matching trims, ignores case and collapses repeated spaces. Question mode requires an enabled question before registration can succeed. Each issued question has a signed proof valid for 10 minutes. A successful answer consumes that proof once across all board instances; a later registration error requires refreshing the form. Replayed, expired or edited proofs are rejected. Verification failures do not bypass the challenge.
 
 ## Registration and reset limits
 

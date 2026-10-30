@@ -123,6 +123,16 @@ describe('pruning', () => {
 })
 
 describe('captcha questions', () => {
+  it('claims a proof once across competing repository instances', async () => {
+    const other = new PostgresCaptchaQuestionRepository(db)
+    const outcomes = await Promise.all(
+      Array.from({ length: 20 }, (_, i) =>
+        (i % 2 === 0 ? questions : other).claimChallenge('signed-proof', WINDOW),
+      ),
+    )
+    expect(outcomes.filter(Boolean)).toHaveLength(1)
+  })
+
   it('round-trips a question and splits its answers by line', async () => {
     await questions.create({ question: 'Colour of the sky?', answers: 'blue\nazure\n' })
 

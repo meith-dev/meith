@@ -19,10 +19,12 @@ import {
 import type { Actor, NumericGlobalPermission, Target } from '@meith/authorization'
 import { env, logger } from '@meith/core'
 import { getDb, PostgresCaptchaQuestionRepository, PostgresRateLimitBucketStore } from '@meith/db'
+import { msg } from '@meith/i18n'
 import type { SettingsSnapshot } from '@meith/settings'
 
 import { getContainer } from './container'
 import { issueFormTiming, readFormTiming } from './form-timing'
+import { packChallenge, unpackChallenge } from './passkey-challenge'
 import { countingPrefix } from './request-fingerprint'
 import { getSettings } from './settings'
 
@@ -248,7 +250,36 @@ export async function boardCaptcha(settings?: SettingsSnapshot): Promise<Captcha
   const repository = captchaQuestionRepository()
   if (repository === null) return noCaptcha
 
-  return new QuestionCaptcha({ list: () => repository.active() })
+  const questions = new QuestionCaptcha({ list: () => repository.active() })
+  return {
+    key: questions.key,
+    async issue() {
+      const challenge = await questions.issue()
+      return challenge === null
+        ? null
+        : {
+            ...challenge,
+            token: packChallenge('registration', `${challenge.token}:${crypto.randomUUID()}`),
+          }
+    },
+    async verify(input) {
+      const held = unpackChallenge(input.token, 'registration')
+      const separator = held?.challenge.indexOf(':') ?? -1
+      if (held === null || separator < 1) return expiredChallenge()
+      const verdict = await questions.verify({
+        token: held.challenge.slice(0, separator),
+        answer: input.answer,
+      })
+      if (!verdict.ok) return verdict
+      return (await repository.claimChallenge(input.token, new Date(held.issuedAt)))
+        ? verdict
+        : expiredChallenge()
+    },
+  }
+}
+
+function expiredChallenge(): ChallengeVerdict {
+  return { ok: false, reason: msg('error.antispam.challenge-expired').text }
 }
 
 export interface IssuedChallenge {
@@ -295,7 +326,7 @@ export async function verifyChallenge(form: FormData): Promise<ChallengeVerdict>
     })
   } catch (error) {
     logger().warn({ err: String(error) }, 'could not verify a challenge')
-    return { ok: true }
+    return { ok: false, reason: msg('error.antispam.challenge-unavailable').text }
   }
 }
 

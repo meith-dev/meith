@@ -1,16 +1,22 @@
 import 'server-only'
 
-import { createHmac } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
 
 import { env, timingSafeEqualString } from '@meith/core'
 
-export type PasskeyPurpose = 'register' | 'authenticate' | 'second-factor' | 'credential-proof'
+export type PasskeyPurpose =
+  | 'register'
+  | 'authenticate'
+  | 'second-factor'
+  | 'credential-proof'
+  | 'registration'
 
 export const PASSKEY_CHALLENGE_TTL_MS = 10 * 60 * 1000
 
 export const PASSKEY_CHALLENGE_TTL_SECONDS = PASSKEY_CHALLENGE_TTL_MS / 1000
 
 const CLOCK_SKEW_MS = 60_000
+const DEVELOPMENT_SECRET = randomBytes(32).toString('base64url')
 
 export interface PasskeyChallenge {
   readonly challenge: string
@@ -21,7 +27,7 @@ export interface PasskeyChallenge {
 }
 
 function signature(purpose: PasskeyPurpose, payload: string): string {
-  return createHmac('sha256', env.AUTH_SECRET ?? '')
+  return createHmac('sha256', env.AUTH_SECRET ?? DEVELOPMENT_SECRET)
     .update(`${purpose}:${payload}`)
     .digest('base64url')
 }

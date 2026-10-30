@@ -75,6 +75,18 @@ function splitAnswers(raw: string): readonly string[] {
 export class PostgresCaptchaQuestionRepository {
   constructor(private readonly db: Database) {}
 
+  async claimChallenge(token: string, issuedAt: Date): Promise<boolean> {
+    const rows = resultRows(
+      await this.db.execute(sql`
+      insert into rate_limits (scope, subject, window_start, used)
+      values ('captcha', ${token}, ${issuedAt}, 1)
+      on conflict (scope, subject, window_start) do nothing
+      returning used
+    `),
+    )
+    return rows.length === 1
+  }
+
   async active(): Promise<readonly CaptchaQuestion[]> {
     const rows = resultRows(
       await this.db.execute(sql`
