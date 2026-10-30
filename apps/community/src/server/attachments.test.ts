@@ -90,6 +90,7 @@ function record(overrides: Partial<AttachmentRecord> = {}): AttachmentRecord {
 }
 
 class FakeAttachments {
+  unclaimed: AttachmentRecord | null = null
   found: AttachmentForDownload | null = {
     record: record(),
     postVisibility: 'visible',
@@ -104,7 +105,7 @@ class FakeAttachments {
     return this.found
   }
   async findById() {
-    return this.found?.record ?? null
+    return this.found?.record ?? this.unclaimed
   }
   async listForPosts() {
     return []
@@ -425,6 +426,26 @@ describe('resolving a download', () => {
     return resolveDownload(actorRef.current!, 5, want)
   }
 
+  it('previews an unclaimed ready upload only for its active uploader', async () => {
+    attachments.found = null
+    attachments.unclaimed = record({ postId: null })
+    expect(await get()).toMatchObject({ key: 'attachments/a/file' })
+    expect(await get('thumb')).toMatchObject({ key: 'attachments/a/thumb' })
+    attachments.unclaimed = record({ postId: null, uploaderUserId: ADA + 1 })
+    expect(await get()).toBeNull()
+    attachments.unclaimed = record({ postId: null })
+    actorRef.current = { ...actorRef.current!, state: 'awaiting_activation' }
+    expect(await get()).toBeNull()
+  })
+
+  it('does not turn an unavailable attached or pending upload into a preview', async () => {
+    attachments.found = null
+    attachments.unclaimed = record({ postId: 999 })
+    expect(await get()).toBeNull()
+    attachments.unclaimed = record({ postId: null, status: 'pending' })
+    expect(await get()).toBeNull()
+  })
+
   it('grants a ready attachment in a forum the viewer may read', async () => {
     expect(await get()).toMatchObject({
       key: 'attachments/a/file',
@@ -498,6 +519,9 @@ describe('resolving a download', () => {
       threadAuthorUserId: null,
     }
     expect(await get()).toBeNull()
+    attachments.unclaimed = { ...attachments.found!.record, postId: null }
+    attachments.found = null
+    expect(await get()).toBeNull()
   })
 
   it('refuses a viewer without `attachment.download`', async () => {
@@ -511,6 +535,9 @@ describe('resolving a download', () => {
         },
       ],
     })
+    expect(await get()).toBeNull()
+    attachments.unclaimed = { ...attachments.found!.record, postId: null }
+    attachments.found = null
     expect(await get()).toBeNull()
   })
 
