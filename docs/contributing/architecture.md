@@ -33,4 +33,10 @@ Fixture mode supplies read-only sample data. PostgreSQL mode supplies durable st
 
 Write content changes and outbox events in the same transaction. Delivery is at least once; handlers must be idempotent. Queue claims and task leases coordinate workers. Every denormalized counter needs a bounded, resumable recount.
 
+Forum listing last-post summaries carry the current thread's source `forumId`,
+resolved from live post/thread rows rather than cached ancestor text. Custom forum
+repositories must supply it. View builders check it against
+`listingVisibility().lastPostForumIds`, which excludes private, unreadable and
+own-thread-only sources before any rolled-up metadata reaches a theme or plugin.
+
 See [Rendering and data](rendering-and-data.md) for caching, models and event-handler rules, and [Forms and actions](forms-and-actions.md) for mutation handling.

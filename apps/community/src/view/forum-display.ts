@@ -58,6 +58,7 @@ function forum(
   t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
   wordFilter: CompiledWordFilter | undefined,
+  lastPostForumIds: ReadonlySet<number>,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(row.id) ?? false
   const hydration = hydrateForumRow(
@@ -68,6 +69,7 @@ function forum(
     t,
     identities,
     wordFilter,
+    lastPostForumIds,
   )
   return {
     id: row.id,
@@ -120,6 +122,7 @@ export function threadRowModel(
 }
 
 export interface ForumDisplayInput {
+  readonly lastPostForumIds: ReadonlySet<number>
   readonly forum: ForumListingRow
   readonly subforums: readonly ForumListingRow[]
   readonly ownThreadsOnlyForumIds?: ReadonlySet<number>
@@ -155,6 +158,7 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
         input.t,
         input.identities,
         input.wordFilter,
+        input.lastPostForumIds,
       ),
       newThreadHref: input.newThreadHref ?? null,
       markReadAction: input.markReadAction ?? null,
@@ -172,6 +176,7 @@ export function buildForumDisplayView(input: ForumDisplayInput): ForumDisplayVie
                 input.t,
                 input.identities,
                 input.wordFilter,
+                input.lastPostForumIds,
               ),
             ),
           },

@@ -22,8 +22,33 @@ const forum: ForumListingRow = {
 }
 
 describe('buildForumDisplayView', () => {
+  it('hides a restricted descendant last post rolled onto the forum header', () => {
+    const view = buildForumDisplayView({
+      forum: {
+        ...forum,
+        lastPost: {
+          forumId: 9,
+          postId: 99,
+          threadId: 7,
+          threadTitle: 'Staff only',
+          userId: null,
+          username: 'staff',
+          at: new Date(),
+        },
+      },
+      subforums: [],
+      lastPostForumIds: new Set([forum.id]),
+      page: { rows: [], nextCursor: null },
+      pageNumber: 1,
+      nextHref: null,
+      now: new Date(),
+    })
+    expect(view.display.forum.lastPost).toBeNull()
+  })
+
   it('keeps deleted authors renderable and supplies the cursor pagination link', () => {
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum,
       subforums: [],
       page: {
@@ -82,6 +107,7 @@ describe('buildForumDisplayView', () => {
 
   it('carries a thread’s deleted state through to the row, for the theme to mark', () => {
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum,
       subforums: [],
       page: {
@@ -124,6 +150,7 @@ describe('buildForumDisplayView', () => {
     }
 
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum,
       subforums: [],
       page: {
@@ -172,6 +199,7 @@ describe('buildForumDisplayView', () => {
     }
 
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum,
       subforums: [],
       page: {
@@ -214,6 +242,7 @@ describe('buildForumDisplayView', () => {
 
   it('hydrates a subforum row’s last post and unread flag the same way the board index does', () => {
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum,
       subforums: [
         {
@@ -222,6 +251,7 @@ describe('buildForumDisplayView', () => {
           title: 'Off Topic',
           slug: 'off-topic',
           lastPost: {
+            forumId: 5,
             postId: 12,
             threadId: 3,
             threadTitle: 'Chatter',

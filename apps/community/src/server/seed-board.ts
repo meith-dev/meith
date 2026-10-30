@@ -106,6 +106,7 @@ const FORUM_ROWS: ForumListingRow[] = [
     threadCount: 3,
     postCount: 6,
     lastPost: {
+      forumId: SEED_FORUM.general,
       postId: 143,
       threadId: 22,
       threadTitle: 'What are you reading this week?',
@@ -129,6 +130,7 @@ const FORUM_ROWS: ForumListingRow[] = [
     threadCount: 1,
     postCount: 2,
     lastPost: {
+      forumId: SEED_FORUM.announcements,
       postId: 11,
       threadId: 4,
       threadTitle: 'Version 0.1 is live',
@@ -152,6 +154,7 @@ const FORUM_ROWS: ForumListingRow[] = [
     threadCount: 2,
     postCount: 4,
     lastPost: {
+      forumId: SEED_FORUM.general,
       postId: 143,
       threadId: 22,
       threadTitle: 'What are you reading this week?',
@@ -538,6 +541,7 @@ export const SEED_FORUM_ROWS: readonly ForumListingRow[] = FORUM_ROWS.map((forum
       last === undefined
         ? null
         : {
+            forumId: last.forumId,
             postId: last.id,
             threadId: last.threadId,
             threadTitle: THREAD_ROWS.find((thread) => thread.id === last.threadId)!.title,

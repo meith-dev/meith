@@ -106,6 +106,29 @@ beforeEach(async () => {
 })
 
 describe('listAll', () => {
+  it('resolves last-post metadata from the current thread instead of stale rollup fields', async () => {
+    await db.execute(sql`
+      insert into threads (id, forum_id, title, slug, author_username)
+      values (101, 4, 'Private moved thread', 'private', 'staff')
+    `)
+    await db.execute(sql`
+      insert into posts (id, thread_id, forum_id, author_username, message, is_first_post)
+      values (999, 101, 4, 'staff', 'private', true)
+    `)
+    await db.execute(sql`
+      update forums set last_post_id = 999, last_post_thread_id = 101,
+        last_post_thread_title = 'Stale title', last_post_at = now() where id = 1
+    `)
+    await db.execute(sql`update threads set forum_id = 12 where id = 101`)
+    const parent = (await repo.listListing()).find((row) => row.id === 1)!
+    expect(parent.lastPost).toMatchObject({ forumId: 12, threadTitle: 'Private moved thread' })
+    await db.execute(sql`update posts set visibility = 'unapproved' where id = 999`)
+    expect((await repo.listListing()).find((row) => row.id === 1)?.lastPost).toBeNull()
+    await db.execute(sql`update posts set visibility = 'visible' where id = 999`)
+    await db.execute(sql`update threads set visibility = 'unapproved' where id = 101`)
+    expect((await repo.listListing()).find((row) => row.id === 1)?.lastPost).toBeNull()
+  })
+
   it('reads the whole tree in one query and rebuilds it', async () => {
     const rows = await repo.listAll()
     expect(rows).toHaveLength(6)

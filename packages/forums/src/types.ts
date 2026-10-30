@@ -22,6 +22,7 @@ export type ForumNode<T extends TreeShaped = ForumRow> = T & {
 }
 
 export interface LastPostSummary {
+  readonly forumId: number
   readonly postId: number
   readonly threadId: number
   readonly threadTitle: string

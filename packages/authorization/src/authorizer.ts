@@ -147,23 +147,30 @@ export class Authorizer {
   async listingVisibility(actor: Actor): Promise<{
     readonly visibleForumIds: number[]
     readonly ownThreadsOnlyForumIds: number[]
+    readonly lastPostForumIds: number[]
   }> {
     if (actor.global.isAdministrator === true) {
+      const forumIds = [...(await this.source.allForumIds())]
       return {
-        visibleForumIds: [...(await this.source.allForumIds())],
+        visibleForumIds: forumIds,
         ownThreadsOnlyForumIds: [],
+        lastPostForumIds: forumIds,
       }
     }
 
     const visibleForumIds: number[] = []
     const ownThreadsOnlyForumIds: number[] = []
+    const lastPostForumIds: number[] = []
     for (const target of await this.resolvedTargets(actor)) {
       visibleForumIds.push(target.forumId)
+      if (this.can(actor, 'thread.view', target) && this.can(actor, 'thread.viewOthers', target)) {
+        lastPostForumIds.push(target.forumId)
+      }
       if (this.can(actor, 'thread.view', target) && !this.can(actor, 'thread.viewOthers', target)) {
         ownThreadsOnlyForumIds.push(target.forumId)
       }
     }
-    return { visibleForumIds, ownThreadsOnlyForumIds }
+    return { visibleForumIds, ownThreadsOnlyForumIds, lastPostForumIds }
   }
 
   async moderatedForumIds(

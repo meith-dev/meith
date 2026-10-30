@@ -91,6 +91,7 @@ describe('a thread title is rewritten wherever a reader meets one', () => {
 
   it('in a forum listing, and in the last-post line beside it', () => {
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum: listingRow,
       subforums: [],
       page: { rows: [thread], nextCursor: null },
@@ -112,6 +113,7 @@ describe('a thread title is rewritten wherever a reader meets one', () => {
         parentId: 1,
         path: '1.2',
         lastPost: {
+          forumId: 2,
           threadId: 3,
           threadTitle: TITLE,
           postId: 4,
@@ -123,6 +125,7 @@ describe('a thread title is rewritten wherever a reader meets one', () => {
     ]
 
     const view = buildBoardIndexView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows,
       visibleForumIds: new Set([1, 2]),
       now: NOW,
@@ -132,6 +135,7 @@ describe('a thread title is rewritten wherever a reader meets one', () => {
     expect(view.blocks[0]?.forums[0]?.lastPost?.threadTitle).toBe(FILTERED)
 
     const section = buildSectionView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows,
       visibleForumIds: new Set([1, 2]),
       categoryId: 1,
@@ -312,6 +316,7 @@ describe('a thread title is rewritten wherever a reader meets one', () => {
 
   it('and is left alone when the board holds no filter', () => {
     const view = buildForumDisplayView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       forum: listingRow,
       subforums: [],
       page: { rows: [thread], nextCursor: null },

@@ -25,6 +25,7 @@ import { filterWords } from './word-filter'
 export interface BoardIndexInput {
   readonly rows: readonly ForumListingRow[]
   readonly visibleForumIds: ReadonlySet<number>
+  readonly lastPostForumIds: ReadonlySet<number>
   readonly ownThreadsOnlyForumIds?: ReadonlySet<number>
   readonly unreadForumIds?: ReadonlySet<number>
   readonly markAllReadAction?: string | null
@@ -84,10 +85,12 @@ export function hydrateForumRow(
   t: Translator | undefined,
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
   wordFilter: CompiledWordFilter | undefined,
+  lastPostForumIds: ReadonlySet<number>,
 ): ForumRowHydration {
+  const restricted = row.lastPost !== null && !lastPostForumIds.has(row.lastPost.forumId)
   return {
-    lastPost: ownThreadsOnly ? null : toLastPost(row, now, t, identities, wordFilter),
-    isUnread: !ownThreadsOnly && (unreadForumIds?.has(row.id) ?? false),
+    lastPost: ownThreadsOnly || restricted ? null : toLastPost(row, now, t, identities, wordFilter),
+    isUnread: !ownThreadsOnly && !restricted && (unreadForumIds?.has(row.id) ?? false),
   }
 }
 
@@ -99,6 +102,7 @@ function toForumRow(
   identities: ReadonlyMap<number, MemberIdentity> | undefined,
   ownThreadsOnlyForumIds: ReadonlySet<number> | undefined,
   wordFilter: CompiledWordFilter | undefined,
+  lastPostForumIds: ReadonlySet<number>,
 ): ForumRowModel {
   const ownThreadsOnly = ownThreadsOnlyForumIds?.has(node.id) ?? false
   const hydration = hydrateForumRow(
@@ -109,6 +113,7 @@ function toForumRow(
     t,
     identities,
     wordFilter,
+    lastPostForumIds,
   )
 
   return {
@@ -169,6 +174,7 @@ export function buildSectionView(input: SectionInput): BoardIndexBlock | null {
       input.identities,
       input.ownThreadsOnlyForumIds,
       input.wordFilter,
+      input.lastPostForumIds,
     )
 
   return { block: { category: row(node) }, forums: node.children.map(row) }
@@ -193,6 +199,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
           input.identities,
           input.ownThreadsOnlyForumIds,
           input.wordFilter,
+          input.lastPostForumIds,
         ),
       },
       forums: node.children.map((child) =>
@@ -204,6 +211,7 @@ export function buildBoardIndexView(input: BoardIndexInput): BoardIndexView {
           input.identities,
           input.ownThreadsOnlyForumIds,
           input.wordFilter,
+          input.lastPostForumIds,
         ),
       ),
     })),

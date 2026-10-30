@@ -6,7 +6,7 @@ import { expectQueryBudget } from '@meith/testkit'
 import type { Database } from './client'
 import { PostgresForumRepository } from './forum-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
-import { forums } from './schema'
+import { forums, posts, threads, users } from './schema'
 
 let harness: TestDb
 let db: Database
@@ -43,6 +43,24 @@ async function seedBoard(count: number): Promise<void> {
       lastPostUsername: 'ada',
       lastPostAt: new Date('2026-07-30T09:14:00Z'),
     })
+    await db.insert(threads).values({
+      id,
+      forumId: id,
+      title: `Thread in ${i}`,
+      slug: `thread-${i}`,
+      authorUserId: 1,
+      authorUsername: 'ada',
+    })
+    await db.insert(posts).values({
+      id: id * 10,
+      threadId: id,
+      forumId: id,
+      authorUserId: 1,
+      authorUsername: 'ada',
+      message: 'Hello',
+      messageHtml: '<p>Hello</p>',
+      createdAt: new Date('2026-07-30T09:14:00Z'),
+    })
   }
 
   await db.execute(
@@ -54,6 +72,14 @@ beforeAll(async () => {
   harness = await createTestDb()
   db = harness.db
   repo = new PostgresForumRepository(db)
+  await db.insert(users).values({
+    id: 1,
+    username: 'ada',
+    usernameLower: 'ada',
+    email: 'ada@example.test',
+    emailLower: 'ada@example.test',
+    primaryGroupId: 2,
+  })
 })
 
 afterAll(async () => {
@@ -76,6 +102,7 @@ describe('listListing', () => {
     expect(first.postCount).toBe(0)
     expect(rows.find((r) => r.id === 101)!.postCount).toBe(3)
     expect(first.lastPost).toEqual({
+      forumId: 100,
       postId: 1000,
       threadId: 100,
       threadTitle: 'Thread in 0',
@@ -97,7 +124,7 @@ describe('listListing', () => {
 
   it('keeps the last post when its author was deleted', async () => {
     await seedBoard(1)
-    await db.execute(sql`update forums set last_post_user_id = null where id = 100`)
+    await db.execute(sql`update posts set author_user_id = null where id = 1000`)
 
     const row = (await repo.listListing()).find((r) => r.id === 100)!
 

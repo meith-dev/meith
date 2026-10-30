@@ -168,6 +168,7 @@ export default async function ForumPage({
         category={forum}
         rows={rows}
         visibleForumIds={new Set(visible)}
+        lastPostForumIds={new Set(listing.lastPostForumIds)}
         ownThreadsOnlyForumIds={ownThreadsOnlyForumIds}
         {...(read === null ? {} : { unreadForumIds: read.unreadForumIds })}
         homeLabel={(await getSettings()).get('board.name')}
@@ -227,6 +228,7 @@ export default async function ForumPage({
   )
 
   const view = buildForumDisplayView({
+    lastPostForumIds: new Set(listing.lastPostForumIds),
     forum,
     newThreadHref: canPost ? `/${id}-${forum.slug}/new` : null,
     subforums: rows.filter((row) => row.parentId === id && visible.includes(row.id)),

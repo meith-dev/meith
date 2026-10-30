@@ -182,6 +182,7 @@ describe('canViewOthersThreads', () => {
     expect(await authorizer.listingVisibility(MEMBER)).toEqual({
       visibleForumIds: [FORUM.lounge, FORUM.desk],
       ownThreadsOnlyForumIds: [FORUM.desk],
+      lastPostForumIds: [FORUM.lounge],
     })
   })
 

@@ -44,6 +44,13 @@ Open **Permissions**, edit the group columns and save. Each group uses the neare
 
 For an own-thread-only support forum, allow entry and posting but restrict **see threads started by other users** (`canViewOthersThreads`).
 
+Last-post titles, authors, timestamps and unread markers on forum and category
+cards are checked against the post's current source forum. A private or
+own-thread-only child's newest post is not exposed through a public ancestor.
+When that newest source is outside the reader's audience, the metadata is hidden
+instead of falling back to an older public post. Deleted or held posts and
+threads supply no last-post metadata.
+
 ## Appoint moderators
 
 Appoint a member or group in the forum's moderator controls. Approval, editing, deletion, restoration, locking, pinning, moving, merging and splitting are separate grants. Check any cascade to subforums.

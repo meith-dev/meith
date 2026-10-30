@@ -13,7 +13,7 @@ import type {
 import { childPath, planCreate, planMove } from '@meith/forums'
 
 import type { Database } from './client'
-import { forums } from './schema'
+import { forums, posts, threads } from './schema'
 
 const FOREST_LOCK_KEY = 0x0f01_0001
 
@@ -35,12 +35,15 @@ const FORUM_LISTING_COLUMNS = {
   allowThreads: forums.allowThreads,
   threadCount: forums.threadCount,
   postCount: forums.postCount,
-  lastPostId: forums.lastPostId,
-  lastPostThreadId: forums.lastPostThreadId,
-  lastPostThreadTitle: forums.lastPostThreadTitle,
-  lastPostUserId: forums.lastPostUserId,
-  lastPostUsername: forums.lastPostUsername,
-  lastPostAt: forums.lastPostAt,
+  lastPostId: posts.id,
+  lastPostForumId: threads.forumId,
+  lastPostThreadId: threads.id,
+  lastPostThreadTitle: threads.title,
+  lastPostUserId: posts.authorUserId,
+  lastPostUsername: posts.authorUsername,
+  lastPostAt: posts.createdAt,
+  postVisibility: posts.visibility,
+  threadVisibility: threads.visibility,
 } as const
 
 type SelectedForum = {
@@ -70,10 +73,20 @@ function toLastPost(row: SelectedListingForum): LastPostSummary | null {
   const postId = row.lastPostId as number | null
   const threadId = row.lastPostThreadId as number | null
   const at = row.lastPostAt as Date | null
+  const forumId = row.lastPostForumId as number | null
 
-  if (postId === null || threadId === null || at === null) return null
+  if (
+    postId === null ||
+    threadId === null ||
+    at === null ||
+    forumId === null ||
+    row.postVisibility !== 'visible' ||
+    row.threadVisibility !== 'visible'
+  )
+    return null
 
   return {
+    forumId,
     postId,
     threadId,
     threadTitle: (row.lastPostThreadTitle ?? '') as string,
@@ -98,6 +111,8 @@ export class PostgresForumRepository implements ForumRepository {
     const rows = await this.db
       .select(FORUM_LISTING_COLUMNS)
       .from(forums)
+      .leftJoin(posts, eq(posts.id, forums.lastPostId))
+      .leftJoin(threads, eq(threads.id, posts.threadId))
       .orderBy(asc(forums.displayOrder), asc(forums.id))
 
     return rows.map((row) => ({
