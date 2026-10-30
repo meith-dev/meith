@@ -50,9 +50,13 @@ export async function searchScopeFor(actor: Actor): Promise<SearchScope> {
   const { authorizer } = getContainer()
 
   const staff = actor.global.isAdministrator === true || actor.global.isSuperModerator === true
+  const audience = await authorizer.threadAudience(actor)
+  const searchable = new Set(await authorizer.forumIdsWhere(actor, 'forum.search'))
 
   return {
-    ...(await authorizer.threadAudience(actor)),
+    ...audience,
+    forumIds: audience.forumIds.filter((id) => searchable.has(id)),
+    ownThreadsOnlyForumIds: audience.ownThreadsOnlyForumIds.filter((id) => searchable.has(id)),
     content: contentScopeFrom({ seesUnapproved: staff, seesDeleted: staff }),
   }
 }
