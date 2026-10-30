@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 
 import { type EnqueueOptions, type Job, logger, type QueueDriver } from '@meith/core'
 import { type Database, getDb, jobs, resultRows } from '@meith/db'
+import { msg } from '@meith/i18n'
 
 const LEASE_SECONDS = 300
 
@@ -26,7 +27,7 @@ export class PostgresQueue implements QueueDriver {
       payload: payload as never,
       runAt: options.runAt ?? new Date(),
       maxAttempts: options.maxAttempts ?? 5,
-      idempotencyKey: options.dedupeKey ?? null,
+      idempotencyKey: options.dedupeKey || null,
     }
 
     if (options.dedupeKey) {
@@ -41,10 +42,13 @@ export class PostgresQueue implements QueueDriver {
         const existing = await this.db
           .select({ id: jobs.id })
           .from(jobs)
-          .where(and(eq(jobs.idempotencyKey, options.dedupeKey), eq(jobs.status, 'pending')))
+          .where(eq(jobs.idempotencyKey, options.dedupeKey))
           .limit(1)
 
-        return { id: String(existing[0]?.id ?? ''), deduplicated: true }
+        const prior = existing[0]
+        if (prior === undefined)
+          throw new Error(msg('error.drivers.queue-conflict-disappeared').text)
+        return { id: String(prior.id), deduplicated: true }
       }
       return { id: String(first.id), deduplicated: false }
     }

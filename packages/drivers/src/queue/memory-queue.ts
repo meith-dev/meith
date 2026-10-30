@@ -27,10 +27,8 @@ export class MemoryQueue implements QueueDriver {
     options: EnqueueOptions = {},
   ): Promise<{ id: string; deduplicated: boolean }> {
     if (options.dedupeKey) {
-      const live = this.rows.find(
-        (r) => r.dedupeKey === options.dedupeKey && r.status === 'pending',
-      )
-      if (live) return Promise.resolve({ id: live.id, deduplicated: true })
+      const existing = this.rows.find((r) => r.dedupeKey === options.dedupeKey)
+      if (existing) return Promise.resolve({ id: existing.id, deduplicated: true })
     }
 
     const row: Row = {

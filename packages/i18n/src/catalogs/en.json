@@ -2099,6 +2099,7 @@
   "error.db.thread-exist": "That thread does not exist.",
   "error.db.valid-json": "That is not valid JSON.",
   "error.drivers.invalid-file-key": "Invalid file key.",
+  "error.drivers.queue-conflict-disappeared": "Conflicting queue job disappeared before it could be read.",
   "error.forbidden": "You do not have permission to do that.",
   "error.forums.forum-follow-longer-there-reload": "The forum it was to follow is no longer there. Reload the tree and try that again.",
   "error.forums.forum-its-own-parent": "A forum cannot be its own parent.",

@@ -82,6 +82,33 @@ export function cacheDriverContract(name: string, make: DriverFactory<CacheDrive
 
 export function queueDriverContract(name: string, make: DriverFactory<QueueDriver>): void {
   describe(`QueueDriver contract: ${name}`, () => {
+    it('deduplicates running and completed jobs, including an aborted drain', async () => {
+      const queue = await make()
+      const first = await queue.enqueue('test.once', {}, { dedupeKey: 'once' })
+      const controller = new AbortController()
+      await queue.enqueue('test.later', {}, { dedupeKey: 'later' })
+      await queue.drain(
+        2,
+        async (job) => {
+          if (job.id === first.id) {
+            expect(await queue.enqueue('test.once', {}, { dedupeKey: 'once' })).toEqual({
+              id: first.id,
+              deduplicated: true,
+            })
+            const later = await queue.enqueue('test.later', {}, { dedupeKey: 'later' })
+            expect(later.deduplicated).toBe(true)
+            controller.abort()
+          }
+        },
+        { signal: controller.signal },
+      )
+      expect(await queue.enqueue('test.once', {}, { dedupeKey: 'once' })).toEqual({
+        id: first.id,
+        deduplicated: true,
+      })
+      expect((await queue.drain(2, async () => undefined)).processed).toBe(1)
+    })
+
     it('enqueues and drains a job', async () => {
       const queue = await make()
       await queue.enqueue('test.job', { n: 1 })

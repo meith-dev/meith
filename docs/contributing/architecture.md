@@ -33,6 +33,8 @@ Fixture mode supplies read-only sample data. PostgreSQL mode supplies durable st
 
 Write content changes and outbox events in the same transaction. Delivery is at least once; handlers must be idempotent. Queue claims and task leases coordinate workers. Outbox claims hold a five-minute lease and return an opaque `claimToken`; `markRelayed` takes the claimed records so an expired claimant cannot acknowledge a newer lease. Webhook claims advance their due time for at least five minutes (15 seconds per requested batch item for larger batches), and completion/retry methods require the current claim token. Expired claims can be retried, so handlers and webhook receivers must still deduplicate delivery IDs. Every denormalized counter needs a bounded, resumable recount.
 
+Queue idempotency keys identify one retained job across pending, running, completed and dead states. Re-enqueueing the same key returns that job; retry a dead job by ID. Use a distinct key for a distinct occurrence, and keep handlers idempotent across lease recovery.
+
 Forum listing last-post summaries carry the current thread's source `forumId`,
 resolved from live post/thread rows rather than cached ancestor text. Custom forum
 repositories must supply it. View builders check it against
