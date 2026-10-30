@@ -21,6 +21,10 @@ The user list supports up to 500 selected accounts for a shared-reason ban, addi
 
 Reversible actions show **Undo** for ten minutes. Only the initiating administrator can use it, once. Pruning, merging and credential deletion require confirmation and cannot be undone this way.
 
+Merging accounts deletes the source account's push subscriptions along with its
+sign-in credentials. Its browsers never inherit notifications for the surviving
+account. Push devices already registered to the surviving account remain registered.
+
 ## Assign and remove staff
 
 Assign [groups](groups.md) for board-wide roles. For forum-specific moderation, appoint the member under **Admin → Forums** and select individual actions.

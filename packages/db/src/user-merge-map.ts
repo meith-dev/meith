@@ -35,7 +35,6 @@ export const MERGE_REASSIGN: readonly ReassignColumn[] = [
   { table: 'announcements', column: 'author_user_id' },
   { table: 'board_stats', column: 'newest_user_id' },
   { table: 'user_group_memberships', column: 'granted_by_user_id' },
-  { table: 'push_subscriptions', column: 'user_id' },
   { table: 'auth_events', column: 'user_id' },
   { table: 'warnings', column: 'issued_by_user_id' },
   { table: 'warnings', column: 'revoked_by_user_id' },
@@ -84,6 +83,7 @@ export const ACCOUNT_CLOSURE_DISCARD: readonly DiscardColumn[] = [
 
 export const MERGE_DISCARD: readonly DiscardColumn[] = [
   ...ACCOUNT_CLOSURE_DISCARD,
+  { table: 'push_subscriptions', column: 'user_id' },
   { table: 'searches', column: 'user_id' },
   { table: 'post_drafts', column: 'user_id' },
 ]

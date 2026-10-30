@@ -215,6 +215,23 @@ describe('finish', () => {
     expect(rows).toEqual([{ id: 12, user_id: WINNER }])
   })
 
+  it('discards source push devices without reassigning them to the surviving account', async () => {
+    await seedPair()
+    await db.execute(sql`
+      insert into push_subscriptions (user_id, endpoint, p256dh, auth)
+      values (${LOSER}, 'https://push.test/source', 'source-key', 'source-auth'),
+             (${WINNER}, 'https://push.test/survivor', 'survivor-key', 'survivor-auth')
+    `)
+    await repo.finish(LOSER, WINNER)
+    expect(
+      resultRows(
+        await db.execute(sql`
+      select user_id, endpoint from push_subscriptions order by endpoint
+    `),
+      ),
+    ).toEqual([{ user_id: WINNER, endpoint: 'https://push.test/survivor' }])
+  })
+
   it('discards the loser’s identities and passkeys without changing the winner’s', async () => {
     await seedPair()
     await db.execute(sql`
