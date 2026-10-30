@@ -27,6 +27,7 @@ function forum(over: Partial<ForumListingRow> & { id: number }): ForumListingRow
 
 function view(rows: readonly ForumListingRow[], visible: readonly number[]) {
   return buildBoardIndexView({
+    lastPostForumIds: new Set(visible),
     rows,
     visibleForumIds: new Set(visible),
     now: NOW,
@@ -54,6 +55,48 @@ describe('buildBoardIndexView', () => {
         [1, 2],
       )
       expect(result.blocks[0]!.forums[0]!.href).toBe(linkUrl)
+    },
+  )
+
+  it.each(['private', 'own-thread-only'])(
+    'hides %s child metadata rolled onto a public ancestor',
+    (mode) => {
+      const rows = [
+        forum({
+          id: 1,
+          type: 'category',
+          lastPost: {
+            forumId: 3,
+            postId: 99,
+            threadId: 7,
+            threadTitle: 'Private appeal',
+            userId: 8,
+            username: 'private-author',
+            at: NOW,
+          },
+        }),
+        forum({ id: 3, parentId: 1 }),
+      ]
+      const input = {
+        rows,
+        visibleForumIds: new Set(mode === 'private' ? [1] : [1, 3]),
+        ownThreadsOnlyForumIds: new Set(mode === 'private' ? [] : [3]),
+        lastPostForumIds: new Set([1]),
+        unreadForumIds: new Set([1]),
+        now: NOW,
+      }
+      expect(buildBoardIndexView(input).blocks[0]!.block.category).toMatchObject({
+        lastPost: null,
+        isUnread: false,
+      })
+      expect(buildSectionView({ ...input, categoryId: 1 })!.block.category.lastPost).toBeNull()
+      const permitted = buildBoardIndexView({
+        ...input,
+        ownThreadsOnlyForumIds: new Set<number>(),
+        visibleForumIds: new Set([1, 3]),
+        lastPostForumIds: new Set([1, 3]),
+      })
+      expect(permitted.blocks[0]!.block.category.lastPost?.threadTitle).toBe('Private appeal')
     },
   )
 
@@ -139,6 +182,7 @@ describe('buildBoardIndexView', () => {
         forum({
           id: 1,
           lastPost: {
+            forumId: 1,
             postId: 99,
             threadId: 7,
             threadTitle: 'Hello',
@@ -164,6 +208,7 @@ describe('buildBoardIndexView', () => {
         forum({
           id: 1,
           lastPost: {
+            forumId: 1,
             postId: 1,
             threadId: 1,
             threadTitle: 'Old thread',
@@ -210,6 +255,7 @@ describe('buildBoardIndexView', () => {
 
   it('marks the supplied unread forums and exposes the native mark-all target', () => {
     const result = buildBoardIndexView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows: [forum({ id: 1 })],
       visibleForumIds: new Set([1]),
       unreadForumIds: new Set([1]),
@@ -237,6 +283,7 @@ describe('buildSectionView', () => {
 
   function section(categoryId: number, visible: readonly number[] = [1, 2, 3, 4, 5]) {
     return buildSectionView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows,
       visibleForumIds: new Set(visible),
       categoryId,
@@ -275,6 +322,7 @@ describe('a "your threads only" forum row', () => {
       threadCount: 412,
       postCount: 900,
       lastPost: {
+        forumId: 2,
         postId: 99,
         threadId: 7,
         threadTitle: 'My bank details are wrong',
@@ -287,6 +335,7 @@ describe('a "your threads only" forum row', () => {
 
   it('says nothing about threads the viewer may not see', () => {
     const result = buildBoardIndexView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows,
       visibleForumIds: new Set([1, 2]),
       ownThreadsOnlyForumIds: new Set([2]),
@@ -303,6 +352,7 @@ describe('a "your threads only" forum row', () => {
 
   it('leaves the row alone when the viewer may see everything', () => {
     const result = buildBoardIndexView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows,
       visibleForumIds: new Set([1, 2]),
       unreadForumIds: new Set([2]),
@@ -317,6 +367,7 @@ describe('a "your threads only" forum row', () => {
 
   it('treats a section listing the same way', () => {
     const section = buildSectionView({
+      lastPostForumIds: new Set([1, 2, 3, 5]),
       rows,
       visibleForumIds: new Set([1, 2]),
       ownThreadsOnlyForumIds: new Set([2]),

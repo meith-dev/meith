@@ -60,6 +60,7 @@ export default async function BoardIndexPage() {
   const view = buildBoardIndexView({
     rows,
     visibleForumIds: new Set(listing.visibleForumIds),
+    lastPostForumIds: new Set(listing.lastPostForumIds),
     ownThreadsOnlyForumIds: new Set(listing.ownThreadsOnlyForumIds),
     ...(read === null ? {} : { unreadForumIds: read.unreadForumIds }),
     markAllReadAction: read === null ? null : '/api/read/all',
