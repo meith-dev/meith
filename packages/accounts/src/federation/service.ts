@@ -91,10 +91,7 @@ export class FederationService {
       }
 
       if (existing.emailVerifiedAt === null) {
-        throw new ForbiddenError(
-          'The matching board account has not confirmed its e-mail address. Sign in with ' +
-            'your password, or reset it by e-mail, then link the provider from account security.',
-        )
+        throw new ForbiddenError(msg('error.accounts.local-email-unverified-for-link'))
       }
 
       await this.link({

@@ -1840,6 +1840,7 @@
   "error.accounts.current-password": "That is not your current password.",
   "error.accounts.digest-cadence-weekly-monthly": "Give weekly or monthly.",
   "error.accounts.email-already-registered": "That email is already registered.",
+  "error.accounts.local-email-unverified-for-link": "The matching board account has not confirmed its e-mail address. Sign in with your password, or reset it by e-mail, then link the provider from account security.",
   "error.accounts.github-refused-sign-in-code-start": "GitHub refused the sign-in code. Start again from the sign-in page.",
   "error.accounts.github-sent-account-with-stable": "GitHub sent an account with no stable identifier.",
   "error.accounts.group-board": "That is not a group this board has.",
