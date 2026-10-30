@@ -498,6 +498,13 @@
       "when": 1793361600000,
       "tag": "0070_attachment_forums",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793370920113,
+      "tag": "0071_queue_claim_leases",
+      "breakpoints": true
     }
   ]
 }

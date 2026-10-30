@@ -48,24 +48,40 @@ describe('PostgresOutboxReader', () => {
   it('stops returning an event once it is marked relayed', async () => {
     await addEvent(1)
     const claimed = await reader.claimUnrelayed(10)
-    await reader.markRelayed(claimed.map((r) => r.id))
+    await reader.markRelayed(claimed)
 
     expect(await reader.claimUnrelayed(10)).toEqual([])
   })
 
-  it('re-claims an event whose relay never marked it', async () => {
+  it('holds a live lease and reclaims it after expiration', async () => {
     await addEvent(1)
     await reader.claimUnrelayed(10)
 
+    expect(await reader.claimUnrelayed(10)).toHaveLength(0)
+    await db.execute(sql`update outbox set locked_until = now() - interval '1 second'`)
     expect(await reader.claimUnrelayed(10)).toHaveLength(1)
   })
 
   it('gives up on an event that has exhausted its claims', async () => {
     await addEvent(1)
-    for (let i = 0; i < 10; i++) await reader.claimUnrelayed(10)
+    for (let i = 0; i < 10; i++) {
+      await reader.claimUnrelayed(10)
+      await db.execute(sql`update outbox set locked_until = now() - interval '1 second'`)
+    }
 
     expect(await reader.claimUnrelayed(10)).toEqual([])
     expect(await reader.stuck()).toHaveLength(1)
+  })
+
+  it('does not let an older claimant acknowledge a renewed lease', async () => {
+    await addEvent(1)
+    const stale = await reader.claimUnrelayed(1)
+    await db.execute(sql`update outbox set locked_until = now() - interval '1 second'`)
+    const fresh = await new PostgresOutboxReader(db).claimUnrelayed(1)
+    await reader.markRelayed(stale)
+    expect((await db.select().from(outbox))[0]?.dispatchedAt).toBeNull()
+    await reader.markRelayed(fresh)
+    expect((await db.select().from(outbox))[0]?.dispatchedAt).not.toBeNull()
   })
 
   it('marks nothing when given no ids', async () => {

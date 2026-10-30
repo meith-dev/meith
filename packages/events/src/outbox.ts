@@ -24,7 +24,7 @@ export async function emit(tx: OutboxWriter, ...events: DomainEvent[]): Promise<
 
 export interface OutboxReader {
   claimUnrelayed(limit: number): Promise<OutboxRecord[]>
-  markRelayed(ids: number[]): Promise<void>
+  markRelayed(records: readonly OutboxRecord[]): Promise<void>
 }
 
 export interface RelayTarget {
@@ -70,7 +70,7 @@ export async function relayOutbox({
     await target.enqueue(jobs)
   }
 
-  await reader.markRelayed(records.map((r) => r.id))
+  await reader.markRelayed(records)
 
   return { claimed: records.length, enqueued: jobs.length }
 }

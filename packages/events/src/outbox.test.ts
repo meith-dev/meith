@@ -17,6 +17,7 @@ class FakeOutbox implements OutboxReader, RelayTarget {
       }
       this.rows.push({
         id: this.nextId++,
+        claimToken: 'test-lease',
         name: row.name as OutboxRecord['name'],
         payload: row.payload,
         dedupeKey: row.dedupeKey,
@@ -30,7 +31,8 @@ class FakeOutbox implements OutboxReader, RelayTarget {
     return this.rows.filter((r) => r.relayedAt === null).slice(0, limit)
   }
 
-  async markRelayed(ids: number[]): Promise<void> {
+  async markRelayed(records: readonly OutboxRecord[]): Promise<void> {
+    const ids = records.map((row) => row.id)
     for (const row of this.rows) {
       if (ids.includes(row.id)) row.relayedAt = new Date()
     }

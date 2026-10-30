@@ -1,4 +1,6 @@
-import { inArray, sql } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
+
+import { sql } from 'drizzle-orm'
 
 import type { DomainEventName, OutboxReader, OutboxRecord } from '@meith/events'
 
@@ -14,21 +16,25 @@ export class PostgresOutboxReader implements OutboxReader {
   async claimUnrelayed(limit: number): Promise<OutboxRecord[]> {
     const result = await this.db.execute(sql`
       update ${outbox}
-         set attempts = ${outbox.attempts} + 1
+         set attempts = ${outbox.attempts} + 1,
+             locked_until = now() + interval '5 minutes',
+             claim_token = ${randomUUID()}
        where id in (
          select id from ${outbox}
           where dispatched_at is null
             and attempts < ${MAX_CLAIMS}
+            and (locked_until is null or locked_until <= now())
           order by id
           limit ${limit}
           for update skip locked
        )
-      returning id, topic, payload, created_at, dispatched_at
+      returning id, topic, payload, created_at, dispatched_at, claim_token
     `)
 
     return (
       resultRows(result) as Array<{
         id: number
+        claim_token: string | null
         topic: string
         payload: unknown
         created_at: Date | string
@@ -36,6 +42,7 @@ export class PostgresOutboxReader implements OutboxReader {
       }>
     ).map((row) => ({
       id: Number(row.id),
+      claimToken: row.claim_token,
       name: row.topic as DomainEventName,
       payload: row.payload,
       dedupeKey: null,
@@ -44,16 +51,25 @@ export class PostgresOutboxReader implements OutboxReader {
     }))
   }
 
-  async markRelayed(ids: number[]): Promise<void> {
-    if (ids.length === 0) return
-    await this.db.update(outbox).set({ dispatchedAt: new Date() }).where(inArray(outbox.id, ids))
+  async markRelayed(records: readonly OutboxRecord[]): Promise<void> {
+    if (records.length === 0) return
+    const claims = sql.join(
+      records.map((row) => sql`(${row.id}::int, ${row.claimToken}::text)`),
+      sql`, `,
+    )
+    await this.db.execute(sql`
+      update outbox o set dispatched_at = now(), locked_until = null, claim_token = null
+      from (values ${claims}) as claim(id, token)
+      where o.id = claim.id and o.claim_token = claim.token and o.dispatched_at is null
+    `)
   }
 
   async stuck(limit = 50): Promise<OutboxRecord[]> {
     const rows = await this.db.execute(sql`
-      select id, topic, payload, created_at, dispatched_at
+      select id, topic, payload, created_at, dispatched_at, claim_token
         from ${outbox}
        where dispatched_at is null and attempts >= ${MAX_CLAIMS}
+         and (locked_until is null or locked_until <= now())
        order by id
        limit ${limit}
     `)
@@ -61,6 +77,7 @@ export class PostgresOutboxReader implements OutboxReader {
     return (
       resultRows(rows) as Array<{
         id: number
+        claim_token: string | null
         topic: string
         payload: unknown
         created_at: Date | string
@@ -68,6 +85,7 @@ export class PostgresOutboxReader implements OutboxReader {
       }>
     ).map((row) => ({
       id: Number(row.id),
+      claimToken: row.claim_token,
       name: row.topic as DomainEventName,
       payload: row.payload,
       dedupeKey: null,

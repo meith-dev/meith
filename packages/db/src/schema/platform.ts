@@ -74,6 +74,8 @@ export const outbox = pgTable(
     correlationId: text('correlation_id'),
 
     dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    claimToken: text('claim_token'),
     attempts: smallint('attempts').notNull().default(0),
     lastError: text('last_error'),
 
