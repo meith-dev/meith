@@ -170,7 +170,7 @@ export class Authorizer {
     actor: Actor,
     right: keyof ModeratorRights = 'canApproveContent',
   ): Promise<number[]> {
-    if (actor.state === 'banned') return []
+    if (actor.state !== 'active') return []
     if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
       return [...(await this.source.allForumIds())]
     }
@@ -224,7 +224,7 @@ export class Authorizer {
   }
 
   async moderatorRightsIn(actor: Actor, forumId: number): Promise<ModeratorRights> {
-    if (actor.state === 'banned') return NO_MODERATOR_RIGHTS
+    if (actor.state !== 'active') return NO_MODERATOR_RIGHTS
     if (actor.global.isAdministrator === true || actor.global.isSuperModerator === true) {
       return ALL_MODERATOR_RIGHTS
     }
