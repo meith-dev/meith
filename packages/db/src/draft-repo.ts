@@ -1,10 +1,12 @@
 import { sql } from 'drizzle-orm'
 
+import type { ThreadAudience } from '@meith/core'
 import type { Draft, DraftRepository, DraftSummary } from '@meith/drafts'
 import { BodyFormat, sourceAsMarkdown } from '@meith/markdown'
 
 import type { Database } from './client'
 import { resultRows } from './result-rows'
+import { inAudience } from './thread-audience'
 
 export class PostgresDraftRepository implements DraftRepository {
   constructor(private readonly db: Database) {}
@@ -57,17 +59,20 @@ export class PostgresDraftRepository implements DraftRepository {
     `)
   }
 
-  async listByUser(userId: number): Promise<readonly DraftSummary[]> {
+  async listByUser(userId: number, audience: ThreadAudience): Promise<readonly DraftSummary[]> {
     const rows = resultRows(
       await this.db.execute(sql`
         select d.forum_id, f.title as forum_title, f.slug as forum_slug,
                d.thread_id, t.title as thread_title, t.slug as thread_slug,
                d.title, d.message, d.body_format, d.updated_at
           from post_drafts d
-          join forums f on f.id = d.forum_id
           left join threads t on t.id = d.thread_id
+          join forums f on f.id = coalesce(t.forum_id, d.forum_id)
          where d.user_id = ${userId}
-           and (d.thread_id is null or t.id is not null)
+           and (
+             (d.thread_id is null and ${inAudience(sql`d.forum_id`, sql`d.user_id`, audience)})
+             or (t.visibility = 'visible' and ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, audience)})
+           )
          order by d.updated_at desc
       `),
     ) as Array<{

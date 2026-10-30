@@ -67,4 +67,4 @@ A supported video URL on its own line can show a static preview when remote imag
 
 ## Polls and drafts
 
-Check poll choices, selection limits and voter visibility before submitting. Editing may be restricted after voting starts. Resume saved drafts at `/usercp/drafts`; browser recovery does not replace saving a draft.
+Check poll choices, selection limits and voter visibility before submitting. Editing may be restricted after voting starts. Resume saved drafts at `/usercp/drafts`; browser recovery does not replace saving a draft. The saved-draft list hides forums and reply targets you can no longer read, including threads moved into restricted forums or awaiting moderation. Hidden drafts are retained.

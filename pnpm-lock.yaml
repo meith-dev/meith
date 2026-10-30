@@ -700,7 +700,11 @@ importers:
         specifier: ^0.31.6
         version: 0.31.10
 
-  packages/drafts: {}
+  packages/drafts:
+    dependencies:
+      '@meith/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/drivers:
     dependencies:

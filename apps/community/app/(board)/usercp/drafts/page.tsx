@@ -16,12 +16,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function DraftsPage() {
   const actor = await getActor()
-  const { drafts } = getContainer()
+  const { drafts, authorizer } = getContainer()
   if (actor.userId === null || drafts === null) notFound()
 
   const translator = await getTranslator()
   const rows = buildDraftsView({
-    drafts: await drafts.listByUser(actor.userId),
+    drafts: await drafts.listByUser(actor.userId, await authorizer.threadAudience(actor)),
     now: new Date(),
     t: translator,
   })
