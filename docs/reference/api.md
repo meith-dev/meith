@@ -56,7 +56,7 @@ Open **Admin → API tokens** and reauthenticate to issue a token. **Expires in 
 
 ## Rate limits
 
-Authenticated budget: **600 units per 300 seconds** per token.
+Authenticated budget: **600 units per 300 seconds** per owner, shared by all their tokens.
 
 Guest budget: **120 units per 300 seconds** per address prefix.
 

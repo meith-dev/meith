@@ -9,7 +9,7 @@ import {
 } from '@meith/api'
 import type { Actor } from '@meith/authorization'
 import { env, logger } from '@meith/core'
-import { getDb, PostgresApiTokenRepository, PostgresRateLimitStore } from '@meith/db'
+import { getDb, PostgresApiTokenRepository, PostgresRateLimitBucketStore } from '@meith/db'
 
 import { rateLimitStore } from './antispam'
 import { getContainer } from './container'
@@ -36,7 +36,16 @@ export async function apiToken(presented: string): Promise<AuthenticatedToken | 
 
   await repository.touch(outcome.token.id, new Date()).catch(() => {})
 
-  return { token: outcome.token, limits: new PostgresRateLimitStore(db) }
+  const store = new PostgresRateLimitBucketStore(db)
+  return {
+    token: outcome.token,
+    limits: {
+      spend: (userId, ...args) =>
+        store.spend({ scope: 'api_user', subject: String(userId) }, ...args),
+      peek: (userId, windowStart) =>
+        store.peek({ scope: 'api_user', subject: String(userId) }, windowStart),
+    },
+  }
 }
 
 export async function apiActor(userId: number): Promise<Actor | null> {

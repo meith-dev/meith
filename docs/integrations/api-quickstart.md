@@ -24,6 +24,8 @@ curl --fail-with-body \
 
 Tokens narrow their owner's permissions. Authenticated calls require the endpoint's scope even when anonymous reads are allowed. Keep tokens out of URLs, source code and browser-side applications; revoke unused or exposed tokens.
 
+All tokens belonging to one account share the authenticated API budget. Issuing, rotating or revoking a token does not reset that account's allowance. Anonymous requests use a separate address-based budget.
+
 ## Handle responses
 
 | Response | Action |

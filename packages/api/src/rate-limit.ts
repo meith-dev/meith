@@ -17,12 +17,12 @@ export type AnonymousRateLimitStore = RateLimitBucketStore<string>
 
 export async function consumeRateLimit(
   store: RateLimitStore,
-  tokenId: number,
+  userId: number,
   cost: number,
   now: Date,
   window: RateLimitWindow = DEFAULT_WINDOW,
 ): Promise<RateLimitOutcome> {
-  return spendRateLimit(store, tokenId, cost, window, now)
+  return spendRateLimit(store, userId, cost, window, now)
 }
 
 export function rateLimitHeaders(outcome: RateLimitOutcome): Record<string, string> {
