@@ -61,6 +61,8 @@ Remote images require board permission. Use descriptive alternative text.
 
 Use the attachment form to upload files. With JavaScript, **Insert attachment** uploads an image and inserts `[attachment=id]`. Without JavaScript, submit files through the ordinary attachment form. Only permitted attachments render.
 
+Before a post is saved, a processed upload and its thumbnail can be previewed only by its signed-in uploader, subject to the forum's current read and download permissions. Other members cannot download an unclaimed upload by guessing its ID.
+
 Removing a marker does not delete its file. Use the post's attachment controls to delete files.
 
 A supported video URL on its own line can show a static preview when remote images are allowed. It does not embed a player.

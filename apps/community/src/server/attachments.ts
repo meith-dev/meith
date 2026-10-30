@@ -244,7 +244,18 @@ export async function resolveDownload(
   const { attachments, authorizer } = getContainer()
   if (attachments === null) return null
 
-  const found = await attachments.findForDownload(id)
+  let found = await attachments.findForDownload(id)
+  if (found === null && actor.userId !== null && actor.state === 'active') {
+    const record = await attachments.findById(id)
+    if (record?.postId === null && record.uploaderUserId === actor.userId) {
+      found = {
+        record,
+        postVisibility: 'visible',
+        threadVisibility: 'visible',
+        threadAuthorUserId: actor.userId,
+      }
+    }
+  }
   if (found === null) return null
 
   const { record } = found
