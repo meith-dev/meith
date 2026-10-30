@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -72,6 +74,22 @@ function pending(overrides: Partial<Parameters<typeof repo.create>[0]> = {}) {
 }
 
 describe('create', () => {
+  it('authorizes against the thread forum and repairs legacy attachment forum IDs', async () => {
+    const attachment = await pending()
+    await db.execute(sql`
+      insert into forums (id, title, slug, path) values (2, 'Private', 'private', '2')
+    `)
+    await db.execute(sql`update threads set forum_id = 2 where id = 1`)
+    await db.execute(sql`update posts set forum_id = 2 where thread_id = 1`)
+    expect((await repo.findForDownload(attachment.id))?.record.forumId).toBe(2)
+    await harness.client.exec(
+      readFileSync(new URL('../migrations/0070_attachment_forums.sql', import.meta.url), 'utf8'),
+    )
+    expect((await repo.findById(attachment.id))?.forumId).toBe(2)
+    await db.execute(sql`delete from forums where id = ${FORUM}`)
+    expect(await repo.findById(attachment.id)).not.toBeNull()
+  })
+
   it('stores a pending image with its source key and no storage key', async () => {
     const row = await pending()
 

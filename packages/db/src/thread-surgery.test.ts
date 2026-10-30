@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { PostgresAttachmentRepository } from './attachment-repo'
 import type { Database } from './client'
 import { rollUpAncestorCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -287,6 +288,34 @@ describe('splitting', () => {
 })
 
 describe('merging', () => {
+  it('moves attachment authorization and survives deletion of the source forum', async () => {
+    const target = await seedThread(RIGHT, 'Keep', 1)
+    const source = await seedThread(LEFT, 'Absorb', 1)
+    const attachments = new PostgresAttachmentRepository(db)
+    const attachment = await attachments.create({
+      postId: source.postIds[0]!,
+      forumId: LEFT,
+      uploaderUserId: ADA,
+      filename: 'private.txt',
+      contentType: 'text/plain',
+      sizeBytes: 7,
+      storageKey: 'private/file',
+      sourceKey: null,
+      status: 'ready',
+    })
+
+    await repo.merge({
+      sourceThreadId: source.threadId,
+      targetThreadId: target.threadId,
+      actorUserId: MOD,
+      at: AT,
+    })
+    expect((await attachments.findById(attachment.id))?.forumId).toBe(RIGHT)
+    expect((await attachments.findForDownload(attachment.id))?.record.forumId).toBe(RIGHT)
+    await db.execute(sql`delete from forums where id = ${LEFT}`)
+    expect(await attachments.findById(attachment.id)).not.toBeNull()
+  })
+
   it('moves every post into the target and destroys the source', async () => {
     const target = await seedThread(LEFT, 'Keep', 1)
     const source = await seedThread(LEFT, 'Absorb', 1)
