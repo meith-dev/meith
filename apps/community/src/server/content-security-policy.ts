@@ -30,6 +30,26 @@ export function newNonce(): string {
 }
 
 export function readsAsAsset(pathname: string): boolean {
-  const last = pathname.slice(pathname.lastIndexOf('/') + 1)
-  return last.includes('.')
+  return (
+    [
+      '/robots.txt',
+      '/feed.xml',
+      '/atom.xml',
+      '/sitemap.xml',
+      '/icon',
+      '/apple-icon',
+      '/brand/favicon',
+      '/manifest.webmanifest',
+      '/api/v1/openapi.json',
+      '/brand/icon-192.png',
+      '/brand/icon-512.png',
+      '/brand/icon-maskable.png',
+      '/sw.js',
+      '/placeholder.svg',
+      '/placeholder.jpg',
+      '/placeholder-user.jpg',
+      '/placeholder-logo.png',
+      '/placeholder-logo.svg',
+    ].includes(pathname) || /^\/(?:thread\/)?\d+(?:-[^/]+)?\/feed\.xml$/.test(pathname)
+  )
 }

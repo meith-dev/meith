@@ -33,6 +33,8 @@ base-uri 'self'; form-action 'self'
 
 `REMOTE_IMAGES=1` adds `https:` to image sources. Remote hosts then receive readers' image requests and IP addresses. External scripts, widgets and off-origin form redirect chains remain restricted.
 
+The proxy replaces internal nonce, path and query headers for page requests, including dotted usernames and slugs. Only the board's explicit static asset, metadata and feed routes skip sign-in triage. A filename extension alone never identifies an asset; new public assets must be registered in `readsAsAsset`.
+
 ## Other headers
 
 | Header | Value |
