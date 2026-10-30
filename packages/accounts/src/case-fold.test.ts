@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { foldIdentifier } from './case-fold'
+import { foldIdentifier, foldSecurityIdentifier } from './case-fold'
 
 describe('foldIdentifier', () => {
   it('folds case and trims surrounding whitespace', () => {
@@ -17,4 +17,11 @@ describe('foldIdentifier', () => {
     const folded = ['ivan', 'Ivan', 'IVAN', 'iVaN'].map(foldIdentifier)
     expect(new Set(folded).size).toBe(1)
   })
+})
+
+it('normalizes compatibility characters for policy checks without changing persisted lookup keys', () => {
+  expect(foldSecurityIdentifier(' ＡＤＭＩＮ ')).toBe('admin')
+  expect(foldSecurityIdentifier('𝐚𝐝𝐦𝐢𝐧')).toBe('admin')
+  expect(foldSecurityIdentifier('e\u0301')).toBe(foldSecurityIdentifier('é'))
+  expect(foldIdentifier('ＡＤＭＩＮ')).toBe('ａｄｍｉｎ')
 })

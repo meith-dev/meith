@@ -2,7 +2,7 @@ import { ConflictError, ForbiddenError, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
 import { type BanFilterSubject, matchBanFilter } from './ban-filter'
-import { foldIdentifier } from './case-fold'
+import { foldIdentifier, foldSecurityIdentifier } from './case-fold'
 import { assertPasswordSize, hashPassword, needsRehash, verifyPassword } from './crypto/password'
 import { generateToken, hashToken } from './crypto/tokens'
 import type {
@@ -250,7 +250,7 @@ export class IdentityService {
       const candidate = `${stem}${suffix}`
 
       const lower = foldIdentifier(candidate)
-      if (this.config.reservedUsernames.includes(lower)) continue
+      if (this.isReservedUsername(candidate)) continue
       if (await this.store.accounts.findByUsernameLower(lower)) continue
 
       return candidate
@@ -617,6 +617,13 @@ export class IdentityService {
     return { account, sessionToken: token, expiresAt }
   }
 
+  private isReservedUsername(username: string): boolean {
+    const normalized = foldSecurityIdentifier(username)
+    return this.config.reservedUsernames.some(
+      (reserved) => foldSecurityIdentifier(reserved) === normalized,
+    )
+  }
+
   private assertUsername(username: string, usernameLower: string): void {
     const length = codePointLength(username)
     if (length < this.config.usernameMin || length > this.config.usernameMax) {
@@ -635,7 +642,7 @@ export class IdentityService {
         },
       )
     }
-    if (this.config.reservedUsernames.includes(usernameLower)) {
+    if (this.isReservedUsername(usernameLower)) {
       throw new ConflictError(msg('error.accounts.username-reserved-pick-another-board'), {
         meta: { field: REGISTER_FIELD.username },
       })

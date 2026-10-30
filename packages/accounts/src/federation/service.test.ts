@@ -140,6 +140,14 @@ describe('a first federated sign-in', () => {
     expect(outcome.status === 'signed-in' && outcome.account.username).toBe('Admin2')
   })
 
+  it('avoids compatibility spellings of reserved names from the provider', async () => {
+    const outcome = await build().completeSignIn({
+      provider: PROVIDER,
+      profile: profile({ username: 'Ａｄｍｉｎ', email: 'root@example.com' }),
+    })
+    expect(outcome.status === 'signed-in' && outcome.account.username).toBe('Ａｄｍｉｎ2')
+  })
+
   it('builds a username out of the address when the provider offers no name', async () => {
     const outcome = await build().completeSignIn({
       provider: PROVIDER,

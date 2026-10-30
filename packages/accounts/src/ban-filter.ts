@@ -1,7 +1,7 @@
 import { ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
-import { foldIdentifier } from './case-fold'
+import { foldSecurityIdentifier } from './case-fold'
 
 export const BAN_FILTER_TYPES = ['username', 'email', 'ip'] as const
 export type BanFilterType = (typeof BAN_FILTER_TYPES)[number]
@@ -22,7 +22,7 @@ export const BAN_FILTER_PATTERN_MAX = 200
 export const BAN_FILTER_WILDCARD_MAX = 20
 
 function preparedPattern(type: BanFilterType, pattern: string): string {
-  return type === 'ip' ? pattern.trim() : foldIdentifier(pattern)
+  return type === 'ip' ? pattern.trim() : foldSecurityIdentifier(pattern)
 }
 
 function wildcards(pattern: string): number {
@@ -73,15 +73,15 @@ function globMatches(pattern: string, value: string): boolean {
 }
 
 export function assertUsableFilter(type: BanFilterType, pattern: string): void {
-  const trimmed = pattern.trim()
+  const prepared = preparedPattern(type, pattern)
 
-  if (trimmed === '') {
+  if (prepared === '') {
     throw new ValidationError(msg('error.accounts.ban-filter-needs-pattern'))
   }
 
-  if (/^\*+$/.test(trimmed)) {
+  if (/^\*+$/.test(prepared)) {
     throw new ValidationError(
-      `"${trimmed}" would match every ${type} and lock everyone out. ` +
+      `"${prepared}" would match every ${type} and lock everyone out. ` +
         'Use the registration settings to close signups instead.',
     )
   }
@@ -89,8 +89,6 @@ export function assertUsableFilter(type: BanFilterType, pattern: string): void {
   if (!(BAN_FILTER_TYPES as readonly string[]).includes(type)) {
     throw new ValidationError(`Unknown ban filter type: ${type}`)
   }
-
-  const prepared = preparedPattern(type, pattern)
 
   if (tooLong(prepared)) {
     throw new ValidationError(
@@ -106,8 +104,9 @@ export function assertUsableFilter(type: BanFilterType, pattern: string): void {
 }
 
 function subjectValue(type: BanFilterType, subject: BanFilterSubject): string | undefined {
-  if (type === 'username') return subject.username ? foldIdentifier(subject.username) : undefined
-  if (type === 'email') return subject.email ? foldIdentifier(subject.email) : undefined
+  if (type === 'username')
+    return subject.username ? foldSecurityIdentifier(subject.username) : undefined
+  if (type === 'email') return subject.email ? foldSecurityIdentifier(subject.email) : undefined
   return subject.ip?.trim()
 }
 
@@ -120,7 +119,7 @@ export function matchBanFilter(
     if (value === undefined || value === '') continue
 
     const pattern = preparedPattern(filter.type, filter.pattern)
-    if (tooLong(pattern) || tooWild(pattern)) continue
+    if (/^\*+$/.test(pattern) || tooLong(pattern) || tooWild(pattern)) continue
     if (globMatches(pattern, value)) return filter
   }
   return null

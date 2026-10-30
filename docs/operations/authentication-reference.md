@@ -1,5 +1,7 @@
 # Authentication reference
 
+Reserved usernames and username/email ban filters compare Unicode NFKC-normalized, case-folded values, including compatibility spellings from identity providers. Existing stored account lookup keys and displayed names retain their original spelling; this policy check does not merge accounts or change sign-in identifiers. This does not equate unrelated scripts or all visually similar characters. Ban patterns that normalize to only wildcard stars are rejected; legacy stored patterns of that form are ignored to avoid a board-wide lockout.
+
 Members configure credentials at `/usercp/security`. Operators configure board policy under Security settings.
 
 ## Two-factor authentication

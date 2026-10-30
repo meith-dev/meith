@@ -146,6 +146,27 @@ describe('register', () => {
     ).rejects.toThrow(/reserved/i)
   })
 
+  it.each(['ＡＤＭＩＮ', '𝐚𝐝𝐦𝐢𝐧'])(
+    'rejects compatibility spellings of a reserved username: %s',
+    async (username) => {
+      const { service } = makeService(store)
+      await expect(
+        service.register({ username, email: 'a@example.com', password: 'correct horse battery' }),
+      ).rejects.toThrow(/reserved/i)
+    },
+  )
+
+  it('normalizes configured reserved names as well as registration input', async () => {
+    const { service } = makeService(store, { reservedUsernames: ['ＲＯＯＴ'] })
+    await expect(
+      service.register({
+        username: 'root',
+        email: 'a@example.com',
+        password: 'correct horse battery',
+      }),
+    ).rejects.toThrow(/reserved/i)
+  })
+
   it('rejects a short password', async () => {
     const { service } = makeService(store)
     await expect(

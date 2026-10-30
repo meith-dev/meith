@@ -27,6 +27,19 @@ describe('matchBanFilter', () => {
     ).not.toBeNull()
   })
 
+  it('normalizes compatibility characters in both stored patterns and submitted identities', () => {
+    expect(matchBanFilter([filter('username', 'admin')], { username: '𝐚𝐝𝐦𝐢𝐧' })).not.toBeNull()
+    expect(matchBanFilter([filter('username', 'ＡＤＭＩＮ')], { username: 'Admin' })).not.toBeNull()
+    expect(
+      matchBanFilter([filter('email', '*@spam.example')], { email: 'user@ｓｐａｍ.example' }),
+    ).not.toBeNull()
+    expect(matchBanFilter([filter('ip', '192.0.2.*')], { ip: '１９２.0.2.1' })).toBeNull()
+  })
+
+  it('ignores legacy patterns that normalize to a wildcard-only account lockout', () => {
+    expect(matchBanFilter([filter('username', '＊＊')], { username: 'anyone' })).toBeNull()
+  })
+
   it('expands * to any run and ? to one character', () => {
     expect(
       matchBanFilter([filter('email', '*@spam.example')], { email: 'a@spam.example' }),
@@ -96,6 +109,7 @@ describe('assertUsableFilter', () => {
   it('rejects a pattern that would match everyone', () => {
     expect(() => assertUsableFilter('username', '*')).toThrow(/lock everyone out/)
     expect(() => assertUsableFilter('email', '***')).toThrow(/lock everyone out/)
+    expect(() => assertUsableFilter('username', '＊＊')).toThrow(/lock everyone out/)
   })
 
   it('rejects an unknown type', () => {
