@@ -1,3 +1,5 @@
+import { escapeHtml } from './escape'
+
 export interface WordFilterRule {
   readonly pattern: string
   readonly replacement: string
@@ -56,9 +58,16 @@ export function applyWordFilter(html: string, filter: CompiledWordFilter): strin
 }
 
 function substitute(text: string, filter: CompiledWordFilter): string {
+  return text
+    .split(/(&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);)/gi)
+    .map((part, index) => (index % 2 === 1 ? part : escapeHtml(applyWordFilterText(part, filter))))
+    .join('')
+}
+
+export function applyWordFilterText(text: string, filter: CompiledWordFilter): string {
   let result = text
   for (const rule of filter.rules) {
-    result = result.replace(rule.matcher, rule.replacement)
+    result = result.replace(rule.matcher, () => rule.replacement)
   }
   return result
 }

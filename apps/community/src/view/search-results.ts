@@ -33,7 +33,7 @@ import {
   SORT_LABEL_KEYS,
 } from './search-controls'
 import { formatTime, untranslated } from './time'
-import { filterWords } from './word-filter'
+import { filterHtmlWords, filterWords } from './word-filter'
 
 export interface SearchHitRow {
   readonly postId: number
@@ -80,7 +80,7 @@ export function buildSearchResultsView(input: SearchResultsInput): SearchResults
       postId: hit.postId,
       threadTitle: filterWords(hit.threadTitle, input.wordFilter),
       href: postLink(`/thread/${hit.threadId}-${hit.threadSlug}`, hit.postId),
-      excerptHtml: filterWords(hit.excerpt, input.wordFilter),
+      excerptHtml: filterHtmlWords(hit.excerpt, input.wordFilter),
       authorUsername: hit.authorUsername,
       postedAt: formatTime(hit.postedAt, input.now, input.t),
     })),

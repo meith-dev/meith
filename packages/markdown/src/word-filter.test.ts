@@ -1,11 +1,45 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyWordFilter, compileWordFilter } from './word-filter'
+import { applyWordFilter, applyWordFilterText, compileWordFilter } from './word-filter'
 
 const filter = (...rules: Array<{ pattern: string; replacement: string; wholeWord?: boolean }>) =>
   compileWordFilter(rules.map((rule) => ({ ...rule, wholeWord: rule.wholeWord ?? true })))
 
 describe('applyWordFilter', () => {
+  it('escapes replacements as literal HTML text', () => {
+    expect(
+      applyWordFilter(
+        '<p>bad</p>',
+        filter({ pattern: 'bad', replacement: '<img src=x onerror=alert(1)> & "redacted"' }),
+      ),
+    ).toBe('<p>&lt;img src=x onerror=alert(1)&gt; &amp; &quot;redacted&quot;</p>')
+  })
+
+  it('keeps dollar replacement tokens literal', () => {
+    expect(
+      applyWordFilter('<p>bad</p>', filter({ pattern: 'bad', replacement: "$& $$ $` $'" })),
+    ).toBe('<p>$&amp; $$ $` $&#39;</p>')
+  })
+
+  it('never filters inside HTML entities', () => {
+    expect(
+      applyWordFilter(
+        '<p>&amp; &#39; &#x3c; &copy; amp copy</p>',
+        filter(
+          { pattern: 'amp', replacement: 'X' },
+          { pattern: '39', replacement: 'X' },
+          { pattern: 'copy', replacement: 'X' },
+        ),
+      ),
+    ).toBe('<p>&amp; &#39; &#x3c; &copy; X X</p>')
+  })
+
+  it('filters plain text without encoding it or treating literal angle brackets as tags', () => {
+    expect(
+      applyWordFilterText('<bad> & bad', filter({ pattern: 'bad', replacement: '$& <3' })),
+    ).toBe('<$& <3> & $& <3')
+  })
+
   it('replaces a word in text', () => {
     const result = applyWordFilter(
       '<p>a badword here</p>',

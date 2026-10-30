@@ -74,6 +74,7 @@ export {
 } from './vocabulary'
 export {
   applyWordFilter,
+  applyWordFilterText,
   type CompiledWordFilter,
   compileWordFilter,
   type WordFilterRule,

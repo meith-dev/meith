@@ -37,4 +37,9 @@ Flood intervals, hourly caps and [group daily allowances](groups.md) are indepen
 
 Review community-flagged posts in moderation. Check word-filter previews before saving. Ban patterns are globs, not regular expressions; registration filters do not retroactively ban accounts.
 
+Word-filter replacements are literal text: HTML characters display as text, and
+`$` replacement tokens have no special meaning. Filtering rendered posts and
+search excerpts preserves tags, attributes and HTML entities. Titles, summaries
+and other plain-text fields are filtered without adding HTML encoding.
+
 For blocked registration, check registration policy, activation, question answers, filters and the displayed limit. For shared or incorrect client addresses, check [trusted proxies](../operations/web-security.md). For undelivered activation links, check [mail](../operations/mail.md).
