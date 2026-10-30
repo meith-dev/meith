@@ -27,7 +27,7 @@ export const resolveModCpAccess = cache(
     const actor = await getActor()
     const { authorizer, modcp } = getContainer()
 
-    if (modcp === null || actor.userId === null) return null
+    if (modcp === null || actor.userId === null || actor.state !== 'active') return null
 
     const hasGroupAccess = authorizer.can(actor, 'modcp.access')
     const forumIds = await authorizer.moderatedForumIds(actor)

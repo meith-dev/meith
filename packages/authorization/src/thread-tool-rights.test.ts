@@ -85,27 +85,28 @@ async function allowed(
 }
 
 describe('moderatorRightsIn', () => {
-  it.each([GROUP.registered, GROUP.superMod, GROUP.admin])(
-    'denies banned group %i and appointments',
-    async (group) => {
-      const appointment: MemoryAppointment = {
-        ...NONE,
-        userId: 10,
-        forumId: FORUM.general,
-        cascadeToSubforums: true,
-        canApproveContent: true,
-      }
-      expect(
-        await authorizerFor([appointment]).moderatorRightsIn(
-          {
-            ...actor([group]),
-            state: 'banned',
-          },
-          FORUM.general,
-        ),
-      ).toEqual(NO_MODERATOR_RIGHTS)
-    },
-  )
+  it.each(
+    [GROUP.registered, GROUP.superMod, GROUP.admin].flatMap((group) =>
+      (['banned', 'awaiting_activation'] as const).map((state) => ({ group, state })),
+    ),
+  )('denies $state group $group and appointments', async ({ group, state }) => {
+    const appointment: MemoryAppointment = {
+      ...NONE,
+      userId: 10,
+      forumId: FORUM.general,
+      cascadeToSubforums: true,
+      canApproveContent: true,
+    }
+    expect(
+      await authorizerFor([appointment]).moderatorRightsIn(
+        {
+          ...actor([group]),
+          state,
+        },
+        FORUM.general,
+      ),
+    ).toEqual(NO_MODERATOR_RIGHTS)
+  })
 
   it('is nothing for an ordinary member', async () => {
     expect(

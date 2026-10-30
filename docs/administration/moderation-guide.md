@@ -2,6 +2,10 @@
 
 Open `/modcp`. Check `/modcp/forums` for your assigned forums and allowed actions.
 
+Only active accounts can use the moderator panel, approve queued content or look
+up member addresses. Accounts awaiting activation or approval lose these rights
+immediately, including through sessions opened while they were active staff.
+
 | Page | Task |
 |---|---|
 | `/moderation` | Approve or reject held threads and posts |
