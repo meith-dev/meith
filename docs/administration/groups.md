@@ -30,6 +30,8 @@ Create activity, tenure or reputation rules under **Promotions**. Check whether 
 
 The preview stops at 50,000 members and reports truncation. Enabled rules run hourly in batches of 10,000, retaining their position between runs. Manual application does not change the schedule.
 
+Promotions consider only active, undeleted accounts. Protected groups cannot be destinations, and rules pointing to a staff or powerful group are treated as disabled, including when an existing destination later gains staff permissions. Staff appointments remain a manual administrative action. Applying a preview rechecks the account's state and source group before changing it.
+
 ## Remove a group
 
 Check memberships, paid plans and plugin grants first. Keep a valid primary group for each account. After changing roles or deleting a group, test staff and private-forum access.

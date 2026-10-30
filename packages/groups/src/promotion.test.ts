@@ -52,6 +52,16 @@ function user(over: Partial<PromotionCandidate> = {}): PromotionCandidate {
 }
 
 describe('criteria', () => {
+  it('ignores rules targeting protected groups and continues to an ordinary destination', () => {
+    const out = evaluatePromotions(
+      [rule({ toPrimaryGroupId: ADMINS }), rule({ id: 2, displayOrder: 1 })],
+      [user({ postCount: 100 })],
+      GUARDS,
+      NOW,
+    )
+    expect(out.map((outcome) => outcome.toPrimaryGroupId)).toEqual([VETERAN])
+  })
+
   it('promotes a user who meets the post threshold', () => {
     const out = evaluatePromotions([rule()], [user({ postCount: 100 })], GUARDS, NOW)
     expect(out).toHaveLength(1)

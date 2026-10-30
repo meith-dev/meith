@@ -394,6 +394,36 @@ describe('the organiser screen and the background scan', () => {
 })
 
 describe('candidate scan', () => {
+  it('excludes inactive and soft-deleted accounts', async () => {
+    for (let id = 1; id <= 3; id++) await addUser(id)
+    await db.update(users).set({ state: 'awaiting_activation' }).where(eq(users.id, 2))
+    await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, 3))
+    expect((await repo.candidates(0, 10)).map((row) => row.userId)).toEqual([1])
+  })
+
+  it('disables existing rules when their destination gains staff power', async () => {
+    await addRule()
+    await db.execute(sql`update usergroups set can_warn_users = true where id = ${VETERAN}`)
+    try {
+      expect((await repo.listRules())[0]?.enabled).toBe(false)
+    } finally {
+      await db.execute(sql`update usergroups set can_warn_users = false where id = ${VETERAN}`)
+    }
+  })
+
+  it('does not apply stale outcomes after an account changes state or source group', async () => {
+    await addRule()
+    for (let id = 1; id <= 3; id++) await addUser(id, { postCount: 150 })
+    const preview = await service().preview()
+    await db.update(users).set({ state: 'awaiting_activation' }).where(eq(users.id, 1))
+    await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, 2))
+    await db.update(users).set({ primaryGroupId: ADMINS }).where(eq(users.id, 3))
+    await repo.applyPromotions(preview.outcomes)
+    expect(await groupOf(1)).toBe(REGISTERED)
+    expect(await groupOf(2)).toBe(REGISTERED)
+    expect(await groupOf(3)).toBe(ADMINS)
+  })
+
   it('reads a page in one query', async () => {
     for (let id = 1; id <= 5; id++) await addUser(id)
 

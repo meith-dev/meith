@@ -1,4 +1,4 @@
-import { asc, eq, gt, sql } from 'drizzle-orm'
+import { and, asc, eq, getTableColumns, gt, isNull, sql } from 'drizzle-orm'
 
 import { ValidationError } from '@meith/core'
 import type {
@@ -14,7 +14,7 @@ import { msg } from '@meith/i18n'
 
 import type { Database } from './client'
 import { groupPromotions, promotionScanState, users } from './schema'
-import { keptDisplayGroupSql } from './staff-groups'
+import { isStaffGroupSql, keptDisplayGroupSql } from './staff-groups'
 
 const SCAN_STATE_ID = 'default'
 
@@ -33,14 +33,20 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
 
   async listRules(): Promise<readonly PromotionRule[]> {
     const rows = await this.db
-      .select()
+      .select({
+        ...getTableColumns(groupPromotions),
+        protectedDestination: sql<boolean>`exists (
+          select 1 from usergroups g
+          where g.id = ${groupPromotions.toPrimaryGroupId} and (${isStaffGroupSql('g')})
+        )`,
+      })
       .from(groupPromotions)
       .orderBy(asc(groupPromotions.displayOrder), asc(groupPromotions.id))
 
     return rows.map((r) => ({
       id: r.id,
       title: r.title,
-      enabled: r.enabled,
+      enabled: r.enabled && !r.protectedDestination,
       displayOrder: r.displayOrder,
       minPostCount: optionalNumber(r.minPostCount),
       minReputation: optionalNumber(r.minReputation),
@@ -115,7 +121,7 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
         primaryGroupId: users.primaryGroupId,
       })
       .from(users)
-      .where(gt(users.id, afterUserId))
+      .where(and(gt(users.id, afterUserId), eq(users.state, 'active'), isNull(users.deletedAt)))
       .orderBy(asc(users.id))
       .limit(limit)
 
@@ -149,7 +155,9 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
 
     await this.db.transaction(async (tx) => {
       const values = sql.join(
-        outcomes.map((o) => sql`(${o.userId}::int, ${o.toPrimaryGroupId}::int)`),
+        outcomes.map(
+          (o) => sql`(${o.userId}::int, ${o.fromPrimaryGroupId}::int, ${o.toPrimaryGroupId}::int)`,
+        ),
         sql`, `,
       )
 
@@ -162,8 +170,12 @@ export class PostgresPromotionRepository implements PromotionRepository, Promoti
       await tx.execute(sql`
         update ${users} as u
         set primary_group_id = v.group_id, display_group_id = ${displayGroup}
-        from (values ${values}) as v(user_id, group_id)
-        where u.id = v.user_id
+        from (values ${values}) as v(user_id, previous_group_id, group_id)
+        where u.id = v.user_id and u.primary_group_id = v.previous_group_id
+          and u.state = 'active' and u.deleted_at is null
+          and not exists (
+            select 1 from usergroups g where g.id = v.group_id and (${isStaffGroupSql('g')})
+          )
       `)
 
       await tx.execute(sql`
