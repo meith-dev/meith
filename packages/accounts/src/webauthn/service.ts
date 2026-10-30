@@ -43,7 +43,7 @@ export interface PasskeyRegistrationOptions {
   }[]
   readonly authenticatorSelection: {
     readonly residentKey: 'preferred'
-    readonly userVerification: 'preferred'
+    readonly userVerification: 'required'
   }
   readonly timeout: number
   readonly attestation: 'none'
@@ -52,7 +52,7 @@ export interface PasskeyRegistrationOptions {
 export interface PasskeyAssertionOptions {
   readonly challenge: string
   readonly rpId: string
-  readonly userVerification: 'preferred'
+  readonly userVerification: 'required'
   readonly timeout: number
   readonly allowCredentials?: readonly {
     readonly type: 'public-key'
@@ -110,7 +110,7 @@ export class PasskeyService {
         type: 'public-key',
         id: passkey.credentialId,
       })),
-      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
       timeout: TIMEOUT_MS,
       attestation: 'none',
     }
@@ -124,7 +124,7 @@ export class PasskeyService {
     return {
       challenge: input.challenge,
       rpId: input.relyingParty.id,
-      userVerification: 'preferred',
+      userVerification: 'required',
       timeout: TIMEOUT_MS,
       ...(input.allowCredentials === undefined
         ? {}

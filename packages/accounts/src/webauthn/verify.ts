@@ -53,7 +53,7 @@ export async function verifyRegistration(input: {
   const authData = decodeOrRefuse(() => cborBytes(attestation.get('authData')))
   const parsed = await parseAuthenticatorData(authData, input.relyingParty.id)
 
-  if (!parsed.userPresent) {
+  if (!parsed.userPresent || !parsed.userVerified) {
     throw new ValidationError(msg('error.accounts.passkey-confirmed-device'))
   }
 
@@ -87,7 +87,7 @@ export async function verifyAssertion(input: {
   const authData = decodeBase64Url(input.response.authenticatorData)
   const parsed = await parseAuthenticatorData(authData, input.relyingParty.id)
 
-  if (!parsed.userPresent) {
+  if (!parsed.userPresent || !parsed.userVerified) {
     throw new ValidationError(msg('error.accounts.passkey-confirmed-device'))
   }
 
