@@ -40,7 +40,14 @@ export async function revokeSessionAction(_prev: FormState, form: FormData): Pro
     if (sessionId === null) return { error: await tr('notice.app.session-could-found') }
 
     const { accountStore } = getContainer()
-    const revoked = await accountStore.sessions.revokeOwned(userId, sessionId, new Date())
+    const at = new Date()
+    const active = await accountStore.sessions.listActiveForUser(userId, at)
+    if (!active.some((session) => session.id === sessionId)) {
+      return { error: await tr('notice.app.session-had-already-ended') }
+    }
+
+    await accountStore.remember.revokeAllForUser(userId, 'session_revoked', at)
+    const revoked = await accountStore.sessions.revokeOwned(userId, sessionId, at)
 
     if (!revoked) return { error: await tr('notice.app.session-had-already-ended') }
 

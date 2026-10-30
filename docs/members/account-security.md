@@ -28,4 +28,6 @@ Use the security page's registration or linking controls and follow the browser 
 
 Revoke devices you no longer use and inspect unexpected security events. Changing your password signs out other sessions. The admin panel uses a separate session and may request your password again.
 
+Signing out an individual device also clears remembered sign-ins across the account. Existing sessions on other devices remain active, but they must sign in again after those sessions expire. Remembered sign-ins are not linked to individual session rows, so clearing them account-wide prevents a revoked device from silently returning.
+
 Operator setup: [Authentication](../operations/single-sign-on.md).
