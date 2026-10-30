@@ -274,7 +274,29 @@ export class PostgresSessionRepository implements SessionRepository {
   }
 
   async revoke(sessionId: number): Promise<void> {
-    await this.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.id, sessionId))
+    const at = new Date()
+    await this.db.transaction(async (tx) => {
+      const [session] = await tx
+        .update(sessions)
+        .set({ revokedAt: at })
+        .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)))
+        .returning({ userId: sessions.userId })
+      if (session?.userId === null || session?.userId === undefined) return
+      await tx
+        .update(adminSessions)
+        .set({ revokedAt: at })
+        .where(and(eq(adminSessions.userId, session.userId), isNull(adminSessions.revokedAt)))
+      await tx
+        .update(credentialTokens)
+        .set({ consumedAt: at })
+        .where(
+          and(
+            eq(credentialTokens.userId, session.userId),
+            eq(credentialTokens.purpose, 'admin_second_factor'),
+            isNull(credentialTokens.consumedAt),
+          ),
+        )
+    })
   }
 
   async revokeOwned(userId: number, sessionId: number, now: Date): Promise<boolean> {
