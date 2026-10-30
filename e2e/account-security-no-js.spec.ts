@@ -76,6 +76,7 @@ test('a spent e-mail confirmation link says so on the screen that can retry it',
   await signUp(page, 'stalelink')
 
   await page.goto('/usercp/email/confirm?token=not-a-real-token')
+  await page.getByRole('button', { name: 'Confirm your e-mail address' }).click()
   await expect(page).toHaveURL(/\/usercp\/security\?failed=1$/)
   await expect(page.getByText(/no longer valid/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Send confirmation' })).toBeVisible()

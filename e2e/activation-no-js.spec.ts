@@ -70,6 +70,7 @@ test('a board that asks for the address to be proven will not let the account in
     ).toBe(notice)
 
     await visitor.goto('/verify?token=not-a-real-token')
+    await visitor.getByRole('button', { name: 'Confirm your account' }).click()
     await expect(visitor).toHaveURL('/login?verify=failed')
     await expect(
       visitor.getByText('That confirmation link is no longer valid. Ask for a new one below.'),
