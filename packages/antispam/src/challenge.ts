@@ -83,10 +83,11 @@ export function checkHoneypot(input: HoneypotInput): ChallengeVerdict {
     return { ok: false, reason: 'That submission looked automated.' }
   }
 
-  if (input.minimumSeconds <= 0 || input.issuedAt === null) return { ok: true }
+  if (input.minimumSeconds <= 0) return { ok: true }
+  if (input.issuedAt === null) return { ok: false, reason: 'That submission looked automated.' }
 
   const elapsed = (input.now.getTime() - input.issuedAt) / 1000
-  if (elapsed < 0) return { ok: true }
+  if (elapsed < 0) return { ok: false, reason: 'That submission looked automated.' }
 
   return elapsed >= input.minimumSeconds
     ? { ok: true }

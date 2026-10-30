@@ -22,6 +22,7 @@ import { getDb, PostgresCaptchaQuestionRepository, PostgresRateLimitBucketStore 
 import type { SettingsSnapshot } from '@meith/settings'
 
 import { getContainer } from './container'
+import { issueFormTiming, readFormTiming } from './form-timing'
 import { countingPrefix } from './request-fingerprint'
 import { getSettings } from './settings'
 
@@ -253,7 +254,7 @@ export async function boardCaptcha(settings?: SettingsSnapshot): Promise<Captcha
 export interface IssuedChallenge {
   readonly challenge: Challenge | null
   readonly honeypot: boolean
-  readonly issuedAt: number
+  readonly issuedAt: string
 }
 
 export async function issueChallenge(): Promise<IssuedChallenge> {
@@ -264,11 +265,11 @@ export async function issueChallenge(): Promise<IssuedChallenge> {
     return {
       challenge: await captcha.issue(),
       honeypot: settings.get('antispam.honeypot') === true,
-      issuedAt: Date.now(),
+      issuedAt: issueFormTiming(),
     }
   } catch (error) {
     logger().warn({ err: String(error) }, 'could not issue a challenge')
-    return { challenge: null, honeypot: false, issuedAt: Date.now() }
+    return { challenge: null, honeypot: false, issuedAt: issueFormTiming() }
   }
 }
 
@@ -277,11 +278,11 @@ export async function verifyChallenge(form: FormData): Promise<ChallengeVerdict>
     const settings = await getSettings()
 
     const honeypot = settings.get('antispam.honeypot') === true
-    const stamp = Number(form.get('_issued') ?? '')
+    const stamp = readFormTiming(form.get('_issued'))
 
     const trap = checkHoneypot({
       honeypot: honeypot ? String(form.get('contact_url') ?? '') : '',
-      issuedAt: Number.isFinite(stamp) && stamp > 0 ? stamp : null,
+      issuedAt: stamp,
       now: new Date(),
       minimumSeconds: Number(settings.get('antispam.min_form_seconds') ?? 0),
     })
