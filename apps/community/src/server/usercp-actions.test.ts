@@ -4,6 +4,13 @@ import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
 import type { Actor } from '@meith/authorization'
 import { combinePermissionSets, InMemoryAuthorizationSource } from '@meith/authorization'
 
+const limits = vi.hoisted(() => ({ refused: false }))
+vi.mock('./antispam', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./antispam')>()),
+  spendCredentialProofLimit: async () =>
+    limits.refused ? { allowed: false, used: 21, retryAfterSeconds: 60 } : null,
+}))
+
 const { RedirectError } = vi.hoisted(() => {
   class RedirectError extends Error {
     constructor(readonly location: string) {
@@ -181,6 +188,7 @@ async function install(): Promise<void> {
 }
 
 beforeEach(async () => {
+  limits.refused = false
   settings = new FakeSettings()
   cookieRef.current = []
   mailRef.current = []
@@ -392,6 +400,13 @@ describe('saving the display group', () => {
 })
 
 describe('changing the password', () => {
+  it('refuses a rate-limited request before credential work or session creation', async () => {
+    limits.refused = true
+    const result = await run(changePasswordAction, form([]))
+    expect(result.error).toContain('too many times')
+    expect(cookieRef.current).toEqual([])
+  })
+
   it('keeps this device signed in with a fresh session', async () => {
     const result = await run(
       changePasswordAction,
@@ -436,6 +451,14 @@ describe('changing the password', () => {
 })
 
 describe('changing the e-mail address', () => {
+  it('refuses a rate-limited request before credential work or sending either email', async () => {
+    limits.refused = true
+    const result = await run(requestEmailChangeAction, form([]))
+    expect(result.error).toContain('too many times')
+    expect(mailRef.current).toEqual([])
+    expect(noticeRef.current).toEqual([])
+  })
+
   it('sends the confirmation to the new address and changes nothing yet', async () => {
     const result = await run(
       requestEmailChangeAction,

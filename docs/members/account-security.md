@@ -2,6 +2,10 @@
 
 Open `/usercp/security`. Available options depend on board settings.
 
+Password and email changes, authenticator confirmation, recovery-code replacement
+and two-factor disabling share the credential-proof limit of 10 attempts per hour
+per account. Refused attempts do not check credentials, change settings or send mail.
+
 ## Reset a password
 
 Use the reset link on the sign-in page, enter your email and follow the emailed link. Check spam folders. The response does not disclose whether the account exists. Contact an administrator if mail does not arrive.
