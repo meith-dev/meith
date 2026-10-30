@@ -34,3 +34,5 @@ Fixture mode supplies read-only sample data. PostgreSQL mode supplies durable st
 Write content changes and outbox events in the same transaction. Delivery is at least once; handlers must be idempotent. Queue claims and task leases coordinate workers. Every denormalized counter needs a bounded, resumable recount.
 
 See [Rendering and data](rendering-and-data.md) for caching, models and event-handler rules, and [Forms and actions](forms-and-actions.md) for mutation handling.
+
+Replies, edits and post visibility changes lock the canonical thread before writing posts and recheck that it still belongs to the forum where the request was authorized. An edit also checks that the post still belongs to that thread. A concurrent move or merge causes a stale request to fail without saving content, revisions, counters or events; the author must reload and pass the destination permissions. Moves, splits and merges acquire thread locks before touching posts so the stored post forum and counter updates remain in the same serialized scope.
