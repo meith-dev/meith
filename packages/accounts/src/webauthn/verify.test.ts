@@ -18,6 +18,17 @@ beforeAll(async () => {
 })
 
 describe('registering a passkey', () => {
+  it('refuses a touch-only registration without user verification', async () => {
+    const challenge = randomBase64Url(32)
+    await expect(
+      verifyRegistration({
+        response: await device.register({ challenge, origin: PARTY.origin, flags: 0b0100_0001 }),
+        expectedChallenge: challenge,
+        relyingParty: PARTY,
+      }),
+    ).rejects.toThrow('not confirmed on the device')
+  })
+
   it('takes the credential and its key out of the attestation', async () => {
     const challenge = randomBase64Url(32)
 
@@ -132,6 +143,19 @@ describe('registering a passkey', () => {
 })
 
 describe('signing in with a passkey', () => {
+  it('refuses a correctly signed touch-only assertion', async () => {
+    const challenge = randomBase64Url(32)
+    await expect(
+      verifyAssertion({
+        response: await device.assert({ challenge, origin: PARTY.origin, flags: 0b0000_0001 }),
+        expectedChallenge: challenge,
+        relyingParty: PARTY,
+        publicKey: device.publicKey,
+        storedSignCount: 0,
+      }),
+    ).rejects.toThrow('not confirmed on the device')
+  })
+
   it('accepts a signature the registered key made', async () => {
     const challenge = randomBase64Url(32)
 

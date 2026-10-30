@@ -77,6 +77,12 @@ Enable **Allow passkeys**. Registration and use require browser support and Java
 
 The board verifies ES256, RS256 or Ed25519 credentials, origin/purpose and signature counters. Banned or inactive accounts remain refused. A passkey can finish a pending second-factor challenge or sign in directly.
 
+Registration and every assertion require both user presence and user verification
+(a device PIN or biometric check). Touch-only assertions cannot open a session,
+finish a second-factor challenge or grant credential proof. Previously registered
+keys must support verification to remain usable; keep a working alternative
+sign-in method when replacing a key.
+
 ## Protocol checks and failures
 
 SSO starts with a same-origin POST and uses a checked hand-off page. State, nonce and PKCE values are fresh per attempt. OIDC checks signature, issuer, audience, expiry and nonce with two minutes of clock-skew tolerance. Redirects stay within accepted destinations. Pending proofs grant no account access.

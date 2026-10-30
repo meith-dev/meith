@@ -30,13 +30,14 @@ const CONFIG: AuthConfig = {
 let store: AccountStore
 let userId: number
 
-function service(): PasskeyService {
+function service(enrolled = false): PasskeyService {
   return new PasskeyService({
     identity: new IdentityService({
       store,
       config: CONFIG,
       clock: () => NOW,
       banFilters: new MemoryBanFilters(),
+      secondFactor: { isEnrolled: async () => enrolled },
     }),
     accounts: store.accounts,
     passkeys: store.passkeys,
@@ -88,6 +89,10 @@ describe('the options a board offers', () => {
     expect(options.user.name).toBe('Ada')
     expect(options.pubKeyCredParams.map((entry) => entry.alg)).toEqual([-7, -257, -8])
     expect(options.attestation).toBe('none')
+    expect(options.authenticatorSelection.userVerification).toBe('required')
+    expect(
+      service().assertionOptions({ challenge: 'challenge', relyingParty: PARTY }).userVerification,
+    ).toBe('required')
   })
 
   it('excludes the passkeys already on the account, so a device does not enrol twice', async () => {
@@ -167,6 +172,22 @@ describe('enrolling', () => {
 })
 
 describe('signing in', () => {
+  it('cannot bypass an enrolled second factor with a touch-only assertion', async () => {
+    const device = await createAuthenticator({ rpId: PARTY.id })
+    await enrol(device)
+    const challenge = randomBase64Url(32)
+    await expect(
+      service(true).authenticate({
+        credentialId: device.credentialId,
+        expectedChallenge: challenge,
+        relyingParty: PARTY,
+        response: await device.assert({ challenge, origin: PARTY.origin, flags: 0b0000_0001 }),
+      }),
+    ).rejects.toThrow('not confirmed on the device')
+    expect(await store.sessions.listActiveForUser(userId, NOW)).toEqual([])
+    expect((await store.passkeys.findByCredentialId(device.credentialId))?.signCount).toBe(0)
+  })
+
   it('starts a session and remembers the counter the device sent', async () => {
     const device = await createAuthenticator({ rpId: PARTY.id })
     await enrol(device)
