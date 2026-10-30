@@ -1,3 +1,5 @@
+import type { ThreadAudience } from '@meith/core'
+
 export interface Draft {
   readonly forumId: number
   readonly threadId: number | null
@@ -23,5 +25,5 @@ export interface DraftRepository {
   find(userId: number, forumId: number, threadId: number | null): Promise<Draft | null>
   save(userId: number, draft: Draft): Promise<void>
   remove(userId: number, forumId: number, threadId: number | null): Promise<void>
-  listByUser(userId: number): Promise<readonly DraftSummary[]>
+  listByUser(userId: number, audience: ThreadAudience): Promise<readonly DraftSummary[]>
 }

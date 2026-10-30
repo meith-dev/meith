@@ -15,6 +15,9 @@
     "!src/**/*.test.*",
     "!src/**/*.type-test.*"
   ],
+  "dependencies": {
+    "@meith/core": "workspace:*"
+  },
   "publishConfig": {
     "access": "public"
   }

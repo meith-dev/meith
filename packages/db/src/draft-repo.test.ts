@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { unrestrictedAudience } from '@meith/core'
+
 import type { Database } from './client'
 import { PostgresDraftRepository } from './draft-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -84,7 +86,7 @@ describe('listByUser', () => {
       prefixId: null,
     })
 
-    const rows = await drafts.listByUser(901)
+    const rows = await drafts.listByUser(901, unrestrictedAudience([900], 901))
     expect(rows).toHaveLength(2)
 
     const [newest, oldest] = rows
@@ -107,7 +109,7 @@ describe('listByUser', () => {
   })
 
   it('is empty for a user with no drafts', async () => {
-    expect(await drafts.listByUser(901)).toEqual([])
+    expect(await drafts.listByUser(901, unrestrictedAudience([900], 901))).toEqual([])
   })
 
   it('never lists another user’s draft', async () => {
@@ -118,7 +120,7 @@ describe('listByUser', () => {
       message: 'mine',
       prefixId: null,
     })
-    expect(await drafts.listByUser(902)).toEqual([])
+    expect(await drafts.listByUser(902, unrestrictedAudience([900], 902))).toEqual([])
   })
 
   it('excludes a reply draft whose thread no longer exists, rather than a broken resume link', async () => {
@@ -134,6 +136,63 @@ describe('listByUser', () => {
     await db.execute(sql`delete from threads where id = 950`)
     await db.execute(sql`alter table post_drafts enable trigger all`)
 
-    expect(await drafts.listByUser(901)).toEqual([])
+    expect(await drafts.listByUser(901, unrestrictedAudience([900], 901))).toEqual([])
+  })
+})
+
+describe('draft target confidentiality', () => {
+  beforeEach(async () => {
+    await db.execute(sql`insert into threads (id, forum_id, title, slug, author_user_id, author_username)
+      values (950, 900, 'Confidential title', 'confidential-title', 901, 'one')`)
+    await drafts.save(901, {
+      forumId: 900,
+      threadId: 950,
+      title: '',
+      message: 'my reply',
+      prefixId: null,
+    })
+  })
+
+  it('hides reply targets after access is revoked and preserves the saved draft', async () => {
+    expect(await drafts.listByUser(901, unrestrictedAudience([], 901))).toEqual([])
+    expect(await drafts.find(901, 900, 950)).toMatchObject({ message: 'my reply' })
+  })
+
+  it('checks the current thread forum after a move', async () => {
+    await db.execute(
+      sql`insert into forums (id, title, slug, path) values (999, 'Staff', 'staff', '999')`,
+    )
+    await db.execute(sql`update threads set forum_id = 999 where id = 950`)
+    expect(await drafts.listByUser(901, unrestrictedAudience([900], 901))).toEqual([])
+    expect(await drafts.listByUser(901, unrestrictedAudience([999], 901))).toMatchObject([
+      { threadTitle: 'Confidential title', forumTitle: 'Staff' },
+    ])
+    await db.execute(sql`update threads set forum_id = 900 where id = 950`)
+    await db.execute(sql`delete from forums where id = 999`)
+  })
+
+  it('hides unapproved and deleted target titles', async () => {
+    for (const visibility of ['unapproved', 'deleted']) {
+      await db.execute(sql`update threads set visibility = ${visibility} where id = 950`)
+      expect(await drafts.listByUser(901, unrestrictedAudience([900], 901))).toEqual([])
+    }
+  })
+
+  it('honors own-thread-only forums', async () => {
+    const audience = { forumIds: [900], ownThreadsOnlyForumIds: [900], viewerUserId: 901 }
+    expect(await drafts.listByUser(901, audience)).toHaveLength(1)
+    await db.execute(sql`update threads set author_user_id = null where id = 950`)
+    expect(await drafts.listByUser(901, audience)).toEqual([])
+  })
+
+  it('hides new-thread drafts when forum access is revoked', async () => {
+    await drafts.save(901, {
+      forumId: 900,
+      threadId: null,
+      title: 'Mine',
+      message: 'new',
+      prefixId: null,
+    })
+    expect(await drafts.listByUser(901, unrestrictedAudience([], 901))).toEqual([])
   })
 })
