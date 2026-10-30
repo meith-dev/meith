@@ -78,8 +78,13 @@ export class PostgresAvatarRepository implements AvatarRepository {
     readonly sourceKey: string
     readonly at: Date
   }): Promise<{ replaced: readonly string[] }> {
-    const rows = resultRows(
-      await this.db.execute(sql`
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
+        with old as (
+          select id, avatar_key, avatar_source_key from users
+          where id = ${input.userId} and avatar_locked = false for update
+        )
         update users u
            set avatar_source_key = ${input.sourceKey},
                avatar_key = null,
@@ -88,49 +93,66 @@ export class PostgresAvatarRepository implements AvatarRepository {
                avatar_width = null,
                avatar_height = null,
                avatar_updated_at = ${input.at}
-          from users old
-         where u.id = ${input.userId}
-           and old.id = u.id
-           and u.avatar_locked = false
+          from old where old.id = u.id
         returning old.avatar_key, old.avatar_source_key
       `),
-    ) as Array<{ avatar_key: string | null; avatar_source_key: string | null }>
+      ) as Array<{ avatar_key: string | null; avatar_source_key: string | null }>
 
-    const row = rows[0]
-    if (row === undefined) return { replaced: [input.sourceKey] }
-    return { replaced: droppedKeys(row) }
+      const row = rows[0]
+      if (row === undefined) return { replaced: [input.sourceKey] }
+      const replaced = droppedKeys(row)
+      for (const key of replaced) await rememberOrphanKey(tx, key)
+      await forgetOrphanKeys(tx, [input.sourceKey])
+      return { replaced }
+    })
   }
 
   async markReady(input: {
     readonly userId: number
+    readonly sourceKey: string
     readonly key: string
     readonly width: number
     readonly height: number
-  }): Promise<void> {
-    await this.db.execute(sql`
-      update users
-         set avatar_key = ${input.key},
-             avatar_source_key = null,
-             avatar_width = ${input.width},
-             avatar_height = ${input.height},
-             avatar_status = 'ready'
-       where id = ${input.userId} and avatar_status = 'pending'
-    `)
+  }): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
+        update users set avatar_key = ${input.key}, avatar_source_key = null,
+          avatar_width = ${input.width}, avatar_height = ${input.height}, avatar_status = 'ready'
+        where id = ${input.userId} and avatar_status = 'pending' and avatar_source_key = ${input.sourceKey}
+        returning id
+      `),
+      )
+      if (rows.length === 0) return false
+      await rememberOrphanKey(tx, input.sourceKey)
+      await forgetOrphanKeys(tx, [input.key])
+      return true
+    })
   }
 
-  async markFailed(userId: number, reason: string): Promise<void> {
-    await this.db.execute(sql`
-      update users
-         set avatar_status = 'failed',
-             avatar_failure_reason = ${reason},
-             avatar_source_key = null
-       where id = ${userId} and avatar_status = 'pending'
-    `)
+  async markFailed(userId: number, reason: string, sourceKey: string | null): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
+        update users set avatar_status = 'failed', avatar_failure_reason = ${reason}, avatar_source_key = null
+        where id = ${userId} and avatar_status = 'pending' and avatar_source_key is not distinct from ${sourceKey}
+        returning id
+      `),
+      )
+      if (rows.length === 0) return false
+      if (sourceKey !== null) await rememberOrphanKey(tx, sourceKey)
+      return true
+    })
   }
 
   async clear(userId: number): Promise<{ replaced: readonly string[] }> {
-    const rows = resultRows(
-      await this.db.execute(sql`
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
+        with old as (
+          select id, avatar_key, avatar_source_key from users
+          where id = ${userId} and avatar_locked = false for update
+        )
         update users u
            set avatar_key = null,
                avatar_source_key = null,
@@ -139,16 +161,16 @@ export class PostgresAvatarRepository implements AvatarRepository {
                avatar_width = null,
                avatar_height = null,
                avatar_updated_at = null
-          from users old
-         where u.id = ${userId}
-           and old.id = u.id
-           and u.avatar_locked = false
+          from old where old.id = u.id
         returning old.avatar_key, old.avatar_source_key
       `),
-    ) as Array<{ avatar_key: string | null; avatar_source_key: string | null }>
+      ) as Array<{ avatar_key: string | null; avatar_source_key: string | null }>
 
-    const row = rows[0]
-    return { replaced: row === undefined ? [] : droppedKeys(row) }
+      const row = rows[0]
+      const replaced = row === undefined ? [] : droppedKeys(row)
+      for (const key of replaced) await rememberOrphanKey(tx, key)
+      return { replaced }
+    })
   }
 
   async lock(input: {

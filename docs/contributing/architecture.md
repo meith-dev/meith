@@ -34,3 +34,5 @@ Fixture mode supplies read-only sample data. PostgreSQL mode supplies durable st
 Write content changes and outbox events in the same transaction. Delivery is at least once; handlers must be idempotent. Queue claims and task leases coordinate workers. Every denormalized counter needs a bounded, resumable recount.
 
 See [Rendering and data](rendering-and-data.md) for caching, models and event-handler rules, and [Forms and actions](forms-and-actions.md) for mutation handling.
+
+Image workers publish outputs only if the pending source still matches their input. Adopting keys and retiring the previous source share a database transaction with orphan-key bookkeeping; deletions and replacements leave durable cleanup work before removing references. A worker losing that comparison discards its generated output, and stale avatar sweeps recheck the current upload time and source.

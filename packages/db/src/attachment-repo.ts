@@ -66,8 +66,9 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
   constructor(private readonly db: Database) {}
 
   async create(input: CreateAttachmentInput): Promise<AttachmentRecord> {
-    const rows = resultRows(
-      await this.db.execute(sql`
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
         insert into attachments
                (post_id, forum_id, uploader_user_id, filename, content_type,
                 size_bytes, storage_key, source_key, status, ready_at)
@@ -77,10 +78,15 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
                 ${input.status === 'ready' ? sql`now()` : sql`null`})
         returning ${COLUMNS}
       `),
-    ) as RawAttachment[]
+      ) as RawAttachment[]
 
-    if (rows[0] === undefined) throw new Error('Attachment insert returned no row')
-    return toRecord(rows[0])
+      if (rows[0] === undefined) throw new Error('Attachment insert returned no row')
+      await forgetOrphanKeys(
+        tx,
+        [input.sourceKey, input.storageKey].filter((key): key is string => key !== null),
+      )
+      return toRecord(rows[0])
+    })
   }
 
   async findById(id: number): Promise<AttachmentRecord | null> {
@@ -149,27 +155,42 @@ export class PostgresAttachmentRepository implements AttachmentRepository {
     return Number(rows[0]?.n ?? 0)
   }
 
-  async markReady(id: number, input: ReadyInput): Promise<void> {
-    await this.db.execute(sql`
-      update attachments
-         set storage_key = ${input.storageKey},
-             thumbnail_key = ${input.thumbnailKey},
-             width = ${input.width},
-             height = ${input.height},
-             size_bytes = ${input.sizeBytes},
-             source_key = null,
-             status = 'ready',
-             ready_at = now()
-       where id = ${id} and status = 'pending'
-    `)
+  async markReady(id: number, input: ReadyInput): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const rows = resultRows(
+        await tx.execute(sql`
+        update attachments
+        set storage_key = ${input.storageKey}, thumbnail_key = ${input.thumbnailKey},
+            width = ${input.width}, height = ${input.height}, size_bytes = ${input.sizeBytes},
+            source_key = null, status = 'ready', ready_at = now()
+        where id = ${id} and status = 'pending' and source_key = ${input.sourceKey}
+        returning id
+      `),
+      )
+      if (rows.length === 0) return false
+      await rememberOrphanKey(tx, input.sourceKey)
+      await forgetOrphanKeys(
+        tx,
+        [input.storageKey, input.thumbnailKey].filter((key): key is string => key !== null),
+      )
+      return true
+    })
   }
 
   async markFailed(id: number, reason: string): Promise<void> {
-    await this.db.execute(sql`
-      update attachments
-         set status = 'failed', failure_reason = ${reason}, source_key = null
-       where id = ${id} and status = 'pending'
-    `)
+    await this.db.transaction(async (tx) => {
+      const rows = resultRows<{ source_key: string | null }>(
+        await tx.execute(sql`
+        update attachments a
+        set status = 'failed', failure_reason = ${reason}, source_key = null
+        from attachments old
+        where a.id = ${id} and old.id = a.id and a.status = 'pending'
+        returning old.source_key
+      `),
+      )
+      const source = rows[0]?.source_key
+      if (source != null) await rememberOrphanKey(tx, source)
+    })
   }
 
   async recordDownload(id: number): Promise<void> {

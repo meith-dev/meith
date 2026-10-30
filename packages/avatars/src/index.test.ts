@@ -64,11 +64,19 @@ class FakeRepo implements AvatarRepository {
       sourceKey: input.sourceKey,
       updatedAt: input.at,
     })
+    this.keys.delete(input.sourceKey)
+    for (const key of replaced) this.keys.add(key)
     return { replaced }
   }
-  async markReady(input: { userId: number; key: string; width: number; height: number }) {
+  async markReady(input: {
+    userId: number
+    sourceKey: string
+    key: string
+    width: number
+    height: number
+  }) {
     const row = this.rows.get(input.userId)
-    if (row?.status !== 'pending') return
+    if (row?.status !== 'pending' || row.sourceKey !== input.sourceKey) return false
     this.rows.set(input.userId, {
       ...row,
       status: 'ready',
@@ -77,21 +85,27 @@ class FakeRepo implements AvatarRepository {
       width: input.width,
       height: input.height,
     })
+    this.keys.add(input.sourceKey)
+    this.keys.delete(input.key)
+    return true
   }
-  async markFailed(userId: number, reason: string) {
+  async markFailed(userId: number, reason: string, sourceKey: string | null) {
     const row = this.rows.get(userId)
-    if (row?.status !== 'pending') return
+    if (row?.status !== 'pending' || row.sourceKey !== sourceKey) return false
     this.rows.set(userId, {
       ...row,
       status: 'failed',
       failureReason: reason,
       sourceKey: null,
     })
+    if (sourceKey !== null) this.keys.add(sourceKey)
+    return true
   }
   async clear(userId: number) {
     const row = this.rows.get(userId)
     if (row === undefined || row.locked) return { replaced: [] }
     this.rows.set(userId, stored())
+    for (const key of [row.key, row.sourceKey]) if (key !== null) this.keys.add(key)
     return {
       replaced: [row.key, row.sourceKey].filter((key): key is string => key != null),
     }
@@ -142,10 +156,12 @@ class FakeFiles {
 }
 
 class FakeImages {
+  during?: () => Promise<void>
   fail = false
   calls: Array<Record<string, unknown>> = []
   async process(input: Record<string, unknown>) {
     this.calls.push(input)
+    await this.during?.()
     if (this.fail) throw new Error('nope')
     return {
       bytes: new TextEncoder().encode('re-encoded'),
@@ -276,6 +292,54 @@ describe('processing', () => {
       mayUpload: true,
     })
   }
+
+  it('discards an older encode after a replacement upload begins', async () => {
+    await pending()
+    images.during = async () => {
+      await pending()
+    }
+    expect(await service.process(ADA)).toBe('skipped')
+    const current = (await repo.find(ADA))!
+    expect(current.status).toBe('pending')
+    expect([...files.objects.keys()]).toEqual([current.sourceKey])
+    expect(repo.keys.size).toBe(0)
+  })
+
+  it('does not fail the replacement upload when an older encode fails', async () => {
+    await pending()
+    images.during = async () => {
+      await pending()
+    }
+    images.fail = true
+    await service.process(ADA)
+    const current = (await repo.find(ADA))!
+    expect(current.status).toBe('pending')
+    expect(files.objects.has(current.sourceKey!)).toBe(true)
+  })
+
+  it('discards outputs if the avatar was removed during encoding', async () => {
+    await pending()
+    images.during = async () => {
+      await service.remove(ADA)
+    }
+    expect(await service.process(ADA)).toBe('skipped')
+    expect((await repo.find(ADA))?.status).toBe('none')
+    expect(files.objects.size).toBe(0)
+    expect(repo.keys.size).toBe(0)
+  })
+
+  it('keeps cleanup work when a deletion follows output adoption', async () => {
+    await pending()
+    const adopt = repo.markReady.bind(repo)
+    repo.markReady = async (input) => {
+      const marked = await adopt(input)
+      await repo.clear(ADA)
+      return marked
+    }
+    await service.process(ADA)
+    expect(files.objects.size).toBe(1)
+    expect([...repo.keys]).toEqual([...files.objects.keys()])
+  })
 
   it('serves the encoder’s output and drops the uploaded bytes', async () => {
     await pending()
