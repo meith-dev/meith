@@ -85,6 +85,9 @@ export class PostgresReputationRepository implements ReputationRepository {
     readonly at: Date
   }): Promise<ReputationWriteResult> {
     return this.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`reputation-giver:${input.givenByUserId}`}, 0))`,
+      )
       if (input.maxPerDay > 0) {
         const startOfDay = new Date(
           Date.UTC(input.at.getUTCFullYear(), input.at.getUTCMonth(), input.at.getUTCDate()),

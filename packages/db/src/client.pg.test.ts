@@ -9,6 +9,7 @@ import { isScope } from '@meith/api'
 
 import { PostgresApiTokenRepository } from './api-repo'
 import { createIsolatedDb, schema } from './client'
+import { PostgresReputationRepository } from './reputation-repo'
 import { resultRows } from './result-rows'
 
 function migrationSql(): string {
@@ -155,6 +156,43 @@ describeIfPg('against real Postgres', () => {
       const listed = (await repo.listAll()).find((row) => row.lookup === 'deadbeef')
       expect(listed!.scopes).toEqual(['forums:read'])
     })
+  })
+
+  it('allows only one new reputation rating at the daily boundary across connections', async () => {
+    await harness.db.execute(sql`
+      insert into users (id, username, username_lower, email, email_lower, primary_group_id)
+      values (1001, 'giver', 'giver', 'giver@example.test', 'giver@example.test', 2),
+             (1002, 'target-a', 'target-a', 'a@example.test', 'a@example.test', 2),
+             (1003, 'target-b', 'target-b', 'b@example.test', 'b@example.test', 2)
+    `)
+    const other = createIsolatedDb(scratchUrl(URL!))
+    try {
+      const repositories = [
+        new PostgresReputationRepository(harness.db),
+        new PostgresReputationRepository(other.db),
+      ]
+      const outcomes = await Promise.all(
+        repositories.map((repository, index) =>
+          repository.give({
+            userId: 1002 + index,
+            givenByUserId: 1001,
+            postId: null,
+            points: 1,
+            comment: '',
+            maxPerDay: 1,
+            at: new Date(),
+          }),
+        ),
+      )
+      expect(outcomes.sort()).toEqual(['daily-limit', 'written'])
+      expect(
+        resultRows(
+          await harness.db.execute(sql`select id from reputation where given_by_user_id = 1001`),
+        ),
+      ).toHaveLength(1)
+    } finally {
+      await other.close()
+    }
   })
 
   describe('the date serialiser getDb() and createIsolatedDb() install', () => {
