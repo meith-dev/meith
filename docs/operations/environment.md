@@ -38,3 +38,9 @@ Multiple instances need [shared cache and uploads](scaling.md). Changing a drive
 `BACKUP_DIR` selects local bundle storage. `BACKUP_S3_*` and `BACKUP_WEBDAV_*` configure separate off-site credentials; see [Backups](backups.md).
 
 Restart affected services after environment changes and verify the feature. Keep secrets outside git and separate from data backups, which do not include the environment.
+
+Local uploads use the same object-key rules as cloud stores: keys must be
+nonempty relative paths without dot segments, empty segments, control characters,
+or surrounding whitespace. Invalid keys raise `ConfigurationError` before file
+access. Public URLs encode each path segment; stored filenames remain unchanged.
+Local storage does not issue signed URLs.

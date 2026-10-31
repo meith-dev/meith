@@ -5,6 +5,8 @@ import { dirname, join, normalize, resolve, sep } from 'node:path'
 import { type FileStore, type PutFileOptions, type StoredFile, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
+import { assertUsableKey, encodeKeyPath } from './keys'
+
 export class LocalFileStore implements FileStore {
   constructor(
     private readonly root: string,
@@ -12,7 +14,7 @@ export class LocalFileStore implements FileStore {
   ) {}
 
   private pathFor(key: string): string {
-    if (key.includes('\0')) throw new ValidationError(msg('error.drivers.invalid-file-key'))
+    assertUsableKey(key)
 
     const base = resolve(this.root)
     const target = resolve(base, normalize(key))
@@ -44,12 +46,14 @@ export class LocalFileStore implements FileStore {
     await rm(this.pathFor(key), { force: true })
   }
 
-  signedUrl(): Promise<string | undefined> {
-    return Promise.resolve(undefined)
+  async signedUrl(key: string): Promise<string | undefined> {
+    this.pathFor(key)
+    return undefined
   }
 
   url(key: string): string {
-    return `${this.publicPrefix}/${key}`
+    this.pathFor(key)
+    return `${this.publicPrefix}/${encodeKeyPath(key)}`
   }
 
   static keyFor(prefix: string, body: Uint8Array, extension: string): string {
