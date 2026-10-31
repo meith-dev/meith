@@ -374,8 +374,8 @@ describe('withdrawing', () => {
 describe('history visibility', () => {
   it('keeps profile ratings but filters post comments and links outside the audience', async () => {
     await seedPost(100)
-    await give({ postId: 100, comment: 'Private discussion' })
     await give({ postId: null, comment: 'Public profile' })
+    await give({ postId: 100, comment: 'Private discussion' })
 
     const rows = await repo.list({ userId: TARGET, limit: 1, audience: unrestrictedAudience([]) })
     expect(rows.map((row) => row.comment)).toEqual(['Public profile'])
@@ -404,7 +404,7 @@ describe('history visibility', () => {
     ).toEqual([])
   })
 
-  it.each(['unapproved', 'soft-deleted'])(
+  it.each(['unapproved', 'deleted'])(
     'hides ratings on %s posts and threads',
     async (visibility) => {
       await seedPost(100)
