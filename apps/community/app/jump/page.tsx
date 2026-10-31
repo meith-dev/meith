@@ -1,5 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 
+import { safeForumLinkUrl } from '@meith/forums'
+
 import { getContainer } from '@/server/container'
 import { getActor } from '@/server/context'
 import { JUMP_FIELD, parseJumpTarget } from '@/view/forum-jump'
@@ -23,6 +25,9 @@ export default async function JumpPage({
   if (forum === null) notFound()
 
   if (forum.type === 'category') redirect('/')
+  if (forum.type === 'link') {
+    redirect(forum.linkUrl === null ? '/' : (safeForumLinkUrl(forum.linkUrl) ?? '/'))
+  }
 
   redirect(`/${forum.id}-${forum.slug}`)
 }

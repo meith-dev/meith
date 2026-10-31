@@ -14,7 +14,9 @@ Select **Add forum**, choose a type, enter its title and slug, then save.
 
 Link destinations must resolve to HTTP or HTTPS; relative links are allowed.
 Executable schemes such as `javascript:` and `data:` are rejected on creation
-and editing. Previously saved unsafe destinations render as local forum links.
+and editing. Previously saved unsafe destinations render as local forum links. The forum jump
+selector follows safe link destinations directly; missing or unsafe destinations
+return to the board index after the usual visibility check.
 
 Arrange rows with drag handles or the up/down/in/out buttons. Moving a forum moves its descendants and changes inherited permissions. Re-parenting requires password confirmation. A forum cannot be its own descendant, sit inside a link or share a sibling's slug.
 
