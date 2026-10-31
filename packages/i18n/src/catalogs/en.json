@@ -938,7 +938,7 @@
   "adminSystem.sample": "This board is running on in-memory sample data, so it has no scheduler and nothing to maintain.",
   "adminSystem.schedulerStopped": "Nothing is broken and nothing is lost — the tasks are written to catch up, so they will work through the backlog once it runs again. Check that whatever invokes the scheduled endpoint is still configured and still authorised.",
   "adminSystem.schedulerStoppedAfter": ", digests and notification emails are not sent, counters drift, uploads that failed to process are not retried, and queued mail sits in the queue.",
-  "adminSystem.schedulerStoppedBefore": "Every task is overdue, which means the tick is not firing at all. While this is true:",
+  "adminSystem.schedulerStoppedBefore": "Critical tasks are overdue or the scheduler has stopped. If ticks are not running:",
   "adminSystem.schedulerStoppedStrong": "bans do not expire",
   "adminSystem.searchIndexHint": "Make older posts searchable. New and edited posts are indexed automatically.",
   "adminSystem.searchIndexIndexed": "{count} indexed",

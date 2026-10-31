@@ -99,9 +99,58 @@ describe('assessScheduler', () => {
   const stale = (key: string) =>
     task({ key, lastRunAt: new Date(NOW.getTime() - 300_000 * STALE_INTERVALS) })
 
-  it('calls the scheduler stopped only when every enabled task is stale', () => {
+  it('calls the scheduler stopped when every enabled ordinary task is stale', () => {
     expect(assessScheduler([stale('a'), stale('b')], NOW).schedulerStopped).toBe(true)
     expect(assessScheduler([stale('a'), task({ key: 'b' })], NOW).schedulerStopped).toBe(false)
+  })
+
+  it.each(['outbox.relay', 'queue.drain'])(
+    'fails readiness when %s is stale even while a daily task is healthy',
+    (key) => {
+      const critical = task({
+        key,
+        intervalSeconds: 60,
+        lastRunAt: new Date(NOW.getTime() - 180_000),
+      })
+      const daily = task({ key: 'marketplace.refresh', intervalSeconds: 86_400 })
+      expect(assessScheduler([critical, daily], NOW).schedulerStopped).toBe(true)
+      expect(assessScheduler([{ ...critical, enabled: false }, daily], NOW).schedulerStopped).toBe(
+        false,
+      )
+      expect(
+        assessScheduler(
+          [{ ...critical, lockedUntil: new Date(NOW.getTime() + 60_000) }, daily],
+          NOW,
+        ).schedulerStopped,
+      ).toBe(false)
+    },
+  )
+
+  it('does not wait for a daily task when a critical task has never run', () => {
+    expect(
+      assessScheduler(
+        [
+          task({ key: 'outbox.relay', lastRunAt: null }),
+          task({ key: 'daily', intervalSeconds: 86_400 }),
+        ],
+        NOW,
+      ).schedulerStopped,
+    ).toBe(true)
+  })
+
+  it('keeps readiness during a single delayed critical tick', () => {
+    expect(
+      assessScheduler(
+        [
+          task({
+            key: 'queue.drain',
+            intervalSeconds: 60,
+            lastRunAt: new Date(NOW.getTime() - 60_000),
+          }),
+        ],
+        NOW,
+      ).schedulerStopped,
+    ).toBe(false)
   })
 
   it('ignores disabled tasks when deciding that', () => {
