@@ -10,6 +10,14 @@ Check **Admin → System** for migrations, task failures, queue state and search
 | `/api/ready` | Database and scheduler readiness |
 | `/api/system/tick` | Task execution; HTTP 200 can still contain `ok: false` |
 
+Readiness fails when enabled `outbox.relay` or `queue.drain` tasks are stale
+(three of their own intervals since the last run), or have never run. Healthy
+daily tasks cannot mask a stalled critical lane. Disabled tasks and tasks holding
+a live execution lease do not trigger this condition. Other stale or failing
+tasks remain visible individually under **Admin → System**. This assessment is
+shared by web readiness and the standalone worker readiness command. A daily-only
+cron schedule does not keep one-minute delivery tasks ready between ticks.
+
 Read response bodies and task results. A working home page does not prove background delivery or backups work.
 
 ## Metrics
