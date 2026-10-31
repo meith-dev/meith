@@ -73,7 +73,7 @@ import { WhoIsOnline } from './slots/who-is-online'
 export const raidframeTheme = defineTheme({
   key: 'raidframe',
   title: 'Raidframe',
-  version: '0.38.0',
+  version: '0.39.0',
   extends: defaultTheme,
   slots: {
     Shell,

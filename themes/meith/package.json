@@ -1,6 +1,6 @@
 {
   "name": "@meith/theme-meith",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "The editorial theme for Meith, in the style of meith.dev — rules instead of cards, quiet light headlines, one green.",
   "license": "MIT",
   "repository": {
