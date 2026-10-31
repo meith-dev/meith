@@ -193,6 +193,9 @@ export class PostgresThreadToolsRepository implements ThreadToolsRepository {
         update posts set forum_id = ${input.toForumId} where thread_id = ${input.threadId}
       `)
       await tx.execute(sql`
+        update post_drafts set forum_id = ${input.toForumId} where thread_id = ${input.threadId}
+      `)
+      await tx.execute(sql`
         update attachments set forum_id = ${input.toForumId}
          where post_id in (select id from posts where thread_id = ${input.threadId})
       `)
