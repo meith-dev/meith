@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { groupByThread, SubscriptionNotifier } from './notifier'
+import { readUnsubscribeToken } from './tokens'
 import type { PendingForUser, PendingPost, SubscriptionRepository } from './types'
 
 const NOW = new Date('2026-07-31T12:00:00Z')
 
 function post(over: Partial<PendingPost> = {}): PendingPost {
   return {
+    target: 'thread',
+    targetId: 10,
     postId: 100,
     threadId: 10,
     threadTitle: 'A thread',
@@ -168,6 +171,16 @@ describe('instant', () => {
     await notifier('board-secret').runInstant()
 
     expect(typeof raised[0]?.data.unsubscribe).toBe('string')
+  })
+
+  it('mints a forum token for posts delivered by a forum follow', async () => {
+    subscriptions.pending.set(7, [post({ target: 'forum', targetId: 1 })])
+    await notifier('board-secret').runInstant()
+    expect(readUnsubscribeToken(String(raised[0]?.data.unsubscribe), 'board-secret')).toEqual({
+      userId: 7,
+      scope: 'forum',
+      targetId: 1,
+    })
   })
 
   it('carries none when the board has no secret', async () => {

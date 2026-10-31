@@ -13,6 +13,8 @@ export interface SubscriptionRow {
 }
 
 export interface PendingPost {
+  readonly target: SubscriptionTarget
+  readonly targetId: number
   readonly postId: number
   readonly threadId: number
   readonly threadTitle: string

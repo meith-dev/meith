@@ -26,3 +26,10 @@ those skipped replies. A board digest with no visible activity sends no message
 but still counts as that cadence's check, so other members' digests can proceed.
 
 Delayed community-wide email can indicate a scheduler or mail-service problem. Ask an administrator to check it. Password-reset mail uses a separate request path.
+
+An instant email's unsubscribe link ends the thread or forum follow that
+produced that notification. When both follows contribute to the same pending
+post, the forum link is chosen and the post is delivered once. An independent
+thread follow can still notify you; manage overlapping follows at
+`/subscriptions`. Custom subscription adapters must return the source `target`
+and `targetId` with each pending post.

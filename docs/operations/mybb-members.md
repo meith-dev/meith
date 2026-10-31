@@ -10,7 +10,7 @@ Instant subscription delivery runs on the next scheduled task. Daily/weekly cade
 
 Board activity digests are separate, opt-in weekly/monthly mail for absent members. Content follows recipient permissions. Announcement consent is not imported from MyBB's opt-out field.
 
-Unsubscribe URLs open a confirmation page; POST applies the change. Digest unsubscribe disables the relevant email channel without deleting the follow list; a per-thread instant unsubscribe ends that subscription. See [Notifications](../members/notifications.md).
+Unsubscribe URLs open a confirmation page; POST applies the change. Digest unsubscribe disables the relevant email channel without deleting the follow list; an instant unsubscribe ends the source thread or forum subscription. See [Notifications](../members/notifications.md).
 
 ## Accounts and profiles
 
