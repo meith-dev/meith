@@ -55,7 +55,7 @@ describe('the challenge held between the two passkey requests', () => {
     const packed = packChallenge('authenticate', 'abc', {}, NOW)
     const dot = packed.lastIndexOf('.')
     const sig = packed.slice(dot + 1)
-    const tampered = `${packed.slice(0, dot + 1)}${sig.endsWith('A') ? 'B' : 'A'}${sig.slice(1)}`
+    const tampered = `${packed.slice(0, dot + 1)}${sig.startsWith('A') ? 'B' : 'A'}${sig.slice(1)}`
     expect(unpackChallenge(tampered, 'authenticate', NOW)).toBeNull()
   })
 })
