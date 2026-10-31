@@ -147,7 +147,8 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
       const newThreadId = Number(created[0]!.id)
 
       await tx.execute(sql`
-        update posts set thread_id = ${newThreadId}, is_first_post = (id = ${opener})
+        update posts set thread_id = ${newThreadId}, is_first_post = (id = ${opener}),
+                         search_version = case when id = ${opener} then 0 else search_version end
          where id in ${idList(plan.postIds)}
       `)
 
@@ -223,6 +224,7 @@ export class PostgresThreadSurgeryRepository implements ThreadSurgeryRepository 
         update posts
            set thread_id = ${plan.targetThreadId},
                forum_id = ${targetForum},
+               search_version = case when is_first_post then 0 else search_version end,
                is_first_post = false
          where thread_id = ${plan.sourceThreadId}
       `)

@@ -1,12 +1,15 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { PUBLIC_CONTENT } from '@meith/core'
+
 import { PostgresAttachmentRepository } from './attachment-repo'
 import type { Database } from './client'
 import { rollUpAncestorCounters } from './content-counters'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
 import { forums, users } from './schema'
+import { PostgresSearchRepository } from './search-repo'
 import { PostgresThreadSurgeryRepository } from './thread-surgery'
 import { PostgresThreadWriteRepository } from './thread-writes'
 
@@ -535,5 +538,62 @@ describe('visiblePostIdsIn', () => {
   it('asks nothing at all for an empty selection', async () => {
     const { threadId } = await seedThread(LEFT, 'Mine', 1)
     expect(await repo.visiblePostIdsIn(threadId, [])).toEqual([])
+  })
+})
+
+describe('search after thread surgery', () => {
+  const scope = {
+    forumIds: [LEFT, RIGHT],
+    ownThreadsOnlyForumIds: [],
+    viewerUserId: null,
+    content: PUBLIC_CONTENT,
+  }
+  async function matches(
+    search: PostgresSearchRepository,
+    terms: string,
+  ): Promise<readonly number[]> {
+    const result = await search.search(
+      { terms, match: 'everything', grouping: 'posts', sort: 'relevance', limit: 20, after: null },
+      scope,
+    )
+    return result.hits.map((hit) => hit.postId)
+  }
+
+  it('reindexes a promoted opening post with the new thread title', async () => {
+    const { threadId, postIds } = await seedThread(LEFT, 'Kestrel', 2)
+    const search = new PostgresSearchRepository(db)
+    await search.reindexChunk(0, 100)
+    expect(await search.indexProgress()).toMatchObject({ pending: 0 })
+
+    await repo.split({
+      sourceThreadId: threadId,
+      postIds: [postIds[1]!, postIds[2]!],
+      title: 'Falcon',
+      actorUserId: MOD,
+      at: AT,
+    })
+    expect(await search.indexProgress()).toMatchObject({ pending: 1 })
+    await search.reindexChunk(0, 100)
+    expect(await matches(search, 'falcon')).toEqual([postIds[1]])
+    expect(await matches(search, 'kestrel')).toEqual([postIds[0]])
+  })
+
+  it('removes the old title from a demoted source opening post', async () => {
+    const source = await seedThread(LEFT, 'Kestrel', 1)
+    const target = await seedThread(RIGHT, 'Osprey', 0)
+    const search = new PostgresSearchRepository(db)
+    await search.reindexChunk(0, 100)
+    expect(await matches(search, 'kestrel')).toEqual([source.postIds[0]])
+
+    await repo.merge({
+      sourceThreadId: source.threadId,
+      targetThreadId: target.threadId,
+      actorUserId: MOD,
+      at: AT,
+    })
+    expect(await search.indexProgress()).toMatchObject({ pending: 1 })
+    await search.reindexChunk(0, 100)
+    expect(await matches(search, 'kestrel')).toEqual([])
+    expect(await matches(search, 'osprey')).toEqual([target.postIds[0]])
   })
 })

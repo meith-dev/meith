@@ -21,3 +21,10 @@ The web and API search paths use the same hourly limits and flood checks. A memb
 ## Verify
 
 Search for known public and private content as a guest and representative members. Results must match their forum permissions. See [Search behaviour](../operations/mybb-discovery.md#search) for ranking and result limits, or [Operator commands](../operations/operator-cli.md) for rebuilding.
+
+Splitting and merging threads marks posts whose opening-post status changes for
+reindexing. The scheduled search indexer adds a split thread's new title and
+removes a merged thread's former title. Results can lag until it runs. To repair
+search documents left stale by older versions, run `UPDATE posts SET search_version = 0;` against the board database, then
+run `meith search:reindex` or let the scheduled indexer finish. This rebuilds
+derived search documents without changing post content.
