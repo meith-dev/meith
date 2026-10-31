@@ -275,7 +275,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         select * from (${pendingPosts(input.userId, input.mode, input.audience)}) p
-         order by p.post_id
+         order by p.post_id, p.target
          limit ${input.limit}
       `),
     ) as RawPending[]
@@ -305,6 +305,8 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
       if (seen.has(postId)) continue
       seen.add(postId)
       posts.push({
+        target: row.target,
+        targetId: Number(row.target_id),
         postId,
         threadId: Number(row.thread_id),
         threadTitle: row.thread_title,

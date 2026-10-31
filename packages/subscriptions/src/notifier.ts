@@ -1,4 +1,9 @@
-import { CADENCE_INTERVAL_MS, type DigestCadence, type SubscriptionMode } from './modes'
+import {
+  CADENCE_INTERVAL_MS,
+  type DigestCadence,
+  type SubscriptionMode,
+  type SubscriptionTarget,
+} from './modes'
 import { mintUnsubscribeToken } from './tokens'
 import type {
   PendingPost,
@@ -14,6 +19,8 @@ export const MAX_POSTS_PER_USER = 200
 export const MAX_THREADS_IN_DIGEST = 10
 
 export interface DigestThread {
+  readonly target: SubscriptionTarget
+  readonly targetId: number
   readonly threadId: number
   readonly title: string
   readonly href: string
@@ -37,6 +44,8 @@ export function groupByThread(posts: readonly PendingPost[]): readonly DigestThr
   return [...byThread.values()]
     .sort((a, b) => b.count - a.count || a.thread.threadId - b.thread.threadId)
     .map(({ thread, count, last }) => ({
+      target: thread.target,
+      targetId: thread.targetId,
       threadId: thread.threadId,
       title: thread.threadTitle,
       href: `/thread/${thread.threadId}-${thread.threadSlug}?after=${thread.postId - 1}`,
@@ -93,7 +102,7 @@ export class SubscriptionNotifier {
               threadTitle: thread.title,
               posts: thread.posts,
               lastAuthor: thread.lastAuthor,
-              unsubscribe: this.token(userId, 'thread', thread.threadId),
+              unsubscribe: this.token(userId, thread.target, thread.targetId),
             },
             href: thread.href,
             dedupeKey: `subscription.reply:${thread.threadId}`,

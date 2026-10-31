@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import type { ThreadAudience } from '@meith/core'
-import { SubscriptionNotifier } from '@meith/subscriptions'
+import { readUnsubscribeToken, SubscriptionNotifier } from '@meith/subscriptions'
 
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
@@ -681,5 +681,78 @@ describe('the management screen', () => {
     await db.execute(sql`update threads set visibility = 'deleted' where id = ${THREAD}`)
 
     expect(await repo.listFor(IVAN, { audience: toAudience(ALL_FORUMS), limit: 50 })).toEqual([])
+  })
+})
+
+describe('instant unsubscribe provenance', () => {
+  it.each(['thread', 'forum'] as const)(
+    'stops the %s follow that produced an instant notification',
+    async (target) => {
+      const targetId = target === 'thread' ? THREAD : FORUM
+      await repo.subscribe({ userId: IVAN, target, targetId, mode: 'instant', at: AT })
+      await repo.subscribe({
+        userId: IVAN,
+        target: 'forum',
+        targetId: OTHER_FORUM,
+        mode: 'instant',
+        at: AT,
+      })
+      await addPost({ id: 100 })
+      const tokens: string[] = []
+      const notifier = new SubscriptionNotifier({
+        subscriptions: repo,
+        notifications: {
+          async raise(input) {
+            tokens.push(String(input.data.unsubscribe))
+          },
+        },
+        forums: { audienceFor: async () => toAudience(ALL_FORUMS, IVAN) },
+        unsubscribeSecret: 'board-secret',
+        now: () => AT,
+      })
+      expect((await notifier.runInstant()).notified).toBe(1)
+      const claim = readUnsubscribeToken(tokens[0]!, 'board-secret')
+      expect(claim).toEqual({ userId: IVAN, scope: target, targetId })
+      if (claim === null || (claim.scope !== 'thread' && claim.scope !== 'forum'))
+        throw new Error('Missing subscription claim')
+      expect(
+        await repo.unsubscribe({
+          userId: claim.userId,
+          target: claim.scope,
+          targetId: claim.targetId,
+        }),
+      ).toBe(true)
+      expect(await repo.modeFor(IVAN, target, targetId)).toBeNull()
+      expect(await repo.modeFor(IVAN, 'forum', OTHER_FORUM)).toBe('instant')
+      await addPost({ id: 101 })
+      expect((await notifier.runInstant()).notified).toBe(0)
+    },
+  )
+
+  it('deduplicates overlapping follows and chooses the forum token deterministically', async () => {
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'thread',
+      targetId: THREAD,
+      mode: 'instant',
+      at: AT,
+    })
+    await repo.subscribe({
+      userId: IVAN,
+      target: 'forum',
+      targetId: FORUM,
+      mode: 'instant',
+      at: AT,
+    })
+    await addPost({ id: 100 })
+    const pending = await repo.pendingFor({
+      userId: IVAN,
+      mode: 'instant',
+      audience: toAudience(ALL_FORUMS, IVAN),
+      limit: 50,
+    })
+    expect(pending.posts).toHaveLength(1)
+    expect(pending.posts[0]).toMatchObject({ target: 'forum', targetId: FORUM })
+    expect(pending.watermarks).toHaveLength(2)
   })
 })
