@@ -43,14 +43,17 @@ export function CustomField({ field, className }: { field: CustomFieldInput; cla
         ))}
       </select>
     ) : field.type === 'checkbox' ? (
-      <input
-        type="checkbox"
-        name={name}
-        value="yes"
-        defaultChecked={field.value !== ''}
-        className="size-4 rounded border-border"
-        required={field.required}
-      />
+      <>
+        <input type="hidden" name={name} value="" />
+        <input
+          type="checkbox"
+          name={name}
+          value="yes"
+          defaultChecked={field.value !== ''}
+          className="size-4 rounded border-border"
+          required={field.required}
+        />
+      </>
     ) : (
       <input
         type="text"
