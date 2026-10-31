@@ -59,7 +59,11 @@ export interface SchedulerHealth {
 export function assessScheduler(tasks: readonly TaskHealthInput[], now: Date): SchedulerHealth {
   const assessed = tasks.map((task) => assessTask(task, now))
   const enabled = assessed.filter((task) => task.status !== 'disabled')
-  const overdue = enabled.filter((task) => task.status === 'stale' || task.status === 'never-run')
+  const overdue = enabled.filter(
+    (task) =>
+      (task.lockedUntil == null || task.lockedUntil.getTime() <= now.getTime()) &&
+      (task.lastRunAt === null || task.intervalsLate >= STALE_INTERVALS),
+  )
 
   return {
     tasks: assessed,
