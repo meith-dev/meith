@@ -12,7 +12,8 @@ Check **Admin → System** for migrations, task failures, queue state and search
 
 Readiness fails when enabled `outbox.relay` or `queue.drain` tasks are stale
 (three of their own intervals since the last run), or have never run. Healthy
-daily tasks cannot mask a stalled critical lane. Disabled tasks and tasks holding
+daily tasks cannot mask a stalled critical lane. The age check also applies when
+a task is labelled failing after repeated errors. Disabled tasks and tasks holding
 a live execution lease do not trigger this condition. Other stale or failing
 tasks remain visible individually under **Admin → System**. This assessment is
 shared by web readiness and the standalone worker readiness command. A daily-only

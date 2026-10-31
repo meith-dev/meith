@@ -138,6 +138,21 @@ describe('assessScheduler', () => {
     ).toBe(true)
   })
 
+  it('does not let a failing status mask a stopped critical task or a live lease', () => {
+    const failed = task({
+      key: 'queue.drain',
+      intervalSeconds: 60,
+      consecutiveFailures: FAILING_THRESHOLD,
+    })
+    expect(assessScheduler([{ ...failed, lastRunAt: NOW }], NOW).schedulerStopped).toBe(false)
+    const stalled = { ...failed, lastRunAt: new Date(NOW.getTime() - 180_000) }
+    expect(assessScheduler([stalled], NOW).schedulerStopped).toBe(true)
+    expect(
+      assessScheduler([{ ...stalled, lockedUntil: new Date(NOW.getTime() + 60_000) }], NOW)
+        .schedulerStopped,
+    ).toBe(false)
+  })
+
   it('keeps readiness during a single delayed critical tick', () => {
     expect(
       assessScheduler(
