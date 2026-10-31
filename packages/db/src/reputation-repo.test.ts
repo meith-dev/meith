@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { unrestrictedAudience } from '@meith/core'
+
 import type { Database } from './client'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { PostgresReputationRepository } from './reputation-repo'
@@ -109,7 +111,11 @@ describe('the cached total', () => {
 
   it('goes to zero rather than null when the last rating is withdrawn', async () => {
     await give({ points: 1 })
-    const [row] = await repo.list({ userId: TARGET, limit: 10 })
+    const [row] = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 10,
+    })
 
     expect(await repo.withdraw({ ratingId: row!.id, givenByUserId: RATER })).toBe(true)
     expect(await cachedTotal()).toBe(0)
@@ -121,7 +127,11 @@ describe('the uniqueness rules', () => {
     await give({ points: 1, comment: 'First thought.' })
     await give({ points: -1, comment: 'Second thought.' })
 
-    const rows = await repo.list({ userId: TARGET, limit: 10 })
+    const rows = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 10,
+    })
     expect(rows).toHaveLength(1)
     expect(rows[0]?.points).toBe(-1)
     expect(rows[0]?.comment).toBe('Second thought.')
@@ -133,7 +143,9 @@ describe('the uniqueness rules', () => {
     await give({ postId: null, points: 1 })
     await give({ postId: 100, points: 1 })
 
-    expect(await repo.list({ userId: TARGET, limit: 10 })).toHaveLength(2)
+    expect(
+      await repo.list({ audience: unrestrictedAudience([FORUM]), userId: TARGET, limit: 10 }),
+    ).toHaveLength(2)
     expect(await cachedTotal()).toBe(2)
   })
 
@@ -142,7 +154,9 @@ describe('the uniqueness rules', () => {
     await db.execute(sql`update posts set author_user_id = ${OTHER} where id = 100`)
 
     expect(await give({ postId: 100 })).toBe('invalid-post')
-    expect(await repo.list({ userId: TARGET, limit: 10 })).toHaveLength(0)
+    expect(
+      await repo.list({ audience: unrestrictedAudience([FORUM]), userId: TARGET, limit: 10 }),
+    ).toHaveLength(0)
     expect(await cachedTotal()).toBe(0)
   })
 
@@ -151,7 +165,11 @@ describe('the uniqueness rules', () => {
     await give({ postId: 100, points: 1 })
     await give({ postId: 100, points: 0 })
 
-    const rows = await repo.list({ userId: TARGET, limit: 10 })
+    const rows = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 10,
+    })
     expect(rows).toHaveLength(1)
     expect(rows[0]?.points).toBe(0)
   })
@@ -161,7 +179,9 @@ describe('the uniqueness rules', () => {
     await give({ postId: 100, givenByUserId: RATER })
     await give({ postId: 100, givenByUserId: OTHER })
 
-    expect(await repo.list({ userId: TARGET, limit: 10 })).toHaveLength(2)
+    expect(
+      await repo.list({ audience: unrestrictedAudience([FORUM]), userId: TARGET, limit: 10 }),
+    ).toHaveLength(2)
   })
 
   it('carries the thread id for a post rating, and nothing for a profile one', async () => {
@@ -169,7 +189,11 @@ describe('the uniqueness rules', () => {
     await give({ postId: 100 })
     await give({ postId: null, givenByUserId: OTHER })
 
-    const rows = await repo.list({ userId: TARGET, limit: 10 })
+    const rows = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 10,
+    })
     const post = rows.find((row) => row.postId !== null)
     const profile = rows.find((row) => row.postId === null)
 
@@ -236,11 +260,18 @@ describe('reads', () => {
 
   it('names the giver, and says so when the account is gone', async () => {
     await give()
-    expect((await repo.list({ userId: TARGET, limit: 10 }))[0]?.givenByUsername).toBe('bob')
+    expect(
+      (await repo.list({ audience: unrestrictedAudience([FORUM]), userId: TARGET, limit: 10 }))[0]
+        ?.givenByUsername,
+    ).toBe('bob')
 
     await db.execute(sql`delete from users where id = ${RATER}`)
 
-    const rows = await repo.list({ userId: TARGET, limit: 10 })
+    const rows = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 10,
+    })
     expect(rows).toHaveLength(1)
     expect(rows[0]?.givenByUsername).toBeNull()
   })
@@ -249,8 +280,17 @@ describe('reads', () => {
     await give({ givenByUserId: RATER })
     await give({ givenByUserId: OTHER })
 
-    const page = await repo.list({ userId: TARGET, limit: 1 })
-    const next = await repo.list({ userId: TARGET, limit: 1, before: page[0]!.id })
+    const page = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 1,
+    })
+    const next = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 1,
+      before: page[0]!.id,
+    })
 
     expect(next).toHaveLength(1)
     expect(next[0]!.id).toBeLessThan(page[0]!.id)
@@ -307,10 +347,16 @@ describe('the thread page’s batch reads', () => {
 describe('withdrawing', () => {
   it('is scoped to the giver in the query', async () => {
     await give()
-    const [row] = await repo.list({ userId: TARGET, limit: 10 })
+    const [row] = await repo.list({
+      audience: unrestrictedAudience([FORUM]),
+      userId: TARGET,
+      limit: 10,
+    })
 
     expect(await repo.withdraw({ ratingId: row!.id, givenByUserId: OTHER })).toBe(false)
-    expect(await repo.list({ userId: TARGET, limit: 10 })).toHaveLength(1)
+    expect(
+      await repo.list({ audience: unrestrictedAudience([FORUM]), userId: TARGET, limit: 10 }),
+    ).toHaveLength(1)
     expect(await cachedTotal()).toBe(1)
   })
 
@@ -319,6 +365,56 @@ describe('withdrawing', () => {
     await give({ postId: 100 })
 
     await db.execute(sql`delete from posts where id = 100`)
-    expect(await repo.list({ userId: TARGET, limit: 10 })).toEqual([])
+    expect(
+      await repo.list({ audience: unrestrictedAudience([FORUM]), userId: TARGET, limit: 10 }),
+    ).toEqual([])
   })
+})
+
+describe('history visibility', () => {
+  it('keeps profile ratings but filters post comments and links outside the audience', async () => {
+    await seedPost(100)
+    await give({ postId: 100, comment: 'Private discussion' })
+    await give({ postId: null, comment: 'Public profile' })
+
+    const rows = await repo.list({ userId: TARGET, limit: 1, audience: unrestrictedAudience([]) })
+    expect(rows.map((row) => row.comment)).toEqual(['Public profile'])
+    expect(rows[0]?.postId).toBeNull()
+    expect(await repo.summary(TARGET)).toMatchObject({ total: 2 })
+  })
+
+  it('checks the live thread forum and own-thread audience rather than the post forum', async () => {
+    await seedPost(100)
+    await give({ postId: 100 })
+    const audience = { forumIds: [FORUM], ownThreadsOnlyForumIds: [FORUM], viewerUserId: RATER }
+    expect(await repo.list({ userId: TARGET, limit: 10, audience })).toEqual([])
+    expect(
+      await repo.list({
+        userId: TARGET,
+        limit: 10,
+        audience: { ...audience, viewerUserId: TARGET },
+      }),
+    ).toHaveLength(1)
+    await db.execute(
+      sql`insert into forums (id, type, title, slug, path) values (11, 'forum', 'Private', 'private', '11')`,
+    )
+    await db.execute(sql`update threads set forum_id = 11 where id = ${THREAD}`)
+    expect(
+      await repo.list({ userId: TARGET, limit: 10, audience: unrestrictedAudience([FORUM]) }),
+    ).toEqual([])
+  })
+
+  it.each(['unapproved', 'soft-deleted'])(
+    'hides ratings on %s posts and threads',
+    async (visibility) => {
+      await seedPost(100)
+      await give({ postId: 100 })
+      const input = { userId: TARGET, limit: 10, audience: unrestrictedAudience([FORUM]) }
+      await db.execute(sql`update posts set visibility = ${visibility} where id = 100`)
+      expect(await repo.list(input)).toEqual([])
+      await db.execute(sql`update posts set visibility = 'visible' where id = 100`)
+      await db.execute(sql`update threads set visibility = ${visibility} where id = ${THREAD}`)
+      expect(await repo.list(input)).toEqual([])
+    },
+  )
 })

@@ -1,4 +1,4 @@
-import { ForbiddenError, ValidationError } from '@meith/core'
+import { ForbiddenError, type ThreadAudience, ValidationError } from '@meith/core'
 import { msg } from '@meith/i18n'
 
 import {
@@ -83,10 +83,12 @@ export class ReputationService {
   }
 
   async history(input: {
+    readonly audience: ThreadAudience
     readonly userId: number
     readonly before?: number | undefined
   }): Promise<{ rows: readonly ReputationRow[]; nextBefore: number | null }> {
     const rows = await this.repository.list({
+      audience: input.audience,
       userId: input.userId,
       limit: REPUTATION_PAGE_SIZE + 1,
       before: input.before,

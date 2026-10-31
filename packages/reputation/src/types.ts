@@ -1,3 +1,5 @@
+import type { ThreadAudience } from '@meith/core'
+
 export const COMMENT_MAX = 500
 
 export const RATING_VALUES = [1, 0, -1] as const
@@ -60,6 +62,7 @@ export interface ReputationRepository {
   withdraw(input: { readonly ratingId: number; readonly givenByUserId: number }): Promise<boolean>
 
   list(input: {
+    readonly audience: ThreadAudience
     readonly userId: number
     readonly limit: number
     readonly before?: number | undefined

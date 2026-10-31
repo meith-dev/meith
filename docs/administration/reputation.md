@@ -23,3 +23,5 @@ Ratings are −1, 0 or +1 without group multipliers. Comments accept up to 500 c
 The member needs **Can give reputation**, sufficient posts and a remaining daily allowance. Self-ratings are blocked. [Group allowances](groups.md) combine using the highest value; zero is unlimited. The day resets at midnight UTC. Concurrent ratings from one member share the same allowance: the database serializes the daily check and write, while updating an existing rating remains allowed at the cap.
 
 Members can withdraw their own ratings. Totals update automatically, including after account merges. Check promotion and achievement rules before changing reputation policy.
+
+Reputation history shows post ratings only when the viewer can read the post's current thread, including own-thread-only restrictions. Held or deleted posts and threads do not expose rating comments or links here. Profile ratings and aggregate totals remain visible. Custom reputation repositories receive a required `ThreadAudience` in `list`; apply it before pagination.

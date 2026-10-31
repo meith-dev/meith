@@ -52,9 +52,12 @@ export default async function ReputationPage({
   const postId = Number.isInteger(ratedPost) && ratedPost > 0 ? ratedPost : null
   const _preferences = await getViewerPreferences()
 
+  const audience = await authorizer.threadAudience(actor)
+
   const [summary, history, limits] = await Promise.all([
     service.summary(id),
     service.history({
+      audience,
       userId: id,
       ...(Number.isInteger(before) && before > 0 ? { before } : {}),
     }),
