@@ -1,6 +1,7 @@
 import type { SQLWrapper } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
+import { PUBLIC_CONTENT, type ThreadAudience } from '@meith/core'
 import type {
   ReputationRepository,
   ReputationRow,
@@ -11,6 +12,8 @@ import type {
 import type { Database } from './client'
 import { resultRows } from './result-rows'
 import { toDate } from './row-values'
+import { inAudience } from './thread-audience'
+import { visibleIn } from './visibility'
 
 interface RawRow {
   id: number
@@ -174,6 +177,7 @@ export class PostgresReputationRepository implements ReputationRepository {
   }
 
   async list(input: {
+    readonly audience: ThreadAudience
     readonly userId: number
     readonly limit: number
     readonly before?: number | undefined
@@ -183,7 +187,13 @@ export class PostgresReputationRepository implements ReputationRepository {
     const rows = resultRows(
       await this.db.execute(sql`
         ${SELECT_ROW}
+         left join threads t on t.id = p.thread_id
          where r.user_id = ${input.userId} ${before}
+           and (r.post_id is null or (
+             ${inAudience(sql`t.forum_id`, sql`t.author_user_id`, input.audience)}
+             and ${visibleIn(sql`t.visibility`, PUBLIC_CONTENT)}
+             and ${visibleIn(sql`p.visibility`, PUBLIC_CONTENT)}
+           ))
          order by r.id desc
          limit ${input.limit}
       `),

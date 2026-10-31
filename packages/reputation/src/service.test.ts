@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { ForbiddenError, ValidationError } from '@meith/core'
+import { ForbiddenError, unrestrictedAudience, ValidationError } from '@meith/core'
 
 import { ReputationService } from './service'
 import type {
@@ -238,11 +238,12 @@ describe('history', () => {
       updatedAt: new Date(),
     }))
 
-    const first = await service.history({ userId: TARGET })
+    const first = await service.history({ audience: unrestrictedAudience([]), userId: TARGET })
     expect(first.rows).toHaveLength(25)
     expect(first.nextBefore).toBe(first.rows[24]?.id)
 
     const second = await service.history({
+      audience: unrestrictedAudience([]),
       userId: TARGET,
       before: first.nextBefore as number,
     })
