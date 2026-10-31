@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MemberSettings, MemberSettingsRepository } from '@meith/accounts'
@@ -39,6 +41,8 @@ const { saveProfileAction } = await import('./usercp-actions')
 const { EMPTY_STATE } = await import('./auth-form-state')
 const { SEED_BOARD, SEED_GROUP } = await import('./seed-board')
 const { installTestContainer } = await import('./test-container')
+
+import { CustomField } from '../components/profile/custom-field'
 
 const OWNER = 7
 
@@ -252,6 +256,39 @@ describe('the registration form', () => {
 })
 
 describe('saving from the profile form', () => {
+  it.each([false, true])('saves an explicitly cleared or checked checkbox: %s', async (checked) => {
+    fields.fields = [definition({ key: 'consent', type: 'checkbox' })]
+    fields.values.set(OWNER, [{ fieldId: 1, value: 'yes' }])
+    const html = renderToStaticMarkup(
+      createElement(CustomField, {
+        className: '',
+        field: {
+          key: 'consent',
+          label: 'Consent',
+          description: null,
+          type: 'checkbox',
+          options: [],
+          value: 'yes',
+          maxLength: 20,
+          required: false,
+        },
+      }),
+    )
+    expect(html).toContain('type="hidden" name="field:consent" value=""')
+    expect(html.indexOf('type="hidden"')).toBeLessThan(html.indexOf('type="checkbox"'))
+    const entries: Array<[string, string]> = [
+      ['location', ''],
+      ['website', ''],
+      ['bio', ''],
+      ['field:consent', ''],
+    ]
+    if (checked) entries.push(['field:consent', 'yes'])
+    expect(await save(entries)).toBeUndefined()
+    expect(fields.saved).toEqual([
+      { userId: OWNER, values: [{ fieldId: 1, value: checked ? 'yes' : '' }] },
+    ])
+  })
+
   async function save(entries: Array<[string, string]>): Promise<string | undefined> {
     try {
       const state = await saveProfileAction(EMPTY_STATE, form(entries))

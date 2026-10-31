@@ -29,6 +29,9 @@ See [Formatting](formatting.md) for Markdown. Resume saved drafts at `/usercp/dr
 | Private messages and contacts | [Messages](messages.md) |
 | Passwords, passkeys and devices | [Account security](account-security.md) |
 
+Optional custom profile checkboxes can be cleared by unchecking them and saving
+your profile. Required checkboxes must remain checked.
+
 Use **Report** on content requiring moderator review. Contact administrators for account or access problems.
 
 ## Paid membership
