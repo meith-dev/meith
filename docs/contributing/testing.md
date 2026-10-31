@@ -31,6 +31,10 @@ Most tests run without JavaScript. Test enhancements separately. Use the fixture
 
 The suite shares state and runs serially. Restore global settings changed by a test. Use fixed clocks where appropriate and allow for task scheduling and the single-connection pool. Do not hide intermittent failures with retries.
 
+Signature-tampering tests must change the character they inspect when choosing a
+replacement. Comparing the last character and replacing the first can leave a
+randomly generated signature unchanged.
+
 Use the fake mailbox to retrieve mail tokens. Request-level tests should use the signed-header helper where HTTP/Secure-cookie behaviour differs from Chromium. Clear the intended cookie by name. Local passkey tests deliberately omit the board URL setting.
 
 ## Website tests
