@@ -17,7 +17,8 @@ Open a forum or use **New posts**, **Unanswered**, **My posts** or **Search**. S
 3. Add permitted attachments or a poll.
 4. Submit. Posts held for approval appear after moderator review.
 
-See [Formatting](formatting.md) for Markdown. Resume saved drafts at `/usercp/drafts`. Editing and deletion may have permission or time limits.
+See [Formatting](formatting.md) for Markdown. Resume saved drafts at `/usercp/drafts`. Reply drafts follow a thread when it moves
+to another forum, provided you can still read and reply there. Editing and deletion may have permission or time limits.
 
 ## Account and activity
 

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
 import { sql } from 'drizzle-orm'
@@ -9,6 +10,7 @@ import { isScope } from '@meith/api'
 
 import { PostgresApiTokenRepository } from './api-repo'
 import { createIsolatedDb, schema } from './client'
+import { PostgresDraftRepository } from './draft-repo'
 import { PostgresReputationRepository } from './reputation-repo'
 import { resultRows } from './result-rows'
 
@@ -191,6 +193,51 @@ describeIfPg('against real Postgres', () => {
         ),
       ).toHaveLength(1)
     } finally {
+      await other.close()
+    }
+  })
+
+  it('serializes an autosave from an old composer with a forum move', async () => {
+    await harness.db.execute(sql`insert into users (id, username, username_lower, email, email_lower, primary_group_id)
+      values (1403, 'draft-owner', 'draft-owner', 'draft@example.test', 'draft@example.test', 2)`)
+    await harness.db.execute(sql`insert into forums (id, title, slug, path)
+      values (1400, 'Before', 'before', '1400'), (1401, 'After', 'after', '1401')`)
+    await harness.db.execute(sql`insert into threads (id, forum_id, title, slug, author_username)
+      values (1402, 1400, 'Moving', 'moving', 'draft-owner')`)
+    const other = createIsolatedDb(scratchUrl(URL!))
+    let saving: Promise<void> | undefined
+    try {
+      const [connection] = await other.sql<{ pid: number }[]>`select pg_backend_pid() as pid`
+      const draft = {
+        forumId: 1400,
+        threadId: 1402,
+        title: '',
+        message: 'Preserved',
+        prefixId: null,
+      }
+      await new PostgresDraftRepository(harness.db).save(1403, draft)
+      await harness.db.transaction(async (tx) => {
+        await tx.execute(sql`select id from threads where id = 1402 for update`)
+        saving = new PostgresDraftRepository(other.db).save(1403, draft)
+        let blockers: unknown[] = []
+        for (let attempt = 0; attempt < 100 && blockers.length === 0; attempt++) {
+          blockers = resultRows<{ blockers: unknown[] }>(
+            await tx.execute(sql`select pg_blocking_pids(${connection!.pid}) as blockers`),
+          )[0]!.blockers
+          if (blockers.length === 0) await delay(25)
+        }
+        expect(blockers.length).toBeGreaterThan(0)
+        await tx.execute(sql`update threads set forum_id = 1401 where id = 1402`)
+        await tx.execute(sql`update post_drafts set forum_id = 1401 where thread_id = 1402`)
+      })
+      await saving
+      await harness.db.execute(sql`delete from forums where id = 1400`)
+      expect(await new PostgresDraftRepository(harness.db).find(1403, 1401, 1402)).toMatchObject({
+        forumId: 1401,
+        message: 'Preserved',
+      })
+    } finally {
+      await saving?.catch(() => {})
       await other.close()
     }
   })

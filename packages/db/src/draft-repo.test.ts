@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -7,6 +9,7 @@ import type { Database } from './client'
 import { PostgresDraftRepository } from './draft-repo'
 import { createTestDb, type TestDb } from './pglite.fixture'
 import { resultRows } from './result-rows'
+import { PostgresThreadToolsRepository } from './thread-tools'
 
 let harness: TestDb
 let db: Database
@@ -194,5 +197,86 @@ describe('draft target confidentiality', () => {
       prefixId: null,
     })
     expect(await drafts.listByUser(901, unrestrictedAudience([], 901))).toEqual([])
+  })
+})
+
+describe('reply drafts across forum moves', () => {
+  const reply = { forumId: 900, threadId: 950, title: '', message: 'Keep my reply', prefixId: null }
+  beforeEach(async () => {
+    await db.execute(sql`delete from forums where id = 999`)
+    await db.execute(
+      sql`insert into forums (id, title, slug, path) values (999, 'Destination', 'destination', '999')`,
+    )
+    await db.execute(
+      sql`insert into threads (id, forum_id, title, slug, author_user_id, author_username) values (950, 900, 'Moved', 'moved', 901, 'one')`,
+    )
+    await drafts.save(901, reply)
+  })
+
+  it('finds and removes a legacy reply draft using its thread identity', async () => {
+    await db.execute(sql`update threads set forum_id = 999 where id = 950`)
+    expect(await drafts.find(901, 999, 950)).toMatchObject({
+      forumId: 999,
+      message: 'Keep my reply',
+    })
+    expect(await drafts.listByUser(901, unrestrictedAudience([999], 901))).toMatchObject([
+      { forumId: 999 },
+    ])
+    await drafts.remove(902, 999, 950)
+    expect(await drafts.find(901, 999, 950)).not.toBeNull()
+    await drafts.remove(901, 999, 950)
+    expect(await drafts.find(901, 900, 950)).toBeNull()
+  })
+
+  it('saves with the locked current forum even when the composer supplies an old forum', async () => {
+    await db.execute(sql`update threads set forum_id = 999 where id = 950`)
+    await drafts.save(901, { ...reply, message: 'Updated reply' })
+    expect(
+      resultRows(await db.execute(sql`select forum_id from post_drafts where thread_id = 950`)),
+    ).toEqual([{ forum_id: 999 }])
+    await db.execute(sql`delete from forums where id = 900`)
+    expect(await drafts.find(901, 999, 950)).toMatchObject({ message: 'Updated reply' })
+  })
+
+  it('moves stored references before the old forum can delete an untouched reply draft', async () => {
+    const tools = new PostgresThreadToolsRepository(db)
+    expect(
+      await tools.move({
+        threadId: 950,
+        fromForumId: 900,
+        toForumId: 999,
+        actorUserId: 901,
+        at: new Date(),
+      }),
+    ).toBe(true)
+    await db.execute(sql`delete from forums where id = 900`)
+    expect(await drafts.find(901, 999, 950)).toMatchObject({
+      message: 'Keep my reply',
+      forumId: 999,
+    })
+  })
+
+  it('repairs existing references without changing saved content or timestamps', async () => {
+    await db.execute(sql`update threads set forum_id = 999 where id = 950`)
+    const before = await drafts.find(901, 999, 950)
+    const migration = readFileSync(
+      new URL('../migrations/0073_reply_draft_forums.sql', import.meta.url),
+      'utf8',
+    )
+    await db.execute(sql.raw(migration))
+    expect(
+      resultRows(await db.execute(sql`select forum_id from post_drafts where thread_id = 950`)),
+    ).toEqual([{ forum_id: 999 }])
+    expect(await drafts.find(901, 999, 950)).toEqual(before)
+    await db.execute(sql`delete from forums where id = 900`)
+    expect(await drafts.find(901, 999, 950)).toEqual(before)
+  })
+
+  it('keeps new-thread drafts scoped to their forum', async () => {
+    await drafts.save(901, { ...reply, threadId: null, message: 'Original forum' })
+    await drafts.save(901, { ...reply, forumId: 999, threadId: null, message: 'Other forum' })
+    await drafts.remove(901, 999, null)
+    expect(await drafts.find(901, 900, null)).toMatchObject({ message: 'Original forum' })
+    expect(await drafts.find(901, 999, null)).toBeNull()
   })
 })

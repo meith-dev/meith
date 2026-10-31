@@ -40,3 +40,9 @@ Do not point a new PostgreSQL major at an old data volume. Restore a dump into a
 ## Verify
 
 Check version, pending migrations, sign-in, posting, private forums, attachments, mail, scheduled work and logs before reopening. If checks fail, use the restore plan rather than older code against the changed schema.
+
+Migration `0073_reply_draft_forums` repairs reply drafts' stored forum references
+from their live threads without changing saved content or timestamps. Updated
+thread moves and autosaves maintain these references under the thread lock.
+Apply this forward-only migration before deleting an old forum after an upgrade;
+drafts already removed by an earlier forum deletion cannot be recovered by it.
