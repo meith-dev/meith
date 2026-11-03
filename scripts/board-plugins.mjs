@@ -135,7 +135,7 @@ export async function formatWithBiome(source, options) {
     await writeFile(file, source, 'utf8')
     execFileSync(
       join(options.root, 'node_modules/.bin/biome'),
-      ['check', '--write', `--config-path=${options.root}`, file],
+      ['check', '--write', '--vcs-enabled=false', `--config-path=${options.root}`, file],
       { stdio: 'pipe' },
     )
     return await readFile(file, 'utf8')

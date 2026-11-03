@@ -17,6 +17,8 @@ Biome formats JavaScript, TypeScript, JSON and CSS. Use two spaces, single quote
 pnpm exec biome check --write path/to/file.ts
 ```
 
+Slot copy builders return message dictionaries rather than React components; their tests use targeted `noComponentHookFactories` suppressions where Biome mistakes capitalized slot keys for component factories.
+
 A suppression must name the rule and reason on the preceding line. Do not disable a rule globally to bypass one failure.
 
 ## Invariants

@@ -12,7 +12,7 @@ export const DEFAULT_REPOSITORY_URL = 'https://github.com/meith-dev/meith'
 
 export const DEFAULT_TEMPLATE_REPOSITORY_URL = 'https://github.com/meith-dev/vercel-template'
 
-export const NEXT_VERSION = '16.3.4'
+export const NEXT_VERSION = '16.4.3'
 
 export const AT_ROOT_FLAG = '--at-root'
 

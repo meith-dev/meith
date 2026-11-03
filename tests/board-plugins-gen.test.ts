@@ -67,6 +67,10 @@ describe('renderPluginsModule', () => {
 })
 
 describe('formatWithBiome', () => {
+  it('rejects malformed source instead of returning it unformatted', async () => {
+    await expect(formatWithBiome('export const =', { root: ROOT })).rejects.toThrow()
+  })
+
   it('is deterministic: formatting the same source twice gives byte-identical output', async () => {
     const source = renderPluginsModule([ENTRY])
     const first = await formatWithBiome(source, { root: ROOT })

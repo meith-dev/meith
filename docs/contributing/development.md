@@ -56,7 +56,9 @@ See [Architecture](architecture.md) and [Board workspaces](board-workspaces.md).
 
 ## Validate changes
 
-Run focused tests while editing, then `pnpm verify` and `pnpm comments:check`. Use [Testing](testing.md) for browser and PostgreSQL tests. Format only touched files with `pnpm exec biome check --write <files>`.
+Run focused tests while editing, then `pnpm verify` and `pnpm comments:check`. Use [Testing](testing.md) for browser and PostgreSQL tests. Format only touched files with `pnpm exec biome check --write <files>`. When updating Biome, update the schema URL in `biome.json` to match the CLI version, including for generators that load this configuration. Markdown and YAML formatting remain disabled. Generators disable VCS integration when formatting temporary files outside the repository; they still use the shared formatter, import sorting and lint rules.
+
+The tracing SDK remains on OpenTelemetry 2.x. Keep the API below 1.10 and the OTLP HTTP exporter on 0.222.x until migrating the SDK and resources together to 3.x; exporter 0.300.x requires the newer API through its transformer dependency.
 
 No explanatory inline comments are allowed. Put explanations in `docs/`. Exceptions are `biome-ignore`, `@ts-expect-error`, compiler-read type annotations, and the six source files used for generated theme/plugin references. See [Repository checks](repository-checks.md).
 

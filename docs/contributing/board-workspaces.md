@@ -37,7 +37,7 @@ Keep custom application code outside generated framework directories. Never edit
 
 ## Change the framework
 
-Keep Next.js versions aligned across framework peers, scaffold and driver manifests. Regenerate the board installer and update the pnpm lockfile. Deploy template snapshots change during releases.
+Keep Next.js versions aligned across framework peers, scaffold and driver manifests. Regenerate the board installer and update the pnpm lockfile. Deploy template snapshots change during releases. The current framework uses Next.js 16.4.3 and React 19.3.1; scaffolded boards must resolve the same Next.js version as `@meith/web` to keep build and runtime internals compatible.
 
 Validate packaging changes with `pnpm board:workspace:smoke` and extension changes with `pnpm extension:workspace:smoke`. These pack local dependencies and test generated consumers, including root materialization, styles and public assets.
 
