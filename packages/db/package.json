@@ -57,7 +57,7 @@
     "@meith/tasks": "workspace:*",
     "@meith/threads": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "postgres": "^3.4.7"
+    "postgres": "^4.0.0"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.11",
