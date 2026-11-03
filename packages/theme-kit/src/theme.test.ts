@@ -123,6 +123,7 @@ describe('defineTheme', () => {
         key: 'typo',
         title: 'Typo',
         slots: {},
+        // biome-ignore lint/correctness/noComponentHookFactories: Slot copy builders return messages, not React components.
         copy: { Postbit: () => ({}) } as unknown as ThemeDefinition['copy'],
       }),
     ).toThrow(/carries copy for unknown slot "Postbit"/)
@@ -213,7 +214,9 @@ describe('resolveTheme', () => {
       title: 'Grandparent',
       slots: { Header: grandparentHeader, Footer: grandparentFooter },
       copy: {
+        // biome-ignore lint/correctness/noComponentHookFactories: Slot copy builders return messages, not React components.
         Header: () => ({ 'grandparent.header': 'grandparent' }),
+        // biome-ignore lint/correctness/noComponentHookFactories: Slot copy builders return messages, not React components.
         Footer: () => ({ 'grandparent.footer': 'grandparent' }),
       },
     })
@@ -222,6 +225,7 @@ describe('resolveTheme', () => {
       title: 'Child',
       extends: grandparentWithCopy,
       slots: { Header: childHeader },
+      // biome-ignore lint/correctness/noComponentHookFactories: Slot copy builders return messages, not React components.
       copy: { Header: () => ({ 'child.header': 'child' }) },
     })
 
@@ -262,6 +266,7 @@ describe('slotCopy', () => {
         key: 'greets',
         title: 'Greets',
         slots: {},
+        // biome-ignore lint/correctness/noComponentHookFactories: Slot copy builders return messages, not React components.
         copy: { Header: (translator) => ({ greeting: translator.t('stub.greeting') }) },
       }),
     )
