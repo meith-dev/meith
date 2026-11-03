@@ -688,10 +688,10 @@ importers:
         version: link:../threads
       drizzle-orm:
         specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@3.4.9)
+        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@4.0.0)
       postgres:
-        specifier: ^3.4.7
-        version: 3.4.9
+        specifier: ^4.0.0
+        version: 4.0.0
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.13
@@ -746,7 +746,7 @@ importers:
         version: 2.8.2
       drizzle-orm:
         specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@3.4.9)
+        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@4.0.0)
       next:
         specifier: 16.4.3
         version: 16.4.3(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -978,7 +978,7 @@ importers:
     devDependencies:
       drizzle-orm:
         specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@3.4.9)
+        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@4.0.0)
 
   packages/search:
     dependencies:
@@ -1044,7 +1044,7 @@ importers:
         version: link:../forums
       drizzle-orm:
         specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@3.4.9)
+        version: 0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@4.0.0)
 
   packages/theme-kit:
     dependencies:
@@ -2263,12 +2263,12 @@ packages:
     resolution: {integrity: sha512-VVPPgHyQ6ShqnrmDWuxjmUIsO9gWyOZFmuOfLd9LfBGQJwZfy0gvv9pbHSJuoFNIYC7ZDX9aoFwowjcdSC4E8w==}
     engines: {node: '>=18'}
 
-  '@napi-rs/wasm-runtime@1.2.6':
-    resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
+  '@napi-rs/wasm-runtime@1.2.7':
+    resolution: {integrity: sha512-zJccwplOAbgfZju95IUHazLnx9RAPtPN2YGJXI6UbrgeaR9QfPjGrQL6ERkSAtnVCA4Q+83ApGyaX5zdpCaKkQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
     peerDependencies:
-      '@emnapi/core': ^1.7.1 || 2.0.0-beta.2
-      '@emnapi/runtime': ^1.7.1 || 2.0.0-beta.2
+      '@emnapi/core': ^1.7.1 || 2.0.0-beta.2 || 2.0.0-beta.3
+      '@emnapi/runtime': ^1.7.1 || 2.0.0-beta.2 || 2.0.0-beta.3
 
   '@next/env@16.4.3':
     resolution: {integrity: sha512-a7tz1QCcWWkwC/rPJcPMJk/UNRu9CFhDd3OHYE5hddbJrs8BqRTalxI6GlKCWEGzRLHN+S/B7a4PAHCtm25aBQ==}
@@ -4066,9 +4066,9 @@ packages:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postgres@3.4.9:
-    resolution: {integrity: sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw==}
-    engines: {node: '>=12'}
+  postgres@4.0.0:
+    resolution: {integrity: sha512-kBh8qXtcvvIAc00DftQyOxz7M/3Zxww1tRMXZPLzipNXXl5PIzHml+9zB3Mrge2U8ldc0WF1ZdLp1iYQi7Kh3A==}
+    engines: {node: '>=20'}
 
   process-warning@5.1.1:
     resolution: {integrity: sha512-oCkNVj4OKnKEcocVBcDfiIugN1/cE6rgfT3nCtzeqZPA8+rIxMaQ0xXzIkGP8Gj2qUaP1UR7uhJ1VD8lUCpzCg==}
@@ -5346,7 +5346,7 @@ snapshots:
       strict-event-emitter: 0.5.1
     optional: true
 
-  '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
+  '@napi-rs/wasm-runtime@1.2.7(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
       '@emnapi/runtime': 1.11.1
@@ -5565,7 +5565,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.1
       '@emnapi/runtime': 1.11.1
-      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@napi-rs/wasm-runtime': 1.2.7(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
     optional: true
 
   '@rolldown/binding-win32-arm64-msvc@1.1.5':
@@ -6397,12 +6397,12 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.15
 
-  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@3.4.9):
+  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.13)(@opentelemetry/api@1.10.0)(mysql2@3.24.6(@types/node@26.6.6))(postgres@4.0.0):
     optionalDependencies:
       '@electric-sql/pglite': 0.5.13
       '@opentelemetry/api': 1.10.0
       mysql2: 3.24.6(@types/node@26.6.6)
-      postgres: 3.4.9
+      postgres: 4.0.0
 
   elkjs@0.9.3: {}
 
@@ -7042,7 +7042,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
-  postgres@3.4.9: {}
+  postgres@4.0.0: {}
 
   process-warning@5.1.1: {}
 
